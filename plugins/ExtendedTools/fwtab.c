@@ -463,12 +463,11 @@ VOID FwUpdateNodeLocalPortServiceName(
 {
     if (!FwNode->LocalPortServiceResolved)
     {
-        PH_STRINGREF string;
+        PPH_STRINGREF string;
 
         if (EtFwLookupPortServiceName(FwNode->LocalEndpoint.Port, &string))
         {
-            FwNode->LocalPortServiceName.Buffer = string.Buffer;
-            FwNode->LocalPortServiceName.Length = string.Length;
+            FwNode->LocalPortServiceName = string;
         }
 
         FwNode->LocalPortServiceResolved = TRUE;
@@ -481,12 +480,11 @@ VOID FwUpdateNodeRemotePortServiceName(
 {
     if (!FwNode->RemotePortServiceResolved)
     {
-        PH_STRINGREF string;
+        PPH_STRINGREF string;
 
         if (EtFwLookupPortServiceName(FwNode->RemoteEndpoint.Port, &string))
         {
-            FwNode->RemotePortServiceName.Buffer = string.Buffer;
-            FwNode->RemotePortServiceName.Length = string.Length;
+            FwNode->RemotePortServiceName = string;
         }
 
         FwNode->RemotePortServiceResolved = TRUE;
@@ -707,7 +705,7 @@ BEGIN_SORT_FUNCTION(LocalPortServiceName)
     FwUpdateNodeLocalPortServiceName(node1);
     FwUpdateNodeLocalPortServiceName(node2);
 
-    sortResult = PhCompareStringRefWithNullSortOrder(&node1->LocalPortServiceName, &node2->LocalPortServiceName, FwTreeNewSortOrder, TRUE);
+    sortResult = PhCompareStringRefWithNullSortOrder(node1->LocalPortServiceName, node2->LocalPortServiceName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -716,7 +714,7 @@ BEGIN_SORT_FUNCTION(RemotePortServiceName)
     FwUpdateNodeRemotePortServiceName(node1);
     FwUpdateNodeRemotePortServiceName(node2);
 
-    sortResult = PhCompareStringRefWithNullSortOrder(&node1->RemotePortServiceName, &node2->RemotePortServiceName, FwTreeNewSortOrder, TRUE);
+    sortResult = PhCompareStringRefWithNullSortOrder(node1->RemotePortServiceName, node2->RemotePortServiceName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1268,13 +1266,31 @@ BOOLEAN NTAPI FwTreeNewCallback(
            case FW_COLUMN_LOCALSERVICENAME:
                {
                    FwUpdateNodeLocalPortServiceName(node);
-                   getCellText->Text = node->LocalPortServiceName;
+
+                   if (node->LocalPortServiceName && node->LocalPortServiceName->Length)
+                   {
+                       getCellText->Text.Buffer = node->LocalPortServiceName->Buffer;
+                       getCellText->Text.Length = node->LocalPortServiceName->Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
                }
                break;
            case FW_COLUMN_REMOTESERVICENAME:
                {
                    FwUpdateNodeRemotePortServiceName(node);
-                   getCellText->Text = node->RemotePortServiceName;
+
+                   if (node->RemotePortServiceName && node->RemotePortServiceName->Length)
+                   {
+                       getCellText->Text.Buffer = node->RemotePortServiceName->Buffer;
+                       getCellText->Text.Length = node->RemotePortServiceName->Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
                }
                break;
             default:

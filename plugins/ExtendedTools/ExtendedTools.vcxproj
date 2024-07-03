@@ -187,6 +187,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\device.ico" />
+    <Image Include="resources\dll.ico" />
     <Image Include="resources\driver.ico" />
     <Image Include="resources\event.ico" />
     <Image Include="resources\folder.ico" />

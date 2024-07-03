@@ -997,8 +997,8 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
 
-    PH_STRINGREF LocalPortServiceName;
-    PH_STRINGREF RemotePortServiceName;
+    PPH_STRINGREF LocalPortServiceName;
+    PPH_STRINGREF RemotePortServiceName;
 
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -1071,7 +1071,7 @@ VOID EtFwShowWhoisWindow(
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
-    _Out_ PPH_STRINGREF ServiceName
+    _Out_ PPH_STRINGREF* ServiceName
     );
 
 typedef struct _SEC_WINNT_AUTH_IDENTITY_W SEC_WINNT_AUTH_IDENTITY_W, *PSEC_WINNT_AUTH_IDENTITY_W;

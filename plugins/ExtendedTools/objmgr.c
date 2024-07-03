@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -14,6 +14,8 @@
 #include <hndlinfo.h>
 
 static PH_STRINGREF EtObjectManagerRootDirectoryObject = PH_STRINGREF_INIT(L"\\"); // RtlNtPathSeperatorString
+static PH_STRINGREF EtObjectManagerUserDirectoryObject = PH_STRINGREF_INIT(L"??"); // RtlDosDevicesPrefix
+static PH_STRINGREF DirectoryObjectType = PH_STRINGREF_INIT(L"Directory");
 static HWND EtObjectManagerDialogHandle = NULL;
 static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
@@ -875,6 +877,16 @@ INT_PTR CALLBACK WinObjDlgProc(
                 EtObjectManagerRootDirectoryObject
                 );
 
+            {
+                DIRECTORY_ENUM_CONTEXT enumContext;
+
+                enumContext.TreeViewHandle = context->TreeViewHandle;
+                enumContext.RootTreeItem = context->RootTreeObject;
+                enumContext.DirectoryPath = EtObjectManagerRootDirectoryObject;
+
+                EtEnumDirectoryObjectsCallback(&EtObjectManagerUserDirectoryObject, &DirectoryObjectType, &enumContext);
+            }
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeViewHandle, TRUE);
@@ -989,17 +1001,73 @@ INT_PTR CALLBACK WinObjDlgProc(
                 break;
             case NM_DBLCLK:
                 {
-                    POBJECT_ENTRY item;
+                    POBJECT_ENTRY entry;
 
                     if (header->hwndFrom != context->ListViewHandle)
                         break;
 
-                    if (item = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                    if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        //if (PhEqualStringRef2(&item->TypeName->sr, L"SymbolicLink", TRUE))
-                        //{
-                        //    PPH_STRING currentPath = EtGetSelectedTreeViewPath(context);
-                        //}
+                        if (PhEqualStringRef2(&entry->TypeName->sr, L"SymbolicLink", TRUE))
+                        {
+                            PHANDLE_OPEN_CONTEXT objectContext;
+                            NTSTATUS status;
+                            HANDLE objectHandle;
+
+                            objectContext = PhAllocateZero(sizeof(HANDLE_OPEN_CONTEXT));
+                            objectContext->CurrentPath = EtGetSelectedTreeViewPath(context);
+                            objectContext->Object = entry;
+
+                            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, objectContext, SYMBOLIC_LINK_QUERY)))
+                            {
+                                UNICODE_STRING targetName;
+                                WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
+
+                                RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
+                                status = NtQuerySymbolicLinkObject(objectHandle, &targetName, NULL);
+                                NtClose(objectHandle);
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    PH_STRINGREF directoryPart;
+                                    PH_STRINGREF remainingPart;
+                                    HTREEITEM selectedTreeItem;
+                                    PPH_STRING selectedPath;
+
+                                    selectedPath = PhCreateStringFromUnicodeString(&targetName);
+                                    remainingPart = PhGetStringRef(selectedPath);
+                                    selectedTreeItem = context->RootTreeObject;
+
+                                    while (remainingPart.Length != 0)
+                                    {
+                                        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
+
+                                        if (directoryPart.Length != 0)
+                                        {
+                                            HTREEITEM directoryItem = EtTreeViewFindItem(
+                                                context->TreeViewHandle,
+                                                selectedTreeItem,
+                                                &directoryPart
+                                                );
+
+                                            if (directoryItem)
+                                            {
+                                                TreeView_SelectItem(context->TreeViewHandle, directoryItem);
+                                                selectedTreeItem = directoryItem;
+                                            }
+                                        }
+                                    }
+
+                                    //EtTreeViewEnumDirectoryObjects(context->TreeViewHandle, context->RootTreeObject, PhGetStringRef(selectedPath));
+                                    PhDereferenceObject(selectedPath);
+                                }
+                            }
+                            else
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to open object type.", status, 0);
+                                EtObjectManagerHandleCloseCallback(objectContext);
+                            }
+                        }
                     }
                 }
                 break;
