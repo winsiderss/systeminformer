@@ -684,9 +684,6 @@ typedef struct _PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY
 #endif
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
-#define ProcessUserPointerAuthPolicy 17
-#define ProcessSEHOPPolicy 18
-
 typedef struct _PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY {
     union {
         ULONG Flags;
