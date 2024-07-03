@@ -1154,7 +1154,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_TOOLS_THREADSTACKS:
         {
-            PhShowThreadStacksDialog();
+            PhShowThreadStacksDialog(WindowHandle);
         }
         break;
     case ID_TOOLS_CREATESERVICE:
