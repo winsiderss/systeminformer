@@ -652,7 +652,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             guidString = PhaSubstring(
                 argPart,
                 indexOfProcessId + 11,
-                (ULONG)argPart->Length / sizeof(WCHAR) - indexOfProcessId - 11
+                argPart->Length / sizeof(WCHAR) - indexOfProcessId - 11
                 );
 
             if (!NT_SUCCESS(PhStringToGuid(&guidString->sr, &guid)))

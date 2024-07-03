@@ -1403,6 +1403,10 @@ VOID PvpSetPeImageCharacteristics(
                 PhAppendStringBuilder2(&stringBuilder, L"CET context validation (Relaxed), ");
             if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_DYNAMIC_APIS_ALLOW_IN_PROC)
                 PhAppendStringBuilder2(&stringBuilder, L"CET dynamic APIs allowed, ");
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_FORWARD_CFI_COMPAT)
+                PhAppendStringBuilder2(&stringBuilder, L"CFI shadow stack compatible, ");
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_HOTPATCH_COMPATIBLE)
+                PhAppendStringBuilder2(&stringBuilder, L"Hotpatch compatible, ");
         }
     }
 

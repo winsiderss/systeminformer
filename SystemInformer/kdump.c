@@ -391,6 +391,8 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                     options.IncludeNonEssentialHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISORNONESSENTIAL)) == BST_CHECKED;
 
                     PhUiCreateLiveDump(hwndDlg, &options);
+
+                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             }

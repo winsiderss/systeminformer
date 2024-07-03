@@ -324,7 +324,6 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                PVOID imageSectionData;
                 DOUBLE imageSectionEntropy;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
@@ -349,7 +348,6 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                PVOID imageSectionData;
                 PPH_STRING ssdeepHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
@@ -374,7 +372,6 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                PVOID imageSectionData;
                 PPH_STRING tlshHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
