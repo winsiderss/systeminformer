@@ -1390,6 +1390,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     MINIDUMP_CALLBACK_INFORMATION callbackInfo;
     HANDLE processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
     ULONG processDumpType = Payload->u.WriteMiniDumpProcess.i.DumpType;
+    HRESULT status = E_UNEXPECTED;
     HANDLE snapshotHandle = NULL;
 
     if (NT_SUCCESS(PhCreateProcessSnapshot(&snapshotHandle, processHandle, NULL)))
@@ -1408,7 +1409,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = snapshotHandle;
 
-    if (PhWriteMiniDumpProcess(
+    status = PhWriteMiniDumpProcess(
         snapshotHandle ? snapshotHandle : processHandle,
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.ProcessId),
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalFileHandle),
@@ -1416,7 +1417,9 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         NULL,
         NULL,
         &callbackInfo
-        ))
+        );
+
+    if (HR_SUCCESS(status))
     {
         if (snapshotHandle)
         {
@@ -1427,14 +1430,12 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     }
     else
     {
-        ULONG error = GetLastError();
-
         if (snapshotHandle)
         {
             PhFreeProcessSnapshot(snapshotHandle, processHandle);
         }
 
-        if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
+        if (status == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
             return STATUS_INVALID_PARAMETER;
         else
             return STATUS_UNSUCCESSFUL;

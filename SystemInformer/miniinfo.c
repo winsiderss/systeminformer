@@ -352,8 +352,6 @@ VOID PhMipContainerOnShowWindow(
     }
     else
     {
-        ULONG i;
-
         for (i = 0; i < MaxMiniInfoPinType; i++)
             PhMipPinCounts[i] = 0;
 

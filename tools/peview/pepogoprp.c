@@ -114,7 +114,6 @@ VOID PvEnumerateImagePogoSections(
 
             __try
             {
-                PVOID imageSectionData;
                 PPH_STRING ssdeepHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
@@ -140,7 +139,6 @@ VOID PvEnumerateImagePogoSections(
 
             __try
             {
-                PVOID imageSectionData;
                 PPH_STRING tlshHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))

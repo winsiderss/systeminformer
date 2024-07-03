@@ -570,8 +570,10 @@ VOID PhpEnumerateMappingsEntries(
     }
 
     clientId.UniqueProcess = Context->ProcessId;
-    clientId.UniqueThread = 0;
+    clientId.UniqueThread = NULL;
+
     status = KphOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &clientId);
+
     if (!NT_SUCCESS(status))
         return;
 
@@ -594,11 +596,10 @@ VOID PhpEnumerateMappingsEntries(
 
         if (info->ViewMapType == VIEW_MAP_TYPE_PROCESS)
         {
-            CLIENT_ID clientId;
             PPH_STRING string = NULL;
 
             clientId.UniqueProcess = info->ProcessId;
-            clientId.UniqueThread = 0;
+            clientId.UniqueThread = NULL;
 
             string = PhStdGetClientIdName(&clientId);
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, string->Buffer, info);
@@ -745,16 +746,11 @@ INT_PTR CALLBACK PhpMappingsPageProc(
         }
         break;
     case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-    case WM_CTLCOLORLISTBOX:
-        {
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            SetTextColor((HDC)wParam, RGB(0, 0, 0));
-            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
-        }
-        break;
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

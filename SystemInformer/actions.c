@@ -3984,6 +3984,8 @@ static NTSTATUS PhpCheckServiceStatus(
 
         checkpoint = serviceStatus.dwCheckPoint;
     }
+
+    return status;
 }
 
 static BOOLEAN PhpShowErrorService(
