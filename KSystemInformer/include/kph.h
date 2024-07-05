@@ -208,8 +208,7 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 
     for (;;)
     {
-        expected = *Target;
-        MemoryBarrier();
+        expected = ReadSizeTAcquire(Target);
 
         if (Value <= expected)
         {
@@ -245,6 +244,9 @@ ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
+#define RebasePtr(pointer, oldBase, newBase)                                  \
+Add2Ptr(newBase, PtrOffset(oldBase, pointer))
+
 #define RebaseUnicodeString(string, oldBase, newBase)                         \
 if ((string)->Buffer)                                                         \
 {                                                                             \
@@ -262,6 +264,25 @@ typedef struct _KPH_FILE_VERSION
     USHORT BuildNumber;
     USHORT Revision;
 } KPH_FILE_VERSION, *PKPH_FILE_VERSION;
+
+typedef struct _KPH_MEMORY_REGION
+{
+    PVOID Start;
+    PVOID End;
+} KPH_MEMORY_REGION, *PKPH_MEMORY_REGION;
+
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN KphIsValidMemoryRegion(
+    _In_ PKPH_MEMORY_REGION Region,
+    _In_ PVOID Start,
+    _In_ PVOID End
+    )
+{
+    return ((Region->Start <= Region->End) &&
+            (Region->Start >= Start) &&
+            (Region->End <= End));
+}
 
 // main
 
@@ -615,7 +636,7 @@ VOID KphCleanupDynData(
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
-    _In_ PVOID Object
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 _Must_inspect_result_
@@ -876,22 +897,33 @@ NTSTATUS KphQueryInformationThread(
 
 // util
 
+#pragma deprecated(memcmp)
+#pragma deprecated(RtlCompareMemory)
+#pragma deprecated(RtlEqualMemory)
+
 _Must_inspect_result_
+FORCEINLINE
 INT KphCompareMemory(
     _In_reads_bytes_(Length) PVOID Buffer1,
     _In_reads_bytes_(Length) PVOID Buffer2,
     _In_ SIZE_T Length
-    );
-#pragma deprecated(memcmp)
-#pragma deprecated(RtlCompareMemory)
+    )
+{
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return memcmp(Buffer1, Buffer2, Length);
+}
 
 _Must_inspect_result_
+FORCEINLINE
 BOOLEAN KphEqualMemory(
     _In_reads_bytes_(Length) PVOID Buffer1,
     _In_reads_bytes_(Length) PVOID Buffer2,
     _In_ SIZE_T Length
-    );
-#pragma deprecated(RtlEqualMemory)
+    )
+{
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return (memcmp(Buffer1, Buffer2, Length) == 0);
+}
 
 _Must_inspect_result_
 PVOID KphSearchMemory(
@@ -1024,6 +1056,7 @@ NTSTATUS KphQueryRegistryULong(
     _Out_ PULONG Value
     );
 
+#define KPH_MAP_DATA     0x00000000ul
 #define KPH_MAP_IMAGE    0x00000001ul
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
@@ -1195,6 +1228,21 @@ _Must_inspect_result_
 NTSTATUS KphGetSigningLevel(
     _In_ PFILE_OBJECT FileObject,
     _Out_ PSE_SIGNING_LEVEL SigningLevel
+    );
+
+typedef union _KPH_IMAGE_NT_HEADERS
+{
+    PIMAGE_NT_HEADERS Headers;
+    PIMAGE_NT_HEADERS32 Headers32;
+    PIMAGE_NT_HEADERS64 Headers64;
+} KPH_IMAGE_NT_HEADERS, *PKPH_IMAGE_NT_HEADERS;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PKPH_IMAGE_NT_HEADERS Headers
     );
 
 // lsa
@@ -1893,6 +1941,17 @@ NTSTATUS KphStripProtectedProcessMasks(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+// imgcoherency
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCheckImageCoherency(
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ImageSize,
+    _In_ PVOID DataBase,
+    _In_ SIZE_T DataSize
+    );
+
 // verify
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2348,7 +2407,6 @@ NTSTATUS KphHttpBuildRequest(
     _Inout_ PULONG Length
     );
 
-// download
 // download
 
 typedef PVOID KPH_DOWNLOAD_HANDLE;

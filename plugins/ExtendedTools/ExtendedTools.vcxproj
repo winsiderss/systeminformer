@@ -125,6 +125,12 @@
     <ClCompile Include="iconext.c" />
     <ClCompile Include="framemon.cpp" />
     <ClCompile Include="namedpipes.c" />
+    <ClCompile Include="npudetails.c" />
+    <ClCompile Include="npumini.c" />
+    <ClCompile Include="npumon.c" />
+    <ClCompile Include="npunodes.c" />
+    <ClCompile Include="npuprprp.c" />
+    <ClCompile Include="npusys.c" />
     <ClCompile Include="objmgr.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
@@ -162,6 +168,9 @@
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />
     <ClInclude Include="gpusys.h" />
+    <ClInclude Include="npumini.h" />
+    <ClInclude Include="npumon.h" />
+    <ClInclude Include="npusys.h" />
     <ClInclude Include="poolmon.h" />
     <ClInclude Include="PresentMon\ETW\Microsoft_Windows_D3D9.h" />
     <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Dwm_Core.h" />
@@ -187,6 +196,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\device.ico" />
+    <Image Include="resources\dll.ico" />
     <Image Include="resources\driver.ico" />
     <Image Include="resources\event.ico" />
     <Image Include="resources\folder.ico" />

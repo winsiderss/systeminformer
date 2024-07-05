@@ -439,7 +439,15 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
 // psapi:PSAPI_WS_WATCH_INFORMATION_EX
 typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
 {
-    PROCESS_WS_WATCH_INFORMATION BasicInfo;
+    union
+    {
+        PROCESS_WS_WATCH_INFORMATION BasicInfo;
+        struct
+        {
+            PVOID FaultingPc;
+            PVOID FaultingVa;
+        };
+    };
     ULONG_PTR FaultingThreadId;
     ULONG_PTR Flags;
 } PROCESS_WS_WATCH_INFORMATION_EX, *PPROCESS_WS_WATCH_INFORMATION_EX;
@@ -684,9 +692,6 @@ typedef struct _PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY
 #endif
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
-#define ProcessUserPointerAuthPolicy 17
-#define ProcessSEHOPPolicy 18
-
 typedef struct _PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY {
     union {
         ULONG Flags;

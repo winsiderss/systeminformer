@@ -23,6 +23,7 @@ typedef struct _KPH_STACK_BACK_TRACE_OBJECT
     ULONG BackTraceHash;
     ULONG Flags;
     BOOLEAN DoHash;
+    PKPH_THREAD_CONTEXT Thread;
     PVOID BackTrace[ANYSIZE_ARRAY];
 } KPH_STACK_BACK_TRACE_OBJECT, *PKPH_STACK_BACK_TRACE_OBJECT;
 
@@ -82,28 +83,28 @@ VOID KphpTryAddSentinelFrame(
  * \param[out] BackTrace Buffer to store the back trace in.
  * \param[out] BackTraceHash Optionally receives a hash of the back trace.
  * \param[in] Flags A combination of KPH_STACK_BACK_TRACE_* flags.
+ * \param[in] Thread Optional thread context of the target thread, used for
+ * internal tracking to prevent accidental recursion.
  *
  * \return The number of captured frames.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
-ULONG KphCaptureStackBackTrace(
+ULONG KphpCaptureStackBackTrace(
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,
     _Out_writes_(FramesToCapture) PVOID* BackTrace,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _In_opt_ PKPH_THREAD_CONTEXT Thread
     )
 {
     ULONG frames;
     ULONG skip;
-    PKPH_THREAD_CONTEXT thread;
 
     NPAGED_CODE_DISPATCH_MAX();
 
     FramesToSkip += 1;
-
-    thread = NULL;
 
     skip = (FramesToSkip << RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT);
 
@@ -148,33 +149,34 @@ ContinueCapture:
         goto Exit;
     }
 
-    thread = KphGetCurrentThreadContext();
-    if (!thread)
+    if (!Thread)
     {
         KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
         goto Exit;
     }
+
+    NT_ASSERT(Thread->EThread == PsGetCurrentThread());
 
     //
     // N.B. This path can become accidentally recursive if the user mode stack
     // needs to be paged in and another kernel callback lands here again. In
     // that case skip the capture.
     //
-    if (thread->CapturingUserModeStack)
+    if (Thread->CapturingUserModeStack)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Skipping user mode stack capture for "
                       "thread %lu in process %wZ (%lu)",
-                      HandleToULong(thread->ClientId.UniqueThread),
-                      KphGetThreadImageName(thread),
-                      HandleToULong(thread->ClientId.UniqueProcess));
+                      HandleToULong(Thread->ClientId.UniqueThread),
+                      KphGetThreadImageName(Thread),
+                      HandleToULong(Thread->ClientId.UniqueProcess));
 
         KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
         goto Exit;
     }
 
-    thread->CapturingUserModeStack = TRUE;
+    Thread->CapturingUserModeStack = TRUE;
 
     __try
     {
@@ -187,7 +189,7 @@ ContinueCapture:
         KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
     }
 
-    thread->CapturingUserModeStack = FALSE;
+    Thread->CapturingUserModeStack = FALSE;
 
 Exit:
 
@@ -199,9 +201,56 @@ Exit:
 
         for (ULONG i = 0; i < frames; i++)
         {
+#pragma prefast(suppress: 6385)
             *BackTraceHash += PtrToUlong(BackTrace[i]);
         }
     }
+
+    return frames;
+}
+
+/**
+ * \brief Captures a stack back trace.
+ *
+ * \param[in] FramesToSkip The number of kernel frames to skip.
+ * \param[in] FramesToCapture The number of frames to capture.
+ * \param[out] BackTrace Buffer to store the back trace in.
+ * \param[out] BackTraceHash Optionally receives a hash of the back trace.
+ * \param[in] Flags A combination of KPH_STACK_BACK_TRACE_* flags.
+ *
+ * \return The number of captured frames.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != 0)
+ULONG KphCaptureStackBackTrace(
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
+    )
+{
+    ULONG frames;
+    PKPH_THREAD_CONTEXT thread;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (FlagOn(Flags, KPH_STACK_BACK_TRACE_USER_MODE) &&
+        (KeGetCurrentIrql() < DISPATCH_LEVEL))
+    {
+        thread = KphGetCurrentThreadContext();
+    }
+    else
+    {
+        thread = NULL;
+    }
+
+    frames = KphpCaptureStackBackTrace(FramesToSkip,
+                                       FramesToCapture,
+                                       BackTrace,
+                                       BackTraceHash,
+                                       Flags,
+                                       thread);
 
     if (thread)
     {
@@ -225,6 +274,7 @@ VOID KphpCaptureStackBackTraceIntoObject(
     )
 {
     PULONG backTraceHash;
+    ULONG capturedFrames;
 
     PAGED_CODE();
 
@@ -237,11 +287,14 @@ VOID KphpCaptureStackBackTraceIntoObject(
         backTraceHash = NULL;
     }
 
-    BackTrace->CapturedFrames = KphCaptureStackBackTrace(BackTrace->FramesToSkip,
-                                                         BackTrace->FramesToCapture,
-                                                         BackTrace->BackTrace,
-                                                         backTraceHash,
-                                                         BackTrace->Flags);
+    capturedFrames = KphpCaptureStackBackTrace(BackTrace->FramesToSkip,
+                                               BackTrace->FramesToCapture,
+                                               BackTrace->BackTrace,
+                                               backTraceHash,
+                                               BackTrace->Flags,
+                                               BackTrace->Thread);
+
+    BackTrace->CapturedFrames = capturedFrames;
 
     KeSetEvent(&BackTrace->CompletedEvent, EVENT_INCREMENT, FALSE);
 }
@@ -377,7 +430,31 @@ NTSTATUS KSIAPI KphpStackBackTraceInitialize(
 
     KeInitializeEvent(&backTrace->CompletedEvent, NotificationEvent, FALSE);
 
+    backTrace->Thread = KphGetEThreadContext(thread);
+
     return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Deletes a stack back trace object.
+ *
+ * \param[in] Object The stack back trace object to delete.
+ */
+_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+VOID KSIAPI KphpStackBackTraceDelete(
+    _Inout_ PVOID Object
+    )
+{
+    PKPH_STACK_BACK_TRACE_OBJECT backTrace;
+
+    PAGED_CODE();
+
+    backTrace = Object;
+
+    if (backTrace->Thread)
+    {
+        KphDereferenceObject(backTrace->Thread);
+    }
 }
 
 /**
@@ -545,7 +622,7 @@ NTSTATUS KphInitializeStackBackTrace(
 
     typeInfo.Allocate = KphpStackBackTraceAllocate;
     typeInfo.Initialize = KphpStackBackTraceInitialize;
-    typeInfo.Delete = NULL;
+    typeInfo.Delete = KphpStackBackTraceDelete;
     typeInfo.Free = KphpStackBackTraceFree;
 
     KphCreateObjectType(&KphpStackBackTraceTypeName,

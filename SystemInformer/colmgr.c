@@ -753,8 +753,6 @@ PPH_STRING PhCmSaveSettingsEx(
                 }
                 else
                 {
-                    PH_TREENEW_COLUMN column;
-
                     if (TreeNew_GetColumn(TreeNewHandle, sortColumn, &column))
                     {
                         PPH_CM_COLUMN cmColumn;

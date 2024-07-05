@@ -24,94 +24,6 @@ static const ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
- * \brief Compares two blocks of memory.
- *
- * \param[in] Buffer1 Pointer to block of memory.
- * \param[in] Buffer2 Pointer to block of memory.
- * \param[in] Length Number of bytes to compare.
- *
- * \return 0 if the buffers are equal, less than 0 if the byte that does not
- * match in the first buffer is less than the second, greater than 0 if the
- * byte that does not match in the first buffer is greater than the second.
- */
-_Must_inspect_result_
-INT KphCompareMemory(
-    _In_reads_bytes_(Length) PVOID Buffer1,
-    _In_reads_bytes_(Length) PVOID Buffer2,
-    _In_ SIZE_T Length
-    )
-{
-    //
-    // Optimization for length that fits into a register.
-    //
-#define KPH_COMPARE_MEMORY_SIZED(type)                                        \
-    case sizeof(type):                                                        \
-    {                                                                         \
-        if (*(type*)Buffer1 == *(type*)Buffer2)                               \
-        {                                                                     \
-            return 0;                                                         \
-        }                                                                     \
-        break;                                                                \
-    }
-
-    switch (Length)
-    {
-        KPH_COMPARE_MEMORY_SIZED(UCHAR)
-        KPH_COMPARE_MEMORY_SIZED(USHORT)
-        KPH_COMPARE_MEMORY_SIZED(ULONG)
-        KPH_COMPARE_MEMORY_SIZED(ULONG64)
-        default:
-        {
-            break;
-        }
-    }
-
-#pragma warning(suppress: 4995) // suppress deprecation warning
-    return memcmp(Buffer1, Buffer2, Length);
-}
-
-/**
- * \brief Compares two blocks of memory for equality.
- *
- * \param[in] Buffer1 Pointer to block of memory.
- * \param[in] Buffer2 Pointer to block of memory.
- * \param[in] Length Number of bytes to compare.
- *
- * \return TRUE if the contents of the buffers are equal, FALSE otherwise.
- */
-_Must_inspect_result_
-BOOLEAN KphEqualMemory(
-    _In_reads_bytes_(Length) PVOID Buffer1,
-    _In_reads_bytes_(Length) PVOID Buffer2,
-    _In_ SIZE_T Length
-    )
-{
-    //
-    // Optimization for length that fits into a register.
-    //
-#define KPH_EQUAL_MEMORY_SIZED(type)                                          \
-    case sizeof(type):                                                        \
-    {                                                                         \
-        return (*(type*)Buffer1 == *(type*)Buffer2);                          \
-    }
-
-    switch (Length)
-    {
-        KPH_EQUAL_MEMORY_SIZED(UCHAR)
-        KPH_EQUAL_MEMORY_SIZED(USHORT)
-        KPH_EQUAL_MEMORY_SIZED(ULONG)
-        KPH_EQUAL_MEMORY_SIZED(ULONG64)
-        default:
-        {
-            break;
-        }
-    }
-
-#pragma warning(suppress: 4995) // suppress deprecation warning
-    return (memcmp(Buffer1, Buffer2, Length) == 0);
-}
-
-/**
  * \brief Searches memory for a given pattern.
  *
  * \param[in] Buffer The memory to search.
@@ -645,8 +557,7 @@ NTSTATUS KphAcquireReference(
     {
         LONG count;
 
-        count = Reference->Count;
-        MemoryBarrier();
+        count = ReadAcquire(&Reference->Count);
 
         if (count == LONG_MAX)
         {
@@ -699,8 +610,7 @@ NTSTATUS KphReleaseReference(
     {
         LONG count;
 
-        count = Reference->Count;
-        MemoryBarrier();
+        count = ReadAcquire(&Reference->Count);
 
         if (count == 0)
         {
@@ -2503,4 +2413,50 @@ NTSTATUS KphGetSigningLevel(
     }
 
     return status;
+}
+
+/**
+ * \brief Retrieves image headers from a mapped image.
+ *
+ * \details Extends RtlImageNtHeaderEx and verifies that the optional headers
+ * are within the region. The caller should still check that the optional
+ * headers contains a given field with RTL_CONTAINS_FIELD.
+ *
+ * \param[in] Base The base address of the image.
+ * \param[in] Size The size of the image.
+ * \param[out] Headers Receives the image headers.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PKPH_IMAGE_NT_HEADERS Headers
+    )
+{
+    NTSTATUS status;
+    ULONG64 size;
+
+    PAGED_CODE();
+
+    status = RtlImageNtHeaderEx(0, Base, Size, &Headers->Headers);
+    if (!NT_SUCCESS(status))
+    {
+        Headers->Headers = NULL;
+        return status;
+    }
+
+    size = PtrOffset(Base, Headers->Headers);
+    size += RTL_SIZEOF_THROUGH_FIELD(IMAGE_NT_HEADERS, FileHeader);
+    size += Headers->Headers->FileHeader.SizeOfOptionalHeader;
+
+    if (size > Size)
+    {
+        Headers->Headers = NULL;
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    return STATUS_SUCCESS;
 }

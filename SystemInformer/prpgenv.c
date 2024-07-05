@@ -265,12 +265,12 @@ VOID PhpRefreshEnvironmentList(
 
             while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
             {
-                PH_ENVIRONMENT_ITEM item;
+                PH_ENVIRONMENT_ITEM entry;
 
-                item.Name = PhCreateString2(&variable.Name);
-                item.Value = PhCreateString2(&variable.Value);
+                entry.Name = PhCreateString2(&variable.Name);
+                entry.Value = PhCreateString2(&variable.Value);
 
-                PhAddItemArray(&Context->Items, &item);
+                PhAddItemArray(&Context->Items, &entry);
             }
 
             PhFreePage(environment);

@@ -726,7 +726,7 @@ VOID PhpProcessQueryStage1(
             {
                 // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
                 // can't display them, we'll replace them with spaces.
-                for (ULONG i = 0; i < (ULONG)commandLine->Length / sizeof(WCHAR); i++)
+                for (SIZE_T i = 0; i < commandLine->Length / sizeof(WCHAR); i++)
                 {
                     if (commandLine->Buffer[i] == UNICODE_NULL)
                         commandLine->Buffer[i] = L' ';

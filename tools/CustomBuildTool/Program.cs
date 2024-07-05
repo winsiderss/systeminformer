@@ -104,12 +104,10 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
             }
-            else if (ProgramArgs.TryGetValue("-sign_plugin", out string SignPluginArg))
+            else if (ProgramArgs.TryGetValue("-kph-sign", out string SignArg))
             {
-                if (!Build.SignPlugin(SignPluginArg))
-                {
+                if (!Verify.CreateSigFile("kph", SignArg, Build.BuildCanary))
                     Environment.Exit(1);
-                }
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {

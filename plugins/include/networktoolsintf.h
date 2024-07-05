@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2011
+ *     dmex    2013-2023
+ *
+ */
+
 #ifndef _NETWORKTOOLSINTF_H
 #define _NETWORKTOOLSINTF_H
 
@@ -16,7 +28,7 @@ typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
 
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_SERVICENAME)(
     _In_ ULONG Port,
-    _Out_ PPH_STRINGREF ServiceName
+    _Out_ PPH_STRINGREF* ServiceName
     );
 
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(

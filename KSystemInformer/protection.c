@@ -998,9 +998,6 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     PKPH_IMAGE_LOAD_APC firstApc;
     PKPH_IMAGE_LOAD_APC secondApc;
     KPH_IMAGE_LOAD_APC_INIT init;
-#ifdef DEBUG
-    PKPH_THREAD_CONTEXT actor;
-#endif
 
     PAGED_CODE();
 
@@ -1008,15 +1005,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
 
     firstApc = CONTAINING_RECORD(Apc, KPH_IMAGE_LOAD_APC, Apc);
 
-    DBG_UNREFERENCED_PARAMETER(NormalRoutine);
-#ifdef DEBUG
-    actor = KphGetCurrentThreadContext();
-    NT_ASSERT(actor && actor->ProcessContext);
-    NT_ASSERT(actor->ProcessContext->ApcNoopRoutine);
-    NT_ASSERT(*NormalRoutine == actor->ProcessContext->ApcNoopRoutine);
-    KphDereferenceObject(actor);
-    actor = NULL;
-#endif
+    UNREFERENCED_PARAMETER(NormalRoutine);
 
     *NormalContext = NULL;
     *SystemArgument1 = NULL;
@@ -1273,15 +1262,26 @@ Exit:
  * \param[out] FileObject Receives a reference to the file object.
  * \param[out] Filename Receives the file name of the image, must be freed
  * using KphFreeNameFileObject.
+ * \param[out] ImageBase Receives the base address of the image mapping in the
+ * system address space. Must be unmapped with KphUnmapViewInSystem.
+ * \param[out] ImageSize Receives the size of the image mapping.
+ * \param[out] DataBase Receives the base address of the data mapping in the
+ * system address space. Must be unmapped with KphUnmapViewInSystem.
+ * \param[out] DataSize Receives the size of the data mapping.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphpReOpenImageFile(
     _In_ PFILE_OBJECT ImageFileObject,
     _Out_ PHANDLE FileHandle,
     _Out_ PFILE_OBJECT* FileObject,
-    _Out_ PUNICODE_STRING* FileName
+    _Out_ PUNICODE_STRING* FileName,
+    _Out_ PVOID* ImageBase,
+    _Out_ PSIZE_T ImageSize,
+    _Out_ PVOID* DataBase,
+    _Out_ PSIZE_T DataSize
     )
 {
     NTSTATUS status;
@@ -1290,11 +1290,24 @@ NTSTATUS KphpReOpenImageFile(
     IO_STATUS_BLOCK ioStatusBlock;
     HANDLE fileHandle;
     PFILE_OBJECT fileObject;
+    PVOID imageBase;
+    SIZE_T imageSize;
+    PVOID dataBase;
+    SIZE_T dataSize;
 
     PAGED_CODE_PASSIVE();
 
     fileHandle = NULL;
     fileObject = NULL;
+    imageBase = NULL;
+    dataBase = NULL;
+
+    *FileObject = NULL;
+    *FileName = NULL;
+    *ImageBase = NULL;
+    *ImageSize = 0;
+    *DataBase = NULL;
+    *DataSize = 0;
 
     status = KphGetNameFileObject(ImageFileObject, &fileName);
     if (!NT_SUCCESS(status))
@@ -1366,6 +1379,38 @@ NTSTATUS KphpReOpenImageFile(
         goto Exit;
     }
 
+    imageSize = 0;
+    status = KphMapViewInSystem(fileHandle,
+                                KPH_MAP_IMAGE,
+                                &imageBase,
+                                &imageSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphMapViewInSystem failed: %!STATUS!",
+                      status);
+
+        imageBase = NULL;
+        goto Exit;
+    }
+
+    dataSize = 0;
+    status = KphMapViewInSystem(fileHandle,
+                                KPH_MAP_DATA,
+                                &dataBase,
+                                &dataSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphMapViewInSystem failed: %!STATUS!",
+                      status);
+
+        imageBase = NULL;
+        goto Exit;
+    }
+
     *FileHandle = fileHandle;
     fileHandle = NULL;
 
@@ -1375,7 +1420,25 @@ NTSTATUS KphpReOpenImageFile(
     *FileName = fileName;
     fileName = NULL;
 
+    *ImageBase = imageBase;
+    imageBase = NULL;
+    *ImageSize = imageSize;
+
+    *DataBase = dataBase;
+    dataBase = NULL;
+    *DataSize = dataSize;
+
 Exit:
+
+    if (dataBase)
+    {
+        KphUnmapViewInSystem(dataBase);
+    }
+
+    if (imageBase)
+    {
+        KphUnmapViewInSystem(imageBase);
+    }
 
     if (fileHandle)
     {
@@ -1414,6 +1477,10 @@ VOID KphpApplyImageProtections(
     HANDLE fileHandle;
     PFILE_OBJECT fileObject;
     PUNICODE_STRING fileName;
+    PVOID imageBase;
+    SIZE_T imageSize;
+    PVOID dataBase;
+    SIZE_T dataSize;
     SE_SIGNING_LEVEL signingLevel;
 
     PAGED_CODE_PASSIVE();
@@ -1424,8 +1491,10 @@ VOID KphpApplyImageProtections(
     fileHandle = NULL;
     fileObject = NULL;
     fileName = NULL;
+    imageBase = NULL;
+    dataBase = NULL;
 
-    if (FileObject->WriteAccess || FileObject->SharedWrite)
+    if (FileObject->WriteAccess)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
@@ -1465,7 +1534,11 @@ VOID KphpApplyImageProtections(
     status = KphpReOpenImageFile(FileObject,
                                  &fileHandle,
                                  &fileObject,
-                                 &fileName);
+                                 &fileName,
+                                 &imageBase,
+                                 &imageSize,
+                                 &dataBase,
+                                 &dataSize);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1515,12 +1588,12 @@ VOID KphpApplyImageProtections(
         case SE_SIGNING_LEVEL_WINDOWS_TCB:
         {
             imageLoadCounter = &Process->NumberOfMicrosoftImageLoads;
-            goto Exit;
+            goto CheckCoherency;
         }
         case SE_SIGNING_LEVEL_ANTIMALWARE:
         {
             imageLoadCounter = &Process->NumberOfAntimalwareImageLoads;
-            goto Exit;
+            goto CheckCoherency;
         }
         default:
         {
@@ -1541,10 +1614,38 @@ VOID KphpApplyImageProtections(
     if (NT_SUCCESS(status))
     {
         imageLoadCounter = &Process->NumberOfVerifiedImageLoads;
-        goto Exit;
+        goto CheckCoherency;
+    }
+
+CheckCoherency:
+
+    status = KphCheckImageCoherency(imageBase, imageSize, dataBase, dataSize);
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "KphCheckImageCoherency: %wZ (%lu) \"%wZ\": %!STATUS!",
+                  &Process->ImageName,
+                  HandleToULong(Process->ProcessId),
+                  fileName,
+                  status);
+
+    if (!NT_SUCCESS(status))
+    {
+        imageLoadCounter = NULL;
+         goto Exit;
     }
 
 Exit:
+
+    if (dataBase)
+    {
+        KphUnmapViewInSystem(dataBase);
+    }
+
+    if (imageBase)
+    {
+        KphUnmapViewInSystem(imageBase);
+    }
 
     if (imageLoadCounter)
     {
@@ -1944,8 +2045,7 @@ LONG KphGetDriverUnloadProtectionCount(
 
     PAGED_CODE();
 
-    count = KphpDriverUnloadProtectionRef.Count;
-    MemoryBarrier();
+    count = ReadAcquire(&KphpDriverUnloadProtectionRef.Count);
 
     return count;
 }

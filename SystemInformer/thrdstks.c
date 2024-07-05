@@ -133,14 +133,15 @@ typedef struct _PH_THREAD_STACKS_WORKER_CONTEXT
 
 typedef struct _PH_THREAD_STACKS_CONTEXT
 {
-    PH_LAYOUT_MANAGER LayoutManager;
-    RECT MinimumSize;
-
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND TreeNewHandle;
     HWND MessageHandle;
     HWND SearchWindowHandle;
     ULONG_PTR SearchMatchHandle;
+
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT MinimumSize;
 
     ULONG MessageCount;
     ULONG LastMessageCount;
@@ -608,10 +609,10 @@ PPH_STRING PhpThreadStacksInitFrameNode(
             PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (Inline Function)"));
 
         // Zero inline frames so the stack matches windbg output.
-        FrameNode->StackFrame.PcAddress = 0;
-        FrameNode->StackFrame.ReturnAddress = 0;
-        FrameNode->StackFrame.FrameAddress = 0;
-        FrameNode->StackFrame.StackAddress = 0;
+        FrameNode->StackFrame.PcAddress = NULL;
+        FrameNode->StackFrame.ReturnAddress = NULL;
+        FrameNode->StackFrame.FrameAddress = NULL;
+        FrameNode->StackFrame.StackAddress = NULL;
         memset(FrameNode->StackFrame.Params, 0, sizeof(FrameNode->StackFrame.Params));
     }
 
@@ -1320,7 +1321,6 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-            PPH_THREAD_STACKS_NODE node;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
             PPH_EMENU_ITEM gotoProcess;
@@ -1331,8 +1331,6 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
             PPH_EMENU_ITEM highlightUserFrames;
             PPH_EMENU_ITEM highlightSystemFrames;
             PPH_EMENU_ITEM highlightInlineFrames;
-            BOOLEAN invalidate;
-            BOOLEAN restructure;
 
             node = (PPH_THREAD_STACKS_NODE)contextMenuEvent->Node;
 
@@ -1386,9 +1384,6 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
                 contextMenuEvent->Location.x,
                 contextMenuEvent->Location.y
                 );
-
-            invalidate = FALSE;
-            restructure = FALSE;
 
             if (selectedItem && selectedItem->Id != ULONG_MAX && !PhHandleCopyCellEMenuItem(selectedItem))
             {
@@ -1582,8 +1577,8 @@ VOID PhpInitializeThreadStacksTree(
 }
 
 VOID PhpThreadStacksSymbolProviderEventCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SYMBOL_EVENT_DATA event = Parameter;
@@ -1621,7 +1616,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhpThreadStacksCreateContext();
+        context = (PPH_THREAD_STACKS_CONTEXT)lParam;
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -1646,13 +1641,6 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             context->HighlightSystemFrames = !!PhGetIntegerSetting(L"UseColorSystemThreadStack");
             context->HighlightInlineFrames = !!PhGetIntegerSetting(L"UseColorInlineThreadStack");
 
-            PhRegisterCallback(
-                &PhSymbolEventCallback,
-                PhpThreadStacksSymbolProviderEventCallback,
-                context,
-                &context->SymbolProviderEventRegistration
-                );
-
             PhSetApplicationWindowIcon(hwndDlg);
             PhRegisterDialog(hwndDlg);
             PhCreateSearchControl(
@@ -1664,8 +1652,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
                 );
 
             PhpInitializeThreadStacksTree(context);
-            PhpThreadStacksRefresh(context);
-
+   
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1688,10 +1675,21 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 200, NULL);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhpThreadStacksRefresh(context);
+
+            PhRegisterCallback(
+                &PhSymbolEventCallback,
+                PhpThreadStacksSymbolProviderEventCallback,
+                context,
+                &context->SymbolProviderEventRegistration
+                );
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhUnregisterCallback(&PhSymbolEventCallback, &context->SymbolProviderEventRegistration);
 
             PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
@@ -1703,8 +1701,6 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhpThreadStacksSaveSettingsTreeList(context);
-
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             if (context->WorkerContext)
                 InterlockedIncrement(&context->WorkerContext->Stop);
@@ -1819,7 +1815,7 @@ NTSTATUS PhpThreadStacksDialogThreadStart(
         MAKEINTRESOURCE(IDD_THRDSTACKS),
         NULL,
         PhpThreadStacksDlgProc,
-        NULL
+        Parameter
         );
 
     ShowWindow(windowHandle, SW_SHOW);
@@ -1827,7 +1823,7 @@ NTSTATUS PhpThreadStacksDialogThreadStart(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(windowHandle, &message))
@@ -1845,10 +1841,11 @@ NTSTATUS PhpThreadStacksDialogThreadStart(
 }
 
 VOID PhShowThreadStacksDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_THREAD_STACKS_CONTEXT context;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -1859,8 +1856,12 @@ VOID PhShowThreadStacksDialog(
         PhEndInitOnce(&initOnce);
     }
 
-    if (!NT_SUCCESS(PhCreateThread2(PhpThreadStacksDialogThreadStart, NULL)))
+    context = PhpThreadStacksCreateContext();
+    context->ParentWindowHandle = ParentWindowHandle;
+
+    if (!NT_SUCCESS(PhCreateThread2(PhpThreadStacksDialogThreadStart, context)))
     {
-        PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
+        PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+        PhDereferenceObject(context);
     }
 }

@@ -805,8 +805,6 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     else
     {
         ULONG response;
-        PPH_STRING errorMessage;
-        PPH_STRING message;
         PPH_STRING title;
 
         if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))

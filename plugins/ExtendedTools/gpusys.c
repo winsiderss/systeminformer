@@ -208,7 +208,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             // %.2f%%%s\n%s
             PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
-            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
+            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGpuGetMaxNodeString(getTooltipText->Index))->sr);
             PhInitFormatC(&format[3], L'\n');
             PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
@@ -360,7 +360,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGetGpuNameString())->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGpuGetNameString())->Buffer);
 
             GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc, NULL);
             ShowWindow(GpuPanel, SW_SHOW);
@@ -416,23 +416,23 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             }
             else if (header->hwndFrom == DedicatedGraphHandle)
             {
-                EtpNotifyDedicatedGraph(header);
+                EtpNotifyDedicatedGpuGraph(header);
             }
             else if (header->hwndFrom == SharedGraphHandle)
             {
-                EtpNotifySharedGraph(header);
+                EtpNotifySharedGpuGraph(header);
             }
             else if (header->hwndFrom == PowerUsageGraphHandle)
             {
-                EtpNotifyPowerUsageGraph(header);
+                EtpNotifyPowerUsageGpuGraph(header);
             }
             else if (header->hwndFrom == TemperatureGraphHandle)
             {
-                EtpNotifyTemperatureGraph(header);
+                EtpNotifyTemperatureGpuGraph(header);
             }
             else if (header->hwndFrom == FanRpmGraphHandle)
             {
-                EtpNotifyFanRpmGraph(header);
+                EtpNotifyFanRpmGpuGraph(header);
             }
         }
         break;
@@ -781,7 +781,7 @@ VOID EtpLayoutGpuGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-PPH_STRING EtpPowerUsageGraphLabelYFunction(
+PPH_STRING EtpGpuPowerUsageGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -796,7 +796,7 @@ PPH_STRING EtpPowerUsageGraphLabelYFunction(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-PPH_STRING EtpTemperatureGraphLabelYFunction(
+PPH_STRING EtpGpuTemperatureGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -819,7 +819,7 @@ PPH_STRING EtpTemperatureGraphLabelYFunction(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-PPH_STRING EtpFanRpmGraphLabelYFunction(
+PPH_STRING EtpGpuFanRpmGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -910,7 +910,7 @@ VOID EtpNotifyGpuGraph(
                     // %.2f%%%s\n%s
                     PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
-                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGpuGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');
                     PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
@@ -930,7 +930,7 @@ VOID EtpNotifyGpuGraph(
 
             if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
             {
-                record = EtpReferenceMaxNodeRecord(mouseEvent->Index);
+                record = EtpGpuReferenceMaxNodeRecord(mouseEvent->Index);
             }
 
             if (record)
@@ -943,7 +943,7 @@ VOID EtpNotifyGpuGraph(
     }
 }
 
-VOID EtpNotifyDedicatedGraph(
+VOID EtpNotifyDedicatedGpuGraph(
     _In_ NMHDR *Header
     )
 {
@@ -1024,7 +1024,7 @@ VOID EtpNotifyDedicatedGraph(
     }
 }
 
-VOID EtpNotifySharedGraph(
+VOID EtpNotifySharedGpuGraph(
     _In_ NMHDR *Header
     )
 {
@@ -1105,7 +1105,7 @@ VOID EtpNotifySharedGraph(
     }
 }
 
-VOID EtpNotifyPowerUsageGraph(
+VOID EtpNotifyPowerUsageGpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1141,7 +1141,7 @@ VOID EtpNotifyPowerUsageGraph(
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpPowerUsageGraphLabelYFunction;
+                    drawInfo->LabelYFunction = EtpGpuPowerUsageGraphLabelYFunction;
                     drawInfo->LabelYFunctionParameter = EtGpuPowerUsageLimit;
                 }
 
@@ -1177,7 +1177,7 @@ VOID EtpNotifyPowerUsageGraph(
     }
 }
 
-VOID EtpNotifyTemperatureGraph(
+VOID EtpNotifyTemperatureGpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1213,7 +1213,7 @@ VOID EtpNotifyTemperatureGraph(
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpTemperatureGraphLabelYFunction;
+                    drawInfo->LabelYFunction = EtpGpuTemperatureGraphLabelYFunction;
                     drawInfo->LabelYFunctionParameter = EtGpuTemperatureLimit;
                 }
 
@@ -1257,7 +1257,7 @@ VOID EtpNotifyTemperatureGraph(
     }
 }
 
-VOID EtpNotifyFanRpmGraph(
+VOID EtpNotifyFanRpmGpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1293,7 +1293,7 @@ VOID EtpNotifyFanRpmGraph(
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpFanRpmGraphLabelYFunction;
+                    drawInfo->LabelYFunction = EtpGpuFanRpmGraphLabelYFunction;
                     drawInfo->LabelYFunctionParameter = (FLOAT)EtGpuFanRpmLimit;
                 }
 
@@ -1415,7 +1415,7 @@ VOID EtpUpdateGpuPanel(
         PhSetWindowText(GpuPanelSharedLimitLabel, PhaFormatSize(EtGpuSharedLimit, ULONG_MAX)->Buffer);
 }
 
-PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(
+PPH_PROCESS_RECORD EtpGpuReferenceMaxNodeRecord(
     _In_ LONG Index
     )
 {
@@ -1433,13 +1433,13 @@ PPH_PROCESS_RECORD EtpReferenceMaxNodeRecord(
     return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
-PPH_STRING EtpGetMaxNodeString(
+PPH_STRING EtpGpuGetMaxNodeString(
     _In_ LONG Index
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
 
-    if (maxProcessRecord = EtpReferenceMaxNodeRecord(Index))
+    if (maxProcessRecord = EtpGpuReferenceMaxNodeRecord(Index))
     {
         PPH_STRING maxUsageString;
         FLOAT maxGpuUsage;
@@ -1466,7 +1466,7 @@ PPH_STRING EtpGetMaxNodeString(
     return PhReferenceEmptyString();
 }
 
-PPH_STRING EtpGetGpuNameString(
+PPH_STRING EtpGpuGetNameString(
     VOID
     )
 {

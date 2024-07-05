@@ -86,7 +86,7 @@ BOOLEAN PhMwpNetworkPageCallback(
         return TRUE;
     case MainTabPageSelected:
         {
-            BOOLEAN selected = (BOOLEAN)Parameter1;
+            BOOLEAN selected = (BOOLEAN)PtrToUlong(Parameter1);
 
             if (selected)
             {
@@ -150,7 +150,7 @@ BOOLEAN PhMwpNetworkPageCallback(
         break;
     case MainTabPageUpdateAutomaticallyChanged:
         {
-            BOOLEAN updateAutomatically = (BOOLEAN)Parameter1;
+            BOOLEAN updateAutomatically = (BOOLEAN)PtrToUlong(Parameter1);
 
             if (PhMwpNetworkPage->Selected)
                 PhSetEnabledProvider(&PhMwpNetworkProviderRegistration, updateAutomatically);

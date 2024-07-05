@@ -1029,7 +1029,7 @@ VOID EtFwShowWhoisWindow(
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
-    _Out_ PPH_STRINGREF ServiceName
+    _Out_ PPH_STRINGREF* ServiceName
     )
 {
     if (EtFwGetPluginInterface())

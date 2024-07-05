@@ -874,7 +874,7 @@ VOID PhShowThreadStackDialog(
 // thrdstks
 
 VOID PhShowThreadStacksDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // tokprp

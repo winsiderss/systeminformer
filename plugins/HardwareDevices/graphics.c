@@ -596,6 +596,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
     DEVINST deviceInstanceHandle;
     ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
+    ULONG deviceClassGuidLength = sizeof(GUID);
 
     if (CM_Get_Device_Interface_Property(
         DeviceInterface,
@@ -784,4 +785,160 @@ PPH_LIST GraphicsQueryDeviceNodeList(
     }
 
     return NodeNameList;
+}
+
+NTSTATUS GraphicsQueryAdapterPropertyString(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ PPH_STRINGREF PropertyName,
+    _Out_ PPH_STRING* String
+    )
+{
+    NTSTATUS status;
+    ULONG regInfoSize;
+    D3DDDI_QUERYREGISTRY_INFO* regInfo;
+
+    *String = NULL;
+
+    regInfoSize = sizeof(D3DDDI_QUERYREGISTRY_INFO) + 512;
+    regInfo = PhAllocateZero(regInfoSize);
+
+    regInfo->QueryType = D3DDDI_QUERYREGISTRY_ADAPTERKEY;
+    regInfo->QueryFlags.TranslatePath = 1;
+    regInfo->ValueType = REG_MULTI_SZ;
+
+    memcpy(regInfo->ValueName, PropertyName->Buffer, PropertyName->Length);
+
+    if (!NT_SUCCESS(status = GraphicsQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_QUERYREGISTRY,
+        regInfo,
+        regInfoSize
+        )))
+        goto CleanupExit;
+
+    if (regInfo->Status == D3DDDI_QUERYREGISTRY_STATUS_BUFFER_OVERFLOW)
+    {
+        regInfoSize = regInfo->OutputValueSize;
+        regInfo = PhReAllocate(regInfo, regInfoSize);
+
+        if (!NT_SUCCESS(status = GraphicsQueryAdapterInformation(
+            AdapterHandle,
+            KMTQAITYPE_QUERYREGISTRY,
+            regInfo,
+            regInfoSize
+            )))
+            goto CleanupExit;
+    }
+
+    if (regInfo->Status != D3DDDI_QUERYREGISTRY_STATUS_SUCCESS)
+    {
+        status = STATUS_REGISTRY_IO_FAILED;
+        goto CleanupExit;
+    }
+
+    *String = PhCreateStringEx(regInfo->OutputString, regInfo->OutputValueSize);
+
+CleanupExit:
+
+    PhFree(regInfo);
+
+    return status;
+}
+
+NTSTATUS GraphicsQueryAdapterAttributes(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _Out_ PGX_ADAPTER_ATTRIBUTES Attributes
+    )
+{
+    static PH_STRINGREF dxCoreAttributes = PH_STRINGREF_INIT(L"DXCoreAttributes");
+    static PH_STRINGREF dxAttributes = PH_STRINGREF_INIT(L"DXAttributes");
+    NTSTATUS status;
+    PPH_STRING adapterAttributes;
+
+    Attributes->Flags = 0;
+
+    // DXCoreAdapter::QueryAndFillAdapterExtendedProperiesOnPlatform
+    if (!NT_SUCCESS(status = GraphicsQueryAdapterPropertyString(AdapterHandle, &dxCoreAttributes, &adapterAttributes)))
+        if (!NT_SUCCESS(status = GraphicsQueryAdapterPropertyString(AdapterHandle, &dxAttributes, &adapterAttributes)))
+            return status;
+
+    for (PWCHAR attr = adapterAttributes->Buffer;;)
+    {
+        PH_STRINGREF attribute;
+        GUID guid;
+
+        PhInitializeStringRef(&attribute, attr);
+
+        if (!attribute.Length)
+            break;
+
+        attr = PTR_ADD_OFFSET(attr, attribute.Length + sizeof(UNICODE_NULL));
+
+        if (!NT_SUCCESS(status = PhStringToGuid(&attribute, &guid)))
+            break;
+
+        if (IsEqualGUID(&guid, &DXCORE_HARDWARE_TYPE_ATTRIBUTE_GPU))
+        {
+            Attributes->TypeGpu = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_HARDWARE_TYPE_ATTRIBUTE_COMPUTE_ACCELERATOR))
+        {
+            Attributes->TypeComputeAccelerator = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU))
+        {
+            Attributes->TypeNpu = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_HARDWARE_TYPE_ATTRIBUTE_MEDIA_ACCELERATOR))
+        {
+            Attributes->TypeMediaAccelerator = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_D3D11_GRAPHICS))
+        {
+            Attributes->D3D11Graphics = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS))
+        {
+            Attributes->D3D12Graphics = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_D3D12_CORE_COMPUTE))
+        {
+            Attributes->D3D12CoreCompute = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_ML))
+        {
+            Attributes->D3D12GenericML = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_MEDIA))
+        {
+            Attributes->D3D12GenericMedia = TRUE;
+            continue;
+        }
+
+        if (IsEqualGUID(&guid, &DXCORE_ADAPTER_ATTRIBUTE_WSL))
+        {
+            Attributes->WSL = TRUE;
+            continue;
+        }
+    }
+
+    PhDereferenceObject(adapterAttributes);
+
+    return status;
 }

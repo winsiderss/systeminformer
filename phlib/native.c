@@ -10090,9 +10090,9 @@ VOID PhpRtlModulesExToGenericModules(
         if (WindowsVersion >= WINDOWS_11_24H2)
         {
             // Assign pseudo address on 24H2 (dmex)
-            if (module->BaseInfo.ImageBase == 0)
+            if (!module->ImageBase)
             {
-                module->BaseInfo.ImageBase = (PVOID)(ULONG64_MAX - BaseAddressHashtable->Count + 1);
+                module->ImageBase = (PVOID)(ULONG64_MAX - BaseAddressHashtable->Count);
             }
         }
 
@@ -11291,6 +11291,7 @@ NTSTATUS PhCreateFileWin32Ex(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
+        KsiLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION)
     {

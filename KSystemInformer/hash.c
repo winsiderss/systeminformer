@@ -82,15 +82,9 @@ typedef struct _KPH_HASHING_EACACHE_CONTEXT
     REQUEST_OPLOCK_OUTPUT_BUFFER OplockOutput;
 } KPH_HASHING_EACACHE_CONTEXT, *PKPH_HASHING_EACACHE_CONTEXT;
 
-typedef struct _KPH_HASHING_AUTHENTICODE_REGION
-{
-    PVOID Start;
-    PVOID End;
-} KPH_HASHING_AUTHENTICODE_REGION, *PKPH_HASHING_AUTHENTICODE_REGION;
-
 typedef struct _KPH_HASHING_AUTHENTICODE_CONTEXT
 {
-    KPH_HASHING_AUTHENTICODE_REGION Regions[4];
+    KPH_MEMORY_REGION Regions[4];
     PVOID SecurityBase;
     ULONG SecuritySize;
 } KPH_HASHING_AUTHENTICODE_CONTEXT, *PKPH_HASHING_AUTHENTICODE_CONTEXT;
@@ -702,7 +696,7 @@ NTSTATUS KphpUpdateHash(
     for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
     {
         NTSTATUS status;
-        PKPH_HASHING_AUTHENTICODE_REGION region;
+        PKPH_MEMORY_REGION region;
         PVOID start;
         PVOID end;
         PVOID buffer;
@@ -1343,12 +1337,7 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
 {
     NTSTATUS status;
     PVOID mappedEnd;
-    union
-    {
-        PIMAGE_NT_HEADERS Headers;
-        PIMAGE_NT_HEADERS32 Headers32;
-        PIMAGE_NT_HEADERS64 Headers64;
-    } image;
+    KPH_IMAGE_NT_HEADERS image;
     PIMAGE_DATA_DIRECTORY securityDir;
     PVOID securityBase;
     ULONG securitySize;
@@ -1365,19 +1354,42 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
 
     NT_ASSERT(MappedBase <= mappedEnd);
 
-    status = RtlImageNtHeaderEx(0, MappedBase, ViewSize, &image.Headers);
+    status = KphImageNtHeader(MappedBase, ViewSize, &image);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
     }
 
+    if (!RTL_CONTAINS_FIELD(&image.Headers->OptionalHeader,
+                            image.Headers->FileHeader.SizeOfOptionalHeader,
+                            Magic))
+    {
+        Context->Authenticode.Regions[0].Start = MappedBase;
+        Context->Authenticode.Regions[0].End = mappedEnd;
+        status = STATUS_SUCCESS;
+        goto VerifyRegions;
+    }
+
     if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
+        if (!RTL_CONTAINS_FIELD(&image.Headers32->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                CheckSum))
+        {
+            Context->Authenticode.Regions[0].Start = MappedBase;
+            Context->Authenticode.Regions[0].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
+        }
+
         Context->Authenticode.Regions[0].Start = MappedBase;
         Context->Authenticode.Regions[0].End = &image.Headers32->OptionalHeader.CheckSum;
 
         Context->Authenticode.Regions[1].Start = &image.Headers32->OptionalHeader.Subsystem;
-        if (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
+        if (!RTL_CONTAINS_FIELD(&image.Headers32->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                NumberOfRvaAndSizes) ||
+            (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY))
         {
             Context->Authenticode.Regions[1].End = mappedEnd;
             status = STATUS_SUCCESS;
@@ -1389,11 +1401,24 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
     }
     else if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
+        if (!RTL_CONTAINS_FIELD(&image.Headers64->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                CheckSum))
+        {
+            Context->Authenticode.Regions[0].Start = MappedBase;
+            Context->Authenticode.Regions[0].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
+        }
+
         Context->Authenticode.Regions[0].Start = MappedBase;
         Context->Authenticode.Regions[0].End = &image.Headers64->OptionalHeader.CheckSum;
 
         Context->Authenticode.Regions[1].Start = &image.Headers64->OptionalHeader.Subsystem;
-        if (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
+        if (!RTL_CONTAINS_FIELD(&image.Headers64->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                NumberOfRvaAndSizes) ||
+            (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY))
         {
             Context->Authenticode.Regions[1].End = mappedEnd;
             status = STATUS_SUCCESS;
@@ -1439,18 +1464,16 @@ VerifyRegions:
 
     for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
     {
-        PKPH_HASHING_AUTHENTICODE_REGION region;
+        PKPH_MEMORY_REGION region;
 
         region = &Context->Authenticode.Regions[i];
 
-        if (region->Start)
+        if (!region->Start)
         {
             break;
         }
 
-        if ((region->End < region->Start) ||
-            (region->Start < MappedBase) || (region->End < MappedBase) ||
-            (region->Start >= mappedEnd) || (region->End > mappedEnd))
+        if (!KphIsValidMemoryRegion(region, MappedBase, mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
@@ -1463,9 +1486,12 @@ VerifyRegions:
 
     if (securityBase)
     {
-        if ((securityEnd < securityBase) ||
-            (securityBase < MappedBase) || (securityEnd < MappedBase) ||
-            (securityBase >= mappedEnd) || (securityEnd > mappedEnd))
+        KPH_MEMORY_REGION securityRegion;
+
+        securityRegion.Start = securityBase;
+        securityRegion.End = securityEnd;
+
+        if (!KphIsValidMemoryRegion(&securityRegion, MappedBase, mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
@@ -1697,7 +1723,10 @@ NTSTATUS KphpHashFile(
 
     viewSize = 0;
 
-    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
+    status = KphMapViewInSystem(FileHandle,
+                                KPH_MAP_DATA,
+                                &mappedBase,
+                                &viewSize);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

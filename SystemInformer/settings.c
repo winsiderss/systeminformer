@@ -54,6 +54,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableMinidumpKernelMinidump", L"0");
+    PhpAddIntegerSetting(L"EnableMinidumpSnapshot", L"0");
     PhpAddIntegerSetting(L"EnableMonospaceFont", L"0");
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");

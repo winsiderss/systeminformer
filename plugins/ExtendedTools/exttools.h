@@ -44,6 +44,34 @@ __has_include (<d3dkmthk.h>)
 #include "d3dkmt/d3dkmthk.h"
 #endif
 
+#include <cfgmgr32.h>
+
+// Undocumented device properties (Win10 only)
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
+DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
+
+typedef D3DKMT_HANDLE* PD3DKMT_HANDLE;
+
+typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
+{
+    ULONG CommitLimit;
+    ULONG BytesCommitted;
+    ULONG BytesResident;
+    D3DKMT_QUERYSTATISTICS_MEMORY Memory;
+    ULONG Aperture; // boolean
+    ULONGLONG TotalBytesEvictedByPriority[D3DKMT_MaxAllocationPriorityClass];
+    ULONG64 SystemMemoryEndAddress;
+    struct
+    {
+        ULONG64 PreservedDuringStandby : 1;
+        ULONG64 PreservedDuringHibernate : 1;
+        ULONG64 PartiallyPreservedDuringHibernate : 1;
+        ULONG64 Reserved : 61;
+    } PowerFlags;
+    ULONG64 Reserved[7];
+} D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1, *PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1;
+
 #define PH_RECORD_MAX_USAGE 1
 
 EXTERN_C PPH_PLUGIN PluginInstance;
@@ -55,6 +83,7 @@ extern HWND NetworkTreeNewHandle;
 EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
 EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
+EXTERN_C BOOLEAN EtNpuFahrenheitEnabled;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;
@@ -68,9 +97,11 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
+#define SETTING_NAME_ENABLE_NPUPERFCOUNTERS (PLUGIN_NAME L".EnableNpuPerformanceCounters")
 #define SETTING_NAME_ENABLE_DISKPERFCOUNTERS (PLUGIN_NAME L".EnableDiskPerformanceCounters")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
+#define SETTING_NAME_ENABLE_NPU_MONITOR (PLUGIN_NAME L".EnableNpuMonitor")
 #define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
 #define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
@@ -81,6 +112,8 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_MODULE_SERVICES_COLUMNS (PLUGIN_NAME L".ModuleServiceListColumns")
 #define SETTING_NAME_GPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".GpuNodesWindowPosition")
 #define SETTING_NAME_GPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".GpuNodesWindowSize")
+#define SETTING_NAME_NPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".NpuNodesWindowPosition")
+#define SETTING_NAME_NPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".NpuNodesWindowSize")
 #define SETTING_NAME_WSWATCH_WINDOW_POSITION (PLUGIN_NAME L".WsWatchWindowPosition")
 #define SETTING_NAME_WSWATCH_WINDOW_SIZE (PLUGIN_NAME L".WsWatchWindowSize")
 #define SETTING_NAME_WSWATCH_COLUMNS (PLUGIN_NAME L".WsWatchListColumns")
@@ -259,7 +292,10 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_NETWORKSENDRATE 31
 #define ETPRTNC_NETWORKTOTALRATE 32
 #define ETPRTNC_FPS 33
-#define ETPRTNC_MAXIMUM 33
+#define ETPRTNC_NPU 34
+#define ETPRTNC_NPUDEDICATEDBYTES 35
+#define ETPRTNC_NPUSHAREDBYTES 36
+#define ETPRTNC_MAXIMUM 36
 
 // Network list columns
 
@@ -284,6 +320,7 @@ typedef enum _ET_PROCESS_STATISTICS_CATEGORY
     ET_PROCESS_STATISTICS_CATEGORY_GPU,
     ET_PROCESS_STATISTICS_CATEGORY_DISK,
     ET_PROCESS_STATISTICS_CATEGORY_NETWORK,
+    ET_PROCESS_STATISTICS_CATEGORY_NPU,
     ET_PROCESS_STATISTICS_CATEGORY_MAX
 } ET_PROCESS_STATISTICS_CATEGORY;
 
@@ -314,6 +351,11 @@ typedef enum _ET_PROCESS_STATISTICS_INDEX
     ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTES,
     ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA,
 
+    ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED,
+    ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED,
+    ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT,
+    ET_PROCESS_STATISTICS_INDEX_NPUTOTAL,
+
     ET_PROCESS_STATISTICS_INDEX_MAX
 } ET_PROCESS_STATISTICS_INDEX;
 
@@ -338,6 +380,8 @@ typedef struct _ET_PROCESS_BLOCK
     PPH_PROCESS_NODE ProcessNode;
 
     BOOLEAN HaveFirstSample;
+
+    // Disk/Network
 
     ULONG64 DiskReadCount;
     ULONG64 DiskWriteCount;
@@ -370,23 +414,47 @@ typedef struct _ET_PROCESS_BLOCK
     PH_UINT64_DELTA NetworkSendDelta;
     PH_UINT64_DELTA NetworkSendRawDelta;
 
+    // GPU
+
     PH_UINT64_DELTA GpuRunningTimeDelta;
     //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
     //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
 
-    FLOAT CurrentGpuUsage;
-    ULONG CurrentMemUsage;
-    ULONG CurrentMemSharedUsage;
-    ULONG CurrentCommitUsage;
+    FLOAT GpuCurrentUsage;
+    ULONG GpuCurrentMemUsage;
+    ULONG GpuCurrentMemSharedUsage;
+    ULONG GpuCurrentCommitUsage;
     PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemoryHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemorySharedHistory;
+    PH_CIRCULAR_BUFFER_ULONG GpuMemoryHistory;
+    PH_CIRCULAR_BUFFER_ULONG GpuMemorySharedHistory;
     PH_CIRCULAR_BUFFER_ULONG GpuCommittedHistory;
 
     FLOAT GpuNodeUtilization;
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
     ULONG64 GpuCommitUsage;
+
+    // NPU
+
+    PH_UINT64_DELTA NpuRunningTimeDelta;
+    //PPH_UINT64_DELTA NpuTotalRunningTimeDelta;
+    //PPH_CIRCULAR_BUFFER_FLOAT NpuTotalNodesHistory;
+
+    FLOAT NpuCurrentUsage;
+    ULONG NpuCurrentMemUsage;
+    ULONG NpuCurrentMemSharedUsage;
+    ULONG NpuCurrentCommitUsage;
+    PH_CIRCULAR_BUFFER_FLOAT NpuHistory;
+    PH_CIRCULAR_BUFFER_ULONG NpuMemoryHistory;
+    PH_CIRCULAR_BUFFER_ULONG NpuMemorySharedHistory;
+    PH_CIRCULAR_BUFFER_ULONG NpuCommittedHistory;
+
+    FLOAT NpuNodeUtilization;
+    ULONG64 NpuDedicatedUsage;
+    ULONG64 NpuSharedUsage;
+    ULONG64 NpuCommitUsage;
+
+    // Frames
 
     FLOAT FramesPerSecond;
     FLOAT FramesLatency;
@@ -499,6 +567,67 @@ VOID EtFormatNetworkRate(
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
 
+_Success_(return)
+BOOLEAN EtOpenAdapterFromDeviceName(
+    _Out_ PD3DKMT_HANDLE AdapterHandle,
+    _In_ PWSTR DeviceName
+    );
+
+BOOLEAN EtCloseAdapterHandle(
+    _In_ D3DKMT_HANDLE AdapterHandle
+    );
+
+NTSTATUS EtQueryAdapterInformation(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ UINT32 InformationLength
+    );
+
+// HardwareDevices!_GX_ATTRIBUTES
+typedef union _ET_ADAPTER_ATTRIBUTES
+{
+    struct
+    {
+        ULONG TypeGpu : 1;                // DXCORE_HARDWARE_TYPE_ATTRIBUTE_GPU
+        ULONG TypeComputeAccelerator : 1; // DXCORE_HARDWARE_TYPE_ATTRIBUTE_COMPUTE_ACCELERATOR
+        ULONG TypeNpu : 1;                // DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU
+        ULONG TypeMediaAccelerator : 1;   // DXCORE_HARDWARE_TYPE_ATTRIBUTE_MEDIA_ACCELERATOR
+        ULONG D3D11Graphics : 1;          // DXCORE_ADAPTER_ATTRIBUTE_D3D11_GRAPHICS
+        ULONG D3D12Graphics : 1;          // DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS
+        ULONG D3D12CoreCompute : 1;       // DXCORE_ADAPTER_ATTRIBUTE_D3D12_CORE_COMPUTE
+        ULONG D3D12GenericML : 1;         // DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_ML
+        ULONG D3D12GenericMedia : 1;      // DXCORE_ADAPTER_ATTRIBUTE_D3D12_GENERIC_MEDIA
+        ULONG WSL : 1;                    // DXCORE_ADAPTER_ATTRIBUTE_WSL
+        ULONG Spare : 22;
+    };
+
+    ULONG Flags;
+} ET_ADAPTER_ATTRIBUTES, *PET_ADAPTER_ATTRIBUTES;
+
+NTSTATUS EtQueryAdapterAttributes(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _Out_ PET_ADAPTER_ATTRIBUTES Attributes
+    );
+
+_Success_(return)
+BOOLEAN EtQueryDeviceProperties(
+    _In_ PPH_STRING DeviceInterface,
+    _Out_opt_ PPH_STRING *Description,
+    _Out_opt_ PPH_STRING *DriverDate,
+    _Out_opt_ PPH_STRING *DriverVersion,
+    _Out_opt_ PPH_STRING *LocationInfo,
+    _Out_opt_ ULONG64 *InstalledMemory
+    );
+
+PPH_STRING EtGetNodeEngineTypeString(
+    _In_ D3DKMT_NODEMETADATA NodeMetaData
+    );
+
+BOOLEAN EtIsSoftwareDevice(
+    _In_ D3DKMT_HANDLE AdapterHandle
+    );
+
 // etwmon
 
 extern BOOLEAN EtEtwEnabled;
@@ -590,11 +719,24 @@ VOID EtSaveSettingsDiskTreeList(
 
 // gpumon
 
-typedef D3DKMT_HANDLE* PD3DKMT_HANDLE;
+typedef struct _ETP_GPU_ADAPTER
+{
+    LUID AdapterLuid;
+    ULONG SegmentCount;
+    ULONG NodeCount;
+    ULONG FirstNodeIndex;
+
+    PPH_STRING DeviceInterface;
+    PPH_STRING Description;
+    PPH_LIST NodeNameList;
+
+    RTL_BITMAP ApertureBitMap;
+    ULONG ApertureBitMapBuffer[1];
+} ETP_GPU_ADAPTER, *PETP_GPU_ADAPTER;
 
 extern BOOLEAN EtGpuEnabled;
 extern BOOLEAN EtGpuSupported;
-extern BOOLEAN EtD3DEnabled;
+extern BOOLEAN EtGpuD3DEnabled;
 EXTERN_C BOOLEAN EtFramesEnabled;
 extern PPH_LIST EtpGpuAdapterList;
 
@@ -603,8 +745,8 @@ extern ULONG EtGpuTotalSegmentCount;
 extern ULONG64 EtGpuDedicatedLimit;
 extern ULONG64 EtGpuSharedLimit;
 
-extern PH_UINT64_DELTA EtClockTotalRunningTimeDelta;
-extern LARGE_INTEGER EtClockTotalRunningTimeFrequency;
+extern PH_UINT64_DELTA EtGpuClockTotalRunningTimeDelta;
+extern LARGE_INTEGER EtGpuClockTotalRunningTimeFrequency;
 extern FLOAT EtGpuNodeUsage;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
@@ -629,23 +771,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 
 VOID EtGpuMonitorInitialization(
     VOID
-    );
-
-NTSTATUS EtQueryAdapterInformation(
-    _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
-    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
-    _In_ UINT32 InformationLength
-    );
-
-_Success_(return)
-BOOLEAN EtOpenAdapterFromDeviceName(
-    _Out_ PD3DKMT_HANDLE AdapterHandle,
-    _In_ PWSTR DeviceName
-    );
-
-BOOLEAN EtCloseAdapterHandle(
-    _In_ D3DKMT_HANDLE AdapterHandle
     );
 
 typedef struct _ET_PROCESS_GPU_STATISTICS
@@ -707,6 +832,156 @@ VOID EtProcessGpuPropertiesInitializing(
     _In_ PVOID Parameter
     );
 
+// gpunodes
+
+VOID EtShowGpuNodesDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// gpusys
+
+VOID EtGpuSystemInformationInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    );
+
+// gpumini
+
+VOID EtGpuMiniInformationInitializing(
+    _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
+    );
+
+// npumon
+
+typedef struct _ETP_NPU_ADAPTER
+{
+    LUID AdapterLuid;
+    ULONG SegmentCount;
+    ULONG NodeCount;
+    ULONG FirstNodeIndex;
+
+    PPH_STRING DeviceInterface;
+    PPH_STRING Description;
+    PPH_LIST NodeNameList;
+
+    RTL_BITMAP ApertureBitMap;
+    ULONG ApertureBitMapBuffer[1];
+} ETP_NPU_ADAPTER, *PETP_NPU_ADAPTER;
+
+extern BOOLEAN EtNpuEnabled;
+extern BOOLEAN EtNpuSupported;
+extern BOOLEAN EtNpuD3DEnabled;
+extern PPH_LIST EtpNpuAdapterList;
+
+extern ULONG EtNpuTotalNodeCount;
+extern ULONG EtNpuTotalSegmentCount;
+extern ULONG64 EtNpuDedicatedLimit;
+extern ULONG64 EtNpuSharedLimit;
+
+extern PH_UINT64_DELTA EtNpuClockTotalRunningTimeDelta;
+extern LARGE_INTEGER EtNpuClockTotalRunningTimeFrequency;
+extern FLOAT EtNpuNodeUsage;
+extern PH_CIRCULAR_BUFFER_FLOAT EtNpuNodeHistory;
+extern PH_CIRCULAR_BUFFER_ULONG EtMaxNpuNodeHistory; // ID of max. GPU usage process
+extern PH_CIRCULAR_BUFFER_FLOAT EtMaxNpuNodeUsageHistory;
+
+extern PPH_UINT64_DELTA EtNpuNodesTotalRunningTimeDelta;
+extern PPH_CIRCULAR_BUFFER_FLOAT EtNpuNodesHistory;
+
+extern ULONG64 EtNpuDedicatedUsage;
+extern ULONG64 EtNpuSharedUsage;
+extern FLOAT EtNpuPowerUsageLimit;
+extern FLOAT EtNpuPowerUsage;
+extern FLOAT EtNpuTemperatureLimit;
+extern FLOAT EtNpuTemperature;
+extern ULONG64 EtNpuFanRpmLimit;
+extern ULONG64 EtNpuFanRpm;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtNpuDedicatedHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtNpuSharedHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT EtNpuPowerUsageHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT EtNpuTemperatureHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 EtNpuFanRpmHistory;
+
+VOID EtNpuMonitorInitialization(
+    VOID
+    );
+
+typedef struct _ET_PROCESS_NPU_STATISTICS
+{
+    ULONG SegmentCount;
+    ULONG NodeCount;
+
+    ULONG64 DedicatedCommitted;
+    ULONG64 SharedCommitted;
+
+    ULONG64 BytesAllocated;
+    ULONG64 BytesReserved;
+    ULONG64 WriteCombinedBytesAllocated;
+    ULONG64 WriteCombinedBytesReserved;
+    ULONG64 CachedBytesAllocated;
+    ULONG64 CachedBytesReserved;
+    ULONG64 SectionBytesAllocated;
+    ULONG64 SectionBytesReserved;
+
+    ULONG64 RunningTime;
+    ULONG64 ContextSwitches;
+} ET_PROCESS_NPU_STATISTICS, *PET_PROCESS_NPU_STATISTICS;
+
+VOID EtSaveNpuMonitorSettings(
+    VOID
+    );
+
+ULONG EtGetNpuAdapterCount(
+    VOID
+    );
+
+ULONG EtGetNpuAdapterIndexFromNodeIndex(
+    _In_ ULONG NodeIndex
+    );
+
+PPH_STRING EtGetNpuAdapterNodeDescription(
+    _In_ ULONG Index,
+    _In_ ULONG NodeIndex
+    );
+
+PPH_STRING EtGetNpuAdapterDescription(
+    _In_ ULONG Index
+    );
+
+VOID EtQueryProcessNpuStatistics(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PET_PROCESS_NPU_STATISTICS Statistics
+    );
+
+// npudetails
+
+VOID EtShowNpuDetailsDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// npuprprp
+
+VOID EtProcessNpuPropertiesInitializing(
+    _In_ PVOID Parameter
+    );
+
+// npunodes
+
+VOID EtShowNpuNodesDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// npusys
+
+VOID EtNpuSystemInformationInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    );
+
+// npumini
+
+VOID EtNpuMiniInformationInitializing(
+    _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
+    );
+
 // treeext
 
 VOID EtProcessTreeNewInitializing(
@@ -738,24 +1013,6 @@ VOID EtEtwSystemInformationInitializing(
 // etwmini
 
 VOID EtEtwMiniInformationInitializing(
-    _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
-    );
-
-// gpunodes
-
-VOID EtShowGpuNodesDialog(
-    _In_ HWND ParentWindowHandle
-    );
-
-// gpusys
-
-VOID EtGpuSystemInformationInitializing(
-    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
-    );
-
-// gpumini
-
-VOID EtGpuMiniInformationInitializing(
     _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
     );
 
@@ -832,10 +1089,6 @@ VOID EtPerfCounterInitialization(
     VOID
     );
 
-NTSTATUS EtUpdatePerfCounterData(
-    VOID
-    );
-
 FLOAT EtLookupProcessGpuUtilization(
     _In_ HANDLE ProcessId
     );
@@ -856,27 +1109,59 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     _In_ ULONG EngineId
     );
 
-FLOAT EtLookupTotalGpuAdapterUtilization(
-    _In_ LUID AdapterLuid
-    );
-
-FLOAT EtLookupTotalGpuAdapterEngineUtilization(
-    _In_ LUID AdapterLuid,
-    _In_ ULONG EngineId
-    );
-
 ULONG64 EtLookupTotalGpuDedicated(
     VOID
-    );
-
-ULONG64 EtLookupTotalGpuAdapterDedicated(
-    _In_ LUID AdapterLuid
     );
 
 ULONG64 EtLookupTotalGpuShared(
     VOID
     );
 
+FLOAT EtLookupProcessNpuUtilization(
+    _In_ HANDLE ProcessId
+    );
+
+_Success_(return)
+BOOLEAN EtLookupProcessNpuMemoryCounters(
+    _In_opt_ HANDLE ProcessId,
+    _Out_ PULONG64 SharedUsage,
+    _Out_ PULONG64 DedicatedUsage,
+    _Out_ PULONG64 CommitUsage
+    );
+
+FLOAT EtLookupTotalNpuUtilization(
+    VOID
+    );
+
+FLOAT EtLookupTotalNpuEngineUtilization(
+    _In_ ULONG EngineId
+    );
+
+ULONG64 EtLookupTotalNpuDedicated(
+    VOID
+    );
+
+ULONG64 EtLookupTotalNpuShared(
+    VOID
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+FLOAT EtLookupTotalGpuAdapterUtilization(
+    _In_ LUID AdapterLuid
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+FLOAT EtLookupTotalGpuAdapterEngineUtilization(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+ULONG64 EtLookupTotalGpuAdapterDedicated(
+    _In_ LUID AdapterLuid
+    );
+
+// EXTENDEDTOOLS_INTERFACE
 ULONG64 EtLookupTotalGpuAdapterShared(
     _In_ LUID AdapterLuid
     );
@@ -997,8 +1282,8 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
 
-    PH_STRINGREF LocalPortServiceName;
-    PH_STRINGREF RemotePortServiceName;
+    PPH_STRINGREF LocalPortServiceName;
+    PPH_STRINGREF RemotePortServiceName;
 
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -1071,7 +1356,7 @@ VOID EtFwShowWhoisWindow(
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
-    _Out_ PPH_STRINGREF ServiceName
+    _Out_ PPH_STRINGREF* ServiceName
     );
 
 typedef struct _SEC_WINNT_AUTH_IDENTITY_W SEC_WINNT_AUTH_IDENTITY_W, *PSEC_WINNT_AUTH_IDENTITY_W;

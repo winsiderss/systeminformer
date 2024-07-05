@@ -28,6 +28,12 @@
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
 #define IDD_PROCFRAMES                  142
+#define IDD_SYSINFO_NPU                 200
+#define ID_VIEW_NPUINFORMATION          201
+#define IDD_SYSINFO_NPUPANEL            202
+#define IDD_PROCNPU                     203
+#define IDD_NPUNODES                    204
+#define IDD_SYSINFO_NPUDETAILS          205
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_WORKERTHREADSTART           1005
@@ -95,6 +101,11 @@
 #define IDC_NETSEND_L                   1111
 #define IDC_GROUPDISKREAD               1112
 #define IDC_GROUPDISKWRITE              1113
+#define IDC_ENABLENPUMONITOR            2000
+#define IDC_GROUPNPU                    2001
+#define IDC_NPUNAME                     2002
+#define IDC_NPU_L                       2003
+#define IDC_NPULIST                     2004
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
 #define IDD_BIGPOOL                     3003
@@ -156,7 +167,7 @@
 #define IDC_TPM_LIST_REFRESH            50004
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        158

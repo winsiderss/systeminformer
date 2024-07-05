@@ -22,6 +22,9 @@
     <Filter Include="Header Files\PresentMon">
       <UniqueIdentifier>{5bf99148-85a6-4371-b0e1-9778bce40b6c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Neural">
+      <UniqueIdentifier>{8b394a7d-0da6-425f-ac4d-bbdf91c80219}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -156,6 +159,24 @@
     <ClCompile Include="tpm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="npudetails.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
+    <ClCompile Include="npumini.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
+    <ClCompile Include="npumon.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
+    <ClCompile Include="npunodes.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
+    <ClCompile Include="npuprprp.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
+    <ClCompile Include="npusys.c">
+      <Filter>Source Files\Neural</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -227,6 +248,15 @@
     <ClInclude Include="tpm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="npumini.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="npumon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="npusys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
@@ -273,6 +303,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\unknown.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\dll.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

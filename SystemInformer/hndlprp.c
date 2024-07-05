@@ -753,7 +753,6 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle = NULL;
 
         if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -989,72 +988,72 @@ VOID PhpUpdateHandleGeneral(
 
                 if (NT_SUCCESS(status) && alpcPortHandle)
                 {
-                    ALPC_BASIC_INFORMATION basicInfo;
+                    ALPC_BASIC_INFORMATION alpcBasicInfo;
 
                     if (NT_SUCCESS(NtAlpcQueryInformation(
                         alpcPortHandle,
                         AlpcBasicInformation,
-                        &basicInfo,
+                        &alpcBasicInfo,
                         sizeof(ALPC_BASIC_INFORMATION),
                         NULL
                         )))
                     {
-                        ULONG remainingFlags = basicInfo.Flags;
+                        ULONG remainingFlags = alpcBasicInfo.Flags;
                         PH_STRING_BUILDER stringBuilder;
 
                         PhInitializeStringBuilder(&stringBuilder, 0x100);
 
-                        if (basicInfo.Flags & ALPC_PORFLG_LPC_MODE)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_LPC_MODE))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"LPC mode, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_LPC_MODE);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_ALLOW_IMPERSONATION)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_IMPERSONATION))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Allow impersonation, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_IMPERSONATION);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_ALLOW_LPC_REQUESTS)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_LPC_REQUESTS))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Allow LPC requests, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_LPC_REQUESTS);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_WAITABLE_PORT)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAITABLE_PORT))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Waitable, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_WAITABLE_PORT);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_ALLOW_DUP_OBJECT)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_DUP_OBJECT))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Allow object duplication, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_DUP_OBJECT);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_SYSTEM_PROCESS)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_SYSTEM_PROCESS))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"System process only, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_SYSTEM_PROCESS);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY1)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY1))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Wake policy (1), ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY1);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY2)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY2))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Wake policy (2), ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY2);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY3)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY3))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Wake policy (3), ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY3);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_DIRECT_MESSAGE)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_DIRECT_MESSAGE))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"No shared section (direct), ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_DIRECT_MESSAGE);
                         }
-                        if (basicInfo.Flags & ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE)
+                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE))
                         {
                             PhAppendStringBuilder2(&stringBuilder, L"Allow multi-handle attributes, ");
                             ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE);
@@ -1321,18 +1320,18 @@ VOID PhpUpdateHandleGeneral(
                 NULL
                 )))
             {
-                PPH_STRING string;
+                PPH_STRING driverName;
 
-                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &string)))
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
                 {
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVER], 1, PhGetString(string));
-                    PhDereferenceObject(string);
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVER], 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
                 }
 
-                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &string)))
+                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &driverName)))
                 {
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE], 1, PhGetString(string));
-                    PhDereferenceObject(string);
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE], 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
                 }
 
                 NtClose(fileObjectDriver.DriverHandle);

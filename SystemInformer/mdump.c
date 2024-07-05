@@ -49,7 +49,9 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
             BOOLEAN IsProcessSnapshot : 1;
             BOOLEAN Stop : 1;
             BOOLEAN Succeeded : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN EnableProcessSnapshot : 1;
+            BOOLEAN EnableKernelSnapshot : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -195,6 +197,8 @@ VOID PhUiCreateDumpFileProcess(
         return;
 
     context = PhpCreateProcessMiniDumpContext();
+    context->EnableProcessSnapshot = !!PhGetIntegerSetting(L"EnableMinidumpSnapshot");
+    context->EnableKernelSnapshot = !!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump");
     context->ParentWindowHandle = WindowHandle;
     context->ProcessId = ProcessItem->ProcessId;
     context->ProcessItem = PhReferenceObject(ProcessItem);
@@ -282,7 +286,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         break;
     case IsProcessSnapshotCallback:
         {
-            if (context->IsProcessSnapshot)
+            if (context->EnableProcessSnapshot && context->IsProcessSnapshot)
                 CallbackOutput->Status = S_FALSE;
         }
         break;
@@ -360,7 +364,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             HANDLE kernelDumpFileHandle;
             PPH_STRING kernelDumpFileName;
 
-            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+            if (!context->EnableKernelSnapshot)
                 break;
             if (!PhGetOwnTokenAttributes().Elevated)
                 break;
@@ -389,7 +393,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         {
             PH_FORMAT format[2];
 
-            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+            if (!context->EnableKernelSnapshot)
                 break;
 
             PhInitFormatS(&format[0], L"Processing kernel minidump");
@@ -417,6 +421,8 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     MINIDUMP_CALLBACK_INFORMATION callbackInfo;
     HANDLE processSnapshotHandle = NULL;
     HANDLE packageTaskHandle = NULL;
+    HANDLE processHandle = NULL;
+    LONG status;
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = context;
@@ -426,8 +432,6 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     {
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
-            NTSTATUS status;
-
             if (NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
                 context->ProcessHandle,
                 context->ProcessId,
@@ -469,7 +473,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         PhAppResolverBeginCrashDumpTaskByHandle(context->ProcessHandle, &packageTaskHandle);
     }
 
-    if (PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+    if (context->EnableKernelSnapshot)
     {
         if (!PhGetOwnTokenAttributes().Elevated)
         {
@@ -484,7 +488,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        if (context->ProcessId != NtCurrentProcessId()) // Don't use snapshots for the current process (dmex)
+        if (context->EnableProcessSnapshot && context->ProcessId != NtCurrentProcessId()) // Don't use snapshots for the current process (dmex)
         {
             HANDLE snapshotHandle;
 
@@ -500,32 +504,34 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
     }
 
-    if (PhWriteMiniDumpProcess(
-        processSnapshotHandle ? processSnapshotHandle : context->ProcessHandle,
+    if (context->EnableProcessSnapshot && context->IsProcessSnapshot)
+        processHandle = processSnapshotHandle;
+    else
+        processHandle = context->ProcessHandle;
+
+    status = PhWriteMiniDumpProcess(
+        processHandle,
         context->ProcessId,
         context->FileHandle,
         context->DumpType,
         NULL,
         NULL,
         &callbackInfo
-        ))
+        );
+
+    if (HR_SUCCESS(status))
     {
         context->Succeeded = TRUE;
     }
     else
     {
-        SendMessage(context->WindowHandle, WM_PH_MINIDUMP_ERROR, 0, (LPARAM)GetLastError());
+        SendMessage(context->WindowHandle, WM_PH_MINIDUMP_ERROR, 0, (LPARAM)status);
     }
 
     if (processSnapshotHandle)
-    {
         PhFreeProcessSnapshot(processSnapshotHandle, context->ProcessHandle);
-    }
-
     if (packageTaskHandle)
-    {
         PhAppResolverEndCrashDumpTask(packageTaskHandle);
-    }
 
 #ifdef _WIN64
 Completed:

@@ -226,8 +226,7 @@ VOID KphpAtomicAcquireObjectLockShared(
         ULONG_PTR object;
         ULONG_PTR lock;
 
-        object = ObjectRef->Object;
-        MemoryBarrier();
+        object = ReadULongPtrAcquire(&ObjectRef->Object);
 
         lock = object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK;
 
@@ -284,8 +283,7 @@ VOID KphpAtomicAcquireObjectLockExclusive(
     {
         ULONG_PTR locked;
 
-        object = ObjectRef->Object;
-        MemoryBarrier();
+        object = ReadULongPtrAcquire(&ObjectRef->Object);
 
         if (object & KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG)
         {
@@ -304,8 +302,7 @@ VOID KphpAtomicAcquireObjectLockExclusive(
 
     for (; object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX; YieldProcessor())
     {
-        object = ObjectRef->Object;
-        MemoryBarrier();
+        object = ReadULongPtrAcquire(&ObjectRef->Object);
     }
 }
 
