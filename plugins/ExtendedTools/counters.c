@@ -1683,7 +1683,8 @@ NTSTATUS EtpUpdatePerfCounterData(
     return STATUS_SUCCESS;
 }
 
-FLOAT EtLookupProcessGpuUtilization(
+FLOAT EtpLookupProcessGpuUtilization(
+    _In_ PPH_LIST AdapterList,
     _In_ HANDLE ProcessId
     )
 {
@@ -1703,9 +1704,9 @@ FLOAT EtLookupProcessGpuUtilization(
         if (UlongToHandle(entry->ProcessId) != ProcessId)
             continue;
 
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+        for (ULONG i = 0; i < AdapterList->Count; i++)
         {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
 
             if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
                 value += entry->ValueF;
@@ -1721,6 +1722,203 @@ FLOAT EtLookupProcessGpuUtilization(
         value = 1;
 
     return value;
+}
+
+_Success_(return)
+BOOLEAN EtpLookupProcessGpuMemoryCounters(
+    _In_ PPH_LIST AdapterList,
+    _In_opt_ HANDLE ProcessId,
+    _Out_ PULONG64 SharedUsage,
+    _Out_ PULONG64 DedicatedUsage,
+    _Out_ PULONG64 CommitUsage
+    )
+{
+    ULONG64 sharedUsage = 0;
+    ULONG64 dedicatedUsage = 0;
+    ULONG64 commitUsage = 0;
+    ULONG enumerationKey;
+    PET_GPU_PROCESS_COUNTER entry;
+
+    if (!EtGpuProcessCounterHashTable)
+        return 0;
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        if (UlongToHandle(entry->ProcessId) != ProcessId)
+            continue;
+
+        for (ULONG i = 0; i < AdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
+
+            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
+            {
+                sharedUsage += entry->SharedUsage;
+                dedicatedUsage += entry->DedicatedUsage;
+                commitUsage += entry->CommitUsage;
+            }
+        }
+    }
+
+    if (sharedUsage && dedicatedUsage && commitUsage)
+    {
+        *SharedUsage = sharedUsage;
+        *DedicatedUsage = dedicatedUsage;
+        *CommitUsage = commitUsage;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+FLOAT EtpLookupTotalGpuUtilization(
+    _In_ PPH_LIST AdapterList
+    )
+{
+    FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_TOTAL_COUNTER entry;
+
+    if (!EtGpuTotalEngineHashTable)
+        return 0;
+
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuTotalEngineHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        for (ULONG i = 0; i < AdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
+
+            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
+            {
+                FLOAT usage = entry->ValueF;
+
+                if (usage > value)
+                    value = usage;
+            }
+        }
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    if (value > 0) // HACK
+        value = value / 100;
+
+    return value;
+}
+
+FLOAT EtpLookupTotalGpuEngineUtilization(
+    _In_ PPH_LIST AdapterList,
+    _In_ ULONG EngineId
+    )
+{
+    FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_ENGINE_COUNTER entry;
+
+    if (!EtGpuRunningTimeHashTable) // EtGpuTotalEngineHashTable
+        return 0;
+
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        if (entry->EngineId != EngineId)
+            continue;
+
+        for (ULONG i = 0; i < AdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
+
+            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
+            {
+                value += entry->ValueF;
+
+                //FLOAT usage = entry->ValueF;
+                //if (usage > value)
+                //    value = usage;
+            }
+        }
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    if (value > 0) // HACK
+        value = value / 100;
+
+    return value;
+}
+
+ULONG64 EtpLookupTotalGpuDedicated(
+    _In_ PPH_LIST AdapterList
+    )
+{
+    ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_ADAPTER_COUNTER entry;
+
+    if (!EtGpuAdapterDedicatedHashTable)
+        return 0;
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuAdapterDedicatedHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        for (ULONG i = 0; i < AdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
+
+            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
+            {
+                value += entry->DedicatedUsage;
+            }
+        }
+    }
+
+    return value;
+}
+
+ULONG64 EtpLookupTotalGpuShared(
+    _In_ PPH_LIST AdapterList
+    )
+{
+    ULONG64 value = 0;
+    ULONG enumerationKey;
+    PET_GPU_PROCESS_COUNTER entry;
+
+    if (!EtGpuProcessCounterHashTable)
+        return 0;
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        for (ULONG i = 0; i < AdapterList->Count; i++)
+        {
+            PETP_GPU_ADAPTER adapter = AdapterList->Items[i];
+
+            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
+            {
+                value += entry->SharedUsage;
+            }
+        }
+    }
+
+    return value;
+}
+
+FLOAT EtLookupProcessGpuUtilization(
+    _In_ HANDLE ProcessId
+    )
+{
+    return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
 _Success_(return)
@@ -1731,224 +1929,48 @@ BOOLEAN EtLookupProcessGpuMemoryCounters(
     _Out_ PULONG64 CommitUsage
     )
 {
-    ULONG64 sharedUsage = 0;
-    ULONG64 dedicatedUsage = 0;
-    ULONG64 commitUsage = 0;
-    ULONG enumerationKey;
-    PET_GPU_PROCESS_COUNTER entry;
-
-    if (!EtGpuProcessCounterHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        if (UlongToHandle(entry->ProcessId) != ProcessId)
-            continue;
-
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                sharedUsage += entry->SharedUsage;
-                dedicatedUsage += entry->DedicatedUsage;
-                commitUsage += entry->CommitUsage;
-            }
-        }
-    }
-
-    if (sharedUsage && dedicatedUsage && commitUsage)
-    {
-        *SharedUsage = sharedUsage;
-        *DedicatedUsage = dedicatedUsage;
-        *CommitUsage = commitUsage;
-        return TRUE;
-    }
-
-    return FALSE;
+    return EtpLookupProcessGpuMemoryCounters(
+        EtpGpuAdapterList,
+        ProcessId,
+        SharedUsage,
+        DedicatedUsage,
+        CommitUsage
+        );
 }
 
 FLOAT EtLookupTotalGpuUtilization(
     VOID
     )
 {
-    FLOAT value = 0;
-    ULONG enumerationKey;
-    PET_GPU_TOTAL_COUNTER entry;
-
-    if (!EtGpuTotalEngineHashTable)
-        return 0;
-
-    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuTotalEngineHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                FLOAT usage = entry->ValueF;
-
-                if (usage > value)
-                    value = usage;
-            }
-        }
-    }
-
-    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    if (value > 0) // HACK
-        value = value / 100;
-
-    return value;
+    return EtpLookupTotalGpuUtilization(EtpGpuAdapterList);
 }
 
 FLOAT EtLookupTotalGpuEngineUtilization(
     _In_ ULONG EngineId
     )
 {
-    FLOAT value = 0;
-    ULONG enumerationKey;
-    PET_GPU_ENGINE_COUNTER entry;
-
-    if (!EtGpuRunningTimeHashTable) // EtGpuTotalEngineHashTable
-        return 0;
-
-    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        if (entry->EngineId != EngineId)
-            continue;
-
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->ValueF;
-
-                //FLOAT usage = entry->ValueF;
-                //if (usage > value)
-                //    value = usage;
-            }
-        }
-    }
-
-    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    if (value > 0) // HACK
-        value = value / 100;
-
-    return value;
+    return EtpLookupTotalGpuEngineUtilization(EtpGpuAdapterList, EngineId);
 }
 
 ULONG64 EtLookupTotalGpuDedicated(
     VOID
     )
 {
-    ULONG64 value = 0;
-    ULONG enumerationKey;
-    PET_GPU_ADAPTER_COUNTER entry;
-
-    if (!EtGpuAdapterDedicatedHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuAdapterDedicatedHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->DedicatedUsage;
-            }
-        }
-    }
-
-    return value;
+    return EtpLookupTotalGpuDedicated(EtpGpuAdapterList);
 }
 
 ULONG64 EtLookupTotalGpuShared(
     VOID
     )
 {
-    ULONG64 value = 0;
-    ULONG enumerationKey;
-    PET_GPU_PROCESS_COUNTER entry;
-
-    if (!EtGpuProcessCounterHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpGpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->SharedUsage;
-            }
-        }
-    }
-
-    return value;
+    return EtpLookupTotalGpuShared(EtpGpuAdapterList);
 }
 
 FLOAT EtLookupProcessNpuUtilization(
     _In_ HANDLE ProcessId
     )
 {
-    FLOAT value = 0;
-    ULONG enumerationKey;
-    PET_GPU_ENGINE_COUNTER entry;
-
-    if (!EtGpuRunningTimeHashTable)
-        return 0;
-
-    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        if (UlongToHandle(entry->ProcessId) != ProcessId)
-            continue;
-
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-                value += entry->ValueF;
-        }
-    }
-
-    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    if (value > 0) // HACK
-        value = value / 100;
-
-    if (value > 1) // HACK
-        value = 1;
-
-    return value;
+    return EtpLookupProcessGpuUtilization(EtpNpuAdapterList, ProcessId);
 }
 
 _Success_(return)
@@ -1959,184 +1981,41 @@ BOOLEAN EtLookupProcessNpuMemoryCounters(
     _Out_ PULONG64 CommitUsage
     )
 {
-    ULONG64 sharedUsage = 0;
-    ULONG64 dedicatedUsage = 0;
-    ULONG64 commitUsage = 0;
-    ULONG enumerationKey;
-    PET_GPU_PROCESS_COUNTER entry;
-
-    if (!EtGpuProcessCounterHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        if (UlongToHandle(entry->ProcessId) != ProcessId)
-            continue;
-
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                sharedUsage += entry->SharedUsage;
-                dedicatedUsage += entry->DedicatedUsage;
-                commitUsage += entry->CommitUsage;
-            }
-        }
-    }
-
-    if (sharedUsage && dedicatedUsage && commitUsage)
-    {
-        *SharedUsage = sharedUsage;
-        *DedicatedUsage = dedicatedUsage;
-        *CommitUsage = commitUsage;
-        return TRUE;
-    }
-
-    return FALSE;
+    return EtpLookupProcessGpuMemoryCounters(
+        EtpNpuAdapterList,
+        ProcessId,
+        SharedUsage,
+        DedicatedUsage,
+        CommitUsage
+        );
 }
 
 FLOAT EtLookupTotalNpuUtilization(
     VOID
     )
 {
-    FLOAT value = 0;
-    ULONG enumerationKey;
-    PET_GPU_TOTAL_COUNTER entry;
-
-    if (!EtGpuTotalEngineHashTable)
-        return 0;
-
-    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuTotalEngineHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                FLOAT usage = entry->ValueF;
-
-                if (usage > value)
-                    value = usage;
-            }
-        }
-    }
-
-    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    if (value > 0) // HACK
-        value = value / 100;
-
-    return value;
+    return EtpLookupTotalGpuUtilization(EtpNpuAdapterList);
 }
 
 FLOAT EtLookupTotalNpuEngineUtilization(
     _In_ ULONG EngineId
     )
 {
-    FLOAT value = 0;
-    ULONG enumerationKey;
-    PET_GPU_ENGINE_COUNTER entry;
-
-    if (!EtGpuRunningTimeHashTable) // EtGpuTotalEngineHashTable
-        return 0;
-
-    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        if (entry->EngineId != EngineId)
-            continue;
-
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->ValueF;
-
-                //FLOAT usage = entry->ValueF;
-                //if (usage > value)
-                //    value = usage;
-            }
-        }
-    }
-
-    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
-
-    if (value > 0) // HACK
-        value = value / 100;
-
-    return value;
+    return EtpLookupTotalGpuEngineUtilization(EtpNpuAdapterList, EngineId);
 }
 
 ULONG64 EtLookupTotalNpuDedicated(
     VOID
     )
 {
-    ULONG64 value = 0;
-    ULONG enumerationKey;
-    PET_GPU_ADAPTER_COUNTER entry;
-
-    if (!EtGpuAdapterDedicatedHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuAdapterDedicatedHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->DedicatedUsage;
-            }
-        }
-    }
-
-    return value;
+    return EtpLookupTotalGpuDedicated(EtpNpuAdapterList);
 }
 
 ULONG64 EtLookupTotalNpuShared(
     VOID
     )
 {
-    ULONG64 value = 0;
-    ULONG enumerationKey;
-    PET_GPU_PROCESS_COUNTER entry;
-
-    if (!EtGpuProcessCounterHashTable)
-        return 0;
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
-    {
-        for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
-        {
-            PETP_GPU_ADAPTER adapter = EtpNpuAdapterList->Items[i];
-
-            if (adapter->AdapterLuid.LowPart == entry->AdapterLuid)
-            {
-                value += entry->SharedUsage;
-            }
-        }
-    }
-
-    return value;
+    return EtpLookupTotalGpuShared(EtpNpuAdapterList);
 }
 
 // EXTENDEDTOOLS_INTERFACE
