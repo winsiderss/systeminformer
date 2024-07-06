@@ -587,6 +587,101 @@ BOOLEAN GraphicsQueryDeviceInterfaceLuid(
 }
 
 _Success_(return)
+BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndexUnique(
+    _In_ DEVINST DeviceInstanceHandle,
+    _In_ PCWSTR DeviceInterface,
+    _Out_ PULONG PhysicalAdapterIndex
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_LIST gpuLuids = NULL;
+    static PPH_LIST npuLuids = NULL;
+    LUID luid;
+    ULONG luidSize;
+    DEVPROPTYPE propertyType;
+    D3DKMT_HANDLE adapterHandle;
+
+    *PhysicalAdapterIndex = 0;
+
+    // DEVPKEY_Gpu_PhysicalAdapterIndex can be the same between different graphics devices.
+    // This option makes them unique for each type we display, this mimics the behavior of similar
+    // tools that display information about graphics devices. Note this has nothing to do with
+    // NPU vs GPU, for example on laptops with an integrated and dedicated GPU they might show
+    // the same index in the UI, this resolves that.
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        gpuLuids = PhCreateList(1);
+        npuLuids = PhCreateList(1);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    luidSize = sizeof(LUID);
+    propertyType = DEVPROP_TYPE_EMPTY;
+
+    if (CM_Get_DevNode_Property(
+        DeviceInstanceHandle,
+        &DEVPKEY_Gpu_Luid,
+        &propertyType,
+        (PBYTE)&luid,
+        &luidSize,
+        0
+        ) != CR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    for (ULONG i = 0; i < gpuLuids->Count; i++)
+    {
+        if (luid.LowPart == PtrToUlong(gpuLuids->Items[i]))
+        {
+            *PhysicalAdapterIndex = i;
+            return TRUE;
+        }
+    }
+
+    for (ULONG i = 0; i < npuLuids->Count; i++)
+    {
+        if (luid.LowPart == PtrToUlong(npuLuids->Items[i]))
+        {
+            *PhysicalAdapterIndex = i;
+            return TRUE;
+        }
+    }
+
+    BOOLEAN npuDevice = FALSE;
+
+    if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, (PWSTR)DeviceInterface)))
+    {
+        GX_ADAPTER_ATTRIBUTES adapterSttributes;
+
+        if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
+            adapterHandle,
+            &adapterSttributes
+            )))
+        {
+            npuDevice = !!adapterSttributes.TypeNpu;
+        }
+
+        GraphicsCloseAdapterHandle(adapterHandle);
+    }
+
+    if (npuDevice)
+    {
+        PhAddItemList(npuLuids, UlongToPtr(luid.LowPart));
+        *PhysicalAdapterIndex = npuLuids->Count - 1;
+    }
+    else
+    {
+        PhAddItemList(gpuLuids, UlongToPtr(luid.LowPart));
+        *PhysicalAdapterIndex = gpuLuids->Count - 1;
+    }
+
+    return TRUE;
+}
+
+_Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
     _In_ PCWSTR DeviceInterface,
     _Out_ PULONG PhysicalAdapterIndex
@@ -596,7 +691,6 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
     DEVINST deviceInstanceHandle;
     ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
-    ULONG deviceClassGuidLength = sizeof(GUID);
 
     if (CM_Get_Device_Interface_Property(
         DeviceInterface,
@@ -617,6 +711,18 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
         ) != CR_SUCCESS)
     {
         return FALSE;
+    }
+
+    if (PhGetIntegerSetting(SETTING_NAME_GRAPHICS_UNIQUE_INDICES))
+    {
+        if (GraphicsQueryDeviceInterfaceAdapterIndexUnique(
+            deviceInstanceHandle,
+            DeviceInterface,
+            PhysicalAdapterIndex
+            ))
+        {
+            return TRUE;
+        }
     }
 
     if (NetWindowsVersion >= WINDOWS_10)
