@@ -651,6 +651,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_GRAPHICS_LIST, L"" },
                 { IntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, L"@96|850,490" },
+                { IntegerSettingType, SETTING_NAME_GRAPHICS_UNIQUE_INDICES, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, L"0" },
