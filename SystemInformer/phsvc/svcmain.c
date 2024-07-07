@@ -40,10 +40,10 @@ NTSTATUS PhSvcMain(
     if (!NT_SUCCESS(status = PhSvcApiPortInitialization(&portName)))
         return status;
 
-    if (!NT_SUCCESS(status = NtCreateEvent(&PhSvcTimeoutStandbyEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, TRUE)))
+    if (!NT_SUCCESS(status = PhCreateEvent(&PhSvcTimeoutStandbyEventHandle, EVENT_ALL_ACCESS, SynchronizationEvent, TRUE)))
         return status;
 
-    if (!NT_SUCCESS(status = NtCreateEvent(&PhSvcTimeoutCancelEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+    if (!NT_SUCCESS(status = PhCreateEvent(&PhSvcTimeoutCancelEventHandle, EVENT_ALL_ACCESS, SynchronizationEvent, FALSE)))
     {
         NtClose(PhSvcTimeoutStandbyEventHandle);
         return status;

@@ -28,10 +28,9 @@ VOID NTAPI TaskbarInitialize(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            if (NT_SUCCESS(NtCreateEvent(
+            if (NT_SUCCESS(PhCreateEvent(
                 &TaskbarEventHandle,
                 EVENT_ALL_ACCESS,
-                NULL,
                 SynchronizationEvent,
                 FALSE
                 )))

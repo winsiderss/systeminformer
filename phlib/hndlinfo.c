@@ -2189,13 +2189,13 @@ NTSTATUS PhpCallWithTimeout(
 
     if (!ThreadContext->StartEventHandle)
     {
-        if (!NT_SUCCESS(status = NtCreateEvent(&ThreadContext->StartEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+        if (!NT_SUCCESS(status = PhCreateEvent(&ThreadContext->StartEventHandle, EVENT_ALL_ACCESS, SynchronizationEvent, FALSE)))
             return status;
     }
 
     if (!ThreadContext->CompletedEventHandle)
     {
-        if (!NT_SUCCESS(status = NtCreateEvent(&ThreadContext->CompletedEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+        if (!NT_SUCCESS(status = PhCreateEvent(&ThreadContext->CompletedEventHandle, EVENT_ALL_ACCESS, SynchronizationEvent, FALSE)))
             return status;
     }
 

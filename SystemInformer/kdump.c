@@ -121,10 +121,9 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
             context->KernelDumpActive = TRUE;
             context->LastStatus = STATUS_SUCCESS;
 
-            NtCreateEvent(
+            PhCreateEvent(
                 &context->EventHandle,
                 EVENT_ALL_ACCESS,
-                NULL,
                 SynchronizationEvent,
                 FALSE
                 );

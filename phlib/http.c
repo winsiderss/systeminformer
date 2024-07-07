@@ -1535,10 +1535,9 @@ NTSTATUS PhDnsAllocateQueryContext(
     PPH_DNS_QUERY_CONTEXT context;
     HANDLE eventHandle;
 
-    status = NtCreateEvent(
+    status = PhCreateEvent(
         &eventHandle,
         EVENT_ALL_ACCESS,
-        NULL,
         SynchronizationEvent,
         FALSE
         );

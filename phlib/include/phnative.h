@@ -3387,6 +3387,16 @@ PhSetSystemFileCacheSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateEvent(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ EVENT_TYPE EventType,
+    _In_ BOOLEAN InitialState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeviceIoControlFile(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG IoControlCode,
