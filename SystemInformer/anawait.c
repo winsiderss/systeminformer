@@ -759,7 +759,7 @@ VOID PhpInitializeServiceNumbers(
 
         // NtWaitForSingleObject
 
-        status = NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+        status = PhCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NotificationEvent, FALSE);
 
         if (NT_SUCCESS(status))
         {
@@ -780,7 +780,7 @@ VOID PhpInitializeServiceNumbers(
 
         // NtWaitForMultipleObjects
 
-        status = NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+        status = PhCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NotificationEvent, FALSE);
 
         if (NT_SUCCESS(status))
         {

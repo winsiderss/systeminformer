@@ -768,9 +768,8 @@ NTSTATUS KphCommsStart(
 
     for (ULONG i = 0; i < KphpCommsMessageCount; i++)
     {
-        status = NtCreateEvent(&KphpCommsMessages[i].Overlapped.hEvent,
+        status = PhCreateEvent(&KphpCommsMessages[i].Overlapped.hEvent,
                                EVENT_ALL_ACCESS,
-                               NULL,
                                NotificationEvent,
                                FALSE);
 

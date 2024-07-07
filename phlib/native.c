@@ -17767,6 +17767,41 @@ NTSTATUS PhSetSystemFileCacheSize(
     return status;
 }
 
+NTSTATUS PhCreateEvent(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ EVENT_TYPE EventType,
+    _In_ BOOLEAN InitialState
+    )
+{
+    NTSTATUS status;
+    HANDLE eventHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateEvent(
+        &eventHandle,
+        DesiredAccess,
+        &objectAttributes,
+        EventType,
+        InitialState
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *EventHandle = eventHandle;
+    }
+
+    return status;
+}
+
 // rev from DeviceIoControl (dmex)
 NTSTATUS PhDeviceIoControlFile(
     _In_ HANDLE DeviceHandle,

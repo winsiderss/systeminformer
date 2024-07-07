@@ -1136,7 +1136,7 @@ NTSTATUS PhServiceNonPollThreadStart(
     PLIST_ENTRY listEntry;
     PPHP_SERVICE_NOTIFY_CONTEXT notifyContext;
 
-    if (!NT_SUCCESS(NtCreateEvent(&PhNonPollEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+    if (!NT_SUCCESS(PhCreateEvent(&PhNonPollEventHandle, EVENT_ALL_ACCESS, SynchronizationEvent, FALSE)))
     {
         PhNonPollActive = FALSE;
         PhpResetServiceNonPollGate();

@@ -226,16 +226,13 @@ NTSTATUS TpmDeviceIoControl(
     ULONG outputBufferLength = 0;
     HANDLE eventHandle;
     IO_STATUS_BLOCK ioStatusBlock;
-    OBJECT_ATTRIBUTES objectAttributes;
 
     if (OutputBufferLength)
         outputBufferLength = *OutputBufferLength;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-    status = NtCreateEvent(
+    status = PhCreateEvent(
         &eventHandle,
         EVENT_ALL_ACCESS,
-        &objectAttributes,
         NotificationEvent,
         FALSE
         );

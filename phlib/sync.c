@@ -146,7 +146,9 @@ BOOLEAN FASTCALL PhfWaitForEvent(
 
     if (!eventHandle)
     {
-        NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+        OBJECT_ATTRIBUTES objectAttributes;
+        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, &objectAttributes, NotificationEvent, FALSE);
         assert(eventHandle);
 
         // Try to set the event handle to our event.

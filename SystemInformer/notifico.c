@@ -263,10 +263,9 @@ VOID PhNfCreateIconThreadDelayed(
 
     if (iconCount && PhBeginInitOnce(&initOnce))
     {
-        if (NT_SUCCESS(NtCreateEvent(
+        if (NT_SUCCESS(PhCreateEvent(
             &PhpTrayIconEventHandle,
             EVENT_ALL_ACCESS,
-            NULL,
             SynchronizationEvent,
             !PhGetIntegerSetting(L"IconTrayLazyStartDelay")
             )))
