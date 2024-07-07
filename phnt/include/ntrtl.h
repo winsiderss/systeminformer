@@ -9324,6 +9324,13 @@ RtlFlsGetValue(
     );
 
 NTSYSAPI
+PVOID
+WINAPI
+RtlFlsGetValue2(
+    _In_ ULONG FlsIndex
+    );
+
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFlsSetValue(
