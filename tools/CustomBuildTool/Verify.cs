@@ -101,9 +101,14 @@ namespace CustomBuildTool
                     }
                 }
 
-                var fileBytes = Utils.ReadAllBytes(FileName);
-                var signature = Sign(keyMaterial, fileBytes);
-                Utils.WriteAllBytes(sigFileName, signature);
+                if (File.Exists(FileName))
+                {
+                    using (var fileStream = File.OpenRead(FileName))
+                    {
+                        var signature = Sign(keyMaterial, fileStream);
+                        Utils.WriteAllBytes(sigFileName, signature);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -122,9 +127,14 @@ namespace CustomBuildTool
             {
                 if (GetKeyMaterial(KeyName, out byte[] keyMaterial))
                 {
-                    var fileBytes = Utils.ReadAllBytes(FileName);
-                    var signature = Sign(keyMaterial, fileBytes);
-                    Signature = Convert.ToHexString(signature);
+                    if (File.Exists(FileName))
+                    {
+                        using (var fileStream = File.OpenRead(FileName))
+                        {
+                            var signature = Sign(keyMaterial, fileStream);
+                            Signature = Convert.ToHexString(signature);
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -227,6 +237,19 @@ namespace CustomBuildTool
             using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
             {
                 buffer = ecdsa.SignData(Bytes, HashAlgorithmName.SHA256);
+            }
+
+            return buffer;
+        }
+
+        private static byte[] Sign(byte[] KeyMaterial, Stream stream)
+        {
+            byte[] buffer;
+
+            using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
+            using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+            {
+                buffer = ecdsa.SignData(stream, HashAlgorithmName.SHA256);
             }
 
             return buffer;

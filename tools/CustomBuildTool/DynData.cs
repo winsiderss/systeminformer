@@ -303,8 +303,8 @@ typedef struct _KPH_DYNDATA
             {
                 var config = new DynConfig();
                 var fieldNodes = data.SelectNodes("field");
-                var min = data.Attributes.GetNamedItem("min").Value;
-                var max = data.Attributes.GetNamedItem("max").Value;
+                var min = data.Attributes?.GetNamedItem("min")?.Value;
+                var max = data.Attributes?.GetNamedItem("max")?.Value;
                 string configName = $"{min} - {max}";
 
                 Program.PrintColorMessage(configName, ConsoleColor.Cyan);
