@@ -240,6 +240,7 @@ EXPORTS
     PhAdjustPrivilege
     PhCreateDirectoryWin32
     PhCreateDirectoryFullPathWin32
+    PhCreateEvent
     PhCreateFile
     PhCreateFileWin32
     PhCreateFileWin32Ex
