@@ -355,7 +355,6 @@ namespace CustomBuildTool
                 "SystemInformer.sys",
                 "ksi.dll",
             };
-            var files = new List<string>();
 
             try
             {
@@ -375,6 +374,47 @@ namespace CustomBuildTool
                             Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\amd64\\{file}", $"bin\\Release64\\{file}");
                         if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                             Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\arm64\\{file}", $"bin\\ReleaseARM64\\{file}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool BuildSigFiles(BuildFlags Flags)
+        {
+            string[] Build_Sign_Files =
+            {
+                "SystemInformer.exe"
+            };
+
+            try
+            {
+                foreach (string file in Build_Sign_Files)
+                {
+                    if (Flags.HasFlag(BuildFlags.BuildDebug))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Verify.CreateSigFile("kph", $"bin\\Debug32\\{file}", BuildCanary);
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Verify.CreateSigFile("kph", $"bin\\Debug64\\{file}", BuildCanary);
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Verify.CreateSigFile("kph", $"bin\\DebugARM64\\{file}", BuildCanary);
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildRelease))
+                    {
+                        if (Flags.HasFlag(BuildFlags.Build32bit))
+                            Verify.CreateSigFile("kph", $"bin\\Release32\\{file}", BuildCanary);
+                        if (Flags.HasFlag(BuildFlags.Build64bit))
+                            Verify.CreateSigFile("kph", $"bin\\Release64\\{file}", BuildCanary);
+                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                            Verify.CreateSigFile("kph", $"bin\\ReleaseARM64\\{file}", BuildCanary);
                     }
                 }
             }
@@ -493,12 +533,12 @@ namespace CustomBuildTool
 
             // Copy the resource header and prefix types with PHAPP
             {
-                FileInfo sourceFile = new FileInfo("SystemInformer\\resource.h");
-                FileInfo destinationFile = new FileInfo("sdk\\include\\phappresource.h");
+                NativeMethods.GetFileAttributesEx("SystemInformer\\resource.h", 0, out var sourceFile);
+                NativeMethods.GetFileAttributesEx("sdk\\include\\phappresource.h", 0, out var destinationFile);
 
                 if (
-                    sourceFile.CreationTimeUtc > destinationFile.CreationTimeUtc ||
-                    sourceFile.LastWriteTimeUtc > destinationFile.LastWriteTimeUtc
+                    sourceFile.CreationTime.FileTime != destinationFile.CreationTime.FileTime ||
+                    sourceFile.LastWriteTime.FileTime != destinationFile.LastWriteTime.FileTime
                     )
                 {
                     string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
@@ -508,10 +548,16 @@ namespace CustomBuildTool
                         // Update resource headers with SDK definition
                         string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                        Utils.WriteAllText("sdk\\include\\phappresource.h", sdkContent);
+                        Utils.WriteAllText(
+                            "sdk\\include\\phappresource.h", 
+                            sdkContent
+                            );
 
-                        destinationFile.CreationTimeUtc = sourceFile.CreationTimeUtc;
-                        destinationFile.LastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
+                        Win32.SetFileTime(
+                            "sdk\\include\\phappresource.h", 
+                            sourceFile.CreationTime.FileTime, 
+                            sourceFile.LastWriteTime.FileTime
+                            );
                     }
                 }
             }

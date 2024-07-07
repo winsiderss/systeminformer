@@ -39,6 +39,13 @@ namespace CustomBuildTool
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
 
+        [LibraryImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static unsafe partial bool GetFileInformationByHandleEx(SafeFileHandle hFile, int FileInformationClass, void* lpFileInformation, uint dwBufferSize);
+        [LibraryImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static unsafe partial bool SetFileInformationByHandle(SafeFileHandle hFile, int FileInformationClass, void* lpFileInformation, uint dwBufferSize);
+
         [LibraryImport("advapi32.dll", EntryPoint = "RegOpenKeyExW", StringMarshalling = StringMarshalling.Utf16)]
         public static partial uint RegOpenKeyEx(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, IntPtr* KeyHandle);
 
@@ -65,17 +72,42 @@ namespace CustomBuildTool
         {
             public int dwLowDateTime;
             public int dwHighDateTime;
+
+            public DateTime DateTime
+            {
+                get
+                {
+                    long fileTime = ((long)dwHighDateTime << 32) + dwLowDateTime;
+
+                    return DateTime.FromFileTime(fileTime);
+                }
+            }
+
+            public long FileTime
+            {
+                get { return ((long)dwHighDateTime << 32) + dwLowDateTime; }
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct WIN32_FILE_ATTRIBUTE_DATA
         {
-            internal uint FileAttributes;
-            internal FILETIME CreationTime;
-            internal FILETIME LastAccessTime;
-            internal FILETIME LastWriteTime;
-            internal uint FileSizeHigh;
-            internal uint FileSizeLow;
+            public uint FileAttributes;
+            public FILETIME CreationTime;
+            public FILETIME LastAccessTime;
+            public FILETIME LastWriteTime;
+            public uint FileSizeHigh;
+            public uint FileSizeLow;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public ref struct FILE_BASIC_INFO
+        {
+            public long CreationTime;
+            public long LastAccessTime;
+            public long LastWriteTime;
+            public long ChangeTime;
+            public uint FileAttributes;
         }
 
         [LibraryImport("kernel32.dll", EntryPoint = "GetFileAttributesExW", StringMarshalling = StringMarshalling.Utf16)]
