@@ -2284,7 +2284,7 @@ ZwMapViewOfSectionEx(
     _Inout_opt_ PLARGE_INTEGER SectionOffset,
     _Inout_ PSIZE_T ViewSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect,
+    _In_ ULONG PageProtection,
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
