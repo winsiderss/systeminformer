@@ -512,7 +512,7 @@ VOID PhpSymbolProviderCompleteInitialization(
     if (!symsrvHandle)
         symsrvHandle = PhLoadLibrary(L"symsrv.dll");
 
-    if (dbgcoreHandle && dbghelpHandle && symsrvHandle)
+    if (dbghelpHandle)
     {
         SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
         SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
@@ -2424,7 +2424,7 @@ SkipUserStack:
             //
             // Restore CHPE frame detection and fix x86 stack walking on ARM64. Even dbgeng.dll
             // seems to struggle here but it will at least show CHPE frames. We use to have support
-            // for this I removed it in the last chunk of ARM64 fixes since I wasn't happy with it. 
+            // for this I removed it in the last chunk of ARM64 fixes since I wasn't happy with it.
 
             // If we have an invalid instruction pointer, break.
             if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
