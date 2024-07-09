@@ -2847,7 +2847,7 @@ typedef struct _HEAP_SUBSEGMENT_INIT
 #include <poppack.h>
 
 #include <pshpack1.h>
-typedef struct _HEAP_AFINITY_MANAGER_ENABLE
+typedef struct _HEAP_AFFINITY_MANAGER_ENABLE
 {
     SYSTEM_TRACE_HEADER Header;
     PVOID HeapHandle;
