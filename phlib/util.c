@@ -3202,6 +3202,7 @@ PPH_STRING PhGetSystemDirectory(
     static PPH_STRING cachedSystemDirectory = NULL;
     PPH_STRING systemDirectory;
     PH_STRINGREF systemRootString;
+    PPH_STRING previousSystemDirectory;
 
     // Use the cached value if possible.
 
@@ -3211,16 +3212,10 @@ PPH_STRING PhGetSystemDirectory(
     PhGetSystemRoot(&systemRootString);
     systemDirectory = PhConcatStringRef2(&systemRootString, &system32String);
 
-    // Try to cache the value.
-    if (InterlockedCompareExchangePointer(
-        &cachedSystemDirectory,
-        systemDirectory,
-        NULL
-        ) == NULL)
-    {
-        // Success, add one more reference for the cache.
-        PhReferenceObject(systemDirectory);
-    }
+    PhReferenceObject(systemDirectory);
+
+    if (previousSystemDirectory = InterlockedExchangePointer(&cachedSystemDirectory, systemDirectory))
+        PhDereferenceObject(previousSystemDirectory);
 
     return systemDirectory;
 }
@@ -3336,7 +3331,7 @@ PPH_STRING PhGetApplicationFileName(
     )
 {
     static PPH_STRING cachedFileName = NULL;
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
 
     if (fileName = InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -3362,9 +3357,9 @@ PPH_STRING PhGetApplicationFileName(
                     {
                         PhMoveReference(&fileName, fullPath);
                     }
-                }
 
-                PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+                    PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+                }
             }
         }
     }
@@ -3378,19 +3373,20 @@ PPH_STRING PhGetApplicationFileName(
             {
                 PhMoveReference(&fileName, fullPath);
             }
-        }
 
-        PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+            PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+        }
     }
 #endif
 
-    if (!InterlockedCompareExchangePointer(
-        &cachedFileName,
-        fileName,
-        NULL
-        ))
+    if (fileName)
     {
+        PPH_STRING previousFileName;
+
         PhReferenceObject(fileName);
+
+        if (previousFileName = InterlockedExchangePointer(&cachedFileName, fileName))
+            PhDereferenceObject(previousFileName);
     }
 
     return fileName;
@@ -3404,7 +3400,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
     )
 {
     static PPH_STRING cachedFileName = NULL;
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
 
     if (fileName = InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -3441,13 +3437,14 @@ PPH_STRING PhGetApplicationFileNameWin32(
     }
 #endif
 
-    if (!InterlockedCompareExchangePointer(
-        &cachedFileName,
-        fileName,
-        NULL
-        ))
+    if (fileName)
     {
+        PPH_STRING previousFileName;
+
         PhReferenceObject(fileName);
+
+        if (previousFileName = InterlockedExchangePointer(&cachedFileName, fileName))
+            PhDereferenceObject(previousFileName);
     }
 
     return fileName;
@@ -3458,7 +3455,7 @@ PPH_STRING PhGetApplicationDirectory(
     )
 {
     static PPH_STRING cachedDirectoryPath = NULL;
-    PPH_STRING directoryPath;
+    PPH_STRING directoryPath = NULL;
     PPH_STRING fileName;
 
     if (directoryPath = InterlockedCompareExchangePointer(
@@ -3489,13 +3486,14 @@ PPH_STRING PhGetApplicationDirectory(
         PhDereferenceObject(fileName);
     }
 
-    if (InterlockedCompareExchangePointer(
-        &cachedDirectoryPath,
-        directoryPath,
-        NULL
-        ) == NULL)
+    if (directoryPath)
     {
+        PPH_STRING previousDirectoryPath;
+
         PhReferenceObject(directoryPath);
+
+        if (previousDirectoryPath = InterlockedExchangePointer(&cachedDirectoryPath, directoryPath))
+            PhDereferenceObject(previousDirectoryPath);
     }
 
     return directoryPath;
@@ -3509,7 +3507,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
     )
 {
     static PPH_STRING cachedDirectoryPath = NULL;
-    PPH_STRING directoryPath;
+    PPH_STRING directoryPath = NULL;
     PPH_STRING fileName;
 
     if (directoryPath = InterlockedCompareExchangePointer(
@@ -3540,13 +3538,14 @@ PPH_STRING PhGetApplicationDirectoryWin32(
         PhDereferenceObject(fileName);
     }
 
-    if (InterlockedCompareExchangePointer(
-        &cachedDirectoryPath,
-        directoryPath,
-        NULL
-        ) == NULL)
+    if (directoryPath)
     {
+        PPH_STRING previousDirectoryPath;
+
         PhReferenceObject(directoryPath);
+
+        if (previousDirectoryPath = InterlockedExchangePointer(&cachedDirectoryPath, directoryPath))
+            PhDereferenceObject(previousDirectoryPath);
     }
 
     return directoryPath;
