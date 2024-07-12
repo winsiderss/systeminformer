@@ -2069,8 +2069,10 @@ PhGetFileName(
 // "X:\"
 #define PATH_IS_WIN32_DRIVE_PREFIX(s) ( \
     (s)->Length >= 2 && \
-    (s)->Buffer[0] >= L'A' && \
-    (s)->Buffer[0] <= L'Z' && \
+    (((s)->Buffer[0] >= L'A' && \
+      (s)->Buffer[0] <= L'Z') || \
+     ((s)->Buffer[0] >= L'a' || \
+      (s)->Buffer[0] <= L'z')) && \
     (s)->Buffer[1] == L':' && \
     (s)->Buffer[2] == OBJ_NAME_PATH_SEPARATOR)
 

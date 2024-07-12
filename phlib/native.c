@@ -9635,7 +9635,7 @@ PPH_STRING PhDosPathNameToNtPathName(
 
     if (PATH_IS_WIN32_DRIVE_PREFIX(Name))
     {
-        index = (ULONG)(Name->Buffer[0] - L'A');
+        index = (ULONG)(PhUpcaseUnicodeChar(Name->Buffer[0]) - L'A');
 
         if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
             return NULL;
