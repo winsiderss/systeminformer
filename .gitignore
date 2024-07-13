@@ -91,10 +91,13 @@ KSystemInformer/bin/*
 
 !tools/CustomBuildTool/bin/
 tools/CustomBuildTool/bin/Debug*/
-tools/CustomBuildTool/bin/Release*/*
-!tools/CustomBuildTool/bin/Release/*.exe
-!tools/CustomBuildTool/bin/Release/*.dll
-!tools/CustomBuildTool/bin/Release/*.pdb
+tools/CustomBuildTool/bin/ARM64/
+tools/CustomBuildTool/bin/x64/
+tools/CustomBuildTool/bin/Release*/net*/*
+tools/CustomBuildTool/bin/Release*/x64/*
+tools/CustomBuildTool/bin/Release*/arm64/*
+!tools/CustomBuildTool/bin/Release/x64/CustomBuildTool.exe
+!tools/CustomBuildTool/bin/Release/arm64/CustomBuildTool.exe
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
