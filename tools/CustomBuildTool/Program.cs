@@ -103,9 +103,6 @@ namespace CustomBuildTool
 
                 if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
-
-                if (!Build.BuildSigFiles(flags))
-                    Environment.Exit(1);
             }
             else if (ProgramArgs.TryGetValue("-kph-sign", out string SignArg))
             {

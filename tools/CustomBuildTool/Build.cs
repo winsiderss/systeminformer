@@ -386,58 +386,6 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildSigFiles(BuildFlags Flags)
-        {
-            string[] Build_Sign_Files =
-            {
-                "SystemInformer.exe"
-            };
-
-            try
-            {
-                foreach (string file in Build_Sign_Files)
-                {
-                    if (Flags.HasFlag(BuildFlags.BuildDebug))
-                    {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Verify.CreateSigFile("kph", $"bin\\Debug32\\{file}", BuildCanary);
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Verify.CreateSigFile("kph", $"bin\\Debug64\\{file}", BuildCanary);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Verify.CreateSigFile("kph", $"bin\\DebugARM64\\{file}", BuildCanary);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildRelease))
-                    {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Verify.CreateSigFile("kph", $"bin\\Release32\\{file}", BuildCanary);
-                        if (Flags.HasFlag(BuildFlags.Build64bit))
-                            Verify.CreateSigFile("kph", $"bin\\Release64\\{file}", BuildCanary);
-                        if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                            Verify.CreateSigFile("kph", $"bin\\ReleaseARM64\\{file}", BuildCanary);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool SignPlugin(string PluginName)
-        {
-            if (!File.Exists(PluginName))
-            {
-                Program.PrintColorMessage($"[SKIPPED] Plugin not found: {PluginName}", ConsoleColor.Yellow);
-                return true;
-            }
-
-            return Verify.CreateSigFile("kph", PluginName, BuildCanary);
-        }
-
         public static bool ResignFiles()
         {
             var files = new List<string>();
@@ -549,13 +497,13 @@ namespace CustomBuildTool
                         string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
                         Utils.WriteAllText(
-                            "sdk\\include\\phappresource.h", 
+                            "sdk\\include\\phappresource.h",
                             sdkContent
                             );
 
                         Win32.SetFileTime(
-                            "sdk\\include\\phappresource.h", 
-                            sourceFile.CreationTime.FileTime, 
+                            "sdk\\include\\phappresource.h",
+                            sourceFile.CreationTime.FileTime,
                             sourceFile.LastWriteTime.FileTime
                             );
                     }
