@@ -94,9 +94,9 @@ tools/CustomBuildTool/bin/Debug*/
 tools/CustomBuildTool/bin/ARM64/
 tools/CustomBuildTool/bin/x64/
 tools/CustomBuildTool/bin/Release*/net*/*
-tools/CustomBuildTool/bin/Release*/x64/*
+tools/CustomBuildTool/bin/Release*/amd64/*
 tools/CustomBuildTool/bin/Release*/arm64/*
-!tools/CustomBuildTool/bin/Release/x64/CustomBuildTool.exe
+!tools/CustomBuildTool/bin/Release/amd64/CustomBuildTool.exe
 !tools/CustomBuildTool/bin/Release/arm64/CustomBuildTool.exe
 
 !tools/CustomSignTool/bin/

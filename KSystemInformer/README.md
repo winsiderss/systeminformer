@@ -44,7 +44,7 @@ Developers may generate their own key pair for use in their environment.
 3. copy the bytes for `public.key` into the `KphpPublicKeys` array in [verify.c](verify.c)
     - `KphKeyTypeProd` does not require debug and test signing enablement
     - `KphKeyTypeTest` requires debug and test signing enablement
-4. regenerate dynamic data `tools\CustomBuildTool\bin\Release\x64\CustomBuildTool.exe -dyndata`
+4. regenerate dynamic data `tools\CustomBuildTool\bin\Release\amd64\CustomBuildTool.exe -dyndata`
 5. rebuild the kernel _and_ user components
 
 It's important to regenerate the dynamic data and build the kernel and user
