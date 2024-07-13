@@ -143,6 +143,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
@@ -184,6 +185,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
@@ -224,6 +226,7 @@
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -271,6 +274,7 @@
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
@@ -319,6 +323,7 @@
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
@@ -365,6 +370,7 @@
       <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

@@ -128,6 +128,7 @@
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ResourceCompile>
@@ -162,6 +163,7 @@
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ResourceCompile>
@@ -195,6 +197,7 @@
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -229,6 +232,7 @@
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ResourceCompile>
