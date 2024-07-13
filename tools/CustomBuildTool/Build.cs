@@ -277,6 +277,25 @@ namespace CustomBuildTool
 
         public static bool CopyDebugEngineFiles(BuildFlags Flags)
         {
+            //
+            // https://learn.microsoft.com/en-us/legal/windows-sdk/redist#debugging-tools-for-windows
+            //
+            // The following is quoted from the link above on 2024-07-13:
+            //
+            // You may distribute these files as part of your program.
+            // - Dbgeng.dll
+            // - Dbgcore.dll
+            // - Dbgmodel.dll
+            // - Dbghelp.dll
+            // - Srcsrv.dll
+            // - Symsrv.dll
+            // - Symchk.exe
+            // - Symbolcheck.dll
+            // - Symstore.exe
+            // - Program Files\Windows Kits\10\Debuggers\Redist\X86 Debuggers and Tools-x86_en-us.msi
+            // - Program Files\Windows Kits\10\Debuggers\Redist\X64 Debuggers and Tools-x64_en-us.msi
+            // - App Verifier
+            //
             var Build_DebugCore_Files = new string[]
             {
                 "dbgcore.dll",
