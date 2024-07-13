@@ -11,40 +11,25 @@ if not defined VSINSTALLPATH (
    goto end
 )
 
-if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
-   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-) else (
-   goto end
-)
 
 :: Pre-cleanup (required since dotnet doesn't cleanup)
-if exist "tools\CustomBuildTool\bin\Release\net8.0-x64" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\Release\net8.0-x64"
+if exist "tools\CustomBuildTool\bin\Release" (
+   rmdir /S /Q "tools\CustomBuildTool\bin\Release"
 )
-if exist "tools\CustomBuildTool\bin\Debug" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\Debug"
-)
-if exist "tools\CustomBuildTool\bin\x64" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\x64"
+if exist "tools\CustomBuildTool\bin\" (
+   rmdir /S /Q "tools\CustomBuildTool\bin\"
 )
 if exist "tools\CustomBuildTool\obj" (
    rmdir /S /Q "tools\CustomBuildTool\obj"
 )
 
-dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\64bit.pubxml /p:ContinuousIntegrationBuild=true
-
-:: Post-cleanup (optional)
-if exist "tools\CustomBuildTool\bin\Release\net8.0-x64" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\Release\net8.0-x64"
-)
-if exist "tools\CustomBuildTool\bin\Debug" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\Debug"
-)
-if exist "tools\CustomBuildTool\bin\x64" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\x64"
-)
-if exist "tools\CustomBuildTool\obj" (
-   rmdir /S /Q "tools\CustomBuildTool\obj"
+if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
+   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\x64.pubxml /p:ContinuousIntegrationBuild=true
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
+   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=true
+) else (
+   goto end
 )
 
 :end

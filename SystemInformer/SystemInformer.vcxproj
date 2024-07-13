@@ -158,8 +158,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -201,8 +201,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -244,8 +244,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -297,8 +297,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -350,8 +350,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -401,8 +401,8 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PreferredToolArchitecture)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

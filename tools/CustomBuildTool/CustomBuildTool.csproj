@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <Platforms>x64;x86;ARM64</Platforms>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0</Version>
@@ -65,7 +65,7 @@
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>True</Optimize>   
+    <Optimize>True</Optimize>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
   </PropertyGroup>
