@@ -4,7 +4,7 @@ System Informer is licensed. A full copy of the license is provided in LICENSE.t
     Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
 
 == Mini-XML ==
-Process Hacker uses Mini-XML licensed under the following terms:
+System Informer uses Mini-XML licensed under the following terms:
 
     The Mini-XML library and included programs are provided under the
     terms of the GNU Library General Public License (LGPL) with the
@@ -27,7 +27,7 @@ Process Hacker uses Mini-XML licensed under the following terms:
            LGPL.
 
 == PCRE ==
-Process Hacker uses Perl-Compatible Regular Expressions licensed under the
+System Informer uses Perl-Compatible Regular Expressions licensed under the
 following terms:
 
     PCRE is a library of functions to support regular expressions whose syntax
@@ -64,7 +64,7 @@ following terms:
     POSSIBILITY OF SUCH DAMAGE.
 
 == MD5 ==
-Process Hacker uses a MD5 implementation licensed under the following terms:
+System Informer uses a MD5 implementation licensed under the following terms:
 
     MD5 hash implementation and interface functions
     Copyright (c) 2003-2005, Jouni Malinen <jkmaline@cc.hut.fi>
@@ -74,7 +74,7 @@ Process Hacker uses a MD5 implementation licensed under the following terms:
     published by the Free Software Foundation.
 
 == SHA ==
-Process Hacker uses a SHA implementation licensed under the following terms:
+System Informer uses a SHA implementation licensed under the following terms:
 
     Copyright 2004 Filip Navara
     Based on public domain SHA code by Steve Reid <steve@edmweb.com>
@@ -94,7 +94,7 @@ Process Hacker uses a SHA implementation licensed under the following terms:
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
 
 == Natural order string comparison ==
-Process Hacker uses "strnatcmp.c" licensed under the following terms:
+System Informer uses "strnatcmp.c" licensed under the following terms:
 
     strnatcmp.c -- Perform 'natural order' comparisons of strings in C.
     Copyright (C) 2000, 2004 by Martin Pool <mbp sourcefrog net>
