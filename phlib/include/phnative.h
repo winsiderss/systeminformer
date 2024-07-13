@@ -2068,7 +2068,7 @@ PhGetFileName(
 
 // "X:\"
 #define PATH_IS_WIN32_DRIVE_PREFIX(s) ( \
-    (s)->Length >= 2 && \
+    (s)->Length >= (3 * sizeof(WCHAR)) && \
     (((s)->Buffer[0] >= L'A' && \
       (s)->Buffer[0] <= L'Z') || \
      ((s)->Buffer[0] >= L'a' || \
@@ -2078,7 +2078,7 @@ PhGetFileName(
 
 // "\??\" or "\\?\" or "\\.\"
 #define PATH_IS_WIN32_DOSDEVICES_PREFIX(s) ( \
-    (s)->Length >= 3 && \
+    (s)->Length >= (4 * sizeof(WCHAR)) && \
     (s)->Buffer[0] == '\\' && \
     ((s)->Buffer[1] == '?' || (s)->Buffer[1] == '\\') && \
     (s)->Buffer[2] == '?' || (s)->Buffer[2] == '.'&& \
@@ -2086,8 +2086,8 @@ PhGetFileName(
 
 // "." or ".."
 #define PATH_IS_WIN32_RELATIVE_PREFIX(s) ( \
-    (s)->Length == 2 && (s)->Buffer[0] == L'.' || \
-    (s)->Length == 4 && (s)->Buffer[0] == L'.' && (s)->Buffer[1] == L'.')
+    (s)->Length == (1 * sizeof(WCHAR)) && (s)->Buffer[0] == L'.' || \
+    (s)->Length == (2 * sizeof(WCHAR)) && (s)->Buffer[0] == L'.' && (s)->Buffer[1] == L'.')
 
 PHLIBAPI
 PPH_STRING
