@@ -4185,6 +4185,30 @@ typedef struct _RTL_BUFFER
     SIZE_T StaticSize;
 } RTL_BUFFER, *PRTL_BUFFER;
 
+//FORCEINLINE
+//VOID
+//RtlInitBuffer(
+//    _Inout_ PRTL_BUFFER Buffer,
+//    _In_ PUCHAR Data,
+//    _In_ ULONG DataSize
+//    )
+//{
+//    Buffer->Buffer = Buffer->StaticBuffer = Data;
+//    Buffer->Size = Buffer->StaticSize = DataSize;
+//}
+//
+//FORCEINLINE
+//VOID
+//RtlFreeBuffer(
+//    _Inout_ PRTL_BUFFER Buffer
+//    )
+//{
+//    if (Buffer->Buffer != Buffer->StaticBuffer && Buffer->Buffer)
+//        RtlFreeHeap(RtlProcessHeap(), 0, Buffer->Buffer);
+//    Buffer->Buffer = Buffer->StaticBuffer;
+//    Buffer->Size = Buffer->StaticSize;
+//}
+
 // rev
 typedef struct _RTL_UNICODE_STRING_BUFFER
 {
@@ -5638,6 +5662,21 @@ RtlConvertLuidToLonglong(
     tempLuid += ((LONGLONG)(Luid.HighPart) << 32);
 
     return tempLuid;
+}
+
+FORCEINLINE
+ULONGLONG
+NTAPI_INLINE
+RtlConvertLuidToUlonglong(
+    _In_ LUID Luid
+    )
+{
+    ULARGE_INTEGER tempLi;
+
+    tempLi.LowPart = Luid.LowPart;
+    tempLi.HighPart = Luid.HighPart;
+
+    return tempLi.QuadPart;
 }
 
 NTSYSAPI
@@ -10369,6 +10408,13 @@ NTSTATUS
 NTAPI
 RtlUnsubscribeWnfStateChangeNotification(
     _In_ PWNF_USER_CALLBACK Callback
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWnfDllUnloadCallback(
+    _In_ PVOID DllBase
     );
 
 #endif
