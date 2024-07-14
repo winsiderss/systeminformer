@@ -245,6 +245,15 @@ typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
     (p)->SecurityQualityOfService = NULL; \
     }
 
+#define InitializeObjectAttributesEx(p, n, a, r, s, q) { \
+    (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
+    (p)->RootDirectory = r; \
+    (p)->Attributes = a; \
+    (p)->ObjectName = n; \
+    (p)->SecurityDescriptor = s; \
+    (p)->SecurityQualityOfService = q; \
+    }
+
 #define RTL_CONSTANT_OBJECT_ATTRIBUTES(n, a) { sizeof(OBJECT_ATTRIBUTES), NULL, n, a, NULL, NULL }
 #define RTL_INIT_OBJECT_ATTRIBUTES(n, a) RTL_CONSTANT_OBJECT_ATTRIBUTES(n, a)
 
