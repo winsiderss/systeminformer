@@ -68,7 +68,7 @@
 #define ProcessorSetIdle 55 // (debug-mode boot only)
 #define LogicalProcessorIdling 56 // (kernel-mode only)
 #define UserPresence 57 // POWER_USER_PRESENCE // not implemented
-#define PowerSettingNotificationName 58
+#define PowerSettingNotificationName 58 // in: ? (optional) // out: PWNF_STATE_NAME (RtlSubscribeWnfStateChangeNotification)
 #define GetPowerSettingValue 59 // GUID
 #define IdleResiliency 60 // POWER_IDLE_RESILIENCY
 #define SessionRITState 61 // POWER_SESSION_RIT_STATE
@@ -80,14 +80,14 @@
 #define PdcInvocation 67 // (kernel-mode only)
 #define MonitorInvocation 68 // (kernel-mode only)
 #define FirmwareTableInformationRegistered 69 // (kernel-mode only)
-#define SetShutdownSelectedTime 70 // NULL
+#define SetShutdownSelectedTime 70 // in: NULL
 #define SuspendResumeInvocation 71 // (kernel-mode only)
 #define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
-#define ScreenOff 73 // NULL (PowerMonitorOff)
+#define ScreenOff 73 // in: NULL (PowerMonitorOff)
 #define CsDeviceNotification 74 // (kernel-mode only)
 #define PlatformRole 75 // POWER_PLATFORM_ROLE
 #define LastResumePerformance 76 // RESUME_PERFORMANCE
-#define DisplayBurst 77 // NULL (PowerMonitorOn)
+#define DisplayBurst 77 // in: NULL (PowerMonitorOn)
 #define ExitLatencySamplingPercentage 78
 #define RegisterSpmPowerSettings 79 // (kernel-mode only)
 #define PlatformIdleStates 80 // (kernel-mode only)
@@ -105,7 +105,7 @@
 #define EnergyTrackerCreate 92
 #define EnergyTrackerQuery 93
 #define UpdateBlackBoxRecorder 94
-#define SessionAllowExternalDmaDevices 95
+#define SessionAllowExternalDmaDevices 95 // POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 #define SendSuspendResumeNotification 96 // since WIN11
 #define BlackBoxRecorderDirectAccessBuffer 97
 #define PowerInformationLevelMaximum 98
@@ -135,6 +135,107 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
     LARGE_INTEGER Mcb[1];
 } SYSTEM_HIBERFILE_INFORMATION, *PSYSTEM_HIBERFILE_INFORMATION;
 
+//typedef enum POWER_USER_PRESENCE_TYPE
+//{
+//    UserNotPresent = 0,
+//    UserPresent = 1,
+//    UserUnknown = 0xff
+//} POWER_USER_PRESENCE_TYPE, *PPOWER_USER_PRESENCE_TYPE;
+
+//typedef struct _POWER_USER_PRESENCE 
+//{
+//    POWER_USER_PRESENCE_TYPE PowerUserPresence;
+//} POWER_USER_PRESENCE, *PPOWER_USER_PRESENCE;
+
+//typedef struct _POWER_SESSION_CONNECT 
+//{
+//    BOOLEAN Connected;  // TRUE - connected, FALSE - disconnected
+//    BOOLEAN Console;    // TRUE - console, FALSE - TS (not used for Connected = FALSE)
+//} POWER_SESSION_CONNECT, *PPOWER_SESSION_CONNECT;
+
+//typedef struct _POWER_SESSION_TIMEOUTS 
+//{
+//    ULONG InputTimeout;
+//    ULONG DisplayTimeout;
+//} POWER_SESSION_TIMEOUTS, *PPOWER_SESSION_TIMEOUTS;
+
+//typedef struct _POWER_SESSION_RIT_STATE 
+//{
+//    BOOLEAN Active;  // TRUE - RIT input received, FALSE - RIT timeout
+//    ULONG64 LastInputTime; // last input time held for this session
+//} POWER_SESSION_RIT_STATE, *PPOWER_SESSION_RIT_STATE;
+
+//typedef struct _POWER_SESSION_WINLOGON 
+//{
+//    ULONG SessionId; // the Win32k session identifier
+//    BOOLEAN Console; // TRUE - for console session, FALSE - for remote session
+//    BOOLEAN Locked; // TRUE - lock, FALSE - unlock
+//} POWER_SESSION_WINLOGON, *PPOWER_SESSION_WINLOGON;
+
+//typedef struct _POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES 
+//{
+//    BOOLEAN IsAllowed;
+//} POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES, *PPOWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES;
+//
+//typedef struct _POWER_IDLE_RESILIENCY 
+//{
+//    ULONG CoalescingTimeout;
+//    ULONG IdleResiliencyPeriod;
+//} POWER_IDLE_RESILIENCY, *PPOWER_IDLE_RESILIENCY;
+
+//typedef struct _RESUME_PERFORMANCE 
+//{
+//    ULONG PostTimeMs;
+//    ULONGLONG TotalResumeTimeMs;
+//    ULONGLONG ResumeCompleteTimestamp;
+//} RESUME_PERFORMANCE, *PRESUME_PERFORMANCE;
+
+//typedef struct _NOTIFY_USER_POWER_SETTING
+//{
+//    GUID Guid;
+//} NOTIFY_USER_POWER_SETTING, *PNOTIFY_USER_POWER_SETTING;
+
+#define POWER_PERF_SCALE    100
+#define PERF_LEVEL_TO_PERCENT(_x_) ((_x_ * 1000) / (POWER_PERF_SCALE * 10))
+#define PERCENT_TO_PERF_LEVEL(_x_) ((_x_ * POWER_PERF_SCALE * 10) / 1000)
+#define PO_REASON_STATE_STANDBY (PO_REASON_STATE_S1 | \
+                                 PO_REASON_STATE_S2 | \
+                                 PO_REASON_STATE_S3)
+
+#define PO_REASON_STATE_ALL     (PO_REASON_STATE_STANDBY | \
+                                 PO_REASON_STATE_S4 | \
+                                 PO_REASON_STATE_S4FIRM)
+
+typedef struct _SYSTEM_POWER_LOGGING_ENTRY 
+{
+    ULONG Reason;
+    ULONG States;
+} SYSTEM_POWER_LOGGING_ENTRY, *PSYSTEM_POWER_LOGGING_ENTRY;
+
+typedef enum _POWER_STATE_DISABLED_TYPE
+{
+    PoDisabledStateSleeping1 = 0,
+    PoDisabledStateSleeping2 = 1,
+    PoDisabledStateSleeping3 = 2,
+    PoDisabledStateSleeping4 = 3,
+    PoDisabledStateSleeping0Idle = 4,
+    PoDisabledStateReserved5 = 5,
+    PoDisabledStateSleeping4Firmware = 6,
+    PoDisabledStateMaximum = 7
+} POWER_STATE_DISABLED_TYPE, PPOWER_STATE_DISABLED_TYPE;
+
+#define POWER_STATE_DISABLED_TYPE_MAX  8
+
+_Struct_size_bytes_(sizeof(SYSTEM_POWER_STATE_DISABLE_REASON) + PowerReasonLength)
+typedef struct _SYSTEM_POWER_STATE_DISABLE_REASON 
+{
+    BOOLEAN AffectedState[POWER_STATE_DISABLED_TYPE_MAX];
+    ULONG PowerReasonCode;
+    ULONG PowerReasonLength;
+    //UCHAR PowerReasonInfo[ANYSIZE_ARRAY];
+} SYSTEM_POWER_STATE_DISABLE_REASON, *PSYSTEM_POWER_STATE_DISABLE_REASON;
+
+// Reason Context
 #define POWER_REQUEST_CONTEXT_NOT_SPECIFIED DIAGNOSTIC_REASON_NOT_SPECIFIED
 
 // wdm
@@ -314,6 +415,34 @@ typedef struct _PROCESSOR_IDLE_STATES
     KAFFINITY TargetProcessors;
     PROCESSOR_IDLE_STATE State[ANYSIZE_ARRAY];
 } PROCESSOR_IDLE_STATES, *PPROCESSOR_IDLE_STATES;
+//
+//#define PROCESSOR_IDLESTATE_POLICY_COUNT 0x3
+//
+//typedef struct 
+//{
+//    ULONG TimeCheck;
+//    UCHAR DemotePercent;
+//    UCHAR PromotePercent;
+//    UCHAR Spare[2];
+//} PROCESSOR_IDLESTATE_INFO, *PPROCESSOR_IDLESTATE_INFO;
+//
+//typedef struct 
+//{
+//    USHORT Revision;
+//    union 
+//    {
+//        USHORT AsUSHORT;
+//        struct
+//        {
+//            USHORT AllowScaling : 1;
+//            USHORT Disabled : 1;
+//            USHORT Reserved : 14;
+//        } DUMMYSTRUCTNAME;
+//    } Flags;
+//
+//    ULONG PolicyCount;
+//    PROCESSOR_IDLESTATE_INFO Policy[PROCESSOR_IDLESTATE_POLICY_COUNT];
+//} PROCESSOR_IDLESTATE_POLICY, *PPROCESSOR_IDLESTATE_POLICY;
 
 // rev
 typedef struct _PROCESSOR_LOAD
