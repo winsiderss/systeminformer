@@ -2042,19 +2042,19 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 {
     DirectoryNotifyInformation = 1, // FILE_NOTIFY_INFORMATION
     DirectoryNotifyExtendedInformation, // FILE_NOTIFY_EXTENDED_INFORMATION
-    DirectoryNotifyFullInformation, // since 22H2
+    DirectoryNotifyFullInformation, // FILE_NOTIFY_FULL_INFORMATION // since 22H2
     DirectoryNotifyMaximumInformation
 } DIRECTORY_NOTIFY_INFORMATION_CLASS, *PDIRECTORY_NOTIFY_INFORMATION_CLASS;
 
-//typedef struct _FILE_NOTIFY_INFORMATION
-//{
-//    ULONG NextEntryOffset;
-//    ULONG Action;
-//    ULONG FileNameLength;
-//    WCHAR FileName[1];
-//} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
-
 #if !defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5)
+typedef struct _FILE_NOTIFY_INFORMATION
+{
+   ULONG NextEntryOffset;
+   ULONG Action;
+   ULONG FileNameLength;
+   WCHAR FileName[1];
+} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
+
 typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 {
     ULONG NextEntryOffset;
