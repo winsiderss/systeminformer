@@ -1902,7 +1902,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"1F" },
+                { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"3F" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_TASKBARDISPLAYSTYLE, L"0" },
