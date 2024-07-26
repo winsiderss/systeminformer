@@ -171,6 +171,11 @@ Exit:
         ExReleaseSpinLockShared(lock, oldIrql);
     }
 
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
+
     return status;
 }
 
