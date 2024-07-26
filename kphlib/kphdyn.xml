@@ -53,7 +53,7 @@ dt nt!_EPROCESS SectionObject
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data min="10.0.26100.1" max="10.0.26100.1150">
+    <data min="10.0.26100.1" max="10.0.26100.1252">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0300" name="EpObjectTable"/>
@@ -321,7 +321,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0518" name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data min="10.0.19041.1586" max="10.0.19041.4648">
+    <data min="10.0.19041.1586" max="10.0.19041.4717">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -853,7 +853,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
-    <data min="10.0.14393.5006" max="10.0.14393.7070">
+    <data min="10.0.14393.5006" max="10.0.14393.7155">
         <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
@@ -957,8 +957,8 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
-    <data min="10.0.10240.19235" max="10.0.10240.20680">
-        <field value="0x0028" name="EgeGuid"/>
+    <data min="10.0.10240.19235" max="10.0.10240.20708">
+        <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
         <field value="0x0030" name="HtHandleContentionEvent"/>
@@ -991,7 +991,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
     <data min="10.0.10240.16384" max="10.0.10240.19204">
-        <field value="0x0028" name="EgeGuid"/>
+        <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
         <field value="0x0030" name="HtHandleContentionEvent"/>
