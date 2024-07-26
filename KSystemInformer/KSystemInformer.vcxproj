@@ -130,6 +130,7 @@
       <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -158,6 +159,7 @@
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -165,6 +167,7 @@
       <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -192,6 +195,11 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <BuildStlModules>false</BuildStlModules>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -200,6 +208,7 @@
       <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -227,6 +236,10 @@
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
