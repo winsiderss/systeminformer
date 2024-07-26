@@ -26,7 +26,7 @@
 
 // dyndata
 
-#define KPH_TAG_DYNDATA                         '0DpK'
+#define KPH_TAG_DYNDATA                         '0YpK'
 
 // object
 
