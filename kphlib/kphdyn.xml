@@ -129,7 +129,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x0048" name="MmControlAreaLock"/>
         <field arch="arm64" value="0x0298" name="EpSectionObject"/>
     </data>
-    <data min="10.0.22000.556" max="10.0.22621.3880">
+    <data min="10.0.22000.556" max="10.0.22621.3958">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
