@@ -199,6 +199,8 @@ NTSTATUS DriverEntry(
 
     KphDynamicImport();
 
+    KphObjectInitialize();
+
     KphInitializeParameters(RegistryPath);
 
     status = KphInitializeAlloc();

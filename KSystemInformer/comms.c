@@ -1422,6 +1422,7 @@ NTSTATUS KphCommsStart(
     typeInfo.Initialize = KphpInitializeClientObject;
     typeInfo.Delete = KphpDeleteClientObject;
     typeInfo.Free = KphpFreeClientObject;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpClientObjectName,
                         &typeInfo,
