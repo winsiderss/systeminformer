@@ -874,6 +874,7 @@ VOID KphInitializeSessionToken(
     typeInfo.Initialize = KphpInitializeSessionToken;
     typeInfo.Delete = NULL;
     typeInfo.Free = KphpFreeSessionToken;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpSessionTokenTypeName,
                         &typeInfo,

@@ -2232,6 +2232,7 @@ VOID KphInitializeProtection(
     typeInfo.Initialize = KphpInitializeImageLoadApc;
     typeInfo.Delete = KphpDeleteImageLoadApc;
     typeInfo.Free = KphpFreeImageLoadApc;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpImageLoadApcTypeName,
                         &typeInfo,

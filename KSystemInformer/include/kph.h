@@ -1358,7 +1358,7 @@ typedef struct _KPH_OBJECT_HEADER
 {
     volatile SSIZE_T PointerCount;
     UCHAR TypeIndex;
-
+    SLIST_ENTRY ListEntry;
     QUAD Body;
 } KPH_OBJECT_HEADER, *PKPH_OBJECT_HEADER;
 
@@ -1413,6 +1413,17 @@ typedef struct _KPH_OBJECT_TYPE_INFO
     PKPH_TYPE_INITIALIZE_PROCEDURE Initialize;
     PKPH_TYPE_DELETE_PROCEDURE Delete;
     PKPH_TYPE_FREE_PROCEDURE Free;
+
+    union
+    {
+        struct
+        {
+            ULONG DeferDelete : 1;
+            ULONG Spare : 31;
+        };
+
+        ULONG Flags;
+    };
 } KPH_OBJECT_TYPE_INFO, *PKPH_OBJECT_TYPE_INFO;
 
 typedef struct _KPH_OBJECT_TYPE
@@ -1423,6 +1434,11 @@ typedef struct _KPH_OBJECT_TYPE
     volatile SIZE_T HighWaterNumberOfObjects;
     KPH_OBJECT_TYPE_INFO TypeInfo;
 } KPH_OBJECT_TYPE, *PKPH_OBJECT_TYPE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphObjectInitialize(
+    VOID
+    );
 
 VOID KphCreateObjectType(
     _In_ PCUNICODE_STRING TypeName,
@@ -1443,6 +1459,10 @@ VOID KphReferenceObject(
     );
 
 VOID KphDereferenceObject(
+    _In_ PVOID Object
+    );
+
+VOID KphDereferenceObjectDeferDelete(
     _In_ PVOID Object
     );
 
@@ -2125,6 +2145,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 _Function_class_(KSI_WORK_QUEUE_ROUTINE)
 VOID
+KSIAPI
 KSI_WORK_QUEUE_ROUTINE(
     _In_opt_ PVOID Parameter
     );
