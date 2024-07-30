@@ -408,6 +408,9 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
+    if (PhIsProcessStateFrozen(processItem->ProcessId)) PhThawProcess(processItem->ProcessId);
+    if (PhIsProcessExecutionRequired(processItem->ProcessId)) PhProcessExecutionRequiredDisable(processItem->ProcessId);
+
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
