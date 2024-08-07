@@ -81,7 +81,7 @@ VOID PhpInitializeHandleMenu(
     _Inout_ PPH_HANDLES_CONTEXT HandlesContext
     )
 {
-    PPH_EMENU_ITEM item;
+    //PPH_EMENU_ITEM item;
     KPH_LEVEL level;
 
     if (NumberOfHandles == 0)
@@ -110,13 +110,13 @@ VOID PhpInitializeHandleMenu(
 
     level = KsiLevel();
 
-    if (level >= KphLevelMed)
-    {
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_PROTECTED))
-            PhDestroyEMenuItem(item);
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_INHERIT))
-            PhDestroyEMenuItem(item);
-    }
+    //if (level >= KphLevelMed)
+    //{
+    //    if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_PROTECTED))
+    //        PhDestroyEMenuItem(item);
+    //    if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_INHERIT))
+    //        PhDestroyEMenuItem(item);
+    //}
 
     // Protected, Inherit
     if (NumberOfHandles == 1 && (level >= KphLevelMed))
