@@ -16,18 +16,19 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Install Nuget Packages
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_verbose.cmd
-  # temporarily disabled pending resolution of:
-  # https://github.com/winsiderss/systeminformer/issues/2109
-  # https://github.com/actions/runner-images/issues/10012
-  #build_driver:
-  #  runs-on: windows-latest
-  #  steps:
-  #  - uses: actions/checkout@v4
-  #  - name: Build Driver
-  #    shell: cmd
-  #    working-directory: ${{github.workspace}}
-  #    run: build\build_zdriver.cmd prefast
+  build_driver:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Nuget Packages
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
+    - name: Build Driver
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_zdriver.cmd prefast
