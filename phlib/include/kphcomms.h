@@ -14,7 +14,7 @@
 
 #include <kphmsg.h>
 
-NTSTATUS KphFilterLoadUnload(
+NTSTATUS NTAPI KphFilterLoadUnload(
     _In_ PPH_STRINGREF ServiceName,
     _In_ BOOLEAN LoadDriver
     );
@@ -40,26 +40,26 @@ BOOLEAN (NTAPI *PKPH_COMMS_CALLBACK)(
     );
 
 _Must_inspect_result_
-NTSTATUS KphCommsStart(
+NTSTATUS NTAPI KphCommsStart(
     _In_ PPH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
 
-VOID KphCommsStop(
+VOID NTAPI KphCommsStop(
     VOID
     );
 
-BOOLEAN KphCommsIsConnected(
+BOOLEAN NTAPI KphCommsIsConnected(
     VOID
     );
 
-NTSTATUS KphCommsReplyMessage(
+NTSTATUS NTAPI KphCommsReplyMessage(
     _In_ ULONG_PTR ReplyToken,
     _In_ PKPH_MESSAGE Message
     );
 
 _Must_inspect_result_
-NTSTATUS KphCommsSendMessage(
+NTSTATUS NTAPI KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     );
 
