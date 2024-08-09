@@ -5942,7 +5942,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        PROCESS_SET_INFORMATION,
         ProcessId
         )))
     {
