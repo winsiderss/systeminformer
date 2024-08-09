@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
 Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
 
@@ -7,7 +8,6 @@ Authors:
 
     jxy-s   2024
 -->
-<?xml version="1.0" encoding="utf-8"?>
 
 <!-- Debugger Visualizers -->
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
