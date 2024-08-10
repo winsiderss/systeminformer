@@ -1951,9 +1951,15 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 //    break;
                 //}
 
+                BOOLEAN isPressed = buttonInfo.fsState & TBSTATE_PRESSED;
                 SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor); // RGB(0x0, 0x0, 0x0));
                 //SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackgroundColor); // GetSysColor(COLOR_3DFACE));// RGB(0xff, 0xff, 0xff));
-                FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
+                if (!isPressed)
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
+                else {
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0x60, 0x60, 0x60));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockBrush(DC_BRUSH));
+                }
             }
 
             dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
