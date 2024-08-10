@@ -2,6 +2,8 @@ name: "CodeQL Analysis"
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '00 16 * * 1'
 
 permissions:
   actions: read
@@ -26,7 +28,20 @@ jobs:
         shell: cmd
         working-directory: ${{github.workspace}}
         run: build\build_zdriver.cmd
-      - name: Perform CodeQL analysis
+      - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:cpp"
+          output: sarif-results
+          upload: failure-only
+      - name: Filter CodeQL Results
+        uses: advanced-security/filter-sarif@v1
+        with:
+          # Exclude Microsoft and third party sources
+          patterns: -packages/**/*
+          input: sarif-results/cpp.sarif
+          output: sarif-results/cpp.sarif
+      - name: Upload CodeQL Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif-results/cpp.sarif
