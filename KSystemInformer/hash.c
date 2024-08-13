@@ -471,6 +471,7 @@ NTSTATUS KphInitializeHashing(
     typeInfo.Initialize = KphpInitHashingInfra;
     typeInfo.Delete = KphpDeleteHashingInfra;
     typeInfo.Free = KphpFreeHashingInfra;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpHashingInfraName,
                         &typeInfo,

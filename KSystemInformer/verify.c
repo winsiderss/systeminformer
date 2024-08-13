@@ -78,7 +78,6 @@ static const KPH_KEY KphpPublicKeys[] =
 static const UNICODE_STRING KphpSigExtension = RTL_CONSTANT_STRING(L".sig");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
-static BCRYPT_ALG_HANDLE KphpBCryptSigningProvider = NULL;
 static BCRYPT_KEY_HANDLE KphpPublicKeyHandles[ARRAYSIZE(KphpPublicKeys)] = { 0 };
 static ULONG KphpPublicKeyHandlesCount = 0;
 C_ASSERT(ARRAYSIZE(KphpPublicKeyHandles) == ARRAYSIZE(KphpPublicKeys));
@@ -178,9 +177,7 @@ NTSTATUS KphVerifyCreateKey(
 
     PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphpBCryptSigningProvider);
-
-    status = BCryptImportKeyPair(KphpBCryptSigningProvider,
+    status = BCryptImportKeyPair(BCRYPT_ECDSA_P256_ALG_HANDLE,
                                  NULL,
                                  BCRYPT_ECCPUBLIC_BLOB,
                                  KeyHandle,
@@ -641,20 +638,7 @@ NTSTATUS KphInitializeVerify(
 
     PAGED_CODE_PASSIVE();
 
-    status = BCryptOpenAlgorithmProvider(&KphpBCryptSigningProvider,
-                                         BCRYPT_ECDSA_P256_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        KphpBCryptSigningProvider = NULL;
-        return status;
-    }
+    status = STATUS_SUCCESS;
 
     testSigning = KphTestSigningEnabled();
 
@@ -702,10 +686,5 @@ VOID KphCleanupVerify(
     for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
     {
         KphVerifyCloseKey(KphpPublicKeyHandles[i]);
-    }
-
-    if (KphpBCryptSigningProvider)
-    {
-        BCryptCloseAlgorithmProvider(KphpBCryptSigningProvider, 0);
     }
 }

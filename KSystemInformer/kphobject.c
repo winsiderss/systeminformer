@@ -32,6 +32,52 @@
 static KPH_OBJECT_TYPE KphpObjectTypes[13] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 static volatile LONG KphpObjectTypeCount = 0;
+static KSI_WORK_QUEUE_ITEM KphpDeferDeleteObjectWorkItem;
+static SLIST_HEADER KphpDeferDeleteObjectList;
+
+/**
+ * \brief Carries out the deletion of an object.
+ *
+ * \param[in] Header The header of an object to delete.
+ */
+VOID KphpObjectDelete(
+    _In_freesMem_ PKPH_OBJECT_HEADER Header
+    )
+{
+    PKPH_OBJECT_TYPE type;
+
+    type = &KphpObjectTypes[Header->TypeIndex];
+
+    if (type->TypeInfo.Delete)
+    {
+        type->TypeInfo.Delete(KphObjectHeaderToObject(Header));
+    }
+
+    type->TypeInfo.Free(Header);
+
+    InterlockedDecrementSizeT(&type->TotalNumberOfObjects);
+}
+
+/**
+ * \brief Defers the deletion of an object.
+ *
+ * \param[in] Header The header of an object to defer deletion of.
+ */
+VOID KphpObjectDeferDelete(
+    _In_ PKPH_OBJECT_HEADER Header
+    )
+{
+    //
+    // Only queue the work item when the list was empty. The worker will flush
+    // the list, at that point the work item is already removed from the work
+    // queue and ready to be re-queued.
+    //
+    if (!InterlockedPushEntrySList(&KphpDeferDeleteObjectList,
+                                   &Header->ListEntry))
+    {
+        KsiQueueWorkItem(&KphpDeferDeleteObjectWorkItem, CriticalWorkQueue);
+    }
+}
 
 /**
  * \brief Creates an object type.
@@ -171,14 +217,39 @@ VOID KphDereferenceObject(
 
     type = &KphpObjectTypes[header->TypeIndex];
 
-    if (type->TypeInfo.Delete)
+    if (type->TypeInfo.DeferDelete)
     {
-        type->TypeInfo.Delete(Object);
+        KphpObjectDeferDelete(header);
+    }
+    else
+    {
+        KphpObjectDelete(header);
+    }
+}
+
+/**
+ * \brief Dereferences an object and defers deletion of the object.
+ *
+ * \param[in] Object The object to dereference.
+ */
+VOID KphDereferenceObjectDeferDelete(
+    _In_ PVOID Object
+    )
+{
+    PKPH_OBJECT_HEADER header;
+    SSIZE_T refCount;
+
+    header = KphObjectToObjectHeader(Object);
+
+    refCount = InterlockedDecrementSSizeT(&header->PointerCount);
+    if (refCount > 0)
+    {
+        return;
     }
 
-    type->TypeInfo.Free(header);
+    NT_ASSERT(refCount == 0);
 
-    InterlockedDecrementSizeT(&type->TotalNumberOfObjects);
+    KphpObjectDeferDelete(header);
 }
 
 /**
@@ -199,7 +270,7 @@ PKPH_OBJECT_TYPE KphGetObjectType(
 
     header = KphObjectToObjectHeader(Object);
     index = header->TypeIndex;
-    count = KphpObjectTypeCount;
+    count = ReadAcquire(&KphpObjectTypeCount);
 
     if (index >= count)
     {
@@ -444,4 +515,57 @@ PVOID KphAtomicMoveObjectReference(
     )
 {
     return KphpAtomicStoreObjectReference(ObjectRef, Object);
+}
+
+PAGED_FILE();
+
+/**
+ * \brief Worker routine for deleting objects in a deferred manner.
+ *
+ * \param[in] Parameter Unused parameter.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
+VOID KSIAPI KphpDeferDeleteObjectWorker(
+    _In_opt_ PVOID Parameter
+    )
+{
+    PSLIST_ENTRY entry;
+
+    PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    entry = InterlockedFlushSList(&KphpDeferDeleteObjectList);
+
+    while (entry)
+    {
+        PKPH_OBJECT_HEADER header;
+
+        header = CONTAINING_RECORD(entry, KPH_OBJECT_HEADER, ListEntry);
+
+        entry = entry->Next;
+
+        KphpObjectDelete(header);
+    }
+}
+
+/**
+ * \brief Initializes the object subsystem.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphObjectInitialize(
+    VOID
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    InitializeSListHead(&KphpDeferDeleteObjectList);
+    KsiInitializeWorkItem(&KphpDeferDeleteObjectWorkItem,
+                          KphDriverObject,
+                          &KphpDeferDeleteObjectWorker,
+                          NULL);
 }

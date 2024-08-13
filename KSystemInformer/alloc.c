@@ -701,6 +701,7 @@ NTSTATUS KphInitializeAlloc(
     typeInfo.Initialize = KphpInitializePagedLookasideObject;
     typeInfo.Delete = KphpDeletePagedLookasideObject;
     typeInfo.Free = KphpFreePagedLookasideObject;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpPagedLookasideObjectTypeName,
                         &typeInfo,
@@ -710,6 +711,7 @@ NTSTATUS KphInitializeAlloc(
     typeInfo.Initialize = KphpInitializeNPagedLookasideObject;
     typeInfo.Delete = KphpDeleteNPagedLookasideObject;
     typeInfo.Free = KphpFreeNPagedLookasideObject;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpNPagedLookasideObjectTypeName,
                         &typeInfo,

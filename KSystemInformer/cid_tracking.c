@@ -1117,6 +1117,7 @@ NTSTATUS KphCidInitialize(
     typeInfo.Initialize = KphpInitializeProcessContext;
     typeInfo.Delete = KphpDeleteProcessContext;
     typeInfo.Free = KphpFreeProcessContext;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpProcessContextTypeName,
                         &typeInfo,
@@ -1126,6 +1127,7 @@ NTSTATUS KphCidInitialize(
     typeInfo.Initialize = KphpInitializeThreadContext;
     typeInfo.Delete = KphpDeleteThreadContext;
     typeInfo.Free = KphpFreeThreadContext;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpThreadContextTypeName,
                         &typeInfo,
@@ -1135,6 +1137,7 @@ NTSTATUS KphCidInitialize(
     typeInfo.Initialize = KphpInitializeCidApc;
     typeInfo.Delete = KphpDeleteCidApc;
     typeInfo.Free = KphpFreeCidApc;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpCidApcTypeName,
                         &typeInfo,

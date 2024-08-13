@@ -624,6 +624,7 @@ NTSTATUS KphInitializeStackBackTrace(
     typeInfo.Initialize = KphpStackBackTraceInitialize;
     typeInfo.Delete = KphpStackBackTraceDelete;
     typeInfo.Free = KphpStackBackTraceFree;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpStackBackTraceTypeName,
                         &typeInfo,

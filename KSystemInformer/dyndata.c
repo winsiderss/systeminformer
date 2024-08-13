@@ -430,6 +430,8 @@ VOID KphInitializeDynData(
     typeInfo.Initialize = KphpInitializeDynData;
     typeInfo.Delete = KphpDeleteDynData;
     typeInfo.Free = KphpFreeDynData;
+    typeInfo.Flags = 0;
+    typeInfo.DeferDelete = TRUE;
 
     KphCreateObjectType(&KphpDynDataTypeName, &typeInfo, &KphDynDataType);
 
