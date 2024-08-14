@@ -331,6 +331,11 @@ VOID RebarCreateOrUpdateWindow(
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
+    if (!!PhGetIntegerSetting(L"EnableThemeSupport")) {
+        HWND hTips = (HWND)SendMessage(ToolBarHandle, TB_GETTOOLTIPS, 0, 0);
+        if (hTips)
+            PhSetControlTheme(hTips, L"DarkMode_Explorer");
+    }
 
     ToolbarInitialized = TRUE;
 }
