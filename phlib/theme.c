@@ -1884,6 +1884,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 break;
             }
 
+            BOOLEAN isDropDown = !!(buttonInfo.fsStyle & BTNS_WHOLEDROPDOWN);
+
             //if (isMouseDown)
             //{
             //    SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
@@ -1951,9 +1953,15 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 //    break;
                 //}
 
+                BOOLEAN isPressed = buttonInfo.fsState & TBSTATE_PRESSED;
                 SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor); // RGB(0x0, 0x0, 0x0));
                 //SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackgroundColor); // GetSysColor(COLOR_3DFACE));// RGB(0xff, 0xff, 0xff));
-                FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
+                if (!isPressed)
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
+                else {
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0x60, 0x60, 0x60));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockBrush(DC_BRUSH));
+                }
             }
 
             dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
@@ -1984,7 +1992,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     }
                     else
                     {
-                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - bitmapWidth) / 2;
+                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - bitmapWidth) / 2 - (isDropDown * 4);
                         y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - bitmapHeight) / 2;
                     }
 
@@ -1996,7 +2004,21 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                         y,
                         ILD_NORMAL,
                         !isEnabled
-                        );
+                    );
+
+                    if (isDropDown)
+                    {
+                        HDC hdc = DrawInfo->nmcd.hdc;
+                        LPRECT rc = &DrawInfo->nmcd.rc;
+                        int triangleLeft = rc->right - 11, triangleTop = (rc->bottom - rc->top) / 2 - 2;
+                        POINT vertices[] = { {triangleLeft, triangleTop}, {triangleLeft + 6, triangleTop}, {triangleLeft + 3, triangleTop + 3} };
+                        SetDCPenColor(hdc, RGB(0xDE, 0xDE, 0xDE));
+                        SetDCBrushColor(hdc, RGB(0xDE, 0xDE, 0xDE));
+                        SelectObject(hdc, GetStockObject(DC_PEN));
+                        SelectObject(hdc, GetStockObject(DC_BRUSH));
+                        Polygon(hdc, vertices, _countof(vertices));
+                    }
+                        //return CDRF_SKIPDEFAULT | CDRF_NOTIFYPOSTPAINT;
                 }
             }
             else
@@ -2016,7 +2038,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     (LPARAM)buttonText
                     );
 
-                textRect.left += bitmapWidth; // PhGetDpi(10, dpiValue);
+                textRect.left += bitmapWidth - (isDropDown * 12); // PhGetDpi(10, dpiValue);
                 DrawText(
                     DrawInfo->nmcd.hdc,
                     buttonText,
