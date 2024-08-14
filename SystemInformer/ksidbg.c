@@ -210,6 +210,7 @@ static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
     .RegPostQueryKeyName            = TRUE,
     .RegPreSaveMergedKey            = TRUE,
     .RegPostSaveMergedKey           = TRUE,
+    .ImageVerify                    = TRUE,
 };
 
 PPH_STRING KsiDebugLogProcessCreate(
@@ -1107,6 +1108,54 @@ PPH_STRING KsiDebugLogSaveMergedKey(
     return result;
 }
 
+PPH_STRING KsiDebugLogImageVerify(
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PPH_STRING result;
+    UNICODE_STRING fileName;
+    UNICODE_STRING registryPath;
+    UNICODE_STRING certificatePublisher;
+    UNICODE_STRING certificateIssuer;
+    KPHM_SIZED_BUFFER imageHash;
+    KPHM_SIZED_BUFFER thumbprint;
+    PPH_STRING imageHashString;
+    PPH_STRING thumbprintString;
+
+    KphMsgDynGetUnicodeString(Message, KphMsgFieldFileName, &fileName);
+    KphMsgDynGetUnicodeString(Message, KphMsgFieldRegistryPath, &registryPath);
+    KphMsgDynGetUnicodeString(Message, KphMsgFieldCertificatePublisher, &certificatePublisher);
+    KphMsgDynGetUnicodeString(Message, KphMsgFieldCertificateIssuer, &certificateIssuer);
+    KphMsgDynGetSizedBuffer(Message, KphMsgFieldHash, &imageHash);
+    KphMsgDynGetSizedBuffer(Message, KphMsgFieldCertificateThumbprint, &thumbprint);
+
+    imageHashString = PhBufferToHexString(imageHash.Buffer, imageHash.Size);
+    thumbprintString = PhBufferToHexString(thumbprint.Buffer, thumbprint.Size);
+
+    result = PhFormatString(
+        L"%04x:%04x:%016llx %lu %lu 0x%08x %lu %lu \"%wZ\" %ls \"%wZ\" \"%wZ\" \"%wZ\" %ls",
+        HandleToUlong(Message->Kernel.ImageVerify.ClientId.UniqueProcess),
+        HandleToUlong(Message->Kernel.ImageVerify.ClientId.UniqueThread),
+        Message->Kernel.ImageVerify.ProcessStartKey,
+        Message->Kernel.ImageVerify.ImageType,
+        Message->Kernel.ImageVerify.Classification,
+        Message->Kernel.ImageVerify.ImageFlags,
+        Message->Kernel.ImageVerify.ImageHashAlgorithm,
+        Message->Kernel.ImageVerify.ThumbprintHashAlgorithm,
+        &fileName,
+        PhGetString(imageHashString),
+        &registryPath,
+        &certificatePublisher,
+        &certificateIssuer,
+        PhGetString(thumbprintString)
+        );
+
+    PhDereferenceObject(imageHashString);
+    PhDereferenceObject(thumbprintString);
+
+    return result;
+}
+
 static SI_DEBUG_LOG_DEF KsiDebugLogDefs[] =
 {
     { PH_STRINGREF_INIT(L"ProcessCreate        "), KsiDebugLogProcessCreate },
@@ -1261,6 +1310,7 @@ static SI_DEBUG_LOG_DEF KsiDebugLogDefs[] =
     { PH_STRINGREF_INIT(L"RegPostQueryKeyName  "), KsiDebugLogRegCommon },
     { PH_STRINGREF_INIT(L"RegPreSaveMergedKey  "), KsiDebugLogSaveMergedKey },
     { PH_STRINGREF_INIT(L"RegPostSaveMergedKey "), KsiDebugLogSaveMergedKey },
+    { PH_STRINGREF_INIT(L"ImageVerify          "), KsiDebugLogImageVerify },
 };
 C_ASSERT((RTL_NUMBER_OF(KsiDebugLogDefs) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
 

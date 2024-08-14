@@ -183,6 +183,7 @@ const KPH_INFORMER_MAP_ENTRY KphpInformerMap[] =
     KPH_INFORMER_MAP_SETTING(RegPostQueryKeyName),
     KPH_INFORMER_MAP_SETTING(RegPreSaveMergedKey),
     KPH_INFORMER_MAP_SETTING(RegPostSaveMergedKey),
+    KPH_INFORMER_MAP_SETTING(ImageVerify),
 };
 C_ASSERT((ARRAYSIZE(KphpInformerMap) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
 KPH_PROTECTED_DATA_SECTION_RO_POP();

@@ -226,6 +226,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgRegPostQueryKeyName,
     KphMsgRegPreSaveMergedKey,
     KphMsgRegPostSaveMergedKey,
+    KphMsgImageVerify,
 
     MaxKphMsg,
 
@@ -255,6 +256,11 @@ typedef enum _KPH_MESSAGE_FIELD_ID
     KphMsgFieldNewName,
     KphMsgFieldClass,
     KphMsgFieldOtherObjectName,
+    KphMsgFieldHash,
+    KphMsgFieldRegistryPath,
+    KphMsgFieldCertificatePublisher,
+    KphMsgFieldCertificateIssuer,
+    KphMsgFieldCertificateThumbprint,
 
     MaxKphMsgField
 } KPH_MESSAGE_FIELD_ID, *PKPH_MESSAGE_FIELD_ID;
@@ -364,6 +370,7 @@ typedef struct _KPH_MESSAGE
             KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
             KPHM_FILE File;
             KPHM_REGISTRY Reg;
+            KPHM_IMAGE_VERIFY ImageVerify;
         } Kernel;
 
         //

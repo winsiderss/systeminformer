@@ -1648,10 +1648,33 @@ typedef struct _KPHM_REGISTRY
     //     - KphMsgRegPreRenameKey
     //     - KphMsgRegPostRenameKey
     //
-    // id: KphMsgFieldOtherObjectName        type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldOtherObjectName         type: KphMsgTypeUnicodeString
     //     - KphMsgRegPreSaveMergedKey
     //     - KphMsgRegPostSaveMergedKey
     //
 } KPHM_REGISTRY, *PKPHM_REGISTRY;
+
+typedef struct _KPHM_IMAGE_VERIFY
+{
+    CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
+    PVOID ThreadSubProcessTag;
+    ULONG ImageType;               // SE_IMAGE_TYPE
+    ULONG Classification;          // BDCB_CLASSIFICATION
+    ULONG ImageFlags;
+    ULONG ImageHashAlgorithm;
+    ULONG ThumbprintHashAlgorithm;
+
+    //
+    // Dynamic
+    //
+    // id: KphMsgFieldFileName                type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldHash                    type: KphMsgTypeSizedBuffer
+    // id: KphMsgFieldCertificatePublisher    type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldCertificateIssuer       type: KphMsgTypeUnicodeString
+    // id: KphMsgFieldCertificateThumbprint   type: KphMsgTypeSizedBuffer
+    // id: KphMsgFieldRegistryPath            type: KphMsgTypeUnicodeString
+    //
+} KPHM_IMAGE_VERIFY, *PKPHM_IMAGE_VERIFY;
 
 #pragma warning(pop)

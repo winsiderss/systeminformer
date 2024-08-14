@@ -16,6 +16,10 @@
 
 #include <trace.h>
 
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PVOID KphpImageVerificationCallbackHandle = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+
 PAGED_FILE();
 
 /**
@@ -189,6 +193,144 @@ VOID KphpLoadImageNotifyRoutine(
 }
 
 /**
+ * \brief Image verification callback.
+ *
+ * \param[in] CallbackContext Unused.
+ * \param[in] ImageType The type of image being verified.
+ * \param[in,out] ImageInformation Information about the image being verified.
+ */
+_IRQL_requires_same_
+_Function_class_(SE_IMAGE_VERIFICATION_CALLBACK_FUNCTION)
+VOID
+KphpImageVerificationCallback(
+    _In_opt_ PVOID CallbackContext,
+    _In_ SE_IMAGE_TYPE ImageType,
+    _Inout_ PBDCB_IMAGE_INFORMATION ImageInformation
+    )
+{
+    NTSTATUS status;
+    PKPH_PROCESS_CONTEXT actorProcess;
+    PKPH_MESSAGE msg;
+    KPHM_SIZED_BUFFER buffer;
+
+    PAGED_CODE_PASSIVE();
+
+    UNREFERENCED_PARAMETER(CallbackContext);
+
+    actorProcess = KphGetCurrentProcessContext();
+
+    if (!KphInformerEnabled(ImageVerify, actorProcess))
+    {
+        goto Exit;
+    }
+
+    msg = KphAllocateMessage();
+    if (!msg)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "Failed to allocate message");
+        goto Exit;
+    }
+
+    KphMsgInit(msg, KphMsgImageVerify);
+
+    msg->Kernel.ImageVerify.ClientId.UniqueProcess = PsGetCurrentProcessId();
+    msg->Kernel.ImageVerify.ClientId.UniqueThread = PsGetCurrentThreadId();
+    msg->Kernel.ImageVerify.ProcessStartKey = KphGetCurrentProcessStartKey();
+    msg->Kernel.ImageVerify.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
+    msg->Kernel.ImageVerify.ImageType = ImageType;
+    msg->Kernel.ImageVerify.Classification = ImageInformation->Classification;
+    msg->Kernel.ImageVerify.ImageFlags = ImageInformation->ImageFlags;
+    msg->Kernel.ImageVerify.ImageHashAlgorithm = ImageInformation->ImageHashAlgorithm;
+    msg->Kernel.ImageVerify.ThumbprintHashAlgorithm = ImageInformation->ThumbprintHashAlgorithm;
+
+    status = KphMsgDynAddUnicodeString(msg,
+                                       KphMsgFieldFileName,
+                                       &ImageInformation->ImageName);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddUnicodeString failed: %!STATUS!",
+                      status);
+    }
+
+    buffer.Buffer = ImageInformation->ImageHash;
+    buffer.Size = (USHORT)ImageInformation->ImageHashLength;
+
+    status = KphMsgDynAddSizedBuffer(msg, KphMsgFieldHash, &buffer);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddSizedBuffer failed: %!STATUS!",
+                      status);
+    }
+
+    status = KphMsgDynAddUnicodeString(msg,
+                                       KphMsgFieldCertificatePublisher,
+                                       &ImageInformation->CertificatePublisher);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddUnicodeString failed: %!STATUS!",
+                      status);
+    }
+
+    status = KphMsgDynAddUnicodeString(msg,
+                                       KphMsgFieldCertificateIssuer,
+                                       &ImageInformation->CertificateIssuer);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddUnicodeString failed: %!STATUS!",
+                      status);
+    }
+
+    buffer.Buffer = ImageInformation->CertificateThumbprint;
+    buffer.Size = (USHORT)ImageInformation->CertificateThumbprintLength;
+
+    status = KphMsgDynAddSizedBuffer(msg,
+                                     KphMsgFieldCertificateThumbprint,
+                                     &buffer);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddSizedBuffer failed: %!STATUS!",
+                      status);
+    }
+
+    status = KphMsgDynAddUnicodeString(msg,
+                                       KphMsgFieldRegistryPath,
+                                       &ImageInformation->RegistryPath);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "KphMsgDynAddUnicodeString failed: %!STATUS!",
+                      status);
+    }
+
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
+    KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
+}
+
+/**
  * \brief Starts the image informer.
  *
  * \return Successful or errant status.
@@ -206,27 +348,54 @@ NTSTATUS KphImageInformerStart(
     if (KphDynPsSetLoadImageNotifyRoutineEx)
     {
         status = KphDynPsSetLoadImageNotifyRoutineEx(
-                                    KphpLoadImageNotifyRoutine,
-                                    PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE);
+                                      KphpLoadImageNotifyRoutine,
+                                      PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to register image notify routine: %!STATUS!",
                           status);
+
             return status;
         }
+    }
+    else
+    {
+        status = PsSetLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "Failed to register image notify routine: %!STATUS!",
+                          status);
 
+            return status;
+        }
+    }
+
+    if (!KphSeRegisterImageVerificationCallback ||
+        !KphSeUnregisterImageVerificationCallback)
+    {
         return STATUS_SUCCESS;
     }
 
-    status = PsSetLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
+    status = KphSeRegisterImageVerificationCallback(
+                                       SeImageTypeDriver,
+                                       SeImageVerificationCallbackInformational,
+                                       KphpImageVerificationCallback,
+                                       NULL,
+                                       NULL,
+                                       &KphpImageVerificationCallbackHandle);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
-                      "Failed to register image notify routine: %!STATUS!",
+                      "Failed to register image verification callback: "
+                      "%!STATUS!",
                       status);
+
+        KphpImageVerificationCallbackHandle = NULL;
         return status;
     }
 
@@ -242,6 +411,13 @@ VOID KphImageInformerStop(
     )
 {
     PAGED_CODE_PASSIVE();
+
+    if (KphpImageVerificationCallbackHandle)
+    {
+        NT_ASSERT(KphSeUnregisterImageVerificationCallback);
+
+        KphSeUnregisterImageVerificationCallback(KphpImageVerificationCallbackHandle);
+    }
 
     PsRemoveLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
 }

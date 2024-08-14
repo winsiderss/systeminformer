@@ -643,7 +643,8 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 RegPostQueryKeyName : 1;
             ULONG64 RegPreSaveMergedKey : 1;
             ULONG64 RegPostSaveMergedKey : 1;
-            ULONG64 Reserved : 28;
+            ULONG64 ImageVerify : 1;
+            ULONG64 Reserved : 27;
         };
     };
 } KPH_INFORMER_SETTINGS, *PKPH_INFORMER_SETTINGS;
