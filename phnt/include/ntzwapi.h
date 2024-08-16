@@ -4543,6 +4543,28 @@ ZwThawTransactions(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwTraceControl(
+    _In_ ETWTRACECONTROLCODE FunctionCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwTraceEvent(
+    _In_opt_ HANDLE TraceHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG FieldSize,
+    _In_ PVOID Fields
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwTranslateFilePath(
     _In_ PFILE_PATH InputFilePath,
     _In_ ULONG OutputType,
