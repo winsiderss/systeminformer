@@ -332,8 +332,8 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
             ULONG IsProcessDeleting : 1;
             ULONG IsCrossSessionCreate : 1;
             ULONG IsFrozen : 1;
-            ULONG IsBackground : 1;
-            ULONG IsStronglyNamed : 1;
+            ULONG IsBackground : 1; // WIN://BGKD
+            ULONG IsStronglyNamed : 1; // WIN://SYSAPPID
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG IsTrustedApp : 1; // since 24H2
@@ -1580,7 +1580,7 @@ NtCreateProcessStateChange(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG64 Reserved
     );
 
 NTSYSCALLAPI
@@ -1590,9 +1590,9 @@ NtChangeProcessState(
     _In_ HANDLE ProcessStateChangeHandle,
     _In_ HANDLE ProcessHandle,
     _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
-    _In_opt_ PVOID ExtendedInformation,
-    _In_opt_ SIZE_T ExtendedInformationLength,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ _Reserved_ PVOID ExtendedInformation,
+    _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
+    _In_opt_ _Reserved_ ULONG64 Reserved
     );
 
 #endif
@@ -2802,16 +2802,106 @@ NtAllocateReserveObject(
 // Process snapshotting
 
 #if (PHNT_VERSION >= PHNT_WINBLUE)
+
+// Capture/creation flags.
+typedef enum _PSSNT_CAPTURE_FLAGS
+{
+    PSSNT_CAPTURE_NONE                                = 0x00000000,
+    PSSNT_CAPTURE_VA_CLONE                            = 0x00000001,
+    PSSNT_CAPTURE_RESERVED_00000002                   = 0x00000002,
+    PSSNT_CAPTURE_HANDLES                             = 0x00000004,
+    PSSNT_CAPTURE_HANDLE_NAME_INFORMATION             = 0x00000008,
+    PSSNT_CAPTURE_HANDLE_BASIC_INFORMATION            = 0x00000010,
+    PSSNT_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION    = 0x00000020,
+    PSSNT_CAPTURE_HANDLE_TRACE                        = 0x00000040,
+    PSSNT_CAPTURE_THREADS                             = 0x00000080,
+    PSSNT_CAPTURE_THREAD_CONTEXT                      = 0x00000100,
+    PSSNT_CAPTURE_THREAD_CONTEXT_EXTENDED             = 0x00000200,
+    PSSNT_CAPTURE_RESERVED_00000400                   = 0x00000400,
+    PSSNT_CAPTURE_VA_SPACE                            = 0x00000800,
+    PSSNT_CAPTURE_VA_SPACE_SECTION_INFORMATION        = 0x00001000,
+    PSSNT_CAPTURE_IPT_TRACE                           = 0x00002000,
+    PSSNT_CAPTURE_RESERVED_00004000                   = 0x00004000,
+
+    PSSNT_CREATE_BREAKAWAY_OPTIONAL                   = 0x04000000,
+    PSSNT_CREATE_BREAKAWAY                            = 0x08000000,
+    PSSNT_CREATE_FORCE_BREAKAWAY                      = 0x10000000,
+    PSSNT_CREATE_USE_VM_ALLOCATIONS                   = 0x20000000,
+    PSSNT_CREATE_MEASURE_PERFORMANCE                  = 0x40000000,
+    PSSNT_CREATE_RELEASE_SECTION                      = 0x80000000
+} PSSNT_CAPTURE_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(PSSNT_CAPTURE_FLAGS);
+
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 PssNtCaptureSnapshot(
     _Out_ PHANDLE SnapshotHandle,
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG CaptureFlags,
-    _In_ ULONG ThreadContextFlags
+    _In_ PSSNT_CAPTURE_FLAGS CaptureFlags,
+    _In_opt_ ULONG ThreadContextFlags
     );
+
+typedef enum _PSSNT_DUPLICATE_FLAGS
+{
+    PSSNT_DUPLICATE_NONE         = 0x00,
+    PSSNT_DUPLICATE_CLOSE_SOURCE = 0x01
+} PSSNT_DUPLICATE_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(PSSNT_DUPLICATE_FLAGS);
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtDuplicateSnapshot(
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SnapshotHandle,
+    _In_ HANDLE TargetProcessHandle,
+    _Out_ PHANDLE TargetSnapshotHandle,
+    _In_opt_ PSSNT_DUPLICATE_FLAGS Flags
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtFreeSnapshot(
+    _In_ HANDLE SnapshotHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtFreeRemoteSnapshot(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SnapshotHandle
+    );
+
+typedef enum _PSSNT_QUERY_INFORMATION_CLASS
+{
+    PSSNT_QUERY_PROCESS_INFORMATION = 0, // PSS_PROCESS_INFORMATION
+    PSSNT_QUERY_VA_CLONE_INFORMATION = 1, // PSS_VA_CLONE_INFORMATION
+    PSSNT_QUERY_AUXILIARY_PAGES_INFORMATION = 2, // PSS_AUXILIARY_PAGES_INFORMATION
+    PSSNT_QUERY_VA_SPACE_INFORMATION = 3, // PSS_VA_SPACE_INFORMATION
+    PSSNT_QUERY_HANDLE_INFORMATION = 4, // PSS_HANDLE_INFORMATION
+    PSSNT_QUERY_THREAD_INFORMATION = 5, // PSS_THREAD_INFORMATION
+    PSSNT_QUERY_HANDLE_TRACE_INFORMATION = 6, // PSS_HANDLE_TRACE_INFORMATION
+    PSSNT_QUERY_PERFORMANCE_COUNTERS = 7 // PSS_PERFORMANCE_COUNTERS
+} PSSNT_QUERY_INFORMATION_CLASS;
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+PssNtQuerySnapshot(
+    _In_ HANDLE SnapshotHandle,
+    _In_ PSSNT_QUERY_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
+    );
+
 #endif
 
 // rev
