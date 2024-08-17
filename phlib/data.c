@@ -261,7 +261,7 @@ ULONG PhCrc32Table[256] =
 // Enums
 
 DECLSPEC_SELECTANY CONST
-PH_STRINGREF PhIoPriorityHintNames[MaxIoPriorityTypes] =
+PH_STRINGREF PhIoPriorityHintNames[] =
 {
     PH_STRINGREF_INIT(L"Very low"),
     PH_STRINGREF_INIT(L"Low"),
@@ -271,7 +271,7 @@ PH_STRINGREF PhIoPriorityHintNames[MaxIoPriorityTypes] =
 };
 
 DECLSPEC_SELECTANY CONST
-PH_STRINGREF PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
+PH_STRINGREF PhPagePriorityNames[] =
 {
     PH_STRINGREF_INIT(L"Lowest"),
     PH_STRINGREF_INIT(L"Very low"),
@@ -282,7 +282,7 @@ PH_STRINGREF PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
 };
 
 DECLSPEC_SELECTANY CONST
-PH_STRINGREF PhKThreadStateNames[MaximumThreadState] =
+PH_STRINGREF PhKThreadStateNames[] =
 {
     PH_STRINGREF_INIT(L"Initialized"),
     PH_STRINGREF_INIT(L"Ready"),
@@ -297,7 +297,7 @@ PH_STRINGREF PhKThreadStateNames[MaximumThreadState] =
 };
 
 DECLSPEC_SELECTANY CONST
-PH_STRINGREF PhKWaitReasonNames[MaximumWaitReason] =
+PH_STRINGREF PhKWaitReasonNames[] =
 {
     PH_STRINGREF_INIT(L"Executive"),
     PH_STRINGREF_INIT(L"FreePage"),
@@ -341,6 +341,7 @@ PH_STRINGREF PhKWaitReasonNames[MaximumWaitReason] =
     PH_STRINGREF_INIT(L"WrPhysicalFault"),
     PH_STRINGREF_INIT(L"WrIoRing"),
     PH_STRINGREF_INIT(L"WrMdlCache"),
+    PH_STRINGREF_INIT(L"WrRcu"),
 };
 
 static_assert(ARRAYSIZE(PhIoPriorityHintNames) == MaxIoPriorityTypes, "PhIoPriorityHintNames must equal MaxIoPriorityTypes");
