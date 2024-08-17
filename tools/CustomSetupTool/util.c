@@ -196,9 +196,11 @@ BOOLEAN SetupCreateUninstallFile(
         }
     }
 
-    // Move the latest setup.exe to the installation folder.
+    // Copy the latest setup.exe to the installation folder, so that:
+    // 1. The setup program doesn't disappear for user.
+    // 2. The correct ACL is applied to the file. Moving the file would retain the existing ACL.
 
-    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
+    if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
         Context->ErrorCode = PhNtStatusToDosError(status);
         return FALSE;
@@ -978,7 +980,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
         PhOpenProcess(
             &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
             objectInfo.ClientId.UniqueProcess
             );
 
@@ -995,7 +997,10 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
         if (processHandle)
         {
+            LARGE_INTEGER timeout;
+
             NtTerminateProcess(processHandle, 1);
+            NtWaitForSingleObject(processHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
         }
 
     CleanupExit:
