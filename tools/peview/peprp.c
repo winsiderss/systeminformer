@@ -613,6 +613,16 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
+        // Strings page
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_STRINGS),
+                PvStringsDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);

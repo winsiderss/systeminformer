@@ -24,6 +24,8 @@
 #define IDD_PIDS                        115
 #define IDD_ELFDYNAMIC                  116
 #define IDD_TLS                         117
+#define IDD_STRINGS                     118
+#define IDD_STRINGSMINLEN               119
 #define IDI_APPICON                     122
 #define IDD_PEPREVIEW                   124
 #define IDD_OPTIONS                     126
@@ -57,6 +59,7 @@
 #define IDB_SEARCH_ACTIVE_MODERN_LIGHT  211
 #define IDB_SEARCH_INACTIVE_MODERN_DARK 212
 #define IDB_SEARCH_INACTIVE_MODERN_LIGHT 213
+#define IDC_MINIMUMLENGTH               1001
 #define IDC_TARGETMACHINE               1003
 #define IDC_LIST                        1008
 #define IDC_FILEICON                    1009
