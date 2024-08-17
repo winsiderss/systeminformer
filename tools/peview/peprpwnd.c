@@ -675,6 +675,15 @@ VOID PvAddTreeViewSections(
         NULL
         );
 
+    // Strings page
+    PvCreateTabSection(
+        L"Strings",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_STRINGS),
+        PvStringsDlgProc,
+        NULL
+        );
+
     // VS_VERSIONINFO page
     PvCreateTabSection(
         L"Version",

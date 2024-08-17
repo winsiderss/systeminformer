@@ -321,6 +321,7 @@
     <ClCompile Include="secedit.c" />
     <ClCompile Include="secwmi.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="strsrch.c" />
     <ClCompile Include="symprv_std.cpp" />
     <ClCompile Include="theme.c" />
     <ClCompile Include="util.c" />
@@ -367,6 +368,7 @@
     <ClInclude Include="include\secedit.h" />
     <ClInclude Include="include\secwmi.h" />
     <ClInclude Include="include\settings.h" />
+    <ClInclude Include="include\strsrch.h" />
     <ClInclude Include="include\svcsup.h" />
     <ClInclude Include="include\symprvp.h" />
     <ClInclude Include="include\treenew.h" />

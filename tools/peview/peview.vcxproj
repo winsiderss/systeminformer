@@ -431,6 +431,7 @@
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
     <ClCompile Include="streams.c" />
+    <ClCompile Include="strings.c" />
     <ClCompile Include="tlsprp.c" />
     <ClCompile Include="versioninfoprp.c" />
     <ClCompile Include="volatileprp.c" />
