@@ -20,6 +20,11 @@
 #include <appresolverp.h>
 #include <appresolver.h>
 
+/**
+ * Queries the AppResolver interface.
+ *
+ * @return A pointer to the AppResolver interface, or NULL if the interface could not be queried.
+ */
 static PVOID PhpQueryAppResolverInterface(
     VOID
     )
@@ -40,6 +45,11 @@ static PVOID PhpQueryAppResolverInterface(
     return resolverInterface;
 }
 
+/**
+ * Queries the StartMenuCache interface.
+ *
+ * @return A pointer to the StartMenuCache interface, or NULL if the interface could not be queried.
+ */
 static PVOID PhpQueryStartMenuCacheInterface(
     VOID
     )
@@ -60,6 +70,11 @@ static PVOID PhpQueryStartMenuCacheInterface(
     return startMenuInterface;
 }
 
+/**
+ * Checks if the Kernel AppCore is initialized.
+ *
+ * @return TRUE if the Kernel AppCore is initialized, FALSE otherwise.
+ */
 static BOOLEAN PhpKernelAppCoreInitialized(
     VOID
     )
@@ -96,6 +111,14 @@ static BOOLEAN PhpKernelAppCoreInitialized(
     return kernelAppCoreInitialized;
 }
 
+/**
+ * Retrieves the Application User Model ID (AppUserModelId) for a specified process.
+ *
+ * @param ProcessId The handle to the process.
+ * @param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
+ *
+ * @return HRESULT indicating success or failure.
+ */
 HRESULT PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
@@ -159,6 +182,14 @@ HRESULT PhAppResolverGetAppIdForProcess(
     return status;
 }
 
+/**
+ * Retrieves the Application User Model ID (AppUserModelId) for a specified window.
+ *
+ * @param WindowHandle The handle to the window.
+ * @param ApplicationUserModelId A pointer to a string that receives the Application User Model ID.
+ *
+ * @return HRESULT indicating success or failure.
+ */
 HRESULT PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId
