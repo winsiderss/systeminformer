@@ -247,7 +247,7 @@ KPH_MESSAGE_ID KphpObPostGetMessageId(
 }
 
 /**
- * \brief Copes the object name into a message for registered object callbacks.
+ * \brief Copies the object name into a message for registered object callbacks.
  *
  * \details Used to populate the desktop name for desktop object callbacks.
  *
