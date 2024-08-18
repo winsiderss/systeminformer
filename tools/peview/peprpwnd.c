@@ -159,7 +159,7 @@ VOID PvAddTreeViewSections(
         );
 
     // Load Config page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
     {
         PvCreateTabSection(
             L"Load Config",
@@ -252,7 +252,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Resources page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
     {
         PvCreateTabSection(
             L"Resources",
@@ -264,7 +264,7 @@ VOID PvAddTreeViewSections(
     }
 
     // CLR page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
         (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
     {
         NTSTATUS status = STATUS_SUCCESS;
@@ -325,7 +325,7 @@ VOID PvAddTreeViewSections(
     }
 
     // TLS page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
     {
         PvCreateTabSection(
             L"TLS",
@@ -367,7 +367,7 @@ VOID PvAddTreeViewSections(
         }
         else
         {
-            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
             {
                 IMAGE_DATA_DIRECTORY entryArm64X;
 
@@ -430,7 +430,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Relocations page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
     {
         PvCreateTabSection(
             L"Relocations",
@@ -466,7 +466,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Certificates page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
     {
         PvCreateTabSection(
             L"Certificates",
@@ -478,7 +478,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Debug page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
     {
         PvCreateTabSection(
             L"Debug",
@@ -677,7 +677,7 @@ VOID PvAddTreeViewSections(
 
     // VS_VERSIONINFO page
     PvCreateTabSection(
-        L"VersionInfo",
+        L"Version",
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_PEVERSIONINFO),
         PvpPeVersionInfoDlgProc,

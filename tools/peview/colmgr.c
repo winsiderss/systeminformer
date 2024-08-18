@@ -303,7 +303,7 @@ BOOLEAN PhCmLoadSettingsEx(
                 if (scale != dpiValue && scale != 0)
                     width = PhMultiplyDivide(width, dpiValue, scale);
 
-                column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
+                column = PhAllocateZero(sizeof(PH_TREENEW_COLUMN));
                 column->Id = id;
                 column->DisplayIndex = displayIndex;
                 column->Width = width;

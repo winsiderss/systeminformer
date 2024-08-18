@@ -46,7 +46,7 @@ typedef struct _PV_DIRECTORY_NODE
     PVOID RvaStart;
     PVOID RvaEnd;
     ULONG RvaSize;
-    DOUBLE DirectoryEntropy;
+    FLOAT DirectoryEntropy;
     PPH_STRING UniqueIdString;
     PPH_STRING DirectoryNameString;
     PPH_STRING RawStartString;
@@ -260,7 +260,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            DOUBLE imageDirectoryEntropy;
+            FLOAT imageDirectoryEntropy;
 
             if (PhCalculateEntropy(
                 imageDirectoryData,

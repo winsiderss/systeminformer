@@ -49,7 +49,7 @@ typedef struct _PV_SECTION_NODE
     PVOID RvaEnd;
     ULONG RvaSize;
     ULONG Characteristics;
-    DOUBLE SectionEntropy;
+    FLOAT SectionEntropy;
     PPH_STRING UniqueIdString;
     PPH_STRING SectionNameString;
     PPH_STRING RawStartString;
@@ -324,7 +324,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                DOUBLE imageSectionEntropy;
+                FLOAT imageSectionEntropy;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {

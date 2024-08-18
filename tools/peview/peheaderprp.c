@@ -206,8 +206,8 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy = 0;
-            DOUBLE imageDosStubMean = 0;
+            FLOAT imageDosStubEntropy = 0;
+            FLOAT imageDosStubMean = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
@@ -253,8 +253,8 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy = 0;
-            DOUBLE imageDosStubMean = 0;
+            FLOAT imageDosStubEntropy = 0;
+            FLOAT imageDosStubMean = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
@@ -300,8 +300,8 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy = 0;
-            DOUBLE imageDosStubMean = 0;
+            FLOAT imageDosStubEntropy = 0;
+            FLOAT imageDosStubMean = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(
@@ -600,8 +600,8 @@ VOID PvSetPeImageOverlayHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy = 0;
-            DOUBLE imageDosStubMean = 0;
+            FLOAT imageDosStubEntropy = 0;
+            FLOAT imageDosStubMean = 0;
             PPH_STRING entropyString;
 
             if (PhCalculateEntropy(

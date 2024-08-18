@@ -90,7 +90,7 @@ VOID PvEnumerateImagePogoSections(
             __try
             {
                 PPH_STRING entropyString;
-                DOUBLE imageSectionEntropy;
+                FLOAT imageSectionEntropy;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
                 {
