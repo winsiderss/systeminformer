@@ -15,11 +15,58 @@
 using namespace std;
 
 _Success_(return)
+BOOLEAN PhFormatSingleToUtf8(
+    _In_ FLOAT Value,
+    _In_ ULONG Type,
+    _In_ ULONG Precision,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    chars_format format = chars_format::fixed;
+    to_chars_result result;
+    SIZE_T returnLength;
+    CHAR buffer[_CVTBUFSIZE + 1];
+
+    if (Type & FormatStandardForm)
+        format = chars_format::general;
+    else if (Type & FormatHexadecimalForm)
+        format = chars_format::hex;
+
+    result = to_chars(
+        buffer,
+        end(buffer),
+        Value,
+        format,
+        Precision
+        );
+
+    if (result.ec != static_cast<std::errc>(0))
+        return FALSE;
+
+    returnLength = result.ptr - buffer;
+
+    if (returnLength == 0)
+        return FALSE;
+
+    // This could be removed in favor of directly passing the input buffer to std:to_chars but
+    // for now use memcpy so that failures writing a value don't touch the input buffer (dmex)
+    memcpy_s(Buffer, BufferLength, buffer, returnLength);
+    Buffer[returnLength] = ANSI_NULL;
+
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+
+    return TRUE;
+}
+
+_Success_(return)
 BOOLEAN PhFormatDoubleToUtf8(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
     _In_ ULONG Precision,
-    _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
     )
