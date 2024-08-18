@@ -6945,7 +6945,8 @@ BOOLEAN PhCalculateEntropy(
     {
         FLOAT value = (FLOAT)counts[i] / (FLOAT)BufferLength;
 
-            bufferEntropy -= value * log2(value);
+        if (value > 0.f)
+            bufferEntropy -= value * log2f(value);
     }
 
     bufferMeanValue = (FLOAT)bufferSumValue / (FLOAT)BufferLength;
