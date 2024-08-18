@@ -161,7 +161,7 @@ VOID PvPeProperties(
         PvAddPropPage(propContext, newPage);
 
         // Load Config page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PELOADCONFIG),
@@ -233,7 +233,7 @@ VOID PvPeProperties(
         }
 
         // Resources page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PERESOURCES),
@@ -244,7 +244,7 @@ VOID PvPeProperties(
         }
 
         // CLR page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
             (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
         {
             NTSTATUS status = STATUS_SUCCESS;
@@ -301,7 +301,6 @@ VOID PvPeProperties(
         }
 
         // TLS page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_TLS),
@@ -341,7 +340,7 @@ VOID PvPeProperties(
             }
             else
             {
-                if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
+                if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
                 {
                     IMAGE_DATA_DIRECTORY entryArm64X;
 
@@ -389,7 +388,7 @@ VOID PvPeProperties(
 
         // Relocations page
         {
-            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
+            if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
             {
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PERELOCATIONS),
@@ -401,7 +400,7 @@ VOID PvPeProperties(
         }
 
         // Certificates page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PESECURITY),
@@ -412,7 +411,7 @@ VOID PvPeProperties(
         }
 
         // Debug page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEDEBUG),
@@ -1013,7 +1012,7 @@ VOID PvpSetPeImageSize(
         //BOOLEAN success = FALSE;
         //PIMAGE_DATA_DIRECTORY dataDirectory;
         //
-        //if (NT_SUCCESS(PhGetMappedImageDataEntry(
+        //if (NT_SUCCESS(PhGetMappedImageDataDirectory(
         //    &PvMappedImage,
         //    IMAGE_DIRECTORY_ENTRY_SECURITY,
         //    &dataDirectory

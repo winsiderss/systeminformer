@@ -3141,6 +3141,12 @@ BOOLEAN PhExtractIconEx(
     PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
     ULONG iconDirectoryResourceLength;
     PNEWHEADER iconDirectoryResource;
+    RTL_PATH_TYPE fileNameType;
+
+    fileNameType = PhDetermineDosPathNameType(FileName);
+
+    if (!(fileNameType == RtlPathTypeRooted || fileNameType == RtlPathTypeDriveAbsolute))
+        return FALSE;
 
     if (PhGetSystemResourcesFileName(FileName, NativeFileName, &resourceFileName))
     {
@@ -3182,7 +3188,7 @@ BOOLEAN PhExtractIconEx(
         return FALSE;
     }
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         &mappedImage,
         IMAGE_DIRECTORY_ENTRY_RESOURCE,
         &dataDirectory

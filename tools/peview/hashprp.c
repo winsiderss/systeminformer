@@ -285,7 +285,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
     PSPC_PE_IMAGE_DATA spcPeImageDataBuffer = NULL;
     ULONG spcPeImageDataLength = 0;
 
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
     {
         LPWIN_CERTIFICATE certificateDirectory = PTR_ADD_OFFSET(PvMappedImage.ViewBase, dataDirectory->VirtualAddress);
         CERT_BLOB certificateBlob = { certificateDirectory->dwLength, certificateDirectory->bCertificate };
@@ -661,7 +661,7 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
 //            return NULL;
 //    }
 //
-//    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+//    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
 //    {
 //        {
 //            ULONG64 offset = imageSecurityOffset + sizeof(IMAGE_DATA_DIRECTORY);
@@ -723,7 +723,7 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
 //        return NULL;
 //    }
 //
-//    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+//    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
 //    {
 //        directoryAddress = dataDirectory->VirtualAddress;
 //        directorySize = dataDirectory->Size;

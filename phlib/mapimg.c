@@ -208,6 +208,7 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
 {
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
+    OBJECT_ATTRIBUTES sectionAttributes;
     LARGE_INTEGER sectionSize;
     HANDLE sectionHandle;
     SIZE_T viewSize;
@@ -234,12 +235,20 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
         openedFile = TRUE;
     }
 
+    InitializeObjectAttributes(
+        &sectionAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     sectionSize.QuadPart = PAGE_SIZE;
 
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
-        NULL,
+        &sectionAttributes,
         &sectionSize,
         PAGE_READONLY,
         SEC_COMMIT,
@@ -304,7 +313,8 @@ NTSTATUS PhMapViewOfEntireFile(
 {
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
-    LARGE_INTEGER fileSize;
+    OBJECT_ATTRIBUTES sectionAttributes;
+    LARGE_INTEGER sectionSize;
     HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
@@ -333,16 +343,24 @@ NTSTATUS PhMapViewOfEntireFile(
 
     // Get the file size and create the section.
 
-    status = PhGetFileSize(FileHandle, &fileSize);
+    status = PhGetFileSize(FileHandle, &sectionSize);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    InitializeObjectAttributes(
+        &sectionAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
-        NULL,
-        &fileSize,
+        &sectionAttributes,
+        &sectionSize,
         PAGE_READONLY,
         SEC_COMMIT,
         FileHandle
@@ -353,7 +371,7 @@ NTSTATUS PhMapViewOfEntireFile(
 
     // Map the section.
 
-    viewSize = (SIZE_T)fileSize.QuadPart;
+    viewSize = (SIZE_T)sectionSize.QuadPart;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
@@ -375,7 +393,7 @@ NTSTATUS PhMapViewOfEntireFile(
         goto CleanupExit;
 
     *ViewBase = viewBase;
-    *ViewSize = (SIZE_T)fileSize.QuadPart;
+    *ViewSize = (SIZE_T)sectionSize.QuadPart;
 
 CleanupExit:
     if (openedFile)
@@ -393,7 +411,8 @@ NTSTATUS PhMapViewOfEntireFileEx(
 {
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
-    LARGE_INTEGER fileSize;
+    OBJECT_ATTRIBUTES sectionAttributes;
+    LARGE_INTEGER sectionSize;
     HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
@@ -422,16 +441,24 @@ NTSTATUS PhMapViewOfEntireFileEx(
 
     // Get the file size and create the section.
 
-    status = PhGetFileSize(FileHandle, &fileSize);
+    status = PhGetFileSize(FileHandle, &sectionSize);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    InitializeObjectAttributes(
+        &sectionAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
-        NULL,
-        &fileSize,
+        &sectionAttributes,
+        &sectionSize,
         PAGE_READONLY,
         SEC_COMMIT,
         FileHandle
@@ -442,7 +469,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
 
     // Map the section.
 
-    viewSize = (SIZE_T)fileSize.QuadPart;
+    viewSize = (SIZE_T)sectionSize.QuadPart;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
@@ -464,7 +491,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         goto CleanupExit;
 
     *ViewBase = viewBase;
-    *ViewSize = (SIZE_T)fileSize.QuadPart;
+    *ViewSize = (SIZE_T)sectionSize.QuadPart;
 
 CleanupExit:
     if (openedFile)
@@ -620,7 +647,7 @@ BOOLEAN PhGetMappedImageSectionName(
     return result;
 }
 
-NTSTATUS PhGetMappedImageDataEntry(
+NTSTATUS PhGetMappedImageDataDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Index,
     _Out_ PIMAGE_DATA_DIRECTORY *Entry
@@ -674,7 +701,7 @@ PVOID PhGetMappedImageDirectoryEntry(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         Index,
         &dataDirectory
@@ -704,7 +731,7 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     if (MappedImage->Magic != Magic)
         return STATUS_INVALID_PARAMETER;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
         &entry
@@ -1471,7 +1498,7 @@ NTSTATUS PhGetMappedImageExportsEx(
 
     // Get a pointer to the export directory.
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_EXPORT,
         &dataDirectory
@@ -1806,7 +1833,7 @@ NTSTATUS PhGetMappedImageImports(
     PIMAGE_IMPORT_DESCRIPTOR descriptor;
     ULONG i;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_IMPORT,
         &dataDirectory
@@ -2144,7 +2171,7 @@ NTSTATUS PhGetMappedImageDelayImports(
     Imports->MappedImage = MappedImage;
     Imports->Flags = PH_MAPPED_IMAGE_DELAY_IMPORTS;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT,
         &dataDirectory
@@ -2555,7 +2582,7 @@ NTSTATUS PhGetMappedImageResources(
 
     // Get a pointer to the resource directory.
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_RESOURCE,
         &dataDirectory
@@ -2705,7 +2732,7 @@ NTSTATUS PhGetMappedImageResource(
 
     // Get a pointer to the resource directory.
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_RESOURCE,
         &dataDirectory
@@ -2850,7 +2877,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
 
     // Get a pointer to the resource directory.
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_TLS,
         &dataDirectory
@@ -2906,7 +2933,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
 
     // Get a pointer to the resource directory.
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_TLS,
         &dataDirectory
@@ -3518,7 +3545,7 @@ NTSTATUS PhGetMappedImageDebug(
     PIMAGE_DEBUG_DIRECTORY debugDirectory;
     PH_ARRAY debugEntryArray;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_DEBUG,
         &dataDirectory
@@ -3603,7 +3630,7 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
     ULONG currentCount;
     ULONG i;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_DEBUG,
         &dataDirectory
@@ -3942,7 +3969,7 @@ NTSTATUS PhGetMappedImageRelocations(
     ULONG relocationTotal = 0;
     ULONG relocationIndex = 0;
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_BASERELOC,
         &dataDirectory
@@ -4068,6 +4095,110 @@ VOID PhFreeMappedImageRelocations(
         Relocations->RelocationEntries = NULL;
         Relocations->NumberOfEntries = 0;
     }
+}
+
+NTSTATUS PhMappedImageEnumerateRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PPH_MAPPED_IMAGE_RELOC_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_BASE_RELOCATION relocationDirectory;
+    PVOID relocationDirectoryBegin;
+    PVOID relocationDirectoryEnd;
+    ULONG relocationTotal = 0;
+    ULONG relocationIndex = 0;
+
+    status = PhGetMappedImageDataDirectory(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_BASERELOC,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    relocationDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!relocationDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    //
+    // Do a scan to determine how many entries there are. And validate the
+    // blocks are within the mapping.
+    //
+
+    relocationDirectoryBegin = relocationDirectory;
+    relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
+
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
+    {
+        __try
+        {
+            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        if (relocationDirectory->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
+        {
+            //
+            // Prevent runaway.
+            //
+            return STATUS_INVALID_IMAGE_FORMAT;
+        }
+
+        relocationTotal += (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
+        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
+    }
+
+    // Add the relocation entries into our buffer.
+
+    relocationDirectory = relocationDirectoryBegin;
+
+    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
+    {
+        ULONG relocationCount;
+        PIMAGE_RELOCATION_RECORD relocations;
+
+        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
+        relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+        status = Callback(
+            MappedImage,
+            dataDirectory,
+            relocationDirectory,
+            relocations,
+            relocationCount,
+            Context
+            );
+
+        if (status == STATUS_NO_MORE_ENTRIES)
+            break;
+
+        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
+        relocationIndex++;
+    }
+
+    return status;
 }
 
 NTSTATUS PhGetMappedImageDynamicRelocationsTable(
@@ -4847,7 +4978,7 @@ NTSTATUS PhGetMappedImageExceptionsEx(
         break;
     }
 
-    status = PhGetMappedImageDataEntry(
+    status = PhGetMappedImageDataDirectory(
         MappedImage,
         IMAGE_DIRECTORY_ENTRY_EXCEPTION,
         &dataDirectory
@@ -5224,7 +5355,7 @@ PPH_STRING PhGetMappedImageAuthenticodeHash(
 
     PhMappedImagePrefetch(MappedImage);
 
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
     {
         imageSecurityAddress = dataDirectory->VirtualAddress;
         imageSecuritySize = dataDirectory->Size;
@@ -5314,7 +5445,7 @@ PPH_STRING PhGetMappedImageAuthenticodeLegacy(
 
     PhMappedImagePrefetch(MappedImage);
 
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
     {
         directoryAddress = dataDirectory->VirtualAddress;
         directorySize = dataDirectory->Size;
@@ -5437,8 +5568,8 @@ PPH_STRING PhGetMappedImageWdacHash(
 
 BOOLEAN PhGetMappedImageEntropy(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_ DOUBLE *ImageEntropy,
-    _Out_ DOUBLE *ImageVariance
+    _Out_ FLOAT *ImageEntropy,
+    _Out_ FLOAT *ImageVariance
     )
 {
     BOOLEAN status = FALSE;
