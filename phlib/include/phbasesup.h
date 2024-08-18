@@ -221,7 +221,7 @@ _Post_writable_byte_size_(Size)
 PVOID
 NTAPI
 PhReAllocateSafe(
-    _In_ PVOID Memory,
+    _In_opt_ PVOID Memory,
     _In_ SIZE_T Size
     );
 
@@ -2638,6 +2638,24 @@ PhAppendBytesBuilderEx(
     _Out_opt_ PSIZE_T Offset
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhAppendFormatBytesBuilder_V(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ _Printf_format_string_ PSTR Format,
+    _In_ va_list ArgPtr
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAppendFormatBytesBuilder(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ _Printf_format_string_ PSTR Format,
+    ...
+    );
+
 // Array
 
 /** An array structure. Storage is automatically allocated for new elements. */
@@ -3772,6 +3790,16 @@ PhStringToInteger64(
     _Out_opt_ PLONG64 Integer
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhStringToUInt64(
+    _In_ PPH_STRINGREF String,
+    _In_opt_ ULONG Base,
+    _Out_opt_ PULONG64 Integer
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -3824,17 +3852,17 @@ NTAPI
 PhCalculateEntropy(
     _In_ PBYTE Buffer,
     _In_ ULONG64 BufferLength,
-    _Out_opt_ DOUBLE *Entropy,
-    _Out_opt_ DOUBLE *Variance
+    _Out_opt_ FLOAT *Entropy,
+    _Out_opt_ FLOAT *Variance
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhFormatEntropy(
-    _In_ DOUBLE Entropy,
+    _In_ FLOAT Entropy,
     _In_ USHORT EntropyPrecision,
-    _In_opt_ DOUBLE Variance,
+    _In_opt_ FLOAT Variance,
     _In_opt_ USHORT VariancePrecision
     );
 
@@ -3923,6 +3951,13 @@ ULONG
 NTAPI
 PhTlsAlloc(
     VOID
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTlsFree(
+    _In_ ULONG Index
     );
 
 PHLIBAPI
