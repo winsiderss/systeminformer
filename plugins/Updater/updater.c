@@ -284,38 +284,51 @@ PPH_STRING UpdateWindowsString(
     )
 {
     PPH_STRING buildString = NULL;
-    PPH_STRING fileName = NULL;
-    PPH_STRING fileVersion = NULL;
+    PPH_STRING fileName;
+    PH_MAPPED_IMAGE mappedImage;
+    USHORT imageMachine = 0;
+    ULONG timeDateStamp = 0;
+    ULONG sizeOfImage = 0;
+    PVOID imageBase;
+    ULONG imageSize;
     PVOID versionInfo;
     VS_FIXEDFILEINFO* rootBlock;
-    PH_FORMAT fileVersionFormat[3];
 
-    fileName = PhGetKernelFileName2();
-    versionInfo = PhGetFileVersionInfoEx(&fileName->sr);
-    PhDereferenceObject(fileName);
-
-    if (versionInfo)
+    if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
     {
-        if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
+        if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage)))
         {
-            PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
-            PhInitFormatC(&fileVersionFormat[1], '.');
-            PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionLS));
+            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+            timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+            sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
 
-            fileVersion = PhFormat(fileVersionFormat, 3, 0);
+            PhUnloadMappedImage(&mappedImage);
         }
 
-        PhFree(versionInfo);
-    }
+        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
+        {
+            if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
+            {
+                PH_FORMAT format[10];
 
-    if (fileVersion)
-    {
-        if (PhIsExecutingInWow64())
-            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"x86fre");
-        else
-            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"amd64fre");
+                PhInitFormatS(&format[0], L"SystemInformer-PlatformSupport: ");
+                PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
+                PhInitFormatC(&format[2], '.');
+                PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
+                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64_" : L"_32_");
+                PhInitFormatX(&format[5], imageMachine);
+                PhInitFormatC(&format[6], '_');
+                PhInitFormatX(&format[7], timeDateStamp);
+                PhInitFormatC(&format[8], '_');
+                PhInitFormatX(&format[9], sizeOfImage);
 
-        PhDereferenceObject(fileVersion);
+                buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+
+            PhFree(versionInfo);
+        }
+
+        PhDereferenceObject(fileName);
     }
 
     return buildString;
