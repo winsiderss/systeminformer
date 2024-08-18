@@ -18,6 +18,7 @@
 #include <verify.h>
 #include <settings.h>
 #include <workqueue.h>
+#include <mapimg.h>
 
 #include <bcrypt.h>
 
