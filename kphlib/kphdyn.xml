@@ -53,7 +53,7 @@ dt nt!_EPROCESS SectionObject
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data min="10.0.26100.1" max="10.0.26100.1330">
+    <data min="10.0.26100.1" max="10.0.26100.1455">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0300" name="EpObjectTable"/>
@@ -129,7 +129,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x0048" name="MmControlAreaLock"/>
         <field arch="arm64" value="0x0298" name="EpSectionObject"/>
     </data>
-    <data min="10.0.22000.556" max="10.0.22621.3958">
+    <data min="10.0.22000.556" max="10.0.22621.4036">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -282,7 +282,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x04d0" name="EpSectionObject"/>
     </data>
     <!-- Windows Server 2022 -->
-    <data min="10.0.20348.587" max="10.0.20348.2582">
+    <data min="10.0.20348.587" max="10.0.20348.2652">
         <field value="0x0028" name="EgeGuid"/>
         <field value="0x0570" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
@@ -321,7 +321,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0518" name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data min="10.0.19041.1586" max="10.0.19041.4717">
+    <data min="10.0.19041.1586" max="10.0.19041.4780">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -663,7 +663,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03c0" name="EpSectionObject"/>
     </data>
-    <data min="10.0.17763.2746" max="10.0.17763.6054">
+    <data min="10.0.17763.2746" max="10.0.17763.6189">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0418" name="EpObjectTable"/>
@@ -853,7 +853,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
-    <data min="10.0.14393.5006" max="10.0.14393.7155">
+    <data min="10.0.14393.5006" max="10.0.14393.7254">
         <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
@@ -957,7 +957,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
-    <data min="10.0.10240.19235" max="10.0.10240.20708">
+    <data min="10.0.10240.19235" max="10.0.10240.20747">
         <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
