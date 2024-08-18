@@ -51,6 +51,52 @@ static WCHAR PhpFormatDecimalSeparator = L'.';
 static WCHAR PhpFormatThousandSeparator = L',';
 static _locale_t PhpFormatUserLocale = NULL;
 
+VOID PhpFormatSingleToUtf8Locale(
+    _In_ FLOAT Value,
+    _In_ ULONG Type,
+    _In_ INT32 Precision,
+    _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
+    _In_opt_ SIZE_T BufferLength
+    )
+{
+    if (!PhFormatSingleToUtf8(
+        Value,
+        Type,
+        Precision,
+        Buffer,
+        BufferLength,
+        NULL
+        ))
+    {
+        if (Buffer)
+            *Buffer = ANSI_NULL;
+        return;
+    }
+
+    if (PhpFormatUserLocale && Buffer)
+    {
+        for (PCH c = Buffer; *c; ++c)
+        {
+            if (*c == '.')
+            {
+                *c = (CHAR)PhpFormatDecimalSeparator;
+                break;
+            }
+        }
+    }
+
+    if (Type & FormatUpperCase)
+    {
+        if (PhpFormatUserLocale)
+            _strupr_l(Buffer, PhpFormatUserLocale);
+        else
+            _strupr(Buffer);
+
+        //for (PCH c = Buffer; *c; ++c)
+        //    *c = RtlUpperChar(*c);
+    }
+}
+
 VOID PhpFormatDoubleToUtf8Locale(
     _In_ DOUBLE Value,
     _In_ ULONG Type,

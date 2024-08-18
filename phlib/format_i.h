@@ -280,10 +280,10 @@ CommonInt64Format:
 
         // Floating point numbers
 
-#define COMMON_DOUBLE_FORMAT(Format) \
+#define COMMON_DOUBLE_FORMAT(DataType, Format, FormatType, FormatToBufferUtf8) \
     do { \
         ULONG precision; \
-        DOUBLE value; \
+        DataType value; \
         PSTR temp; \
         ULONG length; \
         \
@@ -299,9 +299,9 @@ CommonInt64Format:
             precision = 6; \
         } \
         \
-        value = (Format)->u.Double; \
+        value = (Format)->u.FormatType; \
         temp = (PSTR)tempBuffer + 1; /* leave one character so we can insert a prefix if needed */ \
-        PhpFormatDoubleToUtf8Locale( \
+        FormatToBufferUtf8( \
             value, \
             (Format)->Type, \
             precision, \
@@ -446,9 +446,14 @@ CommonInt64Format:
         } \
     } while (0)
 
+        case SingleFormatType:
+            flags = 0;
+            COMMON_DOUBLE_FORMAT(FLOAT, format, Single, PhpFormatSingleToUtf8Locale);
+            break;
+
         case DoubleFormatType:
             flags = 0;
-            COMMON_DOUBLE_FORMAT(format);
+            COMMON_DOUBLE_FORMAT(DOUBLE, format, Double, PhpFormatDoubleToUtf8Locale);
             break;
 
         // Additional types
@@ -493,7 +498,7 @@ CommonInt64Format:
                 doubleFormat.Width = 0; // stupid compiler
                 doubleFormat.u.Double = s;
                 flags = 0;
-                COMMON_DOUBLE_FORMAT(&doubleFormat);
+                COMMON_DOUBLE_FORMAT(DOUBLE, &doubleFormat, Double, PhpFormatDoubleToUtf8Locale);
 
                 ENSURE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
                 if (OK_BUFFER)
