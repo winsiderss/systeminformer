@@ -568,7 +568,7 @@ NTSTATUS PhpModuleQueryWorker(
                     if (characteristics != 0)
                         moduleItem->ImageDllCharacteristics = characteristics;
 
-                    if (NT_SUCCESS(PhGetMappedImageDataEntry(
+                    if (NT_SUCCESS(PhGetMappedImageDataDirectory(
                         &mappedImage,
                         IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
                         &dataDirectory

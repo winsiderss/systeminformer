@@ -180,7 +180,7 @@ VOID PvpPeEnumerateImageDataDirectory(
     directoryNode->UniqueIdString = PhFormatUInt64(directoryNode->UniqueId, FALSE);
     directoryNode->DirectoryNameString = PhCreateString(Name);
 
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, Index, &directory)))
+    if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, Index, &directory)))
     {
         if (directory->VirtualAddress)
         {

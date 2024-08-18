@@ -206,14 +206,23 @@ NTSTATUS PhLoadLibraryAsResource(
     )
 {
     NTSTATUS status;
+    OBJECT_ATTRIBUTES sectionAttributes;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
     SIZE_T imageBaseSize;
 
+    InitializeObjectAttributes(
+        &sectionAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
-        NULL,
+        &sectionAttributes,
         NULL,
         PAGE_READONLY,
         WindowsVersion < WINDOWS_8 ? SEC_IMAGE : SEC_IMAGE_NO_EXECUTE,
@@ -2441,9 +2450,11 @@ NTSTATUS PhLoaderEntryLoadDll(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    OBJECT_ATTRIBUTES sectionAttributes;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
     SIZE_T imageBaseOffset;
+
 
     status = PhCreateFile(
         &fileHandle,
@@ -2458,10 +2469,18 @@ NTSTATUS PhLoaderEntryLoadDll(
     if (!NT_SUCCESS(status))
         return status;
 
+    InitializeObjectAttributes(
+        &sectionAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_EXECUTE,
-        NULL,
+        &sectionAttributes,
         NULL,
         PAGE_EXECUTE,
         SEC_IMAGE,
@@ -2736,11 +2755,19 @@ NTSTATUS PhGetFileBinaryTypeWin32(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+    
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
 
     status = NtCreateSection(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_EXECUTE,
-        NULL,
+        &objectAttributes,
         NULL,
         PAGE_EXECUTE,
         SEC_IMAGE,
