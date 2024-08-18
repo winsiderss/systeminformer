@@ -309,18 +309,19 @@ PPH_STRING UpdateWindowsString(
         {
             if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
             {
-                PH_FORMAT format[10];
+                PH_FORMAT format[11];
 
-                PhInitFormatS(&format[0], L"SystemInformer-PlatformSupport: ");
+                PhInitFormatS(&format[0], L"SystemInformer-OsBuild: ");
                 PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
                 PhInitFormatC(&format[2], '.');
                 PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64_" : L"_32_");
-                PhInitFormatX(&format[5], imageMachine);
-                PhInitFormatC(&format[6], '_');
-                PhInitFormatX(&format[7], timeDateStamp);
-                PhInitFormatC(&format[8], '_');
-                PhInitFormatX(&format[9], sizeOfImage);
+                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64\r\n" : L"_32\r\n");
+                PhInitFormatS(&format[5], L"SystemInformer-PlatformSupport: ");
+                PhInitFormatX(&format[6], imageMachine);
+                PhInitFormatC(&format[7], '_');
+                PhInitFormatX(&format[8], timeDateStamp);
+                PhInitFormatC(&format[9], '_');
+                PhInitFormatX(&format[10], sizeOfImage);
 
                 buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
