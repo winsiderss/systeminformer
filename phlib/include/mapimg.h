@@ -1178,8 +1178,8 @@ BOOLEAN
 NTAPI
 PhGetMappedImageEntropy(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_ DOUBLE* ImageEntropy,
-    _Out_ DOUBLE* ImageVariance
+    _Out_ FLOAT* ImageEntropy,
+    _Out_ FLOAT* ImageVariance
     );
 
 PHLIBAPI

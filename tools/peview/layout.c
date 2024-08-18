@@ -58,18 +58,21 @@ BOOLEAN PvLayoutNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+
 ULONG PvLayoutNodeHashtableHashFunction(
     _In_ PVOID Entry
     );
+
 VOID PvDestroyLayoutNode(
     _In_ PPV_LAYOUT_NODE CertificateNode
     );
+
 BOOLEAN NTAPI PvLayoutTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PvInitializeLayoutTree(
@@ -288,7 +291,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
     _In_ PVOID Context
     )
 {
-    const PPV_PE_LAYOUT_CONTEXT context = Context;
+    PPV_PE_LAYOUT_CONTEXT context = Context;
     PPV_LAYOUT_NODE node;
 
     if (!context)
@@ -298,7 +301,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
     {
     case TreeNewGetChildren:
         {
-            const PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
             node = (PPV_LAYOUT_NODE)getChildren->Node;
 
             if (!node)
@@ -315,7 +318,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewIsLeaf:
         {
-            const PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
             node = (PPV_LAYOUT_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -326,7 +329,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewGetCellText:
         {
-            const PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             node = (PPV_LAYOUT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -350,7 +353,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewGetNodeColor:
         {
-            const PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             node = (PPV_LAYOUT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR | TN_CACHE;
@@ -365,7 +368,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewKeyDown:
         {
-            const PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
             switch (keyEvent->VirtualKey)
             {
@@ -383,7 +386,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            const PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             SendMessage(context->WindowHandle, WM_COMMAND, WM_PV_LAYOUT_CONTEXTMENU, (LPARAM)contextMenuEvent);
         }
@@ -427,7 +430,7 @@ PPV_LAYOUT_NODE PvGetSelectedLayoutNode(
 {
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        const PPV_LAYOUT_NODE layoutNode = Context->NodeList->Items[i];
+        PPV_LAYOUT_NODE layoutNode = Context->NodeList->Items[i];
 
         if (layoutNode->Node.Selected)
             return layoutNode;
@@ -450,7 +453,7 @@ BOOLEAN PvGetSelectedLayoutNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        const PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
+        PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
 
         if (node->Node.Selected)
         {
@@ -481,7 +484,7 @@ VOID PvExpandAllLayoutNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        const PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
+        PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
 
         if (node->Children->Count != 0 && node->Node.Expanded != Expand)
         {
