@@ -233,7 +233,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
 
     node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
-    PhPrintUInt64(node->LengthString, node->String->Length);
+    PhPrintUInt64(node->LengthString, node->String->Length / 2);
 
     PhAcquireQueuedLockExclusive(&treeContext->SearchResultsLock);
     PhAddItemList(treeContext->SearchResults, node);
@@ -1047,7 +1047,10 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                         assert(numberOfNodes == 1);
 
                         address = stringsNodes[0]->Address;
-                        length = stringsNodes[0]->String->Length;
+                        if (stringsNodes[0]->Unicode)
+                            length = stringsNodes[0]->String->Length;
+                        else
+                            length = stringsNodes[0]->String->Length / 2;
 
                         if (NT_SUCCESS(status = NtQueryVirtualMemory(
                             context->ProcessHandle,
