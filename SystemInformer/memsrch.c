@@ -44,7 +44,8 @@ typedef struct _PH_MEMSTRINGS_SETTINGS
             ULONG Private : 1;
             ULONG Image : 1;
             ULONG Mapped : 1;
-            ULONG Spare : 26;
+            ULONG ZeroPadAddresses : 1;
+            ULONG Spare : 27;
         };
 
         ULONG Flags;
@@ -229,9 +230,18 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     PhPrintUInt64(node->IndexString, node->Index);
 
     node->BaseAddress = context->CurrentBaseAddress;
-    PhPrintPointer(node->BaseAddressString, node->BaseAddress);
     node->Address = PTR_ADD_OFFSET(node->BaseAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
-    PhPrintPointer(node->AddressString, node->Address);
+
+    if (context->TreeContext->Settings.ZeroPadAddresses)
+    {
+        PhPrintPointerPadZeros(node->BaseAddressString, node->BaseAddress);
+        PhPrintPointerPadZeros(node->AddressString, node->Address);
+    }
+    else
+    {
+        PhPrintPointer(node->BaseAddressString, node->BaseAddress);
+        PhPrintPointer(node->AddressString, node->Address);
+    }
 
     node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
@@ -407,6 +417,32 @@ VOID PhpSaveSettingsMemoryStrings(
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
+}
+
+VOID PhpInvalidateMemoryStringsAddresses(
+    _In_ PPH_MEMSTRINGS_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)Context->NodeList->Items[i];
+
+        if (Context->Settings.ZeroPadAddresses)
+        {
+            PhPrintPointerPadZeros(node->BaseAddressString, node->BaseAddress);
+            PhPrintPointerPadZeros(node->AddressString, node->Address);
+        }
+        else
+        {
+            PhPrintPointer(node->BaseAddressString, node->BaseAddress);
+            PhPrintPointer(node->AddressString, node->Address);
+        }
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM);
+    }
+
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 BOOLEAN PhpGetSelectedMemoryStringsNodes(
@@ -707,6 +743,8 @@ VOID PhpInitializeMemoryStringsTree(
     _In_ HWND TreeNewHandle
     )
 {
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+
     Context->WindowHandle = WindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
     Context->NodeList = PhCreateList(1);
@@ -718,8 +756,8 @@ VOID PhpInitializeMemoryStringsTree(
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 40, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_INDEX, 0, 0);
-    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_BASE_ADDRESS, TRUE, L"Base address", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_BASE_ADDRESS, 0, 0);
-    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS, TRUE, L"Address", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_BASE_ADDRESS, TRUE, L"Base address", 80, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), PH_MEMSTRINGS_TREE_COLUMN_ITEM_BASE_ADDRESS, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS, TRUE, L"Address", 80, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH, TRUE, L"Length", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING, TRUE, L"String", 600, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING, 0, 0);
@@ -1111,6 +1149,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PPH_EMENU_ITEM image;
                     PPH_EMENU_ITEM mapped;
                     PPH_EMENU_ITEM minimumLength;
+                    PPH_EMENU_ITEM zeroPad;
                     PPH_EMENU_ITEM refresh;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
@@ -1122,7 +1161,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     image = PhCreateEMenuItem(0, 5, L"Image", NULL, NULL);
                     mapped = PhCreateEMenuItem(0, 6, L"Mapped", NULL, NULL);
                     minimumLength = PhCreateEMenuItem(0, 7, L"Minimum length...", NULL, NULL);
-                    refresh = PhCreateEMenuItem(0, 8, L"Refresh", NULL, NULL);
+                    zeroPad = PhCreateEMenuItem(0, 8, L"Zero pad addresses", NULL, NULL);
+                    refresh = PhCreateEMenuItem(0, 9, L"Refresh", NULL, NULL);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
@@ -1134,6 +1174,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PhInsertEMenuItem(menu, mapped, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, minimumLength, ULONG_MAX);
+                    PhInsertEMenuItem(menu, zeroPad, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, refresh, ULONG_MAX);
 
@@ -1149,6 +1190,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                         image->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.Mapped)
                         mapped->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.ZeroPadAddresses)
+                        zeroPad->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -1206,6 +1249,12 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                                 PhpSaveSettingsMemoryStrings(context);
                                 PhpSearchMemoryStrings(context);
                             }
+                        }
+                        else if (selectedItem == zeroPad)
+                        {
+                            context->Settings.ZeroPadAddresses = !context->Settings.ZeroPadAddresses;
+                            PhpSaveSettingsMemoryStrings(context);
+                            PhpInvalidateMemoryStringsAddresses(context);
                         }
                         else if (selectedItem == refresh)
                         {
