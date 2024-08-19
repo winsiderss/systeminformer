@@ -45,7 +45,7 @@ typedef struct _PH_MEMSTRINGS_SETTINGS
             ULONG Image : 1;
             ULONG Mapped : 1;
             ULONG ZeroPadAddresses : 1;
-            ULONG Spare : 27;
+            ULONG Spare : 25;
         };
 
         ULONG Flags;
