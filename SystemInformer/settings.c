@@ -165,10 +165,12 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MemEditSize", L"@96|600,500");
-    PhpAddStringSetting(L"MemFilterChoices", L"");
-    PhpAddStringSetting(L"MemResultsListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
-    PhpAddScalableIntegerPairSetting(L"MemResultsSize", L"@96|500,520");
+    PhpAddStringSetting(L"MemStringsTreeListColumns", L"");
+    PhpAddStringSetting(L"MemStringsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(L"MemStringsTreeListFlags", L"b"); // ANSI, Unicode, Private
+    PhpAddIntegerSetting(L"MemStringsMinimumLength", L"a"); // 10
+    PhpAddIntegerPairSetting(L"MemStringsWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"MemStringsWindowSize", L"@96|550,420");
     PhpAddIntegerSetting(L"MemoryListFlags", L"3");
     PhpAddStringSetting(L"MemoryTreeListColumns", L"");
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder

@@ -99,9 +99,6 @@
     <ClCompile Include="memprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="memrslt.c">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="memsrch.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -342,9 +339,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="include\memsrch.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phapp.h">
