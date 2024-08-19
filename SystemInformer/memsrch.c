@@ -142,6 +142,9 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     *Buffer = NULL;
     *Length = 0;
 
+    if (context->TreeContext->StopSearch)
+        return STATUS_SUCCESS;
+
     if (context->ReadRemaning)
         goto ReadMemory;
 
@@ -158,6 +161,8 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
 
         context->NextBaseAddress = PTR_ADD_OFFSET(basicInfo.BaseAddress, basicInfo.RegionSize);
 
+        if (context->TreeContext->StopSearch)
+            break;
         if (basicInfo.State != MEM_COMMIT)
             continue;
         if (FlagOn(basicInfo.Protect, PAGE_NOACCESS | PAGE_GUARD))
