@@ -127,7 +127,7 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     PhPrintPointer(node->RvaString, (PVOID)node->Rva);
     node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
-    PhPrintUInt64(node->LengthString, node->String->Length);
+    PhPrintUInt64(node->LengthString, node->String->Length / 2);
 
     PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
     PhAddItemList(context->SearchResults, node);
