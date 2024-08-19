@@ -56,7 +56,6 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     PPH_IMAGELIST_ITEM IconEntry;
-    BOOLEAN ReadWriteHandle;
 
     HWND ParentWindowHandle;
     HWND WindowHandle;
@@ -232,7 +231,9 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     node->Address = PTR_ADD_OFFSET(node->BaseAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
     PhPrintPointer(node->AddressString, node->Address);
 
+    node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
+    PhPrintUInt64(node->LengthString, node->String->Length);
 
     PhAcquireQueuedLockExclusive(&treeContext->SearchResultsLock);
     PhAddItemList(treeContext->SearchResults, node);
@@ -1021,7 +1022,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Copy", NULL, NULL), ULONG_MAX);
                 PhInsertCopyCellEMenuItem(menu, 100, context->TreeNewHandle, contextMenuEvent->Column);
 
-                if (numberOfNodes != 1 || !context->ReadWriteHandle)
+                if (numberOfNodes != 1)
                     readWrite->Flags |= PH_EMENU_DISABLED;
 
                 selectedItem = PhShowEMenu(
@@ -1275,35 +1276,22 @@ VOID PhShowMemoryStringDialog(
     )
 {
     NTSTATUS status;
-    BOOLEAN readWriteHandle;
     HANDLE processHandle;
     PPH_MEMSTRINGS_CONTEXT context;
 
-    readWriteHandle = TRUE;
-
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
         ProcessItem->ProcessId
         )))
     {
-        readWriteHandle = FALSE;
-
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
-            ProcessItem->ProcessId
-            )))
-        {
-            PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
-            return;
-        }
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
+        return;
     }
 
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
     context->ProcessId = ProcessItem->ProcessId;
     context->ProcessHandle = processHandle;
-    context->ReadWriteHandle = readWriteHandle;
     context->IconEntry = ProcessItem->IconEntry;
     context->ParentWindowHandle = ParentWindowHandle;
 
