@@ -142,9 +142,6 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     *Buffer = NULL;
     *Length = 0;
 
-    if (context->TreeContext->StopSearch)
-        return STATUS_SUCCESS;
-
     if (context->ReadRemaning)
         goto ReadMemory;
 
