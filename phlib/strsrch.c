@@ -20,7 +20,7 @@ typedef struct _PH_STRING_SEARCH_CONEXT
     BOOLEAN ExtendedCharSet;
     PPH_STRING_SEARCH_CALLBACK Callback;
     PVOID CallbackContext;
-    WCHAR Buffer[(PAGE_SIZE * 2 - 1)];
+    WCHAR Buffer[PAGE_SIZE * 2];
 } PH_STRING_SEARCH_CONEXT, *PPH_STRING_SEARCH_CONEXT;
 
 BOOLEAN PhpSearchStrings(
@@ -43,7 +43,7 @@ BOOLEAN PhpSearchStrings(
 
         // dmex: We don't want to enable extra bits in the PhCharIsPrintable array by default
         // or we'll get higher amounts of false positive search results. If the user selects the
-        // ExtendedUnicode option then we'll use iswprint (GetStringTypeW) which does check
+        // ExtendedCharSet option then we'll use iswprint (GetStringTypeW) which does check
         // every available character by default.
         if (Context->ExtendedCharSet && !iswascii(byte))
             printable = !!iswprint(byte);
@@ -67,9 +67,7 @@ BOOLEAN PhpSearchStrings(
         if (printable2 && printable1 && printable)
         {
             if (length < RTL_NUMBER_OF(Context->Buffer))
-                Context->Buffer[length] = byte;
-
-            length++;
+                Context->Buffer[length++] = byte;
         }
         // 2. [char] [char] [oth] ...
         //      (we reached the end of a non-wide sequence, or we need to start a wide sequence)
@@ -93,16 +91,18 @@ BOOLEAN PhpSearchStrings(
             }
         }
         // 3. [char] [oth] [char] ...
-        //      (we're in a wide sequence)
+        //      (we're in a wide sequence, or could be starting one)
         //      -> (byte1 should = null) append char.
         else if (printable2 && !printable1 && printable)
         {
-            if (byte1 == 0)
+            if (length == 0 || byte1 == 0)
             {
                 if (length < RTL_NUMBER_OF(Context->Buffer))
-                    Context->Buffer[length] = byte;
-
-                length++;
+                    Context->Buffer[length++] = byte;
+            }
+            else
+            {
+                length = 0;
             }
         }
         // 4. [char] [oth] [oth] ...
@@ -112,13 +112,9 @@ BOOLEAN PhpSearchStrings(
         else if (printable2 && !printable1 && !printable)
         {
             if (length >= Context->MinimumLength)
-            {
                 goto CreateResult;
-            }
             else
-            {
                 length = 0;
-            }
         }
         // 5. [oth] [char] [char] ...
         //      (we reached the end of a wide sequence, or we need to start a non-wide sequence)
@@ -140,11 +136,16 @@ BOOLEAN PhpSearchStrings(
             }
         }
         // 6. [oth] [char] [oth] ...
-        //      (we're in a wide sequence)
+        //      (we're in a wide sequence, or could be starting one)
         //      -> (byte2 and byte should = null) do nothing.
         else if (!printable2 && printable1 && !printable)
         {
-            NOTHING;
+            if (byte2 == 0 && byte == 0)
+                NOTHING;
+            else if (length == 1 && byte == 0) // starting a wide string
+                NOTHING;
+            else
+                length = 0;
         }
         // 7. [oth] [oth] [char] ...
         //      (we're starting a sequence, but we don't know if it's a wide or non-wide sequence)
@@ -152,8 +153,7 @@ BOOLEAN PhpSearchStrings(
         else if (!printable2 && !printable1 && printable)
         {
             if (length < RTL_NUMBER_OF(Context->Buffer))
-                Context->Buffer[length] = byte;
-            length++;
+                Context->Buffer[length++] = byte;
         }
         // 8. [oth] [oth] [oth] ...
         //      (nothing)
