@@ -197,12 +197,12 @@ ReadMemory:
                 *Buffer = context->Buffer;
                 *Length = length;
                 context->ReadRemaning -= length;
-                context->NextBaseAddress = PTR_ADD_OFFSET(context->NextBaseAddress, length);
+                context->NextReadAddress = PTR_ADD_OFFSET(context->NextReadAddress, length);
                 break;
             }
         }
 
-        context->NextBaseAddress = NULL;
+        context->NextReadAddress = NULL;
         context->ReadRemaning = 0;
     }
 
