@@ -41,12 +41,8 @@ BOOLEAN PhpSearchStrings(
     {
         byte = Buffer[i];
 
-        // dmex: We don't want to enable extra bits in the PhCharIsPrintable array by default
-        // or we'll get higher amounts of false positive search results. If the user selects the
-        // ExtendedCharSet option then we'll use iswprint (GetStringTypeW) which does check
-        // every available character by default.
-        if (Context->ExtendedCharSet && !iswascii(byte))
-            printable = !!iswprint(byte);
+        if (Context->ExtendedCharSet)
+            printable = PhCharIsPrintableEx[byte];
         else
             printable = PhCharIsPrintable[byte];
 
