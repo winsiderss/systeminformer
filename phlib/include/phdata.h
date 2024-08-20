@@ -70,6 +70,7 @@ extern CONST PH_STRINGREF PhUnicodeByteOrderMark;
 // Characters
 
 extern CONST BOOLEAN PhCharIsPrintable[256];
+extern CONST BOOLEAN PhCharIsPrintableEx[256];
 extern CONST ULONG PhCharToInteger[256];
 extern CONST CHAR PhIntegerToChar[69];
 extern CONST CHAR PhIntegerToCharUpper[69];
