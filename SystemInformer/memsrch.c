@@ -19,6 +19,7 @@
 #include <cpysave.h>
 #include <strsrch.h>
 #include <procprv.h>
+#include <memprv.h>
 
 #define WM_PH_MEMSEARCH_SHOWMENU    (WM_USER + 3000)
 #define WM_PH_MEMSEARCH_FINISHED    (WM_USER + 3001)
@@ -91,6 +92,8 @@ typedef enum _PH_MEMSTRINGS_TREE_COLUMN_ITEM
     PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE,
     PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH,
     PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING,
+    PH_MEMSTRINGS_TREE_COLUMN_ITEM_PROTECTION,
+    PH_MEMSTRINGS_TREE_COLUMN_ITEM_MEMORY_TYPE,
     PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM
 } PH_MEMSTRINGS_TREE_COLUMN_ITEM;
 
@@ -103,11 +106,14 @@ typedef struct _PH_MEMSTRINGS_NODE
     PVOID BaseAddress;
     PVOID Address;
     PPH_STRING String;
+    ULONG Protection;
+    ULONG MemoryType;
 
     WCHAR IndexString[PH_INT64_STR_LEN_1];
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR AddressString[PH_PTR_STR_LEN_1];
     WCHAR LengthString[PH_INT64_STR_LEN_1];
+    WCHAR ProtectionText[17];
 
     PH_STRINGREF TextCache[PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM];
 } PH_MEMSTRINGS_NODE, *PPH_MEMSTRINGS_NODE;
@@ -116,8 +122,7 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
 {
     PPH_MEMSTRINGS_CONTEXT TreeContext;
     ULONG TypeMask;
-    PVOID CurrentBaseAddress;
-    PVOID NextBaseAddress;
+    MEMORY_BASIC_INFORMATION BasicInfo;
     PVOID NextReadAddress;
     SIZE_T ReadRemaning;
     PBYTE Buffer;
@@ -134,7 +139,6 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
 {
     NTSTATUS status;
     PPH_MEMSTRINGS_SEARCH_CONTEXT context;
-    MEMORY_BASIC_INFORMATION basicInfo;
 
     assert(Context);
 
@@ -148,32 +152,29 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
 
     while (NT_SUCCESS(status = NtQueryVirtualMemory(
         context->TreeContext->ProcessHandle,
-        context->NextBaseAddress,
+        PTR_ADD_OFFSET(context->BasicInfo.BaseAddress, context->BasicInfo.RegionSize),
         MemoryBasicInformation,
-        &basicInfo,
-        sizeof(basicInfo),
+        &context->BasicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
         NULL
         )))
     {
         SIZE_T length;
 
-        context->NextBaseAddress = PTR_ADD_OFFSET(basicInfo.BaseAddress, basicInfo.RegionSize);
-
         if (context->TreeContext->StopSearch)
             break;
-        if (basicInfo.State != MEM_COMMIT)
+        if (context->BasicInfo.State != MEM_COMMIT)
             continue;
-        if (FlagOn(basicInfo.Protect, PAGE_NOACCESS | PAGE_GUARD))
+        if (FlagOn(context->BasicInfo.Protect, PAGE_NOACCESS | PAGE_GUARD))
             continue;
-        if (!FlagOn(basicInfo.Type, context->TypeMask))
+        if (!FlagOn(context->BasicInfo.Type, context->TypeMask))
             continue;
 
-        context->CurrentBaseAddress = basicInfo.BaseAddress;
-        context->NextReadAddress = basicInfo.BaseAddress;
-        context->ReadRemaning = basicInfo.RegionSize;
+        context->NextReadAddress = context->BasicInfo.BaseAddress;
+        context->ReadRemaning = context->BasicInfo.RegionSize;
 
         // Don't allocate a huge buffer (16 MiB max)
-        length = min(basicInfo.RegionSize, 16 * 1024 * 1024);
+        length = min(context->BasicInfo.RegionSize, 16 * 1024 * 1024);
 
         if (length > context->BufferSize)
         {
@@ -229,7 +230,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     node->Index = ++treeContext->StringsCount;
     PhPrintUInt64(node->IndexString, node->Index);
 
-    node->BaseAddress = context->CurrentBaseAddress;
+    node->BaseAddress = context->BasicInfo.BaseAddress;
     node->Address = PTR_ADD_OFFSET(node->BaseAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
 
     if (context->TreeContext->Settings.ZeroPadAddresses)
@@ -250,6 +251,10 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     PhAcquireQueuedLockExclusive(&treeContext->SearchResultsLock);
     PhAddItemList(treeContext->SearchResults, node);
     PhReleaseQueuedLockExclusive(&treeContext->SearchResultsLock);
+
+    node->Protection = context->BasicInfo.Protect;
+    PhGetMemoryProtectionString(node->Protection, node->ProtectionText);
+    node->MemoryType = context->BasicInfo.Type;
 
     return !!treeContext->StopSearch;
 }
@@ -579,6 +584,18 @@ BEGIN_SORT_FUNCTION(String)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Protection)
+{
+    sortResult = uintcmp(node1->Protection, node2->Protection);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(MemoryType)
+{
+    sortResult = uintcmp(node1->MemoryType, node2->MemoryType);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -607,6 +624,8 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Length),
                     SORT_FUNCTION(String),
+                    SORT_FUNCTION(Protection),
+                    SORT_FUNCTION(MemoryType),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -650,6 +669,12 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_ADDRESS:
                 PhInitializeStringRefLongHint(&getCellText->Text, node->AddressString);
+                break;
+            case PH_MEMSTRINGS_TREE_COLUMN_ITEM_PROTECTION:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
+                break;
+            case PH_MEMSTRINGS_TREE_COLUMN_ITEM_MEMORY_TYPE:
+                getCellText->Text = *PhGetMemoryTypeString(node->MemoryType);
                 break;
             case PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE:
                 PhInitializeStringRef(&getCellText->Text, node->Unicode ? L"Unicode" : L"ANSI");
@@ -761,6 +786,8 @@ VOID PhpInitializeMemoryStringsTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_TYPE, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH, TRUE, L"Length", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_LENGTH, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING, TRUE, L"String", 600, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_STRING, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_PROTECTION, FALSE, L"Protection", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_PROTECTION, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_MEMORY_TYPE, FALSE, L"Memory type", 80, PH_ALIGN_LEFT, PH_MEMSTRINGS_TREE_COLUMN_ITEM_MEMORY_TYPE, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
