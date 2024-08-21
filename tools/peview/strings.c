@@ -60,6 +60,7 @@ typedef struct _PV_STRINGS_CONTEXT
 typedef enum _PV_STRINGS_TREE_COLUMN_ITEM
 {
     PV_STRINGS_TREE_COLUMN_ITEM_INDEX,
+    PV_STRINGS_TREE_COLUMN_ITEM_SECTION,
     PV_STRINGS_TREE_COLUMN_ITEM_RVA,
     PV_STRINGS_TREE_COLUMN_ITEM_TYPE,
     PV_STRINGS_TREE_COLUMN_ITEM_LENGTH,
@@ -79,6 +80,7 @@ typedef struct _PV_STRINGS_NODE
     WCHAR IndexString[PH_INT64_STR_LEN_1];
     WCHAR RvaString[PH_PTR_STR_LEN_1];
     WCHAR LengthString[PH_INT64_STR_LEN_1];
+    WCHAR SectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
     PH_STRINGREF TextCache[PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM];
 } PV_STRINGS_NODE, *PPV_STRINGS_NODE;
@@ -115,6 +117,7 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 {
     PPV_STRINGS_CONTEXT context = Context;
     PPV_STRINGS_NODE node;
+    PIMAGE_SECTION_HEADER section;
 
     assert(Context);
 
@@ -132,6 +135,14 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
     PhAddItemList(context->SearchResults, node);
     PhReleaseQueuedLockExclusive(&context->SearchResultsLock);
+
+    if (section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)node->Rva))
+    {
+        for (ULONG i = 0; i < IMAGE_SIZEOF_SHORT_NAME; i++)
+        {
+            node->SectionName[i] = section->Name[i];
+        }
+    }
 
     return !!context->StopSearch;
 }
@@ -383,6 +394,12 @@ BEGIN_SORT_FUNCTION(Index)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(SectionName)
+{
+    sortResult = PhCompareStringZ(node1->SectionName, node2->SectionName, FALSE);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(Rva)
 {
     sortResult = uintptrcmp(node1->Rva, node2->Rva);
@@ -430,6 +447,7 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
                 static PVOID sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
+                    SORT_FUNCTION(SectionName),
                     SORT_FUNCTION(Rva),
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Length),
@@ -471,6 +489,9 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
             {
             case PV_STRINGS_TREE_COLUMN_ITEM_INDEX:
                 PhInitializeStringRefLongHint(&getCellText->Text, node->IndexString);
+                break;
+            case PV_STRINGS_TREE_COLUMN_ITEM_SECTION:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->SectionName);
                 break;
             case PV_STRINGS_TREE_COLUMN_ITEM_RVA:
                 PhInitializeStringRefLongHint(&getCellText->Text, node->RvaString);
@@ -578,6 +599,7 @@ VOID PvpInitializeStringsTree(
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 40, PH_ALIGN_LEFT, PV_STRINGS_TREE_COLUMN_ITEM_INDEX, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_SECTION, TRUE, L"Section", 80, PH_ALIGN_LEFT, PV_STRINGS_TREE_COLUMN_ITEM_SECTION, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_RVA, TRUE, L"RVA", 80, PH_ALIGN_LEFT, PV_STRINGS_TREE_COLUMN_ITEM_RVA, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, PV_STRINGS_TREE_COLUMN_ITEM_TYPE, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_STRINGS_TREE_COLUMN_ITEM_LENGTH, TRUE, L"Length", 80, PH_ALIGN_LEFT, PV_STRINGS_TREE_COLUMN_ITEM_LENGTH, 0, 0);
