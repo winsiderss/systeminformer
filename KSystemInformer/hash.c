@@ -57,11 +57,6 @@ C_ASSERT(KPH_HASH_EACACHE_FULL_MAX_LENGTH <= KPH_HASHING_BUFFER_SIZE);
 typedef struct _KPH_HASHING_INFRASTRUCTURE
 {
     PAGED_LOOKASIDE_LIST HashingLookaside;
-    BCRYPT_ALG_HANDLE BCryptMd5Provider;
-    BCRYPT_ALG_HANDLE BCryptSha1Provider;
-    BCRYPT_ALG_HANDLE BCryptSha256Provider;
-    BCRYPT_ALG_HANDLE BCryptSha384Provider;
-    BCRYPT_ALG_HANDLE BCryptSha512Provider;
     BYTE EaList[KPH_HASH_EACACHE_MAX_LENGTH];
 } KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
 
@@ -160,7 +155,6 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
     _In_opt_ PVOID Parameter
     )
 {
-    NTSTATUS status;
     PKPH_HASHING_INFRASTRUCTURE infra;
     PFILE_GET_EA_INFORMATION eaInfo;
 
@@ -169,81 +163,6 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
     UNREFERENCED_PARAMETER(Parameter);
 
     infra = Object;
-
-    status = BCryptOpenAlgorithmProvider(&infra->BCryptMd5Provider,
-                                         BCRYPT_MD5_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        infra->BCryptMd5Provider = NULL;
-        goto Exit;
-    }
-
-    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha1Provider,
-                                         BCRYPT_SHA1_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        infra->BCryptSha1Provider = NULL;
-        goto Exit;
-    }
-
-    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha256Provider,
-                                         BCRYPT_SHA256_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        infra->BCryptSha256Provider = NULL;
-        goto Exit;
-    }
-
-    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha384Provider,
-                                         BCRYPT_SHA384_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        infra->BCryptSha384Provider = NULL;
-        goto Exit;
-    }
-
-    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha512Provider,
-                                         BCRYPT_SHA512_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        infra->BCryptSha512Provider = NULL;
-        goto Exit;
-    }
 
     //
     // Pre-populate the EA cache items into the buffer to be used when querying
@@ -282,39 +201,7 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
                                 sizeof(KPH_HASHING_CONTEXT),
                                 KPH_TAG_HASHING_CONTEXT);
 
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    if (!NT_SUCCESS(status))
-    {
-        if (infra->BCryptMd5Provider)
-        {
-            BCryptCloseAlgorithmProvider(infra->BCryptMd5Provider, 0);
-        }
-
-        if (infra->BCryptSha1Provider)
-        {
-            BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
-        }
-
-        if (infra->BCryptSha384Provider)
-        {
-            BCryptCloseAlgorithmProvider(infra->BCryptSha384Provider, 0);
-        }
-
-        if (infra->BCryptSha256Provider)
-        {
-            BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
-        }
-
-        if (infra->BCryptSha512Provider)
-        {
-            BCryptCloseAlgorithmProvider(infra->BCryptSha512Provider, 0);
-        }
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -332,21 +219,6 @@ VOID KSIAPI KphpDeleteHashingInfra(
     PAGED_CODE();
 
     infra = Object;
-
-    NT_ASSERT(infra->BCryptMd5Provider);
-    BCryptCloseAlgorithmProvider(infra->BCryptMd5Provider, 0);
-
-    NT_ASSERT(infra->BCryptSha1Provider);
-    BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
-
-    NT_ASSERT(infra->BCryptSha256Provider);
-    BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
-
-    NT_ASSERT(infra->BCryptSha384Provider);
-    BCryptCloseAlgorithmProvider(infra->BCryptSha384Provider, 0);
-
-    NT_ASSERT(infra->BCryptSha512Provider);
-    BCryptCloseAlgorithmProvider(infra->BCryptSha512Provider, 0);
 
     KphDeletePagedLookaside(&infra->HashingLookaside);
 }
@@ -573,31 +445,31 @@ NTSTATUS KphHashBuffer(
         case KphHashAlgorithmMd5:
         {
             HashInformation->Length = (128 / 8);
-            algHandle = KphpHashingInfra->BCryptMd5Provider;
+            algHandle = BCRYPT_MD5_ALG_HANDLE;
             break;
         }
         case KphHashAlgorithmSha1:
         {
             HashInformation->Length = (160 / 8);
-            algHandle = KphpHashingInfra->BCryptSha1Provider;
+            algHandle = BCRYPT_SHA1_ALG_HANDLE;
             break;
         }
         case KphHashAlgorithmSha256:
         {
             HashInformation->Length = (256 / 8);
-            algHandle = KphpHashingInfra->BCryptSha256Provider;
+            algHandle = BCRYPT_SHA256_ALG_HANDLE;
             break;
         }
         case KphHashAlgorithmSha384:
         {
             HashInformation->Length = (384 / 8);
-            algHandle = KphpHashingInfra->BCryptSha384Provider;
+            algHandle = BCRYPT_SHA384_ALG_HANDLE;
             break;
         }
         case KphHashAlgorithmSha512:
         {
             HashInformation->Length = (512 / 8);
-            algHandle = KphpHashingInfra->BCryptSha512Provider;
+            algHandle = BCRYPT_SHA512_ALG_HANDLE;
             break;
         }
         default:
@@ -874,33 +746,33 @@ NTSTATUS KphpInitializeHashingContext(
             case KphHashAlgorithmMd5:
             {
                 entry->Length = (128 / 8);
-                algHandle = KphpHashingInfra->BCryptMd5Provider;
+                algHandle = BCRYPT_MD5_ALG_HANDLE;
                 break;
             }
             case KphHashAlgorithmSha1:
             case KphHashAlgorithmSha1Authenticode:
             {
                 entry->Length = (160 / 8);
-                algHandle = KphpHashingInfra->BCryptSha1Provider;
+                algHandle = BCRYPT_SHA1_ALG_HANDLE;
                 break;
             }
             case KphHashAlgorithmSha256:
             case KphHashAlgorithmSha256Authenticode:
             {
                 entry->Length = (256 / 8);
-                algHandle = KphpHashingInfra->BCryptSha256Provider;
+                algHandle = BCRYPT_SHA256_ALG_HANDLE;
                 break;
             }
             case KphHashAlgorithmSha384:
             {
                 entry->Length = (384 / 8);
-                algHandle = KphpHashingInfra->BCryptSha384Provider;
+                algHandle = BCRYPT_SHA384_ALG_HANDLE;
                 break;
             }
             case KphHashAlgorithmSha512:
             {
                 entry->Length = (512 / 8);
-                algHandle = KphpHashingInfra->BCryptSha512Provider;
+                algHandle = BCRYPT_SHA512_ALG_HANDLE;
                 break;
             }
             DEFAULT_UNREACHABLE;
