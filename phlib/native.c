@@ -5308,7 +5308,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     UNICODE_STRING driverNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE driverHandle;
-    DRIVER_BASIC_INFORMATION basicInfo;
+    KPH_DRIVER_BASIC_INFORMATION basicInfo;
 
     driverName = PhConcatStringRef2(&driverDirectoryName, Name);
 
@@ -5334,9 +5334,9 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
 
     status = KphQueryInformationDriver(
         driverHandle,
-        DriverBasicInformation,
+        KphDriverBasicInformation,
         &basicInfo,
-        sizeof(DRIVER_BASIC_INFORMATION),
+        sizeof(KPH_DRIVER_BASIC_INFORMATION),
         NULL
         );
 
@@ -5466,7 +5466,7 @@ NTSTATUS PhOpenDriver(
  */
 NTSTATUS PhpQueryDriverVariableSize(
     _In_ HANDLE DriverHandle,
-    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _In_ KPH_DRIVER_INFORMATION_CLASS DriverInformationClass,
     _Out_ PVOID *Buffer
     )
 {
@@ -5521,7 +5521,7 @@ NTSTATUS PhGetDriverName(
 
     if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
         DriverHandle,
-        DriverNameInformation,
+        KphDriverNameInformation,
         &unicodeString
         )))
         return status;
@@ -5551,7 +5551,7 @@ NTSTATUS PhGetDriverImageFileName(
 
     if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
         DriverHandle,
-        DriverImageFileNameInformation,
+        KphDriverImageFileNameInformation,
         &unicodeString
         )))
         return status;
@@ -5581,7 +5581,7 @@ NTSTATUS PhGetDriverServiceKeyName(
 
     if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
         DriverHandle,
-        DriverServiceKeyNameInformation,
+        KphDriverServiceKeyNameInformation,
         &unicodeString
         )))
         return status;

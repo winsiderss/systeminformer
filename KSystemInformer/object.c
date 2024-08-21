@@ -1320,7 +1320,7 @@ NTSTATUS KphQueryInformationObject(
             PVOID objectType;
             PUNICODE_STRING objectTypeName;
             PVOID guidEntry;
-            ETWREG_BASIC_INFORMATION basicInfo;
+            KPH_ETWREG_BASIC_INFORMATION basicInfo;
 
             dyn = KphReferenceDynData();
             if (!dyn ||
