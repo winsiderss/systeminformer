@@ -144,7 +144,7 @@ typedef struct _KPHM_QUERY_INFORMATION_DRIVER
 {
     NTSTATUS Status;
     HANDLE DriverHandle;
-    DRIVER_INFORMATION_CLASS DriverInformationClass;
+    KPH_DRIVER_INFORMATION_CLASS DriverInformationClass;
     PVOID DriverInformation;
     ULONG DriverInformationLength;
     PULONG ReturnLength;

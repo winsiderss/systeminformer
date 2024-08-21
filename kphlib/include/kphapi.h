@@ -255,39 +255,39 @@ typedef struct _KPH_FILE_OBJECT_DRIVER
 
 // Driver information
 
-typedef enum _DRIVER_INFORMATION_CLASS
+typedef enum _KPH_DRIVER_INFORMATION_CLASS
 {
-    DriverBasicInformation,             // q: DRIVER_BASIC_INFORMATION
-    DriverNameInformation,              // q: UNICODE_STRING
-    DriverServiceKeyNameInformation,    // q: UNICODE_STRING
-    DriverImageFileNameInformation,     // q: UNICODE_STRING
-    MaxDriverInfoClass
-} DRIVER_INFORMATION_CLASS;
+    KphDriverBasicInformation,          // q: DRIVER_BASIC_INFORMATION
+    KphDriverNameInformation,           // q: UNICODE_STRING
+    KphDriverServiceKeyNameInformation, // q: UNICODE_STRING
+    KphDriverImageFileNameInformation,  // q: UNICODE_STRING
+    MaxKphDriverInfoClass
+} KPH_DRIVER_INFORMATION_CLASS;
 
-typedef struct _DRIVER_BASIC_INFORMATION
+typedef struct _KPH_DRIVER_BASIC_INFORMATION
 {
     ULONG Flags;
     PVOID DriverStart;
     ULONG DriverSize;
-} DRIVER_BASIC_INFORMATION, *PDRIVER_BASIC_INFORMATION;
+} KPH_DRIVER_BASIC_INFORMATION, *PKPH_DRIVER_BASIC_INFORMATION;
 
-typedef struct _DRIVER_NAME_INFORMATION
+typedef struct _KPH_DRIVER_NAME_INFORMATION
 {
     UNICODE_STRING DriverName;
-} DRIVER_NAME_INFORMATION, *PDRIVER_NAME_INFORMATION;
+} KPH_DRIVER_NAME_INFORMATION, *PKPH_DRIVER_NAME_INFORMATION;
 
-typedef struct _DRIVER_SERVICE_KEY_NAME_INFORMATION
+typedef struct _KPH_DRIVER_SERVICE_KEY_NAME_INFORMATION
 {
     UNICODE_STRING ServiceKeyName;
-} DRIVER_SERVICE_KEY_NAME_INFORMATION, *PDRIVER_SERVICE_KEY_NAME_INFORMATION;
+} KPH_DRIVER_SERVICE_KEY_NAME_INFORMATION, *PKPH_DRIVER_SERVICE_KEY_NAME_INFORMATION;
 
 // ETW registration object information
 
-typedef struct _ETWREG_BASIC_INFORMATION
+typedef struct _KPH_ETWREG_BASIC_INFORMATION
 {
     GUID Guid;
     ULONG_PTR SessionId;
-} ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
+} KPH_ETWREG_BASIC_INFORMATION, *PKPH_ETWREG_BASIC_INFORMATION;
 
 // ALPC ojbect information
 

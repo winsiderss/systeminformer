@@ -61,7 +61,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryInformationDriver(
     _In_ HANDLE DriverHandle,
-    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _In_ KPH_DRIVER_INFORMATION_CLASS DriverInformationClass,
     _Out_writes_bytes_opt_(DriverInformationLength) PVOID DriverInformation,
     _In_ ULONG DriverInformationLength,
     _Out_opt_ PULONG ReturnLength,
@@ -122,29 +122,29 @@ NTSTATUS KphQueryInformationDriver(
 #pragma prefast(disable : 28175)
     switch (DriverInformationClass)
     {
-        case DriverBasicInformation:
+        case KphDriverBasicInformation:
         {
             //
             // Basic information such as flags, driver base and driver size.
             //
 
-            PDRIVER_BASIC_INFORMATION basicInfo;
+            PKPH_DRIVER_BASIC_INFORMATION basicInfo;
 
             if (!DriverInformation ||
-                (DriverInformationLength < sizeof(DRIVER_BASIC_INFORMATION)))
+                (DriverInformationLength < sizeof(KPH_DRIVER_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 goto Exit;
             }
 
-            basicInfo = (PDRIVER_BASIC_INFORMATION)DriverInformation;
+            basicInfo = (PKPH_DRIVER_BASIC_INFORMATION)DriverInformation;
 
             __try
             {
                 basicInfo->Flags = driverObject->Flags;
                 basicInfo->DriverStart = driverObject->DriverStart;
                 basicInfo->DriverSize = driverObject->DriverSize;
-                returnLength = sizeof(DRIVER_BASIC_INFORMATION);
+                returnLength = sizeof(KPH_DRIVER_BASIC_INFORMATION);
                 status = STATUS_SUCCESS;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -155,7 +155,7 @@ NTSTATUS KphQueryInformationDriver(
 
             break;
         }
-        case DriverNameInformation:
+        case KphDriverNameInformation:
         {
             //
             // The name of the driver - e.g. \Driver\Null.
@@ -192,7 +192,7 @@ NTSTATUS KphQueryInformationDriver(
 
             break;
         }
-        case DriverServiceKeyNameInformation:
+        case KphDriverServiceKeyNameInformation:
         {
             //
             // The name of the driver's service key - e.g. \REGISTRY\...
@@ -256,7 +256,7 @@ NTSTATUS KphQueryInformationDriver(
 
             break;
         }
-        case DriverImageFileNameInformation:
+        case KphDriverImageFileNameInformation:
         {
             UNICODE_STRING fullDriverPath;
 

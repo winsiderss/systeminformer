@@ -424,14 +424,14 @@ NTSTATUS PhpGetEtwObjectName(
     )
 {
     NTSTATUS status;
-    ETWREG_BASIC_INFORMATION basicInfo;
+    KPH_ETWREG_BASIC_INFORMATION basicInfo;
 
     status = KphQueryInformationObject(
         ProcessHandle,
         Handle,
         KphObjectEtwRegBasicInformation,
         &basicInfo,
-        sizeof(ETWREG_BASIC_INFORMATION),
+        sizeof(KPH_ETWREG_BASIC_INFORMATION),
         NULL
         );
 
@@ -1003,14 +1003,14 @@ NTSTATUS PhpGetBestObjectName(
     {
         if (KsiLevel() >= KphLevelMed)
         {
-            ETWREG_BASIC_INFORMATION basicInfo;
+            KPH_ETWREG_BASIC_INFORMATION basicInfo;
 
             status = KphQueryInformationObject(
                 ProcessHandle,
                 Handle,
                 KphObjectEtwRegBasicInformation,
                 &basicInfo,
-                sizeof(ETWREG_BASIC_INFORMATION),
+                sizeof(KPH_ETWREG_BASIC_INFORMATION),
                 NULL
                 );
 
