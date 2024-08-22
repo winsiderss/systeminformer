@@ -2997,18 +2997,37 @@ typedef struct _FLT_PORT_FULL_EA
 #define FLT_PORT_FULL_EA_VALUE_SIZE \
     RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding)
 
-// rev
+// begin_rev
+
+// IOCTLs for unlinked FltMgr handles
 #define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
-#define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK
+#define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK // specializes the handle
 #define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH
 #define FLT_CTL_DETATCH             CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_INSTANCE_PARAMETERS
+
+// IOCTLs for port-specific FltMgrMsg handles (opened using the extended attribute)
 #define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in, out: filter-specific
 #define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: filter-specific
 #define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: filter-specific
+
+// IOCTLs for linked FltMgr handles; depend on previously used FLT_LINK_TYPE
+//
+// Find first/next:
+//   FILTER                - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
+//   FILTER_VOLUME         - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
+//   FILTER_MANAGER        - enumerates all filters;      in: FILTER_INFORMATION_CLASS
+//   FILTER_MANAGER_VOLUME - enumerates all volumes;      in: FILTER_VOLUME_INFORMATION_CLASS
+//
+// Get information:
+//   FILTER                - queries filter;              in: FILTER_INFORMATION_CLASS
+//   FILTER_INSTANCE       - queries instance;            in: INSTANCE_INFORMATION_CLASS
+//
 #define FLT_CTL_FIND_FIRST          CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 9, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
 #define FLT_CTL_FIND_NEXT           CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 10, METHOD_BUFFERED, FILE_READ_ACCESS) // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
 #define FLT_CTL_GET_INFORMATION     CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 11, METHOD_BUFFERED, FILE_READ_ACCESS) // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
+
+// end_rev
 
 // private
 typedef struct _FLT_LOAD_PARAMETERS
@@ -3031,7 +3050,7 @@ typedef enum _FLT_LINK_TYPE
 typedef struct _FLT_LINK
 {
     FLT_LINK_TYPE Type;
-    ULONG ParametersOffset;
+    ULONG ParametersOffset; // from this struct
 } FLT_LINK, *PFLT_LINK;
 
 // rev
