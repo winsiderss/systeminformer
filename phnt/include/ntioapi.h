@@ -2959,6 +2959,146 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
      (s)->Length == 98 && \
      (s)->Buffer[1] == '?')
 
+// Filter manager
+
+// rev
+#define FLT_SYMLINK_NAME     L"\\Global??\\FltMgr"
+#define FLT_MSG_SYMLINK_NAME L"\\Global??\\FltMgrMsg"
+#define FLT_DEVICE_NAME      L"\\FileSystem\\Filters\\FltMgr"
+#define FLT_MSG_DEVICE_NAME  L"\\FileSystem\\Filters\\FltMgrMsg"
+
+// private
+typedef struct _FLT_CONNECT_CONTEXT
+{
+    PUNICODE_STRING PortName;
+    PUNICODE_STRING64 PortName64;
+    USHORT SizeOfContext;
+    UCHAR Padding[6]; // unused
+    _Field_size_bytes_(SizeOfContext) UCHAR Context[ANYSIZE_ARRAY];
+} FLT_CONNECT_CONTEXT, *PFLT_CONNECT_CONTEXT;
+
+// rev
+#define FLT_PORT_EA_NAME "FLTPORT"
+#define FLT_PORT_CONTEXT_MAX 0xFFE8
+
+// combined FILE_FULL_EA_INFORMATION and FLT_CONNECT_CONTEXT
+typedef struct _FLT_PORT_FULL_EA
+{
+    ULONG NextEntryOffset; // 0
+    UCHAR Flags;           // 0
+    UCHAR EaNameLength;    // sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)
+    USHORT EaValueLength;  // RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding) + SizeOfContext
+    CHAR EaName[8];        // FLTPORT\0
+    FLT_CONNECT_CONTEXT EaValue;
+} FLT_PORT_FULL_EA, *PFLT_PORT_FULL_EA;
+
+#define FLT_PORT_FULL_EA_SIZE \
+    (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
+#define FLT_PORT_FULL_EA_VALUE_SIZE \
+    RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding)
+
+// begin_rev
+
+// IOCTLs for unlinked FltMgr handles
+#define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
+#define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
+#define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK // specializes the handle
+#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH
+#define FLT_CTL_DETATCH             CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_INSTANCE_PARAMETERS
+
+// IOCTLs for port-specific FltMgrMsg handles (opened using the extended attribute)
+#define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in, out: filter-specific
+#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: filter-specific
+#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: filter-specific
+
+// IOCTLs for linked FltMgr handles; depend on previously used FLT_LINK_TYPE
+//
+// Find first/next:
+//   FILTER                - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
+//   FILTER_VOLUME         - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
+//   FILTER_MANAGER        - enumerates all filters;      in: FILTER_INFORMATION_CLASS
+//   FILTER_MANAGER_VOLUME - enumerates all volumes;      in: FILTER_VOLUME_INFORMATION_CLASS
+//
+// Get information:
+//   FILTER                - queries filter;              in: FILTER_INFORMATION_CLASS
+//   FILTER_INSTANCE       - queries instance;            in: INSTANCE_INFORMATION_CLASS
+//
+#define FLT_CTL_FIND_FIRST          CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 9, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
+#define FLT_CTL_FIND_NEXT           CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 10, METHOD_BUFFERED, FILE_READ_ACCESS) // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
+#define FLT_CTL_GET_INFORMATION     CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 11, METHOD_BUFFERED, FILE_READ_ACCESS) // in: *_INFORMATION_CLASS, out: *_INFORMATION (from fltUserStructures.h)
+
+// end_rev
+
+// private
+typedef struct _FLT_LOAD_PARAMETERS
+{
+    USHORT FilterNameSize;
+    _Field_size_bytes_(FilterNameSize) WCHAR FilterName[ANYSIZE_ARRAY];
+} FLT_LOAD_PARAMETERS, *PFLT_LOAD_PARAMETERS;
+
+// private
+typedef enum _FLT_LINK_TYPE
+{
+    FILTER = 0,                // FLT_FILTER_PARAMETERS
+    FILTER_INSTANCE = 1,       // FLT_INSTANCE_PARAMETERS
+    FILTER_VOLUME = 2,         // FLT_VOLUME_PARAMETERS
+    FILTER_MANAGER = 3,        // nothing
+    FILTER_MANAGER_VOLUME = 4, // nothing
+} FLT_LINK_TYPE, *PFLT_LINK_TYPE;
+
+// private
+typedef struct _FLT_LINK
+{
+    FLT_LINK_TYPE Type;
+    ULONG ParametersOffset; // from this struct
+} FLT_LINK, *PFLT_LINK;
+
+// rev
+typedef struct _FLT_FILTER_PARAMETERS
+{
+    USHORT FilterNameSize;
+    USHORT FilterNameOffset; // to WCHAR[] from this struct
+} FLT_FILTER_PARAMETERS, *PFLT_FILTER_PARAMETERS;
+
+// private
+typedef struct _FLT_INSTANCE_PARAMETERS
+{
+    USHORT FilterNameSize;
+    USHORT FilterNameOffset; // to WCHAR[] from this struct
+    USHORT VolumeNameSize;
+    USHORT VolumeNameOffset; // to WCHAR[] from this struct
+    USHORT InstanceNameSize;
+    USHORT InstanceNameOffset; // to WCHAR[] from this struct
+} FLT_INSTANCE_PARAMETERS, *PFLT_INSTANCE_PARAMETERS;
+
+// rev
+typedef struct _FLT_VOLUME_PARAMETERS
+{
+    USHORT VolumeNameSize;
+    USHORT VolumeNameOffset; // to WCHAR[] from this struct
+} FLT_VOLUME_PARAMETERS, *PFLT_VOLUME_PARAMETERS;
+
+// private
+typedef enum _ATTACH_TYPE
+{
+    AltitudeBased = 0,
+    InstanceNameBased = 1,
+} ATTACH_TYPE, *PATTACH_TYPE;
+
+// private
+typedef struct _FLT_ATTACH
+{
+    USHORT FilterNameSize;
+    USHORT FilterNameOffset; // to WCHAR[] from this struct
+    USHORT VolumeNameSize;
+    USHORT VolumeNameOffset; // to WCHAR[] from this struct
+    ATTACH_TYPE Type;
+    USHORT InstanceNameSize;
+    USHORT InstanceNameOffset; // to WCHAR[] from this struct
+    USHORT AltitudeSize;
+    USHORT AltitudeOffset; // to WCHAR[] from this struct
+} FLT_ATTACH, *PFLT_ATTACH;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //

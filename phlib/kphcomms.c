@@ -46,74 +46,6 @@ PH_FREE_LIST KphpCommsReplyFreeList;
 #define KPH_COMMS_THREAD_SCALE  2
 #define KPH_COMMS_MAX_MESSAGES  1024
 
-// rev
-typedef struct _FILTER_PORT_EA
-{
-    PUNICODE_STRING PortName;
-    PUNICODE_STRING64 PortName64;
-    USHORT SizeOfContext;
-    BYTE Padding[6]; // not-used (uninitialized heap bytes)
-    BYTE ConnectionContext[ANYSIZE_ARRAY];
-} FILTER_PORT_EA, *PFILTER_PORT_EA;
-
-#define FLT_PORT_CONTEXT_MAX 0xFFE8
-
-// FILE_FULL_EA_INFORMATION (symbols)
-typedef struct _FILTER_PORT_FULL_EA
-{
-    ULONG NextEntryOffset; // 0
-    UCHAR Flags;           // 0
-    UCHAR EaNameLength;    // sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)
-    USHORT EaValueLength;  // RTL_SIZEOF_THROUGH_FIELD(FILTER_PORT_EA, Padding) + SizeOfContext
-    CHAR EaName[8];        // FLTPORT\0
-    FILTER_PORT_EA EaValue;
-} FILTER_PORT_FULL_EA, *PFILTER_PORT_FULL_EA;
-
-#define FLT_PORT_EA_NAME "FLTPORT"
-
-#define FILTER_PORT_EA_SIZE \
-    (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
-#define FILTER_PORT_EA_VALUE_SIZE \
-    RTL_SIZEOF_THROUGH_FIELD(FILTER_PORT_EA, Padding)
-//#define FILTER_PORT_EA_VALUE_OFFSET \
-//    (FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) + sizeof(FLT_PORT_EA_NAME))
-//#define FILTER_PORT_EA_VALUE_SIZE \
-//    (FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) - FILTER_PORT_EA_VALUE_OFFSET)
-
-#ifdef _WIN64
-C_ASSERT(FILTER_PORT_EA_SIZE == 19); // 0x13
-C_ASSERT(FILTER_PORT_EA_VALUE_SIZE == 24); // 0x18
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName) == 16); // 0x10
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName64) == 24); // 0x18
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.SizeOfContext) == 32); // 0x20
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) == 40); // 0x28
-#else
-C_ASSERT(FILTER_PORT_EA_SIZE == 19); // 0x13
-C_ASSERT(FILTER_PORT_EA_VALUE_SIZE == 16); // 0x18
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName) == 16); // 0x10
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName64) == 20); // 0x14
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.SizeOfContext) == 24); // 0x18
-C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) == 32); // 0x20
-#endif
-
-typedef struct _FILTER_LOADUNLOAD
-{
-    USHORT Length;
-    WCHAR Name[ANYSIZE_ARRAY];
-} FILTER_LOADUNLOAD, *PFILTER_LOADUNLOAD;
-
-#define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS)
-#define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS)
-#define FLT_CTL_CREATE              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)
-#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS)
-#define FLT_CTL_DETATCH             CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS)
-#define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)
-#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)
-#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)
-#define FLT_CTL_FIND_FIRST          CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 9, METHOD_BUFFERED, FILE_READ_ACCESS)
-#define FLT_CTL_FIND_NEXT           CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 10, METHOD_BUFFERED, FILE_READ_ACCESS)
-#define FLT_CTL_QUERY_INFORMATION   CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 11, METHOD_BUFFERED, FILE_READ_ACCESS)
-
 /**
  * \brief Wrapper which is essentially FilterpDeviceIoControl.
  *
@@ -255,7 +187,7 @@ NTSTATUS KphFilterLoadUnload(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
     ULONG filterNameBufferLength;
-    PFILTER_LOADUNLOAD filterNameBuffer;
+    PFLT_LOAD_PARAMETERS filterNameBuffer;
     SECURITY_QUALITY_OF_SERVICE filterSecurityQos =
     {
         sizeof(SECURITY_QUALITY_OF_SERVICE),
@@ -264,7 +196,7 @@ NTSTATUS KphFilterLoadUnload(
         TRUE
     };
 
-    RtlInitUnicodeString(&objectName, L"\\FileSystem\\Filters\\FltMgr");
+    RtlInitUnicodeString(&objectName, FLT_MSG_DEVICE_NAME);
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
@@ -291,10 +223,10 @@ NTSTATUS KphFilterLoadUnload(
     if (!NT_SUCCESS(status))
         return status;
 
-    filterNameBufferLength = UFIELD_OFFSET(FILTER_LOADUNLOAD, Name[ServiceName->Length]) + sizeof(UNICODE_NULL);
+    filterNameBufferLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
     filterNameBuffer = PhAllocateZero(filterNameBufferLength);
-    filterNameBuffer->Length = (USHORT)ServiceName->Length;
-    RtlCopyMemory(filterNameBuffer->Name, ServiceName->Buffer, ServiceName->Length);
+    filterNameBuffer->FilterNameSize = (USHORT)ServiceName->Length;
+    RtlCopyMemory(filterNameBuffer->FilterName, ServiceName->Buffer, ServiceName->Length);
 
     status = NtDeviceIoControlFile(
         fileHandle,
@@ -430,7 +362,7 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     UNICODE_STRING64 portName64;
     ULONG eaLength;
     PFILE_FULL_EA_INFORMATION ea;
-    PFILTER_PORT_EA eaValue;
+    PFLT_CONNECT_CONTEXT eaValue;
     IO_STATUS_BLOCK isb;
 
     *Port = NULL;
@@ -455,8 +387,8 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     // Build the filter EA, this contains the port name and the context.
     //
 
-    eaLength = FILTER_PORT_EA_SIZE
-             + FILTER_PORT_EA_VALUE_SIZE
+    eaLength = FLT_PORT_FULL_EA_SIZE
+             + FLT_PORT_FULL_EA_VALUE_SIZE
              + SizeOfContext;
 
     ea = PhAllocateZeroSafe(eaLength);
@@ -467,7 +399,7 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 
     ea->Flags = 0;
     ea->EaNameLength = sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
-    ea->EaValueLength = FILTER_PORT_EA_VALUE_SIZE + SizeOfContext;
+    ea->EaValueLength = FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext;
     RtlCopyMemory(ea->EaName, FLT_PORT_EA_NAME, sizeof(FLT_PORT_EA_NAME));
     eaValue = PTR_ADD_OFFSET(ea->EaName, sizeof(FLT_PORT_EA_NAME));
     eaValue->PortName = &portName;
@@ -476,12 +408,12 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 
     if (SizeOfContext > 0)
     {
-        RtlCopyMemory(eaValue->ConnectionContext,
+        RtlCopyMemory(eaValue->Context,
                       ConnectionContext,
                       SizeOfContext);
     }
 
-    RtlInitUnicodeString(&objectName, L"\\FileSystem\\Filters\\FltMgrMsg");
+    RtlInitUnicodeString(&objectName, FLT_MSG_DEVICE_NAME);
     InitializeObjectAttributes(&objectAttributes,
                                &objectName,
                                OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
