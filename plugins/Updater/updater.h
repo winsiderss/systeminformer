@@ -225,16 +225,36 @@ INT_PTR CALLBACK TextDlgProc(
 
 // verify.c
 
-typedef struct _UPDATER_HASH_CONTEXT
+typedef enum _UPDATER_SIGNING_GENERATION
+{
+    UpdaterSigningGenerationCurrent,
+    UpdaterSigningGenerationNext,
+    MaxUpdaterSigningGeneration,
+} UPDATER_SIGNING_GENERATION, *PUPDATER_SIGNING_GENERATION;
+
+typedef struct _UPDATER_SIGNING
 {
     BCRYPT_ALG_HANDLE SignAlgHandle;
-    BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_KEY_HANDLE KeyHandle;
+    PVOID PaddingInfo;
+    ULONG PaddingFlags;
+    BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_HASH_HANDLE HashHandle;
     ULONG HashObjectSize;
     ULONG HashSize;
     PVOID HashObject;
     PVOID Hash;
+} UPDATER_SIGNING, *PUPDATER_SIGNING;
+
+typedef struct _UPDATER_HASH_CONTEXT
+{
+    BCRYPT_ALG_HANDLE HashAlgHandle;
+    BCRYPT_HASH_HANDLE HashHandle;
+    ULONG HashObjectSize;
+    ULONG HashSize;
+    PVOID HashObject;
+    PVOID Hash;
+    UPDATER_SIGNING Sign[MaxUpdaterSigningGeneration];
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
 PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
