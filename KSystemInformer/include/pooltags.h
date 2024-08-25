@@ -65,6 +65,10 @@
 #define KPH_TAG_HASHING_INFRA                   '2HpK'
 #define KPH_TAG_CAPTURED_HASHES                 '3HpK'
 
+// verify
+
+#define KPH_TAG_VERIFY_SIGNATURE                '0VpK'
+
 // sign
 
 #define KPH_TAG_SIGNING_INFRA                   '0SpK'

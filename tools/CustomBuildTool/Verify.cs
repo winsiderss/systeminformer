@@ -234,22 +234,54 @@ namespace CustomBuildTool
             byte[] buffer;
 
             using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
-            using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
             {
-                buffer = ecdsa.SignData(Bytes, HashAlgorithmName.SHA256);
+                if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                {
+                    using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                    {
+                        buffer = ecdsa.SignData(Bytes, HashAlgorithmName.SHA256);
+                    }
+                }
+                else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                {
+                    using (RSACng rsa = new RSACng(cngkey))
+                    {
+                        buffer = rsa.SignData(Bytes, HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                }
             }
 
             return buffer;
         }
 
-        private static byte[] Sign(byte[] KeyMaterial, Stream stream)
+        private static byte[] Sign(byte[] KeyMaterial, Stream Stream)
         {
             byte[] buffer;
 
             using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
-            using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
             {
-                buffer = ecdsa.SignData(stream, HashAlgorithmName.SHA256);
+                if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
+                {
+                    using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+                    {
+                        buffer = ecdsa.SignData(Stream, HashAlgorithmName.SHA256);
+                    }
+                }
+                else if (cngkey.Algorithm == CngAlgorithm.Rsa)
+                {
+                    using (RSACng rsa = new RSACng(cngkey))
+                    {
+                        buffer = rsa.SignData(Stream, HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException($"Unsupported algorithm: {cngkey.Algorithm}");
+                }
             }
 
             return buffer;
