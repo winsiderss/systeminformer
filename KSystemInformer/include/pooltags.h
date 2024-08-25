@@ -61,17 +61,12 @@
 // hash
 
 #define KPH_TAG_HASHING_CONTEXT                 '0HpK'
-#define KPH_TAG_AUTHENTICODE_SIG                '1HpK'
-#define KPH_TAG_HASHING_INFRA                   '2HpK'
-#define KPH_TAG_CAPTURED_HASHES                 '3HpK'
+#define KPH_TAG_HASHING_INFRA                   '1HpK'
+#define KPH_TAG_CAPTURED_HASHES                 '2HpK'
 
 // verify
 
 #define KPH_TAG_VERIFY_SIGNATURE                '0VpK'
-
-// sign
-
-#define KPH_TAG_SIGNING_INFRA                   '0SpK'
 
 // informer
 
