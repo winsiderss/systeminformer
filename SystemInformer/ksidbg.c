@@ -13,6 +13,7 @@
 #include <kphuser.h>
 #include <kphcomms.h>
 #include <kphmsgdyn.h>
+#include <informer.h>
 
 #include <dpfilter.h>
 
@@ -40,9 +41,9 @@ static BOOLEAN KsiDebugRawEnabled = FALSE;
 static PH_FAST_LOCK KsiDebugRawFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugRawFileStream = NULL;
 static PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
-static BOOLEAN KsiDebugRawAligned = FALSE;
 
 static PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
+static PH_CALLBACK_REGISTRATION KsiDebugMessageRegistration = { 0 };
 
 static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
 {
@@ -1506,15 +1507,13 @@ VOID KsiDebugLogMessageRaw(
         return;
 
     PhAcquireFastLockExclusive(&KsiDebugRawFileStreamLock);
-    if (KsiDebugRawAligned)
-        PhWriteFileStream(KsiDebugRawFileStream, (PVOID)Message, sizeof(KPH_MESSAGE));
-    else
-        PhWriteFileStream(KsiDebugRawFileStream, (PVOID)Message, Message->Header.Size);
+    PhWriteFileStream(KsiDebugRawFileStream, (PVOID)Message, Message->Header.Size);
     PhReleaseFastLockExclusive(&KsiDebugRawFileStreamLock);
 }
 
-VOID KsiDebugLogMessage(
-    _In_ PCKPH_MESSAGE Message
+VOID NTAPI KsiDebugLogMessageCallback(
+    _In_ PKPH_MESSAGE Message,
+    _In_opt_ PVOID Context
     )
 {
     KsiDebugLogMessageRaw(Message);
@@ -1574,6 +1573,13 @@ VOID KsiDebugLogInitialize(
 
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
+        PhRegisterCallback(
+            &PhInformerCallback,
+            KsiDebugLogMessageCallback,
+            NULL,
+            &KsiDebugMessageRegistration
+            );
+
         KsiDebugFilterToProcInit();
         KphSetInformerSettings(&KsiDebugInformerSettings);
 
@@ -1586,10 +1592,11 @@ VOID KsiDebugLogInitialize(
     }
 }
 
-VOID KsiDebugLogDestroy(
+VOID KsiDebugLogFinalize(
     VOID
     )
 {
+    PhUnregisterCallback(&PhInformerCallback, &KsiDebugMessageRegistration);
     PhClearReference(&KsiDebugRawFileStream);
     PhClearReference(&KsiDebugLogFileStream);
 }

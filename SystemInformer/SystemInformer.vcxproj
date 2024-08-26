@@ -437,6 +437,7 @@
     <ClCompile Include="jobprp.c" />
     <ClCompile Include="kdump.c" />
     <ClCompile Include="ksidbg.c" />
+    <ClCompile Include="informer.c" />
     <ClCompile Include="memmod.c" />
     <ClCompile Include="ksisup.c" />
     <ClCompile Include="ksyscall.c" />
@@ -525,6 +526,7 @@
     <ClInclude Include="include\hndllist.h" />
     <ClInclude Include="include\hndlmenu.h" />
     <ClInclude Include="include\hndlprv.h" />
+    <ClInclude Include="include\informer.h" />
     <ClInclude Include="include\ksisup.h" />
     <ClInclude Include="include\mainwnd.h" />
     <ClInclude Include="include\mainwndp.h" />
