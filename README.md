@@ -33,6 +33,8 @@ Windows 10 or higher, 32-bit or 64-bit.
 
 Requires Visual Studio (2022 or later).
 
+After cloning the repo run `build_init.cmd` located in the `build` directory, this doesn't not run again unless there are updates to the tools or third party libraries.
+
 Execute `build_release.cmd` located in the `build` directory to compile the project or load the `SystemInformer.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
 
 You can download the free [Visual Studio Community Edition](https://www.visualstudio.com/vs/community/) to build the System Informer source code.
