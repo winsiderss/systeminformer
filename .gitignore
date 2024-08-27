@@ -10,6 +10,10 @@
 *.orig
 
 # Build results
+*.exe
+*.sys
+*.dll
+*.lib
 *.appx
 *.appxbundle
 *.cer
@@ -40,12 +44,6 @@
 *.opensdf
 *.sdf
 *.db
-*.dll
-
-# Visual C++ cache folders
-ipch/
-.vs/
-**/packages/
 
 # Visual Studio profiler
 *.psess
@@ -74,48 +72,29 @@ Thumbs.db
 # Folder config file
 Desktop.ini
 
+# Visual Studio files
+ipch/
+.vs/
+
+# VS Code files
+.vscode/
+*.code-workspace
+
+# NuGet Packages
+*.nupkg
+**/packages/
+
 ##########################
 ## Project specific rules
 ##########################
 
+**/bin/
 build/output/
 plugins-extra/
 sdk/
-
-!KSystemInformer/bin/
-KSystemInformer/bin/Debug32/
-KSystemInformer/bin/Debug64/
-KSystemInformer/bin/Release32/
-KSystemInformer/bin/Release64/
-KSystemInformer/bin/*
-
-!tools/CustomBuildTool/bin/
-tools/CustomBuildTool/bin/Debug*/
-tools/CustomBuildTool/bin/ARM64/
-tools/CustomBuildTool/bin/x64/
-tools/CustomBuildTool/bin/Release*/net*/*
-tools/CustomBuildTool/bin/Release*/amd64/*
-tools/CustomBuildTool/bin/Release*/arm64/*
-!tools/CustomBuildTool/bin/Release/amd64/CustomBuildTool.exe
-!tools/CustomBuildTool/bin/Release/arm64/CustomBuildTool.exe
-
-!tools/CustomSignTool/bin/
-tools/CustomSignTool/bin/Debug*/
-tools/CustomSignTool/bin/Release*/*
-!tools/CustomSignTool/bin/Release32/CustomSignTool.exe
-!tools/CustomSignTool/bin/Release64/CustomSignTool.exe
-
-!tools/fixlib/bin/
-tools/fixlib/bin/Debug/
-tools/fixlib/bin/Release/*
+!KSystemInformer/bin-signed/*/ksi.dll
+!KSystemInformer/bin-signed/*/ksi.pdb
+!KSystemInformer/bin-signed/*/systeminformer.sys
+!KSystemInformer/bin-signed/*/systeminformer.pdb
+!tools/CustomSignTool/bin/Release*/CustomSignTool.exe
 !tools/fixlib/bin/Release/fixlib.exe
-
-!tools/GenerateZw/GenerateZw/bin/
-tools/GenerateZw/GenerateZw/bin/Debug/
-tools/GenerateZw/GenerateZw/bin/Release/*
-!tools/GenerateZw/GenerateZw/bin/Release/GenerateZw.exe
-
-!tools/delaylib/bin/
-
-!tools/thirdparty/bin/
-!tools/thirdparty/bin/*/*.pdb
