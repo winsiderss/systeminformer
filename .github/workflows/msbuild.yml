@@ -18,6 +18,10 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+    - name: Build Init
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_init.cmd
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -28,6 +32,10 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install Nuget Packages
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
+    - name: Build Tools
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_tools.cmd
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
