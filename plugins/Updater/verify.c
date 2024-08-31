@@ -475,8 +475,8 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
 
     if (!NT_SUCCESS(UpdaterInitializeSigning(
         &hashContext->Sign[UpdaterSigningGenerationNext],
-        publicKey,
-        publicKeySize,
+        publicKeyNext,
+        publicKeySizeNext,
         BCRYPT_RSA_ALGORITHM,
         BCRYPT_RSAPUBLIC_BLOB,
         BCRYPT_SHA512_ALGORITHM,
@@ -582,7 +582,7 @@ BOOLEAN UpdaterVerifySignature(
         }
 
         // Verify the signature.
-        if (!NT_SUCCESS(BCryptVerifySignature(
+        if (NT_SUCCESS(BCryptVerifySignature(
             Context->Sign[i].KeyHandle,
             Context->Sign[i].PaddingInfo,
             Context->Sign[i].Hash,
@@ -598,7 +598,7 @@ BOOLEAN UpdaterVerifySignature(
     }
 
     PhFree(signatureBuffer);
-    return TRUE;
+    return result;
 }
 
 VOID UpdaterDestroyHash(
