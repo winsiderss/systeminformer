@@ -11,6 +11,22 @@
 
 #include "updater.h"
 
+typedef enum _UPDATER_PLATFORM_SUPPORT_ID
+{
+    PlatformSupportNtoskrnl,
+    PlatformSupportNtkrnlpa,
+    PlatformSupportNtkrnlmp,
+    PlatformSupportNtkrnlsp,
+    PlatformSupportNtkrla57,
+    PlatformSupportLxcore,
+} UPDATER_PLATFORM_SUPPORT_ID, *PUPDATER_PLATFORM_SUPPORT_ID;
+
+typedef struct _UPDATER_PLATFORM_SUPPORT_ENTRY
+{
+    UPDATER_PLATFORM_SUPPORT_ID Id;
+    PH_STRINGREF FileName;
+} UPDATER_PLATFORM_SUPPORT_ENTRY, *PUPDATER_PLATFORM_SUPPORT_ENTRY;
+
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
@@ -279,6 +295,80 @@ PPH_STRING UpdateVersionString(
     }
 }
 
+PPH_STRING UpdatePlatformSupportString(
+    VOID
+    )
+{
+    static PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
+    static UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
+    {
+        { PlatformSupportNtoskrnl, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
+        { PlatformSupportNtkrnlpa, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlpa.exe") },
+        { PlatformSupportNtkrnlmp, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlmp.exe") },
+        { PlatformSupportNtkrnlsp, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlsp.exe") },
+        { PlatformSupportNtkrla57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
+        { PlatformSupportLxcore,   PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\lxcore.sys") },
+    };
+
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 30);
+
+    PhAppendStringBuilder(&stringBuilder, &platformHeader);
+    PhAppendStringBuilder2(&stringBuilder, L"[");
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(platformFiles); i++)
+    {
+        PH_MAPPED_IMAGE mappedImage;
+        USHORT imageMachine = 0;
+        ULONG timeDateStamp = 0;
+        ULONG sizeOfImage = 0;
+
+        if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&platformFiles[i].FileName, NULL, &mappedImage)))
+        {
+            PH_FORMAT format[11];
+            PPH_STRING string;
+            LONG64 unique;
+
+            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+            timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+            sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+
+            unique = imageMachine;
+            unique += timeDateStamp;
+            unique += sizeOfImage;
+            unique += platformFiles[i].Id;
+
+            PhUnloadMappedImage(&mappedImage);
+
+            PhInitFormatS(&format[0], L"{\"uid\":");
+            PhInitFormatI64D(&format[1], unique);
+            PhInitFormatS(&format[2], L",\"file\":");
+            PhInitFormatU(&format[3], platformFiles[i].Id);
+            PhInitFormatS(&format[4], L",\"machine\":");
+            PhInitFormatU(&format[5], imageMachine);
+            PhInitFormatS(&format[6], L",\"timestamp\":");
+            PhInitFormatU(&format[7], timeDateStamp);
+            PhInitFormatS(&format[8], L",\"size\":");
+            PhInitFormatU(&format[9], sizeOfImage);
+            PhInitFormatS(&format[10], L"},");
+
+            string = PhFormat(format, RTL_NUMBER_OF(format), 10);
+
+            PhAppendStringBuilder(&stringBuilder, &string->sr);
+
+            PhDereferenceObject(string);
+        }
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    PhAppendStringBuilder2(&stringBuilder, L"]");
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
 PPH_STRING UpdateWindowsString(
     VOID
     )
@@ -309,19 +399,13 @@ PPH_STRING UpdateWindowsString(
         {
             if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
             {
-                PH_FORMAT format[11];
+                PH_FORMAT format[5];
 
                 PhInitFormatS(&format[0], L"SystemInformer-OsBuild: ");
                 PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
                 PhInitFormatC(&format[2], '.');
                 PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64\r\n" : L"_32\r\n");
-                PhInitFormatS(&format[5], L"SystemInformer-PlatformSupport: ");
-                PhInitFormatX(&format[6], imageMachine);
-                PhInitFormatC(&format[7], '_');
-                PhInitFormatX(&format[8], timeDateStamp);
-                PhInitFormatC(&format[9], '_');
-                PhInitFormatX(&format[10], sizeOfImage);
+                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64" : L"_32");
 
                 buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
@@ -450,6 +534,7 @@ BOOLEAN QueryUpdateData(
     {
         PPH_STRING versionHeader;
         PPH_STRING windowsHeader;
+        PPH_STRING platformHeader;
 
         if (versionHeader = UpdateVersionString())
         {
@@ -461,6 +546,12 @@ BOOLEAN QueryUpdateData(
         {
             PhHttpSocketAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
             PhDereferenceObject(windowsHeader);
+        }
+
+        if (platformHeader = UpdatePlatformSupportString())
+        {
+            PhHttpSocketAddRequestHeaders(httpContext, platformHeader->Buffer, (ULONG)platformHeader->Length / sizeof(WCHAR));
+            PhDereferenceObject(platformHeader);
         }
     }
 
