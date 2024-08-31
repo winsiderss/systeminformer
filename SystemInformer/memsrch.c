@@ -134,7 +134,6 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
 BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle,
     _In_ PPH_IMAGELIST_ITEM IconEntry,
     _In_opt_ PPH_LIST PrevNodeList
     );
@@ -1357,7 +1356,6 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     if (!PhpShowMemoryStringDialog(
                         context->ParentWindowHandle,
                         context->ProcessId,
-                        context->ProcessHandle,
                         context->IconEntry,
                         nodeList
                         ))
@@ -1429,7 +1427,6 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
 BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_opt_ HANDLE ProcessHandle,
     _In_ PPH_IMAGELIST_ITEM IconEntry,
     _In_opt_ PPH_LIST PrevNodeList
     )
@@ -1438,33 +1435,14 @@ BOOLEAN PhpShowMemoryStringDialog(
     HANDLE processHandle;
     PPH_MEMSTRINGS_CONTEXT context;
 
-    if (ProcessHandle)
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessId
+        )))
     {
-        if (!NT_SUCCESS(status = NtDuplicateObject(
-            NtCurrentProcess(),
-            ProcessHandle,
-            NtCurrentProcess(),
-            &processHandle,
-            0,
-            0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
-            )))
-        {
-            PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
-            return FALSE;
-        }
-    }
-    else
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            ProcessId
-            )))
-        {
-            PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
-            return FALSE;
-        }
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
+        return FALSE;
     }
 
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
@@ -1493,7 +1471,6 @@ VOID PhShowMemoryStringDialog(
     PhpShowMemoryStringDialog(
         ParentWindowHandle,
         ProcessItem->ProcessId,
-        NULL,
         ProcessItem->IconEntry,
         NULL
         );
