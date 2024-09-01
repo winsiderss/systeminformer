@@ -103,23 +103,18 @@ namespace CustomBuildTool
             string timestampString = null;
 
             var flags = SIGNER_SIGN_FLAGS.SPC_DIGEST_SIGN_FLAG;
-
             if (pageHashing)
                 flags |= SIGNER_SIGN_FLAGS.SPC_INC_PE_PAGE_HASHES_FLAG;
             else
                 flags |= SIGNER_SIGN_FLAGS.SPC_EXC_PE_PAGE_HASHES_FLAG;
 
             if (this.TimeStampConfiguration.Type == TimeStampType.Authenticode)
-            {
                 timeStampFlags = SIGNER_TIMESTAMP_FLAGS.SIGNER_TIMESTAMP_AUTHENTICODE;
-                timestampString = this.TimeStampConfiguration.Url;
-            }
             else if (this.TimeStampConfiguration.Type == TimeStampType.RFC3161)
-            {
                 timeStampFlags = SIGNER_TIMESTAMP_FLAGS.SIGNER_TIMESTAMP_RFC3161;
-                timestampAlgorithmOid = AlgorithmTranslator.HashAlgorithmToOidAsciiTerminated(this.TimeStampConfiguration.DigestAlgorithm);
-                timestampString = this.TimeStampConfiguration.Url;
-            }          
+
+            timestampAlgorithmOid = AlgorithmTranslator.HashAlgorithmToOidAsciiTerminated(this.TimeStampConfiguration.DigestAlgorithm);
+            timestampString = this.TimeStampConfiguration.Url;
 
             fixed (byte* pTimestampAlg = &timestampAlgorithmOid.GetPinnableReference())
             fixed (char* timestampUrl = timestampString)
