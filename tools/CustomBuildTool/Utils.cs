@@ -16,6 +16,7 @@ namespace CustomBuildTool
         private static Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static string GitFilePath;
+        private static string MsBuildFilePath;
         private static string VsWhereFilePath;
 
         /// <summary>
@@ -180,52 +181,54 @@ namespace CustomBuildTool
 
         private static string GetMsbuildFilePath(BuildFlags Flags)
         {
-            string MsBuildFilePath = null;
-            List<string> MsBuildPath = 
-            [
-                "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
-                "\\MSBuild\\Current\\Bin\\MSBuild.exe",
-                "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-            ];
-
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
-            {
-                MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe");
-            }
-
-            VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
-
-            if (instance != null)
-            {
-                foreach (string path in MsBuildPath)
-                {
-                    string file = Path.Join([instance.Path, path]);
-
-                    if (File.Exists(file))
-                    {
-                        MsBuildFilePath = file;
-                        break;
-                    }
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
-                // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
-                string vswhereResult = ExecuteVsWhereCommand(
-                    "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
-                    );
+                List<string> MsBuildPath =
+                [
+                    "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
+                    "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+                    "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+                ];
 
-                if (!string.IsNullOrWhiteSpace(vswhereResult))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                {
+                    MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe");
+                }
+
+                VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
+
+                if (instance != null)
                 {
                     foreach (string path in MsBuildPath)
                     {
-                        string file = Path.Join([vswhereResult, path]);
+                        string file = Path.Join([instance.Path, path]);
 
                         if (File.Exists(file))
                         {
                             MsBuildFilePath = file;
                             break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(MsBuildFilePath))
+                {
+                    // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+                    string vswhereResult = ExecuteVsWhereCommand(
+                        "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
+                        );
+
+                    if (!string.IsNullOrWhiteSpace(vswhereResult))
+                    {
+                        foreach (string path in MsBuildPath)
+                        {
+                            string file = Path.Join([vswhereResult, path]);
+
+                            if (File.Exists(file))
+                            {
+                                MsBuildFilePath = file;
+                                break;
+                            }
                         }
                     }
                 }
@@ -659,17 +662,17 @@ namespace CustomBuildTool
             return value;
         }
 
-        public static Dictionary<string, string> GetSystemEnvironmentBlock()
+        public static unsafe Dictionary<string, string> GetSystemEnvironmentBlock()
         {
             if (EnvironmentBlock.Count == 0)
             {
-                if (NativeMethods.CreateEnvironmentBlock(out IntPtr block, IntPtr.Zero, false))
+                if (PInvoke.CreateEnvironmentBlock(out var block, null, false))
                 {
-                    IntPtr offset = block;
+                    char* offset = (char*)block;
 
-                    while (offset != IntPtr.Zero)
+                    while (offset != null)
                     {
-                        string variable = Marshal.PtrToStringUni(offset);
+                        string variable = new string(offset);
 
                         if (string.IsNullOrEmpty(variable))
                             break;
@@ -677,10 +680,10 @@ namespace CustomBuildTool
                         string[] parts = variable.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                         EnvironmentBlock.Add(parts[0], parts.Length <= 1 ? string.Empty : parts[1]);
 
-                        offset = new IntPtr(offset.ToInt64() + (variable.Length + 1) * sizeof(char));
+                        offset += variable.Length + 1;
                     }
 
-                    NativeMethods.DestroyEnvironmentBlock(block);
+                    PInvoke.DestroyEnvironmentBlock(block);
                 }
             }
 

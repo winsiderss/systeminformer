@@ -168,7 +168,7 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static void CopyIfNewer(string SourceFile, string DestinationFile)
+        public static void CopyIfNewer(string SourceFile, string DestinationFile, bool Verbose = false)
         {
             if (!File.Exists(SourceFile))
             {
@@ -186,9 +186,23 @@ namespace CustomBuildTool
                 string directory = Path.GetDirectoryName(DestinationFile);
 
                 if (string.IsNullOrWhiteSpace(directory))
+                {
+                    if (Verbose)
+                    {
+                        Program.PrintColorMessage("[Verbose] GetDirectoryName IsNullOrWhiteSpace", ConsoleColor.Yellow);
+                    }
                     return;
+                }
 
-                Win32.CreateDirectory(directory);
+                if (!Directory.Exists(directory))
+                {
+                    Win32.CreateDirectory(directory);
+
+                    if (Verbose)
+                    {
+                        Program.PrintColorMessage($"[Verbose] CreateDirectory: {directory}", ConsoleColor.Yellow);
+                    }
+                }
             }
 
             if (File.Exists(DestinationFile))
@@ -202,11 +216,28 @@ namespace CustomBuildTool
                     )
                 {
                     File.Copy(SourceFile, DestinationFile, true);
+
+                    if (Verbose)
+                    {
+                        Program.PrintColorMessage($"[Verbose] Copied new file: {SourceFile} --> {DestinationFile}", ConsoleColor.Yellow);
+                    }
+                }
+                else
+                {
+                    if (Verbose)
+                    {
+                        Program.PrintColorMessage($"[Verbose] Skipped older file: {SourceFile} --> {DestinationFile}", ConsoleColor.Yellow);
+                    }
                 }
             }
             else
             {
                 File.Copy(SourceFile, DestinationFile, true);
+
+                if (Verbose)
+                {
+                    Program.PrintColorMessage($"[Verbose] Copied new file: {SourceFile} --> {DestinationFile}", ConsoleColor.Yellow);
+                }
             }
         }
 
@@ -326,60 +357,69 @@ namespace CustomBuildTool
 
         public static unsafe string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
+            Windows.Win32.System.Registry.HKEY keyHandle;
             string value = string.Empty;
-            void* valueBuffer;
-            IntPtr keyHandle;
+            byte* valueBuffer;
 
-            if (NativeMethods.RegOpenKeyEx(
-                LocalMachine ? NativeMethods.HKEY_LOCAL_MACHINE : NativeMethods.HKEY_CURRENT_USER,
-                KeyName,
-                0,
-                NativeMethods.KEY_READ,
-                &keyHandle
-                ) == 0)
+            fixed (char* p = KeyName)
             {
-                int valueLength = 0;
-                int valueType = 0;
-
-                NativeMethods.RegQueryValueEx(
-                    keyHandle,
-                    ValueName,
-                    IntPtr.Zero,
-                    &valueType,
-                    null,
-                    &valueLength
-                    );
-
-                if (valueType == 1 || valueLength > 4)
+                if (PInvoke.RegOpenKeyEx(
+                    LocalMachine ? Windows.Win32.System.Registry.HKEY.HKEY_LOCAL_MACHINE : Windows.Win32.System.Registry.HKEY.HKEY_CURRENT_USER,
+                    p,
+                    0,
+                    Windows.Win32.System.Registry.REG_SAM_FLAGS.KEY_READ,
+                    &keyHandle
+                    ) == 0)
                 {
-                    valueBuffer = NativeMemory.Alloc((nuint)valueLength);
+                    uint valueLength = 0;
+                    Windows.Win32.System.Registry.REG_VALUE_TYPE valueType = 0;
 
-                    if (NativeMethods.RegQueryValueEx(
+                    PInvoke.RegQueryValueEx(
                         keyHandle,
-                        ValueName,
-                        IntPtr.Zero,
+                        p,
                         null,
-                        valueBuffer,
+                        &valueType,
+                        null,
                         &valueLength
-                        ) == 0)
+                        );
+
+                    if (valueType == Windows.Win32.System.Registry.REG_VALUE_TYPE.REG_SZ || valueLength > 4)
                     {
-                        value = Marshal.PtrToStringUni((nint)valueBuffer, valueLength / 2 - 1);
+                        valueBuffer = (byte*)NativeMemory.Alloc(valueLength);
+
+                        if (PInvoke.RegQueryValueEx(
+                            keyHandle,
+                            p,
+                            null,
+                            null,
+                            valueBuffer,
+                            &valueLength
+                            ) == 0)
+                        {
+                            value = Marshal.PtrToStringUni((nint)valueBuffer, (int)valueLength / 2 - 1);
+                        }
+
+                        NativeMemory.Free(valueBuffer);
                     }
 
-                    NativeMemory.Free(valueBuffer);
+                    _ = PInvoke.RegCloseKey(keyHandle);
                 }
-
-                _ = NativeMethods.RegCloseKey(keyHandle);
             }
 
             return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
         }
 
-        public static long GetFileSize(string FileName)
+        public static unsafe long GetFileSize(string FileName)
         {
-            if (NativeMethods.GetFileAttributesEx(FileName, 0, out var fileAttributeData))
+            WIN32_FILE_ATTRIBUTE_DATA sourceFile = new WIN32_FILE_ATTRIBUTE_DATA();
+
+            if (PInvoke.GetFileAttributesEx(
+                FileName, 
+                GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, 
+                &sourceFile
+                ))
             {
-                return ((long)fileAttributeData.FileSizeHigh) << 32 | fileAttributeData.FileSizeLow & 0xFFFFFFFFL;
+                return ((long)sourceFile.nFileSizeHigh) << 32 | sourceFile.nFileSizeLow & 0xFFFFFFFFL;
             }
 
             return 0;
@@ -399,13 +439,19 @@ namespace CustomBuildTool
 
         public static void SetErrorMode()
         {
-            NativeMethods.SetErrorMode(NativeMethods.SEM_NOGPFAULTERRORBOX | NativeMethods.SEM_NOOPENFILEERRORBOX);
+            PInvoke.SetErrorMode( 
+                THREAD_ERROR_MODE.SEM_NOGPFAULTERRORBOX | 
+                THREAD_ERROR_MODE.SEM_NOOPENFILEERRORBOX
+                );
         }
 
         public static void SetBasePriority()
         {
             //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
-            NativeMethods.SetPriorityClass(NativeMethods.CURRENT_PROCESS, NativeMethods.HIGH_PRIORITY_CLASS);
+            PInvoke.SetPriorityClass(
+                PInvoke.GetCurrentProcess(), 
+                Windows.Win32.System.Threading.PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
+                );
         }
 
         public static unsafe void SetFileTime(
@@ -414,12 +460,15 @@ namespace CustomBuildTool
             long LastWriteDateTime
             )
         {
-            NativeMethods.FILE_BASIC_INFO basicInfo;
+            FILE_BASIC_INFO basicInfo;
+
             basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
             basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
 
             using var fs = File.OpenWrite(FileName);
-            NativeMethods.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(NativeMethods.FILE_BASIC_INFO));
+            {
+                PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
+            }
         }        
     }
 }

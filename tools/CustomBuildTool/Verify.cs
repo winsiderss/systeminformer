@@ -15,11 +15,11 @@ namespace CustomBuildTool
     {
         public static readonly SortedDictionary<string, string> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "kph",       "KPH_BUILD_KEY" },
-            { "release",   "RELEASE_BUILD_KEY" },
-            { "preview",   "PREVIEW_BUILD_KEY" },
             { "canary",    "CANARY_BUILD_KEY" },
             { "developer", "DEVELOPER_BUILD_KEY" },
+            { "kph",       "KPH_BUILD_KEY" },
+            { "preview",   "PREVIEW_BUILD_KEY" },
+            { "release",   "RELEASE_BUILD_KEY" },
         };
 
         public static bool EncryptFile(string FileName, string OutFileName, string Secret)
@@ -188,8 +188,8 @@ namespace CustomBuildTool
                 {
                     using (var rijndael = GetRijndael(Secret))
                     using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (MemoryStream blobStream = new MemoryStream(Bytes))
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
+                    using (var blobStream = new MemoryStream(Bytes))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
                     {
                         blobStream.CopyTo(cryptoStream);
                     }
