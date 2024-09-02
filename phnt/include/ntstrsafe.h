@@ -115,7 +115,7 @@ typedef unsigned long DWORD;
 #pragma warning(push)
 #pragma warning(disable: 28210) // Because not all PREFast versions like _Always_ equally.
 
-// The user can request no "Cb" or no "Cch" fuctions, but not both
+// The user can request no "Cb" or no "Cch" functions, but not both
 #if defined(NTSTRSAFE_NO_CB_FUNCTIONS) && defined(NTSTRSAFE_NO_CCH_FUNCTIONS)
 #error cannot specify both NTSTRSAFE_NO_CB_FUNCTIONS and NTSTRSAFE_NO_CCH_FUNCTIONS !!
 #endif
@@ -137,7 +137,7 @@ C_ASSERT(NTSTRSAFE_UNICODE_STRING_MAX_CCH <= (0xffff / sizeof(wchar_t)));
 C_ASSERT(NTSTRSAFE_UNICODE_STRING_MAX_CCH > 1);
 
 
-// Flags for controling the Ex functions
+// Flags for controlling the Ex functions
 //
 //      STRSAFE_FILL_BYTE(0xFF)                         0x000000FF  // bottom byte specifies fill pattern
 #define STRSAFE_IGNORE_NULLS                            0x00000100  // treat null string pointers as TEXT("") -- don't fault on NULL buffers
@@ -146,7 +146,7 @@ C_ASSERT(NTSTRSAFE_UNICODE_STRING_MAX_CCH > 1);
 #define STRSAFE_NULL_ON_FAILURE                         0x00000800  // on failure, set *pszDest = TEXT('\0')
 #define STRSAFE_NO_TRUNCATION                           0x00001000  // instead of returning a truncated result, copy/append nothing to pszDest and null terminate it
 
-// Flags for controling UNICODE_STRING Ex functions
+// Flags for controlling UNICODE_STRING Ex functions
 //
 //      STRSAFE_FILL_BYTE(0xFF)                         0x000000FF  // bottom byte specifies fill pattern
 //      STRSAFE_IGNORE_NULLS                            0x00000100  // don't fault on NULL UNICODE_STRING pointers, and treat null pszSrc as L""
@@ -6729,7 +6729,7 @@ NTSTRSAFEDDI
   pszSrc.
 
   This function returns an NTSTATUS value.  It returns STATUS_SUCCESS if the
-  counted unicode string was sucessfully initialized from pszSrc. In failure
+  counted unicode string was successfully initialized from pszSrc. In failure
   cases the unicode string buffer will be set to NULL, and the Length and
   MaximumLength members will be set to zero.
 
@@ -6788,7 +6788,7 @@ RtlUnicodeStringInit(
   includes the flags parameter allows additional controls.
 
   This function returns an NTSTATUS value.  It returns STATUS_SUCCESS if the
-  counted unicode string was sucessfully initialized from pszSrc. In failure
+  counted unicode string was successfully initialized from pszSrc. In failure
   cases the unicode string buffer will be set to NULL, and the Length and
   MaximumLength members will be set to zero.
 
@@ -6929,7 +6929,7 @@ failure        -   the operation did not succeed
 
 STATUS_INVALID_PARAMETER
 -   this return value is an indication that the source string
-is not a valide counted unicode string given the flags passed.
+is not a valid counted unicode string given the flags passed.
 
 It is strongly recommended to use the NT_SUCCESS() macro to test the
 return value of this function.
