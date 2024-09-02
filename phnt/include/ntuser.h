@@ -39,7 +39,7 @@ typedef enum _CONSOLEINFOCLASS
     ConsoleSetForeground = 5,
     ConsoleSetWindowOwner = 6, // CONSOLESETWINDOWOWNER
     ConsoleEndTask = 7,
-} CONSOLEINFOCLASS, *PCONSOLEINFOCLASS
+} CONSOLEINFOCLASS, *PCONSOLEINFOCLASS;
 
 typedef struct _CONSOLESETWINDOWOWNER
 {
