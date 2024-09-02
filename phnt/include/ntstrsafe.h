@@ -11930,7 +11930,7 @@ NTSTRSAFEWORKERDDI
 #pragma warning(disable : __WARNING_MISSING_ZERO_TERMINATION2)
 
 
-    _When_(_Old_(*ppszSrc) != NULL, _Unchanged_(*ppszSrc))
+_When_(_Old_(*ppszSrc) != NULL, _Unchanged_(*ppszSrc))
 _When_(_Old_(*ppszSrc) == NULL, _At_(*ppszSrc, _Post_z_))
     NTSTRSAFEWORKERDDI
     RtlStringExValidateSrcA(
@@ -11962,7 +11962,7 @@ _When_(_Old_(*ppszSrc) == NULL, _At_(*ppszSrc, _Post_z_))
 
 
 
-    _When_(_Old_(*ppszSrc) != NULL, _Unchanged_(*ppszSrc))
+_When_(_Old_(*ppszSrc) != NULL, _Unchanged_(*ppszSrc))
 _When_(_Old_(*ppszSrc) == NULL, _At_(*ppszSrc, _Post_z_))
     NTSTRSAFEWORKERDDI
     RtlStringExValidateSrcW(
