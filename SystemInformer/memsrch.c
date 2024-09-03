@@ -64,6 +64,7 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     HWND TreeNewHandle;
     HWND MessageHandle;
     HWND SearchHandle;
+    HWND FilterHandle;
     RECT MinimumSize;
     ULONG_PTR SearchMatchHandle;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -80,6 +81,7 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     ULONG SearchResultsAddIndex;
     PPH_LIST SearchResults;
     PH_QUEUED_LOCK SearchResultsLock;
+    PPH_LIST PrevNodeList;
 
     PH_MEMSTRINGS_SETTINGS Settings;
 } PH_MEMSTRINGS_CONTEXT, *PPH_MEMSTRINGS_CONTEXT;
@@ -128,6 +130,13 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
     PBYTE Buffer;
     SIZE_T BufferSize;
 } PH_MEMSTRINGS_SEARCH_CONTEXT, *PPH_MEMSTRINGS_SEARCH_CONTEXT;
+
+BOOLEAN PhpShowMemoryStringDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_IMAGELIST_ITEM IconEntry,
+    _In_opt_ PPH_LIST PrevNodeList
+    );
 
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
 _Must_inspect_result_
@@ -340,6 +349,19 @@ VOID PhpAddPendingMemoryStringsNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
+VOID PhpDeleteMemoryStringsNodeList(
+    _In_ PPH_LIST NodeList
+    )
+{
+    for (ULONG i = 0; i < NodeList->Count; i++)
+    {
+        PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)NodeList->Items[i];
+
+        PhClearReference(&node->String);
+        PhFree(node);
+    }
+}
+
 VOID PhpDeleteMemoryStringsTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
@@ -355,13 +377,7 @@ VOID PhpDeleteMemoryStringsTree(
 
     PhpAddPendingMemoryStringsNodes(Context);
 
-    for (ULONG i = 0; i < Context->NodeList->Count; i++)
-    {
-        PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)Context->NodeList->Items[i];
-
-        PhClearReference(&node->String);
-        PhFree(node);
-    }
+    PhpDeleteMemoryStringsNodeList(Context->NodeList);
 
     PhClearReference(&Context->NodeList);
     PhClearReference(&Context->SearchResults);
@@ -384,6 +400,7 @@ VOID PhpSearchMemoryStrings(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     Context->State = PH_MEMSEARCH_STATE_SEARCHING;
+    EnableWindow(Context->FilterHandle, FALSE);
 
     PhCreateThreadEx(&Context->SearchThreadHandle, PhpMemorySearchStringsThread, Context);
 }
@@ -480,6 +497,30 @@ BOOLEAN PhpGetSelectedMemoryStringsNodes(
 
     PhDereferenceObject(list);
     return FALSE;
+}
+
+VOID PhpCopyFilteredMemoryStringsNodes(
+    _In_ PPH_MEMSTRINGS_CONTEXT Context,
+    _Out_ PPH_LIST* NodeList
+    )
+{
+    PPH_LIST list = PhCreateList(10);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_MEMSTRINGS_NODE node = (PPH_MEMSTRINGS_NODE)Context->NodeList->Items[i];
+
+        if (node->Node.Visible)
+        {
+            PPH_MEMSTRINGS_NODE cloned;
+
+            cloned = PhAllocateCopy(node, sizeof(PH_MEMSTRINGS_NODE));
+            PhReferenceObject(cloned->String);
+            PhAddItemList(list, cloned);
+        }
+    }
+
+    *NodeList = list;
 }
 
 BOOLEAN PhpMemoryStringsTreeFilterCallback(
@@ -950,6 +991,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             context->WindowHandle = hwndDlg;
             context->MessageHandle = GetDlgItem(hwndDlg, IDC_MESSAGE);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+            context->FilterHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
             PhpMemoryStringsSetWindowTitle(context);
             PhRegisterDialog(hwndDlg);
@@ -966,7 +1008,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             PhAddTreeNewFilter(&context->FilterSupport, PhpMemoryStringsTreeFilterCallback, context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, context->MessageHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
@@ -983,7 +1025,17 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 200, NULL);
 
-            PhpSearchMemoryStrings(context);
+            if (context->PrevNodeList)
+            {
+                PhMoveReference(&context->SearchResults, context->PrevNodeList);
+                context->StringsCount = context->PrevNodeList->Count;
+                context->State = PH_MEMSEARCH_STATE_FINISHED;
+                EnableWindow(context->FilterHandle, FALSE);
+            }
+            else
+            {
+                PhpSearchMemoryStrings(context);
+            }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -1062,7 +1114,10 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             PhDereferenceObject(message);
 
             if (context->State == PH_MEMSEARCH_STATE_FINISHED)
+            {
                 context->State = PH_MEMSEARCH_STATE_STOPPED;
+                EnableWindow(context->FilterHandle, TRUE);
+            }
         }
         break;
     case WM_PH_MEMSEARCH_SHOWMENU:
@@ -1292,6 +1347,24 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     PhDestroyEMenu(menu);
                 }
                 break;
+            case IDC_FILTER:
+                {
+                    PPH_LIST nodeList;
+
+                    PhpCopyFilteredMemoryStringsNodes(context, &nodeList);
+
+                    if (!PhpShowMemoryStringDialog(
+                        context->ParentWindowHandle,
+                        context->ProcessId,
+                        context->IconEntry,
+                        nodeList
+                        ))
+                    {
+                        PhpDeleteMemoryStringsNodeList(nodeList);
+                        PhDereferenceObject(nodeList);
+                    }
+                }
+                break;
             }
         }
     case WM_CTLCOLORBTN:
@@ -1351,9 +1424,11 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID PhShowMemoryStringDialog(
+BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ HANDLE ProcessId,
+    _In_ PPH_IMAGELIST_ITEM IconEntry,
+    _In_opt_ PPH_LIST PrevNodeList
     )
 {
     NTSTATUS status;
@@ -1363,23 +1438,40 @@ VOID PhShowMemoryStringDialog(
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessItem->ProcessId
+        ProcessId
         )))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
-        return;
+        return FALSE;
     }
 
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
-    context->ProcessId = ProcessItem->ProcessId;
+    context->ProcessId = ProcessId;
     context->ProcessHandle = processHandle;
-    context->IconEntry = ProcessItem->IconEntry;
+    context->IconEntry = IconEntry;
     context->ParentWindowHandle = ParentWindowHandle;
+    context->PrevNodeList = PrevNodeList;
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
     {
         PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
         NtClose(context->ProcessHandle);
         PhFree(context);
+        return FALSE;
     }
+
+    return TRUE;
+}
+
+VOID PhShowMemoryStringDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhpShowMemoryStringDialog(
+        ParentWindowHandle,
+        ProcessItem->ProcessId,
+        ProcessItem->IconEntry,
+        NULL
+        );
 }

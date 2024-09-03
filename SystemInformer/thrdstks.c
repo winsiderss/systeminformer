@@ -1652,7 +1652,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
                 );
 
             PhpInitializeThreadStacksTree(context);
-   
+
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
