@@ -14,12 +14,13 @@
 #include <kphdyn.h>
 
 _Must_inspect_result_
-NTSTATUS KphDynDataGetConfiguration(
-    _In_ PKPH_DYNDATA DynData,
-    _In_ ULONG DynDataLength,
-    _In_ USHORT MajorVersion,
-    _In_ USHORT MinorVersion,
-    _In_ USHORT BuildNumber,
-    _In_ USHORT Revision,
-    _Out_opt_ PKPH_DYN_CONFIGURATION* Config
+NTSTATUS KphDynDataLookup(
+    _In_reads_bytes_(Length) PKPH_DYN_CONFIG Config,
+    _In_ ULONG Length,
+    _In_ USHORT Class,
+    _In_ USHORT Machine,
+    _In_ ULONG TimeDateStamp,
+    _In_ ULONG SizeOfImage,
+    _Out_opt_ PKPH_DYN_DATA* Data,
+    _Out_opt_ PVOID* Fields
     );

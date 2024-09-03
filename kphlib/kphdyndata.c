@@ -12,88 +12,111 @@
 #include <kphlibbase.h>
 #include <kphdyndata.h>
 
+#ifndef _KERNEL_MODE
+#include "../tools/thirdparty/winsdk/ntintsafe.h"
+#ifndef Add2Ptr
+#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
+#endif
+#endif
+
 /**
- * \brief Searches for a dynamic data configuration for a given kernel version.
+ * \brief Searches for a dynamic data configuration.
  *
- * \param[in] DynData Pointer to dynamic data.
- * \param[in] DynDataLength Length of the dynamic data.
- * \param[in] MajorVersion Kernel major version.
- * \param[in] MinorVersion Kernel minor version.
- * \param[in] BuildNumber Kernel build number.
- * \param[in] Revision Kernel revision.
- * \param[out] Config Optional pointer to a variable that receives a pointer
- * to the found dynamic configuration in the dynamic data.
+ * \param[in] Config The dynamic data configuration.
+ * \param[in] Length The length of the dynamic data configuration.
+ * \param[in] Class The class to search for.
+ * \param[in] Machine The machine to search for.
+ * \param[in] TimeDateStamp The time date stamp to search for.
+ * \param[in] SizeOfImage The size of image to search for.
+ * \param[out] Data Receives a pointer into the dynamic data configuration if
+ * the requested data is found.
+ * \param[out] Fields Receives a pointer into the dynamic data configuration for
+ * the related fields if the requested data is found.
  *
  * \return Successful or errant status.
  */
 _Must_inspect_result_
-NTSTATUS KphDynDataGetConfiguration(
-    _In_ PKPH_DYNDATA DynData,
-    _In_ ULONG DynDataLength,
-    _In_ USHORT MajorVersion,
-    _In_ USHORT MinorVersion,
-    _In_ USHORT BuildNumber,
-    _In_ USHORT Revision,
-    _Out_opt_ PKPH_DYN_CONFIGURATION* Config
+NTSTATUS KphDynDataLookup(
+    _In_reads_bytes_(Length) PKPH_DYN_CONFIG Config,
+    _In_ ULONG Length,
+    _In_ USHORT Class,
+    _In_ USHORT Machine,
+    _In_ ULONG TimeDateStamp,
+    _In_ ULONG SizeOfImage,
+    _Out_opt_ PKPH_DYN_DATA* Data,
+    _Out_opt_ PVOID* Fields
     )
 {
+    NTSTATUS status;
+    ULONG dataLength;
     ULONG length;
 
-    if (Config)
+    if (Data)
     {
-        *Config = NULL;
+        *Data = NULL;
     }
 
-    if (DynDataLength < RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count))
+    if (Fields)
+    {
+        *Fields = NULL;
+    }
+
+    status = RtlULongSub(Length,
+                         RTL_SIZEOF_THROUGH_FIELD(KPH_DYN_CONFIG, Count),
+                         &length);
+    if (!NT_SUCCESS(status))
     {
         return STATUS_SI_DYNDATA_INVALID_LENGTH;
     }
 
-    if (DynData->Version != KPH_DYN_CONFIGURATION_VERSION)
+    if (Config->Version != KPH_DYN_CONFIGURATION_VERSION)
     {
         return STATUS_SI_DYNDATA_VERSION_MISMATCH;
     }
 
-    length = DynDataLength - RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count);
-    if (((length % sizeof(KPH_DYN_CONFIGURATION)) != 0) ||
-        ((length / sizeof(KPH_DYN_CONFIGURATION)) != DynData->Count))
+    status = RtlULongMult(sizeof(KPH_DYN_DATA), Config->Count, &dataLength);
+    if (!NT_SUCCESS(status))
     {
         return STATUS_SI_DYNDATA_INVALID_LENGTH;
     }
 
-    for (ULONG i = 0; i < DynData->Count; i++)
+    status = RtlULongSub(length, dataLength, &length);
+    if (!NT_SUCCESS(status))
     {
-        PKPH_DYN_CONFIGURATION config;
+        return STATUS_SI_DYNDATA_INVALID_LENGTH;
+    }
 
-        config = &DynData->Configs[i];
+    for (ULONG i = 0; i < Config->Count; i++)
+    {
+        PKPH_DYN_DATA data;
 
-        if ((config->MajorVersion != MajorVersion) ||
-            (config->MinorVersion != MinorVersion))
+        data = &Config->Data[i];
+
+        if ((data->Class != Class) ||
+            (data->Machine != Machine) ||
+            (data->TimeDateStamp != TimeDateStamp) ||
+            (data->SizeOfImage != SizeOfImage))
         {
             continue;
         }
 
-        if ((BuildNumber < config->BuildNumberMin) ||
-            (BuildNumber > config->BuildNumberMax))
+        if (data->Offset >= length)
         {
-            continue;
+            return STATUS_SI_DYNDATA_INVALID_LENGTH;
         }
 
-        if ((BuildNumber == config->BuildNumberMin) &&
-            (Revision < config->RevisionMin))
+        if (Data)
         {
-            continue;
+            *Data = data;
         }
 
-        if ((BuildNumber == config->BuildNumberMax) &&
-            (Revision > config->RevisionMax))
+        if (Fields)
         {
-            continue;
-        }
+            PVOID start;
 
-        if (Config)
-        {
-            *Config = config;
+            start = &Config->Data[Config->Count];
+
+            *Fields = Add2Ptr(start, data->Offset);
         }
 
         return STATUS_SUCCESS;
