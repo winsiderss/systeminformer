@@ -5201,7 +5201,7 @@ typedef struct _KUSER_SHARED_DATA
 
     //
     // This field indicates the status of the 64-bit COM+ package on the
-    // system. It indicates whether the Itermediate Language (IL) COM+
+    // system. It indicates whether the Intermediate Language (IL) COM+
     // images need to use the 64-bit COM+ runtime or the 32-bit COM+ runtime.
     //
 
