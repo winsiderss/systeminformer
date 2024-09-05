@@ -90,7 +90,14 @@ typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
     _In_ BCD_MESSAGE_TYPE type,
     _In_ PWSTR Message
     );
-
+    
+/**
+ * Sets the logging level and callback routine for BCD messages.
+ * 
+ * @param BcdLoggingLevel The logging level to set.
+ * @param BcdMessageCallbackRoutine The callback routine for BCD messages.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -98,35 +105,63 @@ BcdSetLogging(
     _In_ BCD_MESSAGE_TYPE BcdLoggingLevel,
     _In_ BCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
     );
-
+    
+/**
+ * Initializes the BCD synchronization mutant.
+ */
 NTSYSAPI
 VOID
 NTAPI
 BcdInitializeBcdSyncMutant(
     VOID
     );
-
+    
+/**
+ * Retrieves the file name for the BCD.
+ * 
+ * @param BcdSystemStorePath The pointer to receive the system store path.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdGetSystemStorePath(
     _Out_ PWSTR* BcdSystemStorePath // RtlFreeHeap(RtlProcessHeap(), 0, BcdSystemStorePath);
     );
-
+    
+/**
+ * Sets the device for the system BCD store.
+ * 
+ * @param SystemPartition The system partition to set.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdSetSystemStoreDevice(
     _In_ UNICODE_STRING SystemPartition
     );
-
+    
+/**
+ * Opens the BCD system store.
+ * 
+ * @param BcdStoreHandle The handle to receive the system store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenSystemStore(
     _Out_ PHANDLE BcdStoreHandle
     );
-
+    
+/**
+ * Opens a BCD store from a file.
+ * 
+ * @param BcdFilePath The file path of the BCD store.
+ * @param BcdStoreHandle The handle to receive the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -134,7 +169,14 @@ BcdOpenStoreFromFile(
     _In_ UNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
-
+    
+/**
+ * Creates a BCD store.
+ * 
+ * @param BcdFilePath The file path to create the BCD store.
+ * @param BcdStoreHandle The handle to receive the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -142,7 +184,13 @@ BcdCreateStore(
     _In_ UNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
-
+    
+/**
+ * Exports the BCD store to a file.
+ * 
+ * @param BcdFilePath The file path to export the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -151,6 +199,14 @@ BcdExportStore(
     );
 
 #if (PHNT_VERSION > PHNT_WIN11)
+/**
+ * Exports the BCD store to a file with additional flags.
+ * 
+ * @param BcdStoreHandle The handle to the BCD store.
+ * @param Flags The flags for exporting the store.
+ * @param BcdFilePath The file path to export the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -161,6 +217,12 @@ BcdExportStoreEx(
     );
 #endif
 
+/**
+ * Imports a BCD store from a file.
+ * 
+ * @param BcdFilePath The file path to import the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -174,6 +236,13 @@ typedef enum _BCD_IMPORT_FLAGS
     BCD_IMPORT_DELETE_FIRMWARE_OBJECTS
 } BCD_IMPORT_FLAGS;
 
+/**
+ * Imports a BCD store from a file with additional flags.
+ * 
+ * @param BcdFilePath The file path to import the BCD store.
+ * @param BcdImportFlags The flags for importing the store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -182,6 +251,13 @@ BcdImportStoreWithFlags(
     _In_ BCD_IMPORT_FLAGS BcdImportFlags
     );
 
+/**
+ * Deletes object references in the BCD store.
+ * 
+ * @param BcdStoreHandle The handle to the BCD store.
+ * @param Identifier The identifier of the object to delete references for.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -190,6 +266,11 @@ BcdDeleteObjectReferences(
     _In_ PGUID Identifier
     );
 
+/**
+ * Deletes the system store for BCD.
+ * 
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -204,6 +285,14 @@ typedef enum _BCD_OPEN_FLAGS
     BCD_OPEN_SYNC_FIRMWARE_ENTRIES
 } BCD_OPEN_FLAGS;
 
+/**
+ * Opens a BCD store with additional flags.
+ * 
+ * @param BcdFilePath The file path of the BCD store.
+ * @param BcdOpenFlags The flags for opening the store.
+ * @param BcdStoreHandle The handle to receive the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -213,6 +302,12 @@ BcdOpenStore(
     _Out_ PHANDLE BcdStoreHandle
     );
 
+/**
+ * Closes a BCD store.
+ * 
+ * @param BcdStoreHandle The handle to the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -220,13 +315,25 @@ BcdCloseStore(
     _In_ HANDLE BcdStoreHandle
     );
 
+/**
+ * Flushes a BCD store.
+ * 
+ * @param BcdStoreHandle The handle to the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 BcdFlushStore(
     _In_ HANDLE BcdStoreHandle
     );
-
+    
+/**
+ * Forcibly unloads a BCD store.
+ * 
+ * @param BcdStoreHandle The handle to the BCD store.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
