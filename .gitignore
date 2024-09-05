@@ -92,6 +92,8 @@ ipch/
 build/output/
 plugins-extra/
 sdk/
+tools/thirdparty/vcpkg_installed/*
+
 !KSystemInformer/bin-signed/*/ksi.dll
 !KSystemInformer/bin-signed/*/ksi.pdb
 !KSystemInformer/bin-signed/*/systeminformer.sys
