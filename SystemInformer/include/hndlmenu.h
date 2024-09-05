@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *
+ */
+
 #ifndef PH_HNDLMENU_H
 #define PH_HNDLMENU_H
 
