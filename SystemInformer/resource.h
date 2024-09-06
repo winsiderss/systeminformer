@@ -564,6 +564,7 @@
 #define IDC_FONTMONOSPACE               1416
 #define IDC_ONLYKERNELTHREADSTACKS      1417
 #define IDC_HYPERVISORNONESSENTIAL      1418
+#define IDC_INPUT                       1419
 #define IDC_MINIDUMP_NORMAL                          1419
 #define IDC_MINIDUMP_WITH_DATA_SEGS                  1420
 #define IDC_MINIDUMP_WITH_FULL_MEM                   1421
