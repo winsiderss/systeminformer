@@ -111,7 +111,7 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AppPolicyTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
-CONST static PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
 {
     SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"No (Default)"), TokenElevationTypeDefault),
@@ -123,7 +123,7 @@ CONST static PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
     SIP(SREF(L"Yes (Limited)"), 4 + TokenElevationTypeLimited),
 };
 
-CONST static PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
+static CONST PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
 {
     SIP(L"Anonymous", SecurityAnonymous),
     SIP(L"Identification", SecurityIdentification),
@@ -131,13 +131,13 @@ CONST static PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
     SIP(L"Delegation", SecurityDelegation),
 };
 
-CONST static PH_KEY_VALUE_PAIR PhTokenTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhTokenTypePairs[] =
 {
     SIP(L"Primary", TokenPrimary),
     SIP(L"Impersonation", TokenImpersonation),
 };
 
-CONST static PH_KEY_VALUE_PAIR PhSidTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhSidTypePairs[] =
 {
     SIP(L"Unknown", 0),
     SIP(L"User", SidTypeUser),
@@ -153,7 +153,7 @@ CONST static PH_KEY_VALUE_PAIR PhSidTypePairs[] =
     SIP(L"Logon session", SidTypeLogonSession),
 };
 
-CONST PH_ACCESS_ENTRY PhpGroupDescriptionEntries[6] =
+PH_ACCESS_ENTRY CONST PhpGroupDescriptionEntries[6] =
 {
     { NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
     { NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
@@ -621,7 +621,7 @@ BOOLEAN PhGetElevationTypeString(
     PPH_STRINGREF string;
 
     if (PhFindStringSiKeyValuePairs(
-        (PPH_KEY_VALUE_PAIR)PhElevationTypePairs,
+        PhElevationTypePairs,
         sizeof(PhElevationTypePairs),
         (IsElevated ? 4 : 0) + (ULONG)ElevationType,
         (PWSTR*)&string
@@ -641,7 +641,7 @@ BOOLEAN PhGetImpersonationLevelString(
     )
 {
     if (PhFindStringSiKeyValuePairs(
-        (PPH_KEY_VALUE_PAIR)PhImpersonationLevelPairs,
+        PhImpersonationLevelPairs,
         sizeof(PhImpersonationLevelPairs),
         ImpersonationLevel,
         ImpersonationLevelString
@@ -660,7 +660,7 @@ BOOLEAN PhGetTokenTypeString(
     )
 {
     if (PhFindStringSiKeyValuePairs(
-        (PPH_KEY_VALUE_PAIR)PhTokenTypePairs,
+        PhTokenTypePairs,
         sizeof(PhTokenTypePairs),
         TokenType,
         TokenTypeString
@@ -700,7 +700,7 @@ BOOLEAN PhGetTokenSidTypeString(
     )
 {
     if (PhFindStringSiKeyValuePairs(
-        (PPH_KEY_VALUE_PAIR)PhSidTypePairs,
+        PhSidTypePairs,
         sizeof(PhSidTypePairs),
         TokenNameUse,
         TokenNameUseString
