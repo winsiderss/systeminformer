@@ -2984,7 +2984,7 @@ NTSTATUS PhGetFullPath(
 
     status = RtlGetFullPathName_UEx(
         FileName,
-        fullPathLength,
+        (ULONG)fullPath->Length,
         fullPath->Buffer,
         &filePart,
         &returnLength
@@ -7010,6 +7010,7 @@ PPH_STRING PhEscapeCommandLinePart(
 {
     static PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
     PH_STRING_BUILDER stringBuilder;
+    ULONG numberOfBackslashes;
     ULONG length;
     ULONG i;
 
