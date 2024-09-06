@@ -1161,9 +1161,9 @@ VOID PhMwpOnCommand(
             PhShowCreateServiceDialog(WindowHandle);
         }
         break;
-    case ID_TOOLS_HIDDENPROCESSES:
+    case ID_TOOLS_ZOMBIEPROCESSES:
         {
-            PhShowHiddenProcessesDialog();
+            PhShowZombieProcessesDialog();
         }
         break;
     case ID_TOOLS_INSPECTEXECUTABLEFILE:
@@ -2874,7 +2874,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_INSPECTEXECUTABLEFILE, L"Inspect e&xecutable file...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_THREADSTACKS, L"&Search thread stacks", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_HIDDENPROCESSES, L"&Hidden processes", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ZOMBIEPROCESSES, L"&Zombie processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
@@ -3529,12 +3529,6 @@ VOID PhMwpInitializeSubMenu(
         if (WindowsVersion < WINDOWS_8_1)
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_LIVEDUMP))
-                PhDestroyEMenuItem(menuItem);
-        }
-
-        if (!PhGetIntegerSetting(L"HiddenProcessesMenuEnabled"))
-        {
-            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
                 PhDestroyEMenuItem(menuItem);
         }
 

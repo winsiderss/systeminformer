@@ -26,7 +26,8 @@
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
-#define IDD_HIDDENPROCESSES             135
+#define ID_CALLBACK_MENU_ITEM           132
+#define IDD_ZOMBIEPROCESSES             135
 #define ID_TRAYICONS_REGISTERED         135
 #define IDD_RUNAS                       136
 #define ID_COPY_CELL                    136
@@ -125,6 +126,8 @@
 #define IDB_SEARCH_ACTIVE_MODERN_LIGHT  272
 #define IDB_SEARCH_INACTIVE_MODERN_DARK 273
 #define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
+#define IDD_INPUT                       275
+#define IDD_CHOOSENEW                   275
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -663,7 +666,7 @@
 #define ID_VIEW_REFRESH                 40098
 #define ID_TOOLS_THREADSTACKS           40100
 #define ID_TOOLS_CREATESERVICE          40101
-#define ID_TOOLS_HIDDENPROCESSES        40102
+#define ID_TOOLS_ZOMBIEPROCESSES        40102
 #define ID_TOOLS_INSPECTEXECUTABLEFILE  40103
 #define ID_HELP_LOG                     40104
 #define ID_HELP_DONATE                  40105

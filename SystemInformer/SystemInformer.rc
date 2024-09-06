@@ -3,7 +3,6 @@
 #pragma code_page(65001)
 
 #include "resource.h"
-#include <sistatus.rc>
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -16,10 +15,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -27,23 +26,52 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\0"
 END
 
 #endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_SEARCH_ACTIVE_MODERN_LIGHT PNG                     "resources\\search_stop_modern_light.png"
+
+IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
+
+IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
+
+IDB_SEARCH_ACTIVE_SMALL PNG                     "resources\\active_search_small.png"
+
+IDB_SEARCH_INACTIVE_SMALL PNG                     "resources\\inactive_search_small.png"
+
+IDB_SEARCH_REGEX_MODERN_DARK PNG                     "resources\\regex_modern_dark.png"
+
+IDB_SEARCH_REGEX_MODERN_LIGHT PNG                     "resources\\regex_modern_light.png"
+
+IDB_SEARCH_CASE_MODERN_DARK PNG                     "resources\\case_sensitive_modern_dark.png"
+
+IDB_SEARCH_CASE_MODERN_LIGHT PNG                     "resources\\case_sensitive_modern_light.png"
+
+IDB_SEARCH_ACTIVE_MODERN_DARK PNG                     "resources\\search_stop_modern_dark.png"
+
+IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG                     "resources\\search_modern_light.png"
+
+IDB_SEARCH_INACTIVE_MODERN_DARK PNG                     "resources\\search_modern_dark.png"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -288,9 +316,9 @@ BEGIN
     PUSHBUTTON      "Default token",IDC_DEFAULTPERM,41,239,50,14
 END
 
-IDD_HIDDENPROCESSES DIALOGEX 0, 0, 337, 221
+IDD_ZOMBIEPROCESSES DIALOGEX 0, 0, 337, 221
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "Hidden Processes"
+CAPTION "Zombie Processes"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Processes highlighted red are hidden while those highlighted grey have terminated.",IDC_INTRO,7,7,323,12
@@ -1396,8 +1424,10 @@ BEGIN
     CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,17,177,10
     CONTROL         "Capture user pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,27,177,10
     CONTROL         "Capture Hypervisor pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,177,10
-    CONTROL         "Include nonessential Hypervisor pages",IDC_HYPERVISORNONESSENTIAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,47,177,10
-    CONTROL         "Only kernel thread stacks",IDC_ONLYKERNELTHREADSTACKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,57,177,10
+    CONTROL         "Include nonessential Hypervisor pages",IDC_HYPERVISORNONESSENTIAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,47,177,10
+    CONTROL         "Only kernel thread stacks",IDC_ONLYKERNELTHREADSTACKS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,57,177,10
     DEFPUSHBUTTON   "Save",IDOK,80,76,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,134,76,50,14
 END
@@ -1453,6 +1483,19 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,347,286
     PUSHBUTTON      "Refresh",IDC_REFRESH,240,291,50,14
     DEFPUSHBUTTON   "Close",IDOK,294,291,50,14
+END
+
+IDD_CHOOSENEW DIALOGEX 0, 0, 270, 120
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Input Prompt"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Input Prompt",IDC_TITLE,7,7,262,22
+    CONTROL         "Input Prompt",IDC_TEXT,"SysLink",WS_TABSTOP,7,33,259,23
+    CONTROL         "",IDC_SIZE_,"Static",SS_ETCHEDHORZ,0,90,271,1
+    DEFPUSHBUTTON   "&Ok",IDOK,158,98,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,212,98,50,14
+    COMBOBOX        IDC_INPUT,7,64,255,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
 
@@ -1569,7 +1612,7 @@ BEGIN
         BOTTOMMARGIN, 253
     END
 
-    IDD_HIDDENPROCESSES, DIALOG
+    IDD_ZOMBIEPROCESSES, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 330
@@ -2052,6 +2095,12 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 253
     END
+
+    IDD_CHOOSENEW, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        TOPMARGIN, 7
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2103,26 +2152,9 @@ END
 //
 
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
+
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_SEARCH_ACTIVE                PNG            "resources\\active_search.png"
-IDB_SEARCH_INACTIVE              PNG            "resources\\inactive_search.png"
-IDB_SEARCH_ACTIVE_SMALL          PNG            "resources\\active_search_small.png"
-IDB_SEARCH_INACTIVE_SMALL        PNG            "resources\\inactive_search_small.png"
-IDB_SEARCH_REGEX_MODERN_DARK     PNG            "resources\\regex_modern_dark.png"
-IDB_SEARCH_REGEX_MODERN_LIGHT    PNG            "resources\\regex_modern_light.png"
-IDB_SEARCH_CASE_MODERN_DARK      PNG            "resources\\case_sensitive_modern_dark.png"
-IDB_SEARCH_CASE_MODERN_LIGHT     PNG            "resources\\case_sensitive_modern_light.png"
-IDB_SEARCH_ACTIVE_MODERN_LIGHT   PNG            "resources\\search_stop_modern_light.png"
-IDB_SEARCH_ACTIVE_MODERN_DARK    PNG            "resources\\search_stop_modern_dark.png"
-IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG            "resources\\search_modern_light.png"
-IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2131,9 +2163,7 @@ IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.p
 
 IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
 
-
-
-#endif    // Neutral resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

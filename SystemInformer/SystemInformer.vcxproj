@@ -582,6 +582,7 @@
   <ItemGroup>
     <ResourceCompile Include="SystemInformer.rc" />
     <ResourceCompile Include="version.rc" />
+    <ResourceCompile Include="..\kphlib\include\sistatus.rc" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="SystemInformer.manifest" />
