@@ -15,10 +15,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
