@@ -534,6 +534,9 @@
     <ResourceCompile Include="version.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="..\kphlib\include\sistatus.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="SystemInformer.manifest">
