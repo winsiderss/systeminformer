@@ -426,7 +426,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
                             if (processItem = PhpCreateProcessItemForZombieProcess(hwndDlg, entry))
                             {
-                                SystemInformer_ShowProcessProperties(processItem);
+                                ProcessHacker_ShowProcessProperties(processItem);
                                 PhDereferenceObject(processItem);
                             }
                             else
@@ -687,7 +687,7 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
 
         // TODO: Token information?
 
-        if (NT_SUCCESS(PhGetProcessPriorityClass(processHandle, &priorityClass)))
+        if (NT_SUCCESS(PhGetProcessPriority(processHandle, &priorityClass)))
         {
             processItem->PriorityClass = priorityClass;
         }
