@@ -309,9 +309,6 @@ NTSTATUS PhpCreateHandleItemFunction(
         NULL
         );
 
-    // HACK: Some security products block NtQueryObject with ObjectTypeInformation and return an invalid type
-    // so we need to lookup the TypeName using the TypeIndex. We should improve PhGetHandleInformationEx for this case
-    // but for now we'll preserve backwards compat by doing the lookup here. (dmex)
     if (PhIsNullOrEmptyString(handleItem->TypeName))
     {
         PhMoveReference(&handleItem->TypeName, PhGetObjectTypeName(handleItem->TypeIndex));
@@ -441,7 +438,7 @@ VOID PhHandleProviderUpdate(
                     // Also compare the object pointers to make sure a
                     // different object wasn't re-opened with the same
                     // handle value.
-                    if (KsiLevel() >= KphLevelMed)
+                    if (KsiLevel() >= KphLevelMed && handleProvider->ProcessHandle)
                     {
                         found = NT_SUCCESS(KphCompareObjects(
                             handleProvider->ProcessHandle,
@@ -542,9 +539,6 @@ VOID PhHandleProviderUpdate(
                 NULL
                 );
 
-            // HACK: Some security products block NtQueryObject with ObjectTypeInformation and return an invalid type
-            // so we need to lookup the TypeName using the TypeIndex. We should improve PhGetHandleInformationEx for this case
-            // but for now we'll preserve backwards compat by doing the lookup here. (dmex)
             if (PhIsNullOrEmptyString(handleItem->TypeName))
             {
                 PPH_STRING typeName;
