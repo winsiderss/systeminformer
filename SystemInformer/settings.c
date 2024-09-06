@@ -186,7 +186,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"MiniInfoWindowOpacity", L"0"); // means 100%
     PhpAddIntegerSetting(L"MiniInfoWindowPinned", L"0");
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
-    PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"1");
+    PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"3");
     PhpAddScalableIntegerPairSetting(L"MiniInfoWindowSize", L"@96|10,200");
     PhpAddIntegerSetting(L"ModuleTreeListFlags", L"1");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
@@ -276,6 +276,10 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"WmiProviderTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"WmiProviderTreeListFlags", L"0");
     PhpAddStringSetting(L"VdmHostListViewColumns", L"");
+    PhpAddIntegerSetting(L"ZombieProcessesMenuEnabled", L"0");
+    PhpAddStringSetting(L"ZombieProcessesListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"ZombieProcessesWindowPosition", L"400,400");
+    PhpAddScalableIntegerPairSetting(L"ZombieProcessesWindowSize", L"@96|520,400");
 
     // Colors are specified with R in the lowest byte, then G, then B. So: bbggrr.
     PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse
