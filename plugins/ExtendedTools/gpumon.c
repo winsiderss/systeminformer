@@ -370,6 +370,8 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     if (EtGpuTotalNodeCount == 0)
         return FALSE;
 
+    PhQueryPerformanceFrequency(&EtGpuClockTotalRunningTimeFrequency);
+
     return TRUE;
 }
 
