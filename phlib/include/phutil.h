@@ -369,7 +369,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairs(
-    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PWSTR String,
     _Out_ PULONG Integer
@@ -391,7 +391,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairsStringRef(
-    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PPH_STRINGREF String,
     _Out_ PULONG Integer
@@ -423,7 +423,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringSiKeyValuePairs(
-    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
     _Out_ PWSTR *String
@@ -445,7 +445,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringRefSiKeyValuePairs(
-    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
     _Out_ PPH_STRINGREF* String
@@ -1287,7 +1287,7 @@ PhCreateProcessWin32Ex(
     _In_opt_ PWSTR CommandLine,
     _In_opt_ PVOID Environment,
     _In_opt_ PWSTR CurrentDirectory,
-    _In_opt_ STARTUPINFO *StartupInfo,
+    _In_opt_ PVOID StartupInfo,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _Out_opt_ PCLIENT_ID ClientId,

@@ -380,7 +380,7 @@ PVOID PhGetModuleProcAddress(
 PVOID PhGetProcedureAddress(
     _In_ PVOID DllHandle,
     _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber
+    _In_opt_ USHORT ProcedureNumber
     )
 {
 #if (PHNT_NATIVE_LDR)
@@ -1266,7 +1266,7 @@ VOID PhLoaderEntryGrantSuppressedCall(
 {
 #if (PH_NATIVE_LOADER_FLOWGUARD)
     static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
-    static BOOLEAN (NTAPI* LdrControlFlowGuardEnforced_I)(VOID) = NULL;
+    static typeof(&LdrControlFlowGuardEnforced) LdrControlFlowGuardEnforced_I = NULL;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
     if (!PhLoaderEntryCacheInitialized && PhInstanceHandle) // delay initialize (dmex)

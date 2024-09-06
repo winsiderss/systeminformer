@@ -22,14 +22,33 @@
 
 // Linked lists
 
-FORCEINLINE VOID InitializeListHead(
+typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
+
+#define RTL_STATIC_LIST_HEAD(x) \
+    LIST_ENTRY (x) = { &(x), &(x) }
+
+FORCEINLINE
+VOID
+InitializeListHead(
     _Out_ PLIST_ENTRY ListHead
     )
 {
     ListHead->Flink = ListHead->Blink = ListHead;
 }
 
-_Check_return_ FORCEINLINE BOOLEAN IsListEmpty(
+FORCEINLINE
+VOID
+InitializeListHead32(
+    _Out_ PLIST_ENTRY32 ListHead
+    )
+{
+    ListHead->Flink = ListHead->Blink = ((ULONG)(ULONG_PTR)ListHead);
+}
+
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN
+IsListEmpty(
     _In_ PLIST_ENTRY ListHead
     )
 {
@@ -3358,6 +3377,24 @@ RtlSetExtendedFeaturesMask(
     );
 
 #ifdef _WIN64
+#ifdef PHNT_INLINE_TYPEDEFS
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlWow64GetThreadContext(
+    _In_ HANDLE ThreadHandle,
+    _Inout_ PWOW64_CONTEXT ThreadContext
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        ThreadContext,
+        sizeof(WOW64_CONTEXT),
+        NULL
+        );
+}
+#else
 // rev
 NTSYSAPI
 NTSTATUS
@@ -3367,8 +3404,26 @@ RtlWow64GetThreadContext(
     _Inout_ PWOW64_CONTEXT ThreadContext
     );
 #endif
+#endif
 
 #ifdef _WIN64
+#ifdef PHNT_INLINE_TYPEDEFS
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlWow64SetThreadContext(
+    _In_ HANDLE ThreadHandle,
+    _In_ PWOW64_CONTEXT ThreadContext
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        ThreadContext,
+        sizeof(WOW64_CONTEXT)
+        );
+}
+#else
 // rev
 NTSYSAPI
 NTSTATUS
@@ -3377,6 +3432,7 @@ RtlWow64SetThreadContext(
     _In_ HANDLE ThreadHandle,
     _In_ PWOW64_CONTEXT ThreadContext
     );
+#endif
 #endif
 
 NTSYSAPI
@@ -3666,7 +3722,7 @@ RtlQueryInformationActivationContext(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
-#ifdef PHNT_INLINE_ACTIVE_ACTIVATION_CONTEXT
+#ifdef PHNT_INLINE_TYPEDEFS
 // private
 FORCEINLINE
 NTSTATUS
@@ -4488,7 +4544,7 @@ RtlGetImageFileMachines(
 
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 
-#ifdef PHNT_INLINE_SYSTEMROOT
+#ifdef PHNT_INLINE_TYPEDEFS
 // rev
 FORCEINLINE
 PWSTR
@@ -4512,7 +4568,7 @@ RtlGetNtSystemRoot(
     );
 #endif
 
-#ifdef PHNT_INLINE_LONGPATH
+#ifdef PHNT_INLINE_TYPEDEFS
 // rev
 FORCEINLINE
 BOOLEAN
@@ -4542,6 +4598,11 @@ RtlIsThreadWithinLoaderCallout(
     VOID
     );
 
+/**
+ * Gets a value indicating whether the process is currently in the shutdown phase.
+ *
+ * @return TRUE if a shutdown of the current dll process is in progress; otherwise, FALSE.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -9122,8 +9183,25 @@ RtlSetImageMitigationPolicy(
 
 #endif
 
+//
 // session
+//
 
+#ifdef PHNT_INLINE_TYPEDEFS
+// rev
+FORCEINLINE
+ULONG
+NTAPI
+RtlGetCurrentServiceSessionId(
+    VOID
+    )
+{
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ServiceSessionId;
+    else
+        return 0;
+}
+#else
 // rev
 NTSYSAPI
 ULONG
@@ -9131,7 +9209,23 @@ NTAPI
 RtlGetCurrentServiceSessionId(
     VOID
     );
+#endif
 
+#ifdef PHNT_INLINE_TYPEDEFS
+// rev
+FORCEINLINE
+ULONG
+NTAPI
+RtlGetActiveConsoleId(
+    VOID
+    )
+{
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ActiveConsoleId;
+    else
+        return USER_SHARED_DATA->ActiveConsoleId;
+}
+#else
 // private
 NTSYSAPI
 ULONG
@@ -9139,18 +9233,39 @@ NTAPI
 RtlGetActiveConsoleId(
     VOID
     );
+#endif
 
+#ifdef PHNT_INLINE_TYPEDEFS
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+// private
+FORCEINLINE
+LONGLONG
+NTAPI
+RtlGetConsoleSessionForegroundProcessId(
+    VOID
+    )
+{
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ConsoleSessionForegroundProcessId;
+    else
+        return USER_SHARED_DATA->ConsoleSessionForegroundProcessId;
+}
+#endif
+#else
 #if (PHNT_VERSION >= PHNT_REDSTONE)
 // private
 NTSYSAPI
-ULONGLONG
+LONGLONG
 NTAPI
 RtlGetConsoleSessionForegroundProcessId(
     VOID
     );
 #endif
+#endif
 
+//
 // Appcontainer
+//
 
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 // rev
@@ -9667,6 +9782,7 @@ typedef enum _RTL_BSD_ITEM_TYPE
     RtlBsdItemChecksum, // q: s: UCHAR
     RtlBsdPowerTransitionExtension,
     RtlBsdItemFeatureConfigurationState, // q; s: ULONG
+    RtlBsdItemRevocationListInfo, // 24H2
     RtlBsdItemMax
 } RTL_BSD_ITEM_TYPE;
 

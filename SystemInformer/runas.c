@@ -123,7 +123,7 @@ VOID PhpSplitUserName(
     _Out_opt_ PPH_STRING* UserPart
     );
 
-static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
 {
     SIP(L"Batch", LOGON32_LOGON_BATCH),
     SIP(L"Interactive", LOGON32_LOGON_INTERACTIVE),
@@ -1517,34 +1517,27 @@ NTSTATUS PhExecuteRunAsCommand(
 /**
  * Starts a program as another user.
  *
- * \param hWnd A handle to the parent window.
- * \param Program The command line of the program to start.
- * \param UserName The user to start the program as. The user
- * name should be specified as: domain\\name. This parameter
- * can be NULL if \a ProcessIdWithToken is specified.
- * \param Password The password for the specified user. If there
- * is no password, specify an empty string. This parameter
- * can be NULL if \a ProcessIdWithToken is specified.
+ * \param WindowHandle A handle to the parent window.
+ * \param CommandLine The command line of the program to start.
+ * \param UserName The user to start the program as. The username should be specified as: domain\\name.
+ *        This parameter can be NULL if \a ProcessIdWithToken is specified.
+ * \param Password The password for the specified user. If there is no password, specify an empty string.
+ *        This parameter can be NULL if \a ProcessIdWithToken is specified.
  * \param LogonType The logon type for the specified user. This
- * parameter can be 0 if \a ProcessIdWithToken is specified.
- * \param ProcessIdWithToken The ID of a process from which
- * to duplicate the token.
- * \param SessionId The ID of the session to run the program
- * under.
- * \param DesktopName The window station and desktop to run the
- * program under.
+ *        parameter can be 0 if \a ProcessIdWithToken is specified.
+ * \param ProcessIdWithToken The ID of a process from which to duplicate the token.
+ * \param SessionId The ID of the session to run the program under.
+ * \param DesktopName The window station and desktop to run the program under.
  * \param UseLinkedToken Uses the linked token if possible.
  *
  * \retval STATUS_CANCELLED The user cancelled the operation.
  *
- * \remarks This function will cause another instance of
- * Process Hacker to be executed if the current security context
- * does not have sufficient system access. This is done
- * through a UAC elevation prompt.
+ * \remarks This function will cause another instance of System Informer to be executed if the current security context
+ * does not have sufficient system access. This is done through a UAC elevation prompt.
  */
 NTSTATUS PhExecuteRunAsCommand2(
-    _In_ HWND hWnd,
-    _In_ PWSTR Program,
+    _In_ HWND WindowHandle,
+    _In_ PWSTR CommandLine,
     _In_opt_ PWSTR UserName,
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
@@ -1554,12 +1547,12 @@ NTSTATUS PhExecuteRunAsCommand2(
     _In_ BOOLEAN UseLinkedToken
     )
 {
-    return PhExecuteRunAsCommand3(hWnd, Program, UserName, Password, LogonType, ProcessIdWithToken, SessionId, DesktopName, UseLinkedToken, FALSE, FALSE);
+    return PhExecuteRunAsCommand3(WindowHandle, CommandLine, UserName, Password, LogonType, ProcessIdWithToken, SessionId, DesktopName, UseLinkedToken, FALSE, FALSE);
 }
 
 NTSTATUS PhExecuteRunAsCommand3(
-    _In_ HWND hWnd,
-    _In_ PWSTR Program,
+    _In_ HWND WindowHandle,
+    _In_ PWSTR CommandLine,
     _In_opt_ PWSTR UserName,
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
@@ -1583,11 +1576,11 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.Password = Password;
     parameters.LogonType = LogonType;
     parameters.SessionId = SessionId;
-    parameters.CommandLine = Program;
+    parameters.CommandLine = CommandLine;
     parameters.DesktopName = DesktopName;
     parameters.UseLinkedToken = UseLinkedToken;
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
-    parameters.WindowHandle = hWnd;
+    parameters.WindowHandle = WindowHandle;
     parameters.CreateUIAccessProcess = CreateUIAccessProcess;
 
     // Try to use an existing instance of the service if possible.
@@ -1631,7 +1624,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     }
     else
     {
-        if (PhUiConnectToPhSvc(hWnd, FALSE))
+        if (PhUiConnectToPhSvc(WindowHandle, FALSE))
         {
             status = PhSvcCallExecuteRunAsCommand(&parameters);
             PhUiDisconnectFromPhSvc();

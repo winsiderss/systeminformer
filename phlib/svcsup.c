@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2019-2023
+ *     dmex    2019-2024
  *
  */
 
@@ -17,7 +17,7 @@
 
 static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
-static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
     SIP(SREF(L"Stopped"), SERVICE_STOPPED),
     SIP(SREF(L"Start pending"), SERVICE_START_PENDING),
@@ -28,7 +28,7 @@ static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
     SIP(SREF(L"Paused"), SERVICE_PAUSED)
 };
 
-static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
 {
     SIP(SREF(L"Driver"), SERVICE_KERNEL_DRIVER),
     SIP(SREF(L"FS driver"), SERVICE_FILE_SYSTEM_DRIVER),
@@ -44,16 +44,16 @@ static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
     SIP(SREF(L"Package share process"), SERVICE_PKG_SERVICE | SERVICE_WIN32_SHARE_PROCESS),
 };
 
-static PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
 {
-    SIP(SREF(L"Disabled"), SERVICE_DISABLED),
     SIP(SREF(L"Boot start"), SERVICE_BOOT_START),
     SIP(SREF(L"System start"), SERVICE_SYSTEM_START),
     SIP(SREF(L"Auto start"), SERVICE_AUTO_START),
-    SIP(SREF(L"Demand start"), SERVICE_DEMAND_START)
+    SIP(SREF(L"Demand start"), SERVICE_DEMAND_START),
+    SIP(SREF(L"Disabled"), SERVICE_DISABLED),
 };
 
-static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
 {
     SIP(SREF(L"Ignore"), SERVICE_ERROR_IGNORE),
     SIP(SREF(L"Normal"), SERVICE_ERROR_NORMAL),

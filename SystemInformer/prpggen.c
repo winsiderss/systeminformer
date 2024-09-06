@@ -26,14 +26,14 @@
 #include <procprv.h>
 #include <settings.h>
 
-static PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
 {
     SIP(L"None", PsProtectedTypeNone),
     SIP(L"Light", PsProtectedTypeProtectedLight),
     SIP(L"Full", PsProtectedTypeProtected),
 };
 
-static PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
 {
     SIP(L" ", PsProtectedSignerNone),
     SIP(L" (Authenticode)", PsProtectedSignerAuthenticode),

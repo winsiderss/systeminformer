@@ -25,6 +25,13 @@ static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFE
 static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #endif
 
+/**
+ * Creates a string from a Windows Runtime string.
+ *
+ * @param String The Windows Runtime string.
+ *
+ * @return A pointer to the created string.
+ */
 PPH_STRING PhCreateStringFromWindowsRuntimeString(
     _In_ HSTRING String
     )
@@ -873,6 +880,7 @@ FLOAT PhGetDisplayLogicalDpi(
 
 #pragma region Package Manager
 
+#include <appmodel.h>
 #include <Windows.Management.Deployment.h>
 
 // 9a7d4b65-5e8f-4fc7-a2e5-7f6925cb8b53
@@ -888,9 +896,9 @@ DEFINE_GUID(IID_IAppInfo, 0xcf7f59b3, 0x6a09, 0x4de8, 0xa6, 0xc0, 0x57, 0x92, 0x
 // 4207a996-ca2f-42f7-bde8-8b10457a7f30
 DEFINE_GUID(IID_IStorageItem, 0x4207a996, 0xca2f, 0x42f7, 0xbd, 0xe8, 0x8b, 0x10, 0x45, 0x7a, 0x7f, 0x30);
 
-static _OpenPackageInfoByFullNameForUser OpenPackageInfoByFullNameForUser_I = NULL;
-static _GetPackageApplicationIds GetPackageApplicationIds_I = NULL;
-static _ClosePackageInfo ClosePackageInfo_I = NULL;
+static typeof(&OpenPackageInfoByFullNameForUser) OpenPackageInfoByFullNameForUser_I = NULL;
+static typeof(&GetPackageApplicationIds) GetPackageApplicationIds_I = NULL;
+static typeof(&ClosePackageInfo) ClosePackageInfo_I = NULL;
 
 static BOOLEAN PhPackageImportsInitialized(
     VOID
@@ -934,7 +942,7 @@ BOOLEAN PhGetPackageApplicationIds(
 {
     BOOLEAN success = FALSE;
     ULONG status;
-    HANDLE packageHandle;
+    PACKAGE_INFO_REFERENCE packageHandle;
     ULONG bufferCount = 0;
     ULONG bufferLength = 0;
     PBYTE buffer = NULL;

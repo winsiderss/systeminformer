@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *
  */
 
@@ -149,7 +149,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     // BUG BUG BUG - what if the user saves "\s"?
                     indexOfDelim = PhFindStringInString(savedChoices, i, L"\\s");
 
-                    if (indexOfDelim == -1)
+                    if (indexOfDelim == SIZE_MAX)
                         indexOfDelim = savedChoices->Length / sizeof(WCHAR);
 
                     savedChoice = PhSubstring(savedChoices, i, indexOfDelim - i);

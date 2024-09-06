@@ -541,11 +541,21 @@ PPH_STRING PhGetSidFullName(
         else
         {
             fullName = NULL;
+
+            if (NameUse)
+            {
+                *NameUse = SidTypeUnknown;
+            }
         }
     }
     else
     {
         fullName = NULL;
+
+        if (NameUse)
+        {
+            *NameUse = SidTypeUnknown;
+        }
     }
 
     if (referencedDomains)
@@ -1439,12 +1449,7 @@ NTSTATUS PhCreateServiceSidToBuffer(
     _Inout_ PULONG ServiceSidLength
     )
 {
-    typedef NTSTATUS (NTAPI* _RtlCreateServiceSid)(
-        _In_ PUNICODE_STRING ServiceName,
-        _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
-        _Inout_ PULONG ServiceSidLength
-        );
-    static _RtlCreateServiceSid RtlCreateServiceSid_I = NULL;
+    static typeof(&RtlCreateServiceSid) RtlCreateServiceSid_I = NULL;
     UNICODE_STRING serviceName;
     NTSTATUS status;
 

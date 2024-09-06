@@ -348,6 +348,8 @@ VOID PhLargeIntegerToSystemTime(
 #else
     TIME_FIELDS timeFields;
 
+    RtlZeroMemory(&timeFields, sizeof(TIME_FIELDS));
+
     RtlTimeToTimeFields(LargeInteger, &timeFields);
     SystemTime->wYear = timeFields.Year;
     SystemTime->wMonth = timeFields.Month;
@@ -439,11 +441,7 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
-        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
-        _In_ CONST SYSTEMTIME * lpUniversalTime,
-        _Out_ LPSYSTEMTIME lpLocalTime
-        ) = NULL;
+    static typeof(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2140,13 +2138,29 @@ NTSTATUS PhFormatGuidToBuffer(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS (NTAPI* RtlStringFromGUIDEx_I)(
-        _In_ PGUID Guid,
-        _Inout_ PUNICODE_STRING GuidString,
-        _In_ BOOLEAN AllocateGuidString
-        ) = NULL;
+    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
+
+    if (WindowsVersion < WINDOWS_10)
+    {
+        PPH_STRING guid = PhFormatGuid(Guid);
+
+        if (BufferLength < guid->Length)
+        {
+            if (ReturnLength)
+                *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+            PhDereferenceObject(guid);
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        memcpy(Buffer, guid->Buffer, BufferLength);
+
+        if (ReturnLength)
+            *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+        PhDereferenceObject(guid);
+        return STATUS_SUCCESS;
+    }
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2985,12 +2999,12 @@ NTSTATUS PhGetFullPath(
     if (returnLength > fullPathLength)
     {
         PhDereferenceObject(fullPath);
-        fullPathLength = returnLength;
+        fullPathLength = returnLength * sizeof(WCHAR);
         fullPath = PhCreateStringEx(NULL, fullPathLength);
 
         status = RtlGetFullPathName_UEx(
             FileName,
-            fullPathLength,
+            (ULONG)fullPath->Length,
             fullPath->Buffer,
             &filePart,
             &returnLength
@@ -3342,28 +3356,11 @@ PPH_STRING PhGetApplicationFileName(
         return PhReferenceObject(fileName);
     }
 
-#if (PH_NATIVE_FILENAME)
-    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
-    {
-        if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
-        {
-            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
-            {
-                if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
-                {
-                    PPH_STRING fullPath;
-
-                    if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
-                    {
-                        PhMoveReference(&fileName, fullPath);
-                    }
-
-                    PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
-                }
-            }
-        }
-    }
-#else
+    if (
+        !NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)) ||
+        !NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)) ||
+        !NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName))
+        )
     {
         if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
         {
@@ -3377,16 +3374,14 @@ PPH_STRING PhGetApplicationFileName(
             PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
         }
     }
-#endif
 
-    if (fileName)
+    if (!InterlockedCompareExchangePointer(
+        &cachedFileName,
+        fileName,
+        NULL
+        ))
     {
-        PPH_STRING previousFileName;
-
         PhReferenceObject(fileName);
-
-        if (previousFileName = InterlockedExchangePointer(&cachedFileName, fileName))
-            PhDereferenceObject(previousFileName);
     }
 
     return fileName;
@@ -3400,7 +3395,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
     )
 {
     static PPH_STRING cachedFileName = NULL;
-    PPH_STRING fileName = NULL;
+    PPH_STRING fileName;
 
     if (fileName = InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -3411,7 +3406,6 @@ PPH_STRING PhGetApplicationFileNameWin32(
         return PhReferenceObject(fileName);
     }
 
-#if (PH_NATIVE_FILENAME)
     if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
     {
         if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
@@ -3423,28 +3417,14 @@ PPH_STRING PhGetApplicationFileNameWin32(
             PhMoveReference(&fileName, PhGetFileName(fileName));
         }
     }
-#else
+
+    if (!InterlockedCompareExchangePointer(
+        &cachedFileName,
+        fileName,
+        NULL
+        ))
     {
-        if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
-        {
-            PPH_STRING fullPath;
-
-            if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
-            {
-                PhMoveReference(&fileName, fullPath);
-            }
-        }
-    }
-#endif
-
-    if (fileName)
-    {
-        PPH_STRING previousFileName;
-
         PhReferenceObject(fileName);
-
-        if (previousFileName = InterlockedExchangePointer(&cachedFileName, fileName))
-            PhDereferenceObject(previousFileName);
     }
 
     return fileName;
@@ -3455,7 +3435,7 @@ PPH_STRING PhGetApplicationDirectory(
     )
 {
     static PPH_STRING cachedDirectoryPath = NULL;
-    PPH_STRING directoryPath = NULL;
+    PPH_STRING directoryPath;
     PPH_STRING fileName;
 
     if (directoryPath = InterlockedCompareExchangePointer(
@@ -3486,14 +3466,13 @@ PPH_STRING PhGetApplicationDirectory(
         PhDereferenceObject(fileName);
     }
 
-    if (directoryPath)
+    if (!InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        directoryPath,
+        NULL
+        ))
     {
-        PPH_STRING previousDirectoryPath;
-
         PhReferenceObject(directoryPath);
-
-        if (previousDirectoryPath = InterlockedExchangePointer(&cachedDirectoryPath, directoryPath))
-            PhDereferenceObject(previousDirectoryPath);
     }
 
     return directoryPath;
@@ -3507,7 +3486,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
     )
 {
     static PPH_STRING cachedDirectoryPath = NULL;
-    PPH_STRING directoryPath = NULL;
+    PPH_STRING directoryPath;
     PPH_STRING fileName;
 
     if (directoryPath = InterlockedCompareExchangePointer(
@@ -3538,14 +3517,13 @@ PPH_STRING PhGetApplicationDirectoryWin32(
         PhDereferenceObject(fileName);
     }
 
-    if (directoryPath)
+    if (!InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        directoryPath,
+        NULL
+        ))
     {
-        PPH_STRING previousDirectoryPath;
-
         PhReferenceObject(directoryPath);
-
-        if (previousDirectoryPath = InterlockedExchangePointer(&cachedDirectoryPath, directoryPath))
-            PhDereferenceObject(previousDirectoryPath);
     }
 
     return directoryPath;
@@ -4424,7 +4402,7 @@ NTSTATUS PhCreateProcessWin32Ex(
     _In_opt_ PWSTR CommandLine,
     _In_opt_ PVOID Environment,
     _In_opt_ PWSTR CurrentDirectory,
-    _In_opt_ STARTUPINFO *StartupInfo,
+    _In_opt_ PVOID StartupInfo,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _Out_opt_ PCLIENT_ID ClientId,
@@ -7031,12 +7009,9 @@ PPH_STRING PhEscapeCommandLinePart(
     )
 {
     static PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
-
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
-
-    ULONG numberOfBackslashes;
 
     length = (ULONG)String->Length / sizeof(WCHAR);
     PhInitializeStringBuilder(&stringBuilder, String->Length / sizeof(WCHAR) * 3);
@@ -7308,19 +7283,22 @@ PPH_STRING PhCommandLineQuoteSpaces(
     static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
     PH_STRINGREF commandLineFileName;
     PH_STRINGREF commandLineArguments;
-    PPH_STRING escaped;
+    PPH_STRING fileNameEscaped;
+    PPH_STRING argumentsEscaped;
 
     if (!PhParseCommandLineFuzzy(CommandLine, &commandLineFileName, &commandLineArguments, NULL))
         return NULL;
 
-    escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
+    fileNameEscaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
 
     if (commandLineArguments.Length)
     {
-        PhMoveReference(&escaped, PhConcatStringRef3(&escaped->sr, &space, &commandLineArguments));
+        argumentsEscaped = PhConcatStringRef3(&seperator, &commandLineArguments, &seperator);
+        PhMoveReference(&argumentsEscaped, PhConcatStringRef3(&fileNameEscaped->sr, &space, &argumentsEscaped->sr));
+        PhMoveReference(&fileNameEscaped, PhConcatStringRef3(&seperator, &argumentsEscaped->sr, &seperator));
     }
 
-    return escaped;
+    return fileNameEscaped;
 }
 
 PPH_STRING PhSearchFilePath(
@@ -7649,7 +7627,7 @@ NTSTATUS PhGetFileData(
     ULONG dataLength;
     ULONG returnLength;
     IO_STATUS_BLOCK isb;
-    BYTE buffer[PAGE_SIZE];
+    BYTE buffer[PAGE_SIZE * 2];
 
     allocatedLength = sizeof(buffer);
     data = PhAllocate(allocatedLength);
@@ -7900,7 +7878,7 @@ HRESULT PhGetActivationFactoryDllBase(
         &activationFactory
         );
 
-    if (HR_SUCCESS(status))
+    if (SUCCEEDED(status))
     {
         status = IActivationFactory_QueryInterface(
             activationFactory,
@@ -7991,14 +7969,14 @@ HRESULT PhActivateInstanceDllBase(
         &activationFactory
         );
 
-    if (HR_SUCCESS(status))
+    if (SUCCEEDED(status))
     {
         status = IActivationFactory_ActivateInstance(
             activationFactory,
             &inspectableObject
             );
 
-        if (HR_SUCCESS(status))
+        if (SUCCEEDED(status))
         {
             status = IInspectable_QueryInterface(
                 inspectableObject,

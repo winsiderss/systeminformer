@@ -18,8 +18,10 @@
 // begin_phapppub
 // Section
 
+typedef struct _PH_MINIINFO_SECTION PH_MINIINFO_SECTION, *PPH_MINIINFO_SECTION;
+
 typedef VOID (NTAPI *PPH_MINIINFO_SET_SECTION_TEXT)(
-    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_ PPH_MINIINFO_SECTION Section,
     _In_opt_ PPH_STRING Text
     );
 
@@ -50,7 +52,7 @@ typedef enum _PH_MINIINFO_SECTION_MESSAGE
 } PH_MINIINFO_SECTION_MESSAGE;
 
 typedef BOOLEAN (NTAPI *PPH_MINIINFO_SECTION_CALLBACK)(
-    _In_ struct _PH_MINIINFO_SECTION *Section,
+    _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -88,10 +90,8 @@ typedef struct _PH_MINIINFO_SECTION
 
     // Private
 
-    struct
-    {
-        ULONG SpareFlags : 32;
-    };
+    ULONG SpareFlag;
+
     HWND DialogHandle;
     PPH_STRING Text;
 // begin_phapppub
@@ -141,8 +141,10 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MaxMiListSectionMessage
 } PH_MINIINFO_LIST_SECTION_MESSAGE;
 
+typedef struct _PH_MINIINFO_LIST_SECTION PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
+
 typedef BOOLEAN (NTAPI *PPH_MINIINFO_LIST_SECTION_CALLBACK)(
-    _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -202,7 +204,7 @@ typedef struct _PH_MINIINFO_LIST_SECTION_MENU_INFORMATION
     PPH_PROCESS_GROUP ProcessGroup;
     PPH_MINIINFO_LIST_SECTION_SORT_DATA SortData;
     PPH_TREENEW_CONTEXT_MENU ContextMenu;
-    struct _PH_EMENU_ITEM *SelectedItem;
+    PPH_EMENU_ITEM SelectedItem;
 } PH_MINIINFO_LIST_SECTION_MENU_INFORMATION, *PPH_MINIINFO_LIST_SECTION_MENU_INFORMATION;
 // end_phapppub
 

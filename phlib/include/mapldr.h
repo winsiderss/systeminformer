@@ -66,7 +66,7 @@ NTAPI
 PhGetProcedureAddress(
     _In_ PVOID DllHandle,
     _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber
+    _In_opt_ USHORT ProcedureNumber
     );
 
 PHLIBAPI

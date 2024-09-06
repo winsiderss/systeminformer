@@ -14,7 +14,7 @@
 #include <lsasup.h>
 #include <winsta.h>
 
-static PH_KEY_VALUE_PAIR PhpMessageBoxIconPairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpMessageBoxIconPairs[] =
 {
     SIP(L"None", 0),
     SIP(L"Information", MB_ICONINFORMATION),
