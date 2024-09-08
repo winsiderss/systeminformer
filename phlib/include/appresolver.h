@@ -60,10 +60,6 @@ PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     );
 
-BOOLEAN PhIsCapabilitySid(
-    _In_ PSID Sid
-    );
-
 BOOLEAN PhIsPackageCapabilitySid(
     _In_ PSID AppContainerSid,
     _In_ PSID Sid
@@ -298,6 +294,24 @@ VOID
 NTAPI
 PhDestroyEnumPackageApplicationUserModelIds(
     _In_ PPH_LIST PackageList
+    );
+
+typedef struct _PACKAGE_INFO_REFERENCE *PACKAGE_INFO_REFERENCE;
+
+typedef LONG (WINAPI* _OpenPackageInfoByFullNameForUser)(
+    _In_opt_ PSID userSid,
+    _In_ PCWSTR packageFullName,
+    _Reserved_ const UINT32 reserved,
+    _Out_ PACKAGE_INFO_REFERENCE* packageInfoReference
+    );
+typedef LONG (WINAPI* _GetPackageApplicationIds)(
+    _In_ PACKAGE_INFO_REFERENCE packageInfoReference,
+    _Inout_ PUINT32 bufferLength,
+    _Out_writes_bytes_opt_(*bufferLength) PBYTE buffer,
+    _Out_opt_ PUINT32 count
+    );
+typedef LONG (WINAPI* _ClosePackageInfo)(
+    _In_ PACKAGE_INFO_REFERENCE packageInfoReference
     );
 
 #pragma region Activation Factory
