@@ -327,10 +327,10 @@ CDetourDis::CDetourDis(_Out_opt_ PBYTE *ppbTarget, _Out_opt_ LONG *plExtra) :
     m_bOperandOverride(FALSE),
     m_bAddressOverride(FALSE),
     m_bRaxOverride(FALSE),
-    m_bF2(FALSE),
-    m_bF3(FALSE),
     m_bVex(FALSE),
-    m_bEvex(FALSE)
+    m_bEvex(FALSE),
+    m_bF2(FALSE),
+    m_bF3(FALSE)
 {
     m_ppbTarget = ppbTarget ? ppbTarget : &m_pbScratchTarget;
     m_plExtra = plExtra ? plExtra : &m_lScratchExtra;

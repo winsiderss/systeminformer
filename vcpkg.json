@@ -1,0 +1,9 @@
+{
+    "dependencies": 
+    [
+        "json-c",
+        "minizip-ng",
+        "pcre2"
+    ],
+   "builtin-baseline": "9a6da16845eca8d6ed70be416c1acbd206894c7f"
+}
