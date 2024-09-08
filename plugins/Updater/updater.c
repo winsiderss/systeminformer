@@ -81,7 +81,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context = PhCreateObjectZero(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
     context->StartupCheck = StartupCheck;
     context->Cleanup = TRUE;
-    context->PortableMode = !!ProcessHacker_IsPortableMode();
+    context->PortableMode = !!SystemInformer_IsPortableMode();
     context->Channel = PhGetPhReleaseChannel();
 
     return context;
@@ -104,7 +104,7 @@ NTSTATUS UpdateShellExecute(
     parameters = PH_AUTO(PhCreateKsiSettingsBlob());
     parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
 
-    ProcessHacker_PrepareForEarlyShutdown();
+    SystemInformer_PrepareForEarlyShutdown();
 
     status = PhShellExecuteEx(
         WindowHandle,
@@ -121,11 +121,11 @@ NTSTATUS UpdateShellExecute(
     {
         Context->Cleanup = FALSE;
 
-        ProcessHacker_Destroy();
+        SystemInformer_Destroy();
     }
     else
     {
-        ProcessHacker_CancelEarlyShutdown();
+        SystemInformer_CancelEarlyShutdown();
 
         if (status != STATUS_CANCELLED) // Ignore UAC decline.
         {
@@ -190,7 +190,7 @@ VOID TaskDialogLinkClicked(
 //    VOID
 //    )
 //{
-//    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
+//    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer");
 //    static PH_STRINGREF key2xName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
 //    HANDLE keyHandle = NULL;
 //
@@ -970,7 +970,10 @@ NTSTATUS UpdateDownloadThread(
 
         // Check the number of bytes written are the same we downloaded.
         if (bytesDownloaded != isb.Information)
+        {
+            status = STATUS_DATA_CHECKSUM_ERROR;
             goto CleanupExit;
+        }
 
 #ifdef FORCE_SLOW_STATUS_TIMER
         PhDelayExecution(1);
@@ -1028,6 +1031,10 @@ NTSTATUS UpdateDownloadThread(
     if (hashSuccess && signatureSuccess)
     {
         downloadSuccess = TRUE;
+    }
+    else
+    {
+        status = STATUS_DATA_CHECKSUM_ERROR;
     }
 
 CleanupExit:
@@ -1224,12 +1231,12 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, PhMainWindowHandle);
+            PhCenterWindow(hwndDlg, SystemInformer_GetWindowHandle());
 
             // Create the Taskdialog icons.
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1284,7 +1291,7 @@ NTSTATUS ShowUpdateDialogThread(
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
@@ -1389,7 +1396,7 @@ VOID ShowStartupUpdateDialog(
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
 CleanupExit:
     PhDereferenceObject(context);

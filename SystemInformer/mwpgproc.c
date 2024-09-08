@@ -366,6 +366,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
 }
 
 BOOLEAN PhMwpExecuteProcessPriorityCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
@@ -397,12 +398,13 @@ BOOLEAN PhMwpExecuteProcessPriorityCommand(
         return FALSE;
     }
 
-    PhUiSetPriorityProcesses(PhMainWndHandle, Processes, NumberOfProcesses, priorityClass);
+    PhUiSetPriorityProcesses(WindowHandle, Processes, NumberOfProcesses, priorityClass);
 
     return TRUE;
 }
 
 BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
@@ -428,7 +430,7 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
         return FALSE;
     }
 
-    PhUiSetIoPriorityProcesses(PhMainWndHandle, Processes, NumberOfProcesses, ioPriority);
+    PhUiSetIoPriorityProcesses(WindowHandle, Processes, NumberOfProcesses, ioPriority);
 
     return TRUE;
 }
@@ -1069,7 +1071,7 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
+    SystemInformer_Invoke(PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID PhMwpOnProcessAdded(
@@ -1269,13 +1271,15 @@ VOID PhMwpOnProcessesUpdated(
     // We have to invalidate the text on each update.
     PhTickProcessNodes();
 
-    if (PhPluginsEnabled)
+    if (count != 0)
     {
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
+        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
     }
 
-    if (count != 0)
-        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
+    if (PhPluginsEnabled)
+    {
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), UlongToPtr(RunId));
+    }
 
     if (NeedsSelectPid != 0)
     {

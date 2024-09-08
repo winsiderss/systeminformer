@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2008-2016
+ *     dmex    2017-2024
+ *
+ */
+
 #ifndef _PH_TREENEW_H
 #define _PH_TREENEW_H
 
@@ -6,9 +18,6 @@ extern "C" {
 #endif
 
 #define PH_TREENEW_CLASSNAME L"PhTreeNew"
-
-#define PH_TREENEW_SEARCH_TIMEOUT 1000
-#define PH_TREENEW_SEARCH_MAXIMUM_LENGTH 1023
 
 typedef struct _PH_TREENEW_CREATEPARAMS
 {
@@ -122,6 +131,9 @@ typedef struct _PH_TREENEW_NODE
 // Callback flags
 #define TN_CACHE 0x1
 #define TN_AUTO_FORECOLOR 0x1000
+
+// Column display flags
+#define TN_COLUMN_FIXED -2
 
 // Column change flags
 #define TN_COLUMN_CONTEXT 0x1
@@ -317,6 +329,7 @@ typedef struct _PH_TREENEW_CUSTOM_DRAW
     HDC Dc;
     RECT CellRect;
     RECT TextRect;
+    ULONG Flags;
 } PH_TREENEW_CUSTOM_DRAW, *PPH_TREENEW_CUSTOM_DRAW;
 
 typedef struct _PH_TREENEW_MOUSE_EVENT
@@ -333,6 +346,12 @@ typedef struct _PH_TREENEW_KEY_EVENT
     ULONG VirtualKey;
     ULONG Data;
 } PH_TREENEW_KEY_EVENT, *PPH_TREENEW_KEY_EVENT;
+
+typedef struct _PH_TREENEW_SORT_CHANGED_EVENT
+{
+    ULONG SortColumn;
+    PH_SORT_ORDER SortOrder;
+} PH_TREENEW_SORT_CHANGED_EVENT, *PPH_TREENEW_SORT_CHANGED_EVENT;
 
 typedef struct _PH_TREENEW_NODE_EVENT
 {
@@ -358,6 +377,9 @@ typedef struct _PH_TREENEW_HEADER_MOUSE_EVENT
     POINT HeaderLocation;
     PPH_TREENEW_COLUMN Column;
 } PH_TREENEW_HEADER_MOUSE_EVENT, *PPH_TREENEW_HEADER_MOUSE_EVENT;
+
+#define PH_TREENEW_SEARCH_TIMEOUT 1000
+#define PH_TREENEW_SEARCH_MAXIMUM_LENGTH 1023
 
 typedef struct _PH_TREENEW_SEARCH_EVENT
 {
@@ -435,7 +457,9 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_ENSUREVISIBLEINDEX (WM_USER + 49)
 #define TNM_GETVISIBLECOLUMN (WM_USER + 50)
 #define TNM_GETVISIBLECOLUMNARRAY (WM_USER + 51)
-#define TNM_LAST (WM_USER + 52)
+#define TNM_GETSELECTEDCOUNT (WM_USER + 52)
+#define TNM_FOCUSMARKSELECT (WM_USER + 53)
+#define TNM_LAST (WM_USER + 54)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -583,6 +607,12 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 
 #define TreeNew_GetVisibleColumnArray(hWnd, Count, ColumnArray) \
     ((BOOLEAN)SendMessage((hWnd), TNM_GETVISIBLECOLUMNARRAY, (WPARAM)(Count), (LPARAM)(ColumnArray)))
+
+#define TreeNew_GetSelectedNodeCount(hWnd) \
+    ((ULONG)SendMessage((hWnd), TNM_GETSELECTEDCOUNT, 0, 0))
+
+#define TreeNew_FocusMarkSelectNode(hWnd, Node) \
+    SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

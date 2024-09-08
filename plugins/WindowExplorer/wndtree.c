@@ -100,9 +100,8 @@ VOID WeInitializeWindowTree(
     Context->TreeNewHandle = TreeNewHandle;
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(TreeNewHandle, WepWindowTreeNewCallback, Context);
-
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
+    TreeNew_SetCallback(TreeNewHandle, WepWindowTreeNewCallback, Context);
 
     PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
@@ -110,25 +109,15 @@ VOID WeInitializeWindowTree(
     PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
 
-    TreeNew_SetRedraw(TreeNewHandle, TRUE);
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->FilterSupport, WeWindowTreeFilterCallback, Context);
+
     TreeNew_SetTriState(TreeNewHandle, TRUE);
-    TreeNew_SetSort(TreeNewHandle, WEWNTLC_CLASS, NoSortOrder);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
     settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
     PhCmLoadSettings(TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
-
-    PhInitializeTreeNewFilterSupport(
-        &Context->FilterSupport,
-        Context->TreeNewHandle,
-        Context->NodeList
-        );
-
-    Context->TreeFilterEntry = PhAddTreeNewFilter(
-        &Context->FilterSupport,
-        WeWindowTreeFilterCallback,
-        Context
-        );
 }
 
 VOID WeDeleteWindowTree(
@@ -139,7 +128,6 @@ VOID WeDeleteWindowTree(
     ULONG i;
 
     PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
-
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
@@ -510,7 +498,11 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -708,8 +700,5 @@ VOID WeSelectAndEnsureVisibleWindowNodes(
     if (needsRestructure)
         TreeNew_NodesStructured(Context->TreeNewHandle);
 
-    TreeNew_SetFocusNode(Context->TreeNewHandle, &leader->Node);
-    TreeNew_SetMarkNode(Context->TreeNewHandle, &leader->Node);
-    TreeNew_EnsureVisible(Context->TreeNewHandle, &leader->Node);
-    TreeNew_InvalidateNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_FocusMarkSelectNode(Context->TreeNewHandle, &leader->Node);
 }

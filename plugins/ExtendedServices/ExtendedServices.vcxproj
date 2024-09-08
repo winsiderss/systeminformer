@@ -122,9 +122,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ExtendedServices.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CHANGELOG.txt" />
+    <ResourceCompile Include="version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

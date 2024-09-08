@@ -254,8 +254,8 @@ VOID InitializeFwTreeList(
     InitializeFwTreeListDpi(FwTreeNewHandle);
 
     PhSetControlTheme(FwTreeNewHandle, L"explorer");
-    TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
+    TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
 
     PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, FW_COLUMN_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ACTION, TRUE, L"Action", 70, PH_ALIGN_LEFT, FW_COLUMN_ACTION, 0);
@@ -282,13 +282,13 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"Local port service", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"Remote port service", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
 
-    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
+    PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
+
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
+    TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
 
     LoadSettingsFwTreeList(TreeNewHandle);
-
-    PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
     if (EtFwToolStatusInterface)
     {
@@ -309,6 +309,33 @@ VOID InitializeFwTreeListDpi(
     FwTreeIconHeightPadding = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
     FwTreeLeftMarginPadding = PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
     FwTreeRightMarginPadding = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
+}
+
+VOID LoadSettingsFwTreeUpdateMask(
+    VOID
+    )
+{
+    PH_TREENEW_COLUMN column;
+    BOOLEAN current;
+
+    current = BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
+
+    if (
+        (TreeNew_GetColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, &column) && column.Visible) ||
+        (TreeNew_GetColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, &column) && column.Visible)
+        )
+    {
+        SetFlag(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
+    }
+    else
+    {
+        ClearFlag(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
+    }
+
+    //if (NextUniqueId != 0 && current != BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
+    //{
+    //    PhInvalidateAllNetworkNodesHostnames();
+    //}
 }
 
 VOID LoadSettingsFwTreeList(
@@ -1339,7 +1366,11 @@ BOOLEAN NTAPI FwTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(WindowHandle, &FwTreeNewSortColumn, &FwTreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            FwTreeNewSortColumn = sorting->SortColumn;
+            FwTreeNewSortOrder = sorting->SortOrder;
+
             TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
@@ -1535,10 +1566,7 @@ VOID EtFwSelectAndEnsureVisibleFwNode(
     if (!FwNode->Node.Visible)
         return;
 
-    TreeNew_SetFocusNode(FwTreeNewHandle, &FwNode->Node);
-    TreeNew_SetMarkNode(FwTreeNewHandle, &FwNode->Node);
-    TreeNew_SelectRange(FwTreeNewHandle, FwNode->Node.Index, FwNode->Node.Index);
-    TreeNew_EnsureVisible(FwTreeNewHandle, &FwNode->Node);
+    TreeNew_FocusMarkSelectNode(FwTreeNewHandle, &FwNode->Node);
 }
 
 VOID EtFwCopyFwList(
@@ -1818,7 +1846,7 @@ VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(OnFwItemsUpdated, FwRunCount);
+    SystemInformer_Invoke(OnFwItemsUpdated, FwRunCount);
 }
 
 VOID NTAPI OnFwItemsUpdated(

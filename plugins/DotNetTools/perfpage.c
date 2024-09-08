@@ -134,7 +134,7 @@ typedef struct _PERFPAGE_CONTEXT
             BOOLEAN Enabled : 1;
             BOOLEAN ControlBlockValid : 1;
             BOOLEAN ClrV4 : 1;
-            BOOLEAN IsWow64 : 1;
+            BOOLEAN IsWow64Process : 1;
             BOOLEAN Spare : 4;
         };
     };
@@ -592,7 +592,7 @@ VOID DotNetPerfAddListViewGroups(
     if (Context->ClrV4)
     {
         PPH_LIST processAppDomains = QueryDotNetAppDomainsForPid_V4(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->ProcessHandle,
             Context->ProcessItem->ProcessId
             );
@@ -611,7 +611,7 @@ VOID DotNetPerfAddListViewGroups(
     else
     {
         PPH_LIST processAppDomains = QueryDotNetAppDomainsForPid_V2(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->ProcessHandle,
             Context->ProcessItem->ProcessId
             );
@@ -641,14 +641,14 @@ VOID DotNetPerfUpdateCounterData(
     if (Context->ClrV4)
     {
         perfStatBlock = GetPerfIpcBlock_V4(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->BlockTableAddress
             );
     }
     else
     {
         perfStatBlock = GetPerfIpcBlock_V2(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->BlockTableAddress
             );
     }
@@ -656,7 +656,7 @@ VOID DotNetPerfUpdateCounterData(
     if (!perfStatBlock)
         return;
 
-    if (Context->IsWow64)
+    if (Context->IsWow64Process)
     {
         PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
         Perf_GC_Wow64 dotNetPerfGC_Wow64 = perfBlock->GC;
@@ -776,10 +776,10 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhLoadListViewGroupStatesFromSetting(SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, context->CountersListViewHandle);
 
 #ifdef _WIN64
-            context->IsWow64 = !!context->ProcessItem->IsWow64;
+            context->IsWow64Process = !!context->ProcessItem->IsWow64Process;
 #else
             // HACK: Work-around for Appdomain enumeration on 32bit.
-            context->IsWow64 = TRUE;
+            context->IsWow64Process = TRUE;
 #endif
 
             if (NT_SUCCESS(PhOpenProcess(

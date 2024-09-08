@@ -125,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetworkTools.rc" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\ad.png" />

@@ -1044,6 +1044,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhTickModuleNodes(&modulesContext->ListContext);
 
+            if (count != 0)
+                TreeNew_SetRedraw(modulesContext->TreeNewHandle, TRUE);
+
+            // Refresh the visible nodes.
+            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+
             if (modulesContext->LastRunStatus != modulesContext->Provider->RunStatus)
             {
                 NTSTATUS status;
@@ -1069,12 +1075,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                 InvalidateRect(modulesContext->TreeNewHandle, NULL, FALSE);
             }
-
-            // Refresh the visible nodes.
-            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
-
-            if (count != 0)
-                TreeNew_SetRedraw(modulesContext->TreeNewHandle, TRUE);
         }
         break;
     }

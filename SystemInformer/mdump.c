@@ -45,7 +45,7 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
         BOOLEAN Flags;
         struct
         {
-            BOOLEAN IsWow64 : 1;
+            BOOLEAN IsWow64Process : 1;
             BOOLEAN IsProcessSnapshot : 1;
             BOOLEAN Stop : 1;
             BOOLEAN Succeeded : 1;
@@ -226,7 +226,7 @@ VOID PhUiCreateDumpFileProcess(
 
 #ifdef _WIN64
     PhGetProcessIsWow64(context->ProcessHandle, &isWow64);
-    context->IsWow64 = !!isWow64;
+    context->IsWow64Process = !!isWow64;
 #endif
 
     status = PhCreateFileWin32(
@@ -428,7 +428,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     callbackInfo.CallbackParam = context;
 
 #ifdef _WIN64
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
@@ -494,8 +494,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
 
             if (NT_SUCCESS(PhCreateProcessSnapshot(
                 &snapshotHandle,
-                context->ProcessHandle,
-                context->ProcessId
+                context->ProcessHandle
                 )))
             {
                 processSnapshotHandle = snapshotHandle;
@@ -504,7 +503,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
     }
 
-    if (context->EnableProcessSnapshot && context->IsProcessSnapshot)
+    if (context->EnableProcessSnapshot && context->IsProcessSnapshot && processSnapshotHandle)
         processHandle = processSnapshotHandle;
     else
         processHandle = context->ProcessHandle;
@@ -744,7 +743,7 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             context->WindowHandle = hwndDlg;
 
@@ -814,7 +813,7 @@ NTSTATUS PhpProcessMiniDumpTaskDialogThread(
     config.pszContent = L"Creating the minidump file...";
     config.cxWidth = 200;
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhDereferenceObject(context);
 

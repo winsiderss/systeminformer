@@ -435,8 +435,7 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
     NTSTATUS status;
     BOOLEAN tokenIsUIAccess;
     ULONG sessionId;
-    ULONG processId;
-    HWND windowHandle;
+    CLIENT_ID desktopId;
     PPH_STRING fileName;
 
     if (!PhGetOwnTokenAttributes().Elevated)
@@ -455,13 +454,12 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
     if (PhIsNullOrEmptyString(fileName))
         return STATUS_UNSUCCESSFUL;
 
-    // Query the user desktop from the current shell window.
+    // Query the process from the current desktop.
 
-    if (!(windowHandle = GetShellWindow()))
-        return STATUS_UNSUCCESSFUL;
+    status = PhGetWindowClientId(GetDesktopWindow(), &desktopId);
 
-    if (!GetWindowThreadProcessId(windowHandle, &processId))
-        return STATUS_UNSUCCESSFUL;
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Query the session from the current process.
 
@@ -472,11 +470,11 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
 
     status = PhExecuteRunAsCommand3(
         NULL,
-        fileName->Buffer,
+        PhGetString(fileName),
         NULL,
         NULL,
         LOGON32_LOGON_INTERACTIVE,
-        UlongToHandle(processId),
+        desktopId.UniqueProcess,
         sessionId,
         NULL,
         TRUE,

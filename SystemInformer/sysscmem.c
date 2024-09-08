@@ -822,17 +822,11 @@ VOID PhSipUpdateMemoryGraphs(
 {
     CommitGraphState.Valid = FALSE;
     CommitGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(CommitGraphHandle, 1);
-    Graph_Draw(CommitGraphHandle);
-    Graph_UpdateTooltip(CommitGraphHandle);
-    InvalidateRect(CommitGraphHandle, NULL, FALSE);
+    Graph_Update(CommitGraphHandle);
 
     PhysicalGraphState.Valid = FALSE;
     PhysicalGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(PhysicalGraphHandle, 1);
-    Graph_Draw(PhysicalGraphHandle);
-    Graph_UpdateTooltip(PhysicalGraphHandle);
-    InvalidateRect(PhysicalGraphHandle, NULL, FALSE);
+    Graph_Update(PhysicalGraphHandle);
 }
 
 VOID PhSipUpdateMemoryPanel(

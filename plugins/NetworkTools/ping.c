@@ -390,7 +390,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 0,
                 hwndDlg,
                 NULL,
-                NULL,
+                PluginInstance->DllBase,
                 NULL
                 );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);
@@ -720,7 +720,7 @@ NTSTATUS NetworkPingDialogThreadStart(
         {
             if (message.wParam == VK_F5)
             {
-                ProcessHacker_Refresh();  // forward key messages (dmex)
+                SystemInformer_Refresh();  // forward key messages (dmex)
             }
         }
 

@@ -102,7 +102,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
 
     if (NT_SUCCESS(PhGetProcessIsDotNetEx(
         propContext->ProcessItem->ProcessId,
-        NULL,
+        propContext->ProcessItem->QueryHandle,
         propContext->ProcessItem->IsImmersive ? 0 : PH_CLR_USE_SECTION_CHECK,
         &isDotNet,
         &flags
@@ -221,7 +221,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L".NET Tools";
-            info->Author = L"dmex, wj32";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
 
             //PhRegisterCallback(

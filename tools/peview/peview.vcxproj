@@ -443,6 +443,7 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="..\..\kphlib\include\sistatus.rc" />
     <ResourceCompile Include="peview.rc" />
     <ResourceCompile Include="version.rc" />
   </ItemGroup>

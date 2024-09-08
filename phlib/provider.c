@@ -436,7 +436,7 @@ BOOLEAN PhGetEnabledProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    return Registration->Enabled;
+    return !!Registration->Enabled;
 }
 
 /**

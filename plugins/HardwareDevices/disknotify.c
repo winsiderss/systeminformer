@@ -68,7 +68,7 @@ VOID AddRemoveDeviceChangeCallback(
     )
 {
     // We get called during the plugin LoadCallback, don't do anything.
-    if (!PhMainWndHandle)
+    if (!SystemInformer_GetWindowHandle())
         return;
 
     // Add the subclass only when disks are being monitored, remove when no longer needed.

@@ -427,14 +427,14 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendFormatStringBuilder(
                 &notes,
                 L"    Low Image Coherency: %.2f%%\n",
-                (DOUBLE)(Process->ImageCoherency * 100.0f)
+                (Process->ImageCoherency * 100.0f)
                 );
         }
 
         if ((ULONG_PTR)Process->ConsoleHostProcessId & ~3)
         {
             CLIENT_ID clientId;
-            PWSTR description = L"Console host";
+            PWSTR description;
             PPH_STRING clientIdString;
 
             clientId.UniqueProcess = (HANDLE)((ULONG_PTR)Process->ConsoleHostProcessId & ~3);
@@ -442,6 +442,8 @@ PPH_STRING PhGetProcessTooltipText(
 
             if ((ULONG_PTR)Process->ConsoleHostProcessId & 2)
                 description = L"Console application";
+            else
+                description = L"Console host";
 
             clientIdString = PhGetClientIdName(&clientId);
             PhAppendFormatStringBuilder(&notes, L"    %s: %s\n", description, clientIdString->Buffer);
@@ -472,7 +474,7 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
-        if (Process->IsWow64)
+        if (Process->IsWow64Process)
             PhAppendStringBuilder2(&notes, L"    Process is 32-bit (WOW64).\n");
 
         if (notes.String->Length != 0)
@@ -518,7 +520,7 @@ VOID PhpFillUmdfDrivers(
 
 #ifdef _WIN64
     // Just in case.
-    if (Process->IsWow64)
+    if (Process->IsWow64Process)
         flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
 #endif
 

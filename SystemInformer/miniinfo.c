@@ -1026,7 +1026,7 @@ VOID PhMipRefresh(
     )
 {
     if (PhMipPinned)
-        ProcessHacker_Refresh();
+        SystemInformer_Refresh();
 
     PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
 }
@@ -1369,8 +1369,12 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
         break;
     case WM_DESTROY:
         {
-            PhDeleteLayoutManager(&listSection->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhDeleteLayoutManager(&listSection->LayoutManager);
+
+            listSection->TreeNewHandle = NULL;
+            listSection->DialogHandle = NULL;
         }
         break;
     case WM_SIZE:
@@ -1962,8 +1966,8 @@ VOID PhMipHandleListSectionCommand(
             PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
 
-            ProcessHacker_ToggleVisible(TRUE);
-            ProcessHacker_SelectTabPage(0);
+            SystemInformer_ToggleVisible(TRUE);
+            SystemInformer_SelectTabPage(0);
             PhSelectAndEnsureVisibleProcessNodes((PPH_PROCESS_NODE*)nodes->Items, nodes->Count);
             PhDereferenceObject(nodes);
 

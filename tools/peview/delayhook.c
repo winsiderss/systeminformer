@@ -17,7 +17,7 @@
 #include <uxtheme.h>
 
 #include "settings.h"
-#include "../thirdparty/detours/detours.h"
+#include <thirdparty.h>
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;

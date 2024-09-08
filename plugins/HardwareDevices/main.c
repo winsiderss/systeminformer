@@ -684,7 +684,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Hardware Devices";
-            info->Author = L"dmex, wj32, jxy-s";
             info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adapters via the System Information window.";
 
             PhRegisterCallback(

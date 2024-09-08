@@ -114,8 +114,23 @@ PHAPPAPI
 PPH_SERVICE_ITEM
 NTAPI
 PhReferenceServiceItem(
-    _In_ PWSTR Name
+    _In_ PPH_STRINGREF Name
     );
+
+FORCEINLINE
+PPH_SERVICE_ITEM
+NTAPI
+PhReferenceServiceItemZ(
+    _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRefLongHint(&name, Name);
+
+    return PhReferenceServiceItem(&name);
+}
+
 // end_phapppub
 
 VOID PhMarkNeedsConfigUpdateServiceItem(

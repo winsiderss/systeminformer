@@ -68,6 +68,32 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
     return item;
 }
 
+PPH_EMENU_ITEM PhCreateEMenuItemCallback(
+    _In_ ULONG Flags,
+    _In_ ULONG Id,
+    _In_opt_ PWSTR Text,
+    _In_opt_ HBITMAP Bitmap,
+    _In_opt_ PVOID Context,
+    _In_opt_ PPH_EMENU_ITEM_DELAY_FUNCTION DelayFunction
+    )
+{
+    PPH_EMENU_ITEM item;
+    PPH_EMENU_ITEM delay;
+
+    item = PhAllocateZero(sizeof(PH_EMENU_ITEM));
+    item->Flags = Flags;
+    item->Id = Id;
+    item->Text = Text;
+    item->Bitmap = Bitmap;
+    item->Context = Context;
+    item->DelayFunction = DelayFunction;
+
+    delay = PhCreateEMenuItem(0, USHRT_MAX, L" ", NULL, NULL);
+    PhInsertEMenuItem(item, delay, ULONG_MAX);
+
+    return item;
+}
+
 /**
  * Frees resources used by a menu item and its children.
  *
@@ -280,7 +306,7 @@ VOID PhInsertEMenuItem(
         PhRemoveEMenuItem(Item->Parent, Item, 0);
 
     if (!Parent->Items)
-        Parent->Items = PhCreateList(16);
+        Parent->Items = PhCreateList(5);
 
     if (Index > Parent->Items->Count)
         Index = Parent->Items->Count;
@@ -367,7 +393,7 @@ PPH_EMENU PhCreateEMenu(
 
     menu = PhAllocate(sizeof(PH_EMENU));
     memset(menu, 0, sizeof(PH_EMENU));
-    menu->Items = PhCreateList(16);
+    menu->Items = PhCreateList(5);
 
     return menu;
 }
@@ -400,7 +426,7 @@ VOID PhInitializeEMenuData(
     _Out_ PPH_EMENU_DATA Data
     )
 {
-    Data->IdToItem = PhCreateList(16);
+    Data->IdToItem = PhCreateList(5);
 }
 
 /**
@@ -553,10 +579,13 @@ VOID PhEMenuToHMenu2(
         }
         else
         {
-            if (item->Id)
+            if (!(Menu->Flags & PH_EMENU_SEPARATOR) && !(Menu->Flags & PH_EMENU_MAINMENU))
             {
-                menuItemInfo.fMask |= MIIM_ID;
-                menuItemInfo.wID = item->Id;
+                if (item->Id)
+                {
+                    menuItemInfo.fMask |= MIIM_ID;
+                    menuItemInfo.wID = item->Id;
+                }
             }
         }
 
@@ -937,8 +966,8 @@ _Success_(return)
 BOOLEAN PhGetHMenuStringToBuffer(
     _In_ HMENU Menu,
     _In_ ULONG Id,
-    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
-    _In_opt_ SIZE_T BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
@@ -958,4 +987,49 @@ BOOLEAN PhGetHMenuStringToBuffer(
     }
 
     return FALSE;
+}
+
+PPH_EMENU_ITEM PhGetMenuData(
+    _In_ HMENU Menu,
+    _In_ ULONG Index
+    )
+{
+    MENUITEMINFO menuItemInfo;
+
+    memset(&menuItemInfo, 0, sizeof(MENUITEMINFO));
+    menuItemInfo.cbSize = sizeof(MENUITEMINFO);
+    menuItemInfo.fMask = MIIM_ID | MIIM_DATA;
+    menuItemInfo.wID = 0;
+
+    if (GetMenuItemInfo(Menu, Index, TRUE, &menuItemInfo))
+    {
+        return (PPH_EMENU_ITEM)menuItemInfo.dwItemData;
+    }
+
+    return NULL;
+}
+
+VOID PhMenuCallbackDispatch(
+    _In_ HMENU Menu,
+    _In_ ULONG Index
+    )
+{
+    PPH_EMENU_ITEM item;
+    HMENU menu;
+
+    if (item = PhGetMenuData(Menu, Index))
+    {
+        if (!FlagOn(item->Flags, PH_EMENU_CALLBACK))
+        {
+            SetFlag(item->Flags, PH_EMENU_CALLBACK);
+
+            if (item->DelayFunction)
+            {
+                if (menu = GetSubMenu(Menu, Index))
+                {
+                    item->DelayFunction(menu, item);
+                }
+            }
+        }
+    }
 }

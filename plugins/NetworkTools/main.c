@@ -1013,7 +1013,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Network Tools";
-            info->Author = L"dmex, wj32";
             info->Description = L"Provides ping, traceroute and whois for network connections.";
             info->Interface = &PluginInterface;
 

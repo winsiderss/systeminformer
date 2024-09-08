@@ -261,6 +261,7 @@ typedef struct _PH_PROCESS_NODE
     WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     PPH_STRING RelativeStartTimeText;
     PPH_STRING WindowTitleText;
+    PPH_STRING DepStatusText;
     PPH_STRING CyclesText;
     PPH_STRING CyclesDeltaText;
     PPH_STRING ContextSwitchesText;
@@ -295,6 +296,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING GrantedAccessText;
     PPH_STRING TlsBitmapDeltaText;
     PPH_STRING ReferenceCountText;
+    PPH_STRING LxssProcessIdText;
+    PPH_STRING ProcessStartKeyText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

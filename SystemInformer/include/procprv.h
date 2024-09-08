@@ -203,7 +203,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsPacked : 1;
             ULONG IsHandleValid : 1;
             ULONG IsSuspended : 1;
-            ULONG IsWow64 : 1;
+            ULONG IsWow64Process : 1;
             ULONG IsImmersive : 1;
             ULONG IsPartiallySuspended : 1;
             ULONG IsProtectedHandle : 1;
@@ -211,12 +211,18 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG IsPackagedProcess : 1;
+            ULONG IsBackgroundProcess : 1;
+            ULONG IsCrossSessionProcess : 1;
+            ULONG IsReflectedProcess : 1;
+            ULONG IsFrozenProcess : 1;
             ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 10;
+            ULONG IsPowerThrottling : 1;
+            ULONG IsSystemProcess : 1;
+            ULONG Spare : 4;
         };
     };
 
@@ -232,8 +238,6 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdHexString[PH_PTR_STR_LEN_1];
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
-    WCHAR LxssProcessIdString[PH_INT32_STR_LEN_1];
-    WCHAR ProcessStartKeyString[PH_PTR_STR_LEN_1];
 
     // Dynamic
 

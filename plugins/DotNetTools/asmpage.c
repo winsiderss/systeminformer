@@ -127,7 +127,7 @@ typedef struct _ASMPAGE_QUERY_CONTEXT
     PASMPAGE_CONTEXT PageContext;
 
     HANDLE ProcessId;
-    ULONG IsWow64;
+    ULONG IsWow64Process;
     ULONG ClrVersions;
     PDNA_NODE ClrV2Node;
 
@@ -971,9 +971,9 @@ VOID DotNetAsmInitializeTreeList(
     Context->NodeRootList = PhCreateList(2);
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_SetCallback(Context->TreeNewHandle, DotNetAsmTreeNewCallback, Context);
     SendMessage(TreeNew_GetTooltips(Context->TreeNewHandle), TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
-    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_STRUCTURE, TRUE, L"Structure", 240, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_ADDRESS, TRUE, L"Address", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
@@ -983,23 +983,13 @@ VOID DotNetAsmInitializeTreeList(
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_BASEADDRESS, FALSE, L"Base address", 100, PH_ALIGN_LEFT, 5, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_MVID, FALSE, L"MVID", 100, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
 
-    DotNetAsmLoadSettingsTreeList(Context);
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, DotNetAsmTreeFilterCallback, Context);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-    TreeNew_SetSort(Context->TreeNewHandle, DNATNC_STRUCTURE, NoSortOrder);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
-    PhInitializeTreeNewFilterSupport(
-        &Context->TreeFilterSupport,
-        Context->TreeNewHandle,
-        Context->NodeList
-        );
-
-    Context->TreeFilterEntry = PhAddTreeNewFilter(
-        &Context->TreeFilterSupport,
-        DotNetAsmTreeFilterCallback,
-        Context
-        );
+    DotNetAsmLoadSettingsTreeList(Context);
 }
 
 VOID DotNetAsmDeleteTree(
@@ -1598,7 +1588,7 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
     BOOLEAN success = FALSE;
 
 #ifdef _WIN64
-    if (Context->IsWow64)
+    if (Context->IsWow64Process)
     {
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
@@ -1789,7 +1779,7 @@ VOID CreateDotNetTraceQueryThread(
     context = DotNetCreateQueryContext();
     context->PageContext = Context;
     context->ProcessId = ProcessId;
-    context->IsWow64 = Context->ProcessItem->IsWow64;
+    context->IsWow64Process = Context->ProcessItem->IsWow64Process;
     context->NodeList = PhCreateList(64);
     context->NodeRootList = PhCreateList(2);
 

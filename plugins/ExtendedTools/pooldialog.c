@@ -16,55 +16,13 @@ static HWND EtPoolTagDialogHandle = NULL;
 static HANDLE EtPoolTagDialogThreadHandle = NULL;
 static PH_EVENT EtPoolTagDialogInitializedEvent = PH_EVENT_INIT;
 
-NTSTATUS EtEnumPoolTagTable(
-    _Out_ PVOID* Buffer
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG attempts;
-
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
-
-    status = NtQuerySystemInformation(
-        SystemPoolTagInformation,
-        buffer,
-        bufferSize,
-        &bufferSize
-        );
-    attempts = 0;
-
-    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
-
-        status = NtQuerySystemInformation(
-            SystemPoolTagInformation,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-        attempts++;
-    }
-
-    if (NT_SUCCESS(status))
-        *Buffer = buffer;
-    else
-        PhFree(buffer);
-
-    return status;
-}
-
 VOID EtUpdatePoolTagTable(
     _Inout_ PPOOLTAG_CONTEXT Context
     )
 {
     PSYSTEM_POOLTAG_INFORMATION poolTagTable;
 
-    if (!NT_SUCCESS(EtEnumPoolTagTable(&poolTagTable)))
+    if (!NT_SUCCESS(PhEnumPoolTagInformation(&poolTagTable)))
         return;
 
     for (ULONG i = 0; i < poolTagTable->Count; i++)

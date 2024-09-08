@@ -836,6 +836,7 @@ VOID WhoisParseAddressString(
             )))
         {
             Context->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+            Context->RemoteAddressValid = TRUE;
         }
     }
     else
@@ -849,6 +850,7 @@ VOID WhoisParseAddressString(
             )))
         {
             Context->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+            Context->RemoteAddressValid = TRUE;
         }
     }
 }

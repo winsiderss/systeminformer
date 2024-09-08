@@ -223,7 +223,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Window Explorer";
-            info->Author = L"dmex, wj32";
             info->Description = L"View and manipulate windows.";
 
             //PhRegisterCallback(

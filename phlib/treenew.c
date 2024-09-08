@@ -40,21 +40,19 @@ BOOLEAN PhTreeNewInitialization(
     VOID
     )
 {
-    WNDCLASSEX c = { sizeof(c) };
+    WNDCLASSEX wcex;
 
-    c.style = CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
-    c.lpfnWndProc = PhTnpWndProc;
-    c.cbClsExtra = 0;
-    c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhInstanceHandle;
-    c.hIcon = NULL;
-    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    c.hbrBackground = NULL;
-    c.lpszMenuName = NULL;
-    c.lpszClassName = PH_TREENEW_CLASSNAME;
-    c.hIconSm = NULL;
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
+    wcex.lpfnWndProc = PhTnpWndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = sizeof(PVOID);
+    wcex.hInstance = PhInstanceHandle;
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.lpszClassName = PH_TREENEW_CLASSNAME;
 
-    if (!RegisterClassEx(&c))
+    if (RegisterClassEx(&wcex) == INVALID_ATOM)
         return FALSE;
 
     return TRUE;
@@ -99,8 +97,10 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_NCDESTROY:
         {
             context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
-            PhTnpDestroyTreeNewContext(context);
+
             PhRemoveWindowContextEx(hwnd);
+
+            PhTnpDestroyTreeNewContext(context);
         }
         return 0;
     case WM_SIZE:
@@ -185,10 +185,15 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_MOUSEMOVE:
         {
-            if (!context->SuspendUpdateStructure)
-                PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            else
+            context->MouseLocation.x = GET_X_LPARAM(lParam);
+            context->MouseLocation.y = GET_Y_LPARAM(lParam);
+
+            if (context->SuspendUpdateStructure)
                 context->SuspendUpdateMoveMouse = TRUE;
+            else
+            {
+                PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            }
         }
         break;
     case WM_MOUSELEAVE:
@@ -346,12 +351,12 @@ VOID PhTnpCreateTreeNewContext(
     context = PhAllocateZero(sizeof(PH_TREENEW_CONTEXT));
     context->FixedWidthMinimum = 20;
     context->RowHeight = 1; // must never be 0
-    context->HotNodeIndex = -1;
+    context->HotNodeIndex = ULONG_MAX;
     context->Callback = PhTnpNullCallback;
     context->FlatList = PhCreateList(64);
-    context->TooltipIndex = -1;
-    context->TooltipId = -1;
-    context->TooltipColumnId = -1;
+    context->TooltipIndex = ULONG_MAX;
+    context->TooltipId = ULONG_MAX;
+    context->TooltipColumnId = ULONG_MAX;
     context->EnableRedraw = 1;
     context->DefaultBackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
     context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
@@ -882,7 +887,7 @@ VOID PhTnpOnMouseLeave(
 {
     RECT rect;
 
-    if (Context->HotNodeIndex != -1 && Context->ThemeData)
+    if (Context->HotNodeIndex != ULONG_MAX && Context->ThemeData)
     {
         // Update the old hot node because it may have a different non-hot background and plus minus part.
         if (PhTnpGetRowRects(Context, Context->HotNodeIndex, Context->HotNodeIndex, TRUE, &rect))
@@ -891,7 +896,7 @@ VOID PhTnpOnMouseLeave(
         }
     }
 
-    Context->HotNodeIndex = -1;
+    Context->HotNodeIndex = ULONG_MAX;
 
     if (Context->AnimateDivider && Context->FixedDividerVisible)
     {
@@ -930,7 +935,7 @@ VOID PhTnpOnXxxButtonXxx(
     RECT rect;
     ULONG changedStart;
     ULONG changedEnd;
-    PH_TREENEW_MESSAGE clickMessage;
+    ULONG clickMessage;
 
     // Focus
 
@@ -1045,7 +1050,7 @@ VOID PhTnpOnXxxButtonXxx(
             BOOLEAN showContextMenu;
 
             dragSelect = FALSE;
-            indexToSelect = -1;
+            indexToSelect = ULONG_MAX;
             selectionProcessed = FALSE;
             showContextMenu = FALSE;
 
@@ -1063,25 +1068,25 @@ VOID PhTnpOnXxxButtonXxx(
                 if (hitTest.Node)
                     saveIndex = hitTest.Node->Index;
                 else
-                    saveIndex = -1;
+                    saveIndex = ULONG_MAX;
 
                 if (hitTest.Column)
                     saveId = hitTest.Column->Id;
                 else
-                    saveId = -1;
+                    saveId = ULONG_MAX;
 
                 result = PhTnpDetectDrag(Context, CursorX, CursorY, TRUE, &cancelledByMessage);
 
                 // Restore the pointers.
 
-                if (saveIndex == -1)
+                if (saveIndex == ULONG_MAX)
                     hitTest.Node = NULL;
                 else if (saveIndex < Context->FlatList->Count)
                     hitTest.Node = Context->FlatList->Items[saveIndex];
                 else
                     return;
 
-                if (saveId != -1 && !(hitTest.Column = PhTnpLookupColumnById(Context, saveId)))
+                if (saveId != ULONG_MAX && !(hitTest.Column = PhTnpLookupColumnById(Context, saveId)))
                     return;
 
                 if (result)
@@ -1092,7 +1097,10 @@ VOID PhTnpOnXxxButtonXxx(
                     {
                         // Include the current node before starting the drag selection, otherwise
                         // the user will never be able to select the current node.
-                        indexToSelect = hitTest.Node->Index;
+                        if (hitTest.Node)
+                        {
+                            indexToSelect = hitTest.Node->Index;
+                        }
                     }
                 }
                 else
@@ -1164,7 +1172,7 @@ VOID PhTnpOnXxxButtonXxx(
     // and WM_xBUTTONUP messages only takes effect when the user clicks directly on an item's icon
     // or text.
 
-    clickMessage = -1;
+    clickMessage = ULONG_MAX;
 
     if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN || Message == WM_MBUTTONDOWN)
     {
@@ -1209,7 +1217,7 @@ VOID PhTnpOnXxxButtonXxx(
         clickMessage = TreeNewRightDoubleClick;
     }
 
-    if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && clickMessage != -1)
+    if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && clickMessage != ULONG_MAX)
     {
         PhTnpSendMouseEvent(Context, clickMessage, CursorX, CursorY, hitTest.Node, hitTest.Column, VirtualKeys);
     }
@@ -1488,6 +1496,7 @@ VOID PhTnpOnHScroll(
     }
 }
 
+_Success_(return)
 BOOLEAN PhTnpOnNotify(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
@@ -1699,7 +1708,7 @@ BOOLEAN PhTnpOnNotify(
     return FALSE;
 }
 
-ULONG_PTR PhTnpOnUserMessage(
+LRESULT PhTnpOnUserMessage(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Message,
@@ -1817,8 +1826,15 @@ ULONG_PTR PhTnpOnUserMessage(
         {
             ULONG sortColumn = (ULONG)WParam;
             PH_SORT_ORDER sortOrder = (PH_SORT_ORDER)LParam;
+            PH_TREENEW_SORT_CHANGED_EVENT sortOrderEvent;
             PPH_TREENEW_COLUMN column;
 
+            if (sortColumn == Context->SortColumn &&
+                sortOrder == Context->SortOrder)
+            {
+                return TRUE; // Nothing to change (dmex)
+            }
+     
             if (sortOrder != NoSortOrder)
             {
                 if (!(column = PhTnpLookupColumnById(Context, sortColumn)))
@@ -1835,7 +1851,11 @@ ULONG_PTR PhTnpOnUserMessage(
 
             PhTnpSetColumnHeaderSortIcon(Context, column);
 
-            Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
+            memset(&sortOrderEvent, 0, sizeof(PH_TREENEW_SORT_CHANGED_EVENT));
+            sortOrderEvent.SortColumn = sortColumn;
+            sortOrderEvent.SortOrder = sortOrder;
+
+            Context->Callback(Context->Handle, TreeNewSortChanged, &sortOrderEvent, NULL, Context->CallbackContext);
         }
         return TRUE;
     case TNM_SETTRISTATE:
@@ -2095,10 +2115,48 @@ ULONG_PTR PhTnpOnUserMessage(
 
                 visible[i] = Context->Columns[visible[i]]->Visible;
             }
-
-            return TRUE;
         }
-        break;
+        return TRUE;
+    case TNM_GETSELECTEDCOUNT:
+       {
+            ULONG i;
+            ULONG visibleCount;
+            ULONG selectedCount;
+            PPH_TREENEW_NODE node;
+
+            if (Context->SuspendUpdateStructure)
+                visibleCount = 0;
+            else
+                visibleCount = Context->FlatList->Count;
+            selectedCount = 0;
+
+            for (i = 0; i < visibleCount; i++)
+            {
+                node = Context->FlatList->Items[i];
+
+                if (node->Selected)
+                {
+                    selectedCount++;
+                }
+            }
+
+            return (LRESULT)selectedCount;
+       }
+       break;
+    case TNM_FOCUSMARKSELECT:
+       {
+            PPH_TREENEW_NODE node = (PPH_TREENEW_NODE)LParam;
+
+            SetFocus(hwnd);
+
+            Context->FocusNode = node; // TNM_SETFOCUSNODE
+            Context->MarkNodeIndex = node->Index; // TNM_SETMARKNODE
+            PhTnpOnUserMessage(hwnd, Context, TNM_DESELECTRANGE, 0, -1);
+            PhTnpOnUserMessage(hwnd, Context, TNM_SELECTRANGE, node->Index, node->Index);
+            PhTnpEnsureVisibleNode(Context, node->Index); // TNM_ENSUREVISIBLE
+            PhTnpOnUserMessage(hwnd, Context, TNM_INVALIDATENODES, node->Index, node->Index);
+       }
+       return TRUE;
     }
 
     return 0;
@@ -2472,8 +2530,8 @@ VOID PhTnpSendMouseEvent(
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ LONG CursorX,
     _In_ LONG CursorY,
-    _In_ PPH_TREENEW_NODE Node,
-    _In_ PPH_TREENEW_COLUMN Column,
+    _In_opt_ PPH_TREENEW_NODE Node,
+    _In_opt_ PPH_TREENEW_COLUMN Column,
     _In_ ULONG VirtualKeys
     )
 {
@@ -2600,6 +2658,7 @@ BOOLEAN PhTnpRemoveColumn(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhTnpCopyColumn(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Id,
@@ -2806,7 +2865,7 @@ VOID PhTnpUpdateColumnMaps(
         if (!Context->Columns[i])
             continue;
 
-        if (Context->Columns[i]->Visible && !Context->Columns[i]->Fixed && Context->Columns[i]->DisplayIndex != -1)
+        if (Context->Columns[i]->Visible && !Context->Columns[i]->Fixed && Context->Columns[i]->DisplayIndex != ULONG_MAX)
         {
             if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
                 PhRaiseStatus(STATUS_INTERNAL_ERROR);
@@ -3095,6 +3154,8 @@ VOID PhTnpProcessSortColumn(
     _In_ PPH_TREENEW_COLUMN NewColumn
     )
 {
+    PH_TREENEW_SORT_CHANGED_EVENT sortOrderEvent;
+
     if (NewColumn->Id == Context->SortColumn)
     {
         if (Context->TriState)
@@ -3142,7 +3203,11 @@ VOID PhTnpProcessSortColumn(
 
     PhTnpSetColumnHeaderSortIcon(Context, NewColumn);
 
-    Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
+    memset(&sortOrderEvent, 0, sizeof(PH_TREENEW_SORT_CHANGED_EVENT));
+    sortOrderEvent.SortColumn = Context->SortColumn;
+    sortOrderEvent.SortOrder = Context->SortOrder;
+
+    Context->Callback(Context->Handle, TreeNewSortChanged, &sortOrderEvent, NULL, Context->CallbackContext);
 }
 
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
@@ -3443,10 +3508,10 @@ VOID PhTnpRestructureNodes(
         Context->FocusNode = NULL; // focused node is no longer present
 
     if (Context->HotNodeIndex >= Context->FlatList->Count) // covers -1 case as well
-        Context->HotNodeIndex = -1;
+        Context->HotNodeIndex = ULONG_MAX;
 
     if (Context->MarkNodeIndex >= Context->FlatList->Count)
-        Context->MarkNodeIndex = -1;
+        Context->MarkNodeIndex = ULONG_MAX;
 }
 
 VOID PhTnpInsertNodeChildren(
@@ -3696,6 +3761,7 @@ BOOLEAN PhTnpGetCellParts(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN PhTnpGetRowRects(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Start,
@@ -3977,13 +4043,13 @@ VOID PhTnpSetHotNode(
     if (NewHotNode)
         newHotNodeIndex = NewHotNode->Index;
     else
-        newHotNodeIndex = -1;
+        newHotNodeIndex = ULONG_MAX;
 
     needsInvalidate = FALSE;
 
     if (Context->HotNodeIndex != newHotNodeIndex)
     {
-        if (Context->HotNodeIndex != -1)
+        if (Context->HotNodeIndex != ULONG_MAX)
         {
             if (Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNodeIndex, Context->HotNodeIndex, TRUE, &rowRect))
             {
@@ -4046,7 +4112,7 @@ VOID PhTnpProcessSelectNode(
             }
         }
     }
-    else if (ShiftKey && Context->MarkNodeIndex != -1)
+    else if (ShiftKey && Context->MarkNodeIndex != ULONG_MAX)
     {
         ULONG start;
         ULONG end;
@@ -4192,13 +4258,13 @@ VOID PhTnpProcessMoveMouse(
 
         if (!(hitTest.Flags & TN_HIT_DIVIDER))
         {
-            index = hitTest.Node ? hitTest.Node->Index : -1;
-            id = hitTest.Column ? hitTest.Column->Id : -1;
+            index = hitTest.Node ? hitTest.Node->Index : ULONG_MAX;
+            id = hitTest.Column ? hitTest.Column->Id : ULONG_MAX;
         }
         else
         {
-            index = -1;
-            id = -1;
+            index = ULONG_MAX;
+            id = ULONG_MAX;
         }
 
         // This pops unnecessarily - when the cell has no tooltip text, and the user is moving the
@@ -4227,7 +4293,7 @@ VOID PhTnpProcessMouseVWheel(
         wheelScrollLines = PhGetDpi(3, Context->WindowDpi);
 
     // If page scrolling is enabled, use the number of visible rows.
-    if (wheelScrollLines == -1)
+    if (wheelScrollLines == ULONG_MAX)
         wheelScrollLines = (Context->ClientRect.bottom - Context->HeaderHeight - (Context->HScrollVisible ? Context->HScrollHeight : 0)) / Context->RowHeight;
 
     // Zero the remainder if the direction changed.
@@ -4442,6 +4508,11 @@ BOOLEAN PhTnpProcessFocusKey(
             }
         }
         break;
+    default:
+        {
+            index = 0;
+        }
+        break;
     }
 
     // Select the relevant nodes.
@@ -4452,7 +4523,7 @@ BOOLEAN PhTnpProcessFocusKey(
     Context->FocusNode = Context->FlatList->Items[index];
     PhTnpSetHotNode(Context, Context->FocusNode, FALSE);
 
-    if (shiftKey && Context->MarkNodeIndex != -1)
+    if (shiftKey && Context->MarkNodeIndex != ULONG_MAX)
     {
         if (index > Context->MarkNodeIndex)
         {
@@ -5252,15 +5323,6 @@ VOID PhTnpPaint(
 
             if (tempDc = CreateCompatibleDC(hdc))
             {
-                //BITMAPINFO bitmapInfo;
-                //memset(&bitmapInfo, 0, sizeof(BITMAPINFOHEADER));
-                //bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-                //bitmapInfo.bmiHeader.biWidth = 1;
-                //bitmapInfo.bmiHeader.biHeight = 1;
-                //bitmapInfo.bmiHeader.biPlanes = 1;
-                //bitmapInfo.bmiHeader.biBitCount = 24;
-                //bitmap = CreateDIBSection(tempDc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
-
                 if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
                 {
                     // Draw the outline of the selection rectangle.
@@ -6021,15 +6083,6 @@ VOID PhTnpDrawSelectionRectangle(
 
         if (tempDc = CreateCompatibleDC(hdc))
         {
-            //BITMAPINFO bitmapInfo;
-            //memset(&bitmapInfo, 0, sizeof(BITMAPINFOHEADER));
-            //bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            //bitmapInfo.bmiHeader.biWidth = 1;
-            //bitmapInfo.bmiHeader.biHeight = 1;
-            //bitmapInfo.bmiHeader.biPlanes = 1;
-            //bitmapInfo.bmiHeader.biBitCount = 24;
-            //bitmap = CreateDIBSection(tempDc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
-
             if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
             {
                 // Draw the outline of the selection rectangle.
@@ -6140,14 +6193,14 @@ VOID PhTnpInitializeTooltips(
         WS_EX_TRANSPARENT, // solves double-click problem
         TOOLTIPS_CLASS,
         NULL,
-        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+        WS_POPUP | TTS_NOANIMATE | TTS_NOFADE | TTS_NOPREFIX | TTS_ALWAYSTIP,
         0,
         0,
         0,
         0,
         NULL,
         NULL,
-        Context->InstanceHandle,
+        NULL,
         NULL
         );
 
@@ -6182,7 +6235,7 @@ VOID PhTnpInitializeTooltips(
 
     if (Context->HeaderCustomDraw)
     {
-        Context->HeaderHotColumn = -1;
+        Context->HeaderHotColumn = ULONG_MAX;
         Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, Context->WindowDpi);
     }
 
@@ -6199,10 +6252,11 @@ VOID PhTnpInitializeTooltips(
     Context->TooltipFont = Context->Font;
 }
 
-VOID PhTnpGetTooltipText(
+_Success_(return)
+BOOLEAN PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Outptr_ PWSTR *Text
+    _Out_ PWSTR *Text
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
@@ -6217,13 +6271,13 @@ VOID PhTnpGetTooltipText(
     PhTnpHitTest(Context, &hitTest);
 
     if (Context->DragSelectionActive)
-        return;
+        return FALSE;
     if (!(hitTest.Flags & TN_HIT_ITEM))
-        return;
+        return FALSE;
     if (hitTest.Flags & (TN_HIT_ITEM_PLUSMINUS | TN_HIT_DIVIDER))
-        return;
+        return FALSE;
     if (!hitTest.Column)
-        return;
+        return FALSE;
 
     if (Context->TooltipIndex != hitTest.Node->Index || Context->TooltipId != hitTest.Column->Id)
     {
@@ -6236,7 +6290,7 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Unfolding = FALSE;
         PhInitializeEmptyStringRef(&getCellTooltip.Text);
         getCellTooltip.Font = Context->Font;
-        getCellTooltip.MaximumWidth = -1;
+        getCellTooltip.MaximumWidth = ULONG_MAX;
 
         unfoldingTooltip = FALSE;
         unfoldingTooltipFromViewCancelled = FALSE;
@@ -6289,8 +6343,8 @@ VOID PhTnpGetTooltipText(
             {
                 // We may need to show the view-based unfolding tooltip if the mouse moves over the
                 // text in the future. Reset the index and ID to make sure we keep checking.
-                Context->TooltipIndex = -1;
-                Context->TooltipId = -1;
+                Context->TooltipIndex = ULONG_MAX;
+                Context->TooltipId = ULONG_MAX;
             }
         }
 
@@ -6306,7 +6360,12 @@ VOID PhTnpGetTooltipText(
     }
 
     if (Context->TooltipText)
+    {
         *Text = Context->TooltipText->Buffer;
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 BOOLEAN PhTnpPrepareTooltipShow(
@@ -6356,9 +6415,9 @@ VOID PhTnpPrepareTooltipPop(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    Context->TooltipIndex = -1;
-    Context->TooltipId = -1;
-    Context->TooltipColumnId = -1;
+    Context->TooltipIndex = ULONG_MAX;
+    Context->TooltipId = ULONG_MAX;
+    Context->TooltipColumnId = ULONG_MAX;
 }
 
 VOID PhTnpPopTooltip(
@@ -6381,6 +6440,11 @@ PPH_TREENEW_COLUMN PhTnpHitTestHeader(
 {
     PPH_TREENEW_COLUMN column;
     RECT itemRect;
+
+    if (ItemRect)
+    {
+        memset(ItemRect, 0, sizeof(RECT));
+    }
 
     if (Fixed)
     {
@@ -6479,6 +6543,7 @@ VOID PhTnpGetHeaderTooltipText(
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
+_Success_(return)
 BOOLEAN PhTnpGetColumnHeaderText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
@@ -7434,7 +7499,7 @@ VOID PhTnpDragSelect(
                 ULONG changedEnd;
                 RECT rect;
 
-                PhTnpSelectRange(Context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+                PhTnpSelectRange(Context, ULONG_MAX, ULONG_MAX, TN_SELECT_RESET, &changedStart, &changedEnd);
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {

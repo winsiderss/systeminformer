@@ -744,7 +744,7 @@ VOID NTAPI WepWindowNotifyEventChangeCallback(
     case WM_DPICHANGED:
         {
             if (Context->TreeWindowFont) DeleteFont(Context->TreeWindowFont);
-            Context->TreeWindowFont = PhDuplicateFont(ProcessHacker_GetFont());
+            Context->TreeWindowFont = PhDuplicateFont(SystemInformer_GetFont());
 
             SetWindowFont(Context->TreeNewHandle, Context->TreeWindowFont, TRUE);
         }
@@ -816,7 +816,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
-            context->TreeWindowFont = PhDuplicateFont(ProcessHacker_GetFont());
+            context->TreeWindowFont = PhDuplicateFont(SystemInformer_GetFont());
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent),
@@ -848,7 +848,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, WeGetMainWindowHandle());
+                PhCenterWindow(hwndDlg, NULL);
 
             // Subclass the button.
             context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
@@ -1233,7 +1233,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), processItem))
+                            if (propContext = PhCreateProcessPropContext(NULL, processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
@@ -1261,9 +1261,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         {
                             if (processNode = PhFindProcessNode(processItem->ProcessId))
                             {
-                                ProcessHacker_SelectTabPage(0);
+                                SystemInformer_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(processNode);
-                                ProcessHacker_ToggleVisible(FALSE);
+                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             PhDereferenceObject(processItem);
@@ -1961,7 +1961,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (selectedProcessItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), selectedProcessItem))
+                            if (propContext = PhCreateProcessPropContext(NULL, selectedProcessItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);

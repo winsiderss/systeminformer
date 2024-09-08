@@ -254,31 +254,19 @@ VOID GpuPropUpdateGraphs(
 {
     Context->GpuGraphState.Valid = FALSE;
     Context->GpuGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GpuGraphHandle, 1);
-    Graph_Draw(Context->GpuGraphHandle);
-    Graph_UpdateTooltip(Context->GpuGraphHandle);
-    InvalidateRect(Context->GpuGraphHandle, NULL, FALSE);
+    Graph_Update(Context->GpuGraphHandle);
 
     Context->MemoryGraphState.Valid = FALSE;
     Context->MemoryGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->MemGraphHandle, 1);
-    Graph_Draw(Context->MemGraphHandle);
-    Graph_UpdateTooltip(Context->MemGraphHandle);
-    InvalidateRect(Context->MemGraphHandle, NULL, FALSE);
+    Graph_Update(Context->MemGraphHandle);
 
     Context->MemorySharedGraphState.Valid = FALSE;
     Context->MemorySharedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->SharedGraphHandle, 1);
-    Graph_Draw(Context->SharedGraphHandle);
-    Graph_UpdateTooltip(Context->SharedGraphHandle);
-    InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->SharedGraphHandle);
 
     Context->GpuCommittedGraphState.Valid = FALSE;
     Context->GpuCommittedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->CommittedGraphHandle, 1);
-    Graph_Draw(Context->CommittedGraphHandle);
-    Graph_UpdateTooltip(Context->CommittedGraphHandle);
-    InvalidateRect(Context->CommittedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->CommittedGraphHandle);
 }
 
 //VOID GpuPropUpdatePanel(

@@ -204,14 +204,14 @@ static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
 
 static STRING_INTEGER_PAIR WepClassStylePairs[] =
 {
-    DEFINE_PAIR(CS_VREDRAW),
-    DEFINE_PAIR(CS_HREDRAW),
-    DEFINE_PAIR(CS_DBLCLKS),
+    DEFINE_PAIR(CS_VREDRAW),              // 0x1
+    DEFINE_PAIR(CS_HREDRAW),              // 0x2
+    DEFINE_PAIR(CS_DBLCLKS),              // 0x8
     DEFINE_PAIR(CS_OWNDC),
     DEFINE_PAIR(CS_CLASSDC),
     DEFINE_PAIR(CS_PARENTDC),
-    DEFINE_PAIR(CS_NOCLOSE),
-    DEFINE_PAIR(CS_SAVEBITS),
+    DEFINE_PAIR(CS_NOCLOSE),              // 0x200
+    DEFINE_PAIR(CS_SAVEBITS),             // 0x800
     DEFINE_PAIR(CS_BYTEALIGNCLIENT),
     DEFINE_PAIR(CS_BYTEALIGNWINDOW),
     DEFINE_PAIR(CS_GLOBALCLASS),
@@ -958,22 +958,22 @@ VOID WepRefreshWindowStyles(
 
         for (i = 0; i < RTL_NUMBER_OF(WepStylePairs); i++)
         {
-            if (windowInfo.dwStyle & WepStylePairs[i].Integer)
+            if (FlagOn(windowInfo.dwStyle, WepStylePairs[i].Integer))
             {
                 // Skip irrelevant styles.
-                if (WepStylePairs[i].Integer == WS_MAXIMIZEBOX ||
-                    WepStylePairs[i].Integer == WS_MINIMIZEBOX)
-                {
-                    if (windowInfo.dwStyle & WS_CHILD)
-                        continue;
-                }
+                //if (WepStylePairs[i].Integer == WS_MAXIMIZEBOX ||
+                //    WepStylePairs[i].Integer == WS_MINIMIZEBOX)
+                //{
+                //    if (windowInfo.dwStyle & WS_CHILD)
+                //        continue;
+                //}
 
-                if (WepStylePairs[i].Integer == WS_TABSTOP ||
-                    WepStylePairs[i].Integer == WS_GROUP)
-                {
-                    if (!(windowInfo.dwStyle & WS_CHILD))
-                        continue;
-                }
+                //if (WepStylePairs[i].Integer == WS_TABSTOP ||
+                //    WepStylePairs[i].Integer == WS_GROUP)
+                //{
+                //    if (!(windowInfo.dwStyle & WS_CHILD))
+                //        continue;
+                //}
 
                 PhAppendStringBuilder2(&styleStringBuilder, WepStylePairs[i].String);
                 PhAppendStringBuilder2(&styleStringBuilder, L", ");
@@ -992,7 +992,7 @@ VOID WepRefreshWindowStyles(
 
         for (i = 0; i < RTL_NUMBER_OF(WepExtendedStylePairs); i++)
         {
-            if (windowInfo.dwExStyle & WepExtendedStylePairs[i].Integer)
+            if (FlagOn(windowInfo.dwExStyle, WepExtendedStylePairs[i].Integer))
             {
                 PhAppendStringBuilder2(&styleExStringBuilder, WepExtendedStylePairs[i].String);
                 PhAppendStringBuilder2(&styleExStringBuilder, L", ");

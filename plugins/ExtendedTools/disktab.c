@@ -261,13 +261,12 @@ VOID EtInitializeDiskTreeList(
     )
 {
     DiskTreeNewHandle = WindowHandle;
-    PhSetControlTheme(DiskTreeNewHandle, L"explorer");
-    SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
 
+    PhSetControlTheme(DiskTreeNewHandle, L"explorer");
+    TreeNew_SetRedraw(WindowHandle, FALSE);
+    SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);
     TreeNew_SetImageList(WindowHandle, PhGetProcessSmallImageList());
-
-    TreeNew_SetRedraw(WindowHandle, FALSE);
 
     // Default columns
     PhAddTreeNewColumn(WindowHandle, ETDSTNC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
@@ -280,12 +279,6 @@ VOID EtInitializeDiskTreeList(
     PhAddTreeNewColumnEx(WindowHandle, ETDSTNC_RESPONSETIME, TRUE, L"Response time (ms)", 70, PH_ALIGN_RIGHT, 7, 0, TRUE);
     PhAddTreeNewColumn(WindowHandle, ETDSTNC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
-    TreeNew_SetRedraw(WindowHandle, TRUE);
-
-    TreeNew_SetSort(WindowHandle, ETDSTNC_TOTALRATEAVERAGE, DescendingSortOrder);
-
-    EtLoadSettingsDiskTreeList(WindowHandle);
-
     PhInitializeTreeNewFilterSupport(&FilterSupport, WindowHandle, DiskNodeList);
 
     if (ToolStatusInterface)
@@ -293,6 +286,11 @@ VOID EtInitializeDiskTreeList(
         PhRegisterCallback(ToolStatusInterface->SearchChangedEvent, EtpSearchChangedHandler, NULL, &SearchChangedRegistration);
         PhAddTreeNewFilter(&FilterSupport, EtpSearchDiskListFilterCallback, NULL);
     }
+
+    TreeNew_SetSort(WindowHandle, ETDSTNC_TOTALRATEAVERAGE, DescendingSortOrder);
+    TreeNew_SetRedraw(WindowHandle, TRUE);
+
+    EtLoadSettingsDiskTreeList(WindowHandle);
 }
 
 VOID EtLoadSettingsDiskTreeList(
@@ -768,7 +766,11 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(WindowHandle, &DiskTreeNewSortColumn, &DiskTreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            DiskTreeNewSortColumn = sorting->SortColumn;
+            DiskTreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(WindowHandle);
         }
@@ -917,10 +919,7 @@ VOID EtSelectAndEnsureVisibleDiskNode(
     if (!DiskNode->Node.Visible)
         return;
 
-    TreeNew_SetFocusNode(DiskTreeNewHandle, &DiskNode->Node);
-    TreeNew_SetMarkNode(DiskTreeNewHandle, &DiskNode->Node);
-    TreeNew_SelectRange(DiskTreeNewHandle, DiskNode->Node.Index, DiskNode->Node.Index);
-    TreeNew_EnsureVisible(DiskTreeNewHandle, &DiskNode->Node);
+    TreeNew_FocusMarkSelectNode(DiskTreeNewHandle, &DiskNode->Node);
 }
 
 VOID EtCopyDiskList(
@@ -997,12 +996,12 @@ VOID EtHandleDiskCommand(
 
                     if (found)
                     {
-                        ProcessHacker_SelectTabPage(0);
+                        SystemInformer_SelectTabPage(0);
                         PhSelectAndEnsureVisibleProcessNode(processNode);
                     }
                     else
                     {
-                        PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
+                        PhShowProcessRecordDialog(SystemInformer_GetWindowHandle(), diskItem->ProcessRecord);
                     }
                 }
                 else
@@ -1229,7 +1228,7 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(EtpOnDiskItemsUpdated, EtRunCount);
+    SystemInformer_Invoke(EtpOnDiskItemsUpdated, EtRunCount);
 }
 
 VOID NTAPI EtpOnDiskItemsUpdated(
@@ -1359,7 +1358,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //            switch (GET_WM_COMMAND_ID(wParam, lParam))
 //            {
 //            case IDC_RESTART:
-//                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+//                SystemInformer_PrepareForEarlyShutdown(PhMainWndHandle);
 //
 //                if (NT_SUCCESS(PhShellProcessHacker(
 //                    PhMainWndHandle,
@@ -1371,11 +1370,11 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                    NULL
 //                    )))
 //                {
-//                    ProcessHacker_Destroy(PhMainWndHandle);
+//                    SystemInformer_Destroy(PhMainWndHandle);
 //                }
 //                else
 //                {
-//                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+//                    SystemInformer_CancelEarlyShutdown(PhMainWndHandle);
 //                }
 //
 //                break;

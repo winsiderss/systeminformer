@@ -1160,8 +1160,8 @@ ULONG64 EtLookupTotalGpuAdapterShared(
     );
 
 // Firewall
-
 extern BOOLEAN EtFwEnabled;
+extern ULONG EtFwFlagsMask;
 extern ULONG EtFwStatus;
 extern ULONG FwRunCount;
 extern HANDLE EtFwEngineHandle;

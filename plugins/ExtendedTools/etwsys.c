@@ -738,17 +738,11 @@ VOID EtpUpdateDiskGraph(
 {
     DiskReadGraphState.Valid = FALSE;
     DiskReadGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(DiskReadGraphHandle, 1);
-    Graph_Draw(DiskReadGraphHandle);
-    Graph_UpdateTooltip(DiskReadGraphHandle);
-    InvalidateRect(DiskReadGraphHandle, NULL, FALSE);
+    Graph_Update(DiskReadGraphHandle);
 
     DiskWriteGraphState.Valid = FALSE;
     DiskWriteGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(DiskWriteGraphHandle, 1);
-    Graph_Draw(DiskWriteGraphHandle);
-    Graph_UpdateTooltip(DiskWriteGraphHandle);
-    InvalidateRect(DiskWriteGraphHandle, NULL, FALSE);
+    Graph_Update(DiskWriteGraphHandle);
 }
 
 VOID EtpUpdateDiskPanel(

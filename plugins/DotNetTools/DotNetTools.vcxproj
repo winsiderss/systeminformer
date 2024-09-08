@@ -126,10 +126,12 @@
     <ClInclude Include="svcext.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="DotNetTools.rc" />
+    <ResourceCompile Include="DotNetTools.rc">
+        <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

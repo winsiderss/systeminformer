@@ -102,10 +102,6 @@ VOID PhRemoveProcessItemService(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
-VOID PhSubscribeServiceChangeNotifications(
-    _In_ PPH_SERVICE_ITEM ServiceItem
-    );
-
 VOID PhInitializeServiceNonPoll(
     VOID
     );
@@ -253,17 +249,14 @@ PPH_SERVICE_ITEM PhpLookupServiceItem(
 }
 
 PPH_SERVICE_ITEM PhReferenceServiceItem(
-    _In_ PWSTR Name
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_SERVICE_ITEM serviceItem;
-    PH_STRINGREF key;
-
-    PhInitializeStringRefLongHint(&key, Name);
 
     PhAcquireQueuedLockShared(&PhServiceHashtableLock);
 
-    serviceItem = PhpLookupServiceItem(&key);
+    serviceItem = PhpLookupServiceItem(Name);
 
     if (serviceItem)
         PhReferenceObject(serviceItem);
@@ -1048,6 +1041,7 @@ UpdateEnd:
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), NULL);
     runCount++;
 }
+
 VOID CALLBACK PhServiceNotifyNonPollCallback(
     _In_ PVOID pParameter
     )

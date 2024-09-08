@@ -164,7 +164,7 @@ static HWND PvpCreateOptionsButton(
         // Create the Reset button.
         GetClientRect(optionsWindow, &clientRect);
         GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
-        MapWindowPoints(NULL, optionsWindow, (POINT*)& rect, 2);
+        MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
         OptionsButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
@@ -202,7 +202,7 @@ static HWND PvpCreateSecurityButton(
         // Create the Reset button.
         GetClientRect(optionsWindow, &clientRect);
         GetWindowRect(OptionsButton, &rect);
-        MapWindowPoints(NULL, optionsWindow, (POINT*)& rect, 2);
+        MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
 
         SecurityButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
@@ -218,7 +218,6 @@ static HWND PvpCreateSecurityButton(
             PhInstanceHandle,
             NULL
             );
-
         SetWindowFont(SecurityButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
     }
 

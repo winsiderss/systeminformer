@@ -376,7 +376,6 @@ PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value = (DOUBLE)Value * (DOUBLE)Parameter;
     FLOAT value = Value * Parameter;
 
     if (value != 0)

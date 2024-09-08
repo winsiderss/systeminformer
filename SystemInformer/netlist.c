@@ -116,12 +116,10 @@ VOID PhInitializeNetworkTreeList(
 {
     NetworkTreeListHandle = TreeNewHandle;
     PhSetControlTheme(NetworkTreeListHandle, L"explorer");
-    SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
-
-    TreeNew_SetCallback(TreeNewHandle, PhpNetworkTreeNewCallback, NULL);
-    TreeNew_SetImageList(TreeNewHandle, PhProcessSmallImageList);
 
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
+    TreeNew_SetCallback(TreeNewHandle, PhpNetworkTreeNewCallback, NULL);
+    TreeNew_SetImageList(TreeNewHandle, PhProcessSmallImageList);
 
     // Default columns
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
@@ -133,16 +131,17 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 6, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 7, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_OWNER, TRUE, L"Owner", 80, PH_ALIGN_LEFT, 8, 0);
+
     PhAddTreeNewColumnEx(TreeNewHandle, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PHNETLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
-    TreeNew_SetRedraw(TreeNewHandle, TRUE);
-
-    TreeNew_SetSort(TreeNewHandle, 0, AscendingSortOrder);
-
     PhCmInitializeManager(&NetworkTreeListCm, TreeNewHandle, PHNETLC_MAXIMUM, PhpNetworkTreeNewPostSortFunction);
+    PhInitializeTreeNewFilterSupport(&FilterSupport, TreeNewHandle, NetworkNodeList);
+
+    TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
     if (PhPluginsEnabled)
     {
@@ -152,8 +151,6 @@ VOID PhInitializeNetworkTreeList(
         treeNewInfo.CmData = &NetworkTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing), &treeNewInfo);
     }
-
-    PhInitializeTreeNewFilterSupport(&FilterSupport, TreeNewHandle, NetworkNodeList);
 }
 
 VOID PhLoadSettingsNetworkTreeUpdateMask(
@@ -817,7 +814,11 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &NetworkTreeListSortColumn, &NetworkTreeListSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            NetworkTreeListSortColumn = sorting->SortColumn;
+            NetworkTreeListSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -1035,10 +1036,7 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
     if (!NetworkNode->Node.Visible)
         return;
 
-    TreeNew_SetFocusNode(NetworkTreeListHandle, &NetworkNode->Node);
-    TreeNew_SetMarkNode(NetworkTreeListHandle, &NetworkNode->Node);
-    TreeNew_SelectRange(NetworkTreeListHandle, NetworkNode->Node.Index, NetworkNode->Node.Index);
-    TreeNew_EnsureVisible(NetworkTreeListHandle, &NetworkNode->Node);
+    TreeNew_FocusMarkSelectNode(NetworkTreeListHandle, &NetworkNode->Node);
 }
 
 VOID PhInvalidateAllNetworkNodes(

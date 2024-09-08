@@ -1386,7 +1386,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         {
             if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != SIZE_MAX)
             {
-                // User probably has Process Hacker replacing Task Manager. Force
+                // User probably has System Informer replacing Task Manager. Force
                 // the main window to start visible.
                 PhStartupParameters.ShowVisible = TRUE;
             }

@@ -20,8 +20,7 @@
 #include <actions.h>
 #include <phappres.h>
 #include <phsvccl.h>
-
-#include "../tools/thirdparty/pcre/pcre2.h"
+#include <thirdparty.h>
 
 /**
  * Determines whether a process is suspended.

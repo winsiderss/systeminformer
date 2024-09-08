@@ -629,7 +629,10 @@ VOID EtProcessTreeNewMessage(
     }
     else if (message->Message == TreeNewSortChanged)
     {
-        TreeNew_GetSort(message->TreeNewHandle, &ProcessTreeListSortColumn, &ProcessTreeListSortOrder);
+        PPH_TREENEW_SORT_CHANGED_EVENT sorting = message->Parameter1;
+
+        ProcessTreeListSortColumn = sorting->SortColumn;
+        ProcessTreeListSortOrder = sorting->SortOrder;
     }
     else if (message->Message == TreeNewNodeExpanding)
     {

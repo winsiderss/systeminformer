@@ -367,17 +367,11 @@ VOID EtwDiskUpdateGraphs(
 {
     Context->DiskReadGraphState.Valid = FALSE;
     Context->DiskReadGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->DiskReadGraphHandle, 1);
-    Graph_Draw(Context->DiskReadGraphHandle);
-    Graph_UpdateTooltip(Context->DiskReadGraphHandle);
-    InvalidateRect(Context->DiskReadGraphHandle, NULL, FALSE);
+    Graph_Update(Context->DiskReadGraphHandle);
 
     Context->DiskWriteGraphState.Valid = FALSE;
     Context->DiskWriteGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->DiskWriteGraphHandle, 1);
-    Graph_Draw(Context->DiskWriteGraphHandle);
-    Graph_UpdateTooltip(Context->DiskWriteGraphHandle);
-    InvalidateRect(Context->DiskWriteGraphHandle, NULL, FALSE);
+    Graph_Update(Context->DiskWriteGraphHandle);
 }
 
 VOID EtwNetworkUpdateGraphs(
@@ -386,17 +380,11 @@ VOID EtwNetworkUpdateGraphs(
 {
     Context->NetworkReceiveGraphState.Valid = FALSE;
     Context->NetworkReceiveGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->NetworkReceiveGraphHandle, 1);
-    Graph_Draw(Context->NetworkReceiveGraphHandle);
-    Graph_UpdateTooltip(Context->NetworkReceiveGraphHandle);
-    InvalidateRect(Context->NetworkReceiveGraphHandle, NULL, FALSE);
+    Graph_Update(Context->NetworkReceiveGraphHandle);
 
     Context->NetworkSendGraphState.Valid = FALSE;
     Context->NetworkSendGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->NetworkSendGraphHandle, 1);
-    Graph_Draw(Context->NetworkSendGraphHandle);
-    Graph_UpdateTooltip(Context->NetworkSendGraphHandle);
-    InvalidateRect(Context->NetworkSendGraphHandle, NULL, FALSE);
+    Graph_Update(Context->NetworkSendGraphHandle);
 }
 
 VOID EtwDiskUpdatePanel(

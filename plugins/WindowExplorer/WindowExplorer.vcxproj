@@ -120,9 +120,7 @@
     <ClInclude Include="wndtree.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
     <ResourceCompile Include="WindowExplorer.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

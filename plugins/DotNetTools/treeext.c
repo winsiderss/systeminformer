@@ -45,7 +45,7 @@ typedef struct _THREAD_TREE_CONTEXT
     ULONG Type;
     HANDLE ProcessId;
 #if _WIN64
-    BOOLEAN IsWow64;
+    BOOLEAN IsWow64Process;
     BOOLEAN ConnectedToPhSvc;
 #endif
     PH_CALLBACK_REGISTRATION AddedCallbackRegistration;
@@ -166,7 +166,7 @@ VOID NTAPI ThreadsContextCreateCallback(
 #if _WIN64
     if (threadsContext->Provider->ProcessHandle)
     {
-        PhGetProcessIsWow64(threadsContext->Provider->ProcessHandle, &context->IsWow64);
+        PhGetProcessIsWow64(threadsContext->Provider->ProcessHandle, &context->IsWow64Process);
     }
 #endif
 
@@ -233,7 +233,7 @@ VOID ThreadTreeNewInitializing(
         threadsContext->Provider->ProcessId,
         threadsContext->Provider->ProcessHandle,
 #ifdef _WIN64
-        PH_CLR_USE_SECTION_CHECK | PH_CLR_NO_WOW64_CHECK | (context->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+        PH_CLR_USE_SECTION_CHECK | PH_CLR_NO_WOW64_CHECK | (context->IsWow64Process ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
         PH_CLR_USE_SECTION_CHECK,
 #endif
@@ -247,7 +247,7 @@ VOID ThreadTreeNewInitializing(
     if (isDotNet)
     {
 #if _WIN64
-        if (context->IsWow64)
+        if (context->IsWow64Process)
         {
             context->ConnectedToPhSvc = PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE);
         }
@@ -283,7 +283,7 @@ VOID UpdateThreadClrData(
         PhClearReference(&DnThread->AppDomainText);
 
 #if _WIN64
-        if (Context->IsWow64)
+        if (Context->IsWow64Process)
         {
             if (Context->ConnectedToPhSvc)
             {

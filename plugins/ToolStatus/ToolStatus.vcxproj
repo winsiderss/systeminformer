@@ -85,10 +85,8 @@
     <ClInclude Include="toolstatus.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="ToolStatus.rc" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\application.ico" />

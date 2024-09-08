@@ -313,6 +313,33 @@ PhShowMessageOneTime(
     ...
     );
 
+typedef struct _TASKDIALOGCONFIG TASKDIALOGCONFIG, *PTASKDIALOGCONFIG;
+
+// TDM_NAVIGATE_PAGE is not thread safe and accelerator keys crash the process
+// after navigating to the page and pressing ctrl, alt, home or insert keys. (dmex)
+FORCEINLINE
+VOID
+PhTaskDialogNavigatePage(
+    _In_ HWND WindowHandle,
+    _In_ PTASKDIALOGCONFIG Config
+    )
+{
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+
+    SendMessage(WindowHandle, (WM_USER + 101), 0, (LPARAM)(Config));
+}
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShowTaskDialog(
+    _In_ PTASKDIALOGCONFIG Config,
+    _Out_opt_ PULONG Button,
+    _Out_opt_ PULONG RadioButton,
+    _Out_opt_ PBOOLEAN FlagChecked
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2047,8 +2074,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessSnapshot(
     _Out_ PHANDLE SnapshotHandle,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI

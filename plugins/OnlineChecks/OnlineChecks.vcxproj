@@ -86,9 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OnlineChecks.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CHANGELOG.txt" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

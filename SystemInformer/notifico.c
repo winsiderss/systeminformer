@@ -469,7 +469,7 @@ VOID PhNfForwardMessage(
         {
             if (PhGetIntegerSetting(L"IconSingleClick"))
             {
-                ProcessHacker_IconClick();
+                SystemInformer_IconClick();
                 PhNfpDisableHover();
             }
             else
@@ -521,7 +521,7 @@ VOID PhNfForwardMessage(
                     PhNfpDisableHover();
                 }
 
-                ProcessHacker_IconClick();
+                SystemInformer_IconClick();
             }
         }
         break;
@@ -541,13 +541,17 @@ VOID PhNfForwardMessage(
         }
         break;
     case NIN_KEYSELECT:
-        // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
-        if (GetForegroundWindow() != WindowHandle)
-            ProcessHacker_IconClick();
+        {
+            // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
+            if (GetForegroundWindow() != WindowHandle)
+                SystemInformer_IconClick();
+        }
         break;
     case NIN_BALLOONUSERCLICK:
-        if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
-            PhShowDetailsForIconNotification();
+        {
+            if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
+                PhShowDetailsForIconNotification();
+        }
         break;
     case NIN_POPUPOPEN:
         {

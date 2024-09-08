@@ -313,7 +313,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             {
                 if (wParam == VK_F5)
                 {
-                    ProcessHacker_Refresh();
+                    SystemInformer_Refresh();
                 }
             }
         }

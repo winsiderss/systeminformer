@@ -190,7 +190,7 @@ VOID PhShowHandleObjectProperties1(
 
             if (targetProcessItem)
             {
-                ProcessHacker_ShowProcessProperties(targetProcessItem);
+                SystemInformer_ShowProcessProperties(targetProcessItem);
                 PhDereferenceObject(targetProcessItem);
             }
             else
@@ -282,7 +282,7 @@ VOID PhShowHandleObjectProperties1(
                     showMemoryEditor->SelectLength = 0;
                     showMemoryEditor->Title = sectionName ? PhConcatStrings2(L"Section - ", sectionName->Buffer) : PhCreateString(L"Section");
                     showMemoryEditor->Flags = PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION;
-                    ProcessHacker_ShowMemoryEditor(showMemoryEditor);
+                    SystemInformer_ShowMemoryEditor(showMemoryEditor);
                 }
                 else
                 {
@@ -363,7 +363,7 @@ VOID PhShowHandleObjectProperties1(
                 propContext = PhCreateProcessPropContext(NULL, targetProcessItem);
                 PhDereferenceObject(targetProcessItem);
                 PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
-                ProcessHacker_Invoke(PhpShowProcessPropContext, propContext);
+                SystemInformer_Invoke(PhpShowProcessPropContext, propContext);
             }
             else
             {

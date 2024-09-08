@@ -871,7 +871,7 @@ VOID PhMwpOnCommand(
             }
             else if (PhGetIntegerSetting(L"CloseOnEscape"))
             {
-                ProcessHacker_Destroy();
+                SystemInformer_Destroy();
             }
         }
         break;
@@ -892,7 +892,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
-            ProcessHacker_PrepareForEarlyShutdown();
+            SystemInformer_PrepareForEarlyShutdown();
 
             if (NT_SUCCESS(PhShellProcessHacker(
                 WindowHandle,
@@ -904,11 +904,11 @@ VOID PhMwpOnCommand(
                 NULL
                 )))
             {
-                ProcessHacker_Destroy();
+                SystemInformer_Destroy();
             }
             else
             {
-                ProcessHacker_CancelEarlyShutdown();
+                SystemInformer_CancelEarlyShutdown();
             }
         }
         break;
@@ -1004,7 +1004,7 @@ VOID PhMwpOnCommand(
         PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
-        ProcessHacker_Destroy();
+        SystemInformer_Destroy();
         break;
     case ID_VIEW_SYSTEMINFORMATION:
         PhShowSystemInformationDialog(NULL);
@@ -1536,7 +1536,7 @@ VOID PhMwpOnCommand(
                 // Note: The current process is a special case (dmex)
                 if (processItem->ProcessId == NtCurrentProcessId())
                 {
-                    ProcessHacker_PrepareForEarlyShutdown();
+                    SystemInformer_PrepareForEarlyShutdown();
 
                     if (NT_SUCCESS(PhShellProcessHacker(
                         WindowHandle,
@@ -1548,11 +1548,11 @@ VOID PhMwpOnCommand(
                         NULL
                         )))
                     {
-                        ProcessHacker_Destroy();
+                        SystemInformer_Destroy();
                     }
                     else
                     {
-                        ProcessHacker_CancelEarlyShutdown();
+                        SystemInformer_CancelEarlyShutdown();
                     }
                 }
                 else
@@ -1777,7 +1777,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedProcessItems(&processes, &numberOfProcesses);
             PhReferenceObjects(processes, numberOfProcesses);
-            PhMwpExecuteProcessPriorityCommand(Id, processes, numberOfProcesses);
+            PhMwpExecuteProcessPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
             PhDereferenceObjects(processes, numberOfProcesses);
             PhFree(processes);
         }
@@ -1792,7 +1792,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedProcessItems(&processes, &numberOfProcesses);
             PhReferenceObjects(processes, numberOfProcesses);
-            PhMwpExecuteProcessIoPriorityCommand(Id, processes, numberOfProcesses);
+            PhMwpExecuteProcessIoPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
             PhDereferenceObjects(processes, numberOfProcesses);
             PhFree(processes);
         }
@@ -2107,11 +2107,11 @@ VOID PhMwpOnCommand(
 
             if (networkItem && networkItem->OwnerName)
             {
-                if (serviceItem = PhReferenceServiceItem(networkItem->OwnerName->Buffer))
+                if (serviceItem = PhReferenceServiceItem(&networkItem->OwnerName->sr))
                 {
                     PhMwpSelectPage(PhMwpServicesPage->Index);
                     SetFocus(PhMwpServiceTreeNewHandle);
-                    ProcessHacker_SelectServiceItem(serviceItem);
+                    SystemInformer_SelectServiceItem(serviceItem);
 
                     PhDereferenceObject(serviceItem);
                 }
@@ -3895,7 +3895,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
                     PhUiRestartProcess(PhMainWndHandle, processItem);
                     break;
                 case ID_PROCESS_PROPERTIES:
-                    ProcessHacker_ShowProcessProperties(processItem);
+                    SystemInformer_ShowProcessProperties(processItem);
                     break;
                 }
 
@@ -3919,7 +3919,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
 
             if (processItem = PhReferenceProcessItem(processId))
             {
-                PhMwpExecuteProcessPriorityCommand(MenuItem->Id, &processItem, 1);
+                PhMwpExecuteProcessPriorityCommand(PhMainWndHandle, MenuItem->Id, &processItem, 1);
                 PhDereferenceObject(processItem);
             }
             else
@@ -3938,7 +3938,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
 
             if (processItem = PhReferenceProcessItem(processId))
             {
-                PhMwpExecuteProcessIoPriorityCommand(MenuItem->Id, &processItem, 1);
+                PhMwpExecuteProcessIoPriorityCommand(PhMainWndHandle, MenuItem->Id, &processItem, 1);
                 PhDereferenceObject(processItem);
             }
             else
@@ -4126,7 +4126,7 @@ VOID PhShowIconContextMenu(
             switch (item->Id)
             {
             case ID_ICON_SHOWHIDEPROCESSHACKER:
-                ProcessHacker_ToggleVisible(FALSE);
+                SystemInformer_ToggleVisible(FALSE);
                 break;
             case ID_ICON_SYSTEMINFORMATION:
                 SendMessage(WindowHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
@@ -4161,9 +4161,13 @@ VOID PhShowDetailsForIconNotification(
 
             if (processNode = PhFindProcessNode(PhMwpLastNotificationDetails.ProcessId))
             {
-                ProcessHacker_SelectTabPage(PhMwpProcessesPage->Index);
-                ProcessHacker_SelectProcessNode(processNode);
-                ProcessHacker_ToggleVisible(TRUE);
+                SystemInformer_SelectTabPage(PhMwpProcessesPage->Index);
+                SystemInformer_SelectProcessNode(processNode);
+                SystemInformer_ToggleVisible(TRUE);
+            }
+            else
+            {
+                PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
             }
         }
         break;
@@ -4174,11 +4178,11 @@ VOID PhShowDetailsForIconNotification(
             PPH_SERVICE_ITEM serviceItem;
 
             if (PhMwpLastNotificationDetails.ServiceName &&
-                (serviceItem = PhReferenceServiceItem(PhMwpLastNotificationDetails.ServiceName->Buffer)))
+                (serviceItem = PhReferenceServiceItem(&PhMwpLastNotificationDetails.ServiceName->sr)))
             {
-                ProcessHacker_SelectTabPage(PhMwpServicesPage->Index);
-                ProcessHacker_SelectServiceItem(serviceItem);
-                ProcessHacker_ToggleVisible(TRUE);
+                SystemInformer_SelectTabPage(PhMwpServicesPage->Index);
+                SystemInformer_SelectServiceItem(serviceItem);
+                SystemInformer_ToggleVisible(TRUE);
 
                 PhDereferenceObject(serviceItem);
             }
@@ -4499,9 +4503,14 @@ PVOID PhPluginInvokeWindowCallback(
             return (PVOID)PhInstanceHandle;
         }
         break;
-    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE:
+    case PH_MAINWINDOW_CALLBACK_TYPE_GETWINDOW_PROCEDURE:
         {
             return (PVOID)PhMwpWndProc; // (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SETWINDOW_PROCEDURE:
+        {
+            PhMainWndProc = (WNDPROC)wparam; // (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE:

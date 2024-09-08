@@ -112,7 +112,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
@@ -258,7 +258,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     config.pszContent = L" ";
     config.cxWidth = 200;
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     if (context->EventHandle)
         NtClose(context->EventHandle);

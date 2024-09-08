@@ -90,5 +90,5 @@ VOID ShowCheckingForUpdatesDialog(
         config.pszMainInstruction = L"Checking for an updated release...";
     }
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

@@ -109,20 +109,23 @@ BOOLEAN CALLBACK PhpQueryWindowsEnumWindowsProc(
     )
 {
     PQUERY_WINDOWS_CONTEXT context = (PQUERY_WINDOWS_CONTEXT)Context;
-    ULONG processId;
+    CLIENT_ID clientId;
     PPHP_PROCESS_DATA processData;
     HWND parentWindow;
 
     if (!IsWindowVisible(WindowHandle))
         return TRUE;
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return TRUE;
 
-    GetWindowThreadProcessId(WindowHandle, &processId);
-    processData = PhFindItemSimpleHashtable2(context->ProcessDataHashtable, UlongToHandle(processId));
+    processData = PhFindItemSimpleHashtable2(context->ProcessDataHashtable, clientId.UniqueProcess);
 
     if (!processData || processData->WindowHandle)
         return TRUE;
 
-    if (!((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // Skip windows with a visible parent
+    parentWindow = GetParent(WindowHandle);
+
+    if (!(parentWindow && IsWindowVisible(parentWindow)) && // Skip windows with a visible parent
         PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // Skip windows with no title
     {
         processData->WindowHandle = WindowHandle;

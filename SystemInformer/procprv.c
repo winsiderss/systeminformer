@@ -89,7 +89,8 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
             ULONG IsFilteredHandle : 1;
-            ULONG Spare : 25;
+            ULONG PowerThrottling : 1;
+            ULONG Spare : 24;
         };
     };
 
@@ -409,9 +410,9 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
+    if (processItem->FreezeHandle) NtClose(processItem->FreezeHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
-
     if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
 }
 
@@ -742,7 +743,7 @@ VOID PhpProcessQueryStage1(
                 processId,
                 processHandle,
 #ifdef _WIN64
-                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (processItem->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (processItem->IsWow64Process ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
                 processQueryFlags,
 #endif
@@ -840,6 +841,35 @@ VOID PhpProcessQueryStage1(
         if (NT_SUCCESS(PhGetProcessIsBeingDebugged(processHandleLimited, &isBeingDebugged)))
         {
             Data->IsBeingDebugged = isBeingDebugged;
+        }
+    }
+
+    // Process Throttling State
+    {
+        if (processHandleLimited && !processItem->IsSubsystemProcess)
+        {
+            POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+            if (NT_SUCCESS(PhGetProcessPowerThrottlingState(processHandleLimited, &powerThrottlingState)))
+            {
+                if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                    FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                {
+                    Data->PowerThrottling = TRUE;
+                }
+
+                if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_DELAYTIMERS) &&
+                    FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_DELAYTIMERS))
+                {
+                    Data->PowerThrottling = TRUE;
+                }
+
+                if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION) &&
+                    FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
+                {
+                    Data->PowerThrottling = TRUE;
+                }
+            }
         }
     }
 
@@ -1027,6 +1057,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
     processItem->IsProtectedHandle = Data->IsFilteredHandle;
+    processItem->IsPowerThrottling = Data->PowerThrottling;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
@@ -1086,6 +1117,7 @@ VOID PhpFillProcessItemExtension(
     ProcessItem->JobObjectId = processExtension->JobObjectId;
     ProcessItem->SharedCommitCharge = processExtension->SharedCommitCharge;
     ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
+    ProcessItem->IsSystemProcess = processExtension->Classification != SystemProcessClassificationNormal;
 }
 
 VOID PhpFillProcessItem(
@@ -1134,7 +1166,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
-            ProcessItem->IsWow64 = basicInfo.IsWow64Process;
+            ProcessItem->IsWow64Process = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
         }
 
@@ -1178,7 +1210,7 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (fileName = PhGetKernelFileName2())
+            if (fileName = PhGetKernelFileName())
             {
                 ProcessItem->FileName = fileName;
                 ProcessItem->FileNameWin32 = PhGetFileName(fileName);
@@ -1255,6 +1287,7 @@ VOID PhpFillProcessItem(
     }
 
     // Known Process Type
+    if (ProcessItem->FileNameWin32)
     {
         ProcessItem->KnownProcessType = PhGetProcessKnownTypeEx(
             ProcessItem->ProcessId,
@@ -1363,13 +1396,15 @@ VOID PhpFillProcessItem(
     // which will not terminate if we have a handle open. (wj32)
     if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
+        ProcessItem->IsReflectedProcess = TRUE;
+
         NtClose(ProcessItem->QueryHandle);
         ProcessItem->QueryHandle = NULL;
     }
 }
 
 VOID PhpUpdateDynamicInfoProcessItem(
-    _Inout_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
@@ -1707,7 +1742,7 @@ VOID PhpUpdateCpuCycleUsageInformation(
     // i_n/t_n = I'_n/T'_n ~= I_n/T_n as above.
     // Not scaling at all is currently the best solution, since it's fast, simple and guarantees that i_n/t_n <= 1.
 
-    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / TotalCycleTime;
+    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / (FLOAT)TotalCycleTime;
     totalTimeDelta = (FLOAT)(PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
 
     if (totalTimeDelta != 0)
@@ -1727,8 +1762,8 @@ VOID PhpUpdateCpuCycleUsageInformation(
 
         if (totalTime != 0)
         {
-            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / totalTime;
-            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / totalTime;
+            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / (FLOAT)totalTime;
+            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / (FLOAT)totalTime;
         }
         else
         {
@@ -1906,6 +1941,7 @@ VOID PhFlushProcessQueryData(
 }
 
 VOID PhpGetProcessThreadInformation(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PSYSTEM_PROCESS_INFORMATION Process,
     _Out_opt_ PBOOLEAN IsSuspended,
     _Out_opt_ PBOOLEAN IsPartiallySuspended,
@@ -1918,37 +1954,53 @@ VOID PhpGetProcessThreadInformation(
     BOOLEAN isPartiallySuspended;
     ULONG64 contextSwitches;
     ULONG processorQueueLength;
+    ULONG suspendedLength;
+    ULONG workQueueLength;
 
-    isSuspended = PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId);
+    isSuspended = FALSE;
     isPartiallySuspended = FALSE;
     contextSwitches = 0;
     processorQueueLength = 0;
+    suspendedLength = 0;
+    workQueueLength = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
     {
-        if (Process->Threads[i].ThreadState != Waiting ||
-            Process->Threads[i].WaitReason != Suspended)
+        PSYSTEM_THREAD_INFORMATION thread = &Process->Threads[i];
+
+        switch (thread->ThreadState)
         {
-            isSuspended = FALSE;
+        case Ready:
+            processorQueueLength++;
+            break;
+        case Waiting:
+            {
+                switch (thread->WaitReason)
+                {
+                case Suspended:
+                    suspendedLength++;
+                    break;
+                case WrQueue:
+                    workQueueLength++;
+                    break;
+                }
+            }
+            break;
         }
-        else
+
+        contextSwitches += thread->ContextSwitches;
+    }
+
+    if (PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId) && !ProcessItem->IsSystemProcess)
+    {
+        if (suspendedLength == Process->NumberOfThreads)
+        {
+            isSuspended = TRUE;
+        }
+        else if (suspendedLength + workQueueLength == Process->NumberOfThreads) // NumberOfThreads-workQueueLength
         {
             isPartiallySuspended = TRUE;
         }
-
-        if (Process->Threads[i].ThreadState == Ready)
-        {
-            processorQueueLength++;
-        }
-
-        contextSwitches += Process->Threads[i].ContextSwitches;
-    }
-
-    // HACK: Minimal/Reflected processes don't have threads. (dmex)
-    if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0)
-    {
-        isSuspended = FALSE;
-        isPartiallySuspended = FALSE;
     }
 
     if (IsSuspended)
@@ -2370,7 +2422,7 @@ VOID PhProcessProviderUpdate(
             processItem->Record = processRecord;
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
+            PhpGetProcessThreadInformation(processItem, process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
             PhTotalCpuQueueLength += processorQueueLength;
 
             // Initialize the deltas.
@@ -2431,15 +2483,15 @@ VOID PhProcessProviderUpdate(
             BOOLEAN isSuspended;
             BOOLEAN isPartiallySuspended;
             ULONG64 contextSwitches;
-            ULONG readyThreads;
+            ULONG processorQueueLength;
             FLOAT newCpuUsage;
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
+            PhpGetProcessThreadInformation(processItem, process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
             PhpFillProcessItemExtension(processItem, process);
-            PhTotalCpuQueueLength += readyThreads;
+            PhTotalCpuQueueLength += processorQueueLength;
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -2471,7 +2523,7 @@ VOID PhProcessProviderUpdate(
             {
                 FLOAT totalDelta;
 
-                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
+                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / (FLOAT)sysTotalCycleTime;
 
                 // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel
                 // and user deltas are both zero, we'll just have to use an estimate. Currently, we
@@ -2501,8 +2553,8 @@ VOID PhProcessProviderUpdate(
             }
             else
             {
-                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
-                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
+                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / (FLOAT)sysTotalTime;
+                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / (FLOAT)sysTotalTime;
                 newCpuUsage = kernelCpuUsage + userCpuUsage;
             }
 
@@ -2525,7 +2577,7 @@ VOID PhProcessProviderUpdate(
                 }
 
                 if (processItem->CpuKernelHistory.Count)
-                    processItem->CpuAverageUsage = (FLOAT)value / processItem->CpuKernelHistory.Count;
+                    processItem->CpuAverageUsage = (FLOAT)value / (FLOAT)processItem->CpuKernelHistory.Count;
                 else
                     processItem->CpuAverageUsage = 0.0f;
             }
@@ -2781,6 +2833,43 @@ VOID PhProcessProviderUpdate(
                 if (processItem->IsBeingDebugged != isBeingDebugged)
                 {
                     processItem->IsBeingDebugged = isBeingDebugged;
+                    modified = TRUE;
+                }
+            }
+
+            // Process Throttling State
+            {
+                BOOLEAN isPowerThrottling = FALSE;
+
+                if (processItem->QueryHandle && !processItem->IsSubsystemProcess)
+                {
+                    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+                    if (NT_SUCCESS(PhGetProcessPowerThrottlingState(processItem->QueryHandle, &powerThrottlingState)))
+                    {
+                        if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                            FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                        {
+                            isPowerThrottling = TRUE;
+                        }
+
+                        if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_DELAYTIMERS) &&
+                            FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_DELAYTIMERS))
+                        {
+                            isPowerThrottling = TRUE;
+                        }
+
+                        if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION) &&
+                            FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
+                        {
+                            isPowerThrottling = TRUE;
+                        }
+                    }
+                }
+
+                if (processItem->IsPowerThrottling != isPowerThrottling)
+                {
+                    processItem->IsPowerThrottling = isPowerThrottling;
                     modified = TRUE;
                 }
             }
@@ -3809,8 +3898,9 @@ HIMAGELIST PhGetProcessSmallImageList(
     return PhProcessSmallImageList;
 }
 
+_Success_(return)
 BOOLEAN PhDuplicateProcessInformation(
-    _Out_ PPVOID ProcessInformation
+    _Outptr_ PPVOID ProcessInformation
     )
 {
     SIZE_T infoLength;

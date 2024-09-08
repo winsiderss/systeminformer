@@ -599,7 +599,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Online Checks";
-            info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
 
             PhRegisterCallback(

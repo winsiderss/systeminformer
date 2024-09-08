@@ -3,7 +3,6 @@
 #pragma code_page(65001)
 
 #include "resource.h"
-#include <sistatus.rc>
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -17,7 +16,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // English (United States) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
@@ -869,7 +868,7 @@ IDI_APPICON             ICON                    "resources\\application.ico"
 
 IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
 
-#endif    // Neutral resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

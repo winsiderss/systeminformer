@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -25,10 +25,7 @@
 #include <mapldr.h>
 #include <lsasup.h>
 #include <wslsup.h>
-
-#include "../tools/thirdparty/md5/md5.h"
-#include "../tools/thirdparty/sha/sha.h"
-#include "../tools/thirdparty/sha256/sha256.h"
+#include <thirdparty.h>
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
@@ -737,12 +734,12 @@ INT PhShowMessage2(
     config.pszMainInstruction = Title;
     config.pszContent = message->Buffer;
 
-    if (HR_SUCCESS(TaskDialogIndirect(
+    if (PhShowTaskDialog(
         &config,
         &result,
         NULL,
         NULL
-        )))
+        ))
     {
         PhDereferenceObject(message);
         return result;
@@ -767,7 +764,7 @@ BOOLEAN PhShowMessageOneTime(
     va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    BOOL verificationFlagChecked = FALSE;
+    BOOLEAN checked = FALSE;
     ULONG buttonsFlags;
 
     va_start(argptr, Format);
@@ -795,21 +792,52 @@ BOOLEAN PhShowMessageOneTime(
     config.pszVerificationText = L"Don't show this message again";
     config.cxWidth = 200;
 
-    if (HR_SUCCESS(TaskDialogIndirect(
+    if (PhShowTaskDialog(
         &config,
         &result,
         NULL,
-        &verificationFlagChecked
-        )))
+        &checked
+        ))
     {
         PhDereferenceObject(message);
-        return !!verificationFlagChecked;
+        return !!checked;
     }
     else
     {
         PhDereferenceObject(message);
         return FALSE;
     }
+}
+
+_Success_(return)
+BOOLEAN PhShowTaskDialog(
+    _In_ PTASKDIALOGCONFIG Config,
+    _Out_opt_ PULONG Button,
+    _Out_opt_ PULONG RadioButton,
+    _Out_opt_ PBOOLEAN FlagChecked
+    )
+{
+    HRESULT status;
+    INT button;
+    INT radio;
+    BOOL selected;
+
+    status = TaskDialogIndirect(
+        Config,
+        &button,
+        &radio,
+        &selected
+        );
+
+    if (HR_SUCCESS(status))
+    {
+        if (Button) *Button = button;
+        if (RadioButton) *RadioButton = radio;
+        if (FlagChecked) *FlagChecked = !!selected;
+        return TRUE;
+    }
+
+    return FALSE; // PhDosErrorToNtStatus(HRESULT_CODE(status));
 }
 
 PPH_STRING PhGetStatusMessage(
@@ -982,12 +1010,12 @@ BOOLEAN PhShowConfirmMessage(
         config.nDefaultButton = IDYES;
         config.cxWidth = 200;
 
-        if (SUCCEEDED(TaskDialogIndirect(
+        if (PhShowTaskDialog(
             &config,
             &button,
             NULL,
             NULL
-            )))
+            ))
         {
             return button == IDYES;
         }
@@ -1797,17 +1825,17 @@ PPH_STRING PhFormatTimeSpanRelative(
     )
 {
     PPH_STRING string;
-    DOUBLE days;
-    DOUBLE weeks;
-    DOUBLE fortnights;
-    DOUBLE months;
-    DOUBLE years;
-    DOUBLE centuries;
+    FLOAT days;
+    FLOAT weeks;
+    FLOAT fortnights;
+    FLOAT months;
+    FLOAT years;
+    FLOAT centuries;
 
-    days = (DOUBLE)TimeSpan / PH_TICKS_PER_DAY;
+    days = (FLOAT)TimeSpan / PH_TICKS_PER_DAY;
     weeks = days / 7;
     fortnights = weeks / 2;
-    years = days / 365.2425;
+    years = days / 365.2425f;
     months = years * 12;
     centuries = years / 100;
 
@@ -1833,18 +1861,18 @@ PPH_STRING PhFormatTimeSpanRelative(
     }
     else
     {
-        DOUBLE milliseconds;
-        DOUBLE seconds;
-        DOUBLE minutes;
-        DOUBLE hours;
+        FLOAT milliseconds;
+        FLOAT seconds;
+        FLOAT minutes;
+        FLOAT hours;
         ULONG secondsPartial;
         ULONG minutesPartial;
         ULONG hoursPartial;
 
-        milliseconds = (DOUBLE)TimeSpan / PH_TICKS_PER_MS;
-        seconds = (DOUBLE)TimeSpan / PH_TICKS_PER_SEC;
-        minutes = (DOUBLE)TimeSpan / PH_TICKS_PER_MIN;
-        hours = (DOUBLE)TimeSpan / PH_TICKS_PER_HOUR;
+        milliseconds = (FLOAT)TimeSpan / PH_TICKS_PER_MS;
+        seconds = (FLOAT)TimeSpan / PH_TICKS_PER_SEC;
+        minutes = (FLOAT)TimeSpan / PH_TICKS_PER_MIN;
+        hours = (FLOAT)TimeSpan / PH_TICKS_PER_HOUR;
 
         if (days >= 1)
         {
@@ -8539,43 +8567,25 @@ VOID PhFreeProcessReflection(
 
 NTSTATUS PhCreateProcessSnapshot(
     _Out_ PHANDLE SnapshotHandle,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessHandle
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE processHandle = ProcessHandle;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE snapshotHandle = NULL;
 
-    if (!PssCaptureSnapshot_Import())
+    if (!PssNtCaptureSnapshot_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    if (!ProcessHandle)
-    {
-        status = PhOpenProcess(
-            &processHandle,
-            MAXIMUM_ALLOWED,
-            ProcessId
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PssCaptureSnapshot_Import()(
-        processHandle,
+    status = PssNtCaptureSnapshot_Import()(
+        &snapshotHandle,
+        ProcessHandle,
         PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
         PSS_CAPTURE_HANDLE_BASIC_INFORMATION | PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION |
         PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT |
         PSS_CAPTURE_THREAD_CONTEXT_EXTENDED | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
         PSS_CREATE_BREAKAWAY | PSS_CREATE_BREAKAWAY_OPTIONAL | PSS_CREATE_USE_VM_ALLOCATIONS,
-        CONTEXT_ALL, // WOW64_CONTEXT_ALL?
-        &snapshotHandle
+        CONTEXT_ALL // WOW64_CONTEXT_ALL?
         );
-    status = PhDosErrorToNtStatus(status);
-
-    if (!ProcessHandle && processHandle)
-        NtClose(processHandle);
 
     if (NT_SUCCESS(status))
     {
@@ -8590,17 +8600,17 @@ VOID PhFreeProcessSnapshot(
     _In_ HANDLE ProcessHandle
     )
 {
-    if (PssQuerySnapshot_Import())
+    if (PssNtQuerySnapshot_Import())
     {
         PSS_VA_CLONE_INFORMATION processInfo = { 0 };
         PSS_HANDLE_TRACE_INFORMATION handleInfo = { 0 };
 
-        if (PssQuerySnapshot_Import()(
+        if (NT_SUCCESS(PssNtQuerySnapshot_Import()(
             SnapshotHandle,
-            PSS_QUERY_VA_CLONE_INFORMATION,
+            PSSNT_QUERY_VA_CLONE_INFORMATION,
             &processInfo,
             sizeof(PSS_VA_CLONE_INFORMATION)
-            ) == ERROR_SUCCESS)
+            )))
         {
             if (processInfo.VaCloneHandle)
             {

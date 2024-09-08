@@ -15,16 +15,19 @@
 
 EXTERN_C_START
 
-#define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
-
 #ifndef PIO_APC_ROUTINE_DEFINED
 #define PIO_APC_ROUTINE_DEFINED 1
+#endif
+
+#ifndef ALIGN_SIZE
+#define ALIGN_SIZE 0x00000008
 #endif
 
 #ifndef UM_NDIS60
 #define UM_NDIS60 1
 #endif
 
+// #include <rtinfo.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <ws2def.h>

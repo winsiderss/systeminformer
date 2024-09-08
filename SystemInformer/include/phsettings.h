@@ -100,6 +100,8 @@ EXT ULONG PhCsUseColorProtectedProcess;
 EXT ULONG PhCsColorProtectedProcess;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
+EXT ULONG PhCsUseColorEfficiencyMode;
+EXT ULONG PhCsColorEfficiencyMode;
 EXT ULONG PhCsGraphShowText;
 EXT ULONG PhCsGraphColorMode;
 EXT ULONG PhCsColorCpuKernel;

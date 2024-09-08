@@ -109,7 +109,6 @@ VOID TaskDialogFreeContext(
     PhDereferenceObject(Context);
 }
 
-_Success_(return >= 0)
 NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,

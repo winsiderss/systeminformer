@@ -551,22 +551,13 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             if (!(processItem->State & PH_PROCESS_ITEM_REMOVED))
             {
                 performanceContext->CpuGraphState.Valid = FALSE;
-                Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
-                Graph_Draw(performanceContext->CpuGraphHandle);
-                Graph_UpdateTooltip(performanceContext->CpuGraphHandle);
-                InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
+                Graph_Update(performanceContext->CpuGraphHandle);
 
                 performanceContext->PrivateGraphState.Valid = FALSE;
-                Graph_MoveGrid(performanceContext->PrivateGraphHandle, 1);
-                Graph_Draw(performanceContext->PrivateGraphHandle);
-                Graph_UpdateTooltip(performanceContext->PrivateGraphHandle);
-                InvalidateRect(performanceContext->PrivateGraphHandle, NULL, FALSE);
+                Graph_Update(performanceContext->PrivateGraphHandle);
 
                 performanceContext->IoGraphState.Valid = FALSE;
-                Graph_MoveGrid(performanceContext->IoGraphHandle, 1);
-                Graph_Draw(performanceContext->IoGraphHandle);
-                Graph_UpdateTooltip(performanceContext->IoGraphHandle);
-                InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
+                Graph_Update(performanceContext->IoGraphHandle);
             }
         }
         break;
