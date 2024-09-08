@@ -218,7 +218,26 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ LPARAM lParam
     );
 
+LRESULT CALLBACK PhSipRestorePanelHookWndProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // Misc.
+
+VOID PhSipUpdateProcessorInformation(
+    VOID
+    );
+
+VOID PhSipUpdateInterruptInformation(
+    _Out_ PULONG64 DpcCount
+    );
+
+VOID PhSipUpdateProcessorFrequency(
+    VOID
+    );
 
 VOID PhSipUpdateThemeData(
     VOID
@@ -229,6 +248,11 @@ VOID PhSipSaveWindowState(
     );
 
 VOID NTAPI PhSipSysInfoUpdateHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
@@ -315,6 +339,15 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
 NTSTATUS PhSipQueryProcessorPerformanceDistribution(
     _Out_ PVOID *Buffer
+    );
+
+NTSTATUS PhSipQueryProcessorPerformanceDistributionEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PVOID* Buffer
+    );
+
+NTSTATUS PhSipQueryCpuSetInformation(
+    _Out_ PVOID* Buffer
     );
 
 PPH_STRINGREF PhGetHybridProcessorType(
