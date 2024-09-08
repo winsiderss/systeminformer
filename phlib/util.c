@@ -441,7 +441,11 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&SystemTimeToTzSpecificLocalTimeEx) SystemTimeToTzSpecificLocalTimeEx_I = NULL;
+    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
+        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
+        _In_ CONST SYSTEMTIME * lpUniversalTime,
+        _Out_ LPSYSTEMTIME lpLocalTime
+        ) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2138,7 +2142,11 @@ NTSTATUS PhFormatGuidToBuffer(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
+    static NTSTATUS (NTAPI* RtlStringFromGUIDEx_I)(
+        _In_ PGUID Guid,
+        _Inout_ PUNICODE_STRING GuidString,
+        _In_ BOOLEAN AllocateGuidString
+        ) = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
