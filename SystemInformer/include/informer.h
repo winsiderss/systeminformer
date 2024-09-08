@@ -25,7 +25,7 @@ typedef struct _PH_INFORMER_REPLY_CONTEXT
  * replied to. This is the preferred method of registering for message since
  * it gets out of the way of the system.
  *
- * Receives PKSI_MESSAGE as the callback parameter, this is an object that can
+ * Receives PKPH_MESSAGE as the callback parameter, this is an object that can
  * be referenced.
  */
 extern PH_CALLBACK PhInformerCallback;
