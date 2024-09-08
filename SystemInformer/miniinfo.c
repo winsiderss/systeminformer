@@ -1957,6 +1957,7 @@ VOID PhMipHandleListSectionCommand(
                     PhAddItemList(nodes, node);
             }
 
+            i = nodes->Count;
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
@@ -1965,6 +1966,11 @@ VOID PhMipHandleListSectionCommand(
             ProcessHacker_SelectTabPage(0);
             PhSelectAndEnsureVisibleProcessNodes((PPH_PROCESS_NODE*)nodes->Items, nodes->Count);
             PhDereferenceObject(nodes);
+
+            if (ProcessGroup->Processes->Count == 1 && i == 0)
+            {
+                PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
+            }
         }
         break;
     }
@@ -1985,7 +1991,7 @@ BOOLEAN PhMipCpuListSectionCallback(
 
             // CPU    %.2f%%
             PhInitFormatS(&format[0], L"CPU    ");
-            PhInitFormatF(&format[1], ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
+            PhInitFormatF(&format[1], (PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -2108,7 +2114,7 @@ BOOLEAN PhMipCommitListSectionCallback(
     {
     case MiListSectionTick:
         {
-            DOUBLE commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+            FLOAT commitFraction = (FLOAT)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
             PH_FORMAT format[5];
 
             PhInitFormatS(&format[0], L"Commit    ");
@@ -2217,7 +2223,7 @@ BOOLEAN PhMipPhysicalListSectionCallback(
     {
     case MiListSectionTick:
         {
-            ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+            ULONG_PTR physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
             FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
             FLOAT physicalPercent = physicalFraction * 100;
             PH_FORMAT format[5];

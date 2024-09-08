@@ -773,10 +773,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalPages)
 {
-    FLOAT modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages * 100.f / (memoryItem1->RegionSize / PAGE_SIZE)) : 0.0f;
-    FLOAT modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages * 100.f / (memoryItem2->RegionSize / PAGE_SIZE)) : 0.0f;
+    FLOAT modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages / (memoryItem1->RegionSize / PAGE_SIZE) * 100.f) : 0.0f;
+    FLOAT modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages / (memoryItem2->RegionSize / PAGE_SIZE) * 100.f) : 0.0f;
 
-    sortResult = doublecmp(modified1, modified2);
+    sortResult = singlecmp(modified1, modified2);
 }
 END_SORT_FUNCTION
 
@@ -1018,7 +1018,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SIZE_T modified = (memoryItem->RegionSize / PAGE_SIZE) - count;
                         PH_FORMAT format[4];
 
-                        PhInitFormatF(&format[0], count ? (count * 100 / (memoryItem->RegionSize / PAGE_SIZE)) : 0.0, 2);
+                        PhInitFormatF(&format[0], count ? (count / (memoryItem->RegionSize / PAGE_SIZE) * 100) : 0.f, 2);
 
                         if (modified)
                         {

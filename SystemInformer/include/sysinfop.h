@@ -428,9 +428,9 @@ VOID PhSipGetPoolLimits(
 
 _Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ DOUBLE *CurrentCompressedMemory,
-    _Out_ DOUBLE *TotalCompressedMemory,
-    _Out_ DOUBLE *TotalSavedMemory
+    _Out_ FLOAT *CurrentCompressedMemory,
+    _Out_ FLOAT *TotalCompressedMemory,
+    _Out_ FLOAT *TotalSavedMemory
     );
 
 // I/O section
