@@ -123,6 +123,8 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
     {
         context = (PHANDLE_STATISTICS_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        if (PhEnableThemeSupport)
+            PhInitializeWindowTheme(hwndDlg, TRUE);
     }
     else
     {
