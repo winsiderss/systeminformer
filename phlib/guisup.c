@@ -3867,8 +3867,8 @@ HBITMAP PhLoadImageFormatFromResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
     _In_ PH_IMAGE_FORMAT_TYPE Format,
-    _In_ UINT Width,
-    _In_ UINT Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     BOOLEAN success = FALSE;
