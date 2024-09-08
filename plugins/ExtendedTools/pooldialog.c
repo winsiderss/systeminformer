@@ -149,17 +149,14 @@ BOOLEAN EtPoolTagTreeFilterCallback(
 }
 
 VOID NTAPI EtPoolMonProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_ PVOID Context
     )
 {
     PPOOLTAG_CONTEXT context = Context;
 
-    if (context->ProcessesUpdatedCount < 2)
-    {
-        context->ProcessesUpdatedCount++;
+    if (PtrToUlong(Parameter) < 3)
         return;
-    }
 
     EtUpdatePoolTagTable(Context);
 }

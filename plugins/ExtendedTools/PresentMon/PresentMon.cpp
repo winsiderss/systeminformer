@@ -259,26 +259,26 @@ VOID PresentMonUpdateProcessStats(
         auto const& lastPresented = *chain.mPresentHistory[(chain.mNextPresentIndex - 2) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
         USHORT runtime = static_cast<USHORT>(presentN.Runtime);
         USHORT presentMode = static_cast<USHORT>(presentN.PresentMode);
-        DOUBLE cpuAvg;
-        DOUBLE dspAvg = 0.0;
-        DOUBLE latAvg = 0.0;
-        DOUBLE frameLatency = 0;
-        DOUBLE framesPerSecond = 0;
-        DOUBLE displayLatency = 0;
-        DOUBLE displayFramesPerSecond = 0;
-        DOUBLE msBetweenPresents;
-        DOUBLE msInPresentApi;
-        DOUBLE msUntilRenderComplete = 0.0;
-        DOUBLE msUntilDisplayed = 0.0;
+        FLOAT cpuAvg;
+        FLOAT dspAvg = 0.0;
+        FLOAT latAvg = 0.0;
+        FLOAT frameLatency = 0;
+        FLOAT framesPerSecond = 0;
+        FLOAT displayLatency = 0;
+        FLOAT displayFramesPerSecond = 0;
+        FLOAT msBetweenPresents;
+        FLOAT msInPresentApi;
+        FLOAT msUntilRenderComplete = 0.0;
+        FLOAT msUntilDisplayed = 0.0;
 
         cpuAvg = QpcDeltaToSeconds(presentN.PresentStartTime - present0.PresentStartTime) / (chain.mPresentHistoryCount - 1);
-        msBetweenPresents = 1000.0 * QpcDeltaToSeconds(presentN.PresentStartTime - lastPresented.PresentStartTime);
-        msInPresentApi = 1000.0 * QpcDeltaToSeconds(presentN.PresentStopTime);
+        msBetweenPresents = 1000.f * QpcDeltaToSeconds(presentN.PresentStartTime - lastPresented.PresentStartTime);
+        msInPresentApi = 1000.f * QpcDeltaToSeconds(presentN.PresentStopTime);
 
         if (cpuAvg)
         {
-            frameLatency = 1000.0 * cpuAvg;
-            framesPerSecond = 1.0 / cpuAvg;
+            frameLatency = 1000.f * cpuAvg;
+            framesPerSecond = 1.f / cpuAvg;
         }
 
         //if (args.mTrackDisplay)
@@ -317,22 +317,22 @@ VOID PresentMonUpdateProcessStats(
 
         if (latAvg)
         {
-            displayLatency = 1000.0 * latAvg;
+            displayLatency = 1000.f * latAvg;
         }
 
         if (dspAvg)
         {
-            displayFramesPerSecond = 1.0 / dspAvg;
+            displayFramesPerSecond = 1.f / dspAvg;
         }
 
         if (presentN.ReadyTime > 0)
         {
-            msUntilRenderComplete = 1000.0 * QpcDeltaToSeconds(presentN.ReadyTime - presentN.PresentStartTime);
+            msUntilRenderComplete = 1000.f * QpcDeltaToSeconds(presentN.ReadyTime - presentN.PresentStartTime);
         }
 
         if (presentN.FinalState == PresentResult::Presented)
         {
-            msUntilDisplayed = 1000.0 * QpcDeltaToSeconds(presentN.ScreenTime - presentN.PresentStartTime);
+            msUntilDisplayed = 1000.f * QpcDeltaToSeconds(presentN.ScreenTime - presentN.PresentStartTime);
 
             //if (chain.mLastDisplayedPresentIndex != UINT32_MAX)
             //{

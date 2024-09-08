@@ -1088,6 +1088,7 @@ ULONG EtPerfCounterAddCounters(
 
     counterIdentifierLength = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8);
     counterIdentifierBuffer = _malloca(counterIdentifierLength);
+    if (!counterIdentifierBuffer) return ERROR_INSUFFICIENT_BUFFER;
     memset(counterIdentifierBuffer, 0, counterIdentifierLength);
     counterIdentifierBuffer->Size = counterIdentifierLength;
     counterIdentifierBuffer->CounterSetGuid = CounterGuid;
@@ -1123,23 +1124,9 @@ BOOLEAN EtPerfCounterGetCounterData(
 {
     static ULONG initialBufferSize = 0x4000;
     ULONG status;
+    ULONG returnSize;
     ULONG bufferSize;
     PPERF_DATA_HEADER buffer;
-
-    {
-        static ULONG64 lastTickCount = 0;
-        ULONG64 tickCount = NtGetTickCount64();
-
-        if (lastTickCount == 0)
-            lastTickCount = tickCount;
-
-        if (tickCount - lastTickCount >= 600 * 1000)
-        {
-            lastTickCount = tickCount;
-            // Reset initial buffer size.
-            initialBufferSize = 0x4000;
-        }
-    }
 
     bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
@@ -1148,14 +1135,12 @@ BOOLEAN EtPerfCounterGetCounterData(
         CounterHandle,
         buffer,
         bufferSize,
-        &bufferSize
+        &returnSize
         );
 
     if (status == ERROR_NOT_ENOUGH_MEMORY)
     {
-        if (initialBufferSize < bufferSize)
-            initialBufferSize = bufferSize;
-
+        bufferSize = returnSize;
         PhFree(buffer);
         buffer = PhAllocate(bufferSize);
 
@@ -1163,12 +1148,15 @@ BOOLEAN EtPerfCounterGetCounterData(
             CounterHandle,
             buffer,
             bufferSize,
-            &bufferSize
+            &returnSize
             );
     }
 
     if (status == ERROR_SUCCESS)
     {
+        if (initialBufferSize > bufferSize)
+            initialBufferSize = bufferSize;
+
         *CounterBuffer = buffer;
         return TRUE;
     }
@@ -1293,7 +1281,7 @@ BOOLEAN EtPerfCounterGetCounterData(
 //    return status;
 //}
 
-_Success_(return)
+_Success_(return == 0)
 ULONG EtPerfCounterOpenHandle(
     _Out_ PHANDLE PerfQueryHandle
     )

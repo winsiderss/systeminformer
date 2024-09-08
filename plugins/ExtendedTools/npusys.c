@@ -499,8 +499,8 @@ VOID EtpCreateNpuGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         NpuDialog,
         NULL,
         NULL,
@@ -514,8 +514,8 @@ VOID EtpCreateNpuGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         NpuDialog,
         NULL,
         NULL,
@@ -529,8 +529,8 @@ VOID EtpCreateNpuGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         NpuDialog,
         NULL,
         NULL,
@@ -546,8 +546,8 @@ VOID EtpCreateNpuGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             NpuDialog,
             NULL,
             NULL,
@@ -561,8 +561,8 @@ VOID EtpCreateNpuGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             NpuDialog,
             NULL,
             NULL,
@@ -576,8 +576,8 @@ VOID EtpCreateNpuGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             NpuDialog,
             NULL,
             NULL,
@@ -808,12 +808,12 @@ PPH_STRING EtpNpuTemperatureGraphLabelYFunction(
 
     if (EtNpuFahrenheitEnabled)
     {
-        PhInitFormatF(&format[0], (ULONG)(Value * Parameter) * 1.8 + 32, 1);
+        PhInitFormatF(&format[0], (Value * Parameter) * 1.8f + 32, 1);
         PhInitFormatS(&format[1], L"\u00b0F");
     }
     else
     {
-        PhInitFormatF(&format[0], (ULONG)(Value * Parameter), 1);
+        PhInitFormatF(&format[0], (Value * Parameter), 1);
         PhInitFormatS(&format[1], L"\u00b0C\n");
     }
 
@@ -829,7 +829,7 @@ PPH_STRING EtpNpuFanRpmGraphLabelYFunction(
 {
     PH_FORMAT format[2];
 
-    PhInitFormatU(&format[0], (ULONG)(Value * Parameter));
+    PhInitFormatU(&format[0], ((ULONG)Value * (ULONG)Parameter));
     PhInitFormatS(&format[1], L" RPM\n");
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -1237,7 +1237,7 @@ VOID EtpNotifyTemperatureNpuGraph(
 
                     if (EtNpuFahrenheitEnabled)
                     {
-                        PhInitFormatF(&format[0], (temp * 1.8 + 32), 1);
+                        PhInitFormatF(&format[0], (temp * 1.8f + 32), 1);
                         PhInitFormatS(&format[1], L"\u00b0F\n");
                         PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
                     }

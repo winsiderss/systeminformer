@@ -1983,7 +1983,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     }
 
     PhInitFormatS(&format[0], L"CPU usage: ");
-    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100.f, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], L'%');
     if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
     else PhInitFormatC(&format[3], L' ');
@@ -2077,7 +2077,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     }
 
     PhInitFormatS(&format[0], L"CPU usage: ");
-    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100.f, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], L'%');
     if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
     else PhInitFormatC(&format[3], L' ');

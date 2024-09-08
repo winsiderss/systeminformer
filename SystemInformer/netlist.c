@@ -197,9 +197,9 @@ VOID PhLoadSettingsNetworkTreeList(
     PhDereferenceObject(sortSettings);
 
     if (PhGetIntegerSetting(L"EnableInstantTooltips"))
-    {
         SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
-    }
+    else
+        SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     PhLoadSettingsNetworkTreeUpdateMask();
 }
@@ -222,8 +222,10 @@ VOID PhReloadSettingsNetworkTreeList(
     VOID
     )
 {
-    SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
-        PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+        SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    else
+        SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
     PhLoadSettingsNetworkTreeUpdateMask();
 }

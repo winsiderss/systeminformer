@@ -382,21 +382,31 @@ PPH_STRING UpdateWindowsString(
     PVOID imageBase;
     ULONG imageSize;
     PVOID versionInfo;
-    VS_FIXEDFILEINFO* rootBlock;
 
     if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
     {
         if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage)))
         {
-            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-            timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-            sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                imageMachine = mappedImage.NtHeaders32->FileHeader.Machine;
+                timeDateStamp = mappedImage.NtHeaders32->FileHeader.TimeDateStamp;
+                sizeOfImage = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
+            }
+            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+            }
 
             PhUnloadMappedImage(&mappedImage);
         }
 
         if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
         {
+            VS_FIXEDFILEINFO* rootBlock;
+
             if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
             {
                 PH_FORMAT format[5];

@@ -298,6 +298,7 @@ typedef struct _PH_PROCESS_ITEM
     FLOAT ImageCoherency;
 
     ULONG LxssProcessId;
+    HANDLE FreezeHandle;
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
@@ -523,11 +524,12 @@ PhGetProcessSmallImageList(
     );
 
 // Note: Can only be called from same thread as process provider. (dmex)
+_Success_(return)
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhDuplicateProcessInformation(
-    _Out_ PPVOID ProcessInformation
+    _Outptr_ PPVOID ProcessInformation
     );
 // end_phapppub
 

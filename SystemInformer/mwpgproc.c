@@ -770,7 +770,7 @@ VOID PhMwpInitializeProcessMenu(
 
         if (WindowsVersion >= WINDOWS_11 && PH_IS_REAL_PROCESS_ID(Processes[0]->ProcessId))
         {
-            if (PhIsProcessStateFrozen(Processes[0]->ProcessId))
+            if (!PhIsNullOrInvalidHandle(Processes[0]->FreezeHandle))
             {
                 if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_FREEZE))
                     PhDestroyEMenuItem(item);

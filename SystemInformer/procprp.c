@@ -566,7 +566,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         PhpProcessPropertiesWaitCallback,
         waitContext,
         INFINITE,
-        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD
+        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD | WT_EXECUTELONGFUNCTION
         )))
     {
         PropContext->ProcessWaitContext = waitContext;
@@ -587,7 +587,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     )
 {
-    PSLIST_ENTRY entry;
+    PSLIST_ENTRY entry = NULL;
     PPH_PROCESS_WAITPROPCONTEXT data;
     PROCESS_BASIC_INFORMATION basicInfo;
 

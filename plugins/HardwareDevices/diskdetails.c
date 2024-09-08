@@ -233,11 +233,11 @@ VOID DiskDeviceQueryVolumeInfo(
                 PhaFormatSize(ntfsVolumeInfo.VolumeData.NumberSectors.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerSector, ULONG_MAX)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_FREE, Column,
                 PhaFormatString(L"%s (%.2f%%)", PhaFormatSize(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerCluster, ULONG_MAX)->Buffer,
-                (DOUBLE)(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * 100) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
+                (FLOAT)(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * 100.f) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_USED, Column,
                 PhaFormatString(L"%s (%.2f%%)", PhaFormatSize(
                 (ntfsVolumeInfo.VolumeData.NumberSectors.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerSector) - (ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerCluster), ULONG_MAX)->Buffer,
-                100.0 - (DOUBLE)(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * 100) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer); // HACK (dmex)
+                100.f - (FLOAT)(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * 100) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer); // HACK (dmex)
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_SECTORS, Column,
                 PhaFormatUInt64(ntfsVolumeInfo.VolumeData.NumberSectors.QuadPart, TRUE)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS, Column,
@@ -257,13 +257,13 @@ VOID DiskDeviceQueryVolumeInfo(
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_RECORDS, Column,
                 PhaFormatUInt64(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart / ntfsVolumeInfo.VolumeData.BytesPerFileRecordSegment, TRUE)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_SIZE, Column,
-                PhaFormatString(L"%s (%.2f%%)", PhaFormatSize(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart, ULONG_MAX)->Buffer, ((DOUBLE)ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart / ntfsVolumeInfo.VolumeData.BytesPerCluster * 100) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
+                PhaFormatString(L"%s (%.2f%%)", PhaFormatSize(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart, ULONG_MAX)->Buffer, ((FLOAT)ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart / ntfsVolumeInfo.VolumeData.BytesPerCluster * 100.f) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_START, Column,
                 PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.MftStartLcn.QuadPart)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_ZONE, Column,
                 PhaFormatString(L"%I64u - %I64u", ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart, ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_ZONE_SIZE, Column,
-                PhaFormatString(L"%s (%.2f%%)", PhaFormatSize((ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * ntfsVolumeInfo.VolumeData.BytesPerCluster, ULONG_MAX)->Buffer, (DOUBLE)(ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * 100 / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
+                PhaFormatString(L"%s (%.2f%%)", PhaFormatSize((ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * ntfsVolumeInfo.VolumeData.BytesPerCluster, ULONG_MAX)->Buffer, (FLOAT)(ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * 100.f / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_MIRROR_START, Column,
                 PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.Mft2StartLcn.QuadPart)->Buffer);
         }
@@ -434,12 +434,12 @@ VOID DiskDeviceQueryFileSystem(
                     if (PhWindowsVersion >= WINDOWS_10)
                     {
                         LARGE_INTEGER frequency;
-                        DOUBLE volumeTrimTime;
-                        DOUBLE fileTrimTime;
+                        FLOAT volumeTrimTime;
+                        FLOAT fileTrimTime;
 
                         PhQueryPerformanceFrequency(&frequency);
-                        volumeTrimTime = (DOUBLE)buffer->NtfsStatistics.VolumeTrimTime / (DOUBLE)frequency.QuadPart;
-                        fileTrimTime = (DOUBLE)buffer->NtfsStatistics.FileLevelTrimTime / (DOUBLE)frequency.QuadPart;
+                        volumeTrimTime = (FLOAT)buffer->NtfsStatistics.VolumeTrimTime / (FLOAT)frequency.QuadPart;
+                        fileTrimTime = (FLOAT)buffer->NtfsStatistics.FileLevelTrimTime / (FLOAT)frequency.QuadPart;
 
                         PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_COUNT, column,
                             PhaFormatUInt64(buffer->NtfsStatistics.VolumeTrimCount, TRUE)->Buffer);

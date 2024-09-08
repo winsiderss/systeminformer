@@ -108,7 +108,6 @@ typedef struct _POOLTAG_CONTEXT
     HWND SearchboxHandle;
     HWND TreeNewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
-    ULONG ProcessesUpdatedCount;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
     ULONG_PTR SearchMatchHandle;

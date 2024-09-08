@@ -1792,7 +1792,10 @@ VOID PhApplyTreeNewFilters(
         }
     }
 
-    TreeNew_NodesStructured(Support->TreeNewHandle);
+    if (Support->NodeList->Count)
+    {
+        TreeNew_NodesStructured(Support->TreeNewHandle);
+    }
 }
 
 VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(

@@ -1397,8 +1397,8 @@ BOOLEAN DevicesTabPageCallback(
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors,
                 0,
                 0,
-                3,
-                3,
+                0,
+                0,
                 Parameter2,
                 NULL,
                 PluginInstance->DllBase,
@@ -1440,7 +1440,7 @@ BOOLEAN DevicesTabPageCallback(
             HFONT font = (HFONT)Parameter1;
 
             if (DeviceTreeHandle)
-                SendMessage(DeviceTreeHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+                SetWindowFont(DeviceTreeHandle, Parameter1, TRUE);
         }
         break;
     case MainTabPageDpiChanged:
@@ -1530,6 +1530,9 @@ VOID NTAPI DeviceTreeProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    if (PtrToUlong(Parameter) < 2)
+        return;
+
     if (!DeviceTreeHandle)
         return;
 

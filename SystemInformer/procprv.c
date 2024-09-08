@@ -238,7 +238,7 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessItemType = PhCreateObjectType(L"ProcessItem", 0, PhpProcessItemDeleteProcedure);
 
-    PhProcessRecordList = PhCreateList(40);
+    PhProcessRecordList = PhCreateList(512);
 
     PhEnableProcessExtension = WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
 

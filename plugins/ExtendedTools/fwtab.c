@@ -70,8 +70,8 @@ BOOLEAN FwTabPageCallback(
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
                 0,
                 0,
-                3,
-                3,
+                0,
+                0,
                 Parameter2,
                 NULL,
                 PluginInstance->DllBase,
@@ -324,6 +324,15 @@ VOID LoadSettingsFwTreeList(
 
     sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
     TreeNew_SetSort(TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    {
+        SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    }
+    else
+    {
+        SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
+    }
 }
 
 VOID SaveSettingsFwTreeList(

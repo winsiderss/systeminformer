@@ -60,8 +60,8 @@ VOID GpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -75,8 +75,8 @@ VOID GpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -90,8 +90,8 @@ VOID GpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -105,8 +105,8 @@ VOID GpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -516,7 +516,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             PH_FORMAT format[2];
 
                             // %.2f%%
-                            PhInitFormatF(&format[0], context->Block->GpuCurrentUsage * 100, 2);
+                            PhInitFormatFD(&format[0], context->Block->GpuCurrentUsage * 100, 2);
                             PhInitFormatC(&format[1], L'%');
 
                             PhMoveReference(&context->GpuGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));

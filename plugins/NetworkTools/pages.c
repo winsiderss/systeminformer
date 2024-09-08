@@ -202,7 +202,7 @@ VOID ShowDbCheckForUpdatesDialog(
 
     config.pszWindowTitle = L"Network Tools - GeoLite Updater";
     config.pszMainInstruction = L"Download the latest GeoLite database?";
-    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
+    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"https://www.maxmind.com\">https://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

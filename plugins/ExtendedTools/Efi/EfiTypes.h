@@ -259,7 +259,7 @@ typedef struct {
 //
 //  ALIGN_POINTER - aligns a pointer to the lowest boundry
 //
-#define ALIGN_POINTER(p, s) ((VOID *) (p + ((s - ((UINTN) p)) & (s - 1))))
+//#define ALIGN_POINTER(p, s) ((VOID *) (p + ((s - ((UINTN) p)) & (s - 1))))
 
 //
 //  ALIGN_VARIABLE - aligns a variable up to the next natural boundry for int size of a processor

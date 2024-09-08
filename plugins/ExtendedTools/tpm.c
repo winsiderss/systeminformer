@@ -216,10 +216,10 @@ NTSTATUS TpmOpen(
 NTSTATUS TpmDeviceIoControl(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG IoControlCode,
-    _In_ PVOID InputBuffer,
+    _In_opt_ PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
     _In_ PVOID OutputBuffer,
-    _Out_opt_ PULONG OutputBufferLength
+    _Inout_opt_ PULONG OutputBufferLength
     )
 {
     NTSTATUS status;
