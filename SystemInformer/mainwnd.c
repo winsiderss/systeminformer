@@ -35,13 +35,13 @@
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
-#include <notiftoast.h>
 
 #include <mainwndp.h>
 
-PHAPPAPI HWND PhMainWndHandle = NULL;
+HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
 BOOLEAN PhMainWndEarlyExit = FALSE;
+WNDPROC PhMainWndProc = PhMwpWndProc;
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
 PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
@@ -110,7 +110,7 @@ BOOLEAN PhMainWndInitialization(
         windowRectangle.Height,
         NULL,
         NULL,
-        PhInstanceHandle,
+        NULL,
         NULL
         );
 
@@ -263,7 +263,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.lpfnWndProc = PhMwpWndProc;
+    wcex.lpfnWndProc = PhMainWndProc;
     wcex.hInstance = PhInstanceHandle;
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
@@ -344,7 +344,7 @@ VOID PhMwpInitializeProviders(
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &PhMwpProcessProviderRegistration);
     PhRegisterProvider(&PhSecondaryProviderThread, PhServiceProviderUpdate, NULL, &PhMwpServiceProviderRegistration);
-    PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &PhMwpNetworkProviderRegistration);
+    PhRegisterProvider(&PhSecondaryProviderThread, PhNetworkProviderUpdate, NULL, &PhMwpNetworkProviderRegistration);
 
     PhSetEnabledProvider(&PhMwpProcessProviderRegistration, TRUE);
     PhSetEnabledProvider(&PhMwpServiceProviderRegistration, TRUE);
@@ -2115,6 +2115,10 @@ VOID PhMwpOnCommand(
 
                     PhDereferenceObject(serviceItem);
                 }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"The service does not exist.", STATUS_INVALID_CID, 0);
+                }
             }
         }
         break;
@@ -3571,8 +3575,8 @@ VOID PhMwpLayoutTabControl(
     _Inout_ HDWP *DeferHandle
     )
 {
-    RECT rect;
-    RECT tabrect;
+    RECT clientRect;
+    RECT tabRect;
 
     if (!LayoutPaddingValid)
     {
@@ -3580,10 +3584,10 @@ VOID PhMwpLayoutTabControl(
         LayoutPaddingValid = TRUE;
     }
 
-    GetClientRect(PhMainWndHandle, &rect);
-    PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
-    tabrect = rect;
-    TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabrect);
+    GetClientRect(PhMainWndHandle, &clientRect);
+    PhMwpApplyLayoutPadding(&clientRect, &LayoutPadding);
+    tabRect = clientRect;
+    TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabRect);
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
@@ -3591,11 +3595,11 @@ VOID PhMwpLayoutTabControl(
         *DeferHandle = DeferWindowPos(
             *DeferHandle,
             CurrentPage->WindowHandle,
-            NULL,
-            rect.left,
-            tabrect.top - LayoutBorderSize,
-            rect.right - rect.left,
-            (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
+            HWND_TOP,
+            clientRect.left,
+            tabRect.top - LayoutBorderSize,
+            clientRect.right - clientRect.left,
+            (tabRect.bottom - tabRect.top) + (clientRect.bottom - tabRect.bottom),
             SWP_NOACTIVATE | SWP_NOZORDER
             );
     }
@@ -4137,92 +4141,12 @@ VOID PhShowIconContextMenu(
     PhDestroyEMenu(menu);
 }
 
-VOID NTAPI PhpToastCallback(
-    _In_ HRESULT Result,
-    _In_ PH_TOAST_REASON Reason,
-    _In_ PVOID Context
-    )
-{
-    if (Reason == PhToastReasonActivated)
-        PhShowDetailsForIconNotification();
-}
-
-BOOLEAN PhpShowToastNotification(
-    _In_ PWSTR Title,
-    _In_ PWSTR Text,
-    _In_ ULONG Timeout
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"System Informer");
-    static PPH_STRING iconFileName = NULL;
-    HRESULT result;
-    PPH_STRING toastXml;
-    PH_FORMAT format[7];
-
-    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
-        return FALSE;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
-
-        if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
-            PhClearReference(&iconFileName);
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!iconFileName)
-        return FALSE;
-
-    if (PhInitializeToastRuntime() != S_OK)
-        return FALSE;
-
-    //toastXml = PhFormatString(
-    //    L"<toast>\r\n"
-    //    L"    <visual>\r\n"
-    //    L"       <binding template=\"ToastImageAndText02\">\r\n"
-    //    L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
-    //    L"            <text id=\"1\">%ls</text>\r\n"
-    //    L"            <text id=\"2\">%ls</text>\r\n"
-    //    L"        </binding>\r\n"
-    //    L"    </visual>\r\n"
-    //    L"</toast>",
-    //    PhGetString(iconFileName),
-    //    Title,
-    //    Text
-    //    );
-
-    PhInitFormatS(&format[0], L"<toast><visual><binding template=\"ToastImageAndText02\"><image id=\"1\" src=\"");
-    PhInitFormatSR(&format[1], iconFileName->sr);
-    PhInitFormatS(&format[2], L"\" alt=\"red graphic\"/><text id=\"1\">");
-    PhInitFormatS(&format[3], Title);
-    PhInitFormatS(&format[4], L"</text><text id=\"2\">");
-    PhInitFormatS(&format[5], Text);
-    PhInitFormatS(&format[6], L"</text></binding></visual></toast>");
-    toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
-
-    result = PhShowToastStringRef(
-        &iconAppName,
-        &toastXml->sr,
-        Timeout * 1000,
-        PhpToastCallback,
-        NULL
-        );
-
-    PhDereferenceObject(toastXml);
-
-    return HR_SUCCESS(result);
-}
-
 VOID PhShowIconNotification(
     _In_ PWSTR Title,
     _In_ PWSTR Text
     )
 {
-    if (!PhpShowToastNotification(Title, Text, 10))
-        PhNfShowBalloonTip(Title, Text, 10);
+    PhNfShowBalloonTip(Title, Text, 10);
 }
 
 VOID PhShowDetailsForIconNotification(
@@ -4257,6 +4181,10 @@ VOID PhShowDetailsForIconNotification(
                 ProcessHacker_ToggleVisible(TRUE);
 
                 PhDereferenceObject(serviceItem);
+            }
+            else
+            {
+                PhShowStatus(PhMainWndHandle, L"The service does not exist.", STATUS_INVALID_CID, 0);
             }
         }
         break;

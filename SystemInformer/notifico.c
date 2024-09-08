@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -23,6 +23,7 @@
 #include <mainwndp.h>
 #include <notifico.h>
 #include <notificop.h>
+#include <notiftoast.h>
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
@@ -633,6 +634,87 @@ VOID PhNfSetVisibleIcon(
 #endif
 }
 
+VOID NTAPI PhpToastCallback(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+    )
+{
+    if (Reason == PhToastReasonActivated)
+        PhShowDetailsForIconNotification();
+}
+
+BOOLEAN PhpShowToastNotification(
+    _In_ PPH_STRING Title,
+    _In_ PPH_STRING Text,
+    _In_ ULONG Timeout
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
+    static PPH_STRING iconFileName = NULL;
+    HRESULT result;
+    PPH_STRING toastXml;
+    PH_FORMAT format[7];
+
+    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
+
+        if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
+            PhClearReference(&iconFileName);
+
+        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!iconFileName)
+        return FALSE;
+
+    if (PhInitializeToastRuntime() != S_OK)
+        return FALSE;
+
+    //toastXml = PhFormatString(
+    //    L"<toast>\r\n"
+    //    L"    <visual>\r\n"
+    //    L"       <binding template=\"ToastImageAndText02\">\r\n"
+    //    L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
+    //    L"            <text id=\"1\">%ls</text>\r\n"
+    //    L"            <text id=\"2\">%ls</text>\r\n"
+    //    L"        </binding>\r\n"
+    //    L"    </visual>\r\n"
+    //    L"</toast>",
+    //    PhGetString(iconFileName),
+    //    Title,
+    //    Text
+    //    );
+
+    PhInitFormatS(&format[0], L"<toast><visual><binding template=\"ToastImageAndText02\"><image id=\"1\" src=\"");
+    PhInitFormatSR(&format[1], iconFileName->sr);
+    PhInitFormatS(&format[2], L"\" alt=\"red graphic\"/><text id=\"1\">");
+    PhInitFormatSR(&format[3], Title->sr);
+    PhInitFormatS(&format[4], L"</text><text id=\"2\">");
+    PhInitFormatSR(&format[5], Text->sr);
+    PhInitFormatS(&format[6], L"</text></binding></visual></toast>");
+    toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+    result = PhShowToastStringRef(
+        &iconAppName,
+        &toastXml->sr,
+        Timeout * 1000,
+        PhpToastCallback,
+        NULL
+        );
+
+    PhDereferenceObject(toastXml);
+
+    return HR_SUCCESS(result);
+}
+
 BOOLEAN PhNfpShowBalloonTip(
     _In_ PWSTR Title,
     _In_ PWSTR Text,
@@ -1070,11 +1152,19 @@ VOID PhNfTrayIconFlushWorkQueueData(
 
         if (data->ShowBalloon)
         {
-            PhNfpShowBalloonTip(
-                PhGetString(data->BalloonTitle),
-                PhGetString(data->BalloonText),
+            if (!PhpShowToastNotification(
+                data->BalloonTitle,
+                data->BalloonText,
                 data->BalloonTimeout
-                );
+                ))
+            {
+                PhNfpShowBalloonTip(
+                    PhGetString(data->BalloonTitle),
+                    PhGetString(data->BalloonText),
+                    data->BalloonTimeout
+                    );
+            }
+
             PhClearReference(&data->BalloonTitle);
             PhClearReference(&data->BalloonText);
         }
@@ -1290,7 +1380,6 @@ VOID PhNfpBeginBitmap2(
 
     if (!Context->Initialized)
     {
-        HDC screenHdc;
         BITMAPINFO bitmapInfo;
 
         memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -1301,10 +1390,8 @@ VOID PhNfpBeginBitmap2(
         bitmapInfo.bmiHeader.biHeight = Context->Height;
         bitmapInfo.bmiHeader.biBitCount = 32;
 
-        screenHdc = GetDC(NULL);
-        Context->Hdc = CreateCompatibleDC(screenHdc);
-        Context->Bitmap = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
+        Context->Hdc = CreateCompatibleDC(NULL);
+        Context->Bitmap = CreateDIBSection(Context->Hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
         Context->TaskbarDpi = dpiValue;
         Context->Initialized = TRUE;
@@ -1359,6 +1446,9 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 && lineData2))
+        return;
 
     lineDataCount = min(maxDataCount, PhCpuKernelHistory.Count);
     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
@@ -1457,6 +1547,9 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 && lineData2))
+        return;
 
     lineDataCount = min(maxDataCount, PhIoReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -1566,6 +1659,9 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
+    if (!lineData1)
+        return;
+
     lineDataCount = min(maxDataCount, PhCommitHistory.Count);
 
     for (i = 0; i < lineDataCount; i++)
@@ -1643,6 +1739,9 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+        return;
 
     lineDataCount = min(maxDataCount, PhPhysicalHistory.Count);
 
