@@ -1108,15 +1108,15 @@ PPH_STRING PhSiDoubleLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value;
+    FLOAT value;
 
-    value = (DOUBLE)(Value * Parameter);
+    value = (FLOAT)(Value * Parameter);
 
     if (value != 0)
     {
         PH_FORMAT format[2];
 
-        PhInitFormatF(&format[0], value * 100, PhMaxPrecisionUnit);
+        PhInitFormatF(&format[0], value * 100.f, PhMaxPrecisionUnit);
         PhInitFormatC(&format[1], L'%');
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);

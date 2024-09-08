@@ -1043,8 +1043,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuCore)
 {
-    DOUBLE cpuUsage1;
-    DOUBLE cpuUsage2;
+    FLOAT cpuUsage1;
+    FLOAT cpuUsage2;
 
     cpuUsage1 = threadItem1->CpuUsage * 100;
     cpuUsage1 *= PhSystemProcessorInformation.NumberOfProcessors;
@@ -1052,7 +1052,7 @@ BEGIN_SORT_FUNCTION(CpuCore)
     cpuUsage2 = threadItem2->CpuUsage * 100;
     cpuUsage2 *= PhSystemProcessorInformation.NumberOfProcessors;
 
-    sortResult = doublecmp(cpuUsage1, cpuUsage2);
+    sortResult = singlecmp(cpuUsage1, cpuUsage2);
 }
 END_SORT_FUNCTION
 
@@ -1142,7 +1142,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(WaitTime)
 {
-    sortResult = uint64cmp(threadItem1->WaitTime, threadItem2->WaitTime);
+    sortResult = uintcmp(threadItem1->WaitTime, threadItem2->WaitTime);
 }
 END_SORT_FUNCTION
 
