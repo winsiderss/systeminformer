@@ -314,10 +314,6 @@
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
-    <ClCompile Include="nativekey.c" />
-    <ClCompile Include="nativepipe.c" />
-    <ClCompile Include="nativetoken.c" />
-    <ClCompile Include="nativevm.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
@@ -353,7 +349,6 @@
     <ClInclude Include="include\hvsocketcontrol.h" />
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
-    <ClInclude Include="include\guisupview.h" />
     <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapimg.h" />
     <ClInclude Include="include\mapldr.h" />
@@ -376,7 +371,6 @@
     <ClInclude Include="include\strsrch.h" />
     <ClInclude Include="include\svcsup.h" />
     <ClInclude Include="include\symprvp.h" />
-    <ClInclude Include="include\thirdparty.h" />
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
     <ClInclude Include="include\verify.h" />
