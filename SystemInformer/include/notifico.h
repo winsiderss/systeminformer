@@ -207,6 +207,18 @@ typedef struct _PH_NF_ICON_REGISTRATION_DATA
     PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback;
     PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback;
 } PH_NF_ICON_REGISTRATION_DATA, *PPH_NF_ICON_REGISTRATION_DATA;
+
+VOID PhDrawTrayIconText(
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text
+    );
+
+HFONT PhNfGetTrayIconFont(
+    _In_opt_ LONG DpiValue
+    );
+
 // end_phapppub
 
 #endif

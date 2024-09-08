@@ -679,6 +679,86 @@ VOID PhSipOnCommand(
     }
 }
 
+BOOLEAN NTAPI PhSipGraphCallback(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    switch (GraphMessage)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+
+            section->Callback(section, SysInfoGraphGetDrawInfo, drawInfo, NULL);
+
+            if (CurrentView == SysInfoSectionView)
+            {
+                drawInfo->Flags &= ~(PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y);
+            }
+            else
+            {
+                LONG badWidth = CurrentParameters.PanelWidth;
+
+                // Try not to draw max data point labels that will get covered by the
+                // fade-out part of the graph.
+                if (badWidth < drawInfo->Width)
+                    drawInfo->LabelMaxYIndexLimit = (drawInfo->Width - badWidth) / 2;
+                else
+                    drawInfo->LabelMaxYIndexLimit = ULONG_MAX;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                PH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT graphGetTooltipText;
+
+                graphGetTooltipText.Index = getTooltipText->Index;
+                PhInitializeEmptyStringRef(&graphGetTooltipText.Text);
+
+                section->Callback(section, SysInfoGraphGetTooltipText, &graphGetTooltipText, NULL);
+
+                getTooltipText->Text = graphGetTooltipText.Text;
+            }
+        }
+        break;
+    case GCN_DRAWPANEL:
+        {
+            PPH_GRAPH_DRAWPANEL drawPanel = (PPH_GRAPH_DRAWPANEL)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+
+            if (CurrentView == SysInfoSummaryView)
+            {
+                PhSipDrawPanel(section, drawPanel->hdc, &drawPanel->Rect);
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+
+            if (mouseEvent->Message == WM_LBUTTONDOWN)
+            {
+                PhSipEnterSectionView(section);
+            }
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
 _Success_(return)
 BOOLEAN PhSipOnNotify(
     _In_ NMHDR *Header,
@@ -708,7 +788,7 @@ BOOLEAN PhSipOnNotify(
                     }
                     else
                     {
-                        ULONG badWidth = CurrentParameters.PanelWidth;
+                        LONG badWidth = CurrentParameters.PanelWidth;
 
                         // Try not to draw max data point labels that will get covered by the
                         // fade-out part of the graph.
@@ -882,10 +962,7 @@ VOID PhSipOnUserMessage(
 
                     section->GraphState.Valid = FALSE;
                     section->GraphState.TooltipIndex = ULONG_MAX;
-                    Graph_MoveGrid(section->GraphHandle, 1);
-                    Graph_Draw(section->GraphHandle);
-                    Graph_UpdateTooltip(section->GraphHandle);
-                    InvalidateRect(section->GraphHandle, NULL, FALSE);
+                    Graph_Update(section->GraphHandle);
 
                     InvalidateRect(section->PanelHandle, NULL, FALSE);
                 }
@@ -897,6 +974,8 @@ VOID PhSipOnUserMessage(
             ULONG i;
             PPH_SYSINFO_SECTION section;
             PH_GRAPH_OPTIONS options;
+
+            PhSipUpdateColorParameters();
 
             if (SectionList)
             {
@@ -919,14 +998,7 @@ VOID PhSiNotifyChangeSettings(
     VOID
     )
 {
-    HWND window;
-
     PhSipUpdateColorParameters();
-
-    window = PhSipWindow;
-
-    if (window)
-        PostMessage(window, SI_MSG_SYSINFO_CHANGE_SETTINGS, 0, 0);
 }
 
 VOID PhSiSetColorsGraphDrawInfo(
@@ -1210,6 +1282,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
 {
     PPH_SYSINFO_SECTION section;
     PH_GRAPH_OPTIONS options;
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
 
     section = PhAllocateZero(sizeof(PH_SYSINFO_SECTION));
     section->Name = Template->Name;
@@ -1217,28 +1290,33 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     section->Callback = Template->Callback;
     section->Context = Template->Context;
 
+    memset(&options, 0, sizeof(PH_GRAPH_OPTIONS));
+    options.FadeOutBackColor = CurrentParameters.GraphBackColor;
+    options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
+    options.DefaultCursor = PhLoadCursor(NULL, IDC_HAND);
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipGraphCallback;
+    graphCreateParams.Options = options;
+    graphCreateParams.Context = section;
+
     section->GraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP | GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         PhSipWindow,
         NULL,
-        PhInstanceHandle,
-        NULL
+        NULL,
+        &graphCreateParams
         );
     PhInitializeGraphState(&section->GraphState);
-    section->Parameters = &CurrentParameters;
-
-    Graph_GetOptions(section->GraphHandle, &options);
-    options.FadeOutBackColor = CurrentParameters.GraphBackColor;
-    options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
-    options.DefaultCursor = PhLoadCursor(NULL, IDC_HAND);
-    Graph_SetOptions(section->GraphHandle, &options);
     if (PhEnableTooltipSupport) Graph_SetTooltip(section->GraphHandle, TRUE);
+    section->Parameters = &CurrentParameters;
 
     section->PanelId = IDDYNAMIC + SectionList->Count * 2 + 2;
     section->PanelHandle = CreateWindow(
@@ -1247,11 +1325,11 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         PhSipWindow,
         UlongToHandle(section->PanelId),
-        PhInstanceHandle,
+        NULL,
         NULL
         );
 
@@ -2395,4 +2473,12 @@ VOID NTAPI PhSipSysInfoUpdateHandler(
     )
 {
     PostMessage(PhSipWindow, SI_MSG_SYSINFO_UPDATE, 0, 0);
+}
+
+VOID NTAPI PhSipSysInfoSettingsCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PostMessage(PhSipWindow, SI_MSG_SYSINFO_CHANGE_SETTINGS, 0, 0);
 }

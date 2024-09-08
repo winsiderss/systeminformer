@@ -908,10 +908,28 @@ LRESULT CALLBACK PhpGraphWndProc(
             {
                 PPH_GRAPH_CREATEPARAMS params = createStruct->lpCreateParams;
 
+                if (RTL_CONTAINS_FIELD(params, params->Size, Options))
+                {
+                    if (params->Options.DefaultCursor || params->Options.FadeOutBackColor || params->Options.FadeOutWidth)
+                    {
+                        memcpy(&context->Options, &params->Options, sizeof(PH_GRAPH_OPTIONS));
+                    }
+                }
+
                 if (RTL_CONTAINS_FIELD(params, params->Size, Callback))
                 {
-                    context->Callback = params->Callback;
-                    context->Context = params->Context;
+                    if (params->Callback)
+                    {
+                        context->Callback = params->Callback;
+                    }
+                }
+
+                if (RTL_CONTAINS_FIELD(params, params->Size, Context))
+                {
+                    if (params->Context)
+                    {
+                        context->Context = params->Context;
+                    }
                 }
             }
 

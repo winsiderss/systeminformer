@@ -83,6 +83,14 @@ typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ ULONG BufferLength
     );
 
+typedef HRESULT (WINAPI* _GetThemeColor)(
+    _In_ HTHEME hTheme,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_ int iPropId,
+    _Out_ COLORREF* pColor
+    );
+
 typedef HRESULT (WINAPI *_GetThemeInt)(
     _In_ HTHEME hTheme,
     _In_ INT iPartId,

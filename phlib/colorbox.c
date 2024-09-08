@@ -156,14 +156,14 @@ LRESULT CALLBACK PhColorBoxWndProc(
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
-            RECT clientRect;
+            RECT updateRect;
             HBRUSH oldBrush;
             HPEN oldPen;
             HDC hdc;
 
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                clientRect = paintStruct.rcPaint;
+                updateRect = paintStruct.rcPaint;
 
                 // Border color
                 SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
@@ -179,7 +179,7 @@ LRESULT CALLBACK PhColorBoxWndProc(
                 oldPen = SelectPen(hdc, GetStockPen(DC_PEN));
 
                 // Draw the border and fill.
-                Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+                Rectangle(hdc, updateRect.left, updateRect.top, updateRect.right, updateRect.bottom);
 
                 // Restore the original border and fill.
                 SelectPen(hdc, oldPen);

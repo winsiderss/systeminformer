@@ -43,7 +43,7 @@ typedef struct _PH_NF_BITMAP
     BOOLEAN Initialized;
     HDC Hdc;
     HBITMAP Bitmap;
-    PVOID Bits;
+    LPRGBQUAD Bits;
     LONG Width;
     LONG Height;
     LONG TaskbarDpi;
@@ -55,17 +55,6 @@ HICON PhNfGetApplicationIcon(
 
 HICON PhNfpGetBlackIcon(
     VOID
-    );
-
-VOID PhDrawTrayIconText(
-    _In_ HDC hdc,
-    _In_ PVOID Bits,
-    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
-    _In_ PPH_STRINGREF Text
-    );
-
-HFONT PhNfGetTrayIconFont(
-    _In_opt_ LONG DpiValue
     );
 
 BOOLEAN PhNfpAddNotifyIcon(

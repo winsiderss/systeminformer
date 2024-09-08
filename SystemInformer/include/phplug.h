@@ -23,7 +23,7 @@
 typedef enum _PH_GENERAL_CALLBACK
 {
     GeneralCallbackMainWindowShowing = 0, // INT ShowCommand [main thread]
-    GeneralCallbackProcessesUpdated = 1, // [main thread]
+    GeneralCallbackProcessesUpdated = 1, // ULONG RunId [main thread]
     GeneralCallbackGetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
     GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
@@ -71,8 +71,9 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackNetworkProviderRemovedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderUpdatedEvent, // [network provider thread]
 
-    GeneralCallbackLoggedEvent,
-    GeneralCallbackTrayIconsInitializing,
+    GeneralCallbackLoggedEvent, // [multiple provider threads]
+
+    GeneralCallbackTrayIconsInitializing, // [work queue thread]
     GeneralCallbackWindowNotifyEvent,
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
@@ -358,6 +359,8 @@ typedef PPH_MINIINFO_SECTION (NTAPI *PPH_MINIINFO_FIND_SECTION)(
     _In_ PPH_STRINGREF Name
     );
 
+typedef struct _PH_MINIINFO_LIST_SECTION PH_MINIINFO_LIST_SECTION, *PPH_MINIINFO_LIST_SECTION;
+
 typedef PPH_MINIINFO_LIST_SECTION (NTAPI *PPH_MINIINFO_CREATE_LIST_SECTION)(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
@@ -375,7 +378,7 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 
 // begin_phapppub
 typedef struct _PH_NF_ICON_REGISTRATION_DATA *PPH_NF_ICON_REGISTRATION_DATA;
-typedef struct _PH_PLUGIN *PPH_PLUGIN;
+typedef struct _PH_PLUGIN PH_PLUGIN, *PPH_PLUGIN;
 
 /**
  * Creates a notification icon.

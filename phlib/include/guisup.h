@@ -138,6 +138,18 @@ _Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetThemeColor(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ INT PropId,
+    _Out_ COLORREF* Color
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetThemeInt(
     _In_ HTHEME ThemeHandle,
     _In_ INT PartId,
@@ -1155,8 +1167,8 @@ HBITMAP
 NTAPI
 PhIconToBitmap(
     _In_ HICON Icon,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 PHLIBAPI
@@ -1164,8 +1176,8 @@ VOID
 NTAPI
 PhBitmapSetAlpha(
     _In_ PVOID Bits,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 // extlv
@@ -1771,8 +1783,8 @@ PhLoadImageFormatFromResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
     _In_ PH_IMAGE_FORMAT_TYPE Format,
-    _In_ UINT Width,
-    _In_ UINT Height
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 PHLIBAPI
@@ -1782,8 +1794,8 @@ PhLoadImageFromResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
-    _In_ UINT Width,
-    _In_ UINT Height
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 PHLIBAPI
@@ -1791,8 +1803,8 @@ HBITMAP
 NTAPI
 PhLoadImageFromFile(
     _In_ PWSTR FileName,
-    _In_ UINT Width,
-    _In_ UINT Height
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 // Acrylic support

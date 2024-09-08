@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -280,9 +280,12 @@ VOID PhSipSetOneGraphPerCpu(
     VOID
     );
 
-VOID PhSipNotifyCpuGraph(
-    _In_ ULONG Index,
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipCpuGraphCallback(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhSipUpdateCpuGraphs(

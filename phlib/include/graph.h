@@ -182,6 +182,7 @@ typedef struct _PH_GRAPH_CREATEPARAMS
 {
     ULONG Size;
     ULONG Flags;
+    PH_GRAPH_OPTIONS Options;
     PPH_GRAPH_MESSAGE_CALLBACK Callback;
     PVOID Context;
     // Add new fields here.
