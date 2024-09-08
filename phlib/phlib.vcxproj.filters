@@ -182,6 +182,18 @@
     <ClCompile Include="strsrch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativepipe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativetoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativekey.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativevm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -383,6 +395,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\strsrch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thirdparty.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\guisupview.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
