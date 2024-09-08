@@ -4497,11 +4497,24 @@ FORCEINLINE
 VOID
 PhInitFormatF(
     _Out_ PPH_FORMAT Format,
+    _In_ FLOAT Single,
+    _In_ USHORT Precision
+    )
+{
+    Format->Type = SingleFormatType | FormatUsePrecision;
+    Format->u.Single = Single;
+    Format->Precision = Precision;
+}
+
+FORCEINLINE
+VOID
+PhInitFormatFD(
+    _Out_ PPH_FORMAT Format,
     _In_ DOUBLE Double,
     _In_ USHORT Precision
     )
 {
-    Format->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatUsePrecision);
+    Format->Type = DoubleFormatType | FormatUsePrecision;
     Format->u.Double = Double;
     Format->Precision = Precision;
 }
