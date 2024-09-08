@@ -950,6 +950,73 @@ HICON PhNfpGetBlackIcon(
     return PhNfpBlackIcon;
 }
 
+#define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
+
+VOID PhDrawTrayIconText(
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PULONG bits = Bits;
+    LONG width = DrawInfo->Width;
+    LONG height = DrawInfo->Height;
+    LONG numberOfPixels = width * height;
+    ULONG flags = DrawInfo->Flags;
+    HFONT oldFont = NULL;
+    SIZE textSize;
+    PH_RECTANGLE boxRectangle;
+    PH_RECTANGLE textRectangle;
+
+    if (DrawInfo->BackColor == 0)
+    {
+        memset(bits, 0, numberOfPixels * sizeof(RGBQUAD));
+    }
+    else
+    {
+        PhFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
+    }
+
+    if (DrawInfo->TextFont)
+        oldFont = SelectFont(hdc, DrawInfo->TextFont);
+
+    DrawInfo->Text = *Text;
+    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
+
+    // Calculate the box rectangle.
+
+    boxRectangle.Width = textSize.cx;
+    boxRectangle.Height = textSize.cy;
+    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
+    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
+
+    // Calculate the text rectangle.
+
+    textRectangle.Left = boxRectangle.Left;
+    textRectangle.Top = boxRectangle.Top;
+    textRectangle.Width = textSize.cx;
+    textRectangle.Height = textSize.cy;
+
+    // Save the rectangles.
+    DrawInfo->TextRect = PhRectangleToRect(textRectangle);
+    DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
+
+    SetBkMode(hdc, TRANSPARENT);
+
+    // Fill in the text box.
+    //SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
+    //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
+
+    // Draw the text.
+    SetTextColor(hdc, DrawInfo->TextColor);
+
+    DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectFont(hdc, oldFont);
+}
+
 HFONT PhNfGetTrayIconFont(
     _In_opt_ LONG DpiValue
     )
