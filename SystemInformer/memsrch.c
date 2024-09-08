@@ -58,7 +58,6 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     HANDLE ProcessHandle;
 
-    HWND ParentWindowHandle;
     HWND WindowHandle;
     HWND TreeNewHandle;
     HWND MessageHandle;
@@ -1352,11 +1351,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
                     PhpCopyFilteredMemoryStringsNodes(context, &nodeList);
 
-                    if (!PhpShowMemoryStringDialog(
-                        context->ParentWindowHandle,
-                        context->ProcessItem,
-                        nodeList
-                        ))
+                    if (!PhpShowMemoryStringDialog(hwndDlg, context->ProcessItem, nodeList))
                     {
                         PhpDeleteMemoryStringsNodeList(nodeList);
                         PhDereferenceObject(nodeList);
@@ -1445,7 +1440,6 @@ BOOLEAN PhpShowMemoryStringDialog(
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->ProcessHandle = processHandle;
-    context->ParentWindowHandle = ParentWindowHandle;
     context->PrevNodeList = PrevNodeList;
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
