@@ -1168,11 +1168,8 @@ VOID PhpFillProcessItem(
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             ProcessItem->IsWow64Process = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
-        }
-
-        if (NT_SUCCESS(PhGetProcessStartKey(ProcessItem->QueryHandle, &ProcessItem->ProcessStartKey)))
-        {
-            PhPrintPointer(ProcessItem->ProcessStartKeyString, (PVOID)ProcessItem->ProcessStartKey);
+            ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
+            ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
         }
     }
 
@@ -1196,13 +1193,16 @@ VOID PhpFillProcessItem(
                 {
                     //if (NT_SUCCESS(PhGetProcessImageFileName(ProcessItem->QueryHandle, &fileName)))
                     //    ProcessItem->FileName = fileName;
-                    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
-                        ProcessItem->FileNameWin32 = fileName;
-                }
 
-                if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
-                {
-                    PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
+                    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
+                    {
+                        ProcessItem->FileNameWin32 = fileName;
+                    }
+
+                    //if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
+                    //{
+                    //    PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
+                    //}
                 }
             }
         }
@@ -1276,14 +1276,18 @@ VOID PhpFillProcessItem(
             NtClose(tokenHandle);
         }
     }
-
-    if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
-        ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+    else
     {
-        if (!ProcessItem->Sid)
-            ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid((PSID)&PhSeLocalSystemSid));
-        if (!ProcessItem->UserName)
-            ProcessItem->UserName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid);
+        if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+            ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+        {
+            if (!ProcessItem->Sid)
+                ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid((PSID)&PhSeLocalSystemSid));
+            if (!ProcessItem->UserName)
+                ProcessItem->UserName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid);
+
+            ProcessItem->IsSystemProcess = TRUE;
+        }
     }
 
     // Known Process Type
@@ -1387,8 +1391,53 @@ VOID PhpFillProcessItem(
                 )))
             {
                 ProcessItem->LxssProcessId = lxssProcessId;
-                PhPrintUInt32(ProcessItem->LxssProcessIdString, lxssProcessId);
             }
+        }
+    }
+
+    // Extended Process Information
+    if (WindowsVersion >= WINDOWS_10 && ProcessItem->QueryHandle)
+    {
+        PPROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+        ULONG telemetryInfoLength;
+
+        if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(ProcessItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
+        {
+            SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
+            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
+            PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
+            SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
+            PWSTR PackageNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->PackageNameOffset);
+            SIZE_T RelativeAppNameLength = telemetryInfo->CommandLineOffset - telemetryInfo->RelativeAppNameOffset;
+            PWSTR RelativeAppNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->RelativeAppNameOffset);
+            SIZE_T CommandLineLength = telemetryInfoLength - telemetryInfo->CommandLineOffset;
+            PWSTR CommandLineBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->CommandLineOffset);
+
+            ProcessItem->CreateInterruptTime = telemetryInfo->CreateInterruptTime;
+            ProcessItem->SessionCreateTime = telemetryInfo->SessionCreateTime;
+            ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
+            ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
+
+            if (!ProcessItem->Sid && RtlValidSid(UserSidBuffer))
+            {
+                ProcessItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+            }
+
+            if (PhIsNullOrEmptyString(ProcessItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
+            {
+                ProcessItem->FileName = PhCreateStringEx(ImagePathBuffer, ImagePathLength - sizeof(UNICODE_NULL));
+            }
+
+            if (PhIsNullOrEmptyString(ProcessItem->PackageFullName) && PackageNameLength > sizeof(UNICODE_NULL))
+            {
+                ProcessItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
+            }
+
+            //if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
+            //{
+            //    ProcessItem->CommandLine = PhCreateString(CommandLineBuffer); // CommandLineLength - sizeof(UNICODE_NULL));
+            //}
         }
     }
 

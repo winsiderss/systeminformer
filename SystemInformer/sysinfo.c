@@ -368,7 +368,6 @@ VOID PhSipOnInitDialog(
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         PhSipSysInfoUpdateHandler,
-        NULL,
         PhSipWindow,
         &ProcessesUpdatedRegistration
         );

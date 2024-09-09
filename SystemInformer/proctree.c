@@ -1672,6 +1672,8 @@ static VOID PhpUpdateProcessNodeObjectReferences(
     {
         if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
         {
+            ProcessNode->ReferenceCount = 0;
+
             if (ProcessNode->ProcessItem->QueryHandle)
             {
                 OBJECT_BASIC_INFORMATION basicInfo;
@@ -1684,6 +1686,36 @@ static VOID PhpUpdateProcessNodeObjectReferences(
         }
 
         SetFlag(ProcessNode->ValidMask, PHPN_REFERENCEDELTA);
+    }
+}
+
+static VOID PhpUpdateProcessNodeStartKey(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_STARTKEY))
+    {
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        {
+            ProcessNode->ProcessStartKey = 0;
+
+            if (ProcessNode->ProcessItem->QueryHandle)
+            {
+                ULONGLONG processStartKey;
+
+                if (NT_SUCCESS(PhGetProcessStartKey(ProcessNode->ProcessItem->QueryHandle, &processStartKey)))
+                {
+                    PH_FORMAT format[2];
+
+                    PhInitFormatS(&format[0], L"0x");
+                    PhInitFormatI64X(&format[1], processStartKey);
+                    PhMoveReference(&ProcessNode->ProcessStartKeyText, PhFormat(format, 2, 0));
+                    ProcessNode->ProcessStartKey = processStartKey;
+                }
+            }
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_STARTKEY);
     }
 }
 
@@ -2515,7 +2547,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StartKey)
 {
-    sortResult = uint64cmp(node1->ProcessItem->ProcessStartKey, node2->ProcessItem->ProcessStartKey);
+    PhpUpdateProcessNodeStartKey(node1);
+    PhpUpdateProcessNodeStartKey(node2);
+    sortResult = uint64cmp(node1->ProcessStartKey, node2->ProcessStartKey);
 }
 END_SORT_FUNCTION
 
@@ -4065,14 +4099,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_START_KEY:
                 {
-                    if (processItem->ProcessStartKey)
+                    PhpUpdateProcessNodeStartKey(node);
+
+                    if (node->ProcessStartKey != 0)
                     {
-                        PH_FORMAT format[2];
-
-                        PhInitFormatS(&format[0], L"0x");
-                        PhInitFormatI64X(&format[1], processItem->ProcessStartKey);
-
-                        PhMoveReference(&node->ProcessStartKeyText, PhFormat(format, 2, 0));
                         getCellText->Text = PhGetStringRef(node->ProcessStartKeyText);
                     }
                     else

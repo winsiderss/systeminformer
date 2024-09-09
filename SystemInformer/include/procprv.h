@@ -149,7 +149,6 @@ typedef struct _PH_PROCESS_ITEM
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
     ULONG SessionId;
-    ULONG64 ProcessStartKey;
     LARGE_INTEGER CreateTime;
 
     // Handles

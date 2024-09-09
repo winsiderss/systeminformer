@@ -154,6 +154,7 @@
 #define PHPN_GRANTEDACCESS 0x100000
 #define PHPN_TLSBITMAPDELTA 0x200000
 #define PHPN_REFERENCEDELTA 0x400000
+#define PHPN_STARTKEY 0x800000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -230,6 +231,8 @@ typedef struct _PH_PROCESS_NODE
     USHORT TlsBitmapCount;
     // Reference count
     ULONG ReferenceCount;
+    // Start key
+    ULONGLONG ProcessStartKey;
 
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
