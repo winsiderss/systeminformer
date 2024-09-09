@@ -2038,6 +2038,75 @@ PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
+// Stopwatch
+
+typedef struct _PH_STOPWATCH
+{
+    LARGE_INTEGER StartCounter;
+    LARGE_INTEGER EndCounter;
+    LARGE_INTEGER Frequency;
+} PH_STOPWATCH, *PPH_STOPWATCH;
+
+FORCEINLINE
+VOID
+PhInitializeStopwatch(
+    _Out_ PPH_STOPWATCH Stopwatch
+    )
+{
+    Stopwatch->StartCounter.QuadPart = 0;
+    Stopwatch->EndCounter.QuadPart = 0;
+}
+
+FORCEINLINE
+VOID
+PhStartStopwatch(
+    _Inout_ PPH_STOPWATCH Stopwatch
+    )
+{
+    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
+    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
+}
+
+FORCEINLINE
+VOID
+PhStopStopwatch(
+    _Inout_ PPH_STOPWATCH Stopwatch
+    )
+{
+    PhQueryPerformanceCounter(&Stopwatch->EndCounter);
+}
+
+FORCEINLINE
+ULONG
+PhGetMillisecondsStopwatch(
+    _In_ PPH_STOPWATCH Stopwatch
+    )
+{
+    LARGE_INTEGER elapsedMilliseconds;
+
+    elapsedMilliseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
+    elapsedMilliseconds.QuadPart *= 1000;
+    elapsedMilliseconds.QuadPart /= Stopwatch->Frequency.QuadPart ? Stopwatch->Frequency.QuadPart  : 1;
+
+    return (ULONG)elapsedMilliseconds.QuadPart;
+}
+
+FORCEINLINE
+ULONGLONG
+PhGetMicrosecondsStopwatch(
+    _In_ PPH_STOPWATCH Stopwatch
+    )
+{
+    LARGE_INTEGER elapsedMicroseconds;
+
+    // Convert to microseconds before dividing by ticks-per-second.
+    elapsedMicroseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
+    elapsedMicroseconds.QuadPart *= 1000000;
+    if (Stopwatch->Frequency.QuadPart)elapsedMicroseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
+
+    return elapsedMicroseconds.QuadPart;
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI

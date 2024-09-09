@@ -2215,6 +2215,8 @@ BOOLEAN PhUiFreezeTreeProcess(
         return FALSE;
     }
 
+    InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle);
+
     return TRUE;
 }
 
@@ -2235,8 +2237,6 @@ BOOLEAN PhUiThawTreeProcess(
         PhpShowErrorProcess(WindowHandle, L"thaw", Process, status, 0);
         return FALSE;
     }
-
-    InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle);
 
     return TRUE;
 }

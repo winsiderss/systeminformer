@@ -93,6 +93,12 @@ PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerParent);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDeriveCapabilitySidsFromName);
 
+PH_DEFINE_IMPORT(L"ntdll.dll", PssNtCaptureSnapshot);
+PH_DEFINE_IMPORT(L"ntdll.dll", PssNtQuerySnapshot);
+PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeSnapshot);
+PH_DEFINE_IMPORT(L"ntdll.dll", PssNtFreeRemoteSnapshot);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtPssCaptureVaSpaceBulk);
+
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescriptorW);
 

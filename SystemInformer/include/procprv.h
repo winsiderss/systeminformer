@@ -150,7 +150,6 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING ProcessName;
     ULONG SessionId;
     ULONG64 ProcessStartKey;
-
     LARGE_INTEGER CreateTime;
 
     // Handles
@@ -179,6 +178,10 @@ typedef struct _PH_PROCESS_ITEM
     // Other
 
     HANDLE ConsoleHostProcessId;
+    ULONGLONG CreateInterruptTime;
+    ULONGLONG SessionCreateTime;
+    ULONG ImageChecksum;
+    ULONG ImageTimeStamp;
 
     // Signature, Packed
 

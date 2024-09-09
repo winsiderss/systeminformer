@@ -14,8 +14,7 @@
 #include <settings.h>
 #include <vssym32.h>
 #include <emenu.h>
-
-#include "../tools/thirdparty/pcre/pcre2.h"
+#include <thirdparty.h>
 
 typedef struct _PH_SEARCHCONTROL_BUTTON
 {
