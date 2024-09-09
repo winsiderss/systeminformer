@@ -43,9 +43,21 @@ jobs:
   notify:
       runs-on: ubuntu-latest
       needs: [build, build_driver]
-      if: ${{ failure() }}
+      if: always()
       steps:
-        - run: |
+        - name: Notify
+          run: |
+            BUILD_STATUS=${{ needs.build.result }}
+            BUILD_DRIVER_STATUS=${{ needs.build_driver.result }}
+            if [ "$BUILD_STATUS" = "success" ] && [ "$BUILD_DRIVER_STATUS" = "success" ]; then
+              COLOR=3066993
+              TITLE="[${{ github.event.repository.name }}:${{ github.ref_name }}] Build Succeeded"
+              DESCRIPTION="✅ __**Build Successful**__"
+            else
+              COLOR=15158332
+              TITLE="[${{ github.event.repository.name }}:${{ github.ref_name }}] Build Failed"
+              DESCRIPTION="🚨 __**Build Failure**__"
+            fi
             curl -X POST '${{ secrets.DISCORD_WEBHOOK_URL }}' \
             -H 'Content-Type: application/json' \
             -d '{
@@ -58,10 +70,10 @@ jobs:
                      "url": "${{ github.server_url }}/${{ github.actor }}",
                      "icon_url": "https://avatars.githubusercontent.com/u/${{ github.actor_id }}?v=4"
                   },
-                  "title": "[${{ github.event.repository.name }}:${{ github.ref_name }}] Build Failed",
+                  "title": "'"${TITLE}"'",
                   "url": "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}",
-                  "color": 16711680,
-                  "description": "🚨 __**Build Failure**__",
+                  "color": '"${COLOR}"',
+                  "description": "'"${DESCRIPTION}"'",
                   "fields": [
                     {
                       "name": "Reference",
@@ -80,8 +92,11 @@ jobs:
                     },
                     {
                       "name": "Commit",
-                      "value": "[${{ github.sha }}](${{ github.event.repository.html_url }}/commit/${{ github.sha }})",
-                      "inline": true
+                      "value": "[`${{ github.sha }}`](${{ github.event.repository.html_url }}/commit/${{ github.sha }})"
+                    },
+                    {
+                      "name": "Message",
+                      "value": "${{ github.event.head_commit.message }}"
                     }
                   ]
                 }
