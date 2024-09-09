@@ -1589,6 +1589,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     HANDLE ProcessId;
     ULONG64 SequenceNumber;
+    ULONG64 ProcessStartKey;
     CLIENT_ID CreatorClientId;
 
     PUNICODE_STRING ImageFileName;
