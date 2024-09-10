@@ -177,6 +177,7 @@ typedef struct _PH_PROCESS_ITEM
     // Other
 
     HANDLE ConsoleHostProcessId;
+    ULONGLONG ProcessStartKey;
     ULONGLONG CreateInterruptTime;
     ULONGLONG SessionCreateTime;
     ULONG ImageChecksum;

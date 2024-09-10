@@ -13,16 +13,16 @@
 
 #define PCRE2_CODE_UNIT_WIDTH 16
 
-#if __has_include(<pcre2.h>)
-#include <pcre2.h>
+#if __has_include("../../tools/thirdparty/pcre/pcre2.h")
+#include "../../tools/thirdparty/pcre/pcre2.h"
 #else
-#error "vcpkg is mssing"
+#error "ThirdParty.lib is mssing"
 #endif
 
-#if __has_include(<json-c/json.h>)
-#include <json-c/json.h>
+#if __has_include("../../tools/thirdparty/jsonc/json.h")
+#include "../../tools/thirdparty/jsonc/json.h"
 #else
-#error "vcpkg is mssing"
+#error "ThirdParty.lib is mssing"
 #endif
 
 #if __has_include("../../tools/thirdparty/mxml/mxml.h")
