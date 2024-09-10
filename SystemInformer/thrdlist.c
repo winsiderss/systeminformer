@@ -2231,13 +2231,6 @@ VOID PhGetSelectedThreadItems(
     *Threads = PhFinalArrayItems(&array);
 }
 
-static VOID PhDeselectAllThreadNodes(
-    _In_ PPH_THREAD_LIST_CONTEXT Context
-    )
-{
-    TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
-}
-
 PPH_STRING PhGetApartmentStateString(
     _In_ OLETLSFLAGS ApartmentState
     )
