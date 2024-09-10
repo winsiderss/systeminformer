@@ -1094,28 +1094,28 @@ EXPORTS
     PhAppResolverGetAppIdForWindow                                                @2009     NONAME
 
 ; http
-    PhHttpCreate                                                                  @2010     NONAME
-    PhHttpDestroy                                                                 @2011     NONAME
-    PhHttpClose                                                                   @2012     NONAME
-    PhHttpConnect                                                                 @2013     NONAME
-    PhHttpBeginRequest                                                            @2014     NONAME
-    PhHttpSendRequest                                                             @2015     NONAME
-    PhHttpEndRequest                                                              @2016     NONAME
-    PhHttpReadData                                                                @2017     NONAME
-    PhHttpWriteData                                                               @2018     NONAME
-    PhHttpAddRequestHeaders                                                       @2019     NONAME
-    PhHttpQueryHeaders                                                            @2020     NONAME
-    PhHttpQueryHeaderString                                                       @2021     NONAME
-    PhHttpQueryHeaderUlong                                                        @2022     NONAME
-    PhHttpQueryHeaderUlong64                                                      @2023     NONAME
-    PhHttpQueryOptionString                                                       @2024     NONAME
-    PhHttpReadDataToBuffer                                                        @2025     NONAME
-    PhHttpDownloadString                                                          @2026     NONAME
-    PhHttpSetFeature                                                              @2027     NONAME
-    PhHttpSetSecurity                                                             @2028     NONAME
-    PhHttpParseUrl                                                                @2029     NONAME
-    PhHttpGetErrorMessage                                                         @2030     NONAME
-    PhHttpSetCredentials                                                          @2031     NONAME
+    PhHttpSocketCreate                                                            @2010     NONAME
+    PhHttpSocketDestroy                                                           @2011     NONAME
+    PhHttpSocketClose                                                             @2012     NONAME
+    PhHttpSocketConnect                                                           @2013     NONAME
+    PhHttpSocketBeginRequest                                                      @2014     NONAME
+    PhHttpSocketSendRequest                                                       @2015     NONAME
+    PhHttpSocketEndRequest                                                        @2016     NONAME
+    PhHttpSocketReadData                                                          @2017     NONAME
+    PhHttpSocketWriteData                                                         @2018     NONAME
+    PhHttpSocketAddRequestHeaders                                                 @2019     NONAME
+    PhHttpSocketQueryHeaders                                                      @2020     NONAME
+    PhHttpSocketQueryHeaderString                                                 @2021     NONAME
+    PhHttpSocketQueryHeaderUlong                                                  @2022     NONAME
+    PhHttpSocketQueryHeaderUlong64                                                @2023     NONAME
+    PhHttpSocketQueryOptionString                                                 @2024     NONAME
+    PhHttpSocketReadDataToBuffer                                                  @2025     NONAME
+    PhHttpSocketDownloadString                                                    @2026     NONAME
+    PhHttpSocketSetFeature                                                        @2027     NONAME
+    PhHttpSocketSetSecurity                                                       @2028     NONAME
+    PhHttpSocketParseUrl                                                          @2029     NONAME
+    PhHttpSocketGetErrorMessage                                                   @2030     NONAME
+    PhHttpSocketSetCredentials                                                    @2031     NONAME
     PhHttpDnsQuery                                                                @2032     NONAME
     PhDnsQuery                                                                    @2033     NONAME
     PhDnsQuery2                                                                   @2034     NONAME
