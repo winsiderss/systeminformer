@@ -822,15 +822,15 @@ PhCreateDialog(
 PHLIBAPI
 HWND
 NTAPI
-PhCreateWindow(
-    _In_ ULONG ExStyle,
-    _In_opt_ PCWSTR ClassName,
+PhCreateWindowWx(
+    _In_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
     _In_ ULONG Style,
-    _In_ INT X,
-    _In_ INT Y,
-    _In_ INT Width,
-    _In_ INT Height,
+    _In_ ULONG ExStyle,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _In_ LONG Width,
+    _In_ LONG Height,
     _In_opt_ HWND ParentWindow,
     _In_opt_ HMENU MenuHandle,
     _In_opt_ PVOID InstanceHandle,
@@ -1531,7 +1531,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetThreadWin32Thread(
-    _In_ HANDLE ThreadId
+    _In_ HANDLE ThreadId,
+    _Out_opt_ PGUITHREADINFO ThreadInfo
     );
 
 _Success_(return)
