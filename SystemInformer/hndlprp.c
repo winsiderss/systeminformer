@@ -35,6 +35,7 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_MUTANT,
     PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
     PH_HANDLE_GENERAL_CATEGORY_ETW,
+    PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -83,6 +84,8 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
 
     PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
     PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
+
+    PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
 
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_HANDLE_GENERAL_INDEX;
@@ -323,6 +326,56 @@ VOID PhShowHandleProperties(
     PhReferenceObject(HandleItem);
 
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
+}
+
+NTSTATUS PhShowHandlePropertiesModal(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ObjectHandle
+)
+{
+    NTSTATUS status;
+    OBJECT_BASIC_INFORMATION objectInfo;
+    PPH_STRING typeName;
+    PPH_STRING objectName;
+    PPH_STRING bestObjectName;
+
+    if (NT_SUCCESS(status = PhGetHandleInformation(
+        ProcessHandle,
+        ObjectHandle,
+        -1,
+        &objectInfo,
+        &typeName,
+        &objectName,
+        &bestObjectName
+    )))
+    {
+        SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
+        memset(&HandleInfo, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+
+        HandleInfo.HandleValue = (ULONG_PTR)ObjectHandle;
+        HandleInfo.GrantedAccess = objectInfo.GrantedAccess;
+        HandleInfo.HandleAttributes = objectInfo.Attributes;
+        HandleInfo.ObjectTypeIndex = (USHORT)PhGetObjectTypeNumber(&typeName->sr);
+
+        PPH_HANDLE_ITEM handleItem = PhCreateHandleItem(&HandleInfo);
+        handleItem->TypeName = typeName;
+        handleItem->ObjectName = objectName;
+        handleItem->BestObjectName = bestObjectName;
+
+        PHANDLE_PROPERTIES_THREAD_CONTEXT context;
+
+        context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
+        context->ParentWindowHandle = ParentWindowHandle;
+        context->ProcessId = ProcessId;
+        context->HandleItem = handleItem;
+
+        PhReferenceObject(handleItem);
+        status = PhpShowHandlePropertiesThread(context);
+        PhReferenceObject(handleItem);
+    }
+    return status;
 }
 
 VOID PhpUpdateHandleGeneralListViewGroups(
@@ -652,6 +705,18 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             L"Exit status",
             NULL
             );
+    }
+    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"SymbolicLink", TRUE))
+    {
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
+
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
+            PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
+            L"Link",
+            NULL
+        );
     }
 }
 
@@ -2128,6 +2193,33 @@ VOID PhpUpdateHandleGeneral(
                 PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
             }
+        }
+    }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"SymbolicLink", TRUE))
+    {
+        PPH_STRING link = NULL;
+        NTSTATUS status;
+        HANDLE dupHandle = NULL;
+
+        status = PhpDuplicateHandleFromProcess(&dupHandle, SYMBOLIC_LINK_QUERY, Context);
+
+        if (NT_SUCCESS(status) && dupHandle)
+        {
+            UNICODE_STRING targetName;
+            WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
+
+            RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
+            status = NtQuerySymbolicLinkObject(dupHandle, &targetName, NULL);
+
+            if (NT_SUCCESS(status))
+                link = PhCreateStringFromUnicodeString(&targetName);
+            NtClose(dupHandle);
+        }
+
+        if (link)
+        {
+            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK], 1, PhGetStringOrEmpty(link));
+            PhDereferenceObject(link);
         }
     }
 }
