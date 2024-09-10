@@ -1531,8 +1531,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetThreadWin32Thread(
-    _In_ HANDLE ThreadId,
-    _Out_opt_ PGUITHREADINFO ThreadInfo
+    _In_ HANDLE ThreadId
     );
 
 _Success_(return)
