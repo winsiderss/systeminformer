@@ -135,6 +135,19 @@ VOID EtHandlePropertiesWindowPreOpen(
         PhRemoveListViewItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
 
         PhSetWindowText(context->ParentWindow, L"Object Properties");
+
+        //PhCenterWindow(context->ParentWindow, EtObjectManagerDialogHandle);
+        // Do manual for skip PhAdjustRectangleToWorkingArea
+        RECT rect, parentRect;
+        PH_RECTANGLE rectangle, parentRectangle;
+
+        GetWindowRect(context->ParentWindow, &rect);
+        GetWindowRect(EtObjectManagerDialogHandle, &parentRect);
+        rectangle = PhRectToRectangle(rect);
+        parentRectangle = PhRectToRectangle(parentRect);
+
+        PhCenterRectangle(&rectangle, &parentRectangle);
+        MoveWindow(context->ParentWindow, rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, FALSE);
     }
 }
 
