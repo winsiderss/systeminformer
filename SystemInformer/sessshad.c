@@ -15,7 +15,7 @@
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
-static PH_KEY_VALUE_PAIR VirtualKeyPairs[] =
+static CONST PH_KEY_VALUE_PAIR VirtualKeyPairs[] =
 {
     SIP(L"0", '0'),
     SIP(L"1", '1'),

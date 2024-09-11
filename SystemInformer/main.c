@@ -756,7 +756,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         config.pszExpandedInformation = PhGetString(PhGetStacktraceAsString());
 #endif
 
-        if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
+        if (PhShowTaskDialog(&config, &result, NULL, NULL))
         {
             switch (result)
             {
@@ -1107,11 +1107,11 @@ VOID PhpInitializeSettings(
         // 3. The default location.
 
         // 1. File specified in command line
-        //if (PhStartupParameters.SettingsFileName)
-        //{
-        //    // Get an absolute path now.
-        //    PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, &PhSettingsFileName, NULL);
-        //}
+        if (PhStartupParameters.SettingsFileName)
+        {
+            // Get an absolute path now.
+            PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, &PhSettingsFileName, NULL);
+        }
 
         // 2. File in program directory
         if (PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1240,6 +1240,7 @@ VOID PhpInitializeSettings(
 typedef enum _PH_COMMAND_ARG
 {
     PH_ARG_NONE,
+    PH_ARG_SETTINGS,
     PH_ARG_NOSETTINGS,
     PH_ARG_SHOWVISIBLE,
     PH_ARG_SHOWHIDDEN,
@@ -1277,6 +1278,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     {
         switch (Option->Id)
         {
+        case PH_ARG_SETTINGS:
+            PhSwapReference(&PhStartupParameters.SettingsFileName, Value);
+            break;
         case PH_ARG_NOSETTINGS:
             PhStartupParameters.NoSettings = TRUE;
             break;
@@ -1386,7 +1390,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         {
             if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != SIZE_MAX)
             {
-                // User probably has Process Hacker replacing Task Manager. Force
+                // User probably has System Informer replacing Task Manager. Force
                 // the main window to start visible.
                 PhStartupParameters.ShowVisible = TRUE;
             }

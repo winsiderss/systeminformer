@@ -1316,7 +1316,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Extended Tools";
-            info->Author = L"dmex, wj32";
             info->Description = L"Extended functionality for Windows 7 and above, including ETW, GPU, Disk and Firewall monitoring tabs.";
             info->Interface = &PluginInterface;
 

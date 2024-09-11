@@ -329,24 +329,6 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             PhSipLayoutIoGraphs(hwndDlg);
         }
         break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == IoReadGraphHandle)
-            {
-                PhSipNotifyIoReadGraph(header);
-            }
-            else if (header->hwndFrom == IoWriteGraphHandle)
-            {
-                PhSipNotifyIoWriteGraph(header);
-            }
-            else if (header->hwndFrom == IoOtherGraphHandle)
-            {
-                PhSipNotifyIoOtherGraph(header);
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -398,20 +380,30 @@ VOID PhSipCreateIoGraph(
     VOID
     )
 {
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipNotifyIoReadGraph;
+
     IoReadGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         IoDialog,
         NULL,
-        PhInstanceHandle,
-        NULL
+        NULL,
+        &graphCreateParams
         );
     Graph_SetTooltip(IoReadGraphHandle, TRUE);
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipNotifyIoWriteGraph;
 
     IoWriteGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
@@ -419,14 +411,18 @@ VOID PhSipCreateIoGraph(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         IoDialog,
         NULL,
-        PhInstanceHandle,
-        NULL
+        NULL,
+        &graphCreateParams
         );
     Graph_SetTooltip(IoWriteGraphHandle, TRUE);
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipNotifyIoOtherGraph;
 
     IoOtherGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
@@ -434,12 +430,12 @@ VOID PhSipCreateIoGraph(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         IoDialog,
         NULL,
-        PhInstanceHandle,
-        NULL
+        NULL,
+        &graphCreateParams
         );
     Graph_SetTooltip(IoOtherGraphHandle, TRUE);
 }
@@ -541,15 +537,19 @@ VOID PhSipLayoutIoGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-VOID PhSipNotifyIoReadGraph(
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipNotifyIoReadGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    switch (Header->code)
+    switch (GraphMessage)
     {
     case GCN_GETDRAWINFO:
         {
-            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
@@ -595,7 +595,7 @@ VOID PhSipNotifyIoReadGraph(
         break;
     case GCN_GETTOOLTIPTEXT:
         {
-            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
@@ -622,7 +622,7 @@ VOID PhSipNotifyIoReadGraph(
         break;
     case GCN_MOUSEEVENT:
         {
-            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Parameter1;
             PPH_PROCESS_RECORD record;
 
             record = NULL;
@@ -640,17 +640,23 @@ VOID PhSipNotifyIoReadGraph(
         }
         break;
     }
+
+    return TRUE;
 }
 
-VOID PhSipNotifyIoWriteGraph(
-    _In_ NMHDR *Header
+BOOLEAN PhSipNotifyIoWriteGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    switch (Header->code)
+    switch (GraphMessage)
     {
     case GCN_GETDRAWINFO:
         {
-            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
@@ -696,7 +702,7 @@ VOID PhSipNotifyIoWriteGraph(
         break;
     case GCN_GETTOOLTIPTEXT:
         {
-            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
@@ -723,7 +729,7 @@ VOID PhSipNotifyIoWriteGraph(
         break;
     case GCN_MOUSEEVENT:
         {
-            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Parameter1;
             PPH_PROCESS_RECORD record;
 
             record = NULL;
@@ -741,17 +747,23 @@ VOID PhSipNotifyIoWriteGraph(
         }
         break;
     }
+
+    return TRUE;
 }
 
-VOID PhSipNotifyIoOtherGraph(
-    _In_ NMHDR *Header
+BOOLEAN PhSipNotifyIoOtherGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    switch (Header->code)
+    switch (GraphMessage)
     {
     case GCN_GETDRAWINFO:
         {
-            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
@@ -795,7 +807,7 @@ VOID PhSipNotifyIoOtherGraph(
         break;
     case GCN_GETTOOLTIPTEXT:
         {
-            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
@@ -822,7 +834,7 @@ VOID PhSipNotifyIoOtherGraph(
         break;
     case GCN_MOUSEEVENT:
         {
-            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Parameter1;
             PPH_PROCESS_RECORD record;
 
             record = NULL;
@@ -840,6 +852,8 @@ VOID PhSipNotifyIoOtherGraph(
         }
         break;
     }
+
+    return TRUE;
 }
 
 VOID PhSipUpdateIoGraph(
@@ -848,24 +862,15 @@ VOID PhSipUpdateIoGraph(
 {
     IoReadGraphState.Valid = FALSE;
     IoReadGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(IoReadGraphHandle, 1);
-    Graph_Draw(IoReadGraphHandle);
-    Graph_UpdateTooltip(IoReadGraphHandle);
-    InvalidateRect(IoReadGraphHandle, NULL, FALSE);
+    Graph_Update(IoReadGraphHandle);
 
     IoWriteGraphState.Valid = FALSE;
     IoWriteGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(IoWriteGraphHandle, 1);
-    Graph_Draw(IoWriteGraphHandle);
-    Graph_UpdateTooltip(IoWriteGraphHandle);
-    InvalidateRect(IoWriteGraphHandle, NULL, FALSE);
+    Graph_Update(IoWriteGraphHandle);
 
     IoOtherGraphState.Valid = FALSE;
     IoOtherGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(IoOtherGraphHandle, 1);
-    Graph_Draw(IoOtherGraphHandle);
-    Graph_UpdateTooltip(IoOtherGraphHandle);
-    InvalidateRect(IoOtherGraphHandle, NULL, FALSE);
+    Graph_Update(IoOtherGraphHandle);
 }
 
 VOID PhSipUpdateIoPanel(

@@ -14,8 +14,7 @@
 #include <vssym32.h>
 //#include <wincodec.h>
 #include <emenu.h>
-
-#include "../../tools/thirdparty/pcre/pcre2.h"
+#include <thirdparty.h>
 
 typedef struct _PV_SEARCHCONTROL_BUTTON
 {
@@ -706,7 +705,6 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             if (hdc = GetDCEx(hWnd, updateRegion, flags))
             {
-                RECT windowRectStart;
                 HDC bufferDc;
                 RECT bufferRect;
                 HBITMAP bufferBitmap;
@@ -716,7 +714,6 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 GetWindowRect(hWnd, &windowRect);
                 // Adjust the coordinates (start from 0,0).
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-                windowRectStart = windowRect;
 
                 // Exclude client area.
                 ExcludeClipRect(
@@ -741,6 +738,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
                     PhInflateRect(&windowRect, -1, -1);
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&windowRect, 1, 1);
                 }
                 else if (context->Hot)
                 {
@@ -757,6 +755,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
                     PhInflateRect(&windowRect, -1, -1);
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&windowRect, 1, 1);
                 }
                 else
                 {
@@ -772,12 +771,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
                     PhInflateRect(&windowRect, -1, -1);
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&windowRect, 1, 1);
                 }
 
-                PvpSearchDrawWindow(context, hWnd, bufferDc, windowRectStart);
-                PvpSearchDrawButton(context, &context->SearchButton, hWnd, bufferDc, windowRectStart);
-                PvpSearchDrawButton(context, &context->RegexButton, hWnd, bufferDc, windowRectStart);
-                PvpSearchDrawButton(context, &context->CaseButton, hWnd, bufferDc, windowRectStart);
+                PvpSearchDrawWindow(context, hWnd, bufferDc, windowRect);
+                PvpSearchDrawButton(context, &context->SearchButton, hWnd, bufferDc, windowRect);
+                PvpSearchDrawButton(context, &context->RegexButton, hWnd, bufferDc, windowRect);
+                PvpSearchDrawButton(context, &context->CaseButton, hWnd, bufferDc, windowRect);
 
                 BitBlt(
                     hdc,
@@ -816,15 +816,15 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             // Get the position of the inserted buttons.
             PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
 
             PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
 
             PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
         }
         break;
@@ -842,13 +842,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Pushed = PtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Pushed = PtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Pushed = PtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
 
             SetCapture(hWnd);
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -868,7 +868,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
             {
                 SetFocus(hWnd);
                 PhSetWindowText(hWnd, L"");
@@ -876,7 +876,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             }
 
             PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
             {
                 context->RegexButton.Active = !context->RegexButton.Active;
                 PhSetIntegerSetting(L"SearchControlRegex", context->RegexButton.Active);
@@ -884,7 +884,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             }
 
             PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            if (PtInRect(&buttonRect, windowPoint))
+            if (PhPtInRect(&buttonRect, windowPoint))
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(L"SearchControlCaseSensitive", context->CaseButton.Active);
@@ -1041,16 +1041,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
-            context->Hot = PtInRect(&windowRect, windowPoint);
+            context->Hot = PhPtInRect(&windowRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             // Check that the mouse is within the inserted button.
             if (!context->HotTrack)
@@ -1084,16 +1084,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
-            context->Hot = PtInRect(&windowRect, windowPoint);
+            context->Hot = PhPtInRect(&windowRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Hot = PtInRect(&buttonRect, windowPoint);
+            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
 
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }

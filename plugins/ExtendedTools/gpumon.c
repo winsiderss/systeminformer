@@ -370,6 +370,8 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     if (EtGpuTotalNodeCount == 0)
         return FALSE;
 
+    PhQueryPerformanceFrequency(&EtGpuClockTotalRunningTimeFrequency);
+
     return TRUE;
 }
 
@@ -592,7 +594,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-    DOUBLE elapsedTime = 0; // total GPU node elapsed time in micro-seconds
+    FLOAT elapsedTime = 0; // total GPU node elapsed time in micro-seconds
     FLOAT tempGpuUsage = 0;
     ULONG i;
     PLIST_ENTRY listEntry;
@@ -624,13 +626,13 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         EtpGpuUpdateSystemSegmentInformation();
         EtpGpuUpdateSystemNodeInformation();
 
-        elapsedTime = (DOUBLE)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / EtGpuClockTotalRunningTimeFrequency.QuadPart;
+        elapsedTime = (FLOAT)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / (FLOAT)EtGpuClockTotalRunningTimeFrequency.QuadPart;
 
         if (elapsedTime != 0)
         {
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                FLOAT usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+                FLOAT usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / (FLOAT)elapsedTime);
 
                 if (usage > 1)
                     usage = 1;
@@ -728,7 +730,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        if (block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+        if (FlagOn(block->ProcessItem->State, PH_PROCESS_ITEM_REMOVED))
         {
             listEntry = listEntry->Flink;
             continue;

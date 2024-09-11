@@ -541,11 +541,21 @@ PPH_STRING PhGetSidFullName(
         else
         {
             fullName = NULL;
+
+            if (NameUse)
+            {
+                *NameUse = SidTypeUnknown;
+            }
         }
     }
     else
     {
         fullName = NULL;
+
+        if (NameUse)
+        {
+            *NameUse = SidTypeUnknown;
+        }
     }
 
     if (referencedDomains)

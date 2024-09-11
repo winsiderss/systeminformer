@@ -150,5 +150,5 @@ VOID ShowCheckForUpdatesDialog(
     }
 
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

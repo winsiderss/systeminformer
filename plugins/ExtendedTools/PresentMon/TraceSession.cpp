@@ -439,21 +439,21 @@ VOID DequeueAnalyzedInfo(
     //DequeueLostPresentEvents(*lostPresentEvents);
 }
 
-DOUBLE QpcDeltaToSeconds(
+FLOAT QpcDeltaToSeconds(
     _In_ ULONGLONG qpcDelta
     )
 {
-    return static_cast<DOUBLE>(qpcDelta) / static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart);
+    return static_cast<FLOAT>(qpcDelta) / static_cast<FLOAT>(TraceFrequencyQpc.QuadPart);
 }
 
 ULONGLONG SecondsDeltaToQpc(
-    _In_ DOUBLE secondsDelta
+    _In_ FLOAT secondsDelta
     )
 {
-    return static_cast<ULONGLONG>(secondsDelta * static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart));
+    return static_cast<ULONGLONG>(secondsDelta * static_cast<FLOAT>(TraceFrequencyQpc.QuadPart));
 }
 
-DOUBLE QpcToSeconds(
+FLOAT QpcToSeconds(
     _In_ ULONGLONG qpc
     )
 {

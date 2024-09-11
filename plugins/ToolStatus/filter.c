@@ -111,11 +111,11 @@ BOOLEAN ProcessTreeFilterCallback(
         }
     }
 
-    if (processNode->ProcessItem->LxssProcessIdString[0])
-    {
-        if (PhSearchControlMatchLongHintZ(SearchMatchHandle, processNode->ProcessItem->LxssProcessIdString))
-            return TRUE;
-    }
+    //if (processNode->ProcessItem->LxssProcessIdString[0])
+    //{
+    //    if (PhSearchControlMatchLongHintZ(SearchMatchHandle, processNode->ProcessItem->LxssProcessIdString))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->PackageFullName))
     {
@@ -228,7 +228,7 @@ BOOLEAN ProcessTreeFilterCallback(
         return TRUE;
     }
 
-    if (processNode->ProcessItem->IsWow64 && PhSearchControlMatchZ(SearchMatchHandle, L"IsWow64"))
+    if (processNode->ProcessItem->IsWow64Process && PhSearchControlMatchZ(SearchMatchHandle, L"IsWow64"))
     {
         return TRUE;
     }

@@ -126,13 +126,13 @@ PhGetProcessSessionId(
  *
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param IsWow64 A variable which receives a boolean indicating whether the process is 32-bit.
+ * \param IsWow64Process A variable which receives a boolean indicating whether the process is 32-bit.
  */
 FORCEINLINE
 NTSTATUS
 PhGetProcessIsWow64(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsWow64
+    _Out_ PBOOLEAN IsWow64Process
     )
 {
     NTSTATUS status;
@@ -148,7 +148,7 @@ PhGetProcessIsWow64(
 
     if (NT_SUCCESS(status))
     {
-        *IsWow64 = !!wow64;
+        *IsWow64Process = !!wow64;
     }
 
     return status;
@@ -274,6 +274,13 @@ PhGetProcessErrorMode(
         );
 }
 
+/**
+ * Sets the error mode for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param ErrorMode The error mode to set for the process.
+ * \return STATUS_SUCCESS if the error mode was successfully set, otherwise an appropriate NTSTATUS error code.
+ */
 FORCEINLINE
 NTSTATUS
 PhSetProcessErrorMode(
@@ -292,8 +299,7 @@ PhSetProcessErrorMode(
 /**
  * Gets a process' no-execute status.
  *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
- * access.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION access.
  * \param ExecuteFlags A variable which receives the no-execute flags.
  */
 FORCEINLINE
@@ -1181,6 +1187,32 @@ PhSetThreadBreakOnTermination(
         &breakOnTermination,
         sizeof(ULONG)
         );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadContainerId(
+    _In_ HANDLE ThreadHandle,
+    _In_ PGUID ContainerId
+    )
+{
+    NTSTATUS status;
+    GUID threadContainerId;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadContainerId,
+        &threadContainerId,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(ContainerId, &threadContainerId, sizeof(GUID));
+    }
+
+    return status;
 }
 
 FORCEINLINE

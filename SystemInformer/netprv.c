@@ -832,9 +832,6 @@ VOID PhNetworkItemInvalidateHostname(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    if (!FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
-        return;
-
     if (NetworkItem->LocalHostString)
     {
         PhDereferenceObject(NetworkItem->LocalHostString);

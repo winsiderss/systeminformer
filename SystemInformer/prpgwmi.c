@@ -1518,7 +1518,10 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
 
             // HACK
             if (context->TreeFilterSupport.FilterList)
@@ -1673,19 +1676,19 @@ VOID PhpInitializeWmiProviderTree(
     TreeNew_SetCallback(Context->TreeNewHandle, PhpWmiProviderTreeNewCallback, Context);
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
+    // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, TRUE, L"Provider", 140, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_NAMESPACE, TRUE, L"Namespace", 180, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_FILENAME, TRUE, L"File name", 260, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_USER, TRUE, L"User", 80, PH_ALIGN_LEFT, 3, 0);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
-    TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
-
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(22, dpiValue));
-
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpWmiProviderTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(22, dpiValue));
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 VOID PhpDeleteWmiProviderTree(

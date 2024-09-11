@@ -365,12 +365,12 @@ VOID PhpShowPluginErrorMessage(
     config.pszContent = PhGetString(PhFinalStringBuilderString(&stringBuilder));
     config.nDefaultButton = IDOK;
 
-    if (TaskDialogIndirect(
+    if (PhShowTaskDialog(
         &config,
         &result,
         NULL,
         NULL
-        ) == S_OK)
+        ))
     {
         //switch (result)
         //{

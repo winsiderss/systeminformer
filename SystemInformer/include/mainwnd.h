@@ -13,7 +13,7 @@
 #ifndef PH_MAINWND_H
 #define PH_MAINWND_H
 
-PHAPPAPI extern HWND PhMainWndHandle; // phapppub
+extern HWND PhMainWndHandle;
 extern BOOLEAN PhMainWndExiting;
 
 // begin_phapppub
@@ -47,16 +47,19 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT,
     PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT,
     PH_MAINWINDOW_CALLBACK_TYPE_INVOKE,
+    PH_MAINWINDOW_CALLBACK_TYPE_POST,
     PH_MAINWINDOW_CALLBACK_TYPE_REFRESH,
     PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE,
     PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY,
     PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY,
     PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_BASE,
-    PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE,
+    PH_MAINWINDOW_CALLBACK_TYPE_GETWINDOW_PROCEDURE,
+    PH_MAINWINDOW_CALLBACK_TYPE_SETWINDOW_PROCEDURE,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE,
     PH_MAINWINDOW_CALLBACK_TYPE_VERSION,
     PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE,
+    PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -69,61 +72,66 @@ PhPluginInvokeWindowCallback(
     _In_opt_ PVOID lparam
     );
 
-#define ProcessHacker_Destroy() \
+#define SystemInformer_Destroy() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_DESTROY, 0, 0)
-#define ProcessHacker_ShowProcessProperties(ProcessItem) \
+#define SystemInformer_ShowProcessProperties(ProcessItem) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES, 0, (PVOID)(ULONG_PTR)(ProcessItem))
-#define ProcessHacker_SaveAllSettings() \
+#define SystemInformer_SaveAllSettings() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS, 0, 0)
-#define ProcessHacker_PrepareForEarlyShutdown() \
+#define SystemInformer_PrepareForEarlyShutdown() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_CancelEarlyShutdown() \
+#define SystemInformer_CancelEarlyShutdown() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CANCEL_EARLY_SHUTDOWN, 0, 0)
-#define ProcessHacker_ToggleVisible(AlwaysShow) \
+#define SystemInformer_ToggleVisible(AlwaysShow) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_TOGGLE_VISIBLE, (PVOID)(ULONG_PTR)(AlwaysShow), 0)
-#define ProcessHacker_ShowMemoryEditor(ShowMemoryEditor) \
+#define SystemInformer_ShowMemoryEditor(ShowMemoryEditor) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_EDITOR, 0, (PVOID)(ULONG_PTR)(ShowMemoryEditor))
-#define ProcessHacker_SelectTabPage(Index) \
+#define SystemInformer_SelectTabPage(Index) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, (PVOID)(ULONG_PTR)(Index), 0)
-#define ProcessHacker_GetCallbackLayoutPadding() \
+#define SystemInformer_GetCallbackLayoutPadding() \
     ((PPH_CALLBACK)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
-#define ProcessHacker_InvalidateLayoutPadding() \
+#define SystemInformer_InvalidateLayoutPadding() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVALIDATE_LAYOUT_PADDING, 0, 0)
-#define ProcessHacker_SelectProcessNode(ProcessNode) \
+#define SystemInformer_SelectProcessNode(ProcessNode) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_PROCESS_NODE, 0, (PVOID)(ULONG_PTR)(ProcessNode))
-#define ProcessHacker_SelectServiceItem(ServiceItem) \
+#define SystemInformer_SelectServiceItem(ServiceItem) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_SERVICE_ITEM, 0, (PVOID)(ULONG_PTR)(ServiceItem))
-#define ProcessHacker_SelectNetworkItem(NetworkItem) \
+#define SystemInformer_SelectNetworkItem(NetworkItem) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_NETWORK_ITEM, 0, (PVOID)(ULONG_PTR)(NetworkItem))
-#define ProcessHacker_UpdateFont() \
+#define SystemInformer_UpdateFont() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT, 0, 0)
-#define ProcessHacker_GetFont() \
+#define SystemInformer_GetFont() \
     ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
-#define ProcessHacker_Invoke(Function, Parameter) \
+#define SystemInformer_Invoke(Function, Parameter) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
-//#define ProcessHacker_CreateTabPage(Template) \
+#define SystemInformer_Post(Function, Parameter) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_POST, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
+//#define SystemInformer_CreateTabPage(Template) \
 //    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
-#define ProcessHacker_Refresh() \
+#define SystemInformer_Refresh() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_REFRESH, 0, 0)
-#define ProcessHacker_GetUpdateAutomatically() \
+#define SystemInformer_GetUpdateAutomatically() \
     ((BOOLEAN)PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY, 0, 0)))
-#define ProcessHacker_SetUpdateAutomatically(Value) \
+#define SystemInformer_SetUpdateAutomatically(Value) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY, (PVOID)(ULONG_PTR)(Value), 0)
-#define ProcessHacker_IconClick() \
+#define SystemInformer_IconClick() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK, 0, 0)
-#define ProcessHacker_GetInstanceHandle() \
+#define SystemInformer_GetInstanceHandle() \
     ((PVOID)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_BASE, 0, 0))
-#define ProcessHacker_GetWindowProcedure() \
-    ((WNDPROC)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE, 0, 0))
-#define ProcessHacker_GetWindowHandle() \
+#define SystemInformer_GetWindowProcedure() \
+    ((WNDPROC)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GETWINDOW_PROCEDURE, 0, 0))
+#define SystemInformer_SetWindowProcedure(Value) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SETWINDOW_PROCEDURE, (PVOID)(ULONG_PTR)(Value), 0)
+#define SystemInformer_GetWindowHandle() \
     ((HWND)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE, 0, 0))
-#define ProcessHacker_GetWindowsVersion() \
+#define SystemInformer_GetWindowsVersion() \
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_VERSION, 0, 0)))
-#define ProcessHacker_IsPortableMode() \
+#define SystemInformer_IsPortableMode() \
     ((BOOLEAN)PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0)))
+#define SystemInformer_GetTabIndex(Value) \
+    (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX, (PVOID)(ULONG_PTR)(Value), 0)))
 
-#define PhWindowsVersion ProcessHacker_GetWindowsVersion() // Temporary backwards compat (dmex)
-#define PhMainWindowHandle ProcessHacker_GetWindowHandle() // Temporary backwards compat (dmex)
+#define PhWindowsVersion SystemInformer_GetWindowsVersion() // Temporary backwards compat (dmex)
 // end_phapppub
 
 // begin_phapppub
@@ -290,6 +298,15 @@ VOID PhShowServiceContextMenu(
 
 VOID PhShowNetworkContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
+    );
+
+typedef struct _PH_EMENU_ITEM PH_EMENU, *PPH_EMENU;
+
+VOID PhServiceListInsertContextMenu(
+    _In_ HWND ParentWindow,
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
     );
 
 #endif

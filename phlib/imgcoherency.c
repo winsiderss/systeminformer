@@ -247,6 +247,8 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
         PH_MAPPED_IMAGE_DYNAMIC_RELOC dynRelocs;
         PIMAGE_DATA_DIRECTORY directory;
 
+        PhMappedImagePrefetch(&context->MappedImage);
+
         //
         // Build a hash table for the relocation entries to skip later.
         // This hash table will map the RVA to the number of bytes to skip.

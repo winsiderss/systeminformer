@@ -63,6 +63,7 @@ typedef struct _PH_STARTUP_PARAMETERS
         ULONG Flags;
     };
 
+    PPH_STRING SettingsFileName;
     PPH_STRING RunAsServiceMode;
 
     HWND WindowHandle;
@@ -427,6 +428,22 @@ PhaChoiceDialog(
     _Inout_opt_ PBOOLEAN SelectedOption,
     _In_opt_ PWSTR SavedChoicesSettingName
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhChoiceDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Title,
+    _In_ PWSTR Message,
+    _In_opt_ PWSTR* Choices,
+    _In_opt_ ULONG NumberOfChoices,
+    _In_opt_ PWSTR Option,
+    _In_ ULONG Flags,
+    _Inout_ PPH_STRING* SelectedChoice,
+    _Inout_opt_ PBOOLEAN SelectedOption,
+    _In_opt_ PWSTR SavedChoicesSettingName
+    );
 // end_phapppub
 
 // chproc
@@ -465,7 +482,7 @@ VOID PhShowProcessHeapsDialog(
 
 // hidnproc
 
-VOID PhShowHiddenProcessesDialog(
+VOID PhShowZombieProcessesDialog(
     VOID
     );
 

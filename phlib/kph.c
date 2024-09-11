@@ -15,23 +15,13 @@
 #include <kphuser.h>
 
 static PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
-
-//static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST KphMessageFreeList;
 
-NTSTATUS KphInitialize(
+VOID KphInitialize(
     VOID
     )
 {
-    //if (PhBeginInitOnce(&KphMessageInitOnce))
-    //{
-    //    PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
-    //    PhEndInitOnce(&KphMessageInitOnce);
-    //}
-
     PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
-
-    return STATUS_SUCCESS;
 }
 
 NTSTATUS KphConnect(
@@ -42,11 +32,6 @@ NTSTATUS KphConnect(
     SC_HANDLE serviceHandle;
     BOOLEAN created = FALSE;
     PPH_STRINGREF portName;
-
-    status = KphInitialize();
-
-    if (!NT_SUCCESS(status))
-        return status;
 
     portName = (Config->PortName ? Config->PortName : &KphDefaultPortName);
 

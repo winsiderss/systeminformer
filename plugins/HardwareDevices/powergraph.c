@@ -89,8 +89,8 @@ VOID RaplDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -104,8 +104,8 @@ VOID RaplDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -119,8 +119,8 @@ VOID RaplDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -134,8 +134,8 @@ VOID RaplDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -376,7 +376,7 @@ PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value = (DOUBLE)Value * (DOUBLE)Parameter;
+    FLOAT value = Value * Parameter;
 
     if (value != 0)
     {

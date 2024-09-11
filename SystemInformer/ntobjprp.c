@@ -640,7 +640,7 @@ VOID PhpShowProcessForMapping(
         // TODO would like this to show the process properties
         // memory tab and select the info->StartVa
         //
-        ProcessHacker_ShowProcessProperties(processItem);
+        SystemInformer_ShowProcessProperties(processItem);
         PhDereferenceObject(processItem);
     }
     else

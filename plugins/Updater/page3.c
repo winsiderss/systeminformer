@@ -100,5 +100,5 @@ VOID ShowAvailableDialog(
         PhGetStringOrEmpty(Context->SetupFileLength)
         )->Buffer;
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

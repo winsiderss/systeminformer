@@ -55,11 +55,9 @@ typedef struct _PH_MEMSTRINGS_SETTINGS
 
 typedef struct _PH_MEMSTRINGS_CONTEXT
 {
-    HANDLE ProcessId;
+    PPH_PROCESS_ITEM ProcessItem;
     HANDLE ProcessHandle;
-    PPH_IMAGELIST_ITEM IconEntry;
 
-    HWND ParentWindowHandle;
     HWND WindowHandle;
     HWND TreeNewHandle;
     HWND MessageHandle;
@@ -133,8 +131,7 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
 
 BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_IMAGELIST_ITEM IconEntry,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_opt_ PPH_LIST PrevNodeList
     );
 
@@ -948,14 +945,14 @@ VOID PhpMemoryStringsSetWindowTitle(
     PPH_STRING title;
     CLIENT_ID clientId;
 
-    if (Context->IconEntry && Context->IconEntry->SmallIconIndex)
+    if (Context->ProcessItem->IconEntry && Context->ProcessItem->IconEntry->SmallIconIndex)
     {
-        icon = PhGetImageListIcon(Context->IconEntry->SmallIconIndex, FALSE);
+        icon = PhGetImageListIcon(Context->ProcessItem->IconEntry->SmallIconIndex, FALSE);
         if (icon)
             PhSetWindowIcon(Context->WindowHandle, icon, NULL, TRUE);
     }
 
-    clientId.UniqueProcess = Context->ProcessId;
+    clientId.UniqueProcess = Context->ProcessItem->ProcessId;
     clientId.UniqueThread = NULL;
     title = PhaConcatStrings2(PhGetStringOrEmpty(PH_AUTO(PhGetClientIdName(&clientId))), L" Strings");
     SetWindowTextW(Context->WindowHandle, title->Buffer);
@@ -1051,6 +1048,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
+            PhDereferenceObject(context->ProcessItem);
             NtClose(context->ProcessHandle);
             PhFree(context);
 
@@ -1184,13 +1182,13 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                             )))
                         {
                             showMemoryEditor = PhAllocateZero(sizeof(PH_SHOW_MEMORY_EDITOR));
-                            showMemoryEditor->ProcessId = context->ProcessId;
+                            showMemoryEditor->ProcessId = context->ProcessItem->ProcessId;
                             showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
                             showMemoryEditor->RegionSize = basicInfo.RegionSize;
                             showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)basicInfo.BaseAddress);
                             showMemoryEditor->SelectLength = (ULONG)length;
 
-                            ProcessHacker_ShowMemoryEditor(showMemoryEditor);
+                            SystemInformer_ShowMemoryEditor(showMemoryEditor);
                         }
                         else
                         {
@@ -1353,12 +1351,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
                     PhpCopyFilteredMemoryStringsNodes(context, &nodeList);
 
-                    if (!PhpShowMemoryStringDialog(
-                        context->ParentWindowHandle,
-                        context->ProcessId,
-                        context->IconEntry,
-                        nodeList
-                        ))
+                    if (!PhpShowMemoryStringDialog(hwndDlg, context->ProcessItem, nodeList))
                     {
                         PhpDeleteMemoryStringsNodeList(nodeList);
                         PhDereferenceObject(nodeList);
@@ -1426,8 +1419,7 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
 
 BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_IMAGELIST_ITEM IconEntry,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_opt_ PPH_LIST PrevNodeList
     )
 {
@@ -1438,7 +1430,7 @@ BOOLEAN PhpShowMemoryStringDialog(
     if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
+        ProcessItem->ProcessId
         )))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
@@ -1446,15 +1438,14 @@ BOOLEAN PhpShowMemoryStringDialog(
     }
 
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
-    context->ProcessId = ProcessId;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
     context->ProcessHandle = processHandle;
-    context->IconEntry = IconEntry;
-    context->ParentWindowHandle = ParentWindowHandle;
     context->PrevNodeList = PrevNodeList;
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
     {
         PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+        PhDereferenceObject(context->ProcessItem);
         NtClose(context->ProcessHandle);
         PhFree(context);
         return FALSE;
@@ -1468,10 +1459,5 @@ VOID PhShowMemoryStringDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhpShowMemoryStringDialog(
-        ParentWindowHandle,
-        ProcessItem->ProcessId,
-        ProcessItem->IconEntry,
-        NULL
-        );
+    PhpShowMemoryStringDialog(ParentWindowHandle, ProcessItem, NULL);
 }

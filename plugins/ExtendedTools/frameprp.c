@@ -55,9 +55,9 @@ PPH_STRING FramesLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value;
+    FLOAT value;
 
-    value = (DOUBLE)((DOUBLE)Value * Parameter);
+    value = (FLOAT)(Value * Parameter);
 
     if (value != 0)
     {

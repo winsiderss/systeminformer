@@ -319,9 +319,9 @@ PPH_STRING NetworkPingLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value;
+    FLOAT value;
 
-    value = (DOUBLE)(Parameter);
+    value = (FLOAT)(Parameter);
 
     if (value != 0)
     {
@@ -386,11 +386,11 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 WS_VISIBLE | WS_CHILD | WS_BORDER,
                 0,
                 0,
-                3,
-                3,
+                0,
+                0,
                 hwndDlg,
                 NULL,
-                NULL,
+                PluginInstance->DllBase,
                 NULL
                 );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);
@@ -720,7 +720,7 @@ NTSTATUS NetworkPingDialogThreadStart(
         {
             if (message.wParam == VK_F5)
             {
-                ProcessHacker_Refresh();  // forward key messages (dmex)
+                SystemInformer_Refresh();  // forward key messages (dmex)
             }
         }
 

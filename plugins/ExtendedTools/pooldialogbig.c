@@ -12,48 +12,6 @@
 #include "exttools.h"
 #include "poolmon.h"
 
-NTSTATUS EtEnumBigPoolTable(
-    _Out_ PVOID* Buffer
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG attempts;
-
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
-
-    status = NtQuerySystemInformation(
-        SystemBigPoolInformation,
-        buffer,
-        bufferSize,
-        &bufferSize
-        );
-    attempts = 0;
-
-    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
-
-        status = NtQuerySystemInformation(
-            SystemBigPoolInformation,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-        attempts++;
-    }
-
-    if (NT_SUCCESS(status))
-        *Buffer = buffer;
-    else
-        PhFree(buffer);
-
-    return status;
-}
-
 VOID EtUpdateBigPoolTable(
     _Inout_ PBIGPOOLTAG_CONTEXT Context
     )
@@ -61,7 +19,7 @@ VOID EtUpdateBigPoolTable(
     PSYSTEM_BIGPOOL_INFORMATION bigPoolTable;
     ULONG i;
 
-    if (!NT_SUCCESS(EtEnumBigPoolTable(&bigPoolTable)))
+    if (!NT_SUCCESS(PhEnumBigPoolInformation(&bigPoolTable)))
         return;
 
     for (i = 0; i < bigPoolTable->Count; i++)

@@ -45,6 +45,8 @@ EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
 EXT BOOLEAN PhEnableVersionShortText;
 EXT BOOLEAN PhEnableDeferredLayout;
+EXT BOOLEAN PhEnableKsiWarnings;
+EXT BOOLEAN PhEnableKsiSupport;
 
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;
@@ -100,6 +102,8 @@ EXT ULONG PhCsUseColorProtectedProcess;
 EXT ULONG PhCsColorProtectedProcess;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
+EXT ULONG PhCsUseColorEfficiencyMode;
+EXT ULONG PhCsColorEfficiencyMode;
 EXT ULONG PhCsGraphShowText;
 EXT ULONG PhCsGraphColorMode;
 EXT ULONG PhCsColorCpuKernel;

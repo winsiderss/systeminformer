@@ -25,6 +25,13 @@ static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFE
 static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #endif
 
+/**
+ * Creates a string from a Windows Runtime string.
+ *
+ * @param String The Windows Runtime string.
+ *
+ * @return A pointer to the created string.
+ */
 PPH_STRING PhCreateStringFromWindowsRuntimeString(
     _In_ HSTRING String
     )
@@ -873,6 +880,7 @@ FLOAT PhGetDisplayLogicalDpi(
 
 #pragma region Package Manager
 
+#include <appmodel.h>
 #include <Windows.Management.Deployment.h>
 
 // 9a7d4b65-5e8f-4fc7-a2e5-7f6925cb8b53
@@ -934,7 +942,7 @@ BOOLEAN PhGetPackageApplicationIds(
 {
     BOOLEAN success = FALSE;
     ULONG status;
-    HANDLE packageHandle;
+    PACKAGE_INFO_REFERENCE packageHandle;
     ULONG bufferCount = 0;
     ULONG bufferLength = 0;
     PBYTE buffer = NULL;

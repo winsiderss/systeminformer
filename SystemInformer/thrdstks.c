@@ -783,7 +783,7 @@ VOID PhpThreadStacksProcessPhase2(
         PhpThreadStacksMessage(
             Context,
             L"Walking stacks... %lu%% - %ls (%lu) %lu%%",
-            (ULONG)(((FLOAT)Context->WalkedThreads / Context->TotalThreads) * 100),
+            (ULONG)(((FLOAT)Context->WalkedThreads / (FLOAT)Context->TotalThreads) * 100),
             ProcessNode->ProcessName->Buffer,
             HandleToUlong(ProcessNode->ProcessId),
             (ULONG)(((FLOAT)(i + 1) / ProcessNode->Threads->Count) * 100)
@@ -832,7 +832,7 @@ VOID PhpThreadStacksWorkerPhase2(
         PhpThreadStacksMessage(
             Context,
             L"Walking stacks... %lu%% - %ls (%lu)",
-            (ULONG)(((FLOAT)Context->WalkedThreads / Context->TotalThreads) * 100),
+            (ULONG)(((FLOAT)Context->WalkedThreads / (FLOAT)Context->TotalThreads) * 100),
             node->Process.ProcessName->Buffer,
             HandleToUlong(node->Process.ProcessId)
             );

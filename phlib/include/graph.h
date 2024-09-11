@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2024
  *
  */
 
@@ -41,8 +41,8 @@ typedef PPH_STRING (NTAPI *PPH_GRAPH_LABEL_Y_FUNCTION)(
 typedef struct _PH_GRAPH_DRAW_INFO
 {
     // Basic
-    ULONG Width;
-    ULONG Height;
+    LONG Width;
+    LONG Height;
     ULONG Flags;
     ULONG Step;
     COLORREF BackColor;
@@ -60,8 +60,8 @@ typedef struct _PH_GRAPH_DRAW_INFO
     COLORREF GridColor;
     ULONG GridWidth;
     FLOAT GridHeight;
-    ULONG GridXOffset;
-    ULONG GridYThreshold;
+    LONG GridXOffset;
+    LONG GridYThreshold;
     FLOAT GridBase; // Base for logarithmic grid
 
     // y-axis label
@@ -85,19 +85,25 @@ typedef struct _PH_GRAPH_DRAW_INFO
 #define PH_GRAPH_CLASSNAME L"PhGraph"
 
 PHLIBAPI
-BOOLEAN PhGraphControlInitialization(
+BOOLEAN
+NTAPI
+PhGraphControlInitialization(
     VOID
     );
 
 PHLIBAPI
-VOID PhDrawGraphDirect(
+VOID
+NTAPI
+PhDrawGraphDirect(
     _In_ HDC hdc,
     _In_ PVOID Bits,
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
 PHLIBAPI
-VOID PhSetGraphText(
+VOID
+NTAPI
+PhSetGraphText(
     _In_ HDC hdc,
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ PPH_STRINGREF Text,
@@ -106,25 +112,12 @@ VOID PhSetGraphText(
     _In_ ULONG Align
     );
 
-PHLIBAPI
-VOID PhDrawTrayIconText(
-    _In_ HDC hdc,
-    _In_ PVOID Bits,
-    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
-    _In_ PPH_STRINGREF Text
-    );
-
-PHLIBAPI
-HFONT PhNfGetTrayIconFont( // Note: Exported from notifico.c (dmex)
-    _In_opt_ LONG DpiValue
-    );
-
 // Configuration
 
 typedef struct _PH_GRAPH_OPTIONS
 {
     COLORREF FadeOutBackColor;
-    ULONG FadeOutWidth;
+    LONG FadeOutWidth;
     HCURSOR DefaultCursor;
 } PH_GRAPH_OPTIONS, *PPH_GRAPH_OPTIONS;
 
@@ -144,6 +137,8 @@ typedef struct _PH_GRAPH_OPTIONS
 #define GCM_UPDATETOOLTIP (WM_USER + 1307)
 #define GCM_GETOPTIONS (WM_USER + 1308)
 #define GCM_SETOPTIONS (WM_USER + 1309)
+#define GCM_UPDATE (WM_USER + 1310)
+#define GCM_SETCALLBACK (WM_USER + 1311)
 
 #define Graph_GetDrawInfo(hWnd, DrawInfo) \
     SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
@@ -163,6 +158,10 @@ typedef struct _PH_GRAPH_OPTIONS
     SendMessage((hWnd), GCM_GETOPTIONS, 0, (LPARAM)(Options))
 #define Graph_SetOptions(hWnd, Options) \
     SendMessage((hWnd), GCM_SETOPTIONS, 0, (LPARAM)(Options))
+#define Graph_Update(hWnd) \
+    SendMessage((hWnd), GCM_UPDATE, 0, 0)
+#define Graph_SetCallback(hWnd, Callback, Context) \
+    SendMessage((hWnd), GCM_SETCALLBACK, (LPARAM)(Callback), (WPARAM)(Context))
 
 // Notifications
 
@@ -170,6 +169,24 @@ typedef struct _PH_GRAPH_OPTIONS
 #define GCN_GETTOOLTIPTEXT (WM_USER + 1352)
 #define GCN_MOUSEEVENT (WM_USER + 1353)
 #define GCN_DRAWPANEL (WM_USER + 1354)
+
+typedef BOOLEAN (NTAPI* PPH_GRAPH_MESSAGE_CALLBACK)(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
+
+typedef struct _PH_GRAPH_CREATEPARAMS
+{
+    ULONG Size;
+    ULONG Flags;
+    PH_GRAPH_OPTIONS Options;
+    PPH_GRAPH_MESSAGE_CALLBACK Callback;
+    PVOID Context;
+    // Add new fields here.
+} PH_GRAPH_CREATEPARAMS, *PPH_GRAPH_CREATEPARAMS;
 
 typedef struct _PH_GRAPH_GETDRAWINFO
 {
@@ -217,17 +234,23 @@ typedef struct _PH_GRAPH_BUFFERS
 } PH_GRAPH_BUFFERS, *PPH_GRAPH_BUFFERS;
 
 PHLIBAPI
-VOID PhInitializeGraphBuffers(
+VOID
+NTAPI
+PhInitializeGraphBuffers(
     _Out_ PPH_GRAPH_BUFFERS Buffers
     );
 
 PHLIBAPI
-VOID PhDeleteGraphBuffers(
+VOID
+NTAPI
+PhDeleteGraphBuffers(
     _Inout_ PPH_GRAPH_BUFFERS Buffers
     );
 
 PHLIBAPI
-VOID PhGetDrawInfoGraphBuffers(
+VOID
+NTAPI
+PhGetDrawInfoGraphBuffers(
     _Inout_ PPH_GRAPH_BUFFERS Buffers,
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataCount
@@ -259,17 +282,23 @@ typedef struct _PH_GRAPH_STATE
 } PH_GRAPH_STATE, *PPH_GRAPH_STATE;
 
 PHLIBAPI
-VOID PhInitializeGraphState(
+VOID
+NTAPI
+PhInitializeGraphState(
     _Out_ PPH_GRAPH_STATE State
     );
 
 PHLIBAPI
-VOID PhDeleteGraphState(
+VOID
+NTAPI
+PhDeleteGraphState(
     _Inout_ PPH_GRAPH_STATE State
     );
 
 PHLIBAPI
-VOID PhGraphStateGetDrawInfo(
+VOID
+NTAPI
+PhGraphStateGetDrawInfo(
     _Inout_ PPH_GRAPH_STATE State,
     _In_ PPH_GRAPH_GETDRAWINFO GetDrawInfo,
     _In_ ULONG DataCount

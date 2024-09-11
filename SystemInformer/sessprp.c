@@ -22,7 +22,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ LPARAM lParam
     );
 
-static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
 {
     SIP(L"Active", State_Active),
     SIP(L"Connected", State_Connected),

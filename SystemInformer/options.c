@@ -409,7 +409,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         L""
                         ) == IDYES)
                     {
-                        ProcessHacker_PrepareForEarlyShutdown();
+                        SystemInformer_PrepareForEarlyShutdown();
 
                         PhResetSettings(PhMainWndHandle);
 
@@ -426,11 +426,11 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             NULL
                             )))
                         {
-                            ProcessHacker_Destroy();
+                            SystemInformer_Destroy();
                         }
                         else
                         {
-                            ProcessHacker_CancelEarlyShutdown();
+                            SystemInformer_CancelEarlyShutdown();
                         }
                     }
                 }
@@ -1392,6 +1392,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_DRIVER,
     PHP_OPTIONS_INDEX_ENABLE_MONOSPACE,
     PHP_OPTIONS_INDEX_ENABLE_PLUGINS,
+    PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS,
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
     PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS,
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
@@ -1438,6 +1439,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"Enable monospace fonts", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"Enable AVX extensions (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals (experimental)", NULL);
 #ifdef _ARM64_
     // see: PhpEstimateIdleCyclesForARM (jxy-s)
@@ -1474,6 +1476,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"EnableAvxSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
 #ifdef _ARM64_
@@ -1509,7 +1512,7 @@ static VOID PhpOptionsNotifyChangeCallback(
     )
 {
     PhUpdateCachedSettings();
-    ProcessHacker_SaveAllSettings();
+    SystemInformer_SaveAllSettings();
     PhInvalidateAllProcessNodes();
     PhReloadSettingsProcessTreeList();
     PhSiNotifyChangeSettings();
@@ -1528,8 +1531,9 @@ static VOID PhpOptionsNotifyChangeCallback(
             L"Do you want to restart System Informer now?"
             ) == IDYES)
         {
-            ProcessHacker_PrepareForEarlyShutdown();
-            PhShellProcessHacker(
+            SystemInformer_PrepareForEarlyShutdown();
+
+            if (NT_SUCCESS(PhShellProcessHacker(
                 PhMainWndHandle,
                 L"-v -newinstance",
                 SW_SHOW,
@@ -1537,8 +1541,14 @@ static VOID PhpOptionsNotifyChangeCallback(
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
-                );
-            ProcessHacker_Destroy();
+                )))
+            {
+                SystemInformer_Destroy();
+            }
+            else
+            {
+                SystemInformer_CancelEarlyShutdown();
+            }
         }
     }
 }
@@ -1555,7 +1565,7 @@ VOID PhShowOptionsRestartRequired(
         L"Do you want to restart System Informer now?"
         ) == IDYES)
     {
-        ProcessHacker_PrepareForEarlyShutdown();
+        SystemInformer_PrepareForEarlyShutdown();
 
         if (NT_SUCCESS(PhShellProcessHacker(
             WindowHandle,
@@ -1567,11 +1577,11 @@ VOID PhShowOptionsRestartRequired(
             NULL
             )))
         {
-            ProcessHacker_Destroy();
+            SystemInformer_Destroy();
         }
         else
         {
-            ProcessHacker_CancelEarlyShutdown();
+            SystemInformer_CancelEarlyShutdown();
         }
     }
 }
@@ -1660,6 +1670,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"EnableAvxSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
 #ifdef _ARM64_
@@ -1694,7 +1705,7 @@ static VOID PhpAdvancedPageSave(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN) == BST_CHECKED
         );
 
-    ProcessHacker_Invoke(PhpOptionsNotifyChangeCallback, NULL);
+    SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 }
 
 static NTSTATUS PhpElevateAdvancedThreadStart(
@@ -1832,13 +1843,16 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             if (NewFontSelection)
             {
                 PhSetStringSetting2(L"Font", &NewFontSelection->sr);
-                ProcessHacker_UpdateFont();
             }
 
             if (NewFontMonospaceSelection)
             {
                 PhSetStringSetting2(L"FontMonospace", &NewFontMonospaceSelection->sr);
-                //ProcessHacker_UpdateFont();
+            }
+
+            if (NewFontSelection || NewFontMonospaceSelection)
+            {
+                SystemInformer_UpdateFont();
             }
 
             PhpAdvancedPageSave(hwndDlg);
@@ -1875,7 +1889,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         // Can't get LOGFONT from the existing setting, probably
                         // because the user hasn't ever chosen a font before.
                         // Set the font to something familiar.
-                        GetObject(ProcessHacker_GetFont(), sizeof(LOGFONT), &font);
+                        GetObject(SystemInformer_GetFont(), sizeof(LOGFONT), &font);
                     }
 
                     memset(&chooseFont, 0, sizeof(CHOOSEFONT));
@@ -1920,7 +1934,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         // Can't get LOGFONT from the existing setting, probably
                         // because the user hasn't ever chosen a font before.
                         // Set the font to something familiar.
-                        //GetObject(ProcessHacker_GetFont(), sizeof(LOGFONT), &font);
+                        //GetObject(SystemInformer_GetFont(), sizeof(LOGFONT), &font);
                         GetObject(PhMonospaceFont, sizeof(LOGFONT), &font);
                     }
 
@@ -2746,7 +2760,11 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -2878,21 +2896,18 @@ VOID InitializeOptionsAdvancedTree(
         );
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
-
-    TreeNew_SetCallback(Context->TreeNewHandle, OptionsAdvancedTreeNewCallback, Context);
-
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, OptionsAdvancedTreeNewCallback, Context);
 
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE, TRUE, L"Value", 200, PH_ALIGN_LEFT, 2, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT, TRUE, L"Default", 200, PH_ALIGN_LEFT, 3, 0, TRUE);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
-
-    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     OptionsAdvancedLoadSettingsTreeList(Context);
 }
@@ -3328,11 +3343,11 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorProtectedHandles", L"Protected handles", L"Handles that are protected from being closed."),
     COLOR_ITEM(L"ColorProtectedProcess", L"Protected processes", L"Processes with built-in protection levels."),
     COLOR_ITEM(L"ColorInheritHandles", L"Inheritable handles", L"Handles that can be inherited by child processes."),
-
     COLOR_ITEM(L"ColorHandleFiltered", L"Filtered processes", L"Processes that are protected by handle object callbacks."),
     COLOR_ITEM(L"ColorUnknown", L"Untrusted DLLs and Services", L"Services and DLLs which are not digitally signed."),
     COLOR_ITEM(L"ColorServiceDisabled", L"Disabled Services", L"Services which have been disabled."),
     //COLOR_ITEM(L"ColorServiceStop", L"Stopped Services", L"Services that are not running.")
+    COLOR_ITEM(L"ColorEfficiencyMode", L"Power efficiency", L"Processes and threads with power efficiency."),
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(

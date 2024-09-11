@@ -296,20 +296,22 @@ PhDestroyEnumPackageApplicationUserModelIds(
     _In_ PPH_LIST PackageList
     );
 
+typedef struct _PACKAGE_INFO_REFERENCE *PACKAGE_INFO_REFERENCE;
+
 typedef LONG (WINAPI* _OpenPackageInfoByFullNameForUser)(
     _In_opt_ PSID userSid,
     _In_ PCWSTR packageFullName,
     _Reserved_ const UINT32 reserved,
-    _Out_ PHANDLE packageInfoReference // PACKAGE_INFO_REFERENCE
+    _Out_ PACKAGE_INFO_REFERENCE* packageInfoReference
     );
 typedef LONG (WINAPI* _GetPackageApplicationIds)(
-    _In_ HANDLE packageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ PACKAGE_INFO_REFERENCE packageInfoReference,
     _Inout_ PUINT32 bufferLength,
     _Out_writes_bytes_opt_(*bufferLength) PBYTE buffer,
     _Out_opt_ PUINT32 count
     );
 typedef LONG (WINAPI* _ClosePackageInfo)(
-    _In_ HANDLE packageInfoReference // PACKAGE_INFO_REFERENCE
+    _In_ PACKAGE_INFO_REFERENCE packageInfoReference
     );
 
 #pragma region Activation Factory

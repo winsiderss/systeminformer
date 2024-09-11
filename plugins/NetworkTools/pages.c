@@ -123,7 +123,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ProcessHacker_PrepareForEarlyShutdown();
+                SystemInformer_PrepareForEarlyShutdown();
 
                 if (NT_SUCCESS(PhShellProcessHacker(
                     context->ParentWindowHandle,
@@ -135,11 +135,11 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
                     NULL
                     )))
                 {
-                    ProcessHacker_Destroy();
+                    SystemInformer_Destroy();
                 }
                 else
                 {
-                    ProcessHacker_CancelEarlyShutdown();
+                    SystemInformer_CancelEarlyShutdown();
                 }
             }
         }
@@ -202,9 +202,9 @@ VOID ShowDbCheckForUpdatesDialog(
 
     config.pszWindowTitle = L"Network Tools - GeoLite Updater";
     config.pszMainInstruction = L"Download the latest GeoLite database?";
-    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
+    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"https://www.maxmind.com\">https://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbCheckingForUpdatesDialog(
@@ -226,7 +226,7 @@ VOID ShowDbCheckingForUpdatesDialog(
     config.pszMainInstruction = L"Downloading";
     config.pszContent = L"Downloaded: ~ of ~ (~%%)\r\nSpeed: ~/s";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbInstallRestartDialog(
@@ -250,7 +250,7 @@ VOID ShowDbInstallRestartDialog(
     config.pszMainInstruction = L"The GeoLite database has been updated.";
     config.pszContent = L"Please restart System Informer for the changes to take effect...";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbUpdateFailedDialog(
@@ -296,7 +296,7 @@ VOID ShowDbUpdateFailedDialog(
         config.pszContent = L"Click Retry to download the update again.";
     }
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowDbInvalidSettingsDialog(
@@ -315,5 +315,5 @@ VOID ShowDbInvalidSettingsDialog(
     config.pszContent = L"Please check the Options > Network Tools > GeoLite ID or Key are configured before downloading geoLite updates.";
     config.cxWidth = 200;
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

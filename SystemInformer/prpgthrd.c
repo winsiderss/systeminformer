@@ -600,6 +600,100 @@ VOID PhpPopulateTableWithProcessThreadNodes(
     (*Index)++;
 }
 
+VOID PhExpandAllThreadNodes(
+    _In_ PPH_THREADS_CONTEXT ThreadsContext,
+    _In_ BOOLEAN Expand
+    )
+{
+    BOOLEAN needsRestructure = FALSE;
+
+    for (ULONG i = 0; i < ThreadsContext->ListContext.NodeList->Count; i++)
+    {
+        PPH_THREAD_NODE node = ThreadsContext->ListContext.NodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(ThreadsContext->TreeNewHandle);
+}
+
+VOID PhInvalidateAllThreadNodes(
+    _In_ PPH_THREADS_CONTEXT ThreadsContext
+    )
+{
+    for (ULONG i = 0; i < ThreadsContext->ListContext.NodeList->Count; i++)
+    {
+        PPH_THREAD_NODE node = ThreadsContext->ListContext.NodeList->Items[i];
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_THREAD_TREELIST_COLUMN_MAXIMUM);
+        PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
+        node->ValidMask = 0;
+    }
+
+    InvalidateRect(ThreadsContext->TreeNewHandle, NULL, FALSE);
+}
+
+static VOID PhDeselectAllThreadNodes(
+    _In_ PPH_THREAD_LIST_CONTEXT Context
+    )
+{
+    TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
+}
+
+VOID PhSelectAndEnsureVisibleThreadNodes(
+    _In_ PPH_THREADS_CONTEXT ThreadsContext,
+    _In_ PPH_THREAD_NODE *ThreadNodes,
+    _In_ ULONG NumberOfThreadNodes
+    )
+{
+    ULONG i;
+    PPH_THREAD_NODE leader = NULL;
+    PPH_THREAD_NODE node;
+    BOOLEAN needsRestructure = FALSE;
+
+    PhDeselectAllThreadNodes(&ThreadsContext->ListContext);
+
+    for (i = 0; i < NumberOfThreadNodes; i++)
+    {
+        if (ThreadNodes[i]->Node.Visible)
+        {
+            leader = ThreadNodes[i];
+            break;
+        }
+    }
+
+    if (!leader)
+        return;
+
+    for (i = 0; i < NumberOfThreadNodes; i++)
+    {
+        node = ThreadNodes[i];
+
+        if (!node->Node.Visible)
+            continue;
+
+        node->Node.Selected = TRUE;
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(ThreadsContext->TreeNewHandle);
+
+    TreeNew_FocusMarkSelectNode(ThreadsContext->TreeNewHandle, &leader->Node);
+}
+
+VOID PhSelectAndEnsureVisibleThreadNode(
+    _In_ PPH_THREADS_CONTEXT ThreadsContext,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    PhSelectAndEnsureVisibleThreadNodes(ThreadsContext, &ThreadNode, 1);
+}
+
 PPH_LIST PhpGetProcessThreadTreeListLines(
     _In_ HWND TreeListHandle,
     _In_ ULONG NumberOfNodes,

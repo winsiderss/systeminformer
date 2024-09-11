@@ -43,8 +43,8 @@ static _GetBufferedPaintBits GetBufferedPaintBits_I = NULL;
 
 static HBITMAP PhpCreateBitmap32(
     _In_ HDC hdc,
-    _In_ ULONG Width,
-    _In_ ULONG Height,
+    _In_ LONG Width,
+    _In_ LONG Height,
     _Out_ PVOID *Bits
     )
 {
@@ -52,19 +52,20 @@ static HBITMAP PhpCreateBitmap32(
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
     bitmapInfo.bmiHeader.biWidth = Width;
     bitmapInfo.bmiHeader.biHeight = Height;
+    bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biSizeImage = Width * Height;
 
     return CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
 }
 
 static BOOLEAN PhpHasAlpha(
     _In_ PULONG Argb,
-    _In_ ULONG Width,
-    _In_ ULONG Height,
+    _In_ LONG Width,
+    _In_ LONG Height,
     _In_ ULONG RowWidth
     )
 {
@@ -92,8 +93,8 @@ static VOID PhpConvertToPArgb32(
     _In_ HDC hdc,
     _Inout_ PULONG Argb,
     _In_ HBITMAP Bitmap,
-    _In_ ULONG Width,
-    _In_ ULONG Height,
+    _In_ LONG Width,
+    _In_ LONG Height,
     _In_ ULONG RowWidth
     )
 {
@@ -102,11 +103,12 @@ static VOID PhpConvertToPArgb32(
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
     bitmapInfo.bmiHeader.biWidth = Width;
     bitmapInfo.bmiHeader.biHeight = Height;
+    bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biSizeImage = Width * Height;
 
     bits = PhAllocate(Width * sizeof(RGBQUAD) * Height);
 
@@ -145,8 +147,8 @@ static VOID PhpConvertToPArgb32IfNeeded(
     _In_ HPAINTBUFFER PaintBuffer,
     _In_ HDC hdc,
     _In_ HICON Icon,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     RGBQUAD *quad;
@@ -176,8 +178,8 @@ static VOID PhpConvertToPArgb32IfNeeded(
 
 HBITMAP PhIconToBitmap(
     _In_ HICON Icon,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     HBITMAP bitmap;
@@ -189,7 +191,7 @@ HBITMAP PhIconToBitmap(
     BLENDFUNCTION blendFunction = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
     BP_PAINTPARAMS paintParams = { sizeof(paintParams) };
     HDC bufferHdc;
-    HPAINTBUFFER paintBuffer;
+    HPAINTBUFFER bufferedPaint;
 
     iconRectangle.left = 0;
     iconRectangle.top = 0;
@@ -226,22 +228,20 @@ HBITMAP PhIconToBitmap(
         return bitmap;
     }
 
-    screenHdc = GetDC(NULL);
-    hdc = CreateCompatibleDC(screenHdc);
-    bitmap = PhpCreateBitmap32(screenHdc, Width, Height, &bits);
-    ReleaseDC(NULL, screenHdc);
+    hdc = CreateCompatibleDC(NULL);
+    bitmap = PhpCreateBitmap32(hdc, Width, Height, &bits);
     oldBitmap = SelectBitmap(hdc, bitmap);
 
     paintParams.dwFlags = BPPF_ERASE;
     paintParams.pBlendFunction = &blendFunction;
 
-    if (paintBuffer = BeginBufferedPaint_I(hdc, &iconRectangle, BPBF_DIB, &paintParams, &bufferHdc))
+    if (bufferedPaint = BeginBufferedPaint_I(hdc, &iconRectangle, BPBF_DIB, &paintParams, &bufferHdc))
     {
         DrawIconEx(bufferHdc, 0, 0, Icon, Width, Height, 0, NULL, DI_NORMAL);
         // If the icon did not have an alpha channel, we need to convert the buffer to PARGB.
-        PhpConvertToPArgb32IfNeeded(paintBuffer, hdc, Icon, Width, Height);
+        PhpConvertToPArgb32IfNeeded(bufferedPaint, hdc, Icon, Width, Height);
         // This will write the buffer contents to the destination bitmap.
-        EndBufferedPaint_I(paintBuffer, TRUE);
+        EndBufferedPaint_I(bufferedPaint, TRUE);
     }
     else
     {
@@ -259,8 +259,8 @@ HBITMAP PhIconToBitmap(
 // based on BufferedPaintSetAlpha/BufferedPaintMakeOpaque (dmex)
 VOID PhBitmapSetAlpha(
     _In_ PVOID Bits,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     ULONG count = Width * Height;

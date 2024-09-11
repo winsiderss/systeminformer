@@ -39,6 +39,17 @@
 #endif
 #endif
 
+#ifndef MAXLONGLONG
+// The Windows SDK basetsd.h is missing the MAXLONGLONG definition. (dmex)
+#define MAXLONGLONG (0x7fffffffffffffff)
+#endif
+
+#ifndef MINLONGLONG
+// The Windows SDK basetsd.h references non-existant MAXLONGLONG definition
+// and breaks MINLONGLONG or in other cases results in a definition of zero. (dmex)
+#define MINLONGLONG ((LONGLONG)~MAXLONGLONG)
+#endif
+
 #ifndef ENABLE_RTL_NUMBER_OF_V2
 #define ENABLE_RTL_NUMBER_OF_V2
 #endif

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -218,7 +218,26 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ LPARAM lParam
     );
 
+LRESULT CALLBACK PhSipRestorePanelHookWndProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // Misc.
+
+VOID PhSipUpdateProcessorInformation(
+    VOID
+    );
+
+VOID PhSipUpdateInterruptInformation(
+    _Out_ PULONG64 DpcCount
+    );
+
+VOID PhSipUpdateProcessorFrequency(
+    VOID
+    );
 
 VOID PhSipUpdateThemeData(
     VOID
@@ -229,6 +248,11 @@ VOID PhSipSaveWindowState(
     );
 
 VOID NTAPI PhSipSysInfoUpdateHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
@@ -280,9 +304,12 @@ VOID PhSipSetOneGraphPerCpu(
     VOID
     );
 
-VOID PhSipNotifyCpuGraph(
-    _In_ ULONG Index,
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipCpuGraphCallback(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhSipUpdateCpuGraphs(
@@ -312,6 +339,15 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
 NTSTATUS PhSipQueryProcessorPerformanceDistribution(
     _Out_ PVOID *Buffer
+    );
+
+NTSTATUS PhSipQueryProcessorPerformanceDistributionEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PVOID* Buffer
+    );
+
+NTSTATUS PhSipQueryCpuSetInformation(
+    _Out_ PVOID* Buffer
     );
 
 PPH_STRINGREF PhGetHybridProcessorType(
@@ -392,9 +428,9 @@ VOID PhSipGetPoolLimits(
 
 _Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ DOUBLE *CurrentCompressedMemory,
-    _Out_ DOUBLE *TotalCompressedMemory,
-    _Out_ DOUBLE *TotalSavedMemory
+    _Out_ FLOAT *CurrentCompressedMemory,
+    _Out_ FLOAT *TotalCompressedMemory,
+    _Out_ FLOAT *TotalSavedMemory
     );
 
 // I/O section
@@ -440,14 +476,28 @@ VOID PhSipLayoutIoGraphs(
     _In_ HWND WindowHandle
     );
 
-VOID PhSipNotifyIoReadGraph(
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipNotifyIoReadGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
-VOID PhSipNotifyIoWriteGraph(
-    _In_ NMHDR *Header
+
+BOOLEAN NTAPI PhSipNotifyIoWriteGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
-VOID PhSipNotifyIoOtherGraph(
-    _In_ NMHDR *Header
+
+BOOLEAN NTAPI PhSipNotifyIoOtherGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhSipUpdateIoGraph(

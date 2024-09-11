@@ -31,7 +31,7 @@ NtUserQueryWindow(
 
 typedef enum _CONSOLECONTROL
 {
-    ConsoleSetVDMCursorBounds = 0,
+    ConsoleSetVDMCursorBounds = 0, // RECT
     ConsoleNotifyConsoleApplication = 1, // CONSOLE_PROCESS_INFO
     ConsoleFullscreenSwitch = 2,
     ConsoleSetCaretInfo = 3, // CONSOLE_CARET_INFO

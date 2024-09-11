@@ -98,24 +98,21 @@ VOID PhInitializeSystemInformation(
     VOID
     )
 {
-    SYSTEM_BASIC_INFORMATION basicInfo;
+    SYSTEM_BASIC_INFORMATION basicInfo = { 0 };
 
-    memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
+    PhSystemBasicInformation.PageSize = PAGE_SIZE;
+    PhSystemBasicInformation.NumberOfProcessors = 1;
+    PhSystemBasicInformation.NumberOfPhysicalPages = ULONG_MAX;
+    PhSystemBasicInformation.AllocationGranularity = 0x10000;
+    PhSystemBasicInformation.MaximumUserModeAddress = 0x10000;
+    PhSystemBasicInformation.ActiveProcessorsAffinityMask = USHRT_MAX;
 
-    if (!NT_SUCCESS(NtQuerySystemInformation(
+    NtQuerySystemInformation(
         SystemBasicInformation,
         &basicInfo,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
-        )))
-    {
-        basicInfo.PageSize = PAGE_SIZE;
-        basicInfo.NumberOfProcessors = 1;
-        basicInfo.NumberOfPhysicalPages = ULONG_MAX;
-        basicInfo.AllocationGranularity = 0x10000;
-        basicInfo.MaximumUserModeAddress = 0x10000;
-        basicInfo.ActiveProcessorsAffinityMask = USHRT_MAX;
-    }
+        );
 
     PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
     PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;

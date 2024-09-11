@@ -336,6 +336,9 @@
     <ClCompile Include="thrdstks.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="informer.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -485,6 +488,9 @@
     <ClInclude Include="include\devprv.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\informer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SystemInformer.ico">
@@ -532,6 +538,9 @@
       <Filter>Resources</Filter>
     </ResourceCompile>
     <ResourceCompile Include="version.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="..\kphlib\include\sistatus.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>

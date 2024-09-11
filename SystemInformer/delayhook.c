@@ -12,12 +12,11 @@
 #include <phapp.h>
 #include <apiimport.h>
 #include <mapldr.h>
-
+#include <thirdparty.h>
 #include <vsstyle.h>
 #include <uxtheme.h>
 
 #include "settings.h"
-#include "../tools/thirdparty/detours/detours.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;

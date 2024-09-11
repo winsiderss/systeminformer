@@ -577,7 +577,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             {
                 // TODO: The icon DPI must equal the main window toolbar but the DPI
                 // for the main window doesn't get updated until after we return. (dmex)
-                //LONG dpi = PhGetWindowDpi(PhMainWndHandle);
+                //LONG dpi = PhGetWindowDpi(MainWindowHandle);
                 ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
                 ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, context->WindowDpi);
             }
@@ -840,12 +840,12 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                         if (ToolStatusConfig.AutoHideMenu)
                         {
-                            SetMenu(PhMainWndHandle, NULL);
+                            SetMenu(MainWindowHandle, NULL);
                         }
                         else
                         {
-                            SetMenu(PhMainWndHandle, MainMenu);
-                            DrawMenuBar(PhMainWndHandle);
+                            SetMenu(MainWindowHandle, MainMenu);
+                            DrawMenuBar(MainWindowHandle);
                         }
                     }
                 }

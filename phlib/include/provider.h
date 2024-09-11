@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2021-2022
+ *
+ */
+
 #ifndef _PH_PROVIDER_H
 #define _PH_PROVIDER_H
 
@@ -18,10 +30,9 @@ typedef enum _PH_PROVIDER_THREAD_STATE
 } PH_PROVIDER_THREAD_STATE;
 
 typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
-    _In_ PVOID Object
+    _In_opt_ PVOID Object
     );
 
-struct _PH_PROVIDER_THREAD;
 typedef struct _PH_PROVIDER_THREAD *PPH_PROVIDER_THREAD;
 
 typedef struct _PH_PROVIDER_REGISTRATION
@@ -31,9 +42,17 @@ typedef struct _PH_PROVIDER_REGISTRATION
     PPH_PROVIDER_FUNCTION Function;
     PVOID Object;
     ULONG RunId;
-    BOOLEAN Enabled;
-    BOOLEAN Unregistering;
-    BOOLEAN Boosting;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Enabled : 1;
+            ULONG Unregistering : 1;
+            ULONG Boosting : 1;
+            ULONG Spare : 29;
+        };
+    };
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
 typedef struct _PH_PROVIDER_THREAD

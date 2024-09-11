@@ -10,7 +10,6 @@
  */
 
 #include "exttools.h"
-#include "gpumon.h"
 
 HWND EtGpuDetailsDialogHandle = NULL;
 HANDLE EtGpuDetailsDialogThreadHandle = NULL;

@@ -26,14 +26,14 @@
 #include <procprv.h>
 #include <settings.h>
 
-static PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
 {
     SIP(L"None", PsProtectedTypeNone),
     SIP(L"Light", PsProtectedTypeProtectedLight),
     SIP(L"Full", PsProtectedTypeProtected),
 };
 
-static PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
 {
     SIP(L" ", PsProtectedSignerNone),
     SIP(L" (Authenticode)", PsProtectedSignerAuthenticode),
@@ -130,7 +130,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     }
 
 #if _WIN64
-    bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
+    bits = ProcessItem->IsWow64Process ? L"(32-bit)" : L"(64-bit)";
 #else
     bits = L"(32-bit)";
 #endif
@@ -421,7 +421,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 // Tell the function to get the WOW64 current directory, because that's the one that actually gets updated.
                 if (NT_SUCCESS(PhGetProcessCurrentDirectory(
                     processHandle,
-                    !!processItem->IsWow64,
+                    !!processItem->IsWow64Process,
                     &curDir
                     )))
                 {
@@ -444,18 +444,26 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PPH_STRING startTimeRelativeString;
                 PPH_STRING startTimeString;
 
-                startTime = processItem->CreateTime;
                 PhQuerySystemTime(&currentTime);
-                startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
 
-                PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
-                startTimeString = PhaFormatDateTime(&startTimeFields);
+                if (processItem->CreateTime.QuadPart < currentTime.QuadPart)
+                {
+                    startTime = processItem->CreateTime;
+                    startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
 
-                PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
-                    L"%s ago (%s)",
-                    startTimeRelativeString->Buffer,
-                    startTimeString->Buffer
-                    )->Buffer);
+                    PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                    startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                    PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                        L"%s ago (%s)",
+                        startTimeRelativeString->Buffer,
+                        startTimeString->Buffer
+                        )->Buffer);
+                }
+                else
+                {
+                    PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                }
             }
             else
             {
@@ -689,7 +697,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                     if (parentProcessItem = PhReferenceProcessItem(processItem->ParentProcessId))
                     {
-                        ProcessHacker_ShowProcessProperties(parentProcessItem);
+                        SystemInformer_ShowProcessProperties(parentProcessItem);
                         PhDereferenceObject(parentProcessItem);
                     }
                     else
@@ -936,18 +944,25 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PPH_STRING startTimeRelativeString;
                         PPH_STRING startTimeString;
 
-                        startTime = processItem->CreateTime;
                         PhQuerySystemTime(&currentTime);
-                        startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
 
-                        PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
-                        startTimeString = PhaFormatDateTime(&startTimeFields);
+                        if (processItem->CreateTime.QuadPart < currentTime.QuadPart)
+                        {
+                            startTime = processItem->CreateTime;
+                            startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+                            PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                            startTimeString = PhaFormatDateTime(&startTimeFields);
 
-                        PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
-                            L"%s ago (%s)",
-                            startTimeRelativeString->Buffer,
-                            startTimeString->Buffer
-                            )->Buffer);
+                            PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                                L"%s ago (%s)",
+                                PhGetString(startTimeRelativeString),
+                                PhGetString(startTimeString)
+                                )->Buffer);
+                        }
+                        else
+                        {
+                            PhSetWindowText(context->StartedLabelHandle, L"\u221E");
+                        }
                     }
                     else
                     {

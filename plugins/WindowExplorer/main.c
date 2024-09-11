@@ -60,7 +60,7 @@ VOID NTAPI MenuItemCallback(
             WE_WINDOW_SELECTOR selector;
 
             selector.Type = WeWindowSelectorAll;
-            WeShowWindowsDialog(WeGetMainWindowHandle(), &selector);
+            WeShowWindowsDialog(menuItem->OwnerWindow, &selector);
         }
         break;
     case ID_VIEW_DESKTOPWINDOWS:
@@ -72,7 +72,7 @@ VOID NTAPI MenuItemCallback(
             EnumDesktops(GetProcessWindowStation(), WepEnumDesktopProc, (LPARAM)desktopNames);
 
             if (PhaChoiceDialog(
-                WeGetMainWindowHandle(),
+                menuItem->OwnerWindow,
                 L"Desktop Windows",
                 L"Display windows for the following desktop:",
                 (PWSTR *)desktopNames->Items,
@@ -88,7 +88,7 @@ VOID NTAPI MenuItemCallback(
 
                 selector.Type = WeWindowSelectorDesktop;
                 PhSetReference(&selector.Desktop.DesktopName, selectedChoice);
-                WeShowWindowsDialog(WeGetMainWindowHandle(), &selector);
+                WeShowWindowsDialog(menuItem->OwnerWindow, &selector);
             }
         }
         break;
@@ -98,7 +98,7 @@ VOID NTAPI MenuItemCallback(
 
             selector.Type = WeWindowSelectorProcess;
             selector.Process.ProcessId = ((PPH_PROCESS_ITEM)menuItem->Context)->ProcessId;
-            WeShowWindowsDialog(WeGetMainWindowHandle(), &selector);
+            WeShowWindowsDialog(menuItem->OwnerWindow, &selector);
         }
         break;
     case ID_THREAD_WINDOWS:
@@ -107,7 +107,7 @@ VOID NTAPI MenuItemCallback(
 
             selector.Type = WeWindowSelectorThread;
             selector.Thread.ThreadId = ((PPH_THREAD_ITEM)menuItem->Context)->ThreadId;
-            WeShowWindowsDialog(WeGetMainWindowHandle(), &selector);
+            WeShowWindowsDialog(menuItem->OwnerWindow, &selector);
         }
         break;
     }
@@ -223,7 +223,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Window Explorer";
-            info->Author = L"dmex, wj32";
             info->Description = L"View and manipulate windows.";
 
             //PhRegisterCallback(

@@ -385,5 +385,11 @@
     <ClInclude Include="include\strsrch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\guisupview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thirdparty.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

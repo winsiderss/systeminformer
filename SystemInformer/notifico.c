@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -23,6 +23,7 @@
 #include <mainwndp.h>
 #include <notifico.h>
 #include <notificop.h>
+#include <notiftoast.h>
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
@@ -468,7 +469,7 @@ VOID PhNfForwardMessage(
         {
             if (PhGetIntegerSetting(L"IconSingleClick"))
             {
-                ProcessHacker_IconClick();
+                SystemInformer_IconClick();
                 PhNfpDisableHover();
             }
             else
@@ -520,7 +521,7 @@ VOID PhNfForwardMessage(
                     PhNfpDisableHover();
                 }
 
-                ProcessHacker_IconClick();
+                SystemInformer_IconClick();
             }
         }
         break;
@@ -540,13 +541,17 @@ VOID PhNfForwardMessage(
         }
         break;
     case NIN_KEYSELECT:
-        // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
-        if (GetForegroundWindow() != WindowHandle)
-            ProcessHacker_IconClick();
+        {
+            // HACK: explorer seems to send two NIN_KEYSELECT messages when the user selects the icon and presses ENTER.
+            if (GetForegroundWindow() != WindowHandle)
+                SystemInformer_IconClick();
+        }
         break;
     case NIN_BALLOONUSERCLICK:
-        if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
-            PhShowDetailsForIconNotification();
+        {
+            if (!PhGetIntegerSetting(L"IconIgnoreBalloonClick"))
+                PhShowDetailsForIconNotification();
+        }
         break;
     case NIN_POPUPOPEN:
         {
@@ -631,6 +636,87 @@ VOID PhNfSetVisibleIcon(
     if (PhpTrayIconEventHandle)
         NtSetEvent(PhpTrayIconEventHandle, NULL);
 #endif
+}
+
+VOID NTAPI PhpToastCallback(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+    )
+{
+    if (Reason == PhToastReasonActivated)
+        PhShowDetailsForIconNotification();
+}
+
+BOOLEAN PhpShowToastNotification(
+    _In_ PPH_STRING Title,
+    _In_ PPH_STRING Text,
+    _In_ ULONG Timeout
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"");
+    static PPH_STRING iconFileName = NULL;
+    HRESULT result;
+    PPH_STRING toastXml;
+    PH_FORMAT format[7];
+
+    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
+
+        if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
+            PhClearReference(&iconFileName);
+
+        PhInitializeStringRefLongHint(&iconAppName, PhApplicationName);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!iconFileName)
+        return FALSE;
+
+    if (PhInitializeToastRuntime() != S_OK)
+        return FALSE;
+
+    //toastXml = PhFormatString(
+    //    L"<toast>\r\n"
+    //    L"    <visual>\r\n"
+    //    L"       <binding template=\"ToastImageAndText02\">\r\n"
+    //    L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
+    //    L"            <text id=\"1\">%ls</text>\r\n"
+    //    L"            <text id=\"2\">%ls</text>\r\n"
+    //    L"        </binding>\r\n"
+    //    L"    </visual>\r\n"
+    //    L"</toast>",
+    //    PhGetString(iconFileName),
+    //    Title,
+    //    Text
+    //    );
+
+    PhInitFormatS(&format[0], L"<toast><visual><binding template=\"ToastImageAndText02\"><image id=\"1\" src=\"");
+    PhInitFormatSR(&format[1], iconFileName->sr);
+    PhInitFormatS(&format[2], L"\" alt=\"red graphic\"/><text id=\"1\">");
+    PhInitFormatSR(&format[3], Title->sr);
+    PhInitFormatS(&format[4], L"</text><text id=\"2\">");
+    PhInitFormatSR(&format[5], Text->sr);
+    PhInitFormatS(&format[6], L"</text></binding></visual></toast>");
+    toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+    result = PhShowToastStringRef(
+        &iconAppName,
+        &toastXml->sr,
+        Timeout * 1000,
+        PhpToastCallback,
+        NULL
+        );
+
+    PhDereferenceObject(toastXml);
+
+    return HR_SUCCESS(result);
 }
 
 BOOLEAN PhNfpShowBalloonTip(
@@ -868,6 +954,73 @@ HICON PhNfpGetBlackIcon(
     return PhNfpBlackIcon;
 }
 
+#define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
+
+VOID PhDrawTrayIconText(
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PULONG bits = Bits;
+    LONG width = DrawInfo->Width;
+    LONG height = DrawInfo->Height;
+    LONG numberOfPixels = width * height;
+    ULONG flags = DrawInfo->Flags;
+    HFONT oldFont = NULL;
+    SIZE textSize;
+    PH_RECTANGLE boxRectangle;
+    PH_RECTANGLE textRectangle;
+
+    if (DrawInfo->BackColor == 0)
+    {
+        memset(bits, 0, numberOfPixels * sizeof(RGBQUAD));
+    }
+    else
+    {
+        PhFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
+    }
+
+    if (DrawInfo->TextFont)
+        oldFont = SelectFont(hdc, DrawInfo->TextFont);
+
+    DrawInfo->Text = *Text;
+    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / sizeof(WCHAR), &textSize);
+
+    // Calculate the box rectangle.
+
+    boxRectangle.Width = textSize.cx;
+    boxRectangle.Height = textSize.cy;
+    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / (LONG)sizeof(WCHAR);
+    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / (LONG)sizeof(WCHAR);
+
+    // Calculate the text rectangle.
+
+    textRectangle.Left = boxRectangle.Left;
+    textRectangle.Top = boxRectangle.Top;
+    textRectangle.Width = textSize.cx;
+    textRectangle.Height = textSize.cy;
+
+    // Save the rectangles.
+    DrawInfo->TextRect = PhRectangleToRect(textRectangle);
+    DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
+
+    SetBkMode(hdc, TRANSPARENT);
+
+    // Fill in the text box.
+    //SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
+    //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
+
+    // Draw the text.
+    SetTextColor(hdc, DrawInfo->TextColor);
+
+    DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / sizeof(WCHAR), &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectFont(hdc, oldFont);
+}
+
 HFONT PhNfGetTrayIconFont(
     _In_opt_ LONG DpiValue
     )
@@ -1070,11 +1223,19 @@ VOID PhNfTrayIconFlushWorkQueueData(
 
         if (data->ShowBalloon)
         {
-            PhNfpShowBalloonTip(
-                PhGetString(data->BalloonTitle),
-                PhGetString(data->BalloonText),
+            if (!PhpShowToastNotification(
+                data->BalloonTitle,
+                data->BalloonText,
                 data->BalloonTimeout
-                );
+                ))
+            {
+                PhNfpShowBalloonTip(
+                    PhGetString(data->BalloonTitle),
+                    PhGetString(data->BalloonText),
+                    data->BalloonTimeout
+                    );
+            }
+
             PhClearReference(&data->BalloonTitle);
             PhClearReference(&data->BalloonText);
         }
@@ -1290,7 +1451,6 @@ VOID PhNfpBeginBitmap2(
 
     if (!Context->Initialized)
     {
-        HDC screenHdc;
         BITMAPINFO bitmapInfo;
 
         memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -1301,10 +1461,8 @@ VOID PhNfpBeginBitmap2(
         bitmapInfo.bmiHeader.biHeight = Context->Height;
         bitmapInfo.bmiHeader.biBitCount = 32;
 
-        screenHdc = GetDC(NULL);
-        Context->Hdc = CreateCompatibleDC(screenHdc);
-        Context->Bitmap = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
+        Context->Hdc = CreateCompatibleDC(NULL);
+        Context->Bitmap = CreateDIBSection(Context->Hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
         Context->TaskbarDpi = dpiValue;
         Context->Initialized = TRUE;
@@ -1360,6 +1518,9 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
+    if (!(lineData1 && lineData2))
+        return;
+
     lineDataCount = min(maxDataCount, PhCpuKernelHistory.Count);
     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
     PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, lineData2, lineDataCount);
@@ -1395,7 +1556,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
         maxCpuProcessItem = NULL;
 
     PhInitFormatS(&format[0], L"CPU history: ");
-    PhInitFormatF(&format[1], ((DOUBLE)PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], '%');
 
     if (maxCpuProcessItem)
@@ -1403,11 +1564,11 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
         PhInitFormatC(&format[3], '\n');
         PhInitFormatSR(&format[4], maxCpuProcessItem->ProcessName->sr);
         PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
+        PhInitFormatF(&format[6], maxCpuProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
         PhInitFormatC(&format[7], '%');
     }
 
-    *NewText = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
+    *NewText = PhFormat(format, maxCpuProcessItem ? 8 : 3, 0);
     if (maxCpuProcessItem) PhDereferenceObject(maxCpuProcessItem);
 
     _freea(lineData2);
@@ -1457,6 +1618,9 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 && lineData2))
+        return;
 
     lineDataCount = min(maxDataCount, PhIoReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -1519,7 +1683,7 @@ VOID PhNfpIoHistoryIconUpdateCallback(
         PhInitFormatSR(&format[7], maxIoProcessItem->ProcessName->sr);
     }
 
-    *NewText = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
+    *NewText = PhFormat(format, maxIoProcessItem ? 8 : 6, 0);
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
 
     _freea(lineData2);
@@ -1557,7 +1721,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    DOUBLE commitFraction;
+    FLOAT commitFraction;
     PH_FORMAT format[5];
 
     // Icon
@@ -1565,6 +1729,9 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+        return;
 
     lineDataCount = min(maxDataCount, PhCommitHistory.Count);
 
@@ -1590,7 +1757,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
 
     // Text
 
-    commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+    commitFraction = (FLOAT)PhPerfInformation.CommittedPages / (FLOAT)PhPerfInformation.CommitLimit;
 
     PhInitFormatS(&format[0], L"Commit: ");
     PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
@@ -1598,7 +1765,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     PhInitFormatF(&format[3], commitFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
-    *NewText = PhFormat(format, 5, 96);
+    *NewText = PhFormat(format, 5, 0);
 
     _freea(lineData1);
 }
@@ -1634,8 +1801,8 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    ULONG physicalUsage;
-    DOUBLE physicalFraction;
+    ULONG_PTR physicalUsage;
+    FLOAT physicalFraction;
     PH_FORMAT format[5];
 
     // Icon
@@ -1643,6 +1810,9 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+        return;
 
     lineDataCount = min(maxDataCount, PhPhysicalHistory.Count);
 
@@ -1669,7 +1839,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     // Text
 
     physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
-    physicalFraction = (DOUBLE)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+    physicalFraction = (FLOAT)physicalUsage / (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages;
 
     PhInitFormatS(&format[0], L"Physical memory: ");
     PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
@@ -1677,7 +1847,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     PhInitFormatF(&format[3], physicalFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
-    *NewText = PhFormat(format, 5, 96);
+    *NewText = PhFormat(format, 5, 0);
 
     _freea(lineData1);
 }
@@ -1690,8 +1860,8 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG width;
-    ULONG height;
+    LONG width;
+    LONG height;
     HBITMAP bitmap;
     PVOID bits;
     HDC hdc;
@@ -1803,10 +1973,10 @@ VOID PhNfpCpuUsageIconUpdateCallback(
             PhInitFormatC(&format[0], L'\n');
             PhInitFormatSR(&format[1], maxCpuProcessItem->ProcessName->sr);
             PhInitFormatS(&format[2], L": ");
-            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
+            PhInitFormatF(&format[3], maxCpuProcessItem->CpuUsage * 100.f, PhMaxPrecisionUnit);
             PhInitFormatC(&format[4], L'%');
 
-            maxCpuText = PhFormat(format, 5, 128);
+            maxCpuText = PhFormat(format, 5, 0);
             //maxCpuText = PhFormatString(
             //    L"\n%s: %.2f%%",
             //    maxCpuProcessItem->ProcessName->Buffer,
@@ -1817,12 +1987,12 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     }
 
     PhInitFormatS(&format[0], L"CPU usage: ");
-    PhInitFormatF(&format[1], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], L'%');
     if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
     else PhInitFormatC(&format[3], L' ');
 
-    *NewText = PhFormat(format, 4, 128);
+    *NewText = PhFormat(format, 4, 0);
     //*NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
@@ -1866,8 +2036,8 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
 
-    PhInitFormatF(&format[0], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, 0);
-    text = PhFormat(format, 1, 10);
+    PhInitFormatF(&format[0], (PhCpuKernelUsage + PhCpuUserUsage) * 100.f, 0);
+    text = PhFormat(format, 1, 0);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorCpuKernel;
@@ -1897,10 +2067,10 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
             PhInitFormatC(&format[0], L'\n');
             PhInitFormatSR(&format[1], maxCpuProcessItem->ProcessName->sr);
             PhInitFormatS(&format[2], L": ");
-            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
+            PhInitFormatF(&format[3], maxCpuProcessItem->CpuUsage * 100.f, PhMaxPrecisionUnit);
             PhInitFormatC(&format[4], L'%');
 
-            maxCpuText = PhFormat(format, 5, 128);
+            maxCpuText = PhFormat(format, 5, 0);
             //maxCpuText = PhFormatString(
             //    L"\n%s: %.2f%%",
             //    maxCpuProcessItem->ProcessName->Buffer,
@@ -1911,12 +2081,12 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     }
 
     PhInitFormatS(&format[0], L"CPU usage: ");
-    PhInitFormatF(&format[1], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100.f, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], L'%');
     if (maxCpuText) PhInitFormatSR(&format[3], maxCpuText->sr);
     else PhInitFormatC(&format[3], L' ');
 
-    *NewText = PhFormat(format, 4, 128);
+    *NewText = PhFormat(format, 4, 0);
     //*NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
@@ -1952,6 +2122,8 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxIoProcessItem;
     PH_FORMAT format[8];
     PPH_STRING text;
+    SIZE_T returnLength;
+    WCHAR buffer[PH_INT64_STR_LEN_1];
     static ULONG64 maxValue = UInt32x32To64(100000, 1024); // minimum scaling of 100 MB.
 
     // TODO: Reset maxValue every X amount of time.
@@ -1959,17 +2131,29 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     // Icon
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
+    drawInfo.TextColor = PhCsColorIoReadOther;
 
     if (maxValue < (PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta))
         maxValue = (PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta);
 
-    PhInitFormatF(&format[0], (DOUBLE)(PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta) / maxValue * 100, 0);
-    text = PhFormat(format, 1, 10);
+    PhInitFormatF(&format[0], (PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta) / maxValue * 100.f, 0);
 
-    drawInfo.TextFont = PhNfGetTrayIconFont(0);
-    drawInfo.TextColor = PhCsColorIoReadOther;
-    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
-    PhDereferenceObject(text);
+    if (PhFormatToBuffer(format, 1, buffer, sizeof(buffer), &returnLength))
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = buffer;
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &string);
+    }
+    else
+    {
+        text = PhFormat(format, 1, 0);
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+        PhDereferenceObject(text);
+    }
 
     if (PhNfTransparencyEnabled)
     {
@@ -2036,21 +2220,37 @@ VOID PhNfpCommitTextIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    DOUBLE commitFraction;
+    FLOAT commitFraction;
     PH_FORMAT format[5];
     PPH_STRING text;
+    SIZE_T returnLength;
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    commitFraction = (FLOAT)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit * 100.f;
 
     // Icon
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
-
-    PhInitFormatF(&format[0], (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit * 100, 0);
-    text = PhFormat(format, 1, 10);
-
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorPrivate;
-    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
-    PhDereferenceObject(text);
+
+    PhInitFormatF(&format[0], commitFraction, 0);
+
+    if (PhFormatToBuffer(format, 1, buffer, sizeof(buffer), &returnLength))
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = buffer;
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &string);
+    }
+    else
+    {
+        text = PhFormat(format, 1, 0);
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+        PhDereferenceObject(text);
+    }
 
     if (PhNfTransparencyEnabled)
     {
@@ -2063,15 +2263,13 @@ VOID PhNfpCommitTextIconUpdateCallback(
 
     // Text
 
-    commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
-
     PhInitFormatS(&format[0], L"Commit: ");
     PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], commitFraction * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[3], commitFraction, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
-    *NewText = PhFormat(format, 5, 96);
+    *NewText = PhFormat(format, 5, 0);
 }
 
 VOID PhNfpPhysicalUsageTextIconUpdateCallback(
@@ -2101,25 +2299,39 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    ULONG physicalUsage;
-    DOUBLE physicalFraction;
+    ULONG_PTR physicalUsage;
+    FLOAT physicalFraction;
     PH_FORMAT format[5];
     PPH_STRING text;
+    SIZE_T returnLength;
+    WCHAR buffer[PH_INT64_STR_LEN_1];
 
     // Icon
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
-
-    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
-    physicalFraction = (DOUBLE)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
-
-    PhInitFormatF(&format[0], physicalFraction * 100, 0);
-    text = PhFormat(format, 1, 10);
-
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorPhysical;
-    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
-    PhDereferenceObject(text);
+
+    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+    physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+
+    PhInitFormatF(&format[0], physicalFraction * 100.f, 0);
+
+    if (PhFormatToBuffer(format, 1, buffer, sizeof(buffer), &returnLength))
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = buffer;
+        string.Length = returnLength - sizeof(UNICODE_NULL);
+
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &string);
+    }
+    else
+    {
+        text = PhFormat(format, 1, 0);
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+        PhDereferenceObject(text);
+    }
 
     if (PhNfTransparencyEnabled)
     {
@@ -2132,16 +2344,14 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
 
     // Text
 
-    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
-    physicalFraction = (DOUBLE)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
-
     PhInitFormatS(&format[0], L"Physical memory: ");
     PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], physicalFraction * 100, PhMaxPrecisionUnit);
+    PhInitFormatF(&format[3], physicalFraction * 100.f, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
+    *NewText = PhFormat(format, 5, 0);
 }
 
 VOID PhNfpPlainIconUpdateCallback(

@@ -113,12 +113,12 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             if (ToolStatusConfig.AutoHideMenu)
             {
-                SetMenu(PhMainWndHandle, NULL);
+                SetMenu(MainWindowHandle, NULL);
             }
             else
             {
-                SetMenu(PhMainWndHandle, MainMenu);
-                DrawMenuBar(PhMainWndHandle);
+                SetMenu(MainWindowHandle, MainMenu);
+                DrawMenuBar(MainWindowHandle);
             }
 
             if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
@@ -131,7 +131,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             TaskbarInitialize();
 
-            SendMessage(PhMainWindowHandle, WM_DPICHANGED, 0, 0);
+            SendMessage(MainWindowHandle, WM_DPICHANGED, 0, 0);
         }
         break;
     case WM_CTLCOLORBTN:

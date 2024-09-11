@@ -974,7 +974,7 @@ UpdateExit:
     PhInvokeCallback(&moduleProvider->UpdatedEvent, NULL);
 }
 
-static PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
 {
     SIP(SREF(L"DLL"), PH_MODULE_TYPE_MODULE),
     SIP(SREF(L"Mapped file"), PH_MODULE_TYPE_MAPPED_FILE),
@@ -1004,7 +1004,7 @@ PPH_STRINGREF PhGetModuleTypeName(
     return NULL;
 }
 
-static PH_KEY_VALUE_PAIR PhModuleLoadReasonTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhModuleLoadReasonTypePairs[] =
 {
     SIP(SREF(L"Static dependency"), LoadReasonStaticDependency),
     SIP(SREF(L"Static forwarder dependency"), LoadReasonStaticForwarderDependency),
@@ -1038,7 +1038,7 @@ PPH_STRINGREF PhGetModuleLoadReasonTypeName(
     return NULL;
 }
 
-static PH_KEY_VALUE_PAIR PhModuleEnclaveTypePairs[] =
+static CONST PH_KEY_VALUE_PAIR PhModuleEnclaveTypePairs[] =
 {
     SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"SGX"), ENCLAVE_TYPE_SGX),

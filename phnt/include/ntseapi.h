@@ -7,7 +7,9 @@
 #ifndef _NTSEAPI_H
 #define _NTSEAPI_H
 
+//
 // Privileges
+//
 
 #define SE_MIN_WELL_KNOWN_PRIVILEGE (2L)
 #define SE_CREATE_TOKEN_PRIVILEGE (2L)
@@ -48,7 +50,9 @@
 #define SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE (36L)
 #define SE_MAX_WELL_KNOWN_PRIVILEGE SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE
 
+//
 // Authz
+//
 
 // begin_rev
 
@@ -184,16 +188,11 @@ typedef enum _TOKEN_INFORMATION_CLASS
 // will be ignored. Currently, it is valid with the two types:
 // TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING and TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN.
 #define TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE 0x0002
-// Attribute is considered only for Deny Aces.
-#define TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004
-// Attribute is disabled by default.
-#define TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008
-// Attribute is disabled.
-#define TOKEN_SECURITY_ATTRIBUTE_DISABLED 0x0010
-// Attribute is mandatory.
-#define TOKEN_SECURITY_ATTRIBUTE_MANDATORY 0x0020
-// Attribute is ignored.
-#define TOKEN_SECURITY_ATTRIBUTE_COMPARE_IGNORE 0x0040
+#define TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY 0x0004 // Attribute is considered only for Deny Aces.
+#define TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT 0x0008 // Attribute is disabled by default.
+#define TOKEN_SECURITY_ATTRIBUTE_DISABLED 0x0010 // Attribute is disabled.
+#define TOKEN_SECURITY_ATTRIBUTE_MANDATORY 0x0020 // Attribute is mandatory.
+#define TOKEN_SECURITY_ATTRIBUTE_COMPARE_IGNORE 0x0040 // Attribute is ignored.
 
 #define TOKEN_SECURITY_ATTRIBUTE_VALID_FLAGS ( \
     TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE | \

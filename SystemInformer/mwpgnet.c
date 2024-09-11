@@ -360,7 +360,7 @@ VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
+    SystemInformer_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID PhMwpOnNetworkItemsUpdated(

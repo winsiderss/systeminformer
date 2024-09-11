@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2024
  *     dmex    2022-2023
  *
  */
@@ -15,21 +15,21 @@
 #include <kphcomms.h>
 #include <kphdyndata.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <json.h>
 #include <phappres.h>
 #include <sistatus.h>
+#include <informer.h>
 
 #include <ksisup.h>
 
 static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
+static BOOLEAN KsiEnableLoadNative = FALSE;
+static BOOLEAN KsiEnableLoadFilter = FALSE;
+static PPH_STRING KsiKernelVersion = NULL;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
-
-extern // ksidbg.c
-VOID KsiDebugLogMessage(
-    _In_ PCKPH_MESSAGE Message
-    );
 
 extern // ksidbg.c
 VOID KsiDebugLogInitialize(
@@ -37,14 +37,11 @@ VOID KsiDebugLogInitialize(
     );
 
 extern // ksidbg.c
-VOID KsiDebugLogDestroy(
+VOID KsiDebugLogFinalize(
     VOID
     );
 #endif
 
-BOOLEAN KsiEnableLoadNative = FALSE;
-BOOLEAN KsiEnableLoadFilter = FALSE;
-PPH_STRING KsiKernelVersion = NULL;
 
 PPH_STRING PhpGetKernelVersionString(
     VOID
@@ -85,7 +82,7 @@ VOID PhShowKsiStatus(
 {
     KPH_PROCESS_STATE processState;
 
-    if (!PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+    if (!PhEnableKsiWarnings || PhStartupParameters.PhSvc)
         return;
 
     processState = KphGetCurrentProcessState();
@@ -138,6 +135,7 @@ VOID PhShowKsiStatus(
             PhGetString(infoString)
             ))
         {
+            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
 
@@ -162,7 +160,7 @@ VOID PhpShowKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
-    if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+    if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
         return;
 
     versionString = PhGetApplicationVersionString(FALSE);
@@ -234,7 +232,7 @@ VOID PhpShowKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (Force && !PhGetIntegerSetting(L"KsiEnableWarnings"))
+    if (Force && !PhEnableKsiWarnings)
     {
         PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
@@ -265,6 +263,7 @@ VOID PhpShowKsiMessage(
             PhGetString(messageString)
             ))
         {
+            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
     }
@@ -449,22 +448,14 @@ BOOLEAN KsiCommsCallback(
     _In_ PCKPH_MESSAGE Message
     )
 {
-#ifdef DEBUG
-    KsiDebugLogMessage(Message);
-#endif
-
-    if (Message->Header.MessageId != KphMsgRequiredStateFailure)
-    {
-        return FALSE;
-    }
-
-    if (Message->Kernel.RequiredStateFailure.ClientId.UniqueProcess == NtCurrentProcessId())
+    if (Message->Header.MessageId == KphMsgRequiredStateFailure &&
+        Message->Kernel.RequiredStateFailure.ClientId.UniqueProcess == NtCurrentProcessId())
     {
         // force the cached value to be updated
         KphLevelEx(FALSE);
     }
 
-    return TRUE;
+    return PhInformerDispatch(ReplyToken, Message);
 }
 
 NTSTATUS KsiReadConfiguration(
@@ -1110,6 +1101,9 @@ VOID PhInitializeKsi(
         return;
     }
 
+    KphInitialize();
+    PhInformerInitialize();
+
     KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
     KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
 
@@ -1149,9 +1143,9 @@ NTSTATUS PhCleanupKsi(
     }
 
     KphCommsStop();
-
+    PhInformerStop();
 #ifdef DEBUG
-    KsiDebugLogDestroy();
+    KsiDebugLogFinalize();
 #endif
 
     if (!shouldUnload)

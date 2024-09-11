@@ -137,7 +137,7 @@ typedef struct _DnCLRDataTarget
     ULONG RefCount;
     HANDLE ProcessId;
     HANDLE ProcessHandle;
-    BOOLEAN IsWow64;
+    BOOLEAN IsWow64Process;
     BOOLEAN SelfContained;
     PVOID DataTargetDllBase;
     PPH_STRING DaccorePath;
@@ -219,14 +219,14 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextFlags,
     _In_ ULONG32 contextSize,
-    _Out_ BYTE *context
+    _Out_ PVOID context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
     _In_ ICLRDataTarget *This,
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextSize,
-    _In_ BYTE *context
+    _In_ PVOID context
     );
 
 HRESULT STDMETHODCALLTYPE DnCLRDataTarget_Request(

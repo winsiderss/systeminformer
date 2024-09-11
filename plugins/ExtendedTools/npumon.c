@@ -27,8 +27,8 @@ ULONG EtNpuTotalNodeCount = 0;
 ULONG EtNpuTotalSegmentCount = 0;
 ULONG EtNpuNextNodeIndex = 0;
 
-PH_UINT64_DELTA EtClockTotalRunningTimeDelta = { 0, 0 };
-LARGE_INTEGER EtClockTotalRunningTimeFrequency = { 0 };
+PH_UINT64_DELTA EtNpuClockTotalRunningTimeDelta = { 0, 0 };
+LARGE_INTEGER EtNpuClockTotalRunningTimeFrequency = { 0 };
 
 FLOAT EtNpuNodeUsage = 0;
 PH_CIRCULAR_BUFFER_FLOAT EtNpuNodeHistory;
@@ -374,6 +374,8 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
     if (EtNpuTotalNodeCount == 0)
         return FALSE;
 
+    PhQueryPerformanceFrequency(&EtNpuClockTotalRunningTimeFrequency);
+
     return TRUE;
 }
 
@@ -587,7 +589,7 @@ VOID EtpNpuUpdateSystemNodeInformation(
     }
 
     PhQueryPerformanceCounter(&performanceCounter);
-    PhUpdateDelta(&EtClockTotalRunningTimeDelta, performanceCounter.QuadPart);
+    PhUpdateDelta(&EtNpuClockTotalRunningTimeDelta, performanceCounter.QuadPart);
 }
 
 VOID NTAPI EtNpuProcessesUpdatedCallback(
@@ -628,7 +630,7 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
         EtpNpuUpdateSystemSegmentInformation();
         EtpNpuUpdateSystemNodeInformation();
 
-        elapsedTime = (DOUBLE)EtClockTotalRunningTimeDelta.Delta * 10000000 / EtClockTotalRunningTimeFrequency.QuadPart;
+        elapsedTime = (DOUBLE)EtNpuClockTotalRunningTimeDelta.Delta * 10000000 / EtNpuClockTotalRunningTimeFrequency.QuadPart;
 
         if (elapsedTime != 0)
         {

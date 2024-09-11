@@ -16,8 +16,7 @@
 #ifndef COM_NO_WINDOWS_H
 #define COM_NO_WINDOWS_H 1
 #endif
-#include "../thirdparty/winsdk/dia2.h"
-#include "../thirdparty/winsdk/dia3.h"
+#include <thirdparty.h>
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;

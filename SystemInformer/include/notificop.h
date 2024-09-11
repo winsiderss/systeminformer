@@ -43,7 +43,7 @@ typedef struct _PH_NF_BITMAP
     BOOLEAN Initialized;
     HDC Hdc;
     HBITMAP Bitmap;
-    PVOID Bits;
+    LPRGBQUAD Bits;
     LONG Width;
     LONG Height;
     LONG TaskbarDpi;

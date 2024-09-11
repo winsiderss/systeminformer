@@ -57,6 +57,6 @@ VOID StopOutputThread(VOID);
 
 // TraceSession.cpp:
 VOID DequeueAnalyzedInfo(std::vector<std::shared_ptr<PresentEvent>>* presentEvents); // std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents
-DOUBLE QpcDeltaToSeconds(_In_ ULONGLONG qpcDelta);
-ULONGLONG SecondsDeltaToQpc(_In_ DOUBLE secondsDelta);
-DOUBLE QpcToSeconds(_In_ ULONGLONG qpc);
+FLOAT QpcDeltaToSeconds(_In_ ULONGLONG qpcDelta);
+ULONGLONG SecondsDeltaToQpc(_In_ FLOAT secondsDelta);
+FLOAT QpcToSeconds(_In_ ULONGLONG qpc);

@@ -550,7 +550,7 @@ VOID EtFormatNetworkSize(
     );
 
 VOID EtFormatDouble(
-    _In_ DOUBLE Value,
+    _In_ FLOAT Value,
     _In_ PET_PROCESS_BLOCK Block,
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
@@ -1018,13 +1018,6 @@ VOID EtEtwMiniInformationInitializing(
 
 // iconext
 
-typedef struct _TB_GRAPH_CONTEXT
-{
-    LONG GraphDpi;
-    ULONG GraphColor1;
-    ULONG GraphColor2;
-} TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
-
 extern BOOLEAN EtTrayIconTransparencyEnabled;
 
 VOID EtLoadTrayIconGuids(
@@ -1167,8 +1160,8 @@ ULONG64 EtLookupTotalGpuAdapterShared(
     );
 
 // Firewall
-
 extern BOOLEAN EtFwEnabled;
+extern ULONG EtFwFlagsMask;
 extern ULONG EtFwStatus;
 extern ULONG FwRunCount;
 extern HANDLE EtFwEngineHandle;

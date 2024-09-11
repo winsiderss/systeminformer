@@ -232,7 +232,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatFD(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -241,7 +241,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatFD(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
 
@@ -252,7 +252,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatFD(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuSharedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -261,7 +261,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatFD(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuSharedUsage);
 
@@ -272,7 +272,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[2];
 
                 // %.2f%%\n
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatFD(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
 
                 drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -807,12 +807,12 @@ PPH_STRING EtpGpuTemperatureGraphLabelYFunction(
 
     if (EtGpuFahrenheitEnabled)
     {
-        PhInitFormatF(&format[0], (ULONG)(Value * Parameter) * 1.8 + 32, 1);
+        PhInitFormatF(&format[0], (ULONG)(Value * Parameter) * 1.8f + 32.f, 1);
         PhInitFormatS(&format[1], L"\u00b0F");
     }
     else
     {
-        PhInitFormatF(&format[0], (ULONG)(Value * Parameter), 1);
+        PhInitFormatU(&format[0], (ULONG)(Value * Parameter));
         PhInitFormatS(&format[1], L"\u00b0C\n");
     }
 
@@ -1236,7 +1236,7 @@ VOID EtpNotifyTemperatureGpuGraph(
 
                     if (EtGpuFahrenheitEnabled)
                     {
-                        PhInitFormatF(&format[0], (temp * 1.8 + 32), 1);
+                        PhInitFormatF(&format[0], (temp * 1.8f + 32.f), 1);
                         PhInitFormatS(&format[1], L"\u00b0F\n");
                         PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
                     }

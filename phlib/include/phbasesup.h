@@ -13,9 +13,7 @@
 #ifndef _PH_PHBASESUP_H
 #define _PH_PHBASESUP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 PHLIBAPI
 BOOLEAN
@@ -820,10 +818,10 @@ PhCompareBytesZ(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return strcmp(String1, String2);
-    else
+    if (IgnoreCase)
         return _stricmp(String1, String2);
+    else
+        return strcmp(String1, String2);
 }
 
 FORCEINLINE
@@ -834,10 +832,10 @@ PhEqualBytesZ(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return strcmp(String1, String2) == 0;
-    else
+    if (IgnoreCase)
         return _stricmp(String1, String2) == 0;
+    else
+        return strcmp(String1, String2) == 0;
 }
 
 FORCEINLINE
@@ -848,10 +846,10 @@ PhCompareStringZ(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcscmp(String1, String2);
-    else
+    if (IgnoreCase)
         return _wcsicmp(String1, String2);
+    else
+        return wcscmp(String1, String2);
 }
 
 FORCEINLINE
@@ -862,17 +860,17 @@ PhEqualStringZ(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-    {
-        return wcscmp(String1, String2) == 0;
-    }
-    else
+    if (IgnoreCase)
     {
         // wcsicmp is very expensive, so we do a quick check for negatives first.
         if (PhAreCharactersDifferent(String1[0], String2[0]))
             return FALSE;
 
         return _wcsicmp(String1, String2) == 0;
+    }
+    else
+    {
+        return wcscmp(String1, String2) == 0;
     }
 }
 
@@ -1551,6 +1549,17 @@ PhGetString(
         return NULL;
 }
 
+/**
+ * Retrieves a string reference from a given string object.
+ *
+ * This function returns a `PH_STRINGREF` structure that references the string
+ * contained in the provided `PPH_STRING` object. If the input string object is
+ * `NULL`, it initializes and returns an empty `PH_STRINGREF`.
+ *
+ * @param String A pointer to a `PPH_STRING` object. This parameter is optional and can be `NULL`.
+ * @return A `PH_STRINGREF` structure that references the string in the provided `PPH_STRING` object,
+ *         or an empty `PH_STRINGREF` if the input is `NULL`.
+ */
 FORCEINLINE
 PH_STRINGREF
 PhGetStringRef(
@@ -1567,6 +1576,15 @@ PhGetStringRef(
     return sr;
 }
 
+/**
+ * Retrieves the buffer from a PPH_STRINGREF structure or returns an empty string if the input is NULL.
+ *
+ * This function checks if the provided PPH_STRINGREF structure is not NULL. If it is not NULL, it returns the buffer
+ * contained within the structure. If the structure is NULL, it returns an empty string.
+ *
+ * @param String A pointer to a PPH_STRINGREF structure. This parameter is optional and can be NULL.
+ * @return A pointer to the buffer contained within the PPH_STRINGREF structure if it is not NULL, otherwise an empty string.
+ */
 FORCEINLINE
 PWSTR
 PhGetStringRefZ(
@@ -1583,9 +1601,7 @@ PhGetStringRefZ(
  * Retrieves a pointer to a string object's buffer or returns an empty string.
  *
  * \param String A pointer to a string object.
- *
- * \return A pointer to the string object's buffer if the supplied pointer is non-NULL, otherwise an
- * empty string.
+ * \return A pointer to the string object's buffer if the supplied pointer is non-NULL, otherwise an empty string.
  */
 FORCEINLINE
 PWSTR
@@ -1626,6 +1642,9 @@ PhGetStringOrDefault(
  *
  * \param String A pointer to a string object.
  */
+//_Check_return_ 
+//_Success_(((String != NULL && String->Length != 0) && return == 1))
+//_When_(String != NULL && String->Length != 0 && return == 1, _At_(String, _Post_valid_ _Post_notnull_))
 //FORCEINLINE
 //BOOLEAN
 //PhIsNullOrEmptyString(
@@ -1634,6 +1653,15 @@ PhGetStringOrDefault(
 //{
 //    return !String || String->Length == 0;
 //}
+
+FORCEINLINE
+BOOLEAN
+PhIsNullOrEmptyStringRef(
+    _Pre_maybenull_ PPH_STRINGREF String
+    )
+{
+    return !(String && String->Length);
+}
 
 // VS2019 can't parse the inline bool check for the above PhIsNullOrEmptyString
 // inline function creating invalid C6387 warnings using the input string (dmex)
@@ -1669,10 +1697,10 @@ PhCompareString(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcscmp(String1->Buffer, String2->Buffer);
-    else
+    if (IgnoreCase)
         return PhCompareStringRef(&String1->sr, &String2->sr, IgnoreCase); // faster than wcsicmp
+    else
+        return wcscmp(String1->Buffer, String2->Buffer);
 }
 
 /**
@@ -1690,14 +1718,10 @@ PhCompareString2(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-    {
-        return wcscmp(String1->Buffer, String2);
-    }
-    else
-    {
+    if (IgnoreCase)
         return PhCompareStringRef2(&String1->sr, String2, IgnoreCase);
-    }
+    else
+        return wcscmp(String1->Buffer, String2);
 }
 
 /**
@@ -1729,7 +1753,20 @@ PhCompareStringWithNull(
     }
 }
 
-// dmex: Compares two strings, always sorting NULL strings after all other strings.
+/**
+ * Compares two strings with support for null values and customizable sort order.
+ *
+ * This function compares two strings, taking into account the possibility of null values and allowing for customizable sort order.
+ * If both `String1` and `String2` are not null, the function calls `PhCompareString` to perform the comparison.
+ * If `String1` is null and `String2` is not null, the function returns 0 if `String2` is also null, or 1 or -1 based on the specified `Order` (AscendingSortOrder or DescendingSortOrder).
+ * If `String1` is not null and `String2` is null, the function returns -1 or 1 based on the specified `Order`.
+ *
+ * @param String1 The first string to compare.
+ * @param String2 The second string to compare.
+ * @param Order The sort order to use for the comparison (AscendingSortOrder or DescendingSortOrder).
+ * @param IgnoreCase Specifies whether the comparison should be case-insensitive (TRUE) or case-sensitive (FALSE).
+ * @return Returns a negative value if `String1` is less than `String2`, a positive value if `String1` is greater than `String2`, or 0 if they are equal.
+ */
 FORCEINLINE
 LONG
 PhCompareStringWithNullSortOrder(
@@ -1753,6 +1790,20 @@ PhCompareStringWithNullSortOrder(
     }
 }
 
+/**
+ * Compares two strings with support for null values and customizable sort order.
+ *
+ * This function compares two strings, taking into account the possibility of null values and allowing for customizable sort order.
+ * If both `String1` and `String2` are not null, the function calls `PhCompareString` to perform the comparison.
+ * If `String1` is null and `String2` is not null, the function returns 0 if `String2` is also null, or 1 if `String2` is not null, depending on the specified sort order.
+ * If `String1` is not null and `String2` is null, the function returns -1 or 1, depending on the specified sort order.
+ *
+ * @param String1 The first string to compare. Can be null.
+ * @param String2 The second string to compare. Can be null.
+ * @param Order The sort order to use for the comparison. Must be either `AscendingSortOrder` or `DescendingSortOrder`.
+ * @param IgnoreCase Specifies whether the comparison should be case-insensitive (`true`) or case-sensitive (`false`).
+ * @return The result of the comparison. Returns a negative value if `String1` is less than `String2`, 0 if they are equal, or a positive value if `String1` is greater than `String2`.
+ */
 FORCEINLINE
 LONG
 PhCompareStringRefWithNullSortOrder(
@@ -1809,14 +1860,10 @@ PhEqualString2(
     _In_ BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-    {
-        return wcscmp(String1->Buffer, String2) == 0;
-    }
-    else
-    {
+    if (IgnoreCase)
         return PhEqualStringRef2(&String1->sr, String2, IgnoreCase);
-    }
+    else
+        return wcscmp(String1->Buffer, String2) == 0;
 }
 
 /**
@@ -2383,6 +2430,36 @@ PhConvertUtf16ToUtf8Ex(
     _In_ PWCHAR Buffer,
     _In_ SIZE_T Length
     );
+
+FORCEINLINE
+PPH_BYTES
+NTAPI
+PhConvertStringToUtf8(
+    _In_ PPH_STRING String
+    )
+{
+    return PhConvertUtf16ToUtf8Ex(String->Buffer, String->Length);
+}
+
+FORCEINLINE
+PPH_BYTES
+NTAPI
+PhConvertStringRefToUtf8(
+    _In_ PPH_STRINGREF String
+    )
+{
+    return PhConvertUtf16ToUtf8Ex(String->Buffer, String->Length);
+}
+
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhConvertBytesToUtf16(
+    _In_ PPH_BYTES String
+    )
+{
+    return PhConvertUtf8ToUtf16Ex(String->Buffer, String->Length);
+}
 
 // String builder
 
@@ -3073,7 +3150,7 @@ VOID
 PhDistributeHashSet(
     _Inout_ PPH_HASH_ENTRY *NewBuckets,
     _In_ ULONG NumberOfNewBuckets,
-    _In_ PPH_HASH_ENTRY *OldBuckets,
+    _In_ CONST PPH_HASH_ENTRY *OldBuckets,
     _In_ ULONG NumberOfOldBuckets
     )
 {
@@ -3141,7 +3218,7 @@ PhAddEntryHashSet(
 FORCEINLINE
 PPH_HASH_ENTRY
 PhFindEntryHashSet(
-    _In_ PPH_HASH_ENTRY *Buckets,
+    _In_ CONST PPH_HASH_ENTRY *Buckets,
     _In_ ULONG NumberOfBuckets,
     _In_ ULONG Hash
     )
@@ -3496,6 +3573,8 @@ typedef struct _PH_KEY_VALUE_PAIR
     PVOID Value;
 } PH_KEY_VALUE_PAIR, *PPH_KEY_VALUE_PAIR;
 
+typedef CONST PH_KEY_VALUE_PAIR *PPCH_KEY_VALUE_PAIR;
+
 PHLIBAPI
 PPH_HASHTABLE
 NTAPI
@@ -3649,7 +3728,7 @@ typedef struct _PH_CALLBACK
     PH_CONDITION BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
 
-#define PH_CALLBACK_DECLARE(Name) PH_CALLBACK Name = { &Name.ListHead, &Name.ListHead, PH_QUEUED_LOCK_INIT, PH_CONDITION_INIT }
+#define PH_CALLBACK_DECLARE(Name) PH_CALLBACK Name = { &(Name).ListHead, &(Name).ListHead, PH_QUEUED_LOCK_INIT, PH_CONDITION_INIT }
 
 PHLIBAPI
 VOID
@@ -4418,11 +4497,24 @@ FORCEINLINE
 VOID
 PhInitFormatF(
     _Out_ PPH_FORMAT Format,
+    _In_ FLOAT Single,
+    _In_ USHORT Precision
+    )
+{
+    Format->Type = SingleFormatType | FormatUsePrecision;
+    Format->u.Single = Single;
+    Format->Precision = Precision;
+}
+
+FORCEINLINE
+VOID
+PhInitFormatFD(
+    _Out_ PPH_FORMAT Format,
     _In_ DOUBLE Double,
     _In_ USHORT Precision
     )
 {
-    Format->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatUsePrecision);
+    Format->Type = DoubleFormatType | FormatUsePrecision;
     Format->u.Double = Double;
     Format->Precision = Precision;
 }
@@ -4721,8 +4813,6 @@ PhEnumAvlTree(
     _In_opt_ PVOID Context
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

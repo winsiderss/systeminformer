@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "components": [
+    "Microsoft.Component.MSBuild",
+    "Microsoft.VisualStudio.Component.Git",
+    "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+    "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
+    "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
+    "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre",
+    "Microsoft.VisualStudio.Component.NuGet.BuildTools",
+    "Microsoft.VisualStudio.Workload.NativeDesktop"
+  ],
+  "extensions": []
+}

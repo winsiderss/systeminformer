@@ -11,16 +11,14 @@
  */
 
 #include <phapp.h>
-#include <mainwnd.h>
-
 #include <emenu.h>
-
 #include <phplug.h>
 #include <phsettings.h>
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
 
+#include <mainwnd.h>
 #include <mainwndp.h>
 
 PPH_MAIN_TAB_PAGE PhMwpServicesPage;
@@ -403,6 +401,41 @@ VOID PhShowServiceContextMenu(
     PhFree(services);
 }
 
+VOID PhServiceListInsertContextMenu(
+    _In_ HWND ParentWindow,
+    _In_ PPH_EMENU Menu,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    )
+{
+    PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_START, L"&Start", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_CONTINUE, L"C&ontinue", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_PAUSE, L"&Pause", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_STOP, L"S&top", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_DELETE, L"&Delete\bDel", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_GOTOPROCESS, L"&Go to process", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_OPENKEY, L"Open &key", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_OPENFILELOCATION, L"Open &file location\bCtrl+Enter", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_PROPERTIES, L"P&roperties\bEnter", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_SERVICE_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+    PhSetFlagsEMenuItem(Menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+    PhMwpInitializeServiceMenu(Menu, Services, NumberOfServices);
+
+    if (PhPluginsEnabled)
+    {
+        PhPluginInitializeMenuInfo(&menuInfo, Menu, ParentWindow, 0);
+        menuInfo.u.Service.Services = Services;
+        menuInfo.u.Service.NumberOfServices = NumberOfServices;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing), &menuInfo);
+    }
+}
+
 VOID NTAPI PhMwpServiceAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -442,7 +475,7 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
+    SystemInformer_Invoke(PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID PhMwpOnServiceAdded(

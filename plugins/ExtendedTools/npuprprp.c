@@ -61,8 +61,8 @@ VOID NpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -76,8 +76,8 @@ VOID NpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -91,8 +91,8 @@ VOID NpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -106,8 +106,8 @@ VOID NpuPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -255,31 +255,19 @@ VOID NpuPropUpdateGraphs(
 {
     Context->NpuGraphState.Valid = FALSE;
     Context->NpuGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->NpuGraphHandle, 1);
-    Graph_Draw(Context->NpuGraphHandle);
-    Graph_UpdateTooltip(Context->NpuGraphHandle);
-    InvalidateRect(Context->NpuGraphHandle, NULL, FALSE);
+    Graph_Update(Context->NpuGraphHandle);
 
     Context->MemoryGraphState.Valid = FALSE;
     Context->MemoryGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->MemGraphHandle, 1);
-    Graph_Draw(Context->MemGraphHandle);
-    Graph_UpdateTooltip(Context->MemGraphHandle);
-    InvalidateRect(Context->MemGraphHandle, NULL, FALSE);
+    Graph_Update(Context->MemGraphHandle);
 
     Context->MemorySharedGraphState.Valid = FALSE;
     Context->MemorySharedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->SharedGraphHandle, 1);
-    Graph_Draw(Context->SharedGraphHandle);
-    Graph_UpdateTooltip(Context->SharedGraphHandle);
-    InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->SharedGraphHandle);
 
     Context->NpuCommittedGraphState.Valid = FALSE;
     Context->NpuCommittedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->CommittedGraphHandle, 1);
-    Graph_Draw(Context->CommittedGraphHandle);
-    Graph_UpdateTooltip(Context->CommittedGraphHandle);
-    InvalidateRect(Context->CommittedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->CommittedGraphHandle);
 }
 
 //VOID NpuPropUpdatePanel(

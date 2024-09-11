@@ -6,33 +6,32 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
 #include <ph.h>
 #include <colorbox.h>
 #include <guisup.h>
-
 #include <commdlg.h>
 
-typedef struct _PHP_COLORBOX_CONTEXT
+typedef struct _PH_COLORBOX_CONTEXT
 {
     COLORREF SelectedColor;
     union
     {
-        BOOLEAN Flags;
+        ULONG Flags;
         struct
         {
-            BOOLEAN Hot : 1;
-            BOOLEAN HasFocus : 1;
-            BOOLEAN EnableThemeSupport : 1;
-            BOOLEAN Spare : 5;
+            ULONG Hot : 1;
+            ULONG HasFocus : 1;
+            ULONG EnableThemeSupport : 1;
+            ULONG Spare : 29;
         };
     };
-} PHP_COLORBOX_CONTEXT, *PPHP_COLORBOX_CONTEXT;
+} PH_COLORBOX_CONTEXT, *PPH_COLORBOX_CONTEXT;
 
-LRESULT CALLBACK PhpColorBoxWndProc(
+LRESULT CALLBACK PhColorBoxWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -43,39 +42,37 @@ BOOLEAN PhColorBoxInitialization(
     VOID
     )
 {
-    WNDCLASSEX c = { sizeof(c) };
+    WNDCLASSEX wcex;
 
-    c.style = CS_GLOBALCLASS;
-    c.lpfnWndProc = PhpColorBoxWndProc;
-    c.cbClsExtra = 0;
-    c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhInstanceHandle;
-    c.hIcon = NULL;
-    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    c.hbrBackground = NULL;
-    c.lpszMenuName = NULL;
-    c.lpszClassName = PH_COLORBOX_CLASSNAME;
-    c.hIconSm = NULL;
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_GLOBALCLASS | CS_PARENTDC;
+    wcex.lpfnWndProc = PhColorBoxWndProc;
+    wcex.cbWndExtra = sizeof(PVOID);
+    wcex.hInstance = PhInstanceHandle;
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.lpszClassName = PH_COLORBOX_CLASSNAME;
 
-    if (!RegisterClassEx(&c))
+    if (RegisterClassEx(&wcex) == INVALID_ATOM)
         return FALSE;
 
     return TRUE;
 }
 
-VOID PhpCreateColorBoxContext(
-    _Out_ PPHP_COLORBOX_CONTEXT *Context
+PPH_COLORBOX_CONTEXT PhCreateColorBoxContext(
+    VOID
     )
 {
-    PPHP_COLORBOX_CONTEXT context;
+    PPH_COLORBOX_CONTEXT context;
 
-    context = PhAllocate(sizeof(PHP_COLORBOX_CONTEXT));
-    memset(context, 0, sizeof(PHP_COLORBOX_CONTEXT));
-    *Context = context;
+    context = PhAllocate(sizeof(PH_COLORBOX_CONTEXT));
+    memset(context, 0, sizeof(PH_COLORBOX_CONTEXT));
+
+    return context;
 }
 
-VOID PhpFreeColorBoxContext(
-    _In_ _Post_invalid_ PPHP_COLORBOX_CONTEXT Context
+VOID PhFreeColorBoxContext(
+    _In_ _Post_invalid_ PPH_COLORBOX_CONTEXT Context
     )
 {
     PhFree(Context);
@@ -93,11 +90,11 @@ UINT_PTR CALLBACK PhpColorBoxDlgHookProc(
     case WM_INITDIALOG:
         {
             LPCHOOSECOLOR chooseColor = (LPCHOOSECOLOR)lParam;
-            PPHP_COLORBOX_CONTEXT context = (PPHP_COLORBOX_CONTEXT)chooseColor->lCustData;
+            PPH_COLORBOX_CONTEXT context = (PPH_COLORBOX_CONTEXT)chooseColor->lCustData;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, context->EnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, !!context->EnableThemeSupport);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -113,7 +110,7 @@ UINT_PTR CALLBACK PhpColorBoxDlgHookProc(
 
 VOID PhpChooseColor(
     _In_ HWND hwnd,
-    _In_ PPHP_COLORBOX_CONTEXT Context
+    _In_ PPH_COLORBOX_CONTEXT Context
     )
 {
     CHOOSECOLOR chooseColor = { sizeof(chooseColor) };
@@ -133,48 +130,40 @@ VOID PhpChooseColor(
     }
 }
 
-LRESULT CALLBACK PhpColorBoxWndProc(
+LRESULT CALLBACK PhColorBoxWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    PPHP_COLORBOX_CONTEXT context;
-
-    context = PhGetWindowContextEx(hwnd);
-
-    if (uMsg == WM_CREATE)
-    {
-        PhpCreateColorBoxContext(&context);
-        PhSetWindowContextEx(hwnd, context);
-    }
-
-    if (!context)
-        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    PPH_COLORBOX_CONTEXT context = PhGetWindowContextEx(hwnd);
 
     switch (uMsg)
     {
-    case WM_CREATE:
+    case WM_NCCREATE:
         {
-            // Nothing
+            context = PhCreateColorBoxContext();
+            PhSetWindowContextEx(hwnd, context);
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             PhRemoveWindowContextEx(hwnd);
-            PhpFreeColorBoxContext(context);
+            PhFreeColorBoxContext(context);
         }
         break;
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
-            RECT clientRect;
+            RECT updateRect;
+            HBRUSH oldBrush;
+            HPEN oldPen;
             HDC hdc;
 
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                GetClientRect(hwnd, &clientRect);
+                updateRect = paintStruct.rcPaint;
 
                 // Border color
                 SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
@@ -185,10 +174,16 @@ LRESULT CALLBACK PhpColorBoxWndProc(
                 else
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
 
-                // Draw the rectangle.
-                SelectPen(hdc, GetStockPen(DC_PEN));
-                SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-                Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+                // Select the border and fill.
+                oldBrush = SelectBrush(hdc, GetStockBrush(DC_BRUSH));
+                oldPen = SelectPen(hdc, GetStockPen(DC_PEN));
+
+                // Draw the border and fill.
+                Rectangle(hdc, updateRect.left, updateRect.top, updateRect.right, updateRect.bottom);
+
+                // Restore the original border and fill.
+                SelectPen(hdc, oldPen);
+                SelectBrush(hdc, oldBrush);
 
                 EndPaint(hwnd, &paintStruct);
             }

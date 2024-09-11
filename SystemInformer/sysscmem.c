@@ -263,7 +263,7 @@ BOOLEAN PhSipMemorySectionCallback(
             drawPanel->Title = PhCreateString(L"Memory");
 
             // %.0f%%\n%s / %s
-            PhInitFormatF(&format[0], (DOUBLE)usedPages * 100 / totalPages, 0);
+            PhInitFormatF(&format[0], ((FLOAT)usedPages / (FLOAT)totalPages) * 100, 0);
             PhInitFormatS(&format[1], L"%\n");
             PhInitFormatSizeWithPrecision(&format[2], UInt32x32To64(usedPages, PAGE_SIZE), 1);
             PhInitFormatS(&format[3], L" / ");
@@ -272,7 +272,7 @@ BOOLEAN PhSipMemorySectionCallback(
             drawPanel->SubTitle = PhFormat(format, 5, 64);
 
             // %.0f%%\n%s
-            PhInitFormatF(&format[0], (DOUBLE)usedPages * 100 / totalPages, 0);
+            PhInitFormatF(&format[0], ((FLOAT)usedPages / (FLOAT)totalPages) * 100, 0);
             PhInitFormatS(&format[1], L"%\n");
             PhInitFormatSizeWithPrecision(&format[2], UInt32x32To64(usedPages, PAGE_SIZE), 1);
 
@@ -512,8 +512,8 @@ VOID PhSipCreateMemoryGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         MemoryDialog,
         NULL,
         PhInstanceHandle,
@@ -527,8 +527,8 @@ VOID PhSipCreateMemoryGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         MemoryDialog,
         NULL,
         PhInstanceHandle,
@@ -770,9 +770,9 @@ VOID PhSipNotifyPhysicalGraph(
                 if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG usedPages;
-                    DOUBLE currentCompressedMemory;
-                    DOUBLE totalCompressedMemory;
-                    DOUBLE totalSavedMemory;
+                    FLOAT currentCompressedMemory;
+                    FLOAT totalCompressedMemory;
+                    FLOAT totalSavedMemory;
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
@@ -822,17 +822,11 @@ VOID PhSipUpdateMemoryGraphs(
 {
     CommitGraphState.Valid = FALSE;
     CommitGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(CommitGraphHandle, 1);
-    Graph_Draw(CommitGraphHandle);
-    Graph_UpdateTooltip(CommitGraphHandle);
-    InvalidateRect(CommitGraphHandle, NULL, FALSE);
+    Graph_Update(CommitGraphHandle);
 
     PhysicalGraphState.Valid = FALSE;
     PhysicalGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(PhysicalGraphHandle, 1);
-    Graph_Draw(PhysicalGraphHandle);
-    Graph_UpdateTooltip(PhysicalGraphHandle);
-    InvalidateRect(PhysicalGraphHandle, NULL, FALSE);
+    Graph_Update(PhysicalGraphHandle);
 }
 
 VOID PhSipUpdateMemoryPanel(
@@ -1137,23 +1131,23 @@ VOID PhSipGetPoolLimits(
 
 _Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ DOUBLE *CurrentCompressedMemory,
-    _Out_ DOUBLE *TotalCompressedMemory,
-    _Out_ DOUBLE *TotalSavedMemory
+    _Out_ FLOAT *CurrentCompressedMemory,
+    _Out_ FLOAT *TotalCompressedMemory,
+    _Out_ FLOAT *TotalSavedMemory
     )
 {
     PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
-    DOUBLE current;
-    DOUBLE total;
-    DOUBLE saved;
+    FLOAT current;
+    FLOAT total;
+    FLOAT saved;
 
     if (!NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
         return FALSE;
     if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
         return FALSE;
 
-    current = (DOUBLE)compressionInfo.WorkingSetSize / (DOUBLE)(1024 * 1024);
-    total = current * (DOUBLE)compressionInfo.TotalDataCompressed / (DOUBLE)compressionInfo.TotalCompressedSize;
+    current = (FLOAT)compressionInfo.WorkingSetSize / (FLOAT)(1024 * 1024);
+    total = current * (FLOAT)compressionInfo.TotalDataCompressed / (FLOAT)compressionInfo.TotalCompressedSize;
     saved = total - current;
 
     *CurrentCompressedMemory = current * 1024 * 1024;

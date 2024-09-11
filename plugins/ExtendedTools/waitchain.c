@@ -491,7 +491,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
                     {
                         if (processNode = PhFindProcessNode(UlongToHandle(selectedNode->ProcessId)))
                         {
-                            ProcessHacker_SelectTabPage(0);
+                            SystemInformer_SelectTabPage(0);
                             PhSelectAndEnsureVisibleProcessNode(processNode);
                         }
                     }
@@ -821,7 +821,11 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -900,8 +904,8 @@ VOID WtcInitializeWaitTree(
     hwnd = TreeNewHandle;
     PhSetControlTheme(hwnd, L"explorer");
 
-    TreeNew_SetCallback(hwnd, WtcWaitTreeNewCallback, Context);
     TreeNew_SetRedraw(hwnd, FALSE);
+    TreeNew_SetCallback(hwnd, WtcWaitTreeNewCallback, Context);
 
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_THREADID, TRUE, L"ThreadId", 50, PH_ALIGN_LEFT, 1, 0);
@@ -915,7 +919,6 @@ VOID WtcInitializeWaitTree(
 
     TreeNew_SetRedraw(hwnd, TRUE);
     TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, TREE_COLUMN_ITEM_TYPE, NoSortOrder);
 
     settings = PhGetStringSetting(SETTING_NAME_WCT_TREE_LIST_COLUMNS);
     PhCmLoadSettings(hwnd, &settings->sr);

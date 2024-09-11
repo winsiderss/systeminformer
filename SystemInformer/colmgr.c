@@ -64,7 +64,7 @@ VOID PhCmDeleteManager(
 PPH_CM_COLUMN PhCmCreateColumn(
     _Inout_ PPH_CM_MANAGER Manager,
     _In_ PPH_TREENEW_COLUMN Column,
-    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
     _In_opt_ PVOID Context,
     _In_opt_ PVOID SortFunction
@@ -123,7 +123,7 @@ PPH_CM_COLUMN PhCmFindColumn(
 
 VOID PhCmSetNotifyPlugin(
     _In_ PPH_CM_MANAGER Manager,
-    _In_ struct _PH_PLUGIN *Plugin
+    _In_ PPH_PLUGIN Plugin
     )
 {
     if (!Manager->NotifyList)
@@ -150,11 +150,13 @@ BOOLEAN PhCmForwardMessage(
     PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
     PPH_PLUGIN plugin;
 
-    if (Message == TreeNewDestroying)
-        return FALSE;
-
     switch (Message)
     {
+    case TreeNewDestroying:
+        {
+            return FALSE;
+        }
+        break;
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
@@ -279,6 +281,9 @@ BOOLEAN PhCmForwardSort(
 
     if (SortColumn < Manager->MinId)
         return FALSE;
+
+    if (!Manager->Handle)
+        return TRUE;
 
     if (!TreeNew_GetColumn(Manager->Handle, SortColumn, &tnColumn))
         return TRUE;

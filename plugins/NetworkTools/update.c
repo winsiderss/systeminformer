@@ -63,7 +63,7 @@ PNETWORK_GEODB_UPDATE_CONTEXT GeoLiteCreateUpdateContext(
     }
 
     context = PhCreateObjectZero(sizeof(NETWORK_GEODB_UPDATE_CONTEXT), UpdateContextType);
-    context->PortableMode = !!ProcessHacker_IsPortableMode();
+    context->PortableMode = !!SystemInformer_IsPortableMode();
 
     return context;
 }
@@ -684,7 +684,7 @@ HRESULT CALLBACK GeoLiteDialogBootstrapCallback(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
@@ -727,7 +727,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = GeoLiteDialogBootstrapCallback;
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
@@ -751,7 +751,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //info.hwnd = Parameter;
     //info.lpVerb = L"runas";
     //
-    //ProcessHacker_PrepareForEarlyShutdown();
+    //SystemInformer_PrepareForEarlyShutdown();
     //
     //if (ShellExecuteEx(&info))
     //{
@@ -774,7 +774,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //                NULL
     //                );
     //
-    //            ProcessHacker_Destroy();
+    //            SystemInformer_Destroy();
     //        }
     //    }
     //
@@ -782,7 +782,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //}
     //else
     //{
-    //    ProcessHacker_CancelEarlyShutdown();
+    //    SystemInformer_CancelEarlyShutdown();
     //}
 }
 
@@ -842,7 +842,7 @@ VOID ShowGeoLiteUpdateDialog(
             L"Once you've created the key you can copy/paste the text into the Options window > NetworkTools settings and System Informer can start downloading GeoLite database updates.\n\n"
             L"Special thanks to MaxMind (<a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>) for continuing free GeoLite services <3";
 
-        TaskDialogIndirect(&config, NULL, NULL, NULL);
+        PhShowTaskDialog(&config, NULL, NULL, NULL);
     }
     else
     {

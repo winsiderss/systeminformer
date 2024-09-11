@@ -40,3 +40,65 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
+  notify:
+      runs-on: ubuntu-latest
+      needs: [build, build_driver]
+      if: always()
+      steps:
+        - name: Notify
+          run: |
+            BUILD_STATUS=${{ needs.build.result }}
+            BUILD_DRIVER_STATUS=${{ needs.build_driver.result }}
+            if [ "$BUILD_STATUS" = "success" ] && [ "$BUILD_DRIVER_STATUS" = "success" ]; then
+              COLOR=3066993
+              TITLE="[${{ github.event.repository.name }}:${{ github.ref_name }}] Build Succeeded"
+              DESCRIPTION="✅ __**Build Successful**__"
+            else
+              COLOR=15158332
+              TITLE="[${{ github.event.repository.name }}:${{ github.ref_name }}] Build Failed"
+              DESCRIPTION="🚨 __**Build Failure**__"
+            fi
+            curl -X POST '${{ secrets.DISCORD_WEBHOOK_URL }}' \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "username": "GitHub",
+              "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+              "embeds": [
+                {
+                  "author": {
+                    "name": "${{ github.actor }}",
+                     "url": "${{ github.server_url }}/${{ github.actor }}",
+                     "icon_url": "https://avatars.githubusercontent.com/u/${{ github.actor_id }}?v=4"
+                  },
+                  "title": "'"${TITLE}"'",
+                  "url": "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}",
+                  "color": '"${COLOR}"',
+                  "description": "'"${DESCRIPTION}"'",
+                  "fields": [
+                    {
+                      "name": "Reference",
+                      "value": "[${{ github.ref_name }}](${{ github.event.repository.html_url }}/commits/${{ github.ref_name }})",
+                      "inline": true
+                    },
+                    {
+                      "name": "User",
+                      "value": "[${{ github.actor }}](${{ github.server_url }}/${{ github.actor }})",
+                      "inline": true
+                    },
+                    {
+                      "name": "Workflow",
+                      "value": "[${{ github.workflow }}](${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }})",
+                      "inline": true
+                    },
+                    {
+                      "name": "Commit",
+                      "value": "[`${{ github.sha }}`](${{ github.event.repository.html_url }}/commit/${{ github.sha }})"
+                    },
+                    {
+                      "name": "Message",
+                      "value": "${{ github.event.head_commit.message }}"
+                    }
+                  ]
+                }
+              ]
+            }'

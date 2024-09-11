@@ -259,7 +259,7 @@ VOID InitializeDbPath(
     VOID
     )
 {
-    if (ProcessHacker_IsPortableMode())
+    if (SystemInformer_IsPortableMode())
     {
         PPH_STRING fileName;
 
@@ -408,7 +408,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             context->WindowHandle = hwndDlg;
 
@@ -646,7 +646,7 @@ VOID ShowProcessPriorityDialog(
         config.nDefaultRadioButton = PHAPP_ID_PRIORITY_NORMAL;
     }
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhFree(context);
 }
@@ -723,7 +723,7 @@ VOID ShowProcessIoPriorityDialog(
         config.nDefaultRadioButton = PHAPP_ID_IOPRIORITY_NORMAL;
     }
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhFree(context);
 }
@@ -803,7 +803,7 @@ VOID ShowProcessPagePriorityDialog(
         config.nDefaultRadioButton = PHAPP_ID_PAGEPRIORITY_NORMAL;
     }
 
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhFree(context);
 }
@@ -2749,8 +2749,8 @@ LOGICAL DllMain(
             return FALSE;
 
         info->DisplayName = L"User Notes";
-        info->Author = L"dmex, wj32";
-        info->Description = L"Allows the user to add comments for processes and services, save process priority and affinity, highlight individual processes and show processes collapsed by default.";
+        info->Description = L"Allows the user to add comments for processes and services,"
+            L" save process priority and affinity, highlight individual processes and show processes collapsed by default.";
 
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
