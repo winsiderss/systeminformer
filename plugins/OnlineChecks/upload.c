@@ -261,7 +261,7 @@ PPH_BYTES PerformSubRequest(
 
         httpHeader = PhFormatString(
             L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs",
-            L""
+            ""
             );
 
         PhHttpSocketAddRequestHeaders(
@@ -451,7 +451,7 @@ NTSTATUS UploadFileThreadStart(
         PhAppendFormatStringBuilder(
             &httpRequestHeaders,
             L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs\r\n",
-            L""
+            ""
             );
 
         PhAppendFormatStringBuilder(
@@ -1129,7 +1129,7 @@ NTSTATUS UploadCheckThreadStart(
                             L"%s%s?\x0061\x0070\x0069\x006B\x0065\x0079=%S&resource=%s",
                             L"https://www.virustotal.com",
                             L"/vtapi/v2/file/scan",
-                            L"",
+                            "",
                             PhGetString(context->FileHash)
                             ));
                     }
@@ -1160,7 +1160,7 @@ NTSTATUS UploadCheckThreadStart(
                             L"%s%s?\x0061\x0070\x0069\x006B\x0065\x0079=%S&resource=%s",
                             L"https://www.virustotal.com",
                             L"/vtapi/v2/file/scan",
-                            L"",
+                            "",
                             PhGetString(context->FileHash)
                             ));
                     }
@@ -1404,10 +1404,12 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     {
     case TDN_CREATED:
         {
+            HWND windowHandle = SystemInformer_GetWindowHandle();
+
             context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(windowHandle) && !IsMinimized(windowHandle)) ? windowHandle : NULL);
 
             // Create the Taskdialog icons
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1504,6 +1506,6 @@ VOID UploadServiceToOnlineService(
     }
     else
     {
-        PhShowStatus(PhMainWndHandle, L"Unable to query the service.", status, 0);
+        PhShowStatus(SystemInformer_GetWindowHandle(), L"Unable to query the service.", status, 0);
     }
 }

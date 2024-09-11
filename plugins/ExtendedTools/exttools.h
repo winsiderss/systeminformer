@@ -1224,15 +1224,15 @@ typedef struct _FW_EVENT_ITEM
 
     union
     {
-        BOOLEAN Flags;
+        ULONG Flags;
         struct
         {
-            BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 3;
-            BOOLEAN LocalPortServiceResolved : 1;
-            BOOLEAN RemotePortServiceResolved : 1;
-            BOOLEAN LocalHostnameResolved : 1;
-            BOOLEAN RemoteHostnameResolved : 1;
+            ULONG Loopback : 1;
+            ULONG LocalPortServiceResolved : 1;
+            ULONG RemotePortServiceResolved : 1;
+            ULONG LocalHostnameResolved : 1;
+            ULONG RemoteHostnameResolved : 1;
+            ULONG Spare : 27;
         };
     };
 
@@ -1311,6 +1311,14 @@ VOID LoadSettingsFwTreeList(
 
 VOID SaveSettingsFwTreeList(
     VOID
+    );
+
+VOID EtFwFlushResolveCache(
+    VOID
+    );
+
+VOID EtFwQueryHostnameForEntry(
+    _In_ PFW_EVENT_ITEM Entry
     );
 
 _Success_(return)
@@ -1440,6 +1448,11 @@ typedef ULONG (WINAPI* _FwpmNetEventEnum5)(
 #define FWP_DIRECTION_MAP_FORWARD 0x3902
 #define FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
 
+typedef enum _FW_PROVIDER_FLAG
+{
+    FW_PROVIDER_FLAG_HOSTNAME = 0x1,
+} FW_PROVIDER_FLAG;
+
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
     );
@@ -1480,6 +1493,14 @@ VOID EtFwDeselectAllFwNodes(
 
 VOID EtFwSelectAndEnsureVisibleFwNode(
     _In_ PFW_EVENT_ITEM FwNode
+    );
+
+VOID EtFwInvalidateAllFwNodes(
+    VOID
+    );
+
+VOID EtFwInvalidateAllFwNodesHostnames(
+    VOID
     );
 
 VOID EtFwCopyFwList(

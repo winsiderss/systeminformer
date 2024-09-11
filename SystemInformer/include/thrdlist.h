@@ -250,8 +250,4 @@ VOID PhGetSelectedThreadItems(
     _Out_ PULONG NumberOfThreads
     );
 
-VOID PhDeselectAllThreadNodes(
-    _In_ PPH_THREAD_LIST_CONTEXT Context
-    );
-
 #endif

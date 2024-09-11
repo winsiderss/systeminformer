@@ -48,8 +48,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
     PhpAddIntegerSetting(L"EnableHeapMemoryTagging", L"0");
-    PhpAddIntegerSetting(L"KsiEnable", L"0");
-    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableLastProcessShutdown", L"0");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
@@ -115,10 +113,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"HandleStatisticsListViewColumns", L"");
     PhpAddStringSetting(L"HandleStatisticsListViewSort", L"0,1");
     PhpAddScalableIntegerPairSetting(L"HandleStatisticsWindowSize", L"@96|0,0");
-    PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
-    PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
-    PhpAddScalableIntegerPairSetting(L"HiddenProcessesWindowSize", L"@96|520,400");
     PhpAddIntegerSetting(L"HideDefaultServices", L"0");
     PhpAddIntegerSetting(L"HideDriverServices", L"0");
     PhpAddIntegerSetting(L"HideFreeRegions", L"1");
@@ -147,6 +141,8 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"InformationWindowSize", L"@96|140,190");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
+    PhpAddIntegerSetting(L"KsiEnable", L"0");
+    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
@@ -276,7 +272,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"WmiProviderTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"WmiProviderTreeListFlags", L"0");
     PhpAddStringSetting(L"VdmHostListViewColumns", L"");
-    PhpAddIntegerSetting(L"ZombieProcessesMenuEnabled", L"0");
     PhpAddStringSetting(L"ZombieProcessesListViewColumns", L"");
     PhpAddIntegerPairSetting(L"ZombieProcessesWindowPosition", L"400,400");
     PhpAddScalableIntegerPairSetting(L"ZombieProcessesWindowSize", L"@96|520,400");
@@ -328,6 +323,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorProtectedProcess", L"ff8080");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
+    PhpAddIntegerSetting(L"UseColorEfficiencyMode", L"1");
+    PhpAddIntegerSetting(L"ColorEfficiencyMode", L"80ff00");
     PhpAddIntegerSetting(L"UseColorServiceDisabled", L"1");
     PhpAddIntegerSetting(L"ColorServiceDisabled", L"6d6d6d"); // Dark grey
     PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
@@ -432,6 +429,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(UseColorInheritHandles);
     PH_UPDATE_SETTING(ColorProtectedProcess);
     PH_UPDATE_SETTING(UseColorProtectedProcess);
+    PH_UPDATE_SETTING(ColorEfficiencyMode);
+    PH_UPDATE_SETTING(UseColorEfficiencyMode);
     PH_UPDATE_SETTING(ColorInheritHandles);
     PH_UPDATE_SETTING(UseColorServiceDisabled);
     PH_UPDATE_SETTING(ColorServiceDisabled);
