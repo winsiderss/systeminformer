@@ -35,6 +35,7 @@ VOID ProcessesUpdatedCallback(
     )
 {
     if (PtrToUlong(Parameter) < 3)
+    {
         return;
     }
 }
