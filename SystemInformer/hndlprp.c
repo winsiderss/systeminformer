@@ -22,83 +22,11 @@
 #include <procprv.h>
 #include <secedit.h>
 
-typedef enum _PHP_HANDLE_GENERAL_CATEGORY
-{
-    // common
-    PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
-    PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
-    PH_HANDLE_GENERAL_CATEGORY_QUOTA,
-    // extra
-    PH_HANDLE_GENERAL_CATEGORY_ALPC,
-    PH_HANDLE_GENERAL_CATEGORY_FILE,
-    PH_HANDLE_GENERAL_CATEGORY_SECTION,
-    PH_HANDLE_GENERAL_CATEGORY_MUTANT,
-    PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
-    PH_HANDLE_GENERAL_CATEGORY_ETW,
-    PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
-
-    PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
-} PHP_HANDLE_GENERAL_CATEGORY;
-
-typedef enum _PHP_HANDLE_GENERAL_INDEX
-{
-    PH_HANDLE_GENERAL_INDEX_NAME,
-    PH_HANDLE_GENERAL_INDEX_TYPE,
-    PH_HANDLE_GENERAL_INDEX_OBJECT,
-    PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
-
-    PH_HANDLE_GENERAL_INDEX_REFERENCES,
-    PH_HANDLE_GENERAL_INDEX_HANDLES,
-
-    PH_HANDLE_GENERAL_INDEX_PAGED,
-    PH_HANDLE_GENERAL_INDEX_NONPAGED,
-
-    PH_HANDLE_GENERAL_INDEX_FLAGS,
-    PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER,
-    PH_HANDLE_GENERAL_INDEX_PORTCONTEXT,
-
-    PH_HANDLE_GENERAL_INDEX_FILETYPE,
-    PH_HANDLE_GENERAL_INDEX_FILEMODE,
-    PH_HANDLE_GENERAL_INDEX_FILEPOSITION,
-    PH_HANDLE_GENERAL_INDEX_FILESIZE,
-    PH_HANDLE_GENERAL_INDEX_FILEPRIORITY,
-    PH_HANDLE_GENERAL_INDEX_FILEDRIVER,
-    PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
-
-    PH_HANDLE_GENERAL_INDEX_SECTIONTYPE,
-    PH_HANDLE_GENERAL_INDEX_SECTIONFILE,
-    PH_HANDLE_GENERAL_INDEX_SECTIONSIZE,
-
-    PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT,
-    PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED,
-    PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
-
-    PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION,
-    PH_HANDLE_GENERAL_INDEX_ALPCSERVER,
-    PH_HANDLE_GENERAL_INDEX_ALPCCLIENT,
-
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
-
-    PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
-    PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
-
-    PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
-
-    PH_HANDLE_GENERAL_INDEX_MAXIMUM
-} PHP_HANDLE_GENERAL_INDEX;
-
-typedef struct _HANDLE_PROPERTIES_CONTEXT
-{
-    HWND ListViewHandle;
-    HWND ParentWindow;
-    HANDLE ProcessId;
-    PPH_HANDLE_ITEM HandleItem;
-    PH_LAYOUT_MANAGER LayoutManager;
-    INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
-} HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
+/*
+Moved to phplug.h
+    PHP_HANDLE_GENERAL_INDEX
+    HANDLE_PROPERTIES_CONTEXT
+*/
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
@@ -288,6 +216,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
         PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
 
+        propertiesContext.ParentWindowHandle = handleContext->ParentWindowHandle;
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
 
@@ -331,50 +260,21 @@ VOID PhShowHandleProperties(
 NTSTATUS PhShowHandlePropertiesModal(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_ HANDLE ProcessHandle,
-    _In_ HANDLE ObjectHandle
+    _In_ PPH_HANDLE_ITEM HandleItem
 )
 {
     NTSTATUS status;
-    OBJECT_BASIC_INFORMATION objectInfo;
-    PPH_STRING typeName;
-    PPH_STRING objectName;
-    PPH_STRING bestObjectName;
+    PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
-    if (NT_SUCCESS(status = PhGetHandleInformation(
-        ProcessHandle,
-        ObjectHandle,
-        -1,
-        &objectInfo,
-        &typeName,
-        &objectName,
-        &bestObjectName
-    )))
-    {
-        SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
-        memset(&HandleInfo, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+    context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->ProcessId = ProcessId;
+    context->HandleItem = HandleItem;
 
-        HandleInfo.HandleValue = (ULONG_PTR)ObjectHandle;
-        HandleInfo.GrantedAccess = objectInfo.GrantedAccess;
-        HandleInfo.HandleAttributes = objectInfo.Attributes;
-        HandleInfo.ObjectTypeIndex = (USHORT)PhGetObjectTypeNumber(&typeName->sr);
+    PhReferenceObject(HandleItem);
+    status = PhpShowHandlePropertiesThread(context);
+    PhReferenceObject(HandleItem);
 
-        PPH_HANDLE_ITEM handleItem = PhCreateHandleItem(&HandleInfo);
-        handleItem->TypeName = typeName;
-        handleItem->ObjectName = objectName;
-        handleItem->BestObjectName = bestObjectName;
-
-        PHANDLE_PROPERTIES_THREAD_CONTEXT context;
-
-        context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
-        context->ParentWindowHandle = ParentWindowHandle;
-        context->ProcessId = ProcessId;
-        context->HandleItem = handleItem;
-
-        PhReferenceObject(handleItem);
-        status = PhpShowHandlePropertiesThread(context);
-        PhReferenceObject(handleItem);
-    }
     return status;
 }
 
@@ -2276,6 +2176,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneral(context);
 
             PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
+                memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
+                objectProperties.Parameter = context;
+
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowPreOpen), &objectProperties);
+            }
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);

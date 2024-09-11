@@ -1,6 +1,4 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by ExtendedTools.rc
 //
 #define ID_PROCESS_UNLOADEDMODULES      101
 #define IDD_UNLOADEDDLLS                102
@@ -101,6 +99,9 @@
 #define IDC_NETSEND_L                   1111
 #define IDC_GROUPDISKREAD               1112
 #define IDC_GROUPDISKWRITE              1113
+#define IDC_WINOBJPERMANENT             1114
+#define IDC_WINOBJEXCLUSIVE             1115
+#define IDC_WINOBJCREATIONTIME          1116
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -154,6 +155,7 @@
 #define IDD_PROCNET                     8003
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
+#define IDD_WINOBJECT               	8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005
@@ -167,12 +169,12 @@
 #define IDC_TPM_LIST_REFRESH            50004
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1114
+#define _APS_NEXT_CONTROL_VALUE         1117
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

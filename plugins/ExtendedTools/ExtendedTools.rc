@@ -458,6 +458,19 @@ BEGIN
     RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,223,33,59,8,SS_ENDELLIPSIS
 END
 
+IDD_WINOBJECT DIALOGEX 0, 0, 186, 101
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Windows Object"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Permanent:",IDC_STATIC,7,7,45,8,SS_ENDELLIPSIS
+    LTEXT           "Exclusive:",IDC_STATIC,7,19,45,8,SS_ENDELLIPSIS
+    CONTROL         "",IDC_WINOBJPERMANENT,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,50,6,12,10
+    CONTROL         "",IDC_WINOBJEXCLUSIVE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,50,19,12,10
+    LTEXT           "Creation time:",IDC_STATIC,7,31,50,8,SS_ENDELLIPSIS
+    EDITTEXT        IDC_WINOBJCREATIONTIME,57,31,100,11,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | WS_TABSTOP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -675,6 +688,14 @@ BEGIN
     IDD_PROCNET_PANEL, DIALOG
     BEGIN
     END
+
+    IDD_WINOBJECT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 94
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -709,7 +730,15 @@ IDI_DEVICE              ICON                    "resources\\device.ico"
 IDI_UNKNOWN             ICON                    "resources\\unknown.ico"
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
 
+IDD_WINOBJECT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

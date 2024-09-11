@@ -636,8 +636,7 @@ NTAPI
 PhShowHandlePropertiesModal(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_ HANDLE ProcessHandle,
-    _In_ HANDLE ObjectHandle
+    _In_ PPH_HANDLE_ITEM HandleItem
     );
 // end_phapppub
 

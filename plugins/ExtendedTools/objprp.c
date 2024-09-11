@@ -37,6 +37,16 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK EtpWinObjPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+extern HWND EtObjectManagerDialogHandle;
+extern LARGE_INTEGER EtObjectManagerTimeCached;
+
 VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
     )
@@ -51,28 +61,80 @@ VOID EtHandlePropertiesInitializing(
     {
         HPROPSHEETPAGE page = NULL;
 
+        // Object Manager
+        BOOLEAN isObjMgrWindow = EtObjectManagerDialogHandle && context->ParentWindowHandle == EtObjectManagerDialogHandle;
+        if (isObjMgrWindow)
+        {
+            page = EtpCommonCreatePage(
+                context,
+                MAKEINTRESOURCE(IDD_WINOBJECT),
+                EtpWinObjPageDlgProc
+            );
+
+            // Insert our page into the second slot.
+            if (page)
+            {
+                if (objectProperties->NumberOfPages > 1)
+                {
+                    memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
+                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
+                }
+
+                objectProperties->Pages[1] = page;
+                objectProperties->NumberOfPages++;
+            }
+        }
+
         if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
         {
             page = EtpCommonCreatePage(
                 context,
                 MAKEINTRESOURCE(IDD_OBJTPWORKERFACTORY),
                 EtpTpWorkerFactoryPageDlgProc
-                );
-        }
+            );
 
-        // Insert our page into the second slot.
-
-        if (page)
-        {
-            if (objectProperties->NumberOfPages > 1)
+            // Insert our page into after Object Manager page.
+            if (page)
             {
-                memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
-                    (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
-            }
+                if (objectProperties->NumberOfPages > 1)
+                {
+                    memmove(&objectProperties->Pages[2 + isObjMgrWindow], &objectProperties->Pages[1 + isObjMgrWindow],
+                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
+                }
 
-            objectProperties->Pages[1] = page;
-            objectProperties->NumberOfPages++;
+                objectProperties->Pages[1 + isObjMgrWindow] = page;
+                objectProperties->NumberOfPages++;
+            }
         }
+    }
+}
+
+VOID EtHandlePropertiesWindowPreOpen(
+    _In_ PVOID Parameter
+)
+{
+    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
+
+    // Object Manager
+    // We rely on the fact that on fact that Object Manager opens properties window in same thread
+    if (EtObjectManagerDialogHandle &&
+        GetWindowThreadProcessId(context->ParentWindow, NULL) == GetWindowThreadProcessId(EtObjectManagerDialogHandle, NULL))
+    {
+        WCHAR string[PH_INT64_STR_LEN_1];
+        PPH_STRING count = PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1);
+
+        // Show real handles count
+        ULONG real_count = wcstoul(count->Buffer, NULL, 10);
+        if (real_count > 0) {
+            PhPrintUInt32(string, real_count - 1);
+            PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
+        }
+
+        // Remove irrelevant SI access mask
+        PhRemoveListViewItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
+
+        PhSetWindowText(context->ParentWindow, L"Object Properties");
     }
 }
 
@@ -259,6 +321,45 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
 
                 NtClose(workerFactoryHandle);
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK EtpWinObjPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_WINOBJPERMANENT), context->HandleItem->Attributes & OBJ_PERMANENT ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_WINOBJEXCLUSIVE), context->HandleItem->Attributes & OBJ_EXCLUSIVE ? BST_CHECKED : BST_UNCHECKED);
+
+            HWND TimeControl = GetDlgItem(hwndDlg, IDC_WINOBJCREATIONTIME);
+
+            if (EtObjectManagerTimeCached.QuadPart != 0) {
+                PPH_STRING startTimeString;
+                SYSTEMTIME startTimeFields;
+                PhLargeIntegerToLocalSystemTime(&startTimeFields, &EtObjectManagerTimeCached);
+                startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                PhSetWindowText(TimeControl, startTimeString->Buffer);
+            }
+            else
+                PhSetWindowText(TimeControl, L"N/A");
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }

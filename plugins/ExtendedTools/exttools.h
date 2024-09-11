@@ -1046,6 +1046,10 @@ VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
     );
 
+VOID EtHandlePropertiesWindowPreOpen(
+    _In_ PVOID Parameter
+);
+
 // options
 
 INT_PTR CALLBACK OptionsDlgProc(
