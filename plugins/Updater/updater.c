@@ -971,7 +971,7 @@ NTSTATUS UpdateDownloadThread(
         // Check the number of bytes written are the same we downloaded.
         if (bytesDownloaded != isb.Information)
         {
-            status = STATUS_DATA_CHECKSUM_ERROR;
+            context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
             goto CleanupExit;
         }
 
@@ -1034,7 +1034,7 @@ NTSTATUS UpdateDownloadThread(
     }
     else
     {
-        status = STATUS_DATA_CHECKSUM_ERROR;
+        context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
     }
 
 CleanupExit:
