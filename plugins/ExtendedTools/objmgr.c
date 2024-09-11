@@ -934,7 +934,7 @@ NTSTATUS NTAPI EtObjectManagerObjectProperties(
                 {
                     for (i = 0; i < handles->HandleCount; i++)
                     {
-                        if (handles->Handles[i].Handle == objectHandle);
+                        if (handles->Handles[i].Handle == objectHandle)
                         {
                             handleItem->Object = handles->Handles[i].Object;
                             //handleItem->Handle = handles->Handles[i].Handle;
