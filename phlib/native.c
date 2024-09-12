@@ -17950,6 +17950,11 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
     ULONG numberOfEntriesProcessed = 0;
 
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+    if (VirtualAddress == (PVOID)MAXULONG_PTR)
+        return STATUS_SUCCESS;
+
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
     cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     cfgCallTargetRangeInfo.NumberOfBytes = PAGE_SIZE;
@@ -17964,7 +17969,7 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory(
+    status = NtSetInformationVirtualMemory_Import()(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,
@@ -17991,6 +17996,9 @@ NTSTATUS PhDisableXfgOnTarget(
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
     ULONG numberOfEntriesProcessed = 0;
 
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
     cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     cfgCallTargetRangeInfo.NumberOfBytes = PAGE_SIZE;
@@ -18005,7 +18013,7 @@ NTSTATUS PhDisableXfgOnTarget(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory(
+    status = NtSetInformationVirtualMemory_Import()(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,
