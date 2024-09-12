@@ -168,6 +168,7 @@ PhSecondsSince1970ToTime(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhAllocate(
@@ -178,6 +179,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhAllocateSafe(
@@ -188,6 +190,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhAllocateExSafe(
@@ -205,6 +208,7 @@ PhFree(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhReAllocate(
@@ -216,6 +220,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhReAllocateSafe(
@@ -228,6 +233,7 @@ _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _Success_(return != NULL)
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 PhAllocatePage(
