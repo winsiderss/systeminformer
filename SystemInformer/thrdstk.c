@@ -548,7 +548,11 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -797,9 +801,8 @@ VOID InitializeThreadStackTree(
         );
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
-
-    TreeNew_SetCallback(Context->TreeNewHandle, ThreadStackTreeNewCallback, Context);
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, ThreadStackTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, TRUE, L"#", 30, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_SYMBOL, TRUE, L"Name", 250, PH_ALIGN_LEFT, 1, 0);
@@ -816,14 +819,14 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_ARCHITECTURE, FALSE, L"Architecture", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEDISTANCE, FALSE, L"Frame distance", 100, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-    TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
-    TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
-
-    ThreadStackLoadSettingsTreeList(Context);
-
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhpThreadStackTreeFilterCallback, Context);
+
+    TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
+    TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+
+    ThreadStackLoadSettingsTreeList(Context);
 }
 
 VOID DeleteThreadStackTree(
@@ -1644,7 +1647,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
 
     switch (uMsg)
     {
-    case TDN_CREATED:
+    case TDN_DIALOG_CONSTRUCTED:
         {
             context->TaskDialogHandle = hwndDlg;
 
@@ -1781,7 +1784,7 @@ BOOLEAN PhpShowThreadStackWindow(
     config.pszContent = PhGetStringOrDefault(Context->StatusContent, L"Loading symbols for image...");
     config.cxWidth = 200;
 
-    return SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result != IDCANCEL;
+    return PhShowTaskDialog(&config, &result, NULL, NULL) && result != IDCANCEL;
 }
 
 NTSTATUS PhpRefreshThreadStack(

@@ -80,6 +80,7 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
             <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>

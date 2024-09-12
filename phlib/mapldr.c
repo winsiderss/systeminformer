@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <mapimg.h>
 #include <mapldr.h>
 
@@ -1264,25 +1265,19 @@ VOID PhLoaderEntryGrantSuppressedCall(
     _In_ PVOID ExportAddress
     )
 {
-#if (PH_NATIVE_LOADER_FLOWGUARD)
+#ifndef DEBUG
     static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
-    static typeof(&LdrControlFlowGuardEnforced) LdrControlFlowGuardEnforced_I = NULL;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
-    if (!PhLoaderEntryCacheInitialized && PhInstanceHandle) // delay initialize (dmex)
+    if (!PhLoaderEntryCacheInitialized)
     {
         PhLoaderEntryCacheInitialized = TRUE;
 
-        if (!LdrControlFlowGuardEnforced_I && WindowsVersion >= WINDOWS_10)
+        if (LdrControlFlowGuardEnforced())
         {
-            LdrControlFlowGuardEnforced_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrControlFlowGuardEnforced", 0);
-        }
-
-        if (LdrControlFlowGuardEnforced_I && LdrControlFlowGuardEnforced_I())
-        {
-            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)SIZE_T_MAX); // initialize imports (dmex)
-
+            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)MAXULONG_PTR); // initialize imports (dmex)
             PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
+            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), NtSetInformationVirtualMemory_Import());
         }
 
         return;
