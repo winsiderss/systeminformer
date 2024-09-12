@@ -45,8 +45,6 @@ EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
 EXT BOOLEAN PhEnableVersionShortText;
 EXT BOOLEAN PhEnableDeferredLayout;
-EXT BOOLEAN PhEnableKsiWarnings;
-EXT BOOLEAN PhEnableKsiSupport;
 
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;
