@@ -9059,3 +9059,52 @@ VOID PhTaskbarListSetOverlayIcon(
 {
     ITaskbarList3_SetOverlayIcon((ITaskbarList3*)TaskbarHandle, WindowHandle, IconHandle, IconDescription);
 }
+BOOLEAN PhIsDirectXRunningFullScreen(
+    VOID
+    )
+{
+    static BOOLEAN (WINAPI* D3DKMTCheckExclusiveOwnership_I)(VOID) = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll"))
+        {
+            D3DKMTCheckExclusiveOwnership_I = PhGetDllBaseProcedureAddress(baseAddress, "D3DKMTCheckExclusiveOwnership", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTCheckExclusiveOwnership_I)
+        return FALSE;
+
+    return D3DKMTCheckExclusiveOwnership_I();
+}
+
+NTSTATUS PhRestoreFromDirectXRunningFullScreen(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    static NTSTATUS (WINAPI* D3DKMTReleaseProcessVidPnSourceOwners_I)(_In_ HANDLE ProcessHandle) = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll"))
+        {
+            D3DKMTReleaseProcessVidPnSourceOwners_I = PhGetDllBaseProcedureAddress(baseAddress, "D3DKMTReleaseProcessVidPnSourceOwners", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTReleaseProcessVidPnSourceOwners_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    return D3DKMTReleaseProcessVidPnSourceOwners_I(ProcessHandle);
+}
