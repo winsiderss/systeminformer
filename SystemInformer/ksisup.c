@@ -201,7 +201,7 @@ VOID PhShowKsiStatus(
 {
     KPH_PROCESS_STATE processState;
 
-    if (!PhEnableKsiWarnings || PhStartupParameters.PhSvc)
+    if (!PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
         return;
 
     processState = KphGetCurrentProcessState();
@@ -254,7 +254,6 @@ VOID PhShowKsiStatus(
             PhGetString(infoString)
             ))
         {
-            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
 
@@ -280,7 +279,7 @@ VOID PhpShowKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
-    if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
+    if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
         return;
 
     versionString = PhGetApplicationVersionString(FALSE);
@@ -352,7 +351,7 @@ VOID PhpShowKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (Force && !PhEnableKsiWarnings)
+    if (Force && !PhGetIntegerSetting(L"KsiEnableWarnings"))
     {
         PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
@@ -385,7 +384,6 @@ VOID PhpShowKsiMessage(
             PhGetString(messageString)
             ))
         {
-            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
     }
