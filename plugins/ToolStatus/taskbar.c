@@ -65,7 +65,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         {
             if (TaskbarListClass)
             {
-                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, MainWindowHandle, NULL, NULL);
                 PhTaskbarListDestroy(TaskbarListClass);
                 TaskbarListClass = NULL;
             }
@@ -88,7 +88,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (TaskbarIsDirty)
         {
             if (TaskbarListClass)
-                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, MainWindowHandle, NULL, NULL);
             TaskbarIsDirty = FALSE;
         }
 
@@ -114,7 +114,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (overlayIcon)
         {
             if (TaskbarListClass)
-                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, overlayIcon, NULL);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, MainWindowHandle, overlayIcon, NULL);
             DestroyIcon(overlayIcon);
         }
     }
@@ -148,7 +148,6 @@ NTSTATUS TaskbarIconUpdateThread(
 
 typedef struct _PH_NF_BITMAP
 {
-    BOOLEAN Initialized;
     HDC Hdc;
     HBITMAP Bitmap;
     PVOID Bits;
@@ -203,13 +202,10 @@ static VOID PhBeginBitmap2(
             DeleteBitmap(Context->Bitmap);
             Context->Bitmap = NULL;
         }
-
-        Context->Initialized = FALSE;
     }
 
-    if (!Context->Initialized)
+    if (!Context->Bitmap)
     {
-        HDC screenHdc;
         BITMAPINFO bitmapInfo;
 
         memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -220,21 +216,17 @@ static VOID PhBeginBitmap2(
         bitmapInfo.bmiHeader.biHeight = Context->Height;
         bitmapInfo.bmiHeader.biBitCount = 32;
 
-        screenHdc = GetDC(NULL);
-        Context->Hdc = CreateCompatibleDC(screenHdc);
-        Context->Bitmap = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
-
+        Context->Hdc = CreateCompatibleDC(NULL);
+        Context->Bitmap = CreateDIBSection(Context->Hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
         Context->TaskbarDpi = dpiValue;
-        Context->Initialized = TRUE;
     }
 
     *Width = Context->Width;
     *Height = Context->Height;
     *Bitmap = Context->Bitmap;
-    if (Bits) *Bits = Context->Bits;
+    *Bits = Context->Bits;
     *Hdc = Context->Hdc;
-    if (Context->Bitmap) *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
+    *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
 }
 
 static VOID PhBeginBitmap(

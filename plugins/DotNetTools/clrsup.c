@@ -1615,7 +1615,7 @@ ICLRDataTarget *DnCLRDataTarget_Create(
 
     dataTarget->ProcessId = ProcessId;
     dataTarget->ProcessHandle = processHandle;
-    dataTarget->IsWow64 = isWow64;
+    dataTarget->IsWow64Process = isWow64;
 
     return (ICLRDataTarget *)dataTarget;
 }
@@ -1683,7 +1683,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetMachineType(
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
 
 #ifdef _WIN64
-    if (!this->IsWow64)
+    if (!this->IsWow64Process)
         *machineType = IMAGE_FILE_MACHINE_AMD64;
     else
         *machineType = IMAGE_FILE_MACHINE_I386;
@@ -1702,7 +1702,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
 
 #ifdef _WIN64
-    if (!this->IsWow64)
+    if (!this->IsWow64Process)
 #endif
         *pointerSize = sizeof(PVOID);
 #ifdef _WIN64
@@ -1863,11 +1863,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     }
     else
     {
-        ULONG result;
-
-        result = PhNtStatusToDosError(status);
-
-        return HRESULT_FROM_WIN32(result);
+        return HRESULT_FROM_NT(status);
     }
 }
 
@@ -1915,41 +1911,34 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextFlags,
     _In_ ULONG32 contextSize,
-    _Out_ BYTE *context
+    _Out_ PVOID context
     )
 {
     NTSTATUS status;
     HANDLE threadHandle;
-    CONTEXT buffer;
+    PCONTEXT buffer;
 
     if (contextSize < sizeof(CONTEXT))
         return E_INVALIDARG;
 
-    memset(&buffer, 0, sizeof(CONTEXT));
-    buffer.ContextFlags = contextFlags;
+    buffer = PhAllocateZero(contextSize);
+    buffer->ContextFlags = contextFlags;
 
     if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, UlongToHandle(threadID))))
     {
-        status = NtGetContextThread(threadHandle, &buffer);
+        status = PhGetContextThread(threadHandle, buffer);
         NtClose(threadHandle);
     }
 
     if (NT_SUCCESS(status))
     {
-#pragma warning(push)
-#pragma warning(disable: 6386)
-        memcpy_s(context, contextSize, &buffer, sizeof(CONTEXT));
-#pragma warning(pop)
-
+        memcpy(context, buffer, contextSize);
+        PhFree(buffer);
         return S_OK;
     }
     else
     {
-        ULONG result;
-
-        result = PhNtStatusToDosError(status);
-
-        return HRESULT_FROM_WIN32(result);
+        return HRESULT_FROM_NT(status);
     }
 }
 
@@ -1957,7 +1946,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_SetThreadContext(
     _In_ ICLRDataTarget *This,
     _In_ ULONG32 threadID,
     _In_ ULONG32 contextSize,
-    _In_ BYTE *context
+    _In_ PVOID context
     )
 {
     return E_NOTIMPL;

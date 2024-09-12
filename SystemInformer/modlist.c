@@ -81,20 +81,18 @@ VOID PhInitializeModuleList(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(Context->TreeNewHandle, PhpModuleTreeNewCallback, Context);
-
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, PhpModuleTreeNewCallback, Context);
 
     // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), 0, 0);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
-
+    // Available columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_COMPANYNAME, FALSE, L"Company name", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_FILENAME, FALSE, L"File name", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
-
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_LOADCOUNT, FALSE, L"Load count", 40, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -113,21 +111,16 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PHMOTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICE, FALSE, L"Service", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
-
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ENCLAVE_TYPE, FALSE, L"Enclave type", 40, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_RIGHT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_SIZE, FALSE, L"Enclave size", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
-
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+    PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
-    TreeNew_SetSort(Context->TreeNewHandle, 0, NoSortOrder);
-
-    PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
-
-    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 VOID PhDeleteModuleList(
@@ -758,7 +751,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalName)
 {
-    sortResult = PhCompareString(moduleItem1->FileName, moduleItem2->FileName, TRUE);
+    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -949,8 +942,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_FILENAME:
                 {
-                    if (!node->FileNameWin32)
-                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+                    if (PhIsNullOrEmptyString(node->FileNameWin32))
+                    {
+                        PhMoveReference(&node->FileNameWin32, PhGetFileName(moduleItem->FileName));
+                    }
 
                     getCellText->Text = PhGetStringRef(node->FileNameWin32);
                 }
@@ -1400,7 +1395,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }

@@ -106,13 +106,11 @@ VOID PhInitializeServiceTreeList(
     )
 {
     ServiceTreeListHandle = hwnd;
-    PhSetControlTheme(ServiceTreeListHandle, L"explorer");
-    SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
-
-    TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
-    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
 
     TreeNew_SetRedraw(hwnd, FALSE);
+    PhSetControlTheme(ServiceTreeListHandle, L"explorer");
+    TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
+    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, 0, 0);
@@ -121,7 +119,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 4, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start type", 130, PH_ALIGN_LEFT, 5, 0);
-
+    // Customizable columns
     PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary path", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error control", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -132,13 +130,12 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(hwnd, PHSVTLC_EXITCODE, FALSE, L"Exit code", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    
-    TreeNew_SetRedraw(hwnd, TRUE);
-
-    TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
     PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
+    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
+
+    TreeNew_SetTriState(hwnd, TRUE);
+    TreeNew_SetRedraw(hwnd, TRUE);
 
     if (PhPluginsEnabled)
     {
@@ -148,8 +145,6 @@ VOID PhInitializeServiceTreeList(
         treeNewInfo.CmData = &ServiceTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing), &treeNewInfo);
     }
-
-    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
 }
 
 VOID PhLoadSettingsServiceTreeList(
@@ -164,6 +159,11 @@ VOID PhLoadSettingsServiceTreeList(
     PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+        SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    else
+        SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 }
 
 VOID PhSaveSettingsServiceTreeList(
@@ -729,8 +729,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_BINARYPATH:
-                PhpUpdateServiceNodeConfig(node);
-                getCellText->Text = PhGetStringRef(node->BinaryPath);
+                {
+                    PhpUpdateServiceNodeConfig(node);
+                    getCellText->Text = PhGetStringRef(node->BinaryPath);
+                }
                 break;
             case PHSVTLC_ERRORCONTROL:
                 {
@@ -742,39 +744,51 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_GROUP:
-                PhpUpdateServiceNodeConfig(node);
-                getCellText->Text = PhGetStringRef(node->LoadOrderGroup);
+                {
+                    PhpUpdateServiceNodeConfig(node);
+                    getCellText->Text = PhGetStringRef(node->LoadOrderGroup);
+                }
                 break;
             case PHSVTLC_DESCRIPTION:
-                PhpUpdateServiceNodeDescription(node);
-                getCellText->Text = PhGetStringRef(node->Description);
+                {
+                    PhpUpdateServiceNodeDescription(node);
+                    getCellText->Text = PhGetStringRef(node->Description);
+                }
                 break;
             case PHSVTLC_KEYMODIFIEDTIME:
-                PhpUpdateServiceNodeKey(node);
-
-                if (node->KeyLastWriteTime.QuadPart != 0)
                 {
-                    SYSTEMTIME systemTime;
+                    PhpUpdateServiceNodeKey(node);
 
-                    PhLargeIntegerToLocalSystemTime(&systemTime, &node->KeyLastWriteTime);
-                    PhMoveReference(&node->KeyModifiedTimeText, PhFormatDateTime(&systemTime));
-                    getCellText->Text = node->KeyModifiedTimeText->sr;
+                    if (node->KeyLastWriteTime.QuadPart != 0)
+                    {
+                        SYSTEMTIME systemTime;
+
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &node->KeyLastWriteTime);
+                        PhMoveReference(&node->KeyModifiedTimeText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->KeyModifiedTimeText->sr;
+                    }
                 }
                 break;
             case PHSVTLC_VERIFICATIONSTATUS:
-                if (PhEnableServiceQueryStage2)
-                    getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
-                else
-                    PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
+                {
+                    if (PhEnableServiceQueryStage2)
+                        getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
+                    else
+                        PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
+                }
                 break;
             case PHSVTLC_VERIFIEDSIGNER:
-                if (PhEnableServiceQueryStage2)
-                    getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
-                else
-                    PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
+                {
+                    if (PhEnableServiceQueryStage2)
+                        getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
+                    else
+                        PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
+                }
                 break;
             case PHSVTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(serviceItem->FileName);
+                {
+                    getCellText->Text = PhGetStringRef(serviceItem->FileName);
+                }
                 break;
             case PHSVTLC_EXITCODE:
                 {
@@ -919,7 +933,11 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &ServiceTreeListSortColumn, &ServiceTreeListSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            ServiceTreeListSortColumn = sorting->SortColumn;
+            ServiceTreeListSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -956,8 +974,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
+            data.DefaultSortColumn = PHSVTLC_NAME;
+            data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
@@ -1045,10 +1063,7 @@ VOID PhSelectAndEnsureVisibleServiceNode(
     if (!ServiceNode->Node.Visible)
         return;
 
-    TreeNew_SetFocusNode(ServiceTreeListHandle, &ServiceNode->Node);
-    TreeNew_SetMarkNode(ServiceTreeListHandle, &ServiceNode->Node);
-    TreeNew_SelectRange(ServiceTreeListHandle, ServiceNode->Node.Index, ServiceNode->Node.Index);
-    TreeNew_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node);
+    TreeNew_FocusMarkSelectNode(ServiceTreeListHandle, &ServiceNode->Node);
 }
 
 VOID PhCopyServiceList(

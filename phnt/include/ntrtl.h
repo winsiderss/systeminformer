@@ -2843,10 +2843,9 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
     ULONG LoaderThreads;
-
     UNICODE_STRING RedirectionDllName; // REDSTONE4
     UNICODE_STRING HeapPartitionName; // 19H1
-    ULONG_PTR DefaultThreadpoolCpuSetMasks;
+    PULONGLONG DefaultThreadpoolCpuSetMasks;
     ULONG DefaultThreadpoolCpuSetMaskCount;
     ULONG DefaultThreadpoolThreadMaximum;
     ULONG HeapMemoryTypeMask; // WIN11
@@ -4889,6 +4888,7 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 __drv_allocatesMem(Mem)
 DECLSPEC_ALLOCATOR
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlAllocateHeap(
@@ -4967,6 +4967,7 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _When_(Size > 0, __drv_allocatesMem(Mem))
 DECLSPEC_ALLOCATOR
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlReAllocateHeap(

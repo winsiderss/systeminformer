@@ -8,7 +8,7 @@
         <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
         <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
         <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
-        <LinkIncremental Condition="'$(Configuration)'=='Debug'">false</LinkIncremental>
+        <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
         <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
@@ -28,7 +28,8 @@
             <SDLCheck>true</SDLCheck>
             <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
-            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+            <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+            <FunctionLevelLinking>true</FunctionLevelLinking>
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
             <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
@@ -36,6 +37,8 @@
             <SupportJustMyCode>false</SupportJustMyCode>
             <CallingConvention>StdCall</CallingConvention>
             <BuildStlModules>false</BuildStlModules>
+            <UseStandardPreprocessor>true</UseStandardPreprocessor>
+            <OmitFramePointers>true</OmitFramePointers>
         </ClCompile>
         <Link>
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
@@ -50,8 +53,10 @@
             <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)</Command>
         </PostBuildEvent>
         <ResourceCompile>
+            <Culture>0x0009</Culture>
             <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
     </ItemDefinitionGroup>
 
@@ -60,8 +65,8 @@
         <ClCompile>
             <Optimization>Disabled</Optimization>
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-            <FunctionLevelLinking>false</FunctionLevelLinking>
-            <IntrinsicFunctions>false</IntrinsicFunctions>
+            <FunctionLevelLinking>true</FunctionLevelLinking>
+            <IntrinsicFunctions>true</IntrinsicFunctions>
             <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
     </ItemDefinitionGroup>
@@ -75,6 +80,8 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+            <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
             <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
         <Link>
@@ -98,7 +105,7 @@
     <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
         <ClCompile>
             <CallingConvention>StdCall</CallingConvention>
-            <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+            <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -111,6 +118,7 @@
     <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
         <ClCompile>
             <CallingConvention>StdCall</CallingConvention>
+            <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

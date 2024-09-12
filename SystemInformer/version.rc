@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
 #pragma code_page(65001)
 
@@ -15,10 +15,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
+// English (United States) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -68,22 +68,22 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
+            VALUE "CompanyName", "Winsider Seminars & Solutions"
+            VALUE "FileDescription", "Sуstеm Infоrmеr"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "SystemInformer.exe"
+            VALUE "InternalName", "Sуstеm Infоrmеr"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "OriginalFilename", "SystemInformer.exe"
-            VALUE "ProductName", "System Informer"
+            VALUE "OriginalFilename", "SуstеmInfоrmеr.exе"
+            VALUE "ProductName", "Sуstеm Infоrmеr"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x0, 1200
+        VALUE "Translation", 0x0409, 1200
     END
 END
 
-#endif    // Neutral resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

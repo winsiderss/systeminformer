@@ -30,10 +30,9 @@ typedef enum _PH_PROVIDER_THREAD_STATE
 } PH_PROVIDER_THREAD_STATE;
 
 typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
-    _In_ PVOID Object
+    _In_opt_ PVOID Object
     );
 
-struct _PH_PROVIDER_THREAD;
 typedef struct _PH_PROVIDER_THREAD *PPH_PROVIDER_THREAD;
 
 typedef struct _PH_PROVIDER_REGISTRATION
@@ -43,9 +42,17 @@ typedef struct _PH_PROVIDER_REGISTRATION
     PPH_PROVIDER_FUNCTION Function;
     PVOID Object;
     ULONG RunId;
-    BOOLEAN Enabled;
-    BOOLEAN Unregistering;
-    BOOLEAN Boosting;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Enabled : 1;
+            ULONG Unregistering : 1;
+            ULONG Boosting : 1;
+            ULONG Spare : 29;
+        };
+    };
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
 typedef struct _PH_PROVIDER_THREAD

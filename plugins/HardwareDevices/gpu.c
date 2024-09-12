@@ -247,14 +247,14 @@ VOID GraphicsDevicesUpdate(
                     PhQueryPerformanceCounter(&performanceCounter);
                     PhUpdateDelta(&entry->TotalRunningTimeDelta, performanceCounter.QuadPart);
 
-                    DOUBLE elapsedTime = (DOUBLE)entry->TotalRunningTimeDelta.Delta * 10000000 / GraphicsTotalRunningTimeFrequency.QuadPart;
-                    DOUBLE tempValue = 0.0f;
+                    FLOAT elapsedTime = (FLOAT)entry->TotalRunningTimeDelta.Delta * 10000000 / GraphicsTotalRunningTimeFrequency.QuadPart;
+                    FLOAT tempValue = 0.0f;
 
                     if (elapsedTime != 0)
                     {
                         for (ULONG node = 0; node < entry->NumberOfNodes; node++)
                         {
-                            DOUBLE usage = (DOUBLE)(entry->TotalRunningTimeNodesDelta[node].Delta / elapsedTime);
+                            FLOAT usage = (FLOAT)(entry->TotalRunningTimeNodesDelta[node].Delta / elapsedTime);
 
                             if (usage > 1)
                                 usage = 1;

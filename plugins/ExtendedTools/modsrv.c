@@ -121,7 +121,7 @@ ULONG PhpQueryModuleServiceReferences(
 
         for (serviceName = namesReferencingModule.OutParams.pmszNames; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
         {
-            if (serviceItem = PhReferenceServiceItem(serviceName))
+            if (serviceItem = PhReferenceServiceItemZ(serviceName))
                 PhAddItemList(serviceList, serviceItem);
         }
 

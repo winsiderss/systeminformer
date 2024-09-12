@@ -134,7 +134,7 @@ typedef struct _PERFPAGE_CONTEXT
             BOOLEAN Enabled : 1;
             BOOLEAN ControlBlockValid : 1;
             BOOLEAN ClrV4 : 1;
-            BOOLEAN IsWow64 : 1;
+            BOOLEAN IsWow64Process : 1;
             BOOLEAN Spare : 4;
         };
     };
@@ -592,7 +592,7 @@ VOID DotNetPerfAddListViewGroups(
     if (Context->ClrV4)
     {
         PPH_LIST processAppDomains = QueryDotNetAppDomainsForPid_V4(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->ProcessHandle,
             Context->ProcessItem->ProcessId
             );
@@ -611,7 +611,7 @@ VOID DotNetPerfAddListViewGroups(
     else
     {
         PPH_LIST processAppDomains = QueryDotNetAppDomainsForPid_V2(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->ProcessHandle,
             Context->ProcessItem->ProcessId
             );
@@ -641,14 +641,14 @@ VOID DotNetPerfUpdateCounterData(
     if (Context->ClrV4)
     {
         perfStatBlock = GetPerfIpcBlock_V4(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->BlockTableAddress
             );
     }
     else
     {
         perfStatBlock = GetPerfIpcBlock_V2(
-            Context->IsWow64,
+            Context->IsWow64Process,
             Context->BlockTableAddress
             );
     }
@@ -656,7 +656,7 @@ VOID DotNetPerfUpdateCounterData(
     if (!perfStatBlock)
         return;
 
-    if (Context->IsWow64)
+    if (Context->IsWow64Process)
     {
         PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
         Perf_GC_Wow64 dotNetPerfGC_Wow64 = perfBlock->GC;
@@ -776,10 +776,10 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhLoadListViewGroupStatesFromSetting(SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, context->CountersListViewHandle);
 
 #ifdef _WIN64
-            context->IsWow64 = !!context->ProcessItem->IsWow64;
+            context->IsWow64Process = !!context->ProcessItem->IsWow64Process;
 #else
             // HACK: Work-around for Appdomain enumeration on 32bit.
-            context->IsWow64 = TRUE;
+            context->IsWow64Process = TRUE;
 #endif
 
             if (NT_SUCCESS(PhOpenProcess(
@@ -1076,7 +1076,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         // .NET 2/3/4 can sometimes show the TimeInJit value above 100% (dmex)
                                         // https://github.com/dotnet/coreclr/blob/ef1e2ab328087c61a6878c1e84f4fc5d710aebce/src/gc/gcee.cpp#L324
 
-                                        PhInitFormatF(&format[0], (context->DotNetPerfJit.timeInJit << 8) * 100 / (DOUBLE)(context->DotNetPerfJit.timeInJitBase << 8), 2);
+                                        PhInitFormatF(&format[0], (context->DotNetPerfJit.timeInJit << 8) * 100.f / (FLOAT)(context->DotNetPerfJit.timeInJitBase << 8), 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {
@@ -1502,7 +1502,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         PH_FORMAT format[1];
                                         WCHAR formatBuffer[10];
 
-                                        PhInitFormatF(&format[0], (DOUBLE)context->DotNetPerfGC.timeInGC * 100 / (DOUBLE)context->DotNetPerfGC.timeInGCBase, 2);
+                                        PhInitFormatF(&format[0], (FLOAT)context->DotNetPerfGC.timeInGC * 100.f / (FLOAT)context->DotNetPerfGC.timeInGCBase, 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {
@@ -1727,7 +1727,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                         PH_FORMAT format[1];
                                         WCHAR formatBuffer[10];
 
-                                        PhInitFormatF(&format[0], (DOUBLE)context->DotNetPerfSecurity.timeRTchecks * 100 / (DOUBLE)context->DotNetPerfSecurity.timeRTchecksBase, 2);
+                                        PhInitFormatF(&format[0], (FLOAT)context->DotNetPerfSecurity.timeRTchecks * 100.f / (FLOAT)context->DotNetPerfSecurity.timeRTchecksBase, 2);
 
                                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                                         {

@@ -11,28 +11,29 @@
  */
 
 #include "wndexp.h"
+#include "../../SystemInformer/SystemInformer.def.h"
 
-// WARNING: No functions from ProcessHacker.exe should be used in this file!
+// WARNING: No static imports from SystemInformer.exe should be used in this file!
 
-HWND WeGetMainWindowHandle(
+PPH_STRING WeGetPhVersion(
     VOID
     )
 {
-    static HWND (WINAPI* PhGetMainWindowHandle_I)(VOID) = NULL;
+    static PPH_STRING (NTAPI* PhGetPhVersion_I)(VOID) = NULL;
 
-    if (!PhGetMainWindowHandle_I)
-        PhGetMainWindowHandle_I = WeGetProcedureAddress("PhGetMainWindowHandle");
-    if (!PhGetMainWindowHandle_I)
+    if (!PhGetPhVersion_I)
+        PhGetPhVersion_I = WeGetProcedureAddress(EXPORT_PHGETPHVERSION);
+    if (!PhGetPhVersion_I)
         return NULL;
 
-    return PhGetMainWindowHandle_I();
+    return PhGetPhVersion_I();
 }
 
 PVOID WeGetProcedureAddress(
-    _In_ PCSTR Name
+    _In_ USHORT Name
     )
 {
-    return GetProcAddress(NtCurrentPeb()->ImageBaseAddress, Name);
+    return GetProcAddress(NtCurrentPeb()->ImageBaseAddress, MAKEINTRESOURCEA(Name));
 }
 
 VOID WeFormatLocalObjectName(

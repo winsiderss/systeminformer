@@ -18,9 +18,6 @@
 #include <phappresource.h>
 #include <settings.h>
 
-#include <malloc.h>
-#include <shobjidl.h>
-
 #include "resource.h"
 #include <toolstatusintf.h>
 
@@ -122,6 +119,9 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
+extern BOOLEAN EnableThemeSupport;
+extern BOOLEAN EnableAvxSupport;
+extern BOOLEAN EnableGraphMaxScale;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -129,7 +129,7 @@ extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
-
+extern HWND MainWindowHandle;
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
 extern ULONG_PTR SearchMatchHandle;
@@ -277,35 +277,7 @@ BOOLEAN NetworkTreeFilterCallback(
     _In_opt_ PVOID Context
     );
 
-NTSTATUS QueryServiceFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _Out_ PPH_STRING *ServiceFileName,
-    _Out_ PPH_STRING *ServiceBinaryPath
-    );
-
 // graph.c
-
-typedef struct _PH_TOOLBAR_GRAPH
-{
-    struct _PH_PLUGIN *Plugin;
-
-    ULONG Flags;
-    ULONG GraphId;
-
-    HWND GraphHandle;
-    PVOID Context;
-    PWSTR Text;
-
-    PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK MessageCallback;
-    PH_GRAPH_STATE GraphState;
-} PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
-
-extern ULONG CpuHistoryGraphColor1;
-extern ULONG CpuHistoryGraphColor2;
-extern ULONG PhysicalHistoryGraphColor1;
-extern ULONG CommitHistoryGraph1Color1;
-extern ULONG IoHistoryGraphColor1;
-extern ULONG IoHistoryGraphColor2;
 
 VOID ToolbarGraphLoadSettings(
     VOID
@@ -324,12 +296,12 @@ VOID ToolbarGraphsInitializeDpi(
     );
 
 VOID ToolbarRegisterGraph(
-    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
     _In_opt_ PVOID Context,
-    _In_opt_ PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK MessageCallback
+    _In_ PTOOLSTATUS_GRAPH_CALLBACK GraphCallback
     );
 
 VOID ToolbarCreateGraphs(
@@ -359,12 +331,12 @@ BOOLEAN ToolbarGraphsEnabled(
     );
 
 PPH_TOOLBAR_GRAPH ToolbarGraphFindById(
-    _In_ ULONG SubId
+    _In_ ULONG GraphId
     );
 
 PPH_TOOLBAR_GRAPH ToolbarGraphFindByName(
     _In_ PPH_STRINGREF PluginName,
-    _In_ ULONG SubId
+    _In_ ULONG GraphId
     );
 
 VOID ToolbarGraphCreateMenu(
@@ -377,9 +349,40 @@ VOID ToolbarGraphCreatePluginMenu(
     _In_ ULONG MenuId
     );
 
+BOOLEAN CpuHistoryGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+BOOLEAN PhysicalHistoryGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+BOOLEAN CommitHistoryGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+BOOLEAN IoHistoryGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
 // statusbar.c
 
-extern ULONG ProcessesUpdatedCount;
 extern HWND StatusBarHandle;
 extern PPH_LIST StatusBarItemList;
 extern ULONG StatusBarItems[MAX_STATUSBAR_ITEMS];

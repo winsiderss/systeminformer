@@ -53,6 +53,7 @@ static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PWSTR InitialSectionName;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+static PH_CALLBACK_REGISTRATION SettingsUpdatedRegistration;
 
 static PPH_LIST SectionList;
 static PH_SYSINFO_PARAMETERS CurrentParameters = {0};
@@ -367,8 +368,14 @@ VOID PhSipOnInitDialog(
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         PhSipSysInfoUpdateHandler,
-        NULL,
+        PhSipWindow,
         &ProcessesUpdatedRegistration
+        );
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+        PhSipSysInfoSettingsCallback,
+        PhSipWindow,
+        &SettingsUpdatedRegistration
         );
 
     ContainerControl = PhCreateDialog(
@@ -408,11 +415,11 @@ VOID PhSipOnInitDialog(
         WS_CHILD | SS_OWNERDRAW,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         PhSipWindow,
         NULL,
-        PhInstanceHandle,
+        NULL,
         NULL
         );
     RestoreSummaryControl = CreateWindow(
@@ -421,11 +428,11 @@ VOID PhSipOnInitDialog(
         WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         PhSipWindow,
         NULL,
-        PhInstanceHandle,
+        NULL,
         NULL
         );
 
@@ -491,6 +498,7 @@ VOID PhSipOnDestroy(
     )
 {
     PhUnregisterWindowCallback(PhSipWindow);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), &SettingsUpdatedRegistration);
     PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &ProcessesUpdatedRegistration);
 
     if (CurrentSection)
@@ -599,12 +607,12 @@ VOID PhSipOnCommand(
         break;
     case IDC_REFRESH:
         {
-            ProcessHacker_Refresh();
+            SystemInformer_Refresh();
         }
         break;
     case IDC_PAUSE:
         {
-            ProcessHacker_SetUpdateAutomatically(!ProcessHacker_GetUpdateAutomatically());
+            SystemInformer_SetUpdateAutomatically(!SystemInformer_GetUpdateAutomatically());
         }
         break;
     case IDC_MAXSCREEN:
@@ -1108,15 +1116,15 @@ PPH_STRING PhSiDoubleLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value;
+    FLOAT value;
 
-    value = (DOUBLE)(Value * Parameter);
+    value = (FLOAT)(Value * Parameter);
 
     if (value != 0)
     {
         PH_FORMAT format[2];
 
-        PhInitFormatF(&format[0], value * 100, PhMaxPrecisionUnit);
+        PhInitFormatF(&format[0], value * 100.f, PhMaxPrecisionUnit);
         PhInitFormatC(&format[1], L'%');
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);

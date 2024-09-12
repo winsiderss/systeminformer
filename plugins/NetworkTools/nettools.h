@@ -150,6 +150,7 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     HWND RichEditHandle;
     HFONT FontHandle;
 
+    BOOLEAN RemoteAddressValid;
     BOOLEAN Ipv6Support;
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -158,12 +159,6 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     ULONG RemoteAddressStringLength;
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
 } NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
-
-// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
-// after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
-#define TaskDialogNavigatePage(WindowHandle, Config) \
-    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId((WindowHandle), NULL)); \
-    SendMessage((WindowHandle), TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 
 VOID ShowWhoisWindow(
     _In_ HWND ParentWindowHandle,

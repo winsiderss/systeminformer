@@ -193,10 +193,10 @@ VOID NTAPI MenuItemCallback(
             PPH_STRING selectedChoice = NULL;
             PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
-            while (PhaChoiceDialog(
+            while (PhChoiceDialog(
                 menuItem->OwnerWindow,
-                L"Ping",
-                L"Hostname or IP address:",
+                L"Ping the Hostname or IP Address",
+                L"You can use an IPv4 or IPv6 address as the target or a fully qualified domain name (FQDN) or a website URL as the target.",
                 NULL,
                 0,
                 NULL,
@@ -219,10 +219,10 @@ VOID NTAPI MenuItemCallback(
             PPH_STRING selectedChoice = NULL;
             PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
-            while (PhaChoiceDialog(
+            while (PhChoiceDialog(
                 menuItem->OwnerWindow,
-                L"Tracert",
-                L"Hostname or IP address:",
+                L"Tracert the Hostname or IP Address",
+                L"You can use an IPv4 or IPv6 address as the target or a fully qualified domain name (FQDN) or a website URL as the target.",
                 NULL,
                 0,
                 NULL,
@@ -245,10 +245,10 @@ VOID NTAPI MenuItemCallback(
             PPH_STRING selectedChoice = NULL;
             PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
-            while (PhaChoiceDialog(
+            while (PhChoiceDialog(
                 menuItem->OwnerWindow,
-                L"Whois",
-                L"Hostname or IP address:",
+                L"Whois the Hostname or IP Address",
+                L"You can use an IPv4 or IPv6 address as the target or a fully qualified domain name (FQDN) or a website URL as the target.",
                 NULL,
                 0,
                 NULL,
@@ -830,21 +830,17 @@ BOOLEAN NetworkToolsGeoIpFlushCache(
 }
 
 VOID ProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    static ULONG ProcessesUpdatedCount = 0;
     PLIST_ENTRY listEntry;
 
     if (!NetworkExtensionEnabled)
         return;
 
-    if (ProcessesUpdatedCount != 3)
-    {
-        ProcessesUpdatedCount++;
+    if (PtrToUlong(Parameter) < 3)
         return;
-    }
 
     NetworkToolsGeoIpFlushCache();
 
@@ -1017,7 +1013,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Network Tools";
-            info->Author = L"dmex, wj32";
             info->Description = L"Provides ping, traceroute and whois for network connections.";
             info->Interface = &PluginInterface;
 

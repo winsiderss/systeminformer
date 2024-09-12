@@ -15,6 +15,7 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
+ULONG EtFwFlagsMask = 0;
 PH_CALLBACK_REGISTRATION EtFwProcessesUpdatedCallbackRegistration;
 PPH_OBJECT_TYPE EtFwObjectType = NULL;
 HANDLE EtFwEngineHandle = NULL;
@@ -139,7 +140,7 @@ typedef struct _FW_ITEM_QUERY_DATA
     PPH_STRING HostString;
 } FW_ITEM_QUERY_DATA, *PFW_ITEM_QUERY_DATA;
 
-VOID PhpQueryHostnameForEntry(
+VOID EtFwQueryHostnameForEntry(
     _In_ PFW_EVENT_ITEM Entry
     );
 
@@ -313,7 +314,7 @@ VOID FwProcessFirewallEvent(
     InsertHeadList(&EtFwAgeListHead, &entry->AgeListEntry);
 
     // Queue hostname lookup.
-    PhpQueryHostnameForEntry(entry);
+    EtFwQueryHostnameForEntry(entry);
 
     // Raise the item added event.
     PhInvokeCallback(&FwItemAddedEvent, entry);
@@ -853,6 +854,8 @@ VOID EtFwFlushHostNameData(
     PSLIST_ENTRY entry;
     PFW_ITEM_QUERY_DATA data;
 
+    if (!FlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
+        return;
     //if (!RtlFirstEntrySList(&EtFwQueryListHead))
     //    return;
 
@@ -881,13 +884,17 @@ VOID EtFwFlushHostNameData(
     }
 }
 
-VOID PhpQueryHostnameForEntry(
+VOID EtFwQueryHostnameForEntry(
     _In_ PFW_EVENT_ITEM Entry
     )
 {
     PFW_RESOLVE_CACHE_ITEM cacheItem;
 
+    if (!FlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
+        return;
+
     // Local
+
     if (!PhIsNullIpAddress(&Entry->LocalEndpoint.Address))
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
@@ -911,6 +918,7 @@ VOID PhpQueryHostnameForEntry(
     }
 
     // Remote
+
     if (!PhIsNullIpAddress(&Entry->RemoteEndpoint.Address))
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);

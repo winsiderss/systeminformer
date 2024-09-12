@@ -13,9 +13,7 @@
 #include <phbasesup.h>
 #include <phutil.h>
 #include <json.h>
-
-#include "../tools/thirdparty/jsonc/json.h"
-#include "../tools/thirdparty/mxml/mxml.h"
+#include <thirdparty.h>
 
 static PVOID json_get_object(
     _In_ PVOID Object,
@@ -103,7 +101,7 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            jsonStringUtf8->Length
+            (INT)jsonStringUtf8->Length
             );
         PhDereferenceObject(jsonStringUtf8);
     }
@@ -124,7 +122,7 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            jsonStringUtf8->Length
+            (INT)jsonStringUtf8->Length
             );
     }
 

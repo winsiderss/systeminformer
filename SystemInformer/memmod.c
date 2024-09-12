@@ -416,7 +416,6 @@ NTSTATUS PhCheckProcessImagesForTampering(
 
     status = PhEnumVirtualMemory(
         Context->ProcessHandle,
-        NULL,
         PhEnumImagesForTamperingCallback,
         Context
         );
@@ -430,7 +429,6 @@ NTSTATUS PhCheckProcessImagesForTampering(
 
         status = PhEnumVirtualMemoryAttributes( // PhCheckImagePagesForTampering
             Context->ProcessHandle,
-            NULL,
             entry->ImageBase,
             entry->SizeOfImage,
             PhpEnumVirtualMemoryAttributesCallback,

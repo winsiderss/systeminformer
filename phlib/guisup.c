@@ -3256,7 +3256,7 @@ BOOLEAN PhExtractIconEx(
         fileName.Length = FileName->Length;
     }
 
-    if (PhIsNullOrEmptyString(&fileName))
+    if (PhIsNullOrEmptyStringRef(&fileName))
     {
         PhClearReference(&resourceFileName);
         return FALSE;

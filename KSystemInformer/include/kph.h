@@ -550,13 +550,6 @@ PVOID KphGetRoutineAddress(
 
 typedef struct _KPH_DYN
 {
-    USHORT MajorVersion;
-    USHORT MinorVersion;
-    USHORT BuildNumberMin;
-    USHORT RevisionMin;
-    USHORT BuildNumberMax;
-    USHORT RevisionMax;
-
     ULONG EgeGuid;
     ULONG EpObjectTable;
     ULONG EreGuidEntry;
@@ -584,15 +577,16 @@ typedef struct _KPH_DYN
     ULONG KtReadTransferCount;
     ULONG KtWriteTransferCount;
     ULONG KtOtherTransferCount;
+    ULONG MmSectionControlArea;
+    ULONG MmControlAreaListHead;
+    ULONG MmControlAreaLock;
+    ULONG EpSectionObject;
+
     ULONG LxPicoProc;
     ULONG LxPicoProcInfo;
     ULONG LxPicoProcInfoPID;
     ULONG LxPicoThrdInfo;
     ULONG LxPicoThrdInfoTID;
-    ULONG MmSectionControlArea;
-    ULONG MmControlAreaListHead;
-    ULONG MmControlAreaLock;
-    ULONG EpSectionObject;
 
     BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
 } KPH_DYN, *PKPH_DYN;
@@ -1595,6 +1589,7 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     HANDLE ProcessId;
     ULONG64 SequenceNumber;
+    ULONG64 ProcessStartKey;
     CLIENT_ID CreatorClientId;
 
     PUNICODE_STRING ImageFileName;

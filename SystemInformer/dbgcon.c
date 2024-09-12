@@ -451,49 +451,6 @@ static NTSTATUS PhpLeakEnumerationRoutine(
     return 0;
 }
 
-typedef struct _STOPWATCH
-{
-    LARGE_INTEGER StartCounter;
-    LARGE_INTEGER EndCounter;
-    LARGE_INTEGER Frequency;
-} STOPWATCH, *PSTOPWATCH;
-
-static VOID PhInitializeStopwatch(
-    _Out_ PSTOPWATCH Stopwatch
-    )
-{
-    Stopwatch->StartCounter.QuadPart = 0;
-    Stopwatch->EndCounter.QuadPart = 0;
-}
-
-static VOID PhStartStopwatch(
-    _Inout_ PSTOPWATCH Stopwatch
-    )
-{
-    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
-    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
-}
-
-static VOID PhStopStopwatch(
-    _Inout_ PSTOPWATCH Stopwatch
-    )
-{
-    PhQueryPerformanceCounter(&Stopwatch->EndCounter);
-}
-
-static ULONG PhGetMillisecondsStopwatch(
-    _In_ PSTOPWATCH Stopwatch
-    )
-{
-    LARGE_INTEGER countsPerMs;
-
-    countsPerMs = Stopwatch->Frequency;
-    countsPerMs.QuadPart /= 1000;
-
-    return (ULONG)((Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart) /
-        countsPerMs.QuadPart);
-}
-
 typedef VOID (FASTCALL *PPHF_RW_LOCK_FUNCTION)(
     _In_ PVOID Parameter
     );
@@ -592,7 +549,7 @@ static VOID PhpTestRwLock(
 {
 #define RW_PROCESSORS 4
 
-    STOPWATCH stopwatch;
+    PH_STOPWATCH stopwatch;
     ULONG i;
     HANDLE threadHandles[RW_PROCESSORS];
 
@@ -783,7 +740,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
         else if (PhEqualStringZ(command, L"testperf", TRUE))
         {
-            STOPWATCH stopwatch;
+            PH_STOPWATCH stopwatch;
             ULONG i;
             PPH_STRING testString;
             RTL_CRITICAL_SECTION testCriticalSection;

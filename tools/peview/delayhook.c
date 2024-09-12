@@ -17,7 +17,7 @@
 #include <uxtheme.h>
 
 #include "settings.h"
-#include "../thirdparty/detours/detours.h"
+#include <thirdparty.h>
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;
@@ -776,7 +776,7 @@ VOID ThemeWindowRenderHeaderControl(
                     NULL,
                     TS_TRUE,
                     &sortArrowSize
-                    ) == S_OK)
+                    ))
                 {
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }
@@ -806,7 +806,7 @@ VOID ThemeWindowRenderHeaderControl(
                     NULL,
                     TS_TRUE,
                     &sortArrowSize
-                    ) == S_OK)
+                    ))
                 {
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }

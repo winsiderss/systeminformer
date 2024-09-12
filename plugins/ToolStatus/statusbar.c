@@ -244,10 +244,17 @@ VOID StatusBarUpdate(
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;
-        SendMessage(StatusBarHandle, SB_SETPARTS, 1, (LPARAM)widths);
-        SendMessage(StatusBarHandle, SB_SETTEXT, 0, (LPARAM)L"");
+
+        if (StatusBarHandle)
+        {
+            SendMessage(StatusBarHandle, SB_SETPARTS, 1, (LPARAM)widths);
+            SendMessage(StatusBarHandle, SB_SETTEXT, 0, (LPARAM)L"");
+        }
         return;
     }
+
+    if (!StatusBarHandle)
+        return;
 
     hdc = GetDC(StatusBarHandle);
     SelectFont(hdc, GetWindowFont(StatusBarHandle));
@@ -515,22 +522,10 @@ VOID StatusBarUpdate(
 
                 if (tnHandle = GetCurrentTreeNewHandle())
                 {
-                    ULONG j;
-                    ULONG visibleCount;
-                    ULONG selectedCount;
                     PH_FORMAT format[2];
 
-                    visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
-                    selectedCount = 0;
-
-                    for (j = 0; j < visibleCount; j++)
-                    {
-                        if (TreeNew_GetFlatNode(tnHandle, j)->Selected)
-                            selectedCount++;
-                    }
-
                     PhInitFormatS(&format[0], L"Selected: ");
-                    PhInitFormatI64UGroupDigits(&format[1], selectedCount);
+                    PhInitFormatI64UGroupDigits(&format[1], TreeNew_GetSelectedNodeCount(tnHandle));
 
                     PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
                 }
@@ -686,4 +681,5 @@ VOID StatusBarUpdate(
 
     SendMessage(StatusBarHandle, WM_SETREDRAW, TRUE, 0);
     InvalidateRect(StatusBarHandle, NULL, TRUE);
+    UpdateWindow(StatusBarHandle);
 }

@@ -28,16 +28,14 @@ PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 BOOLEAN VirusTotalScanningEnabled = FALSE;
-ULONG ProcessesUpdatedCount = 0;
 
 VOID ProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount != 3)
+    if (PtrToUlong(Parameter) < 3)
     {
-        ProcessesUpdatedCount++;
         return;
     }
 }
@@ -599,7 +597,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Online Checks";
-            info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
 
             PhRegisterCallback(

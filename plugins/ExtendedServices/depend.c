@@ -99,7 +99,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                             if (dependency[0] == SC_GROUP_IDENTIFIER)
                                 continue;
 
-                            if (dependencyService = PhReferenceServiceItem(dependency))
+                            if (dependencyService = PhReferenceServiceItemZ(dependency))
                                 PhAddItemList(serviceList, dependencyService);
                         }
                     }
@@ -225,7 +225,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
                     for (ULONG i = 0; i < numberOfDependentServices; i++)
                     {
-                        if (dependentService = PhReferenceServiceItem(dependentServices[i].lpServiceName))
+                        if (dependentService = PhReferenceServiceItemZ(dependentServices[i].lpServiceName))
                             PhAddItemList(serviceList, dependentService);
                     }
 

@@ -52,18 +52,14 @@ VOID PhInitializeMemoryList(
     BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
 
     memset(Context, 0, sizeof(PH_MEMORY_LIST_CONTEXT));
-
     Context->AllocationBaseNodeList = PhCreateList(100);
     Context->RegionNodeList = PhCreateList(400);
-
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
-
-    TreeNew_SetCallback(TreeNewHandle, PhpMemoryTreeNewCallback, Context);
-
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
+    TreeNew_SetCallback(TreeNewHandle, PhpMemoryTreeNewCallback, Context);
 
     // Default columns
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_BASEADDRESS, TRUE, L"Base address", 120, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), -2, 0);
@@ -85,15 +81,12 @@ VOID PhInitializeMemoryList(
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_REGIONTYPE, FALSE, L"Region type", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_PRIORITY, FALSE, L"Priority", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
-    TreeNew_SetRedraw(TreeNewHandle, TRUE);
-
-    TreeNew_SetTriState(TreeNewHandle, TRUE);
-    TreeNew_SetSort(TreeNewHandle, 0, NoSortOrder);
-
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PHMMTLC_MAXIMUM, PhpMemoryTreeNewPostSortFunction);
-
     PhInitializeTreeNewFilterSupport(&Context->AllocationTreeFilterSupport, TreeNewHandle, Context->AllocationBaseNodeList);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, TreeNewHandle, Context->RegionNodeList);
+
+    TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 }
 
 VOID PhpClearMemoryList(
@@ -117,10 +110,10 @@ VOID PhDeleteMemoryList(
 {
     PhDeleteTreeNewFilterSupport(&Context->AllocationTreeFilterSupport);
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
-
     PhCmDeleteManager(&Context->Cm);
 
     PhpClearMemoryList(Context);
+
     PhDereferenceObject(Context->AllocationBaseNodeList);
     PhDereferenceObject(Context->RegionNodeList);
 }
@@ -247,7 +240,6 @@ PPH_MEMORY_NODE PhpAddAllocationBaseNode(
     memoryNode->IsAllocationBase = TRUE;
     memoryItem = PhCreateMemoryItem();
     memoryNode->MemoryItem = memoryItem;
-
     memoryItem->BaseAddress = AllocationBase;
     memoryItem->AllocationBase = AllocationBase;
 
@@ -773,10 +765,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalPages)
 {
-    FLOAT modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages * 100.f / (memoryItem1->RegionSize / PAGE_SIZE)) : 0.0f;
-    FLOAT modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages * 100.f / (memoryItem2->RegionSize / PAGE_SIZE)) : 0.0f;
+    FLOAT modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages / (memoryItem1->RegionSize / PAGE_SIZE) * 100.f) : 0.0f;
+    FLOAT modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages / (memoryItem2->RegionSize / PAGE_SIZE) * 100.f) : 0.0f;
 
-    sortResult = doublecmp(modified1, modified2);
+    sortResult = singlecmp(modified1, modified2);
 }
 END_SORT_FUNCTION
 
@@ -1018,7 +1010,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SIZE_T modified = (memoryItem->RegionSize / PAGE_SIZE) - count;
                         PH_FORMAT format[4];
 
-                        PhInitFormatF(&format[0], count ? (count * 100 / (memoryItem->RegionSize / PAGE_SIZE)) : 0.0, 2);
+                        PhInitFormatF(&format[0], count ? (count / (memoryItem->RegionSize / PAGE_SIZE) * 100) : 0.f, 2);
 
                         if (modified)
                         {
@@ -1116,7 +1108,11 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }

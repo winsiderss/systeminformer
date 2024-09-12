@@ -15,17 +15,30 @@
 #include <kphcomms.h>
 #include <kphdyndata.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <json.h>
+#include <mapimg.h>
 #include <phappres.h>
 #include <sistatus.h>
 #include <informer.h>
 
 #include <ksisup.h>
 
+typedef struct _KSI_SUPPORT_DATA
+{
+    USHORT Class;
+    USHORT Machine;
+    ULONG TimeDateStamp;
+    ULONG SizeOfImage;
+} KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
+
 static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
 static BOOLEAN KsiEnableLoadNative = FALSE;
 static BOOLEAN KsiEnableLoadFilter = FALSE;
+static PPH_STRING KsiKernelFileName = NULL;
 static PPH_STRING KsiKernelVersion = NULL;
+static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
+static PPH_STRING KsiSupportString = NULL;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
@@ -41,8 +54,53 @@ VOID KsiDebugLogFinalize(
     );
 #endif
 
+PPH_STRING KsiGetKernelFileNameInternal(
+    VOID
+    )
+{
+    NTSTATUS status;
+    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
+    PRTL_PROCESS_MODULES modules;
+    ULONG modulesLength;
 
-PPH_STRING PhpGetKernelVersionString(
+    modules = (PRTL_PROCESS_MODULES)buffer;
+    modulesLength = sizeof(buffer);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        modules,
+        modulesLength,
+        &modulesLength
+        );
+
+    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
+        return NULL;
+    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
+        return NULL;
+
+    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+}
+
+PPH_STRING KsiGetKernelFileName(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        KsiKernelFileName = KsiGetKernelFileNameInternal();
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (KsiKernelFileName)
+        return PhReferenceObject(KsiKernelFileName);
+
+    return NULL;
+}
+
+PPH_STRING KsiGetKernelVersionString(
     VOID
     )
 {
@@ -53,7 +111,7 @@ PPH_STRING PhpGetKernelVersionString(
         PPH_STRING fileName;
         PH_IMAGE_VERSION_INFO versionInfo;
 
-        if (fileName = PhGetKernelFileName2())
+        if (fileName = KsiGetKernelFileName())
         {
             if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
             {
@@ -75,13 +133,75 @@ PPH_STRING PhpGetKernelVersionString(
     return NULL;
 }
 
+VOID KsiGetKernelSupportData(
+    _Out_ PKSI_SUPPORT_DATA SupportData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING fileName;
+        PH_MAPPED_IMAGE mappedImage;
+
+        if (fileName = KsiGetKernelFileName())
+        {
+            if (PhEndsWithString2(fileName, L"ntoskrnl.exe", TRUE))
+                KsiSupportData.Class = KPH_DYN_CLASS_NTOSKRNL;
+            else if (PhEndsWithString2(fileName, L"ntkrla57.exe", TRUE))
+                KsiSupportData.Class = KPH_DYN_CLASS_NTKRLA57;
+
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage)))
+            {
+                KsiSupportData.Machine = mappedImage.NtHeaders->FileHeader.Machine;
+                KsiSupportData.TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                KsiSupportData.SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+
+                PhUnloadMappedImage(&mappedImage);
+            }
+
+            PhDereferenceObject(fileName);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    *SupportData = KsiSupportData;
+}
+
+PPH_STRING KsiGetKernelSupportString(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        KSI_SUPPORT_DATA supportData;
+
+        KsiGetKernelSupportData(&supportData);
+
+        KsiSupportString = PhFormatString(
+            L"%02x-%04x-%08x-%08x",
+            (BYTE)supportData.Class,
+            supportData.Machine,
+            supportData.TimeDateStamp,
+            supportData.SizeOfImage
+            );
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return PhReferenceObject(KsiSupportString);
+}
+
 VOID PhShowKsiStatus(
     VOID
     )
 {
     KPH_PROCESS_STATE processState;
 
-    if (!PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+    if (!PhEnableKsiWarnings || PhStartupParameters.PhSvc)
         return;
 
     processState = KphGetCurrentProcessState();
@@ -134,6 +254,7 @@ VOID PhShowKsiStatus(
             PhGetString(infoString)
             ))
         {
+            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
 
@@ -155,14 +276,15 @@ VOID PhpShowKsiMessage(
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
     PH_STRING_BUILDER stringBuilder;
+    PPH_STRING supportString;
     PPH_STRING messageString;
     ULONG processState;
 
-    if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+    if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
         return;
 
     versionString = PhGetApplicationVersionString(FALSE);
-    kernelVersion = PhpGetKernelVersionString();
+    kernelVersion = KsiGetKernelVersionString();
     errorMessage = NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
@@ -230,14 +352,16 @@ VOID PhpShowKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (Force && !PhGetIntegerSetting(L"KsiEnableWarnings"))
+    if (Force && !PhEnableKsiWarnings)
     {
         PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (PhEndsWithString2(stringBuilder.String, L"\r\n", FALSE))
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+    supportString = KsiGetKernelSupportString();
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    PhAppendStringBuilder(&stringBuilder, &supportString->sr);
+    PhDereferenceObject(supportString);
 
     messageString = PhFinalStringBuilderString(&stringBuilder);
 
@@ -261,6 +385,7 @@ VOID PhpShowKsiMessage(
             PhGetString(messageString)
             ))
         {
+            PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
     }
@@ -501,30 +626,24 @@ NTSTATUS KsiValidateDynamicConfiguration(
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    PVOID versionInfo;
-    VS_FIXEDFILEINFO* fileInfo;
+    KSI_SUPPORT_DATA supportData;
 
     status = STATUS_NO_SUCH_FILE;
 
-    if (fileName = PhGetKernelFileName2())
+    if (fileName = KsiGetKernelFileName())
     {
-        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
-        {
-            if (fileInfo = PhGetFileVersionFixedInfo(versionInfo))
-            {
-                status = KphDynDataGetConfiguration(
-                    (PKPH_DYNDATA)DynData,
-                    DynDataLength,
-                    HIWORD(fileInfo->dwFileVersionMS),
-                    LOWORD(fileInfo->dwFileVersionMS),
-                    HIWORD(fileInfo->dwFileVersionLS),
-                    LOWORD(fileInfo->dwFileVersionLS),
-                    NULL
-                    );
-            }
+        KsiGetKernelSupportData(&supportData);
 
-            PhFree(versionInfo);
-        }
+        status = KphDynDataLookup(
+            (PKPH_DYN_CONFIG)DynData,
+            DynDataLength,
+            supportData.Class,
+            supportData.Machine,
+            supportData.TimeDateStamp,
+            supportData.SizeOfImage,
+            NULL,
+            NULL
+            );
 
         PhDereferenceObject(fileName);
     }
@@ -1039,20 +1158,6 @@ VOID PhInitializeKsi(
             L"Unable to load kernel driver",
             L"The kernel driver is not supported on this Windows version, the "
             L"minimum supported version is Windows 10."
-            );
-        return;
-    }
-    if (WindowsVersion == WINDOWS_NEW)
-    {
-        PhShowKsiMessageEx(
-            NULL,
-            TD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The kernel driver is not supported on preview builds. If this is "
-            L"not a preview build, request support by submitting a GitHub issue "
-            L"with the Windows Kernel version."
             );
         return;
     }

@@ -361,12 +361,14 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     );
 
 BOOLEAN PhMwpExecuteProcessPriorityCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     );
 
 BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
+    _In_ HWND WindowHandle,
     _In_ ULONG Id,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses

@@ -14,10 +14,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral resources
+// English (United States) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
-LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -25,17 +25,17 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\0"
 END
@@ -161,8 +161,8 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "NET",IDC_TITLE,0,0,72,21
-    RTEXT           "NET",IDC_DEVICENAME,83,4,232,16,SS_WORDELLIPSIS
+    LTEXT           "NET",IDC_TITLE,0,0,143,21
+    RTEXT           "NET",IDC_DEVICENAME,148,4,167,16,SS_WORDELLIPSIS
     LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,147,315,39,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,111,NOT WS_VISIBLE
     LTEXT           "Send:",IDC_UP_L,73,0,20,8
@@ -422,43 +422,15 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Version
+// AFX_DIALOG_LAYOUT
 //
 
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,7,0,0
- PRODUCTVERSION 3,7,0,0
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x40004L
- FILETYPE 0x2L
- FILESUBTYPE 0x0L
+IDD_NETADAPTER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "000004b0"
-        BEGIN
-            VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
-            VALUE "FileVersion", "3.7.0.0"
-            VALUE "InternalName", "HardwareDevices.dll"
-            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "OriginalFilename", "HardwareDevices.dll"
-            VALUE "ProductName", "System Informer"
-            VALUE "ProductVersion", "3.7.0.0"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x0, 1200
-    END
+    0
 END
 
-#endif    // Neutral resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

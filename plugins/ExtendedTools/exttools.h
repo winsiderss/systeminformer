@@ -550,7 +550,7 @@ VOID EtFormatNetworkSize(
     );
 
 VOID EtFormatDouble(
-    _In_ DOUBLE Value,
+    _In_ FLOAT Value,
     _In_ PET_PROCESS_BLOCK Block,
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
@@ -1018,13 +1018,6 @@ VOID EtEtwMiniInformationInitializing(
 
 // iconext
 
-typedef struct _TB_GRAPH_CONTEXT
-{
-    LONG GraphDpi;
-    ULONG GraphColor1;
-    ULONG GraphColor2;
-} TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
-
 extern BOOLEAN EtTrayIconTransparencyEnabled;
 
 VOID EtLoadTrayIconGuids(
@@ -1167,8 +1160,8 @@ ULONG64 EtLookupTotalGpuAdapterShared(
     );
 
 // Firewall
-
 extern BOOLEAN EtFwEnabled;
+extern ULONG EtFwFlagsMask;
 extern ULONG EtFwStatus;
 extern ULONG FwRunCount;
 extern HANDLE EtFwEngineHandle;
@@ -1227,15 +1220,15 @@ typedef struct _FW_EVENT_ITEM
 
     union
     {
-        BOOLEAN Flags;
+        ULONG Flags;
         struct
         {
-            BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 3;
-            BOOLEAN LocalPortServiceResolved : 1;
-            BOOLEAN RemotePortServiceResolved : 1;
-            BOOLEAN LocalHostnameResolved : 1;
-            BOOLEAN RemoteHostnameResolved : 1;
+            ULONG Loopback : 1;
+            ULONG LocalPortServiceResolved : 1;
+            ULONG RemotePortServiceResolved : 1;
+            ULONG LocalHostnameResolved : 1;
+            ULONG RemoteHostnameResolved : 1;
+            ULONG Spare : 27;
         };
     };
 
@@ -1314,6 +1307,14 @@ VOID LoadSettingsFwTreeList(
 
 VOID SaveSettingsFwTreeList(
     VOID
+    );
+
+VOID EtFwFlushResolveCache(
+    VOID
+    );
+
+VOID EtFwQueryHostnameForEntry(
+    _In_ PFW_EVENT_ITEM Entry
     );
 
 _Success_(return)
@@ -1443,6 +1444,11 @@ typedef ULONG (WINAPI* _FwpmNetEventEnum5)(
 #define FWP_DIRECTION_MAP_FORWARD 0x3902
 #define FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
 
+typedef enum _FW_PROVIDER_FLAG
+{
+    FW_PROVIDER_FLAG_HOSTNAME = 0x1,
+} FW_PROVIDER_FLAG;
+
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
     );
@@ -1483,6 +1489,14 @@ VOID EtFwDeselectAllFwNodes(
 
 VOID EtFwSelectAndEnsureVisibleFwNode(
     _In_ PFW_EVENT_ITEM FwNode
+    );
+
+VOID EtFwInvalidateAllFwNodes(
+    VOID
+    );
+
+VOID EtFwInvalidateAllFwNodesHostnames(
+    VOID
     );
 
 VOID EtFwCopyFwList(

@@ -22,9 +22,7 @@
 #include <verify.h>
 #include <mapimg.h>
 #include <mapldr.h>
-
-#include "../tools/thirdparty/winsdk/dia2.h"
-#include "../tools/thirdparty/winsdk/dia3.h"
+#include <thirdparty.h>
 
 #if defined(_ARM64_)
 #define PH_THREAD_STACK_NATIVE_MACHINE IMAGE_FILE_MACHINE_ARM64

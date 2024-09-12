@@ -772,6 +772,27 @@ PS_GET_PROCESS_START_KEY(
     );
 typedef PS_GET_PROCESS_START_KEY* PPS_GET_PROCESS_START_KEY;
 
+typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
+{
+    ULONG HeaderSize;
+    ULONG ProcessId;
+    ULONGLONG ProcessStartKey;
+    ULONGLONG CreateTime;
+    ULONGLONG CreateInterruptTime;
+    ULONGLONG CreateUnbiasedInterruptTime;
+    ULONGLONG ProcessSequenceNumber;
+    ULONGLONG SessionCreateTime;
+    ULONG SessionId;
+    ULONG BootId;
+    ULONG ImageChecksum;
+    ULONG ImageTimeDateStamp;
+    ULONG UserSidOffset;
+    ULONG ImagePathOffset;
+    ULONG PackageNameOffset;
+    ULONG RelativeAppNameOffset;
+    ULONG CommandLineOffset;
+} PROCESS_TELEMETRY_ID_INFORMATION, *PPROCESS_TELEMETRY_ID_INFORMATION;
+
 // RTL
 
 #ifndef RTL_MAX_DRIVE_LETTERS

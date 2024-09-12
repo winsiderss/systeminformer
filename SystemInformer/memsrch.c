@@ -1188,7 +1188,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                             showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)basicInfo.BaseAddress);
                             showMemoryEditor->SelectLength = (ULONG)length;
 
-                            ProcessHacker_ShowMemoryEditor(showMemoryEditor);
+                            SystemInformer_ShowMemoryEditor(showMemoryEditor);
                         }
                         else
                         {

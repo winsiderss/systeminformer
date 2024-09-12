@@ -313,6 +313,33 @@ PhShowMessageOneTime(
     ...
     );
 
+typedef struct _TASKDIALOGCONFIG TASKDIALOGCONFIG, *PTASKDIALOGCONFIG;
+
+// TDM_NAVIGATE_PAGE is not thread safe and accelerator keys crash the process
+// after navigating to the page and pressing ctrl, alt, home or insert keys. (dmex)
+FORCEINLINE
+VOID
+PhTaskDialogNavigatePage(
+    _In_ HWND WindowHandle,
+    _In_ PTASKDIALOGCONFIG Config
+    )
+{
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+
+    SendMessage(WindowHandle, (WM_USER + 101), 0, (LPARAM)(Config));
+}
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShowTaskDialog(
+    _In_ PTASKDIALOGCONFIG Config,
+    _Out_opt_ PULONG Button,
+    _Out_opt_ PULONG RadioButton,
+    _Out_opt_ PBOOLEAN FlagChecked
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2011,6 +2038,75 @@ PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
+// Stopwatch
+
+typedef struct _PH_STOPWATCH
+{
+    LARGE_INTEGER StartCounter;
+    LARGE_INTEGER EndCounter;
+    LARGE_INTEGER Frequency;
+} PH_STOPWATCH, *PPH_STOPWATCH;
+
+FORCEINLINE
+VOID
+PhInitializeStopwatch(
+    _Out_ PPH_STOPWATCH Stopwatch
+    )
+{
+    Stopwatch->StartCounter.QuadPart = 0;
+    Stopwatch->EndCounter.QuadPart = 0;
+}
+
+FORCEINLINE
+VOID
+PhStartStopwatch(
+    _Inout_ PPH_STOPWATCH Stopwatch
+    )
+{
+    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
+    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
+}
+
+FORCEINLINE
+VOID
+PhStopStopwatch(
+    _Inout_ PPH_STOPWATCH Stopwatch
+    )
+{
+    PhQueryPerformanceCounter(&Stopwatch->EndCounter);
+}
+
+FORCEINLINE
+ULONG
+PhGetMillisecondsStopwatch(
+    _In_ PPH_STOPWATCH Stopwatch
+    )
+{
+    LARGE_INTEGER elapsedMilliseconds;
+
+    elapsedMilliseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
+    elapsedMilliseconds.QuadPart *= 1000;
+    elapsedMilliseconds.QuadPart /= Stopwatch->Frequency.QuadPart ? Stopwatch->Frequency.QuadPart  : 1;
+
+    return (ULONG)elapsedMilliseconds.QuadPart;
+}
+
+FORCEINLINE
+ULONGLONG
+PhGetMicrosecondsStopwatch(
+    _In_ PPH_STOPWATCH Stopwatch
+    )
+{
+    LARGE_INTEGER elapsedMicroseconds;
+
+    // Convert to microseconds before dividing by ticks-per-second.
+    elapsedMicroseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
+    elapsedMicroseconds.QuadPart *= 1000000;
+    if (Stopwatch->Frequency.QuadPart)elapsedMicroseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
+
+    return elapsedMicroseconds.QuadPart;
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -2047,8 +2143,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessSnapshot(
     _Out_ PHANDLE SnapshotHandle,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI

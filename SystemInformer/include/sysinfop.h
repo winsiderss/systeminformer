@@ -428,9 +428,9 @@ VOID PhSipGetPoolLimits(
 
 _Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ DOUBLE *CurrentCompressedMemory,
-    _Out_ DOUBLE *TotalCompressedMemory,
-    _Out_ DOUBLE *TotalSavedMemory
+    _Out_ FLOAT *CurrentCompressedMemory,
+    _Out_ FLOAT *TotalCompressedMemory,
+    _Out_ FLOAT *TotalSavedMemory
     );
 
 // I/O section
@@ -476,14 +476,28 @@ VOID PhSipLayoutIoGraphs(
     _In_ HWND WindowHandle
     );
 
-VOID PhSipNotifyIoReadGraph(
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipNotifyIoReadGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
-VOID PhSipNotifyIoWriteGraph(
-    _In_ NMHDR *Header
+
+BOOLEAN NTAPI PhSipNotifyIoWriteGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
-VOID PhSipNotifyIoOtherGraph(
-    _In_ NMHDR *Header
+
+BOOLEAN NTAPI PhSipNotifyIoOtherGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhSipUpdateIoGraph(

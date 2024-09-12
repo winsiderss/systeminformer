@@ -119,6 +119,7 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
 {
     KPH_PROCESS_STATE ProcessState;
 
+    ULONG64 ProcessStartKey;
     CLIENT_ID CreatorClientId;
 
     ULONG UserWritableReferences;

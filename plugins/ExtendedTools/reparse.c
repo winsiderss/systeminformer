@@ -871,24 +871,15 @@ NTSTATUS EtEnumerateVolumeDirectoryObjects(
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
+    static PH_STRINGREF name = PH_STRINGREF_INIT(L"\\Device");
     NTSTATUS status;
     HANDLE directoryHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING name;
 
-    RtlInitUnicodeString(&name, L"\\Device");
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &name,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-
-    status = NtOpenDirectoryObject(
+    status = PhOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
-        &objectAttributes
+        NULL,
+        &name
         );
 
     if (NT_SUCCESS(status))

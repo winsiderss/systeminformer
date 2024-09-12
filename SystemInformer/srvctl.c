@@ -20,6 +20,10 @@
 #include <srvprv.h>
 #include <mainwnd.h>
 
+#include <proctree.h>
+#include <mainwndp.h>
+#include <hndlinfo.h>
+
 typedef struct _PH_SERVICES_CONTEXT
 {
     PPH_SERVICE_ITEM *Services;
@@ -425,6 +429,8 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Go to service", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhServiceListInsertContextMenu(hwndDlg, menu, (PPH_SERVICE_ITEM*)listviewItems, numberOfItems);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
@@ -452,8 +458,178 @@ INT_PTR CALLBACK PhpServicesPageProc(
                             {
                             case 1:
                                 {
-                                    ProcessHacker_SelectTabPage(1);
-                                    ProcessHacker_SelectServiceItem((PPH_SERVICE_ITEM)listviewItems[0]);
+                                    SetForegroundWindow(PhMwpServiceTreeNewHandle);
+
+                                    SystemInformer_SelectTabPage(1);
+
+                                    SetFocus(PhMwpServiceTreeNewHandle);
+
+                                    SystemInformer_SelectServiceItem((PPH_SERVICE_ITEM)listviewItems[0]);
+                                }
+                                break;
+                            case ID_SERVICE_GOTOPROCESS:
+                                {
+                                    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)listviewItems[0];
+                                    PPH_PROCESS_NODE processNode;
+
+                                    if (serviceItem)
+                                    {
+                                        if (processNode = PhFindProcessNode(serviceItem->ProcessId))
+                                        {
+                                            SetForegroundWindow(PhMwpProcessTreeNewHandle);
+
+                                            SystemInformer_SelectTabPage(0);
+
+                                            SetFocus(PhMwpProcessTreeNewHandle);
+
+                                            PhSelectAndEnsureVisibleProcessNode(processNode);
+                                        }
+                                        else
+                                        {
+                                            PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_INVALID_CID, 0);
+                                        }
+                                    }
+                                }
+                                break;
+                            case ID_SERVICE_START:
+                                {
+                                    PPH_SERVICE_ITEM* serviceItems = (PPH_SERVICE_ITEM*)listviewItems;
+                                    ULONG numberOfServiceItems = numberOfItems;
+
+                                    PhReferenceObjects(serviceItems, numberOfServiceItems);
+                                    PhUiStartServices(hwndDlg, serviceItems, numberOfServiceItems);
+                                    PhDereferenceObjects(serviceItems, numberOfServiceItems);
+                                }
+                                break;
+                            case ID_SERVICE_CONTINUE:
+                                {
+                                    PPH_SERVICE_ITEM* serviceItems = (PPH_SERVICE_ITEM*)listviewItems;
+                                    ULONG numberOfServiceItems = numberOfItems;
+
+                                    PhReferenceObjects(serviceItems, numberOfServiceItems);
+                                    PhUiContinueServices(hwndDlg, serviceItems, numberOfServiceItems);
+                                    PhDereferenceObjects(serviceItems, numberOfServiceItems);
+                                }
+                                break;
+                            case ID_SERVICE_PAUSE:
+                                {
+                                    PPH_SERVICE_ITEM* serviceItems = (PPH_SERVICE_ITEM*)listviewItems;
+                                    ULONG numberOfServiceItems = numberOfItems;
+
+                                    PhReferenceObjects(serviceItems, numberOfServiceItems);
+                                    PhUiPauseServices(hwndDlg, serviceItems, numberOfServiceItems);
+                                    PhDereferenceObjects(serviceItems, numberOfServiceItems);
+                                }
+                                break;
+                            case ID_SERVICE_STOP:
+                                {
+                                    PPH_SERVICE_ITEM* serviceItems = (PPH_SERVICE_ITEM*)listviewItems;
+                                    ULONG numberOfServiceItems = numberOfItems;
+
+                                    PhReferenceObjects(serviceItems, numberOfServiceItems);
+                                    PhUiStopServices(hwndDlg, serviceItems, numberOfServiceItems);
+                                    PhDereferenceObjects(serviceItems, numberOfServiceItems);
+                                }
+                                break;
+                            case ID_SERVICE_DELETE:
+                                {
+                                    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)listviewItems[0];
+
+                                    if (serviceItem)
+                                    {
+                                        PhReferenceObject(serviceItem);
+
+                                        if (PhUiDeleteService(hwndDlg, serviceItem))
+                                        {
+                                            INT lvItemIndex;
+
+                                            lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+
+                                            if (lvItemIndex != INT_ERROR)
+                                            {
+                                                PhRemoveListViewItem(context->ListViewHandle, lvItemIndex);
+                                            }
+                                        }
+
+                                        PhDereferenceObject(serviceItem);
+                                    }
+                                }
+                                break;
+                            case ID_SERVICE_OPENKEY:
+                                {
+                                    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)listviewItems[0];
+
+                                    if (serviceItem)
+                                    {
+                                        HANDLE keyHandle;
+
+                                        if (NT_SUCCESS(PhOpenServiceKey(
+                                            &keyHandle,
+                                            KEY_READ,
+                                            &serviceItem->Name->sr
+                                            )))
+                                        {
+                                            PPH_STRING hklmServiceKeyName;
+
+                                            if (NT_SUCCESS(PhQueryObjectName(keyHandle, &hklmServiceKeyName)))
+                                            {
+                                                PhMoveReference(&hklmServiceKeyName, PhFormatNativeKeyName(hklmServiceKeyName));
+
+                                                PhShellOpenKey2(hwndDlg, hklmServiceKeyName);
+
+                                                PhDereferenceObject(hklmServiceKeyName);
+                                            }
+                                            else
+                                            {
+                                                PhShowStatus(hwndDlg, L"The service does not exist.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
+                                            }
+
+                                            NtClose(keyHandle);
+                                        }
+                                        else
+                                        {
+                                            PhShowStatus(hwndDlg, L"The service does not exist.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
+                                        }
+                                    }
+                                }
+                                break;
+                            case ID_SERVICE_OPENFILELOCATION:
+                                {
+                                    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)listviewItems[0];
+                                    SC_HANDLE serviceHandle;
+
+                                    if (serviceItem && NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
+                                    {
+                                        PPH_STRING fileName;
+
+                                        if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
+                                        {
+                                            PhShellExecuteUserString(
+                                                hwndDlg,
+                                                L"FileBrowseExecutable",
+                                                fileName->Buffer,
+                                                FALSE,
+                                                L"Make sure the Explorer executable file is present."
+                                                );
+                                            PhDereferenceObject(fileName);
+                                        }
+
+                                        PhCloseServiceHandle(serviceHandle);
+                                    }
+                                }
+                                break;
+                            case ID_SERVICE_PROPERTIES:
+                                {
+                                    PPH_SERVICE_ITEM serviceItem = listviewItems[0];
+
+                                    if (serviceItem)
+                                    {
+                                        // The object relies on the list view reference, which could
+                                        // disappear if we don't reference the object here.
+                                        PhReferenceObject(serviceItem);
+                                        PhShowServiceProperties(hwndDlg, serviceItem);
+                                        PhDereferenceObject(serviceItem);
+                                    }
                                 }
                                 break;
                             case IDC_COPY:

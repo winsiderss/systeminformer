@@ -14,7 +14,7 @@
 
 typedef struct _UNLOADED_DLLS_CONTEXT
 {
-    BOOLEAN IsWow64;
+    BOOLEAN IsWow64Process;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -63,7 +63,7 @@ VOID EtShowUnloadedDllsDialog(
     context = PhAllocateZero(sizeof(UNLOADED_DLLS_CONTEXT));
     context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessId = ProcessItem->ProcessId;
-    context->IsWow64 = !!ProcessItem->IsWow64;
+    context->IsWow64Process = !!ProcessItem->IsWow64Process;
     context->QueryHandle = queryHandle;
 
     PhDialogBox(
@@ -91,7 +91,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
     if (!Context->QueryHandle)
         return STATUS_FAIL_CHECK;
 
-    if (Context->IsWow64)
+    if (Context->IsWow64Process)
     {
         PPH_STRING eventTraceString;
         ULONG capturedEventTraceLength;
@@ -259,7 +259,7 @@ static INT NTAPI EtpNumberCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context && context->IsWow64)
+    if (context && context->IsWow64Process)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -285,7 +285,7 @@ static INT NTAPI EtpBaseAddressCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context && context->IsWow64)
+    if (context && context->IsWow64Process)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -311,7 +311,7 @@ static INT NTAPI EtpSizeCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context && context->IsWow64)
+    if (context && context->IsWow64Process)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -337,7 +337,7 @@ static INT NTAPI EtpTimeStampCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context && context->IsWow64)
+    if (context && context->IsWow64Process)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
@@ -363,7 +363,7 @@ static INT NTAPI EtpCheckSumCompareFunction(
 #ifdef _WIN64
     PUNLOADED_DLLS_CONTEXT context = Context;
 
-    if (context && context->IsWow64)
+    if (context && context->IsWow64Process)
     {
         PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
         PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;

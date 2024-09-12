@@ -248,7 +248,7 @@ VOID PhpRefreshEnvironmentList(
         }
 
 #ifdef _WIN64
-        if (ProcessItem->IsWow64)
+        if (ProcessItem->IsWow64Process)
             flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
 #endif
 
@@ -488,6 +488,44 @@ NTSTATUS PhpEditDeleteEnvironment(
     return status;
 }
 
+ULONG_PTR CALLBACK PhpEditEnvSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _In_ ULONG_PTR wParam,
+    _In_ ULONG_PTR lParam
+    )
+{
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT)))
+        return FALSE;
+
+    switch (WindowMessage)
+    {
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            if (wParam != VK_ESCAPE)
+            {
+                if (wParam == VK_RETURN)
+                {
+                    return DLGC_WANTMESSAGE;
+                }
+
+                return DLGC_WANTALLKEYS;
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+}
+
 INT_PTR CALLBACK PhpEditEnvDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -514,13 +552,17 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HWND windowhandle;
+
+            windowhandle = GetDlgItem(hwndDlg, IDC_VALUE);
+
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_VALUE), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, windowhandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -533,6 +575,9 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name);
             PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
+
+            PhSetWindowContext(windowhandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(windowhandle));
+            PhSetWindowProcedure(windowhandle, PhpEditEnvSubclassProc);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
@@ -1094,7 +1139,10 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
 
             // HACK
             if (context->TreeFilterSupport.FilterList)
@@ -1276,18 +1324,18 @@ VOID PhpInitializeEnvironmentTree(
         );
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
-    TreeNew_SetCallback(Context->TreeNewHandle, PhpEnvironmentTreeNewCallback, Context);
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, PhpEnvironmentTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"Value", 250, PH_ALIGN_LEFT, 1, 0);
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
-    TreeNew_SetSort(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, NoSortOrder);
-
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpEnvironmentTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetSort(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, NoSortOrder);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 VOID PhpDeleteEnvironmentTree(

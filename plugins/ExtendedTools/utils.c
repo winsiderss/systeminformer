@@ -136,12 +136,12 @@ VOID EtFormatNetworkSize(
 }
 
 VOID EtFormatDouble(
-    _In_ DOUBLE Value,
+    _In_ FLOAT Value,
     _In_ PET_PROCESS_BLOCK Block,
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     )
 {
-    if (Value >= 0.01)
+    if (Value >= 0.01f)
     {
         PH_FORMAT format[1];
 

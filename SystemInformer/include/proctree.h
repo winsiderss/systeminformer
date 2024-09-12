@@ -154,6 +154,7 @@
 #define PHPN_GRANTEDACCESS 0x100000
 #define PHPN_TLSBITMAPDELTA 0x200000
 #define PHPN_REFERENCEDELTA 0x400000
+#define PHPN_STARTKEY 0x800000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -230,6 +231,8 @@ typedef struct _PH_PROCESS_NODE
     USHORT TlsBitmapCount;
     // Reference count
     ULONG ReferenceCount;
+    // Start key
+    ULONGLONG ProcessStartKey;
 
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
@@ -261,6 +264,7 @@ typedef struct _PH_PROCESS_NODE
     WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     PPH_STRING RelativeStartTimeText;
     PPH_STRING WindowTitleText;
+    PPH_STRING DepStatusText;
     PPH_STRING CyclesText;
     PPH_STRING CyclesDeltaText;
     PPH_STRING ContextSwitchesText;
@@ -295,6 +299,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING GrantedAccessText;
     PPH_STRING TlsBitmapDeltaText;
     PPH_STRING ReferenceCountText;
+    PPH_STRING LxssProcessIdText;
+    PPH_STRING ProcessStartKeyText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

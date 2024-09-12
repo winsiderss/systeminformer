@@ -601,7 +601,11 @@ BOOLEAN NTAPI PvCertificateTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }
@@ -792,10 +796,7 @@ VOID PvSelectAndEnsureVisibleCertificateNodes(
     if (needsRestructure)
         TreeNew_NodesStructured(Context->TreeNewHandle);
 
-    TreeNew_SetFocusNode(Context->TreeNewHandle, &leader->Node);
-    TreeNew_SetMarkNode(Context->TreeNewHandle, &leader->Node);
-    TreeNew_EnsureVisible(Context->TreeNewHandle, &leader->Node);
-    TreeNew_InvalidateNode(Context->TreeNewHandle, &leader->Node);
+    TreeNew_FocusMarkSelectNode(Context->TreeNewHandle, &leader->Node);
 }
 
 PPH_STRING PvpPeFormatDateTime(

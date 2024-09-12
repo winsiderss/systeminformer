@@ -30,7 +30,7 @@ typedef struct _PH_PROCESS_HEAPS_CONTEXT
         struct
         {
             BOOLEAN Initialized : 1;
-            BOOLEAN IsWow64 : 1;
+            BOOLEAN IsWow64Process : 1;
             BOOLEAN Spare : 6;
         };
     };
@@ -134,7 +134,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 NTSTATUS PhGetProcessHeapSignature(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID HeapAddress,
-    _In_ ULONG IsWow64,
+    _In_ ULONG IsWow64Process,
     _Out_ ULONG* HeapSignature
     );
 
@@ -154,7 +154,7 @@ VOID PhShowProcessHeapsDialog(
 
     context = PhAllocateZero(sizeof(PH_PROCESS_HEAPS_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
-    context->IsWow64 = !!ProcessItem->IsWow64;
+    context->IsWow64Process = !!ProcessItem->IsWow64Process;
 
     PhDialogBox(
         PhInstanceHandle,
@@ -173,7 +173,7 @@ static INT NTAPI PhpHeapAddressCompareFunction(
 {
     PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo1 = Item1;
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo2 = Item2;
@@ -197,7 +197,7 @@ static INT NTAPI PhpHeapUsedCompareFunction(
 {
     PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo1 = Item1;
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo2 = Item2;
@@ -221,7 +221,7 @@ static INT NTAPI PhpHeapCommittedCompareFunction(
 {
     PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo1 = Item1;
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo2 = Item2;
@@ -245,7 +245,7 @@ static INT NTAPI PhpHeapEntriesCompareFunction(
 {
     PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo1 = Item1;
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo2 = Item2;
@@ -270,7 +270,7 @@ static HFONT NTAPI PhpHeapFontFunction(
     PVOID heapBaseAddress = Param;
     PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
-    if (context->IsWow64)
+    if (context->IsWow64Process)
     {
         PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo = Param;
         heapBaseAddress = UlongToPtr(heapInfo->BaseAddress);
@@ -453,7 +453,7 @@ VOID PhpEnumerateProcessHeaps(
     }
 
 #ifdef _WIN64
-    if (Context->ProcessItem->IsWow64)
+    if (Context->ProcessItem->IsWow64Process)
     {
         if (PhUiConnectToPhSvcEx(Context->WindowHandle, Wow64PhSvcMode, FALSE))
         {
@@ -799,7 +799,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                         PPH_STRING usedString = NULL;
                         PPH_STRING committedString = NULL;
 
-                        if (context->IsWow64)
+                        if (context->IsWow64Process)
                         {
                             PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo;
 
@@ -1006,7 +1006,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //NTSTATUS PhGetProcessHeapCompatibilityInformation(
 //    _In_ HANDLE ProcessHandle,
 //    _In_ PVOID HeapAddress,
-//    _In_ ULONG IsWow64,
+//    _In_ ULONG IsWow64Process,
 //    _Out_ ULONG* HeapCompatibility
 //    )
 //{
@@ -1017,7 +1017,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //    {
 //        status = NtReadVirtualMemory(
 //            ProcessHandle,
-//            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0xEA : 0x1A2),
+//            PTR_ADD_OFFSET(HeapAddress, IsWow64Process ? 0xEA : 0x1A2),
 //            &frontEndHeapType,
 //            sizeof(ULONG),
 //            NULL
@@ -1036,7 +1036,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //NTSTATUS PhGetProcessHeapCounters(
 //    _In_ HANDLE ProcessHandle,
 //    _In_ PVOID HeapAddress,
-//    _In_ ULONG IsWow64,
+//    _In_ ULONG IsWow64Process,
 //    _Out_ PVOID *HeapCounters
 //    )
 //{
@@ -1044,7 +1044,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //    PVOID heapCounters;
 //    ULONG heapCountersLength;
 //
-//    if (IsWow64)
+//    if (IsWow64Process)
 //        heapCountersLength = sizeof(HEAP_COUNTERS32);
 //    else
 //        heapCountersLength = sizeof(HEAP_COUNTERS);
@@ -1056,7 +1056,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //    {
 //        status = NtReadVirtualMemory(
 //            ProcessHandle,
-//            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x1F4 : 0x238),
+//            PTR_ADD_OFFSET(HeapAddress, IsWow64Process ? 0x1F4 : 0x238),
 //            heapCounters,
 //            heapCountersLength,
 //            NULL
@@ -1077,7 +1077,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //NTSTATUS PhGetProcessSegmentHeapCounters(
 //    _In_ HANDLE ProcessHandle,
 //    _In_ PVOID HeapAddress,
-//    _In_ ULONG IsWow64,
+//    _In_ ULONG IsWow64Process,
 //    _Out_ PVOID *HeapCounters
 //    )
 //{
@@ -1085,7 +1085,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //    PVOID heapCounters;
 //    ULONG heapCountersLength;
 //
-//    if (IsWow64)
+//    if (IsWow64Process)
 //        heapCountersLength = sizeof(HEAP_RUNTIME_MEMORY_STATS32);
 //    else
 //        heapCountersLength = sizeof(HEAP_RUNTIME_MEMORY_STATS);
@@ -1097,7 +1097,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //    {
 //        status = NtReadVirtualMemory(
 //            ProcessHandle,
-//            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x80 : 0x80),
+//            PTR_ADD_OFFSET(HeapAddress, IsWow64Process ? 0x80 : 0x80),
 //            heapCounters,
 //            heapCountersLength,
 //            NULL

@@ -14,8 +14,7 @@
 #include <settings.h>
 #include <vssym32.h>
 #include <emenu.h>
-
-#include "../tools/thirdparty/pcre/pcre2.h"
+#include <thirdparty.h>
 
 typedef struct _PH_SEARCHCONTROL_BUTTON
 {
@@ -601,14 +600,17 @@ BOOLEAN PhpSearchUpdateText(
     PPH_STRING newSearchboxText;
     ULONG_PTR matchHandle;
 
-    newSearchboxText = PH_AUTO(PhGetWindowText(hWnd));
+    newSearchboxText = PhGetWindowText(hWnd);
 
     Context->SearchButton.Active = (newSearchboxText->Length > 0);
 
     if (!Force && PhEqualString(newSearchboxText, Context->SearchboxText, FALSE))
+    {
+        PhDereferenceObject(newSearchboxText);
         return FALSE;
+    }
 
-    PhSwapReference(&Context->SearchboxText, newSearchboxText);
+    PhMoveReference(&Context->SearchboxText, newSearchboxText);
 
     Context->UseSearchPointer = PhStringToInteger64(&newSearchboxText->sr, 0, &Context->SearchPointer);
 
@@ -669,7 +671,11 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 context->CueBannerText = NULL;
             }
 
-            PhDereferenceObject(context->SearchboxText);
+            if (context->SearchboxText)
+            {
+                PhDereferenceObject(context->SearchboxText);
+                context->SearchboxText = NULL;
+            }
 
             if (context->SearchboxRegexCode)
             {
