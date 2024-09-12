@@ -698,6 +698,15 @@ PhCountStringZ(
     _In_ PWSTR String
     );
 
+FORCEINLINE
+SIZE_T
+PhCountBytesZ(
+    _In_ PSTR String
+    )
+{
+    return (SIZE_T)strlen(String);
+}
+
 PHLIBAPI
 PSTR
 NTAPI
