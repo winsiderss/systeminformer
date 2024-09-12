@@ -117,7 +117,7 @@ VOID EtHandlePropertiesWindowPreOpen(
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
     // Object Manager
-    // We rely on the fact that on fact that Object Manager opens properties window in same thread
+    // We rely on the fact that Object Manager opens properties window in same thread
     if (EtObjectManagerDialogHandle &&
         GetWindowThreadProcessId(context->ParentWindow, NULL) == GetWindowThreadProcessId(EtObjectManagerDialogHandle, NULL))
     {
@@ -131,8 +131,27 @@ VOID EtHandlePropertiesWindowPreOpen(
             PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
         }
 
-        // Remove irrelevant SI access mask
+        // Replace irrelevant SI access mask with object creation time (if any)
         PhRemoveListViewItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
+
+        if (EtObjectManagerTimeCached.QuadPart != 0) {
+            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddListViewGroupItem(
+                context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
+                PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
+                L"Creation time",
+                NULL
+            );
+
+            PPH_STRING startTimeString;
+            SYSTEMTIME startTimeFields;
+            PhLargeIntegerToLocalSystemTime(&startTimeFields, &EtObjectManagerTimeCached);
+            startTimeString = PhaFormatDateTime(&startTimeFields);
+
+            PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, startTimeString->Buffer);
+        }
+        else
+            PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, L"N/A");
 
         PhSetWindowText(context->ParentWindow, L"Object Properties");
 

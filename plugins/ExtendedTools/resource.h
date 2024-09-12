@@ -102,6 +102,10 @@
 #define IDC_WINOBJPERMANENT             1114
 #define IDC_WINOBJEXCLUSIVE             1115
 #define IDC_WINOBJCREATIONTIME          1116
+#define IDC_OBJMGR_SEARCH               1117
+#define IDC_OBJMGR_COUNT_L              1118
+#define IDC_OBJMGR_COUNT                1119
+#define IDC_OBJMGR_PATH                 1120
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -174,7 +178,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1117
+#define _APS_NEXT_CONTROL_VALUE         1121
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
