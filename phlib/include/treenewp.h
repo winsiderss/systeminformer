@@ -595,6 +595,7 @@ BOOLEAN PhTnpGetCellParts(
     _Out_ PPH_TREENEW_CELL_PARTS Parts
     );
 
+_Success_(return)
 BOOLEAN PhTnpGetRowRects(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Start,
@@ -781,11 +782,12 @@ PPH_TREENEW_COLUMN PhTnpHitTestHeader(
     _Out_opt_ PRECT ItemRect
     );
 
-VOID PhTnpGetHeaderTooltipText(
+_Success_(return)
+BOOLEAN PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Outptr_ PWSTR *Text
+    _Out_ PWSTR *Text
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
@@ -841,6 +843,11 @@ BOOLEAN PhTnpGetColumnHeaderText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
     _Out_ PPH_STRINGREF Text
+    );
+
+BOOLEAN TnHeaderCustomPaint(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LPNMCUSTOMDRAW CustomDraw
     );
 
 // Macros
