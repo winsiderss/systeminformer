@@ -4888,6 +4888,7 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 __drv_allocatesMem(Mem)
 DECLSPEC_ALLOCATOR
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlAllocateHeap(
@@ -4966,6 +4967,7 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _When_(Size > 0, __drv_allocatesMem(Mem))
 DECLSPEC_ALLOCATOR
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlReAllocateHeap(
