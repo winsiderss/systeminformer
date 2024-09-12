@@ -7010,9 +7010,6 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     case WM_MOUSEMOVE:
         {
             BOOLEAN redraw = FALSE;
-            ULONG hitcolumn;
-            POINT point;
-            PPH_TREENEW_COLUMN column;
 
             if (context->TooltipsHandle)
             {
@@ -7030,16 +7027,25 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             //if (GetCapture() == WindowHandle)
             //    break;
 
-            point.x = GET_X_LPARAM(lParam);
-            point.y = GET_Y_LPARAM(lParam);
-            column = PhTnpHitTestHeader(context, hwnd == context->FixedHeaderHandle, &point, NULL);
-
-            hitcolumn = column ? column->Id : ULONG_MAX;
-
-            if (context->HeaderHotColumn != hitcolumn)
+            if (!context->HeaderDragging)
             {
-                context->HeaderHotColumn = hitcolumn;
-                //redraw = TRUE;
+                ULONG hitcolumn;
+                POINT point;
+                PPH_TREENEW_COLUMN column;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+                column = PhTnpHitTestHeader(context, hwnd == context->FixedHeaderHandle, &point, NULL);
+
+                hitcolumn = column ? column->Id : ULONG_MAX;
+
+                if (context->HeaderHotColumn != hitcolumn)
+                {
+                    context->HeaderHotColumn = hitcolumn;
+                    //redraw = TRUE;
+                }
+
+                redraw = TRUE;
             }
 
             if (!context->HeaderMouseActive)
@@ -7079,6 +7085,9 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     case WM_LBUTTONDOWN:
         {
             LRESULT result;
+            ULONG hitcolumn;
+            POINT point;
+            PPH_TREENEW_COLUMN column;
 
             if (context->TooltipsHandle)
             {
@@ -7093,6 +7102,20 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             if (!context->HeaderCustomDraw)
                 break;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+            column = PhTnpHitTestHeader(context, hwnd == context->FixedHeaderHandle, &point, NULL);
+
+            hitcolumn = column ? column->Id : ULONG_MAX;
+
+            if (context->HeaderHotColumn != hitcolumn)
+            {
+                context->HeaderHotColumn = hitcolumn;
+                //redraw = TRUE;
+            }
+
+            InvalidateRect(hwnd, NULL, FALSE);
 
             result = CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
             context->HeaderDragging = TRUE;
@@ -7142,12 +7165,14 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             result = CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
             context->HeaderMouseActive = FALSE;
-            context->HeaderHotColumn = -1;
+            context->HeaderHotColumn = ULONG_MAX;
 
-            if (GetCapture() != hwnd)
-            {
-                InvalidateRect(hwnd, NULL, FALSE);
-            }
+            //if (GetCapture() != hwnd)
+            //{
+            //    InvalidateRect(hwnd, NULL, FALSE);
+            //}
+
+            InvalidateRect(hwnd, NULL, FALSE);
 
             return result;
         }
