@@ -1279,6 +1279,8 @@ VOID PhLoaderEntryGrantSuppressedCall(
             PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
             PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), NtSetInformationVirtualMemory_Import());
         }
+
+        return;
     }
 
     if (PhLoaderEntryCacheHashtable && !PhFindItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress))
