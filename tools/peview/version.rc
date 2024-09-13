@@ -67,7 +67,7 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "000004b0"
+        BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName", "Winsider Seminars & Solutions"
             VALUE "FileDescription", "Sуstеm Infоrmеr"
@@ -81,7 +81,7 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x0409, 1200
+        VALUE "Translation", 0x409, 1200
     END
 END
 
