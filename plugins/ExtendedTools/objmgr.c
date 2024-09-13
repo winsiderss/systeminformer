@@ -1607,20 +1607,23 @@ INT_PTR CALLBACK WinObjDlgProc(
                     if (item)
                     {
                         POBJECT_ITEM directory;
-                        POBJECT_ENTRY entry;
+                        POBJECT_ENTRY entry = NULL;
 
                         PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL);
 
                         if (!PhHandleCopyListViewEMenuItem(item))
                         {
+                            if (item->Id == 1 || item->Id == 2)
+                            {
+                                entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
+                                entry->Name = directory->Name;
+                                entry->TypeName = PhCreateString(L"DirectoryObject");
+                            }
+
                             switch (item->Id)
                             {
                             case 1:
                                 {
-                                    entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
-                                    entry->Name = directory->Name;
-                                    entry->TypeName = PhCreateString(L"DirectoryObject");
-
                                     EtObjectManagerObjectProperties(hwndDlg, context, entry);
 
                                     PhClearReference(&entry->TypeName);
@@ -1629,10 +1632,6 @@ INT_PTR CALLBACK WinObjDlgProc(
                                 break;
                             case 2:
                                 {
-                                    entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
-                                    entry->Name = directory->Name;
-                                    entry->TypeName = PhCreateString(L"Directory");
-
                                     EtpObjectManagerOpenSecurity(hwndDlg, context, entry);
                                 }
                                 break;
