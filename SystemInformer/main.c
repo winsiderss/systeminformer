@@ -1200,7 +1200,7 @@ VOID PhpInitializeSettings(
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(L"EnableServiceNonPollNotify");
     PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
-    PhEnableKsiSupport = !!PhGetIntegerSetting(L"PhEnableKsi") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
+    PhEnableKsiSupport = !!PhGetIntegerSetting(L"KsiEnable") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
     PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
