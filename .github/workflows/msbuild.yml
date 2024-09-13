@@ -96,7 +96,7 @@ jobs:
                     },
                     {
                       "name": "Message",
-                      "value": "${{ github.event.head_commit.message }}"
+                      "value": ${{ toJSON(github.event.head_commit.message) }}
                     }
                   ]
                 }
