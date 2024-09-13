@@ -227,6 +227,12 @@ NTSTATUS KphReadVirtualMemory(
 
     if (AccessMode != KernelMode)
     {
+        if (Add2Ptr(BaseAddress, BufferSize) < BaseAddress)
+        {
+            status = STATUS_ACCESS_VIOLATION;
+            goto Exit;
+        }
+
         __try
         {
             ProbeOutputBytes(Buffer, BufferSize);
