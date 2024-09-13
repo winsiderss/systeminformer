@@ -1212,6 +1212,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
     assert(context);
 
+    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(context->ListViewHandle);
 
     PPH_LIST Array = context->CurrentDirectoryList;
@@ -1236,6 +1237,8 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
             }
         }
     }
+
+    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 }
 
 INT_PTR CALLBACK WinObjDlgProc(
