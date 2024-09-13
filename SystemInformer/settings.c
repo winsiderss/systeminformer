@@ -141,8 +141,6 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"InformationWindowSize", L"@96|140,190");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
-    PhpAddIntegerSetting(L"KsiEnable", L"0");
-    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
@@ -352,6 +350,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
+    PhpAddIntegerSetting(L"KsiEnable", L"0");
+    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddStringSetting(L"KsiServiceName", L"");
     PhpAddStringSetting(L"KsiObjectName", L"");
     PhpAddStringSetting(L"KsiPortName", L"");
