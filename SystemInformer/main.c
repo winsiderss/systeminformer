@@ -173,10 +173,8 @@ INT WINAPI wWinMain(
         }
     }
 
-    if (PhGetIntegerSetting(L"KsiEnable") &&
-        !PhStartupParameters.NoKph &&
-        !PhStartupParameters.ShowOptions &&
-        !PhIsExecutingInWow64())
+    if (PhEnableKsiSupport &&
+        !PhStartupParameters.ShowOptions)
     {
         PhInitializeKsi();
     }
@@ -252,9 +250,7 @@ INT WINAPI wWinMain(
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
 
-    if (PhGetIntegerSetting(L"KsiEnable") &&
-        !PhStartupParameters.NoKph &&
-        !PhIsExecutingInWow64())
+    if (PhEnableKsiSupport)
     {
         PhShowKsiStatus();
     }
@@ -273,9 +269,7 @@ INT WINAPI wWinMain(
 
     PhEnableTerminationPolicy(FALSE);
 
-    if (PhGetIntegerSetting(L"KsiEnable") &&
-        !PhStartupParameters.NoKph &&
-        !PhIsExecutingInWow64())
+    if (PhEnableKsiSupport)
     {
         PhCleanupKsi();
     }
@@ -1206,6 +1200,8 @@ VOID PhpInitializeSettings(
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(L"EnableServiceNonPollNotify");
     PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
+    PhEnableKsiSupport = !!PhGetIntegerSetting(L"PhEnableKsi") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
+    PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {
