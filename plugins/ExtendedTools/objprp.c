@@ -122,7 +122,7 @@ VOID EtHandlePropertiesWindowPreOpen(
         GetWindowThreadProcessId(context->ParentWindow, NULL) == GetWindowThreadProcessId(EtObjectManagerDialogHandle, NULL))
     {
         WCHAR string[PH_INT64_STR_LEN_1];
-        PPH_STRING count = PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1);
+        PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1));
 
         // Show real handles count
         ULONG real_count = wcstoul(count->Buffer, NULL, 10);
