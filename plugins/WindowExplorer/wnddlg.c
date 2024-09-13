@@ -95,8 +95,15 @@ NTSTATUS WepShowWindowsDialogThread(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
+
+        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
+        {
+            ((WNDPROC)GetWindowLongPtr(WepWindowsDialogHandle, GWLP_WNDPROC))(
+                WepWindowsDialogHandle, message.message, message.wParam, message.lParam
+                );
+        }
 
         if (!IsDialogMessage(WepWindowsDialogHandle, &message))
         {
@@ -1554,6 +1561,18 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+    {
+        if (LOWORD(wParam) == 'K')
+        {
+            if (GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchBoxHandle);
+                return TRUE;
+            }
+        }
+    }
+    break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:

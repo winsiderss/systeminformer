@@ -271,9 +271,7 @@ NTSTATUS PhShowHandlePropertiesModal(
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
 
-    PhReferenceObject(HandleItem);
     status = PhpShowHandlePropertiesThread(context);
-    PhReferenceObject(HandleItem);
 
     return status;
 }
@@ -2196,7 +2194,9 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
+            // Don't save position for plugin window, ex. Object Manager (Dart Vanya)
+            if (!PhEqualStringZ(context->HandleItem->HandleString, L"PH_PLUGIN", FALSE))
+                PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
