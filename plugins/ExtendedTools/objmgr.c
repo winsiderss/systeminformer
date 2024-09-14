@@ -1156,12 +1156,21 @@ VOID NTAPI EtObjectManagerRefresh(
     PPH_STRING selectedPath = NULL;
     PPH_STRING oldFilter = PhGetWindowText(context->SearchBoxHandle);
     BOOLEAN rootWasSelected = context->SelectedTreeItem == context->RootTreeObject;
+    HWND countControl = GetDlgItem(hwndDlg, IDC_OBJMGR_COUNT);
+    PVOID* listviewItems;
+    ULONG numberOfItems;
+    PPH_STRING oldSelect = NULL;
 
     if (!rootWasSelected)
         selectedPath = EtGetSelectedTreeViewPath(context);
 
+    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+    if (numberOfItems != 0)
+        oldSelect = PhReferenceObject(((POBJECT_ENTRY)listviewItems[0])->Name);
+
     SendMessage(context->TreeViewHandle, WM_SETREDRAW, FALSE, 0);
     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+    SendMessage(countControl, WM_SETREDRAW, FALSE, 0);
 
     EtObjectManagerFreeListViewItems(context);
     ListView_DeleteAllItems(context->ListViewHandle);
@@ -1218,8 +1227,30 @@ VOID NTAPI EtObjectManagerRefresh(
     }
     PhDereferenceObject(oldFilter);
 
+    // Reselect previously active listview item
+    if (oldSelect)
+    {
+        LVFINDINFO findinfo;
+        findinfo.psz = oldSelect->Buffer;
+        findinfo.flags = LVFI_STRING;
+
+        int item = ListView_FindItem(context->ListViewHandle, -1, &findinfo);
+
+        if (item != INT_ERROR) {
+            ListView_SetItemState(context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+            ListView_EnsureVisible(context->ListViewHandle, item, TRUE);
+        }
+
+        PhDereferenceObject(oldSelect);
+    }
+
     SendMessage(context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+    SendMessage(countControl, WM_SETREDRAW, TRUE, 0);
+    WCHAR string[PH_INT32_STR_LEN_1];
+    PhPrintUInt32(string, context->CurrentDirectoryList->Count);
+    PhSetWindowText(countControl, string);
 }
 
 VOID NTAPI EtpObjectManagerOpenSecurity(
