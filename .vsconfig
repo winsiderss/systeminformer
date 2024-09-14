@@ -3,7 +3,6 @@
   "components": [
     "Microsoft.Component.MSBuild",
     "Microsoft.VisualStudio.Component.Git",
-    "Microsoft.VisualStudio.Component.Vcpkg",
     "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
     "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
     "Microsoft.VisualStudio.Component.VC.Tools.ARM64",

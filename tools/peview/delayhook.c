@@ -776,7 +776,7 @@ VOID ThemeWindowRenderHeaderControl(
                     NULL,
                     TS_TRUE,
                     &sortArrowSize
-                    ) == S_OK)
+                    ))
                 {
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }
@@ -806,7 +806,7 @@ VOID ThemeWindowRenderHeaderControl(
                     NULL,
                     TS_TRUE,
                     &sortArrowSize
-                    ) == S_OK)
+                    ))
                 {
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }

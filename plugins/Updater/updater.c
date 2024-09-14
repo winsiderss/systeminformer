@@ -11,19 +11,11 @@
 
 #include "updater.h"
 
-typedef enum _UPDATER_PLATFORM_SUPPORT_ID
-{
-    PlatformSupportNtoskrnl,
-    PlatformSupportNtkrnlpa,
-    PlatformSupportNtkrnlmp,
-    PlatformSupportNtkrnlsp,
-    PlatformSupportNtkrla57,
-    PlatformSupportLxcore,
-} UPDATER_PLATFORM_SUPPORT_ID, *PUPDATER_PLATFORM_SUPPORT_ID;
+#include <kphdyn.h>
 
 typedef struct _UPDATER_PLATFORM_SUPPORT_ENTRY
 {
-    UPDATER_PLATFORM_SUPPORT_ID Id;
+    USHORT Class;
     PH_STRINGREF FileName;
 } UPDATER_PLATFORM_SUPPORT_ENTRY, *PUPDATER_PLATFORM_SUPPORT_ENTRY;
 
@@ -295,6 +287,83 @@ PPH_STRING UpdateVersionString(
     }
 }
 
+NTSTATUS UpdatePlatformSupportInformation(
+    _In_ PPH_STRINGREF FileName,
+    _Out_ PUSHORT ImageMachine,
+    _Out_ PULONG TimeDateStamp,
+    _Out_ PULONG SizeOfImage,
+    _Out_ PPH_STRING* HashString
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    PH_MAPPED_IMAGE mappedImage;
+    LARGE_INTEGER fileSize;
+    PH_HASH_CONTEXT hashContext;
+    ULONG64 bytesRemaining;
+    BYTE buffer[PAGE_SIZE];
+    BYTE hash[256 / 8];
+
+    if (!NT_SUCCESS(status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+        return status;
+
+    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+        goto CleanupExit;
+
+    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+
+    bytesRemaining = (ULONG64)fileSize.QuadPart;
+
+    while (bytesRemaining)
+    {
+        IO_STATUS_BLOCK iosb;
+
+        status = NtReadFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            buffer,
+            sizeof(buffer),
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
+        bytesRemaining -= (ULONG)iosb.Information;
+    }
+
+    if (NT_SUCCESS(status = PhLoadMappedImageHeaderPageSize(NULL, fileHandle, &mappedImage)))
+    {
+        *ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+        *TimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+        *SizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
+
+        PhFinalHash(&hashContext, hash, sizeof(hash), NULL);
+        *HashString = PhBufferToHexString(hash, sizeof(hash));
+
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+CleanupExit:
+
+    NtClose(fileHandle);
+
+    return status;
+}
+
 PPH_STRING UpdatePlatformSupportString(
     VOID
     )
@@ -302,12 +371,9 @@ PPH_STRING UpdatePlatformSupportString(
     static PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
     static UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
     {
-        { PlatformSupportNtoskrnl, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
-        { PlatformSupportNtkrnlpa, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlpa.exe") },
-        { PlatformSupportNtkrnlmp, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlmp.exe") },
-        { PlatformSupportNtkrnlsp, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrnlsp.exe") },
-        { PlatformSupportNtkrla57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
-        { PlatformSupportLxcore,   PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\lxcore.sys") },
+        { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
+        { KPH_DYN_CLASS_NTKRLA57, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntkrla57.exe") },
+        { KPH_DYN_CLASS_LXCORE,   PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\lxcore.sys") },
     };
 
     PH_STRING_BUILDER stringBuilder;
@@ -315,36 +381,31 @@ PPH_STRING UpdatePlatformSupportString(
     PhInitializeStringBuilder(&stringBuilder, 30);
 
     PhAppendStringBuilder(&stringBuilder, &platformHeader);
-    PhAppendStringBuilder2(&stringBuilder, L"[");
+    PhAppendStringBuilder2(&stringBuilder, L"{\"version\":1,");
+    PhAppendStringBuilder2(&stringBuilder, L"\"files\":[");
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(platformFiles); i++)
     {
-        PH_MAPPED_IMAGE mappedImage;
-        USHORT imageMachine = 0;
-        ULONG timeDateStamp = 0;
-        ULONG sizeOfImage = 0;
+        USHORT imageMachine;
+        ULONG timeDateStamp;
+        ULONG sizeOfImage;
+        PPH_STRING hashString;
 
-        if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&platformFiles[i].FileName, NULL, &mappedImage)))
+        if (NT_SUCCESS(UpdatePlatformSupportInformation(
+            &platformFiles[i].FileName,
+            &imageMachine,
+            &timeDateStamp,
+            &sizeOfImage,
+            &hashString
+            )))
         {
             PH_FORMAT format[11];
             PPH_STRING string;
-            LONG64 unique;
 
-            imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-            timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-            sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
-
-            unique = imageMachine;
-            unique += timeDateStamp;
-            unique += sizeOfImage;
-            unique += platformFiles[i].Id;
-
-            PhUnloadMappedImage(&mappedImage);
-
-            PhInitFormatS(&format[0], L"{\"uid\":");
-            PhInitFormatI64D(&format[1], unique);
-            PhInitFormatS(&format[2], L",\"file\":");
-            PhInitFormatU(&format[3], platformFiles[i].Id);
+            PhInitFormatS(&format[0], L"{\"hash\":\"");
+            PhInitFormatSR(&format[1], hashString->sr);
+            PhInitFormatS(&format[2], L"\",\"file\":");
+            PhInitFormatU(&format[3], platformFiles[i].Class);
             PhInitFormatS(&format[4], L",\"machine\":");
             PhInitFormatU(&format[5], imageMachine);
             PhInitFormatS(&format[6], L",\"timestamp\":");
@@ -358,13 +419,14 @@ PPH_STRING UpdatePlatformSupportString(
             PhAppendStringBuilder(&stringBuilder, &string->sr);
 
             PhDereferenceObject(string);
+            PhDereferenceObject(hashString);
         }
     }
 
     if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    PhAppendStringBuilder2(&stringBuilder, L"]");
+    PhAppendStringBuilder2(&stringBuilder, L"]}");
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -971,7 +1033,7 @@ NTSTATUS UpdateDownloadThread(
         // Check the number of bytes written are the same we downloaded.
         if (bytesDownloaded != isb.Information)
         {
-            status = STATUS_DATA_CHECKSUM_ERROR;
+            context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
             goto CleanupExit;
         }
 
@@ -1034,7 +1096,7 @@ NTSTATUS UpdateDownloadThread(
     }
     else
     {
-        status = STATUS_DATA_CHECKSUM_ERROR;
+        context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
     }
 
 CleanupExit:

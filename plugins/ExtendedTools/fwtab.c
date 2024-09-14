@@ -332,10 +332,10 @@ VOID LoadSettingsFwTreeUpdateMask(
         ClearFlag(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME);
     }
 
-    //if (NextUniqueId != 0 && current != BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
-    //{
-    //    PhInvalidateAllNetworkNodesHostnames();
-    //}
+    if (ProcessesUpdatedCount != 0 && current != BooleanFlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
+    {
+        EtFwInvalidateAllFwNodesHostnames();
+    }
 }
 
 VOID LoadSettingsFwTreeList(
@@ -1567,6 +1567,53 @@ VOID EtFwSelectAndEnsureVisibleFwNode(
         return;
 
     TreeNew_FocusMarkSelectNode(FwTreeNewHandle, &FwNode->Node);
+}
+
+VOID EtFwInvalidateAllFwNodes(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < FwNodeList->Count; i++)
+    {
+        PFW_EVENT_ITEM node = FwNodeList->Items[i];
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * (FW_COLUMN_MAXIMUM - 2));
+        PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
+    }
+
+    InvalidateRect(FwTreeNewHandle, NULL, FALSE);
+}
+
+VOID EtFwInvalidateAllFwNodesHostnames(
+    VOID
+    )
+{
+    EtFwFlushResolveCache();
+
+    for (ULONG i = 0; i < FwNodeList->Count; i++)
+    {
+        PFW_EVENT_ITEM node = FwNodeList->Items[i];
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * (FW_COLUMN_MAXIMUM - 2));
+        PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
+
+        EtFwQueryHostnameForEntry(node);
+    }
+
+    //PPH_NETWORK_ITEM* networkItems;
+    //ULONG numberOfNetworkItems;
+    //
+    //PhEnumNetworkItems(&networkItems, &numberOfNetworkItems);
+    //
+    //for (ULONG j = 0; j < numberOfNetworkItems; j++)
+    //{
+    //    PPH_NETWORK_ITEM networkItem = networkItems[j];
+    //
+    //    networkItem->InvalidateHostname = TRUE;
+    //}
+    //
+    //PhDereferenceObjects(networkItems, numberOfNetworkItems);
+    //PhFree(networkItems);
 }
 
 VOID EtFwCopyFwList(

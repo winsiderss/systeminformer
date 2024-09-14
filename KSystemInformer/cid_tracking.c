@@ -471,6 +471,45 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process->ProcessId = PsGetProcessId(process->EProcess);
 
+    if (KphDynPsGetProcessStartKey)
+    {
+        process->ProcessStartKey = KphDynPsGetProcessStartKey(processObject);
+    }
+    else
+    {
+        PROCESS_TELEMETRY_ID_INFORMATION telemetryIdInfo;
+
+        telemetryIdInfo.HeaderSize = 0;
+
+        status = ZwQueryInformationProcess(processHandle,
+                                           ProcessTelemetryIdInformation,
+                                           &telemetryIdInfo,
+                                           sizeof(PROCESS_TELEMETRY_ID_INFORMATION),
+                                           NULL);
+
+        if ((status == STATUS_BUFFER_OVERFLOW) &&
+            RTL_CONTAINS_FIELD(&telemetryIdInfo,
+                               telemetryIdInfo.HeaderSize,
+                               ProcessStartKey))
+        {
+            status = STATUS_SUCCESS;
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            process->ProcessStartKey = telemetryIdInfo.ProcessStartKey;
+        }
+        else
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          TRACKING,
+                          "ProcessTelemetryIdInformation failed: %!STATUS!",
+                          status);
+
+            NT_ASSERT(process->ProcessStartKey == 0);
+        }
+    }
+
 #ifdef _WIN64
     if (PsGetProcessWow64Process(process->EProcess))
     {

@@ -347,8 +347,7 @@ VOID ShowDbInstallRestartDialog(
     );
 
 VOID ShowDbUpdateFailedDialog(
-    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
-    _In_opt_ ULONG ErrorCode
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 VOID ShowDbInvalidSettingsDialog(

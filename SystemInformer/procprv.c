@@ -1414,7 +1414,9 @@ VOID PhpFillProcessItem(
             SIZE_T CommandLineLength = telemetryInfoLength - telemetryInfo->CommandLineOffset;
             PWSTR CommandLineBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->CommandLineOffset);
 
+            ProcessItem->ProcessStartKey = telemetryInfo->ProcessStartKey;
             ProcessItem->CreateInterruptTime = telemetryInfo->CreateInterruptTime;
+            ProcessItem->ProcessSequenceNumber = telemetryInfo->ProcessSequenceNumber;
             ProcessItem->SessionCreateTime = telemetryInfo->SessionCreateTime;
             ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
             ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;

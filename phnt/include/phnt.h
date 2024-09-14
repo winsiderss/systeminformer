@@ -68,6 +68,10 @@
 
 //#define PHNT_NO_INLINE_INIT_STRING
 
+#ifndef PHNT_INLINE_TYPEDEFS
+#define PHNT_INLINE_TYPEDEFS
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -37,6 +37,8 @@
             <SupportJustMyCode>false</SupportJustMyCode>
             <CallingConvention>StdCall</CallingConvention>
             <BuildStlModules>false</BuildStlModules>
+            <UseStandardPreprocessor>true</UseStandardPreprocessor>
+            <OmitFramePointers>true</OmitFramePointers>
         </ClCompile>
         <Link>
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
@@ -78,6 +80,7 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
+            <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
             <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
             <ControlFlowGuard>Guard</ControlFlowGuard>
         </ClCompile>
@@ -102,7 +105,7 @@
     <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
         <ClCompile>
             <CallingConvention>StdCall</CallingConvention>
-            <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+            <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -115,6 +118,7 @@
     <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
         <ClCompile>
             <CallingConvention>StdCall</CallingConvention>
+            <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
