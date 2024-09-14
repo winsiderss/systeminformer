@@ -113,7 +113,7 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
 {
     PPOOLTAG_CONTEXT context = Context;
 
-    if (PtrToUlong(Parameter) < 3)
+    if (ProcessesUpdatedCount != 3)
         return;
 
     EtUpdatePoolTagTable(Context);
