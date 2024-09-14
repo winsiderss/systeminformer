@@ -375,6 +375,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         INT index;
         POBJECT_ENTRY entry;
         BOOLEAN isSymlink = FALSE;
+        BOOLEAN isDevice = FALSE;
 
         entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
         entry->Name = PhCreateString2(Name);
@@ -387,6 +388,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         else if (PhEqualStringRef2(TypeName, L"Device", TRUE))
         {
             entry->imageIndex = 2;
+            isDevice = TRUE;
         }
         else if (PhEqualStringRef2(TypeName, L"Driver", TRUE))
         {
@@ -453,6 +455,46 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
             }
 
             PhDereferenceObject(objectContext.CurrentPath);
+        }
+
+        if (isDevice)
+        {
+            //NTSTATUS status;
+            //HANDLE objectHandle;
+            //HANDLE_OPEN_CONTEXT objectContext;
+            //KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+
+            //objectContext.CurrentPath = EtGetSelectedTreeViewPath(Context);
+            //objectContext.Object = entry;
+
+            //// Extreamly slow open of \Device folder (several seconds), PhCreateFile returns STATUS_IO_TIMEOUT and it tooks forever
+            //if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL)))
+            //{
+            //    if (NT_SUCCESS(KphQueryInformationObject(
+            //        NtCurrentProcess(),
+            //        objectHandle,
+            //        KphObjectFileObjectDriver,
+            //        &fileObjectDriver,
+            //        sizeof(fileObjectDriver),
+            //        NULL
+            //    )))
+            //    {
+            //        PPH_STRING driverName;
+
+            //        if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+            //        {
+            //            entry->Symlink = driverName;
+
+            //            PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Symlink->Buffer);
+            //        }
+
+            //        NtClose(fileObjectDriver.DriverHandle);
+            //    }
+
+            //    NtClose(objectHandle);
+            //}
+
+            //PhDereferenceObject(objectContext.CurrentPath);
         }
 
         PhAddItemList(Context->CurrentDirectoryList, entry);
@@ -941,18 +983,22 @@ NTSTATUS NTAPI EtObjectManagerObjectProperties(
             SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
 
             memset(&HandleInfo, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
-
             handleItem = PhCreateHandleItem(&HandleInfo);
 
             // Do not save window position at close
-            wcscpy_s(handleItem->HandleString, PH_PTR_STR_LEN_1, L"PH_PLUGIN");
-            handleItem->TypeName = PhReferenceObject(entry->TypeName);
+            PhCopyStringZ(L"PH_PLUGIN", RTL_NUMBER_OF(L"PH_PLUGIN"), handleItem->HandleString, RTL_NUMBER_OF(handleItem->HandleString), NULL);
             handleItem->ObjectName = PhReferenceObject(entry->Name);
 
-            BOOL useKsi = KsiLevel() >= KphLevelMed;
+            if (PhEqualStringRef2(&entry->TypeName->sr, L"Device", TRUE) ||
+                PhEqualStringRef2(&entry->TypeName->sr, L"FilterConnectionPort", TRUE))
+            {
+                handleItem->TypeName = PhCreateString(L"File");
+            }
+            else
+                handleItem->TypeName = PhReferenceObject(entry->TypeName);
 
             // Get object address using KSystemInformer
-            if (useKsi)
+            if (KsiLevel() >= KphLevelMed)
             {
                 PKPH_PROCESS_HANDLE_INFORMATION handles;
                 ULONG i;
@@ -970,7 +1016,6 @@ NTSTATUS NTAPI EtObjectManagerObjectProperties(
                 }
             }
 
-            // Get bestObjectName
             if (NT_SUCCESS(status = PhGetHandleInformation(
                 NtCurrentProcess(),
                 objectHandle,
