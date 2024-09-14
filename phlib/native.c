@@ -17776,6 +17776,29 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
+NTSTATUS
+DECLSPEC_GUARDNOCF
+PhpSetInformationVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
+    _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
+    _In_ ULONG VmInformationLength
+    )
+{
+    assert(NtSetInformationVirtualMemory_Import());
+
+    return NtSetInformationVirtualMemory_Import()(
+        ProcessHandle,
+        VmInformationClass,
+        NumberOfEntries,
+        VirtualAddresses,
+        VmInformation,
+        VmInformationLength
+        );
+}
+
 // rev from PrefetchVirtualMemory (dmex)
 /**
  * Provides an efficient mechanism to bring into memory potentially discontiguous virtual address ranges in a process address space.
@@ -17801,7 +17824,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 
     memset(&prefetchInformationFlags, 0, sizeof(prefetchInformationFlags));
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmPrefetchInformation,
         NumberOfEntries,
@@ -17837,7 +17860,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
 //    virtualMemoryFlags = Priority;
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmPagePriorityInformation,
 //        1,
@@ -17869,7 +17892,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //
 //    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmPagePriorityInformation,
 //        1,
@@ -17923,7 +17946,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //    cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
 //    cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmCfgCallTargetInformation,
 //        1,
@@ -17952,8 +17975,6 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
 
     if (!NtSetInformationVirtualMemory_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-    if (VirtualAddress == (PVOID)MAXULONG_PTR)
-        return STATUS_SUCCESS;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
     cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
@@ -17969,7 +17990,7 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,
@@ -18013,7 +18034,7 @@ NTSTATUS PhDisableXfgOnTarget(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,

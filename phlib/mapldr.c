@@ -1265,7 +1265,6 @@ VOID PhLoaderEntryGrantSuppressedCall(
     _In_ PVOID ExportAddress
     )
 {
-#ifndef DEBUG
     static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
@@ -1273,14 +1272,8 @@ VOID PhLoaderEntryGrantSuppressedCall(
     {
         PhLoaderEntryCacheInitialized = TRUE;
 
-        if (LdrControlFlowGuardEnforced())
-        {
-            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)MAXULONG_PTR); // initialize imports (dmex)
+        if (LdrControlFlowGuardEnforcedWithExportSuppression())
             PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
-            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), NtSetInformationVirtualMemory_Import());
-        }
-
-        return;
     }
 
     if (PhLoaderEntryCacheHashtable && !PhFindItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress))
@@ -1290,7 +1283,6 @@ VOID PhLoaderEntryGrantSuppressedCall(
             PhAddItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress, UlongToPtr(TRUE));
         }
     }
-#endif
 }
 
 static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(

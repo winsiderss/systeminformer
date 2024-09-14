@@ -1620,7 +1620,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     }
                     else
                     {
-                        SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
+                        SetTextColor(DrawInfo->hdc, !isDisabled ? PhThemeWindowTextColor : RGB(0x9B, 0x9B, 0x9B));
                         //SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackgroundColor); // WindowForegroundColor
                         FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                     }
@@ -1769,7 +1769,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 }
                 else
                 {
-                    SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
+                    SetTextColor(DrawInfo->hdc, !isDisabled ? PhThemeWindowTextColor : RGB(0x9B, 0x9B, 0x9B));
                     //SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackgroundColor); // WindowForegroundColor
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                 }
