@@ -261,6 +261,8 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             PhpRefreshProcessList(hwndDlg, context);
 
             EnableWindow(GetDlgItem(hwndDlg, IDOK), FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

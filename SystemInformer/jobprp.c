@@ -55,6 +55,12 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     _In_ LPARAM lParam
     );
 
+INT CALLBACK PhpJobStatisticsSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+);
+
 VOID PhShowJobProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
@@ -589,13 +595,15 @@ VOID PhpShowJobAdvancedProperties(
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
+        PSH_PROPTITLE |
+        PSH_USECALLBACK;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Job";
     propSheetHeader.nPages = 2;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
+    propSheetHeader.pfnCallback = PhpJobStatisticsSheetProc;
 
     // General
 
@@ -756,4 +764,17 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     }
 
     return FALSE;
+}
+
+INT CALLBACK PhpJobStatisticsSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+)
+{
+    if (uMsg == PSCB_INITIALIZED && PhEnableThemeSupport)
+    {
+        PhInitializeWindowTheme(hwndDlg, TRUE);
+    }
+    return 0;
 }

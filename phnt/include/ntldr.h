@@ -1245,6 +1245,22 @@ LdrControlFlowGuardEnforced(
 #endif
 #endif
 
+/**
+ * The LdrControlFlowGuardEnforcedWithExportSuppression function checks if Control Flow Guard is
+ * enforced with export suppression.
+ *
+ * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+LdrControlFlowGuardEnforcedWithExportSuppression(
+    VOID
+    )
+{
+    return LdrSystemDllInitBlock.CfgBitMap && (LdrSystemDllInitBlock.Flags & 3) == 0;
+}
+
 #if (PHNT_VERSION >= PHNT_19H1)
 // rev
 NTSYSAPI
