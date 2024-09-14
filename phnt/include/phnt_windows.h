@@ -45,7 +45,7 @@
 #endif
 
 #ifndef MINLONGLONG
-// The Windows SDK basetsd.h references non-existant MAXLONGLONG definition
+// The Windows SDK basetsd.h references non-existent MAXLONGLONG definition
 // and breaks MINLONGLONG or in other cases results in a definition of zero. (dmex)
 #define MINLONGLONG ((LONGLONG)~MAXLONGLONG)
 #endif
