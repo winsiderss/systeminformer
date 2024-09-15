@@ -1125,3 +1125,9 @@ EXPORTS
     KsiLevel                                                                      @2036     NONAME
     KsiEnumerateProcessHandles                                                    @2037     NONAME
     KsiQueryHashInformationFile                                                   @2038     NONAME
+    KphQueryInformationObject                                                     @2039     NONAME
+    KphAlpcQueryInformation                                                       @2040     NONAME
+    KphAlpcQueryComminicationsNamesInfo                                           @2041     NONAME
+
+; phnative
+    PhGetDriverName                                                               @2042     NONAME
