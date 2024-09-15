@@ -1327,10 +1327,10 @@ namespace CustomBuildTool
                     string directory = Build.BuildWorkingFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
 
                     StringBuilder sb = new StringBuilder(260);
-                    sb.Append("{{ \"documents\": {{ ");
+                    sb.Append("{ \"documents\": { ");
                     sb.Append($"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
-                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
-                    sb.Append("}} }}");
+                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\" ");
+                    sb.Append("} }");
 
                     Utils.WriteAllText(Build.BuildSourceLink, sb.ToString());
                 }
