@@ -593,6 +593,13 @@ VOID PhShowMemoryProtectDialog(
     _In_ PPH_MEMORY_ITEM MemoryItem
     );
 
+// memrslt
+
+VOID PhShowMemoryResultsDialog(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_LIST Results
+    );
+
 // memsrch
 
 VOID PhShowMemoryStringDialog(
