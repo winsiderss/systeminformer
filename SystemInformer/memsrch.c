@@ -380,6 +380,7 @@ VOID PhpDeleteMemoryStringsTree(
     PhClearReference(&Context->SearchResults);
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
+
 }
 
 VOID PhpSearchMemoryStrings(
@@ -389,8 +390,11 @@ VOID PhpSearchMemoryStrings(
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhpDeleteMemoryStringsTree(Context);
+
     Context->NodeList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
 
     TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -810,8 +814,11 @@ VOID PhpInitializeMemoryStringsTree(
 
     Context->WindowHandle = WindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
+
     Context->NodeList = PhCreateList(1);
     Context->SearchResults = PhCreateList(1);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
@@ -833,8 +840,6 @@ VOID PhpInitializeMemoryStringsTree(
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM, PhpMemoryStringsTreeNewPostSortFunction);
 
     PhpLoadSettingsMemoryStrings(Context);
-
-    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
 
 INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
