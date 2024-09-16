@@ -3148,9 +3148,8 @@ typedef struct _FLT_ATTACH
 #define IRP_MN_QUERY_BUS_INFORMATION        0x15
 #define IRP_MN_DEVICE_USAGE_NOTIFICATION    0x16
 #define IRP_MN_SURPRISE_REMOVAL             0x17
-#if (PHNT_VERSION >= PHNT_WIN7)
 #define IRP_MN_DEVICE_ENUMERATED            0x19
-#endif
+
 // POWER minor function codes
 #define IRP_MN_WAIT_WAKE                    0x00
 #define IRP_MN_POWER_SEQUENCE               0x01
@@ -3384,8 +3383,6 @@ typedef struct _OPLOCK_KEY_ECP_CONTEXT
     GUID OplockKey;
     ULONG Reserved;
 } OPLOCK_KEY_ECP_CONTEXT, *POPLOCK_KEY_ECP_CONTEXT;
-
-#endif
 
 // pub
 typedef struct _OPLOCK_KEY_CONTEXT
