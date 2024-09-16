@@ -16998,7 +16998,6 @@ NTSTATUS PhGetProcessorNominalFrequency(
     NTSTATUS status;
     POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT frequencyInput;
     POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT frequencyOutput;
-    POWER_REQUEST_ACTION powerRequestAction;
 
     memset(&frequencyInput, 0, sizeof(frequencyInput));
     frequencyInput.InternalType = PowerInternalProcessorBrandedFrequency;

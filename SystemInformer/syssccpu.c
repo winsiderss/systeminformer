@@ -2131,17 +2131,17 @@ VOID PhSipUpdateProcessorFrequency(
     VOID
     )
 {
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT input;
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT output;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT input;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT output;
 
-    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT));
+    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT));
     input.InternalType = PowerInternalProcessorBrandedFrequency;
     input.ProcessorNumber.Group = USHRT_MAX;
     input.ProcessorNumber.Number = UCHAR_MAX;
     input.ProcessorNumber.Reserved = UCHAR_MAX;
 
-    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT));
-    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_VERSION;
+    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT));
+    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
 
     if (NT_SUCCESS(NtPowerInformation(
         PowerInformationInternal,
@@ -2151,7 +2151,7 @@ VOID PhSipUpdateProcessorFrequency(
         sizeof(output)
         )))
     {
-        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_VERSION)
+        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
         {
             CpuMaxMhz = output.NominalFrequency;
             return;
