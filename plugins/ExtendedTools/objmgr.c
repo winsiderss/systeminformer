@@ -29,6 +29,7 @@ static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 #define ET_OBJECT_DEVICE    2
 #define ET_OBJECT_ALPCPORT  3
 #define ET_OBJECT_MUTANT    4
+#define ET_OBJECT_JOB       5
 
 typedef struct _ET_OBJECT_ENTRY
 {
@@ -443,6 +444,11 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
             entry->imageIndex = 1;
             entry->typeIndex = ET_OBJECT_MUTANT;
         }
+        else if (PhEqualStringRef2(TypeName, L"Job", TRUE))
+        {
+            entry->imageIndex = 0;
+            entry->typeIndex = ET_OBJECT_JOB;
+        }
         else if (PhEqualStringRef2(TypeName, L"Section", TRUE))
         {
             entry->imageIndex = 3;
@@ -508,6 +514,11 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
             PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
         }
         else if (entry->typeIndex == ET_OBJECT_MUTANT)
+        {
+            entry->Target = PhCreateString(L"Resolving...");
+            PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
+        }
+        else if (entry->typeIndex == ET_OBJECT_JOB)
         {
             entry->Target = PhCreateString(L"Resolving...");
             PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
@@ -595,6 +606,7 @@ NTSTATUS PhpTargetResolverThreadStart(
         {
             INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
             objectContext.Object = entry;
+            status = STATUS_UNSUCCESSFUL;
 
             if (useKsi && NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL)))
             {
@@ -611,13 +623,14 @@ NTSTATUS PhpTargetResolverThreadStart(
 
                     if (NT_SUCCESS(status = PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
                     {
-                        PhClearReference(&entry->Target);
-                        entry->Target = driverName;
+                        PhMoveReference(&entry->Target, driverName);
 
                         PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
                     }
+
                     NtClose(fileObjectDriver.DriverHandle);
                 }
+
                 NtClose(objectHandle);
             }
 
@@ -632,6 +645,7 @@ NTSTATUS PhpTargetResolverThreadStart(
         {
             INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
             objectContext.Object = entry;
+            status = STATUS_UNSUCCESSFUL;
 
             if (useKsi && NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL)))
             {
@@ -647,23 +661,23 @@ NTSTATUS PhpTargetResolverThreadStart(
                 )))
                 {
                     CLIENT_ID clientId;
-                    PPH_STRING name;
 
                     if (connectionInfo.ConnectionPort.OwnerProcessId)
                     {
                         clientId.UniqueProcess = connectionInfo.ConnectionPort.OwnerProcessId;
                         clientId.UniqueThread = 0;
 
-                        name = PhStdGetClientIdName(&clientId);
+                        PhMoveReference(&entry->Target, PhStdGetClientIdName(&clientId));
 
-                        PhClearReference(&entry->Target);
-                        entry->Target = name;
                         entry->TargetClientId.UniqueProcess = clientId.UniqueProcess;
                         entry->TargetClientId.UniqueThread = clientId.UniqueThread;
 
                         PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
                     }
+                    else
+                        status = STATUS_UNSUCCESSFUL;
                 }
+
                 NtClose(objectHandle);
             }
 
@@ -679,46 +693,78 @@ NTSTATUS PhpTargetResolverThreadStart(
             INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
             objectContext.Object = entry;
 
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL)))
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SEMAPHORE_QUERY_STATE)))
             {
-                HANDLE mutantHandle;
+                MUTANT_OWNER_INFORMATION ownerInfo;
 
-                status = NtDuplicateObject(
-                    NtCurrentProcess(),
-                    objectHandle,
-                    NtCurrentProcess(),
-                    &mutantHandle,
-                    SEMAPHORE_QUERY_STATE,
-                    0,
-                    0
-                );
-
-                if (NT_SUCCESS(status) && mutantHandle)
+                if (NT_SUCCESS(status = PhGetMutantOwnerInformation(objectHandle, &ownerInfo)))
                 {
-                    MUTANT_OWNER_INFORMATION ownerInfo;
-
-                    if (NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo)))
+                    if (ownerInfo.ClientId.UniqueProcess)
                     {
-                        PPH_STRING name;
+                        PhMoveReference(&entry->Target, PhGetClientIdName(&ownerInfo.ClientId));
 
-                        if (ownerInfo.ClientId.UniqueProcess)
+                        entry->TargetClientId.UniqueProcess = ownerInfo.ClientId.UniqueProcess;
+                        entry->TargetClientId.UniqueThread = ownerInfo.ClientId.UniqueThread;
+
+                        PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
+                    }
+                    else
+                        status = STATUS_UNSUCCESSFUL;
+                }
+
+                NtClose(objectHandle);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhClearReference(&entry->Target);
+                PhSetListViewSubItem(Context->ListViewHandle, index, 2, NULL);
+            }
+        }
+        break;
+        case ET_OBJECT_JOB:
+        {
+            INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
+            objectContext.Object = entry;
+
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY)))
+            {
+                PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+
+                if (NT_SUCCESS(PhGetJobProcessIdList(objectHandle, &processIdList)))
+                {
+                    PH_STRING_BUILDER sb;
+                    ULONG i;
+                    CLIENT_ID clientId;
+                    PPH_STRING name;
+
+                    PhInitializeStringBuilder(&sb, 40);
+                    clientId.UniqueThread = NULL;
+
+                    for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+                    {
+                        clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+                        name = PhGetClientIdName(&clientId);
+
+                        if (name)
                         {
-                            name = PhGetClientIdName(&ownerInfo.ClientId);
-
-                            PhClearReference(&entry->Target);
-                            entry->Target = name;
-                            entry->TargetClientId.UniqueProcess = ownerInfo.ClientId.UniqueProcess;
-                            entry->TargetClientId.UniqueThread = ownerInfo.ClientId.UniqueThread;
-
-                            PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
-                        }
-                        else
-                        {
-                            PhClearReference(&entry->Target);
-                            PhSetListViewSubItem(Context->ListViewHandle, index, 2, NULL);
+                            PhAppendStringBuilder(&sb, &name->sr);
+                            PhAppendStringBuilder2(&sb, L"; ");
+                            PhDereferenceObject(name);
                         }
                     }
-                    NtClose(mutantHandle);
+
+                    PhFree(processIdList);
+
+                    if (sb.String->Length != 0)
+                        PhRemoveEndStringBuilder(&sb, 2);
+
+                    if (sb.String->Length == 0)
+                        PhAppendStringBuilder2(&sb, L"(No processes)");
+
+                    PhMoveReference(&entry->Target, PhFinalStringBuilderString(&sb));
+  
+                    PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
                 }
                 NtClose(objectHandle);
             }
@@ -730,8 +776,6 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
-        default:
-            break;
         }
     }
 
