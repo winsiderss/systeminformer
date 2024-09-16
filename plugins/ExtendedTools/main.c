@@ -1309,6 +1309,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_SIZE, L"@96|1237,627" },
                 { StringSettingType, SETTING_NAME_OBJMGR_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_OBJMGR_LIST_SORT, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },

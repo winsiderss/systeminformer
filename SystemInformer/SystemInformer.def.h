@@ -1060,7 +1060,6 @@
 #define EXPORT_KSIQUERYHASHINFORMATIONFILE                                                    2038    
 #define EXPORT_KPHQUERYINFORMATIONOBJECT                                                      2039   
 #define EXPORT_KPHALPCQUERYINFORMATION                                                        2040   
-#define EXPORT_KPHALPCQUERYCOMMINICATIONSNAMESINFO                                            2041   
-#define EXPORT_PHGETDRIVERNAME                                                                2042    
+#define EXPORT_PHGETDRIVERNAME                                                                2041    
 
 #endif _PH_EXPORT_DEF_H
