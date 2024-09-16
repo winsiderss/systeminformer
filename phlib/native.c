@@ -16990,6 +16990,47 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
     return NtClose(PowerRequestHandle);
 }
 
+NTSTATUS PhGetProcessorNominalFrequency(
+    _In_ PH_PROCESSOR_NUMBER ProcessorNumber,
+    _Out_ PULONG NominalFrequency
+    )
+{
+    NTSTATUS status;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT frequencyInput;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT frequencyOutput;
+
+    memset(&frequencyInput, 0, sizeof(frequencyInput));
+    frequencyInput.InternalType = PowerInternalProcessorBrandedFrequency;
+    frequencyInput.ProcessorNumber.Group = ProcessorNumber.Group; // USHRT_MAX for max
+    frequencyInput.ProcessorNumber.Number = (BYTE)ProcessorNumber.Number; // UCHAR_MAX for max
+    frequencyInput.ProcessorNumber.Reserved = 0; // UCHAR_MAX
+
+    memset(&frequencyOutput, 0, sizeof(frequencyOutput));
+    frequencyOutput.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
+
+    status = NtPowerInformation(
+        PowerInformationInternal,
+        &frequencyInput,
+        sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT),
+        &frequencyOutput,
+        sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (frequencyOutput.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
+        {
+            *NominalFrequency = frequencyOutput.NominalFrequency;
+        }
+        else
+        {
+            status = STATUS_INVALID_KERNEL_INFO_VERSION;
+        }
+    }
+
+    return status;
+}
+
 // Process freeze/thaw support
 
 NTSTATUS PhFreezeProcess(

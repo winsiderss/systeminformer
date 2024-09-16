@@ -253,15 +253,14 @@ VOID NTAPI MainMenuInitializingCallback(
     if (!PhGetOwnTokenAttributes().Elevated)
     {
         bootMenuItem->Flags |= PH_EMENU_DISABLED;
-        tpmMenuItem->Flags |= PH_EMENU_DISABLED;
         reparsePointsMenu->Flags |= PH_EMENU_DISABLED;
         reparseObjIdMenu->Flags |= PH_EMENU_DISABLED;
         reparseSsdlMenu->Flags |= PH_EMENU_DISABLED;
     }
 
-    if (EtWindowsVersion < WINDOWS_8)
+    if (EtWindowsVersion < WINDOWS_8 || !EtTpmIsReady())
     {
-        PhSetEnabledEMenuItem(tpmMenuItem, FALSE);
+        tpmMenuItem->Flags |= PH_EMENU_DISABLED;
     }
 }
 
