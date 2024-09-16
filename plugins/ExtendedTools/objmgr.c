@@ -110,6 +110,10 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     _In_opt_ PVOID Context
     );
 
+NTSTATUS NTAPI EtpStartResolverThread(
+    POBJECT_CONTEXT Context
+    );
+
 _Success_(return)
 BOOLEAN PhGetTreeViewItemParam(
     _In_ HWND TreeViewHandle,
@@ -838,9 +842,42 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     if (SortOrder != NoSortOrder)
         ExtendedListView_SortItems(Context->ListViewHandle);
 
-    PhCreateThreadEx(&Context->TargetResolverThread, PhpTargetResolverThreadStart, Context);
+    //PhCreateThreadEx(&Context->TargetResolverThread, PhpTargetResolverThreadStart, Context);
+
+    EtpStartResolverThread(Context);
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI EtpStartResolverThread(
+    POBJECT_CONTEXT Context
+)
+{
+    OBJECT_ATTRIBUTES objectAttributes;
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[1])] = { 0 };
+    PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
+    CLIENT_ID clientId = { 0 };
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    attributeList->TotalLength = sizeof(buffer);
+    attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_CLIENT_ID;
+    attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
+    attributeList->Attributes[0].ValuePtr = &clientId;
+    attributeList->Attributes[0].ReturnLength = NULL;
+
+    return NtCreateThreadEx(
+        &Context->TargetResolverThread,
+        THREAD_ALL_ACCESS,
+        &objectAttributes,
+        NtCurrentProcess(),
+        PhpTargetResolverThreadStart,
+        Context,
+        0,
+        0,
+        0,
+        0,
+        attributeList
+    );
 }
 
 VOID EtObjectManagerFreeListViewItems(
@@ -1831,10 +1868,17 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        if (entry->typeIndex == ET_OBJECT_SYMLINK && GetKeyState(VK_SHIFT) > 0)
+                        if (entry->typeIndex == ET_OBJECT_SYMLINK && !(GetKeyState(VK_SHIFT) < 0))
                         {
-                            PhSetWindowText(context->SearchBoxHandle, NULL);
-                            EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                            if (PhStartsWithString2(entry->Target, L"C:\\", TRUE))
+                            {
+                                PhShellExecute(hwndDlg, entry->Target->Buffer, NULL);
+                            }
+                            else
+                            {
+                                PhSetWindowText(context->SearchBoxHandle, NULL);
+                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                            }
                         }  
                         else
                             EtpObjectManagerObjectProperties(hwndDlg, context, entry);
@@ -1915,9 +1959,16 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                             if (isSymlink && id == 1)
                             {
-                                PhSetWindowText(context->SearchBoxHandle, NULL);
+                                if (PhStartsWithString2(entry->Target, L"C:\\", TRUE))
+                                {
+                                    PhShellExecute(hwndDlg, entry->Target->Buffer, NULL);
+                                }
+                                else
+                                {
+                                    PhSetWindowText(context->SearchBoxHandle, NULL);
 
-                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                }
                             }
                             else if (isDevice && id == 2)
                             {
