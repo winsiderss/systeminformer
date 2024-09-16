@@ -1607,10 +1607,9 @@ NtQueryInformationProcess(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Retrieves a handle to the next process in the system.
  *
@@ -2011,10 +2010,9 @@ NtQueueApcThread(
     _In_opt_ PVOID ApcArgument3
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-
 #define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
@@ -2041,8 +2039,6 @@ NtQueueApcThreadEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN11)
-
 /**
  * The APC_CALLBACK_DATA_CONTEXT structure is used to pass information to the APC callback routine.
  */
@@ -2058,6 +2054,7 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
 #define QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC 0x00000001
 #define QUEUE_USER_APC_FLAGS_CALLBACK_DATA_CONTEXT 0x00010000 // APC_CALLBACK_DATA_CONTEXT
 
+#if (PHNT_VERSION >= PHNT_WIN11)
 /**
  * Queues an Asynchronous Procedure Call (APC) to a specified thread.
  *
@@ -3096,8 +3093,6 @@ NtAllocateReserveObject(
 // Process snapshotting
 //
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
-
 // Capture/creation flags.
 typedef enum _PSSNT_CAPTURE_FLAGS
 {
@@ -3129,6 +3124,7 @@ DEFINE_ENUM_FLAG_OPERATORS(PSSNT_CAPTURE_FLAGS);
 
 #define PSSNT_SIGNATURE_PSSD 'PSSD' // 0x50535344
 
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 // rev
 /**
  * Captures a snapshot of the specified process.
