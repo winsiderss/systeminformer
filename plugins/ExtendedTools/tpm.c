@@ -314,9 +314,17 @@ BOOLEAN EtTpmIsReady(
     VOID
     )
 {
+    NTSTATUS status;
     TPM_DEVICE_INFO info;
 
-    return TpmGetDeviceInfo(&info) == STATUS_SUCCESS;
+    status = TpmGetDeviceInfo(&info);
+
+    if (status == STATUS_SUCCESS)
+        return TRUE;
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+        return Tbsi_GetDeviceInfo(&info, sizeof(info)) == TBS_SUCCESS;
+
+    return FALSE;
 }
 
 PPH_STRING EtMakeTpmAttributesString(
