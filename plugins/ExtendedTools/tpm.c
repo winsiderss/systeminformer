@@ -197,7 +197,7 @@ NTSTATUS TpmOpen(
     _Out_ PHANDLE FileHandle
     )
 {
-    static PH_STRINGREF deviceName = PH_STRINGREF_INIT(L"\\Device\\TPM");
+    static PH_STRINGREF deviceName = PH_STRINGREF_INIT(L"\\??\\TPM");
     NTSTATUS status;
 
     status = PhCreateFile(
@@ -314,17 +314,9 @@ BOOLEAN EtTpmIsReady(
     VOID
     )
 {
-    NTSTATUS status;
     TPM_DEVICE_INFO info;
 
-    status = TpmGetDeviceInfo(&info);
-
-    if (status == STATUS_SUCCESS)
-        return TRUE;
-    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
-
-    return FALSE;
+    return TpmGetDeviceInfo(&info) == STATUS_SUCCESS;
 }
 
 PPH_STRING EtMakeTpmAttributesString(
