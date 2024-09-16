@@ -17029,34 +17029,6 @@ NTSTATUS PhGetProcessorNominalFrequency(
         }
     }
 
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT input;
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT output;
-
-    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT));
-    input.InternalType = PowerInternalProcessorBrandedFrequency;
-    input.ProcessorNumber.Group = USHRT_MAX;
-    input.ProcessorNumber.Number = UCHAR_MAX;
-    input.ProcessorNumber.Reserved = UCHAR_MAX;
-
-    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT));
-    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
-
-    if (NT_SUCCESS(NtPowerInformation(
-        PowerInformationInternal,
-        &input,
-        sizeof(input),
-        &output,
-        sizeof(output)
-        )))
-    {
-        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
-        {
-            CpuMaxMhz = output.NominalFrequency;
-            return;
-        }
-    }
-
-
     return status;
 }
 
