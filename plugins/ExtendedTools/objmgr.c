@@ -1346,29 +1346,35 @@ VOID NTAPI EtpObjectManagerOpenTarget(
 
     PhSplitStringRefAtLastChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &pathPart, &namePart);
 
+    // Check if target directory is equal to current
     if (!PhEqualStringRef(&pathPart, &context->CurrentPath->sr, TRUE))
     {
-        while (remainingPart.Length != 0)
+        if (PhStartsWithStringRef(&remainingPart, &EtObjectManagerRootDirectoryObject, TRUE))
         {
-            PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
-
-            if (directoryPart.Length != 0)
+            while (remainingPart.Length != 0)
             {
-                HTREEITEM directoryItem = EtTreeViewFindItem(
-                    context->TreeViewHandle,
-                    selectedTreeItem,
-                    &directoryPart
-                );
+                PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
 
-                if (directoryItem)
+                if (directoryPart.Length != 0)
                 {
-                    TreeView_SelectItem(context->TreeViewHandle, directoryItem);
-                    selectedTreeItem = directoryItem;
+                    HTREEITEM directoryItem = EtTreeViewFindItem(
+                        context->TreeViewHandle,
+                        selectedTreeItem,
+                        &directoryPart
+                    );
+
+                    if (directoryItem)
+                    {
+                        TreeView_SelectItem(context->TreeViewHandle, directoryItem);
+                        selectedTreeItem = directoryItem;
+                    }
                 }
             }
         }
 
-        if (directoryPart.Length > 0) {     // HACK
+        // If we did jump to new tree target, then focus to listview target item
+        if (selectedTreeItem != context->RootTreeObject && directoryPart.Length > 0)    // HACK
+        {
             LVFINDINFO findinfo;
             findinfo.psz = directoryPart.Buffer;
             findinfo.flags = LVFI_STRING;
@@ -1381,10 +1387,28 @@ VOID NTAPI EtpObjectManagerOpenTarget(
                 ListView_EnsureVisible(context->ListViewHandle, item, TRUE);
             }
         }
+        else    // browse to target in explorer
+        {
+            if (!PhIsNullOrEmptyString(entry->Target) &&
+                (PhDoesFileExist(&entry->Target->sr) || PhDoesFileExistWin32(entry->Target->Buffer))
+                )
+            {
+                PhShellExecuteUserString(
+                    hwndDlg,
+                    L"FileBrowseExecutable",
+                    PhGetString(entry->Target),
+                    FALSE,
+                    L"Make sure the Explorer executable file is present."
+                );
+            }
+            else
+            {
+                PhShowStatus(hwndDlg, L"Unable to locate the target.", STATUS_NOT_FOUND, 0);
+            }
+        }
     }
-    else
+    else    // Same directory
     {
-        // Same directory
         LVFINDINFO findinfo;
         findinfo.psz = namePart.Buffer;
         findinfo.flags = LVFI_STRING;
@@ -1868,17 +1892,10 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        if (entry->typeIndex == ET_OBJECT_SYMLINK && !(GetKeyState(VK_SHIFT) < 0))
+                        if (entry->typeIndex == ET_OBJECT_SYMLINK && !(GetKeyState(VK_CONTROL) < 0))
                         {
-                            if (PhStartsWithString2(entry->Target, L"C:\\", TRUE))
-                            {
-                                PhShellExecute(hwndDlg, entry->Target->Buffer, NULL);
-                            }
-                            else
-                            {
-                                PhSetWindowText(context->SearchBoxHandle, NULL);
-                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
-                            }
+                            PhSetWindowText(context->SearchBoxHandle, NULL);
+                            EtpObjectManagerOpenTarget(hwndDlg, context, entry);
                         }  
                         else
                             EtpObjectManagerObjectProperties(hwndDlg, context, entry);
@@ -1920,9 +1937,10 @@ INT_PTR CALLBACK WinObjDlgProc(
                     menu = PhCreateEMenu();
                     if (isSymlink)
                     {
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Open link", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Open link\bEnter", NULL, NULL), ULONG_MAX);
                     }
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1 + isSymlink, L"Prope&rties", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1 + isSymlink,
+                        !isSymlink ? L"Prope&rties\bEnter" : L"Prope&rties\bShift+Enter", NULL, NULL), ULONG_MAX);
                     if (isDevice)
                     {
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"&Go to device driver", NULL, NULL), ULONG_MAX);
@@ -1935,7 +1953,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"&Go to thread...", NULL, NULL), ULONG_MAX);
                     }
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2 + addItem, L"&Security", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2 + addItem, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3 + addItem, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, 3 + addItem, context->ListViewHandle);
@@ -1959,16 +1977,9 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                             if (isSymlink && id == 1)
                             {
-                                if (PhStartsWithString2(entry->Target, L"C:\\", TRUE))
-                                {
-                                    PhShellExecute(hwndDlg, entry->Target->Buffer, NULL);
-                                }
-                                else
-                                {
-                                    PhSetWindowText(context->SearchBoxHandle, NULL);
+                                PhSetWindowText(context->SearchBoxHandle, NULL);
 
-                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry);
-                                }
+                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
                             }
                             else if (isDevice && id == 2)
                             {
@@ -2165,7 +2176,11 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         POBJECT_ENTRY entry = listviewItems[0];
 
-                        if (GetKeyState(VK_SHIFT) < 0)
+                        if (entry->typeIndex == ET_OBJECT_SYMLINK && GetKeyState(VK_SHIFT) < 0)
+                        {
+                            EtpObjectManagerObjectProperties(hwndDlg, context, entry);
+                        }
+                        else if (GetKeyState(VK_CONTROL) < 0)
                         {
                             EtpObjectManagerOpenSecurity(hwndDlg, context, entry);
                         }
