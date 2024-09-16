@@ -322,7 +322,7 @@ BOOLEAN EtTpmIsReady(
     if (status == STATUS_SUCCESS)
         return TRUE;
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        return Tbsi_GetDeviceInfo(&info, sizeof(info)) == TBS_SUCCESS;
+        return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
 
     return FALSE;
 }
