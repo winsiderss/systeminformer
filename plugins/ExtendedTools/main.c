@@ -257,12 +257,7 @@ VOID NTAPI MainMenuInitializingCallback(
         reparseSsdlMenu->Flags |= PH_EMENU_DISABLED;
     }
 
-    if (EtWindowsVersion < WINDOWS_8)
-    {
-        PhSetEnabledEMenuItem(tpmMenuItem, FALSE);
-    }
-
-    if (!EtTpmIsReady())
+    if (EtWindowsVersion < WINDOWS_8 || !EtTpmIsReady())
     {
         tpmMenuItem->Flags |= PH_EMENU_DISABLED;
     }
