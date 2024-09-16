@@ -95,7 +95,7 @@ _Must_inspect_result_
 NTSTATUS EtTpmQueryIndices(
     _In_ TBS_HCONTEXT TbsContextHandle,
     _Inout_ PULONG IndexCount,
-    _Out_writes_all_opt_(*IndexCount) TPM_NV_INDEX* Indices 
+    _Out_writes_all_opt_(*IndexCount) TPM_NV_INDEX* Indices
     )
 {
     TPM_GET_CAPABILITY_CMD_HEADER command;
@@ -314,18 +314,17 @@ BOOLEAN EtTpmIsReady(
     VOID
     )
 {
+    NTSTATUS status;
     TPM_DEVICE_INFO info;
 
-    // unclear if there is a better way to check if the TPM is ready
+    status = TpmGetDeviceInfo(&info);
 
-    if (EtWindowsVersion < WINDOWS_11 || EtWindowsVersion == WINDOWS_NEW)
-    {
+    if (status == STATUS_SUCCESS)
+        return TRUE;
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
         return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
-    }
-    else
-    {
-        return TpmGetDeviceInfo(&info) == STATUS_SUCCESS;
-    }
+
+    return FALSE;
 }
 
 PPH_STRING EtMakeTpmAttributesString(
@@ -511,7 +510,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
 
             // TODO(jxy-s)
             // - incorporate Tbsi_Get_TCG_Log(_Ex)
-            // - incorporate Tbsi_Get_OwnerAuth 
+            // - incorporate Tbsi_Get_OwnerAuth
             // - fully support TMP 1.2
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
