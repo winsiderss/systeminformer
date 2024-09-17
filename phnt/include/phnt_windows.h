@@ -89,6 +89,7 @@
 #endif
 
 typedef double DOUBLE;
+typedef DOUBLE *PDOUBLE;
 typedef GUID *PGUID;
 
 // Desktop access rights
