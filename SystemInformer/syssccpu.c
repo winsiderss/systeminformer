@@ -1045,7 +1045,7 @@ VOID PhSipUpdateCpuPanel(
     }
 
     if (!distributionSucceeded)
-        cpuGhz = (DOUBLE)PowerInformation[0].CurrentMhz / 1000;
+        cpuGhz = (DOUBLE)PowerInformation[0].CurrentMhz;
 
     // %.2f%%
     PhInitFormatF(&format[0], (PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
@@ -1058,10 +1058,20 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelUtilizationLabel, PH_AUTO_T(PH_STRING, PhFormat(format, 2, 0))->Buffer);
     }
 
-    PhInitFormatFD(&format[0], cpuGhz, PhMaxPrecisionUnit);
-    PhInitFormatS(&format[1], L" / ");
-    PhInitFormatFD(&format[2], CpuMaxMhz / 1000, PhMaxPrecisionUnit);
-    PhInitFormatS(&format[3], L" GHz");
+    if (PhGetIntegerSetting(L"SysInfoShowCpuSpeedMhz"))
+    {
+        PhInitFormatFD(&format[0], cpuGhz, 0);
+        PhInitFormatS(&format[1], L" / ");
+        PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz, 0);
+        PhInitFormatS(&format[3], L" MHz");
+    }
+    else
+    {
+        PhInitFormatFD(&format[0], cpuGhz / 1000, PhMaxPrecisionUnit);
+        PhInitFormatS(&format[1], L" / ");
+        PhInitFormatF(&format[2], (FLOAT)CpuMaxMhz / 1000, PhMaxPrecisionUnit);
+        PhInitFormatS(&format[3], L" GHz");
+    }
 
     // %.2f / %.2f GHz
     if (PhFormatToBuffer(format, 4, formatBuffer, sizeof(formatBuffer), NULL))
@@ -1563,7 +1573,9 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     if (count == 0)
         return FALSE;
 
-    *Frequency = (((DOUBLE)total / (DOUBLE)count) / 100) / 1000;
+    total /= count;
+    total /= 100;
+    *Frequency = (DOUBLE)total;
 
     return TRUE;
 }
@@ -2131,17 +2143,17 @@ VOID PhSipUpdateProcessorFrequency(
     VOID
     )
 {
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT input;
-    POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT output;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT input;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT output;
 
-    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT));
+    memset(&input, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT));
     input.InternalType = PowerInternalProcessorBrandedFrequency;
     input.ProcessorNumber.Group = USHRT_MAX;
     input.ProcessorNumber.Number = UCHAR_MAX;
     input.ProcessorNumber.Reserved = UCHAR_MAX;
 
-    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT));
-    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_VERSION;
+    memset(&output, 0, sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT));
+    output.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
 
     if (NT_SUCCESS(NtPowerInformation(
         PowerInformationInternal,
@@ -2151,7 +2163,7 @@ VOID PhSipUpdateProcessorFrequency(
         sizeof(output)
         )))
     {
-        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_VERSION)
+        if (output.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
         {
             CpuMaxMhz = output.NominalFrequency;
             return;

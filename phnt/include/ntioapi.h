@@ -7,6 +7,13 @@
 #ifndef _NTIOAPI_H
 #define _NTIOAPI_H
 
+// Sharing mode
+
+#define FILE_SHARE_NONE                 0x00000000
+#define FILE_SHARE_READ                 0x00000001
+#define FILE_SHARE_WRITE                0x00000002
+#define FILE_SHARE_DELETE               0x00000004
+
 // Create disposition
 
 #define FILE_SUPERSEDE                      0x00000000
@@ -29,11 +36,6 @@
 #define FILE_NON_DIRECTORY_FILE             0x00000040
 #define FILE_CREATE_TREE_CONNECTION         0x00000080
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
-#define TREE_CONNECT_NO_CLIENT_BUFFERING    0x00000008
-#define TREE_CONNECT_WRITE_THROUGH          0x00000002
-#endif
-
 #define FILE_COMPLETE_IF_OPLOCKED           0x00000100
 #define FILE_NO_EA_KNOWLEDGE                0x00000200
 #define FILE_OPEN_REMOTE_INSTANCE           0x00000400
@@ -44,25 +46,23 @@
 #define FILE_OPEN_FOR_BACKUP_INTENT         0x00004000
 #define FILE_NO_COMPRESSION                 0x00008000
 
-#if (PHNT_VERSION >= PHNT_WIN7)
 #define FILE_OPEN_REQUIRING_OPLOCK          0x00010000
 #define FILE_DISALLOW_EXCLUSIVE             0x00020000
-#endif
-#if (PHNT_VERSION >= PHNT_WIN8)
 #define FILE_SESSION_AWARE                  0x00040000
-#endif
 
 #define FILE_RESERVE_OPFILTER               0x00100000
 #define FILE_OPEN_REPARSE_POINT             0x00200000
 #define FILE_OPEN_NO_RECALL                 0x00400000
 #define FILE_OPEN_FOR_FREE_SPACE_QUERY      0x00800000
 
+#define TREE_CONNECT_WRITE_THROUGH          0x00000002
+#define TREE_CONNECT_NO_CLIENT_BUFFERING    0x00000008
+
 // Extended create/open flags
 
 #define FILE_CONTAINS_EXTENDED_CREATE_INFORMATION   0x10000000
 #define FILE_VALID_EXTENDED_OPTION_FLAGS            0x10000000
 
-#if (PHNT_VERSION >= PHNT_WIN11)
 typedef struct _EXTENDED_CREATE_INFORMATION
 {
     LONGLONG ExtendedCreateFlags;
@@ -79,7 +79,6 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
 
 #define EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY 0x00000001
 #define EX_CREATE_FLAG_FILE_DEST_OPEN_FOR_COPY   0x00000002
-#endif
 
 #define FILE_VALID_OPTION_FLAGS             0x00ffffff
 #define FILE_VALID_PIPE_OPTION_FLAGS        0x00000032
@@ -718,14 +717,6 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
 
     // Protocol specific information
 
-#if (PHNT_VERSION < PHNT_WIN8)
-    struct
-    {
-        ULONG Reserved[16];
-    } ProtocolSpecificReserved;
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
     union
     {
         struct
@@ -737,21 +728,14 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
             struct
             {
                 ULONG Capabilities;
-#if (PHNT_VERSION >= PHNT_21H1)
-                ULONG ShareFlags;
-#else
-                ULONG CachingFlags;
-#endif
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
-                UCHAR ShareType;
+                ULONG ShareFlags; // previoulsly CachingFlags before 21H1
+                UCHAR ShareType; // RS5
                 UCHAR Reserved0[3];
                 ULONG Reserved1;
-#endif
             } Share;
         } Smb2;
         ULONG Reserved[16];
     } ProtocolSpecific;
-#endif
 } FILE_REMOTE_PROTOCOL_INFORMATION, *PFILE_REMOTE_PROTOCOL_INFORMATION;
 
 #define CHECKSUM_ENFORCEMENT_OFF 0x00000001
@@ -1731,16 +1715,14 @@ NtQueryDirectoryFile(
     _In_ BOOLEAN RestartScan
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
 // QueryFlags values for NtQueryDirectoryFileEx
 #define FILE_QUERY_RESTART_SCAN 0x00000001
 #define FILE_QUERY_RETURN_SINGLE_ENTRY 0x00000002
 #define FILE_QUERY_INDEX_SPECIFIED 0x00000004
 #define FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY 0x00000008
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
-#define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010
-#endif
+#define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010 // RS5
 
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2455,11 +2437,8 @@ typedef enum _BUS_DATA_TYPE
 // Reparse structure for FSCTL_SET_REPARSE_POINT, FSCTL_GET_REPARSE_POINT, FSCTL_DELETE_REPARSE_POINT
 
 #define SYMLINK_FLAG_RELATIVE 0x00000001
-
-#if (PHNT_VERSION >= PHNT_REDSTONE4)
 #define SYMLINK_DIRECTORY 0x80000000 // If set then this is a directory symlink
 #define SYMLINK_FILE 0x40000000 // If set then this is a file symlink
-#endif
 
 typedef struct _REPARSE_DATA_BUFFER
 {
@@ -2501,7 +2480,6 @@ typedef struct _REPARSE_DATA_BUFFER
 
 #define REPARSE_DATA_BUFFER_HEADER_SIZE UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
 // Reparse structure for FSCTL_SET_REPARSE_POINT_EX
 
 typedef struct _REPARSE_DATA_BUFFER_EX
@@ -2572,8 +2550,6 @@ typedef struct _REPARSE_DATA_BUFFER_EX
 
 #define REPARSE_DATA_BUFFER_EX_HEADER_SIZE \
     UFIELD_OFFSET(REPARSE_DATA_BUFFER_EX, ReparseDataBuffer.GenericReparseBuffer)
-
-#endif // PHNT_REDSTONE
 
 // Named pipe FS control definitions
 
@@ -3179,9 +3155,8 @@ typedef struct _FLT_ATTACH
 #define IRP_MN_QUERY_BUS_INFORMATION        0x15
 #define IRP_MN_DEVICE_USAGE_NOTIFICATION    0x16
 #define IRP_MN_SURPRISE_REMOVAL             0x17
-#if (PHNT_VERSION >= PHNT_WIN7)
 #define IRP_MN_DEVICE_ENUMERATED            0x19
-#endif
+
 // POWER minor function codes
 #define IRP_MN_WAIT_WAKE                    0x00
 #define IRP_MN_POWER_SEQUENCE               0x01
@@ -3409,18 +3384,12 @@ typedef struct _MAILSLOT_CREATE_PARAMETERS
     BOOLEAN TimeoutSpecified;
 } MAILSLOT_CREATE_PARAMETERS, *PMAILSLOT_CREATE_PARAMETERS;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-
 // pub
 typedef struct _OPLOCK_KEY_ECP_CONTEXT
 {
     GUID OplockKey;
     ULONG Reserved;
 } OPLOCK_KEY_ECP_CONTEXT, *POPLOCK_KEY_ECP_CONTEXT;
-
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
 
 // pub
 typedef struct _OPLOCK_KEY_CONTEXT
@@ -3438,47 +3407,26 @@ typedef struct _OPLOCK_KEY_CONTEXT
 #define OPLOCK_KEY_FLAG_PARENT_KEY 0x0001
 #define OPLOCK_KEY_FLAG_TARGET_KEY 0x0002
 
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
-
 // pub
 #define SUPPORTED_FS_FEATURES_OFFLOAD_READ    0x00000001
 #define SUPPORTED_FS_FEATURES_OFFLOAD_WRITE   0x00000002
-
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
-
-// pub
 #define SUPPORTED_FS_FEATURES_QUERY_OPEN      0x00000004
-
-#if (PHNT_VERSION >= PHNT_WIN11)
-
-// pub
 #define SUPPORTED_FS_FEATURES_BYPASS_IO       0x00000008
 
-// pub
-#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
-                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE |\
-                                               SUPPORTED_FS_FEATURES_QUERY_OPEN |\
+// WIN11
+#define SUPPORTED_FS_FEATURES_VALID_MASK_V3 (SUPPORTED_FS_FEATURES_OFFLOAD_READ | \
+                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE | \
+                                               SUPPORTED_FS_FEATURES_QUERY_OPEN | \
                                                SUPPORTED_FS_FEATURES_BYPASS_IO)
-
-#else // (PHNT_VERSION >= PHNT_WIN11)
-
-// pub
-#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
-                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE |\
+// WIN10-RS2
+#define SUPPORTED_FS_FEATURES_VALID_MASK_V2 (SUPPORTED_FS_FEATURES_OFFLOAD_READ | \
+                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE | \
                                                SUPPORTED_FS_FEATURES_QUERY_OPEN)
-
-#endif // (PHNT_VERSION >= PHNT_WIN11)
-
-#else // (PHNT_VERSION >= PHNT_REDSTONE2)
-
-// pub
-#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
+// WIN8
+#define SUPPORTED_FS_FEATURES_VALID_MASK_V1 (SUPPORTED_FS_FEATURES_OFFLOAD_READ | \
                                                SUPPORTED_FS_FEATURES_OFFLOAD_WRITE)
 
-#endif // (PHNT_VERSION >= PHNT_REDSTONE2)
-#endif // (PHNT_VERSION >= PHNT_WIN8)
+#define SUPPORTED_FS_FEATURES_VALID_MASK SUPPORTED_FS_FEATURES_VALID_MASK_V3
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 

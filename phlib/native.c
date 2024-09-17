@@ -16990,6 +16990,47 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
     return NtClose(PowerRequestHandle);
 }
 
+NTSTATUS PhGetProcessorNominalFrequency(
+    _In_ PH_PROCESSOR_NUMBER ProcessorNumber,
+    _Out_ PULONG NominalFrequency
+    )
+{
+    NTSTATUS status;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT frequencyInput;
+    POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT frequencyOutput;
+
+    memset(&frequencyInput, 0, sizeof(frequencyInput));
+    frequencyInput.InternalType = PowerInternalProcessorBrandedFrequency;
+    frequencyInput.ProcessorNumber.Group = ProcessorNumber.Group; // USHRT_MAX for max
+    frequencyInput.ProcessorNumber.Number = (BYTE)ProcessorNumber.Number; // UCHAR_MAX for max
+    frequencyInput.ProcessorNumber.Reserved = 0; // UCHAR_MAX
+
+    memset(&frequencyOutput, 0, sizeof(frequencyOutput));
+    frequencyOutput.Version = POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION;
+
+    status = NtPowerInformation(
+        PowerInformationInternal,
+        &frequencyInput,
+        sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT),
+        &frequencyOutput,
+        sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (frequencyOutput.Version == POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION)
+        {
+            *NominalFrequency = frequencyOutput.NominalFrequency;
+        }
+        else
+        {
+            status = STATUS_INVALID_KERNEL_INFO_VERSION;
+        }
+    }
+
+    return status;
+}
+
 // Process freeze/thaw support
 
 NTSTATUS PhFreezeProcess(
@@ -17776,6 +17817,29 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
+NTSTATUS
+DECLSPEC_GUARDNOCF
+PhpSetInformationVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
+    _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
+    _In_ ULONG VmInformationLength
+    )
+{
+    assert(NtSetInformationVirtualMemory_Import());
+
+    return NtSetInformationVirtualMemory_Import()(
+        ProcessHandle,
+        VmInformationClass,
+        NumberOfEntries,
+        VirtualAddresses,
+        VmInformation,
+        VmInformationLength
+        );
+}
+
 // rev from PrefetchVirtualMemory (dmex)
 /**
  * Provides an efficient mechanism to bring into memory potentially discontiguous virtual address ranges in a process address space.
@@ -17801,7 +17865,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 
     memset(&prefetchInformationFlags, 0, sizeof(prefetchInformationFlags));
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmPrefetchInformation,
         NumberOfEntries,
@@ -17837,7 +17901,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
 //    virtualMemoryFlags = Priority;
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmPagePriorityInformation,
 //        1,
@@ -17869,7 +17933,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //
 //    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmPagePriorityInformation,
 //        1,
@@ -17923,7 +17987,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //    cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
 //    cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 //
-//    status = NtSetInformationVirtualMemory_Import()(
+//    status = PhpSetInformationVirtualMemory(
 //        ProcessHandle,
 //        VmCfgCallTargetInformation,
 //        1,
@@ -17952,8 +18016,6 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
 
     if (!NtSetInformationVirtualMemory_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-    if (VirtualAddress == (PVOID)MAXULONG_PTR)
-        return STATUS_SUCCESS;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
     cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
@@ -17969,7 +18031,7 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,
@@ -18013,7 +18075,7 @@ NTSTATUS PhDisableXfgOnTarget(
     cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
 
-    status = NtSetInformationVirtualMemory_Import()(
+    status = PhpSetInformationVirtualMemory(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,

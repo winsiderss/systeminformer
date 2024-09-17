@@ -1214,6 +1214,9 @@ LdrSetImplicitPathOptions(
     _In_ ULONG ImplicitPathOptions
     );
 
+#endif
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 #ifdef PHNT_INLINE_TYPEDEFS
 /**
  * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
@@ -1245,6 +1248,24 @@ LdrControlFlowGuardEnforced(
 #endif
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+/**
+ * The LdrControlFlowGuardEnforcedWithExportSuppression function checks if Control Flow Guard is
+ * enforced with export suppression.
+ *
+ * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+LdrControlFlowGuardEnforcedWithExportSuppression(
+    VOID
+    )
+{
+    return LdrSystemDllInitBlock.CfgBitMap && (LdrSystemDllInitBlock.Flags & 3) == 0;
+}
+#endif
+
 #if (PHNT_VERSION >= PHNT_19H1)
 // rev
 NTSYSAPI
@@ -1264,8 +1285,6 @@ LdrUpdatePackageSearchPath(
     _In_ PWSTR SearchPath
     );
 #endif
-
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 // rev
 #define ENCLAVE_STATE_CREATED         0x00000000ul // LdrpCreateSoftwareEnclave initial state
@@ -1288,6 +1307,8 @@ typedef struct _LDR_SOFTWARE_ENCLAVE
     PLDR_DATA_TABLE_ENTRY BCryptModule;
     PLDR_DATA_TABLE_ENTRY BCryptPrimitivesModule;
 } LDR_SOFTWARE_ENCLAVE, *PLDR_SOFTWARE_ENCLAVE;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 // rev from CreateEnclave
 NTSYSAPI

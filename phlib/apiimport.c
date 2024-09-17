@@ -63,6 +63,63 @@ PVOID PhpImportProcedure(
 }
 
 /**
+ * Imports a procedure from a specified module using native methods.
+ *
+ * @param InitOnce A pointer to an initialization structure.
+ * @param Cache A pointer to a cache for the procedure address.
+ * @param Cookie A pointer to a cookie for the procedure address.
+ * @param ModuleName The name of the module.
+ * @param ProcedureName The name of the procedure.
+ *
+ * @return A pointer to the imported procedure, or NULL if the procedure could not be imported.
+ */
+FORCEINLINE
+PVOID PhpImportProcedureNative(
+    _Inout_ PPH_INITONCE InitOnce,
+    _Inout_ PVOID *Cache,
+    _Inout_ PULONG_PTR Cookie,
+    _In_ PWSTR ModuleName,
+    _In_ PSTR ProcedureName
+    )
+{
+    if (PhBeginInitOnce(InitOnce))
+    {
+        PVOID module;
+        PVOID procedure;
+
+        module = PhGetLoaderEntryDllBaseZ(ModuleName);
+
+        if (!module)
+            module = PhLoadLibrary(ModuleName);
+
+        if (module)
+        {
+            ANSI_STRING procedureName;
+
+            RtlInitAnsiString(&procedureName, ProcedureName);
+
+            if (NT_SUCCESS(LdrGetProcedureAddress(
+                module,
+                &procedureName,
+                0,
+                &procedure
+                )))
+            {
+                *Cookie = (ULONG_PTR)NtGetTickCount64();
+                *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
+            }
+        }
+
+        PhEndInitOnce(InitOnce);
+    }
+
+    if (*Cache && *Cookie)
+        return (PVOID)((ULONG_PTR)*Cache ^ (ULONG_PTR)*Cookie);
+
+    return NULL;
+}
+
+/**
  * Defines an import function for a specified module and procedure.
  *
  * @param Module The name of the module.
@@ -78,11 +135,27 @@ _##Name Name##_Import(VOID) \
     return (_##Name)PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
+/**
+ * Defines an import function for a specified module and procedure for native loading.
+ *
+ * @param Module The name of the module.
+ * @param Name The name of the procedure.
+ */
+#define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
+_##Name Name##_Import(VOID) \
+{ \
+    static PH_INITONCE initOnce = PH_INITONCE_INIT; \
+    static PVOID cache = NULL; \
+    static ULONG_PTR cookie = 0; \
+\
+    return (_##Name)PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+}
+
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
-PH_DEFINE_IMPORT(L"ntdll.dll", NtSetInformationVirtualMemory);
+PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
 

@@ -150,7 +150,6 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -198,7 +197,6 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -285,7 +283,6 @@
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <SDLCheck>true</SDLCheck>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <IntelJCCErratum>true</IntelJCCErratum>
@@ -299,7 +296,6 @@
       <BuildStlModules>false</BuildStlModules>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -357,7 +353,6 @@
       <OmitFramePointers>true</OmitFramePointers>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -488,6 +483,7 @@
     <ClCompile Include="memlists.c" />
     <ClCompile Include="memprot.c" />
     <ClCompile Include="memprv.c" />
+    <ClCompile Include="memrslt.c" />
     <ClCompile Include="memsrch.c" />
     <ClCompile Include="miniinfo.c" />
     <ClCompile Include="modlist.c" />
@@ -591,6 +587,7 @@
     <ClInclude Include="include\phuisup.h" />
     <ClInclude Include="include\miniinfo.h" />
     <ClInclude Include="include\hidnproc.h" />
+    <ClInclude Include="include\memsrch.h" />
     <ClInclude Include="include\phapp.h" />
     <ClInclude Include="include\phsvc.h" />
     <ClInclude Include="include\phsvcapi.h" />

@@ -1503,7 +1503,7 @@ NtCreateProcess(
 #define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040 // NtCreateUserProcess only
 #define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // NtCreateProcessEx & NtCreateUserProcess, requires SeLoadDriver
 #define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_SUSPENDED 0x00000200 // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_CREATE_SUSPENDED 0x00000200 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400 // NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
 #define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
 #define PROCESS_CREATE_FLAGS_RELEASE_SECTION 0x00001000 // NtCreateProcessEx & NtCreateUserProcess
@@ -1607,10 +1607,9 @@ NtQueryInformationProcess(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Retrieves a handle to the next process in the system.
  *
@@ -2011,10 +2010,9 @@ NtQueueApcThread(
     _In_opt_ PVOID ApcArgument3
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-
 #define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
@@ -2041,8 +2039,6 @@ NtQueueApcThreadEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN11)
-
 /**
  * The APC_CALLBACK_DATA_CONTEXT structure is used to pass information to the APC callback routine.
  */
@@ -2058,6 +2054,7 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
 #define QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC 0x00000001
 #define QUEUE_USER_APC_FLAGS_CALLBACK_DATA_CONTEXT 0x00010000 // APC_CALLBACK_DATA_CONTEXT
 
+#if (PHNT_VERSION >= PHNT_WIN11)
 /**
  * Queues an Asynchronous Procedure Call (APC) to a specified thread.
  *
@@ -2640,7 +2637,6 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -2669,11 +2665,10 @@ NtCreateUserProcess(
     _In_opt_ POBJECT_ATTRIBUTES ThreadObjectAttributes,
     _In_ ULONG ProcessFlags, // PROCESS_CREATE_FLAGS_*
     _In_ ULONG ThreadFlags, // THREAD_CREATE_FLAGS_*
-    _In_opt_ PVOID ProcessParameters, // PRTL_USER_PROCESS_PARAMETERS
+    _In_opt_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _Inout_ PPS_CREATE_INFO CreateInfo,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
-#endif
 
 // begin_rev
 #define THREAD_CREATE_FLAGS_NONE 0x00000000
@@ -2684,8 +2679,6 @@ NtCreateUserProcess(
 #define THREAD_CREATE_FLAGS_SKIP_LOADER_INIT 0x00000020 // NtCreateThreadEx only, since REDSTONE2
 #define THREAD_CREATE_FLAGS_BYPASS_PROCESS_FREEZE 0x00000040 // NtCreateThreadEx only, since 19H1
 // end_rev
-
-#if (PHNT_VERSION >= PHNT_VISTA)
 
 /**
  * A pointer to a user-defined function that serves as the starting routine for a new thread.
@@ -2729,8 +2722,6 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
-
-#endif
 
 #endif
 
@@ -3102,8 +3093,6 @@ NtAllocateReserveObject(
 // Process snapshotting
 //
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
-
 // Capture/creation flags.
 typedef enum _PSSNT_CAPTURE_FLAGS
 {
@@ -3133,8 +3122,28 @@ typedef enum _PSSNT_CAPTURE_FLAGS
 } PSSNT_CAPTURE_FLAGS;
 DEFINE_ENUM_FLAG_OPERATORS(PSSNT_CAPTURE_FLAGS);
 
+typedef enum _PSSNT_DUPLICATE_FLAGS
+{
+    PSSNT_DUPLICATE_NONE         = 0x00,
+    PSSNT_DUPLICATE_CLOSE_SOURCE = 0x01
+} PSSNT_DUPLICATE_FLAGS;
+DEFINE_ENUM_FLAG_OPERATORS(PSSNT_DUPLICATE_FLAGS);
+
+typedef enum _PSSNT_QUERY_INFORMATION_CLASS
+{
+    PSSNT_QUERY_PROCESS_INFORMATION = 0, // PSS_PROCESS_INFORMATION
+    PSSNT_QUERY_VA_CLONE_INFORMATION = 1, // PSS_VA_CLONE_INFORMATION
+    PSSNT_QUERY_AUXILIARY_PAGES_INFORMATION = 2, // PSS_AUXILIARY_PAGES_INFORMATION
+    PSSNT_QUERY_VA_SPACE_INFORMATION = 3, // PSS_VA_SPACE_INFORMATION
+    PSSNT_QUERY_HANDLE_INFORMATION = 4, // PSS_HANDLE_INFORMATION
+    PSSNT_QUERY_THREAD_INFORMATION = 5, // PSS_THREAD_INFORMATION
+    PSSNT_QUERY_HANDLE_TRACE_INFORMATION = 6, // PSS_HANDLE_TRACE_INFORMATION
+    PSSNT_QUERY_PERFORMANCE_COUNTERS = 7 // PSS_PERFORMANCE_COUNTERS
+} PSSNT_QUERY_INFORMATION_CLASS;
+
 #define PSSNT_SIGNATURE_PSSD 'PSSD' // 0x50535344
 
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 // rev
 /**
  * Captures a snapshot of the specified process.
@@ -3154,13 +3163,6 @@ PssNtCaptureSnapshot(
     _In_ PSSNT_CAPTURE_FLAGS CaptureFlags,
     _In_opt_ ULONG ThreadContextFlags
     );
-
-typedef enum _PSSNT_DUPLICATE_FLAGS
-{
-    PSSNT_DUPLICATE_NONE         = 0x00,
-    PSSNT_DUPLICATE_CLOSE_SOURCE = 0x01
-} PSSNT_DUPLICATE_FLAGS;
-DEFINE_ENUM_FLAG_OPERATORS(PSSNT_DUPLICATE_FLAGS);
 
 // rev
 /**
@@ -3214,18 +3216,6 @@ PssNtFreeRemoteSnapshot(
     _In_ HANDLE SnapshotHandle
     );
 
-typedef enum _PSSNT_QUERY_INFORMATION_CLASS
-{
-    PSSNT_QUERY_PROCESS_INFORMATION = 0, // PSS_PROCESS_INFORMATION
-    PSSNT_QUERY_VA_CLONE_INFORMATION = 1, // PSS_VA_CLONE_INFORMATION
-    PSSNT_QUERY_AUXILIARY_PAGES_INFORMATION = 2, // PSS_AUXILIARY_PAGES_INFORMATION
-    PSSNT_QUERY_VA_SPACE_INFORMATION = 3, // PSS_VA_SPACE_INFORMATION
-    PSSNT_QUERY_HANDLE_INFORMATION = 4, // PSS_HANDLE_INFORMATION
-    PSSNT_QUERY_THREAD_INFORMATION = 5, // PSS_THREAD_INFORMATION
-    PSSNT_QUERY_HANDLE_TRACE_INFORMATION = 6, // PSS_HANDLE_TRACE_INFORMATION
-    PSSNT_QUERY_PERFORMANCE_COUNTERS = 7 // PSS_PERFORMANCE_COUNTERS
-} PSSNT_QUERY_INFORMATION_CLASS;
-
 // rev
 /**
  * Queries information from a the specified snapshot.
@@ -3245,7 +3235,6 @@ PssNtQuerySnapshot(
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
-
 #endif
 
 // rev
