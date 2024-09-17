@@ -1404,6 +1404,7 @@ VOID PhpProcessStartupParameters(
 {
     PH_COMMAND_LINE_OPTION options[] =
     {
+        { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
         { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
@@ -1458,6 +1459,7 @@ VOID PhpProcessStartupParameters(
             L"-s\n"
             L"-selectpid pid-to-select\n"
             L"-selecttab name-of-tab-to-select\n"
+            L"-settings filename\n"
             L"-sysinfo [section-name]\n"
             L"-channel [channel-name]\n"
             L"-v\n"
