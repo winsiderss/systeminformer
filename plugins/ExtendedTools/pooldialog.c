@@ -383,9 +383,7 @@ NTSTATUS EtShowPoolMonDialogThread(
 
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
         {
-            ((WNDPROC)GetWindowLongPtr(EtPoolTagDialogHandle, GWLP_WNDPROC))(
-                EtPoolTagDialogHandle, message.message, message.wParam, message.lParam
-                );
+            CallWindowProc(EtPoolMonDlgProc, EtPoolTagDialogHandle, message.message, message.wParam, message.lParam);
         }
 
         if (!IsDialogMessage(EtPoolTagDialogHandle, &message))

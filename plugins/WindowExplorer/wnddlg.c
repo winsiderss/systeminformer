@@ -100,9 +100,7 @@ NTSTATUS WepShowWindowsDialogThread(
 
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
         {
-            ((WNDPROC)GetWindowLongPtr(WepWindowsDialogHandle, GWLP_WNDPROC))(
-                WepWindowsDialogHandle, message.message, message.wParam, message.lParam
-                );
+            CallWindowProc(WepWindowsDlgProc, WepWindowsDialogHandle, message.message, message.wParam, message.lParam);
         }
 
         if (!IsDialogMessage(WepWindowsDialogHandle, &message))

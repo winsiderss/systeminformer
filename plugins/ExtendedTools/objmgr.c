@@ -1286,6 +1286,17 @@ INT NTAPI WinObjSymlinkCompareFunction(
     return PhCompareStringZ(PhGetStringOrEmpty(item1->Target), PhGetStringOrEmpty(item2->Target), TRUE);
 }
 
+INT NTAPI WinObjTriStateCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+)
+{
+    POBJECT_CONTEXT context = Context;
+
+    return PhFindItemList(context->CurrentDirectoryList, Item1) - PhFindItemList(context->CurrentDirectoryList, Item2);
+}
+
 NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     _In_ HWND hwndDlg,
     _In_ POBJECT_CONTEXT context,
@@ -1372,11 +1383,12 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     return status;
 }
 
-VOID NTAPI EtpObjectManagerOpenTarget(
+BOOLEAN NTAPI EtpObjectManagerOpenTarget(
     _In_ HWND hwndDlg,
     _In_ POBJECT_CONTEXT context,
     _In_ POBJECT_ENTRY entry)
 {
+    BOOLEAN retval = TRUE;
     PH_STRINGREF directoryPart = PhGetStringRef(NULL);
     PH_STRINGREF pathPart;
     PH_STRINGREF remainingPart;
@@ -1433,6 +1445,8 @@ VOID NTAPI EtpObjectManagerOpenTarget(
         }
         else    // browse to target in explorer
         {
+            retval = FALSE;
+
             if (!PhIsNullOrEmptyString(entry->Target) &&
                 (PhDoesFileExist(&entry->Target->sr) || PhDoesFileExistWin32(entry->Target->Buffer))
                 )
@@ -1466,6 +1480,7 @@ VOID NTAPI EtpObjectManagerOpenTarget(
     }
 
     PhDereferenceObject(targetPath);
+    return retval;
 }
 
 VOID NTAPI EtpObjectManagerRefresh(
@@ -1756,12 +1771,14 @@ INT_PTR CALLBACK WinObjDlgProc(
             PH_INTEGER_PAIR sortSettings;
             sortSettings = PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_LIST_SORT);
 
+            ExtendedListView_SetContext(context->ListViewHandle, context);
             ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
             ExtendedListView_SetTriState(context->ListViewHandle, TRUE);
             ExtendedListView_SetSort(context->ListViewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, WinObjNameCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, WinObjTypeCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, WinObjSymlinkCompareFunction);
+            ExtendedListView_SetTriStateCompareFunction(context->ListViewHandle, WinObjTriStateCompareFunction);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeViewHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
@@ -1936,10 +1953,14 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        if (entry->typeIndex == ET_OBJECT_SYMLINK && !(GetKeyState(VK_CONTROL) < 0))
+                        if (GetKeyState(VK_CONTROL) < 0)
+                            EtpObjectManagerOpenSecurity(hwndDlg, context, entry);
+                        else if (entry->typeIndex == ET_OBJECT_SYMLINK && !(GetKeyState(VK_SHIFT) < 0))
                         {
-                            PhSetWindowText(context->SearchBoxHandle, NULL);
-                            EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                            if (EtpObjectManagerOpenTarget(hwndDlg, context, entry))
+                            {
+                                PhSetWindowText(context->SearchBoxHandle, NULL);
+                            }
                         }  
                         else
                             EtpObjectManagerObjectProperties(hwndDlg, context, entry);
@@ -1965,6 +1986,30 @@ INT_PTR CALLBACK WinObjDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
+                if (WindowFromPoint(point) == ListView_GetHeader(context->ListViewHandle))
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Reset sort", NULL, NULL), ULONG_MAX);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                    );
+
+                    if (item && item->Id == 1)
+                    {
+                        ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
+                        ExtendedListView_SortItems(context->ListViewHandle);
+                    }
+
+                    PhDestroyEMenu(menu);
+                    break;
+                }
+                   
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
@@ -2021,9 +2066,10 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                             if (isSymlink && id == 1)
                             {
-                                PhSetWindowText(context->SearchBoxHandle, NULL);
-
-                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                if (EtpObjectManagerOpenTarget(hwndDlg, context, entry))
+                                {
+                                    PhSetWindowText(context->SearchBoxHandle, NULL);
+                                }
                             }
                             else if (isDevice && id == 2)
                             {
@@ -2283,9 +2329,7 @@ NTSTATUS EtShowObjectManagerDialogThread(
 
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
         {
-            ((WNDPROC)GetWindowLongPtr(EtObjectManagerDialogHandle, GWLP_WNDPROC))(
-                EtObjectManagerDialogHandle, message.message, message.wParam, message.lParam
-                );
+            CallWindowProc(WinObjDlgProc, EtObjectManagerDialogHandle, message.message, message.wParam, message.lParam);
         }
 
         if (!IsDialogMessage(EtObjectManagerDialogHandle, &message))

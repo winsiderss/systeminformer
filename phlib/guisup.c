@@ -1884,7 +1884,7 @@ BOOLEAN PhModalPropertySheet(
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
         {
             //DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
-            ((WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC))(hwnd, message.message, message.wParam, message.lParam);
+            CallWindowProc((WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC), hwnd, message.message, message.wParam, message.lParam);
         }
 
         if (!PropSheet_IsDialogMessage(hwnd, &message))
