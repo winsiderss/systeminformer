@@ -377,10 +377,10 @@ INT_PTR CALLBACK EtpWinObjPageDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
+            HWND TimeControl = GetDlgItem(hwndDlg, IDC_WINOBJCREATIONTIME);
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_WINOBJPERMANENT), context->HandleItem->Attributes & OBJ_PERMANENT ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_WINOBJEXCLUSIVE), context->HandleItem->Attributes & OBJ_EXCLUSIVE ? BST_CHECKED : BST_UNCHECKED);
-
-            HWND TimeControl = GetDlgItem(hwndDlg, IDC_WINOBJCREATIONTIME);
 
             if (EtObjectManagerTimeCached.QuadPart != 0) {
                 PPH_STRING startTimeString;

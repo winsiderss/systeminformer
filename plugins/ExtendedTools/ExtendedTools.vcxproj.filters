@@ -308,5 +308,17 @@
     <Image Include="resources\dll.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\cpu.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\semaphore.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\filterport.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\job.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

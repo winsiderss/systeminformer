@@ -26,6 +26,10 @@
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
 #define IDD_PROCFRAMES                  142
+#define IDI_CPU                         159
+#define IDI_SEMAPHORE                   160
+#define IDI_FILTERPORT                  161
+#define IDI_JOB                         162
 #define IDD_SYSINFO_NPU                 200
 #define ID_VIEW_NPUINFORMATION          201
 #define IDD_SYSINFO_NPUPANEL            202
@@ -176,7 +180,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        159
+#define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1121
 #define _APS_NEXT_SYMED_VALUE           135

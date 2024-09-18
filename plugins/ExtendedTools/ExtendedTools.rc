@@ -712,6 +712,8 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+IDI_CPU                 ICON                    "resources\\cpu.ico"
+
 IDI_FOLDER              ICON                    "resources\\folder.ico"
 
 IDI_MUTANT              ICON                    "resources\\mutant.ico"
@@ -733,6 +735,12 @@ IDI_EVENT               ICON                    "resources\\event.ico"
 IDI_DEVICE              ICON                    "resources\\device.ico"
 
 IDI_UNKNOWN             ICON                    "resources\\unknown.ico"
+
+IDI_SEMAPHORE           ICON                    "resources\\semaphore.ico"
+
+IDI_FILTERPORT          ICON                    "resources\\filterport.ico"
+
+IDI_JOB                 ICON                    "resources\\job.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
