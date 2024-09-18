@@ -10372,8 +10372,6 @@ RtlOverwriteFeatureConfigurationBuffer(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-
 #ifndef _RTL_RUN_ONCE_DEF
 #define _RTL_RUN_ONCE_DEF
 //
@@ -10397,6 +10395,8 @@ typedef union _RTL_RUN_ONCE
     PVOID Ptr;
 } RTL_RUN_ONCE, *PRTL_RUN_ONCE;
 #endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSAPI
 VOID

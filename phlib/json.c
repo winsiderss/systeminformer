@@ -446,7 +446,8 @@ NTSTATUS PhSaveJsonObjectToFile(
     INT json_flags = JSON_C_TO_STRING_PRETTY;
     NTSTATUS status;
     HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
+    LARGE_INTEGER allocationSize;
     size_t json_length;
     PCSTR json_string;
 
@@ -457,29 +458,34 @@ NTSTATUS PhSaveJsonObjectToFile(
         );
 
     if (json_length == 0)
-    {
         return STATUS_UNSUCCESSFUL;
-    }
 
-    status = PhCreateFile(
+    allocationSize.QuadPart = json_length;
+
+    status = PhCreateFileEx(
         &fileHandle,
         FileName,
         FILE_GENERIC_WRITE,
+        NULL,
+        &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
+        FILE_SHARE_NONE,
         FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        goto CleanupExit;
+    }
 
     status = NtWriteFile(
         fileHandle,
         NULL,
         NULL,
         NULL,
-        &isb,
+        &ioStatusBlock,
         (PVOID)json_string,
         (ULONG)json_length,
         NULL,
@@ -487,6 +493,9 @@ NTSTATUS PhSaveJsonObjectToFile(
         );
 
     NtClose(fileHandle);
+
+CleanupExit:
+    json_object_put((struct json_object*)json_string);
 
     return status;
 }
@@ -577,34 +586,87 @@ NTSTATUS PhSaveXmlObjectToFile(
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
+    HANDLE fileHandle = NULL;
+    IO_STATUS_BLOCK ioStatusBlock;
+    LARGE_INTEGER allocationSize;
+    INT xml_length;
+    PSTR xml_buffer;
+
+    xml_length = mxmlSaveString(XmlRootObject, NULL, 0, XmlSaveCallback);
+
+    if (xml_length == 0)
+        return STATUS_UNSUCCESSFUL;
+
+    xml_buffer = PhAllocateSafe(xml_length);
+
+    if (!xml_buffer)
+        return STATUS_UNSUCCESSFUL;
+
+    xml_length = mxmlSaveString(
+        XmlRootObject,
+        xml_buffer,
+        xml_length,
+        XmlSaveCallback
+        );
+
+    if (xml_length == 0)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    allocationSize.QuadPart = xml_length;
 
     // Create the directory if it does not exist.
 
     status = PhCreateDirectoryFullPath(FileName);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
-    status = PhCreateFile(
+    status = PhCreateFileEx(
         &fileHandle,
         FileName,
         FILE_GENERIC_WRITE,
+        NULL,
+        &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
+        FILE_SHARE_NONE,
         FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
         );
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
-    if (mxmlSaveFd(XmlRootObject, fileHandle, XmlSaveCallback) == INT_ERROR)
+    status = NtWriteFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &ioStatusBlock,
+        (PVOID)xml_buffer,
+        (ULONG)xml_length,
+        NULL,
+        NULL
+        );
+
+    //if (mxmlSaveFd(XmlRootObject, fileHandle, XmlSaveCallback) == INT_ERROR)
+    //{
+    //    status = STATUS_UNSUCCESSFUL;
+    //}
+
+CleanupExit:
+    if (fileHandle)
     {
-        status = STATUS_UNSUCCESSFUL;
+        NtClose(fileHandle);
     }
 
-    NtClose(fileHandle);
+    if (xml_buffer)
+    {
+        PhFree(xml_buffer);
+    }
 
     return status;
 }

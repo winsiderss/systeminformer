@@ -597,7 +597,6 @@ LdrStandardizeSystemPath(
     _In_ PUNICODE_STRING SystemPath
     );
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
 typedef struct _LDR_FAILURE_DATA
 {
     NTSTATUS Status;
@@ -605,6 +604,7 @@ typedef struct _LDR_FAILURE_DATA
     WCHAR AdditionalInfo[0x20];
 } LDR_FAILURE_DATA, *PLDR_FAILURE_DATA;
 
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 NTSYSAPI
 PLDR_FAILURE_DATA
 NTAPI
@@ -1262,7 +1262,9 @@ LdrControlFlowGuardEnforcedWithExportSuppression(
     VOID
     )
 {
-    return LdrSystemDllInitBlock.CfgBitMap && (LdrSystemDllInitBlock.Flags & 3) == 0;
+    return LdrSystemDllInitBlock.CfgBitMap
+        && (LdrSystemDllInitBlock.Flags & 1) == 0
+        && (LdrSystemDllInitBlock.MitigationOptionsMap.Map[0] & 3) == 3; // PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_EXPORT_SUPPRESSION
 }
 #endif
 

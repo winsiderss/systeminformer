@@ -17,7 +17,9 @@ Authors:
         <DisplayString>{Buffer,[Length / 2]su}</DisplayString>
         <Expand>
             <Item Name="[string]" ExcludeView="simple">Buffer,[Length / 2]su</Item>
+            <Item Name="[bytes]">Length</Item>
             <Item Name="[length]">Length / 2</Item>
+            <Item Name="[real-length]">wcslen(Buffer)</Item>
         </Expand>
     </Type>
 
@@ -26,7 +28,9 @@ Authors:
         <DisplayString>{Buffer,[Length / 2]su}</DisplayString>
         <Expand>
             <Item Name="[string]" ExcludeView="simple">Buffer,[Length / 2]su</Item>
+            <Item Name="[bytes]">Length</Item>
             <Item Name="[length]">Length / 2</Item>
+            <Item Name="[real-length]">wcslen(Buffer)</Item>
         </Expand>
     </Type>
 
