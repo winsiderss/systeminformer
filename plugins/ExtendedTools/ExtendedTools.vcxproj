@@ -211,6 +211,7 @@
     <Image Include="resources\job.ico" />
     <Image Include="resources\key.ico" />
     <Image Include="resources\link.ico" />
+    <Image Include="resources\memory.ico" />
     <Image Include="resources\mutant.ico" />
     <Image Include="resources\port.ico" />
     <Image Include="resources\section.ico" />

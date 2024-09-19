@@ -320,5 +320,8 @@
     <Image Include="resources\job.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\memory.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

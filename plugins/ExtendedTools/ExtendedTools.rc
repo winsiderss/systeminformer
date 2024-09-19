@@ -396,7 +396,7 @@ BEGIN
     CONTROL         "",IDC_OBJMGR_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_FULLROWSELECT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,2,2,148,343
     EDITTEXT        IDC_OBJMGR_SEARCH,2,347,169,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Refresh (F5)",IDC_REFRESH,643,347,50,14
-    LTEXT           "Static", IDC_OBJMGR_PATH,180,350,330,8
+    LTEXT           "Static",IDC_OBJMGR_PATH,180,350,330,8
     LTEXT           "Objects in current directory:",IDC_OBJMGR_COUNT_L,515,350,92,8
     LTEXT           "Static",IDC_OBJMGR_COUNT,610,350,32,8
 END
@@ -741,6 +741,8 @@ IDI_SEMAPHORE           ICON                    "resources\\semaphore.ico"
 IDI_FILTERPORT          ICON                    "resources\\filterport.ico"
 
 IDI_JOB                 ICON                    "resources\\job.ico"
+
+IDI_MEMORY              ICON                    "resources\\memory.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
