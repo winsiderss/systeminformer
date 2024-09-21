@@ -1059,7 +1059,10 @@
 #define EXPORT_KSIENUMERATEPROCESSHANDLES                                                     2037    
 #define EXPORT_KSIQUERYHASHINFORMATIONFILE                                                    2038    
 #define EXPORT_KPHQUERYINFORMATIONOBJECT                                                      2039   
-#define EXPORT_KPHALPCQUERYINFORMATION                                                        2040   
-#define EXPORT_PHGETDRIVERNAME                                                                2041    
+#define EXPORT_KPHALPCQUERYINFORMATION                                                        2040 
+#define EXPORT_KPHDUPLICATEOBJECT                                                             2041 
+#define EXPORT_PHGETDRIVERNAME                                                                2042    
+#define EXPORT_PHENUMHANDLESEX                                                                2043    
+#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2044    
 
 #endif _PH_EXPORT_DEF_H

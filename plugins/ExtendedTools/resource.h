@@ -31,6 +31,7 @@
 #define IDI_FILTERPORT                  161
 #define IDI_JOB                         162
 #define IDI_MEMORY                      163
+#define IDD_OBJHANDLES                  164
 #define IDD_SYSINFO_NPU                 200
 #define ID_VIEW_NPUINFORMATION          201
 #define IDD_SYSINFO_NPUPANEL            202
@@ -104,13 +105,17 @@
 #define IDC_NETSEND_L                   1111
 #define IDC_GROUPDISKREAD               1112
 #define IDC_GROUPDISKWRITE              1113
-#define IDC_WINOBJPERMANENT             1114
-#define IDC_WINOBJEXCLUSIVE             1115
-#define IDC_WINOBJCREATIONTIME          1116
-#define IDC_OBJMGR_SEARCH               1117
-#define IDC_OBJMGR_COUNT_L              1118
-#define IDC_OBJMGR_COUNT                1119
-#define IDC_OBJMGR_PATH                 1120
+#define IDC_OBJMGR_SEARCH               1114
+#define IDC_OBJMGR_COUNT_L              1115
+#define IDC_OBJMGR_COUNT                1116
+#define IDC_PROPERTIES                  1117
+#define IDC_SECURITY                    1118
+#define IDC_COPY                        1119
+#define IDC_OPENLINK                    1120
+#define IDC_GOTODRIVER                  1121
+#define IDC_GOTOPROCESS                 1122
+#define IDC_GOTOTHREAD                  1123
+#define IDC_OBJMGR_PATH                 1124
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -164,7 +169,6 @@
 #define IDD_PROCNET                     8003
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
-#define IDD_WINOBJECT               	8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005
@@ -181,9 +185,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1121
+#define _APS_NEXT_CONTROL_VALUE         1125
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

@@ -463,17 +463,12 @@ BEGIN
     RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,223,33,59,8,SS_ENDELLIPSIS
 END
 
-IDD_WINOBJECT DIALOGEX 0, 0, 186, 101
+IDD_OBJHANDLES DIALOGEX 0, 0, 260, 260
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Windows Object"
+CAPTION "Handles"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Permanent:",IDC_STATIC,7,7,45,8,SS_ENDELLIPSIS
-    LTEXT           "Exclusive:",IDC_STATIC,7,19,45,8,SS_ENDELLIPSIS
-    CONTROL         "",IDC_WINOBJPERMANENT,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,50,6,12,10
-    CONTROL         "",IDC_WINOBJEXCLUSIVE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,50,19,12,10
-    LTEXT           "Creation time:",IDC_STATIC,7,31,50,8,SS_ENDELLIPSIS
-    EDITTEXT        IDC_WINOBJCREATIONTIME,57,31,100,11,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
 END
 
 
@@ -694,12 +689,8 @@ BEGIN
     BEGIN
     END
 
-    IDD_WINOBJECT, DIALOG
+    IDD_OBJHANDLES, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 94
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -743,17 +734,6 @@ IDI_FILTERPORT          ICON                    "resources\\filterport.ico"
 IDI_JOB                 ICON                    "resources\\job.ico"
 
 IDI_MEMORY              ICON                    "resources\\memory.ico"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_WINOBJECT AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

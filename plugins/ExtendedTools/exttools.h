@@ -1635,6 +1635,18 @@ VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     );
 
+NTSTATUS EtpGetObjectName(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ObjectName
+    );
+
+NTSTATUS EtpDuplicateHandleFromProcessEx(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SourceHandle
+    );
+
 // poolmon
 
 VOID EtShowPoolTableDialog(
