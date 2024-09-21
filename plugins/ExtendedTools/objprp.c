@@ -577,7 +577,8 @@ VOID EtpEnumObjectHandles(
                 }
             }
             // If we're dealing with a file handle we must take special precautions so we don't hang.
-            else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE) && useKsi)    // only do with KSI
+            else if ((PhEqualString2(context->HandleItem->TypeName, L"File", TRUE) && useKsi) ||    // only do with KSI
+                PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))    
             {
                 if (NT_SUCCESS(EtpDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
                     (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
@@ -585,23 +586,7 @@ VOID EtpEnumObjectHandles(
                     if (NT_SUCCESS(PhGetHandleInformation(NtCurrentProcess(), dupHandle,
                         handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &bestObjectName)))
                     {
-                        ObjectNameMath = PhEqualString(bestObjectName, context->HandleItem->BestObjectName, TRUE) ||
-                            PhStartsWithString(bestObjectName, context->HandleItem->BestObjectName, TRUE);
-                        PhDereferenceObject(bestObjectName);
-                    }
-                    NtClose(dupHandle);
-                }
-            }
-            else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
-            {
-                if (NT_SUCCESS(EtpDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
-                    (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
-                {
-                    if (NT_SUCCESS(PhGetHandleInformation(NtCurrentProcess(), dupHandle,
-                        handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &bestObjectName)))
-                    {
-                        ObjectNameMath = PhEqualString(bestObjectName, context->HandleItem->BestObjectName, TRUE) ||
-                            PhStartsWithString(bestObjectName, context->HandleItem->BestObjectName, TRUE);
+                        ObjectNameMath = PhStartsWithString(bestObjectName, context->HandleItem->BestObjectName, TRUE);
                         PhDereferenceObject(bestObjectName);
                     }
                     NtClose(dupHandle);
@@ -672,10 +657,10 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Process");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"PID");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 130, L"Process");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 48, L"PID");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Handle");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 110, L"Access");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Access");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
             ExtendedListView_SetItemColorFunction(context->ListViewHandle, EtpColorItemColorFunction);

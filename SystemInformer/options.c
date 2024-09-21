@@ -3242,6 +3242,34 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
+            case IDC_RESET:
+                {
+                    PPH_OPTIONS_ADVANCED_ROOT_NODE* nodes;
+                    ULONG numberOfNodes;
+
+                    if (!GetSelectedOptionsAdvancedNodes(context, &nodes, &numberOfNodes))
+                        break;
+
+                    for (ULONG i = 0; i < numberOfNodes; i++)
+                    {
+                        PhSettingFromString(
+                            nodes[i]->Setting->Type,
+                            &nodes[i]->Setting->DefaultValue,
+                            NULL,
+                            PhSystemDpi,
+                            nodes[i]->Setting
+                        );
+
+                        PhMoveReference(
+                            &nodes[i]->ValueString,
+                            PhSettingToString(nodes[i]->Setting->Type, nodes[i]->Setting)
+                        );
+                    }
+
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+                    PhApplyTreeNewFilters(&context->TreeFilterSupport);
+                }
+                break;
             }
         }
         break;
@@ -3262,6 +3290,8 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     PPH_EMENU_ITEM item;
 
                     menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_RESET, L"&Reset", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
                     PhInsertCopyCellEMenuItem(menu, IDC_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 

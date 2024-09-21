@@ -159,6 +159,8 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHIFT), hotkey.Y & KBDSHIFT);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_CTRL), hotkey.Y & KBDCTRL);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALT), hotkey.Y & KBDALT);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
