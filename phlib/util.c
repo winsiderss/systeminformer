@@ -2991,6 +2991,46 @@ VOID PhFlushImageVersionInfoCache(
 }
 
 /**
+ * Retrieves the full path and file name of the specified file.
+ *
+ * \param FileName The name of the file.
+ * \param BufferLength The size of the buffer to receive the null-terminated string for the drive and path.
+ * \param Buffer A pointer to a buffer that receives the null-terminated string for the drive and path.
+ * \param FilePart A variable which receives the index of the base name.
+ * \param BytesRequired The length of the string including the terminating null character.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetFullPathName(
+    _In_ PCWSTR FileName,
+    _In_ SIZE_T BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR* FilePart,
+    _Out_opt_ PULONG BytesRequired)
+{
+    NTSTATUS status;
+    ULONG bytesRequired;
+
+    bytesRequired = 0;
+    status = RtlGetFullPathName_UEx(
+        FileName,
+        (ULONG)BufferLength, // * sizeof(WCHAR)
+        Buffer,
+        FilePart,
+        &bytesRequired
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *BytesRequired = bytesRequired; /* / sizeof(WCHAR) */
+
+    if (BufferLength < bytesRequired)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Gets an absolute file name.
  *
  * \param FileName A file name.
@@ -3487,6 +3527,7 @@ PPH_STRING PhGetApplicationDirectory(
         else
             indexOfFileName = 0;
 
+        // Extract the directory path from the file name
         if (indexOfFileName != 0)
         {
             directoryPath = PhSubstring(fileName, 0, indexOfFileName);
@@ -3495,6 +3536,7 @@ PPH_STRING PhGetApplicationDirectory(
         PhDereferenceObject(fileName);
     }
 
+    // Atomically set the cached directory path if it is currently NULL
     if (!InterlockedCompareExchangePointer(
         &cachedDirectoryPath,
         directoryPath,
