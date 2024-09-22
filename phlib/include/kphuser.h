@@ -281,6 +281,17 @@ KphQueryInformationDriver(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ BOOLEAN OpenLowest
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphQueryInformationProcess(
     _In_ HANDLE ProcessHandle,
     _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,

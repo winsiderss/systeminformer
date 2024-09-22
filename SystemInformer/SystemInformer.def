@@ -1131,5 +1131,7 @@ EXPORTS
 
 ; phnative
     PhGetDriverName                                                               @2042     NONAME
-    PhEnumHandlesEx                                                               @2043     NONAME
-    PhGetObjectTypeNumber                                                         @2044     NONAME
+    PhGetDriverImageFileName                                                      @2043     NONAME
+    PhEnumHandlesEx                                                               @2044     NONAME
+    PhGetObjectTypeNumber                                                         @2045     NONAME
+    PhOpenDevice                                                                  @2046     NONAME

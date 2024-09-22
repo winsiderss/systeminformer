@@ -5918,6 +5918,37 @@ NTSTATUS PhUnloadDriver(
     return status;
 }
 
+
+
+NTSTATUS PhOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_STRINGREF ObjectName,
+    _In_ BOOLEAN OpenLowest
+)
+{
+    if (KsiLevel() == KphLevelMax)
+    {
+        UNICODE_STRING objectName;
+
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+
+        return KphOpenDevice(
+            DeviceHandle,
+            DriverHandle,
+            DesiredAccess,
+            &objectName,
+            OpenLowest
+        );
+    }
+    else
+    {
+        return STATUS_NOT_IMPLEMENTED;
+    }
+}
+
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
     _In_ PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,

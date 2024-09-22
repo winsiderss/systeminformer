@@ -150,6 +150,16 @@ typedef struct _KPHM_QUERY_INFORMATION_DRIVER
     PULONG ReturnLength;
 } KPHM_QUERY_INFORMATION_DRIVER, *PKPHM_QUERY_INFORMATION_DRIVER;
 
+typedef struct _KPHM_OPEN_DEVICE
+{
+    NTSTATUS Status;
+    PHANDLE DeviceHandle;
+    PHANDLE DriverHandle;
+    ACCESS_MASK DesiredAccess;
+    PUNICODE_STRING ObjectName;
+    BOOLEAN OpenLowest;
+} KPHM_OPEN_DEVICE, * PKPHM_OPEN_DEVICE;
+
 typedef struct _KPHM_QUERY_INFORMATION_PROCESS
 {
     NTSTATUS Status;

@@ -116,6 +116,8 @@
 #define IDC_GOTOPROCESS                 1122
 #define IDC_GOTOTHREAD                  1123
 #define IDC_OBJMGR_PATH                 1124
+#define IDC_COPYPATH                    1125
+#define IDC_RESETSORT                   1126
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -187,7 +189,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1125
+#define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

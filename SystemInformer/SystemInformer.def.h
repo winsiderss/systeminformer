@@ -1062,7 +1062,9 @@
 #define EXPORT_KPHALPCQUERYINFORMATION                                                        2040 
 #define EXPORT_KPHDUPLICATEOBJECT                                                             2041 
 #define EXPORT_PHGETDRIVERNAME                                                                2042    
-#define EXPORT_PHENUMHANDLESEX                                                                2043    
-#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2044    
+#define EXPORT_PHGETDRIVERIMAGEFILENAME                                                       2043    
+#define EXPORT_PHENUMHANDLESEX                                                                2044    
+#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2045    
+#define EXPORT_PHOPENDEVICE                                                                   2046    
 
 #endif _PH_EXPORT_DEF_H

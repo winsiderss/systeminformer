@@ -39,6 +39,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgSetInformationObject,
     KphMsgOpenDriver,
     KphMsgQueryInformationDriver,
+    KphMsgOpenDevice,
     KphMsgQueryInformationProcess,
     KphMsgSetInformationProcess,
     KphMsgSetInformationThread,
@@ -325,6 +326,7 @@ typedef struct _KPH_MESSAGE
             KPHM_SET_INFORMATION_OBJECT SetInformationObject;
             KPHM_OPEN_DRIVER OpenDriver;
             KPHM_QUERY_INFORMATION_DRIVER QueryInformationDriver;
+            KPHM_OPEN_DEVICE OpenDevice;
             KPHM_QUERY_INFORMATION_PROCESS QueryInformationProcess;
             KPHM_SET_INFORMATION_PROCESS SetInformationProcess;
             KPHM_SET_INFORMATION_THREAD SetInformationThread;

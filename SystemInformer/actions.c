@@ -3825,6 +3825,8 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
             PhSetWindowProcedure(WindowHandle, PhpUiServiceProgressDialogWndProc);
 
             PhShowServiceProgressDialogConfirmMessage(context);
+
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
         }
         break;
     }

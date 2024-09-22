@@ -346,3 +346,139 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Opens a device object.
+ *
+ * \param[out] DriverDevice Set to the opened handle to the device.
+ * \param[out_opt] DriverHandle Set to the opened handle to the device driver.
+ * \param[in] DesiredAccess Desired access to the driver object.
+ * \param[in] ObjectAttributes Object attributes for opening the driver object.
+ * \param[in] OpenLowest Open lowest-level (TRUE) or topmost (FALSE) device object in the stack
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ BOOLEAN OpenLowest,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    HANDLE driverHandle;
+    PDEVICE_OBJECT DeviceObject;
+    PDEVICE_OBJECT LowerDevice;
+    PFILE_OBJECT FileObject;
+
+    PAGED_CODE_PASSIVE();
+
+    deviceHandle = NULL;
+    driverHandle = NULL;
+    DeviceObject = NULL;
+    FileObject = NULL;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeOutputType(DeviceHandle, HANDLE);
+            if (DriverHandle)
+                ProbeOutputType(DriverHandle, HANDLE);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = IoGetDeviceObjectPointer(ObjectName, DesiredAccess, &FileObject, &DeviceObject);
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+            GENERAL,
+            "ObOpenObjectByPointer failed: %!STATUS!",
+            status);
+
+        goto Exit;
+    }
+
+    ObReferenceObject(DeviceObject);
+
+    if (OpenLowest)
+    {
+        //while (LowerDevice = IoGetLowerDeviceObject(DeviceObject))
+            //    DeviceObject = LowerDevice;
+#pragma warning(suppress: 4706) // suppress assignment within conditional expression
+        if (LowerDevice = IoGetDeviceAttachmentBaseRef(DeviceObject))
+        {
+            ObDereferenceObject(DeviceObject);
+            DeviceObject = LowerDevice;
+        }
+    }
+
+    status = ObOpenObjectByPointer(DeviceObject, 0, NULL, DesiredAccess, *IoDeviceObjectType, AccessMode, &deviceHandle);
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+            GENERAL,
+            "ObOpenObjectByPointer failed: %!STATUS!",
+            status);
+        deviceHandle = NULL;
+
+        goto Exit;
+    }
+
+    if (DriverHandle && DeviceObject->DriverObject)
+    {
+        if (!NT_SUCCESS(ObOpenObjectByPointer(DeviceObject->DriverObject, 0, NULL,
+            DesiredAccess, *IoDriverObjectType, AccessMode, &driverHandle)))
+        {
+            driverHandle = NULL;
+            status = STATUS_NOT_ALL_ASSIGNED;
+        }  
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            *DeviceHandle = deviceHandle;
+            if (DriverHandle)
+                *DriverHandle = driverHandle;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+        }
+    }
+    else
+    {
+        *DeviceHandle = deviceHandle;
+        if (DriverHandle)
+            *DriverHandle = driverHandle;
+    }
+
+Exit:
+
+    if (FileObject)
+    {
+        ObDereferenceObject(FileObject);
+    }
+
+    if (DeviceObject)
+    {
+        ObDereferenceObject(DeviceObject);
+    }
+
+    return status;
+}

@@ -836,6 +836,17 @@ NTSTATUS KphQueryInformationDriver(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ BOOLEAN OpenLowest,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // thread
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

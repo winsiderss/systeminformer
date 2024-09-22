@@ -144,6 +144,7 @@ VOID EtHandlePropertiesWindowPreOpen(
     {
         WCHAR string[PH_INT64_STR_LEN_1];
         PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1));
+        INT index;
 
         // Show real handles count
         ULONG real_count = wcstoul(count->Buffer, NULL, 10);
@@ -152,18 +153,17 @@ VOID EtHandlePropertiesWindowPreOpen(
             PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
         }
 
-        // Replace irrelevant SI access mask with object creation time (if any)
         PhRemoveListViewItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
 
+        // Show object attributes
         if (context->HandleItem->Attributes & OBJ_PERMANENT || context->HandleItem->Attributes & OBJ_EXCLUSIVE)
         {
             PPH_STRING attributes = NULL;
-            INT index;
-
+            
             index = PhAddListViewGroupItem(
                 context->ListViewHandle,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
-                PH_HANDLE_GENERAL_INDEX_ACCESSMASK + 1,
+                PH_HANDLE_GENERAL_INDEX_OBJECT + 1,
                 L"Object attributes",
                 NULL
             );
@@ -184,23 +184,80 @@ VOID EtHandlePropertiesWindowPreOpen(
             PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetString(attributes));
         }
 
-        if (EtObjectManagerTimeCached.QuadPart != 0) {
-            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddListViewGroupItem(
+        // Show creation time
+        if (EtObjectManagerTimeCached.QuadPart != 0)
+        {
+            PPH_STRING startTimeString;
+            SYSTEMTIME startTimeFields;
+
+            index = PhAddListViewGroupItem(
                 context->ListViewHandle,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
-                PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
+                PH_HANDLE_GENERAL_INDEX_OBJECT + 2,
                 L"Creation time",
                 NULL
             );
 
-            PPH_STRING startTimeString;
-            SYSTEMTIME startTimeFields;
             PhLargeIntegerToLocalSystemTime(&startTimeFields, &EtObjectManagerTimeCached);
             startTimeString = PhaFormatDateTime(&startTimeFields);
 
-            PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1, startTimeString->Buffer);
+            PhSetListViewSubItem(context->ListViewHandle, index, 1, startTimeString->Buffer);
         }
 
+        // Show Device drivers information
+        if (PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE))
+        {
+            HANDLE objectHandle;
+            HANDLE DriverHandle;
+            PPH_STRING driverName;
+
+            PhAddListViewGroup(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, L"Device driver information");
+
+            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 1, L"Lower-edge driver", NULL);
+
+            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 2, L"Lower-edge driver image", NULL);
+
+            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 3, L"Upper-edge driver", NULL);
+
+            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 4, L"Upper-edge driver Image", NULL);
+
+            if (NT_SUCCESS(PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &context->HandleItem->BestObjectName->sr, TRUE)))
+            {
+                if (NT_SUCCESS(PhGetDriverName(DriverHandle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 1, 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                if (NT_SUCCESS(PhGetDriverImageFileName(DriverHandle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                NtClose(DriverHandle);
+                NtClose(objectHandle);
+            }
+
+            if (NT_SUCCESS(PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &context->HandleItem->BestObjectName->sr, FALSE)))
+            {
+                if (NT_SUCCESS(PhGetDriverName(DriverHandle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 3, 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                if (NT_SUCCESS(PhGetDriverImageFileName(DriverHandle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, 4, 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                NtClose(DriverHandle);
+                NtClose(objectHandle);
+            }
+        }
+        
         PhSetWindowText(context->ParentWindow, L"Object Properties");
 
         //PhCenterWindow(context->ParentWindow, EtObjectManagerDialogHandle);
@@ -533,11 +590,27 @@ VOID EtpEnumObjectHandles(
     _In_ PHANDLES_PAGE_CONTEXT context
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static ULONG FileTypeIndex;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PH_STRINGREF FileName = PH_STRINGREF_INIT(L"File");
+        FileTypeIndex = PhGetObjectTypeNumber(&FileName);
+        PhEndInitOnce(&initOnce);
+    }
+
     COLORREF ColorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
     COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG i;
     BOOLEAN useKsi = KsiLevel() >= KphLevelMed;
+    
+    BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
+    BOOLEAN isAlpcPort = PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE);
+    BOOLEAN isRegKey = PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE);
+
+    ULONG SourceTypeIndex = isDevice ? FileTypeIndex : context->HandleItem->TypeIndex;  // HACK
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -555,14 +628,15 @@ VOID EtpEnumObjectHandles(
             ObjectNameMath = FALSE;
 
             // Skip other types and our context handle
-            if (handleInfo->ObjectTypeIndex != context->HandleItem->TypeIndex ||
-                handleInfo->UniqueProcessId == (ULONG_PTR)NtCurrentProcessId() && handleInfo->HandleValue == (ULONG_PTR)context->HandleItem->Handle)
+            if (handleInfo->ObjectTypeIndex != SourceTypeIndex ||
+                handleInfo->UniqueProcessId == (ULONG_PTR)NtCurrentProcessId() &&
+                handleInfo->HandleValue == (ULONG_PTR)context->HandleItem->Handle)
             {
                 continue;
             }
 
             // Lookup for matches in object name to find more handles for ALPC Port, File, Key
-            if (PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE))
+            if (isAlpcPort)
             {
                 if (NT_SUCCESS(EtpDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
                     (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
@@ -577,8 +651,7 @@ VOID EtpEnumObjectHandles(
                 }
             }
             // If we're dealing with a file handle we must take special precautions so we don't hang.
-            else if ((PhEqualString2(context->HandleItem->TypeName, L"File", TRUE) && useKsi) ||    // only do with KSI
-                PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))    
+            else if (isDevice && useKsi || isRegKey)
             {
                 if (NT_SUCCESS(EtpDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
                     (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
@@ -599,7 +672,10 @@ VOID EtpEnumObjectHandles(
 
                 entry = PhAllocateZero(sizeof(HANDLE_ENTRY));
                 entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
+
+                // RESERVED. TODO: add menu Close handle (Dart Vanya)
                 entry->Handle = (HANDLE)handleInfo->HandleValue;
+
                 // Highlight not own object handles
                 entry->Color = handleInfo->Object != context->HandleItem->Object ? ColorInherit : ColorNormal;
 
@@ -667,7 +743,11 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
+            PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
+
             EtpEnumObjectHandles(context);
+
+            PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -684,11 +764,9 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             )) != INT_ERROR)
             {
                 PHANDLE_ENTRY param;
-
                 if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
                     PhFree(param);
             }
-
         }
         break;
     case WM_NOTIFY:
