@@ -771,6 +771,8 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         break;
     case WM_NOTIFY:
         {
+            PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
             REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
@@ -802,7 +804,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             }
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
             PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
             item = PhShowEMenu(

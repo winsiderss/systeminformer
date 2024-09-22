@@ -1943,11 +1943,8 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
                 PhSearchControlMatch(MatchHandle, &entry->TypeName->sr) ||
                 entry->Target && PhSearchControlMatch(MatchHandle, &entry->Target->sr))
             {
-                index = PhAddListViewItem(context->ListViewHandle, MAXINT, entry->Name->Buffer, entry);
+                index = PhAddListViewItem(context->ListViewHandle, MAXINT, LPSTR_TEXTCALLBACK, entry);
                 PhSetListViewItemImageIndex(context->ListViewHandle, index, entry->TypeIndex);
-                PhSetListViewSubItem(context->ListViewHandle, index, 1, entry->TypeName->Buffer);
-                if (entry->Target != NULL)
-                    PhSetListViewSubItem(context->ListViewHandle, index, 2, entry->Target->Buffer);
             }
         }
     }
@@ -2082,7 +2079,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             sortSettings = PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_LIST_SORT);
 
             ExtendedListView_SetContext(context->ListViewHandle, context);
-            ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
+            //ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
             ExtendedListView_SetTriState(context->ListViewHandle, TRUE);
             ExtendedListView_SetSort(context->ListViewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, WinObjNameCompareFunction);

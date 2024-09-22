@@ -1058,13 +1058,13 @@
 #define EXPORT_KSILEVEL                                                                       2036    
 #define EXPORT_KSIENUMERATEPROCESSHANDLES                                                     2037    
 #define EXPORT_KSIQUERYHASHINFORMATIONFILE                                                    2038    
-#define EXPORT_KPHQUERYINFORMATIONOBJECT                                                      2039   
-#define EXPORT_KPHALPCQUERYINFORMATION                                                        2040 
-#define EXPORT_KPHDUPLICATEOBJECT                                                             2041 
-#define EXPORT_PHGETDRIVERNAME                                                                2042    
-#define EXPORT_PHGETDRIVERIMAGEFILENAME                                                       2043    
-#define EXPORT_PHENUMHANDLESEX                                                                2044    
-#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2045    
-#define EXPORT_PHOPENDEVICE                                                                   2046    
+#define EXPORT_KPHQUERYINFORMATIONOBJECT                                                      2040   
+#define EXPORT_KPHALPCQUERYINFORMATION                                                        2041 
+#define EXPORT_KPHDUPLICATEOBJECT                                                             2042 
+#define EXPORT_PHGETDRIVERNAME                                                                2043    
+#define EXPORT_PHGETDRIVERIMAGEFILENAME                                                       2044    
+#define EXPORT_PHENUMHANDLESEX                                                                2045    
+#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2046    
+#define EXPORT_PHOPENDEVICE                                                                   2047    
 
 #endif _PH_EXPORT_DEF_H
