@@ -73,6 +73,19 @@ typedef NTSTATUS (NTAPI* _NtChangeProcessState)(
     _In_opt_ ULONG64 Reserved
     );
 
+typedef NTSTATUS (NTAPI* _NtCopyFileChunk)(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE EventHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PULONG SourceKey,
+    _In_opt_ PULONG DestKey,
+    _In_ ULONG Flags
+    );
+
 typedef NTSTATUS (NTAPI* _RtlDefaultNpAcl)(
     _Out_ PACL* Acl
     );
@@ -145,6 +158,10 @@ typedef NTSTATUS (WINAPI* _NtPssCaptureVaSpaceBulk)(
     _In_ PNTPSS_MEMORY_BULK_INFORMATION BulkInformation,
     _In_ SIZE_T BulkInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
+    );
+
+typedef BOOLEAN (WINAPI* _LdrControlFlowGuardEnforcedWithExportSuppression)(
+    VOID
     );
 
 // Advapi32
@@ -250,6 +267,14 @@ typedef BOOL (WINAPI* _SetWindowDisplayAffinity)(
     _In_ ULONG Affinity
     );
 
+typedef enum _CONSOLECONTROL CONSOLECONTROL;
+
+typedef NTSTATUS (NTAPI* _ConsoleControl)(
+    _In_ CONSOLECONTROL Command,
+    _In_reads_bytes_(ConsoleInformationLength) PVOID ConsoleInformation,
+    _In_ ULONG ConsoleInformationLength
+    );
+
 typedef ULONG (WINAPI *_NotifyServiceStatusChangeW)(
     _In_ SC_HANDLE hService,
     _In_ DWORD dwNotifyMask,
@@ -279,6 +304,8 @@ PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
 PH_DECLARE_IMPORT(NtChangeProcessState);
+PH_DECLARE_IMPORT(NtCopyFileChunk);
+PH_DECLARE_IMPORT(LdrControlFlowGuardEnforcedWithExportSuppression);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
@@ -302,10 +329,6 @@ PH_DECLARE_IMPORT(ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
 PH_DECLARE_IMPORT(SHAutoComplete);
 
-PH_DECLARE_IMPORT(PssCaptureSnapshot);
-PH_DECLARE_IMPORT(PssQuerySnapshot);
-PH_DECLARE_IMPORT(PssFreeSnapshot);
-
 PH_DECLARE_IMPORT(CreateEnvironmentBlock);
 PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
 PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
@@ -314,6 +337,7 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 // User32
 
 PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
+PH_DECLARE_IMPORT(ConsoleControl);
 
 EXTERN_C_END
 
