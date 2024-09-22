@@ -4162,6 +4162,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PPH_STRING tokenNamedObjectPathString = NULL;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");

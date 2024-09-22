@@ -2367,7 +2367,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             SetBkMode(hdc, TRANSPARENT);
 
-            return (INT_PTR)GetStockBrush(WHITE_BRUSH);
+            return (INT_PTR)PhGetStockBrush(WHITE_BRUSH);
         }
         break;
     case WM_COMMAND:
@@ -2456,11 +2456,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             SetBkMode(hdc, TRANSPARENT);
 
             clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_WINDOW + 1));
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_3DFACE));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_3DFACE + 1));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
         }
@@ -2497,7 +2497,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
                                     SetDCBrushColor(customDraw->hdc, RGB(0xff, 0xff, 0xff));
-                                    FillRect(customDraw->hdc, &customDraw->rc, GetStockBrush(DC_BRUSH));
+                                    FillRect(customDraw->hdc, &customDraw->rc, PhGetStockBrush(DC_BRUSH));
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {

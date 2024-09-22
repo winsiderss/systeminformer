@@ -224,7 +224,7 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
             FileName,
             FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
@@ -238,7 +238,7 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
     InitializeObjectAttributes(
         &sectionAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );
@@ -330,7 +330,7 @@ NTSTATUS PhMapViewOfEntireFile(
             FileName,
             FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
@@ -351,7 +351,7 @@ NTSTATUS PhMapViewOfEntireFile(
     InitializeObjectAttributes(
         &sectionAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );
@@ -428,7 +428,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
             FileName,
             FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
@@ -449,7 +449,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
     InitializeObjectAttributes(
         &sectionAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );
@@ -803,7 +803,7 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
     _In_ SIZE_T ViewSize,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
@@ -832,13 +832,26 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
     dosHeader = PhAllocate(PAGE_SIZE);
     memset(dosHeader, 0, PAGE_SIZE);
 
-    status = ReadVirtualMemoryCallback(
-        ProcessHandle,
-        ViewBase,
-        dosHeader,
-        PAGE_SIZE,
-        NULL
-        );
+    if (ReadVirtualMemoryCallback)
+    {
+        status = ReadVirtualMemoryCallback(
+            ProcessHandle,
+            ViewBase,
+            dosHeader,
+            PAGE_SIZE,
+            NULL
+            );
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            ViewBase,
+            dosHeader,
+            PAGE_SIZE,
+            NULL
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -936,7 +949,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
     _In_ SIZE_T ViewSize,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
@@ -1044,13 +1057,26 @@ NTSTATUS PhLoadRemoteMappedImageEx(
 
     RemoteMappedImage->NtHeaders = PhAllocateZero(ntHeadersSize);
 
-    status = ReadVirtualMemoryCallback(
-        ProcessHandle,
-        PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
-        RemoteMappedImage->NtHeaders,
-        ntHeadersSize,
-        NULL
-        );
+    if (ReadVirtualMemoryCallback)
+    {
+        status = ReadVirtualMemoryCallback(
+            ProcessHandle,
+            PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+            RemoteMappedImage->NtHeaders,
+            ntHeadersSize,
+            NULL
+            );
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+            RemoteMappedImage->NtHeaders,
+            ntHeadersSize,
+            NULL
+            );
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -1121,7 +1147,7 @@ NTSTATUS PhGetRemoteMappedImageDataEntry(
 
 NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _In_ ULONG Index,
     _Out_ PVOID* DataBuffer,
     _Out_opt_ ULONG* DataLength
@@ -1150,13 +1176,26 @@ NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     if (!dataBuffer)
         return STATUS_NO_MEMORY;
 
-    status = ReadVirtualMemoryCallback(
-        RemoteMappedImage->ProcessHandle,
-        PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress),
-        dataBuffer,
-        dataLength,
-        NULL
-        );
+    if (ReadVirtualMemoryCallback)
+    {
+        status = ReadVirtualMemoryCallback(
+            RemoteMappedImage->ProcessHandle,
+            PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress),
+            dataBuffer,
+            dataLength,
+            NULL
+            );
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            RemoteMappedImage->ProcessHandle,
+            PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress),
+            dataBuffer,
+            dataLength,
+            NULL
+            );
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -1179,13 +1218,13 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
     _Out_ PPVOID DataBuffer
     )
 {
-    return PhGetRemoteMappedImageDebugEntryByTypeEx(RemoteMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
+    return PhGetRemoteMappedImageDebugEntryByTypeEx(RemoteMappedImage, Type, NULL, DataLength, DataBuffer);
 }
 
 NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_opt_ PULONG DataLength,
     _Out_ PPVOID DataBuffer
     )
@@ -1231,13 +1270,28 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
                 break;
             }
 
-            if (NT_SUCCESS(ReadVirtualMemoryCallback(
-                RemoteMappedImage->ProcessHandle,
-                PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, entry->AddressOfRawData),
-                dataBuffer,
-                dataLength,
-                NULL
-                )))
+            if (ReadVirtualMemoryCallback)
+            {
+                status = ReadVirtualMemoryCallback(
+                    RemoteMappedImage->ProcessHandle,
+                    PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, entry->AddressOfRawData),
+                    dataBuffer,
+                    dataLength,
+                    NULL
+                    );
+            }
+            else
+            {
+                status = NtReadVirtualMemory(
+                    RemoteMappedImage->ProcessHandle,
+                    PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, entry->AddressOfRawData),
+                    dataBuffer,
+                    dataLength,
+                    NULL
+                    );
+            }
+
+            if (NT_SUCCESS(status))
             {
                 if (DataLength)
                     *DataLength = dataLength;
@@ -1270,7 +1324,7 @@ NTSTATUS PhGetRemoteMappedImageGuardFlags(
 
 NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
-    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _In_opt_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PULONG GuardFlags
     )
 {

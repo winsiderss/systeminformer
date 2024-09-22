@@ -33,6 +33,44 @@ PhSetHandleClientIdFunction(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetObjectBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetEtwObjectName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetObjectName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN WithTimeout,
+    _Out_ PPH_STRING* ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetObjectTypeName(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Out_ PPH_STRING* TypeName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* ObjectName
@@ -158,7 +196,7 @@ PhGetObjectTypeNumberZ(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetObjectTypeName(
+PhGetObjectTypeIndexName(
     _In_ ULONG TypeIndex
     );
 

@@ -456,7 +456,7 @@ NTSTATUS PhRunAsAdminTaskUIAccess(
 
     // Query the process from the current desktop.
 
-    status = PhGetWindowClientId(GetDesktopWindow(), &desktopId);
+    status = PhGetWindowClientId(PhGetShellWindow(), &desktopId);
 
     if (!NT_SUCCESS(status))
         return status;

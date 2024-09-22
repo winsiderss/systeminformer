@@ -661,6 +661,8 @@ NTSTATUS PhLoadSettings(
     if (!topNode) // Return corrupt status and reset the settings.
         return STATUS_FILE_CORRUPT_ERROR;
 
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
     currentNode = PhGetXmlNodeFirstChild(topNode);
 
     while (currentNode)
@@ -668,8 +670,6 @@ NTSTATUS PhLoadSettings(
         if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
             settingValue = PhGetXmlNodeOpaqueText(currentNode);
-
-            PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
             {
                 setting = PhpLookupSetting(&settingName->sr);
@@ -707,8 +707,6 @@ NTSTATUS PhLoadSettings(
                 }
             }
 
-            PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
             PhDereferenceObject(settingValue);
             PhDereferenceObject(settingName);
         }
@@ -717,6 +715,8 @@ NTSTATUS PhLoadSettings(
     }
 
     PhFreeXmlObject(topNode);
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
     return STATUS_SUCCESS;
 }

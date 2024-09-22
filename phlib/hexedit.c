@@ -1073,7 +1073,7 @@ VOID PhpHexEditOnPaint(
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
-    FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+    FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
     SelectFont(bufferDc, Context->Font);
     SetBoundsRect(bufferDc, &clientRect, DCB_DISABLE);
 

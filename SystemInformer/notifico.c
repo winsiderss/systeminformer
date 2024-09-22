@@ -1890,8 +1890,8 @@ VOID PhNfpCpuUsageIconUpdateCallback(
         HPEN dcPen;
         POINT points[2];
 
-        dcBrush = GetStockBrush(DC_BRUSH);
-        dcPen = GetStockPen(DC_PEN);
+        dcBrush = PhGetStockBrush(DC_BRUSH);
+        dcPen = PhGetStockPen(DC_PEN);
         rect.left = 0;
         rect.top = 0;
         rect.right = width;

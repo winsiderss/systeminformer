@@ -2005,15 +2005,15 @@ VOID PhpGetProcessThreadInformation(
     BOOLEAN isPartiallySuspended;
     ULONG64 contextSwitches;
     ULONG processorQueueLength;
-    ULONG suspendedLength;
-    ULONG workQueueLength;
+    ULONG suspendedCount;
+    ULONG workqueueCount;
 
     isSuspended = FALSE;
     isPartiallySuspended = FALSE;
     contextSwitches = 0;
     processorQueueLength = 0;
-    suspendedLength = 0;
-    workQueueLength = 0;
+    suspendedCount = 0;
+    workqueueCount = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
     {
@@ -2029,10 +2029,10 @@ VOID PhpGetProcessThreadInformation(
                 switch (thread->WaitReason)
                 {
                 case Suspended:
-                    suspendedLength++;
+                    suspendedCount++;
                     break;
                 case WrQueue:
-                    workQueueLength++;
+                    workqueueCount++;
                     break;
                 }
             }
@@ -2044,11 +2044,14 @@ VOID PhpGetProcessThreadInformation(
 
     if (PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId) && !ProcessItem->IsSystemProcess)
     {
-        if (suspendedLength == Process->NumberOfThreads)
+        if (
+            suspendedCount == Process->NumberOfThreads ||
+            (suspendedCount + workqueueCount) == Process->NumberOfThreads  // (NumberOfThreads - workQueueLength)
+            )
         {
             isSuspended = TRUE;
         }
-        else if (suspendedLength + workQueueLength == Process->NumberOfThreads) // NumberOfThreads-workQueueLength
+        else if (suspendedCount)
         {
             isPartiallySuspended = TRUE;
         }

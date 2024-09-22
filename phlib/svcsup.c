@@ -104,7 +104,7 @@ SC_HANDLE PhGetServiceManagerHandle(
 
     // Use the cached value if possible.
 
-    serviceManagerHandle = InterlockedCompareExchangePointer(&cachedServiceManagerHandle, NULL, NULL);
+    serviceManagerHandle = ReadPointerAcquire(&cachedServiceManagerHandle);
 
     // If there is no cached handle, open one.
 
