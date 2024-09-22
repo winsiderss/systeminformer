@@ -35,7 +35,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
-    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
     PhpAddIntegerSetting(L"EnableAvxSupport", L"0");
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
@@ -88,6 +87,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableWarningsRunas", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
     PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
