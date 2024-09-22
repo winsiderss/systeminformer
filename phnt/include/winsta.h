@@ -1187,14 +1187,13 @@ WinStationIsSessionRemoteable(
     _Out_ PBOOLEAN IsRemote
     );
 
-
 // rev
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationSetAutologonPassword(
-    _In_ PCSTR SessionId,
-    _In_ PCSTR Name
+    _In_ PCSTR KeyName,
+    _In_ PCSTR Password
     );
 
 typedef enum _SessionType
