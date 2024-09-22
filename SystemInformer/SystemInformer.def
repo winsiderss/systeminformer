@@ -856,6 +856,7 @@ EXPORTS
     PhGetSelectedListViewItemParam                                                @1799     NONAME
     PhGetSelectedListViewItemParams                                               @1800     NONAME
     PhGetStockApplicationIcon                                                     @1801     NONAME
+    PhGetStockObject                                                              @2039     NONAME
     PhGetWindowText                                                               @1802     NONAME
     PhGetWindowTextEx                                                             @1803     NONAME
     PhIconToBitmap                                                                @1804     NONAME

@@ -128,6 +128,8 @@
 #define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
 #define IDD_INPUT                       275
 #define IDD_CHOOSENEW                   275
+#define IDD_MEMSTRINGSMINLEN            276
+#define IDD_MEMSTRINGS                  277
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006

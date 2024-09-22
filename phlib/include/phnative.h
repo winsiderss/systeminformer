@@ -2629,10 +2629,22 @@ PhReOpenFile(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhReadFile(
+    _In_ HANDLE FileHandle,
+    _In_ PVOID Buffer,
+    _In_opt_ ULONG NumberOfBytesToRead,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
+    _Out_opt_ PULONG NumberOfBytesRead
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhWriteFile(
     _In_ HANDLE FileHandle,
     _In_ PVOID Buffer,
     _In_opt_ ULONG NumberOfBytesToWrite,
+    _In_opt_ PLARGE_INTEGER ByteOffset,
     _Out_opt_ PULONG NumberOfBytesWritten
     );
 

@@ -170,37 +170,37 @@ PPH_STRING PvpGetResourceTypeString(
 {
     switch (Type)
     {
-    case RT_CURSOR:
+    case (ULONG_PTR)RT_CURSOR:
         return PhCreateString(L"RT_CURSOR");
-    case RT_BITMAP:
+    case (ULONG_PTR)RT_BITMAP:
         return PhCreateString(L"RT_BITMAP");
-    case RT_ICON:
+    case (ULONG_PTR)RT_ICON:
         return PhCreateString(L"RT_ICON");
-    case RT_MENU:
+    case (ULONG_PTR)RT_MENU:
         return PhCreateString(L"RT_MENU");
-    case RT_DIALOG:
+    case (ULONG_PTR)RT_DIALOG:
         return PhCreateString(L"RT_DIALOG");
-    case RT_STRING:
+    case (ULONG_PTR)RT_STRING:
         return PhCreateString(L"RT_STRING");
-    case RT_FONTDIR:
+    case (ULONG_PTR)RT_FONTDIR:
         return PhCreateString(L"RT_FONTDIR");
-    case RT_FONT:
+    case (ULONG_PTR)RT_FONT:
         return PhCreateString(L"RT_FONT");
-    case RT_ACCELERATOR:
+    case (ULONG_PTR)RT_ACCELERATOR:
         return PhCreateString(L"RT_ACCELERATOR");
-    case RT_RCDATA:
+    case (ULONG_PTR)RT_RCDATA:
         return PhCreateString(L"RT_RCDATA");
-    case RT_MESSAGETABLE:
+    case (ULONG_PTR)RT_MESSAGETABLE:
         return PhCreateString(L"RT_MESSAGETABLE");
-    case RT_GROUP_CURSOR:
+    case (ULONG_PTR)RT_GROUP_CURSOR:
         return PhCreateString(L"RT_GROUP_CURSOR");
-    case RT_GROUP_ICON:
+    case (ULONG_PTR)RT_GROUP_ICON:
         return PhCreateString(L"RT_GROUP_ICON");
-    case RT_VERSION:
+    case (ULONG_PTR)RT_VERSION:
         return PhCreateString(L"RT_VERSION");
-    case RT_ANICURSOR:
+    case (ULONG_PTR)RT_ANICURSOR:
         return PhCreateString(L"RT_ANICURSOR");
-    case RT_MANIFEST:
+    case (ULONG_PTR)RT_MANIFEST:
         return PhCreateString(L"RT_MANIFEST");
     }
 
@@ -716,7 +716,7 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
             SetBkMode((HDC)wParam, TRANSPARENT);
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     }

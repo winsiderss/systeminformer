@@ -612,7 +612,7 @@ PPH_STRING PhpGetPluginBaseName(
 
 NTSTATUS NTAPI PhpEnumeratePluginCallback(
     _In_ PPH_PLUGIN Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_STRING pluginBaseName;

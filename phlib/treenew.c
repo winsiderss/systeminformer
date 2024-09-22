@@ -67,12 +67,14 @@ LRESULT CALLBACK PhTnpWndProc(
 {
     PPH_TREENEW_CONTEXT context;
 
-    context = PhGetWindowContextEx(hwnd);
-
-    if (uMsg == WM_CREATE)
+    if (uMsg == WM_NCCREATE)
     {
-        PhTnpCreateTreeNewContext(&context);
+        context = PhTnpCreateTreeNewContext();
         PhSetWindowContextEx(hwnd, context);
+    }
+    else
+    {
+        context = PhGetWindowContextEx(hwnd);
     }
 
     if (!context)
@@ -94,10 +96,13 @@ LRESULT CALLBACK PhTnpWndProc(
                 return -1;
         }
         return 0;
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
-
+        }
+        return 0;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContextEx(hwnd);
 
             PhTnpDestroyTreeNewContext(context);
@@ -342,8 +347,8 @@ BOOLEAN NTAPI PhTnpNullCallback(
     return FALSE;
 }
 
-VOID PhTnpCreateTreeNewContext(
-    _Out_ PPH_TREENEW_CONTEXT *Context
+PPH_TREENEW_CONTEXT PhTnpCreateTreeNewContext(
+    VOID
     )
 {
     PPH_TREENEW_CONTEXT context;
@@ -353,7 +358,7 @@ VOID PhTnpCreateTreeNewContext(
     context->RowHeight = 1; // must never be 0
     context->HotNodeIndex = ULONG_MAX;
     context->Callback = PhTnpNullCallback;
-    context->FlatList = PhCreateList(64);
+    context->FlatList = PhCreateList(32);
     context->TooltipIndex = ULONG_MAX;
     context->TooltipId = ULONG_MAX;
     context->TooltipColumnId = ULONG_MAX;
@@ -361,7 +366,7 @@ VOID PhTnpCreateTreeNewContext(
     context->DefaultBackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
     context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
 
-    *Context = context;
+   return context;
 }
 
 VOID PhTnpDestroyTreeNewContext(
@@ -414,7 +419,7 @@ VOID PhTnpDestroyTreeNewContext(
 BOOLEAN PhTnpOnCreate(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ CREATESTRUCT *CreateStruct
+    _In_ CONST CREATESTRUCT *CreateStruct
     )
 {
     ULONG headerStyle;
@@ -5348,7 +5353,7 @@ VOID PhTnpPaint(
 
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
 
             if (tempDc = CreateCompatibleDC(hdc))
             {
@@ -5367,12 +5372,12 @@ VOID PhTnpPaint(
                     if (node->s.DrawBackColor != 16777215)
                     {
                         SetDCBrushColor(tempDc, node->s.DrawBackColor);
-                        FillRect(tempDc, &tempRect, GetStockBrush(DC_BRUSH));
+                        FillRect(tempDc, &tempRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
                         SetDCBrushColor(tempDc, PhThemeWindowBackgroundColor);
-                        FillRect(tempDc, &tempRect, GetStockBrush(DC_BRUSH));
+                        FillRect(tempDc, &tempRect, PhGetStockBrush(DC_BRUSH));
                     }
 
                     blendFunction.BlendOp = AC_SRC_OVER;
@@ -5420,7 +5425,7 @@ VOID PhTnpPaint(
                     {
                         SetTextColor(hdc, Context->CustomTextColor);
                         SetDCBrushColor(hdc, Context->CustomFocusColor);
-                        FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+                        FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
@@ -5434,7 +5439,7 @@ VOID PhTnpPaint(
                     {
                         SetTextColor(hdc, Context->CustomTextColor);
                         SetDCBrushColor(hdc, Context->CustomSelectedColor);
-                        FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+                        FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
@@ -5447,7 +5452,7 @@ VOID PhTnpPaint(
             {
                 SetTextColor(hdc, node->s.DrawForeColor);
                 SetDCBrushColor(hdc, node->s.DrawBackColor);
-                FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+                FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
             }
         }
 
@@ -5553,11 +5558,11 @@ VOID PhTnpPaint(
         {
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
-            FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(hdc, &rowRect, (HBRUSH)(COLOR_WINDOW + 1));
         }
     }
 
@@ -5573,11 +5578,11 @@ VOID PhTnpPaint(
         {
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, GetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
-            FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(hdc, &rowRect, (HBRUSH)(COLOR_WINDOW + 1));
         }
     }
 
@@ -5631,7 +5636,7 @@ VOID PhTnpPaint(
         // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
         // for headers that have custom text and need invalidating? (dmex)
 
-        if (Context->HeaderHandle && GetCapture() != Context->HeaderHandle) // HACK (dmex)
+        if (Context->HeaderHandle && Context->Tracking) // GetCapture() != Context->HeaderHandle)
         {
             InvalidateRect(Context->HeaderHandle, NULL, FALSE);
         }
@@ -6002,7 +6007,7 @@ VOID PhTnpDrawDivider(
             points[1].x = Context->ClientRect.right;
             points[1].y = Context->ClientRect.bottom;
             SetDCPenColor(Context->BufferedContext, RGB(0x77, 0x77, 0x77));
-            SelectPen(Context->BufferedContext, GetStockPen(DC_PEN));
+            SelectPen(Context->BufferedContext, PhGetStockPen(DC_PEN));
             Polyline(Context->BufferedContext, points, 2);
 
             blendFunction.BlendOp = AC_SRC_OVER;
@@ -6039,7 +6044,7 @@ VOID PhTnpDrawDivider(
     points[1].x = Context->FixedWidth;
     points[1].y = Context->ClientRect.bottom;
     SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
-    SelectPen(hdc, GetStockPen(DC_PEN));
+    SelectPen(hdc, PhGetStockPen(DC_PEN));
     Polyline(hdc, points, 2);
 }
 
@@ -6056,9 +6061,9 @@ VOID PhTnpDrawPlusMinusGlyph(
 
     savedDc = SaveDC(hdc);
 
-    SelectPen(hdc, GetStockPen(DC_PEN));
+    SelectPen(hdc, PhGetStockPen(DC_PEN));
     SetDCPenColor(hdc, RGB(0x55, 0x55, 0x55));
-    SelectBrush(hdc, GetStockBrush(DC_BRUSH));
+    SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
     SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
 
     width = Rect->right - Rect->left;
@@ -6120,7 +6125,7 @@ VOID PhTnpDrawSelectionRectangle(
             if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
             {
                 // Draw the outline of the selection rectangle.
-                FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
+                FrameRect(hdc, &rect, (HBRUSH)(COLOR_HIGHLIGHT + 1));
 
                 // Fill in the selection rectangle.
                 oldBitmap = SelectBitmap(tempDc, bitmap);
@@ -6128,7 +6133,7 @@ VOID PhTnpDrawSelectionRectangle(
                 tempRect.top = 0;
                 tempRect.right = 1;
                 tempRect.bottom = 1;
-                FillRect(tempDc, &tempRect, GetSysColorBrush(COLOR_HOTLIGHT));
+                FillRect(tempDc, &tempRect, (HBRUSH)(COLOR_HOTLIGHT + 1));
 
                 blendFunction.BlendOp = AC_SRC_OVER;
                 blendFunction.BlendFlags = 0;
@@ -6213,7 +6218,7 @@ VOID PhTnpDrawThemedBorder(
         windowRect.top += Context->SystemEdgeY - borderY;
         windowRect.right -= Context->SystemEdgeX - borderX;
         windowRect.bottom -= Context->SystemEdgeY - borderY;
-        FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+        FillRect(hdc, &windowRect, (HBRUSH)(COLOR_WINDOW + 1));
     }
 }
 
@@ -6648,18 +6653,18 @@ BOOLEAN TnHeaderCustomPaint(
         if (Context->ThemeSupport)
         {
             SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor
-            FillRect(CustomDraw->hdc, &CustomDraw->rc, GetStockBrush(DC_BRUSH));
+            FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
             if (Context->HeaderDragging && Context->HeaderHotColumn != ULONG_MAX && Context->HeaderHotColumn == column->Id)
             {
                 SetDCBrushColor(CustomDraw->hdc, RGB(0, 0, 229));
-                SelectBrush(CustomDraw->hdc, GetStockBrush(DC_BRUSH));
+                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 2, CustomDraw->rc.top, 2, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
             }
             else
             {
                 SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                SelectBrush(CustomDraw->hdc, GetStockBrush(DC_BRUSH));
+                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
                 //PatBlt(CustomDraw->hdc, CustomDraw->rc.left, CustomDraw->rc.bottom - 1, CustomDraw->rc.right - CustomDraw->rc.left, 1, PATCOPY);
             }
@@ -6686,7 +6691,7 @@ BOOLEAN TnHeaderCustomPaint(
             }
             else
             {
-                FillRect(CustomDraw->hdc, &CustomDraw->rc, GetSysColorBrush(COLOR_HIGHLIGHT));
+                FillRect(CustomDraw->hdc, &CustomDraw->rc, (HBRUSH)(COLOR_HIGHLIGHT + 1));
             }
         }
     }
@@ -6695,18 +6700,18 @@ BOOLEAN TnHeaderCustomPaint(
         if (Context->ThemeSupport)
         {
             SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackgroundColor);
-            FillRect(CustomDraw->hdc, &CustomDraw->rc, GetStockBrush(DC_BRUSH));
+            FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
             if (Context->HeaderDragging && Context->HeaderHotColumn != ULONG_MAX && Context->HeaderHotColumn == column->Id)
             {
                 SetDCBrushColor(CustomDraw->hdc, RGB(0, 0, 229));
-                SelectBrush(CustomDraw->hdc, GetStockBrush(DC_BRUSH));
+                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 2, CustomDraw->rc.top, 2, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
             }
             else
             {
                 SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                SelectBrush(CustomDraw->hdc, GetStockBrush(DC_BRUSH));
+                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
                 //PatBlt(Hdc, CustomDraw->rc.left, CustomDraw->rc.bottom - 1, CustomDraw->rc.right - CustomDraw->rc.left, 1, PATCOPY);
             }
@@ -6724,7 +6729,7 @@ BOOLEAN TnHeaderCustomPaint(
         }
         else
         {
-            FillRect(CustomDraw->hdc, &CustomDraw->rc, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(CustomDraw->hdc, &CustomDraw->rc, (HBRUSH)(COLOR_WINDOW + 1));
         }
     }
 
@@ -6798,7 +6803,7 @@ BOOLEAN TnHeaderCustomPaint(
 
         //DrawEdge(CustomDraw->hdc, &CustomDraw->rc, EDGE_SUNKEN, BF_SOFT | BF_RIGHT);
         SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-        HBRUSH oldBrush = SelectBrush(CustomDraw->hdc, GetStockBrush(DC_BRUSH));
+        HBRUSH oldBrush = SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
         PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
         SelectBrush(CustomDraw->hdc, oldBrush);
 

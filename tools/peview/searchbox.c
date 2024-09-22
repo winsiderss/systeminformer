@@ -363,14 +363,14 @@ VOID PvpSearchDrawWindow(
         if (GetFocus() == WindowHandle)
         {
             SetDCBrushColor(Hdc, RGB(65, 65, 65));
-            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
             SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
@@ -379,14 +379,14 @@ VOID PvpSearchDrawWindow(
         else
         {
             SetDCBrushColor(Hdc, RGB(65, 65, 65));
-            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
             SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
@@ -412,12 +412,12 @@ VOID PvpSearchDrawButton(
         if (PhEnableThemeSupport)
         {
             SetDCBrushColor(Hdc, RGB(99, 99, 99));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
             SetDCBrushColor(Hdc, RGB(153, 209, 255));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
     }
     else if (Button->Hot)
@@ -427,12 +427,12 @@ VOID PvpSearchDrawButton(
             if (PhEnableThemeSupport)
             {
                 SetDCBrushColor(Hdc, RGB(54, 54, 54));
-                FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
             }
             else
             {
                 SetDCBrushColor(Hdc, RGB(133, 199, 255));
-                FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
             }
         }
         else
@@ -440,12 +440,12 @@ VOID PvpSearchDrawButton(
             if (PhEnableThemeSupport)
             {
                 SetDCBrushColor(Hdc, RGB(78, 78, 78));
-                FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
             }
             else
             {
                 SetDCBrushColor(Hdc, RGB(205, 232, 255));
-                FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
             }
         }
     }
@@ -454,12 +454,12 @@ VOID PvpSearchDrawButton(
         if (PhEnableThemeSupport)
         {
             SetDCBrushColor(Hdc, RGB(100, 28, 30));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
             SetDCBrushColor(Hdc, RGB(255, 155, 155));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
     }
     else if (Button->Active && Button->ActiveImageIndex == ULONG_MAX)
@@ -467,12 +467,12 @@ VOID PvpSearchDrawButton(
         if (PhEnableThemeSupport)
         {
             SetDCBrushColor(Hdc, RGB(44, 44, 44));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
             SetDCBrushColor(Hdc, RGB(123, 189, 255));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
     }
     else
@@ -480,11 +480,11 @@ VOID PvpSearchDrawButton(
         if (PhEnableThemeSupport)
         {
             SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            FillRect(Hdc, &buttonRect, GetStockBrush(DC_BRUSH));
+            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
         else
         {
-            FillRect(Hdc, &buttonRect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(Hdc, &buttonRect, (HBRUSH)(COLOR_WINDOW + 1));
         }
     }
 
@@ -745,12 +745,12 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     if (context->ThemeSupport)
                     {
                         SetDCBrushColor(bufferDc, RGB(0x8f, 0x8f, 0x8f));
-                        FrameRect(bufferDc, &windowRect, GetStockBrush(DC_BRUSH));
+                        FrameRect(bufferDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
                         SetDCBrushColor(bufferDc, RGB(43, 43, 43));
-                        FrameRect(bufferDc, &windowRect, GetStockBrush(DC_BRUSH));
+                        FrameRect(bufferDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
 
                     PhInflateRect(&windowRect, -1, -1);
@@ -770,7 +770,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     }
 
                     PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                    FrameRect(bufferDc, &windowRect, (HBRUSH)(COLOR_WINDOW + 1));
                     PhInflateRect(&windowRect, 1, 1);
                 }
 

@@ -923,7 +923,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             //        case 1: // Old colors
             //            {
             //                SetDCBrushColor(drawInfo->hDC, RGB(0, 0, 0));
-            //                FillRect(drawInfo->hDC, &rect, GetStockBrush(DC_BRUSH));
+            //                FillRect(drawInfo->hDC, &rect, PhGetStockBrush(DC_BRUSH));
             //            }
             //            break;
             //        }

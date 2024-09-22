@@ -264,7 +264,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     case WM_DPICHANGED:
@@ -345,7 +345,7 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
                 SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -1432,19 +1432,19 @@ VOID PhSipDrawRestoreSummaryPanel(
         case 0: // New colors
             SetTextColor(bufferDc, RGB(0x00, 0x00, 0x00));
             SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-            FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             break;
         case 1: // Old colors
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);// RGB(43, 43, 43));
-            FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             break;
         }
     }
     else
     {
         SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
-        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
+        FillRect(bufferDc, &bufferRect, (HBRUSH)(COLOR_WINDOW + 1));
     }
 
     if (RestoreSummaryControlHot || RestoreSummaryControlHasFocus)
@@ -1462,7 +1462,7 @@ VOID PhSipDrawRestoreSummaryPanel(
         }
         else
         {
-            FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(bufferDc, &bufferRect, (HBRUSH)(COLOR_WINDOW + 1));
         }
     }
 
@@ -1527,7 +1527,7 @@ VOID PhSipDrawSeparator(
         case 1: // Old colors
             {
                 SetDCBrushColor(bufferDc, RGB(43, 43, 43));
-                FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             }
             break;
         }
@@ -1540,7 +1540,7 @@ VOID PhSipDrawSeparator(
         //bufferRect.left -= 1;
 
         SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-        FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
     }
 
     BitBlt(
@@ -1578,18 +1578,18 @@ VOID PhSipDrawPanel(
             {
             case 0: // New colors
                 SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-                FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+                FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
                 SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-                FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+                FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
             }
         }
         else
         {
             SetDCBrushColor(hdc, RGB(255, 255, 255));
-            FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+            FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
         }
 
         //if (PhEnableThemeSupport)
@@ -1601,7 +1601,7 @@ VOID PhSipDrawPanel(
         //        break;
         //    case 1: // Old colors
         //        SetDCBrushColor(hdc, RGB(30, 30, 30));
-        //        FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+        //        FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
         //        break;
         //    }
         //}
@@ -1738,12 +1738,12 @@ VOID PhSipDefaultDrawPanel(
         case 0: // New colors
             SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
             //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-            //FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
             break;
         case 1: // Old colors
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
             //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0x00));
-            //FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
             break;
         }
 
