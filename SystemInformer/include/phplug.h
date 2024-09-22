@@ -73,12 +73,13 @@ typedef enum _PH_GENERAL_CALLBACK
 
     GeneralCallbackLoggedEvent, // [multiple provider threads]
 
+    GeneralCallbackDeviceNotificationEvent, // [device provider thread]
+
     GeneralCallbackTrayIconsInitializing, // [work queue thread]
     GeneralCallbackWindowNotifyEvent,
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
-
-    GeneralCallbackDeviceNotificationEvent, // [device provider thread]
+    GeneralCallbackDangerousProcess,
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
