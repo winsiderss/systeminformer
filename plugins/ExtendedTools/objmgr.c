@@ -109,11 +109,15 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ PH_STRINGREF DirectoryPath
     );
 
+#define OBJECT_OPENSOURCE_ALPCPORT  1
+#define OBJECT_OPENSOURCE_KEY       2
+#define OBJECT_OPENSOURCE_ALL   OBJECT_OPENSOURCE_ALPCPORT|OBJECT_OPENSOURCE_KEY
+
 NTSTATUS EtObjectManagerOpenHandle(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ BOOLEAN AlpcOpenFast
+    _In_ ULONG OpenFlags
     );
 
 NTSTATUS EtObjectManagerHandleCloseCallback(
@@ -156,6 +160,12 @@ NTSTATUS EtpObjectManagerOpenRealFilterPort(
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess
     );
+
+NTSTATUS EtpObjectManagerOpenRealKey(
+    _Out_ PHANDLE Handle,
+    _In_ PHANDLE_OPEN_CONTEXT Context,
+    _In_ ACCESS_MASK DesiredAccess
+);
 
 _Success_(return)
 BOOLEAN PhGetTreeViewItemParam(
@@ -553,7 +563,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
             objectContext.CurrentPath = EtGetSelectedTreeViewPath(Context);
             objectContext.Object = entry;
 
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SYMBOLIC_LINK_QUERY, FALSE)))
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SYMBOLIC_LINK_QUERY, 0)))
             {
                 UNICODE_STRING targetName;
                 WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
@@ -703,9 +713,12 @@ NTSTATUS PhpTargetResolverThreadStart(
         break;
         case OBJECT_ALPCPORT:
         {
-            // Using fast connect (AlpcOpenSource = FALSE) to port since we only need query connection OwnerProcessId
-            if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, FALSE)))
-                status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, TRUE);  // on failure try to open real (rare)
+            // Using fast connect to port since we only need query connection OwnerProcessId
+            if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
+            {
+                // On failure try to open real (rare)
+                status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALPCPORT);
+            }
             if (NT_SUCCESS(status))
             {
                 KPH_ALPC_COMMUNICATION_INFORMATION connectionInfo;
@@ -739,7 +752,7 @@ NTSTATUS PhpTargetResolverThreadStart(
         break;
         case OBJECT_MUTANT:
         {
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, FALSE)))
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, 0)))
             {
                 MUTANT_OWNER_INFORMATION ownerInfo;
 
@@ -760,7 +773,7 @@ NTSTATUS PhpTargetResolverThreadStart(
         break;
         case OBJECT_JOB:
         {
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY, FALSE)))
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY, 0)))
             {
                 PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
 
@@ -1085,7 +1098,7 @@ NTSTATUS EtObjectManagerOpenHandle(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ BOOLEAN AlpcOpenSource
+    _In_ ULONG OpenFlags
      )
 {
     NTSTATUS status;
@@ -1152,7 +1165,7 @@ NTSTATUS EtObjectManagerOpenHandle(
             PhEndInitOnce(&initOnce);
         }
 
-        if (AlpcOpenSource)
+        if (OpenFlags & OBJECT_OPENSOURCE_ALPCPORT)
         {
             status = EtpObjectManagerOpenRealAlpcPort(Handle, Context, DesiredAccess);
         }
@@ -1216,25 +1229,25 @@ NTSTATUS EtObjectManagerOpenHandle(
     {
         status = PhOpenDriver(Handle, DesiredAccess, directoryHandle, &Context->Object->Name->sr);
     }
-    else if (PhEqualString2(Context->Object->TypeName, L"File", TRUE))
-    {
-        PPH_STRING deviceName;
-        if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
-            deviceName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-        else
-            deviceName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+    //else if (PhEqualString2(Context->Object->TypeName, L"File", TRUE))
+    //{
+    //    PPH_STRING deviceName;
+    //    if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
+    //        deviceName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+    //    else
+    //        deviceName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
 
-        status = PhCreateFile(
-            Handle,
-            &deviceName->sr,
-            DesiredAccess,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE);
+    //    status = PhCreateFile(
+    //        Handle,
+    //        &deviceName->sr,
+    //        DesiredAccess,
+    //        FILE_ATTRIBUTE_NORMAL,
+    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    //        FILE_OPEN,
+    //        FILE_NON_DIRECTORY_FILE);
 
-        PhDereferenceObject(deviceName);
-    }
+    //    PhDereferenceObject(deviceName);
+    //}
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Event", TRUE))
     {
         status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
@@ -1253,7 +1266,10 @@ NTSTATUS EtObjectManagerOpenHandle(
     }
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Key", TRUE))
     {
-        status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
+        if (OpenFlags & OBJECT_OPENSOURCE_KEY)
+            status = EtpObjectManagerOpenRealKey(Handle, Context, DesiredAccess);
+        else
+            status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
     }
     else if (PhEqualString2(Context->Object->TypeName, L"KeyedEvent", TRUE))
     {
@@ -1411,6 +1427,15 @@ NTSTATUS EtpObjectManagerOpenRealFilterPort(
     return EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, L"FilterConnectionPort");
 }
 
+NTSTATUS EtpObjectManagerOpenRealKey(
+    _Out_ PHANDLE Handle,
+    _In_ PHANDLE_OPEN_CONTEXT Context,
+    _In_ ACCESS_MASK DesiredAccess
+)
+{
+    return EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, L"Key");
+}
+
 // Open real ALPC port by duplicating its "Connection" handle from the process that created the port
 // https://github.com/zodiacon/ObjectExplorer/blob/master/ObjExp/ObjectManager.cpp#L191
 // Open real FilterConnectionPort
@@ -1422,15 +1447,18 @@ NTSTATUS EtpObjectManagerOpenRealObject(
 )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static ULONG AlpcPortIndex;
+    static ULONG AlpcPortTypeIndex;
     static ULONG FilterPortIndex;
+    static ULONG KeyTypeIndex;
 
     if (PhBeginInitOnce(&initOnce))
     {
         PH_STRINGREF AlpcName = PH_STRINGREF_INIT(L"ALPC Port");
-        AlpcPortIndex = PhGetObjectTypeNumber(&AlpcName);
+        AlpcPortTypeIndex = PhGetObjectTypeNumber(&AlpcName);
         PH_STRINGREF FilterName = PH_STRINGREF_INIT(L"FilterConnectionPort");
         FilterPortIndex = PhGetObjectTypeNumber(&FilterName);
+        PH_STRINGREF KeyName = PH_STRINGREF_INIT(L"Key");
+        KeyTypeIndex = PhGetObjectTypeNumber(&KeyName);
         PhEndInitOnce(&initOnce);
     }
 
@@ -1439,9 +1467,11 @@ NTSTATUS EtpObjectManagerOpenRealObject(
     ULONG TargetIndex = 0;
 
     if (PhEqualStringZ(TypeName, L"ALPC Port", TRUE))
-        TargetIndex = AlpcPortIndex;
+        TargetIndex = AlpcPortTypeIndex;
     else if (PhEqualStringZ(TypeName, L"FilterConnectionPort", TRUE))
         TargetIndex = FilterPortIndex;
+    else if (PhEqualStringZ(TypeName, L"Key", TRUE))
+        TargetIndex = KeyTypeIndex;
     else
         return STATUS_NOINTERFACE;
 
@@ -1462,8 +1492,13 @@ NTSTATUS EtpObjectManagerOpenRealObject(
 
             if (handleInfo->ObjectTypeIndex == TargetIndex)
             {
-                if (NT_SUCCESS(status = EtpDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess,
+                if (!NT_SUCCESS(status = EtpDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess,
                     (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
+                {
+                    status = EtpDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess & handleInfo->GrantedAccess,
+                        (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue);
+                }
+                if (NT_SUCCESS(status))
                 {
                     if (NT_SUCCESS(status = EtpGetObjectName(objectHandle, &ObjectName)))
                     {
@@ -1495,7 +1530,7 @@ NTSTATUS EtObjectManagerHandleOpenCallback(
     _In_ PVOID Context
     )
 {
-    return EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, TRUE);
+    return EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, OBJECT_OPENSOURCE_ALPCPORT);   // HACK for \REGISTRY permissions
 }
 
 NTSTATUS EtObjectManagerHandleCloseCallback(
@@ -1581,7 +1616,14 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     if (entry->TypeIndex == OBJECT_DIRECTORY)
         objectContext.Object->TypeName = PH_AUTO(PhCreateString(L"Directory"));
 
-    if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, TRUE)))
+    if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, OBJECT_OPENSOURCE_ALL)))
+    {
+        if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)))
+        {
+            status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, 0, OBJECT_OPENSOURCE_ALL);
+        }
+    }
+    if (NT_SUCCESS(status))
     {
         OBJECT_BASIC_INFORMATION objectInfo;
         PPH_HANDLE_ITEM handleItem;
@@ -2598,11 +2640,13 @@ INT_PTR CALLBACK WinObjDlgProc(
                 if (GetKeyState(VK_CONTROL) < 0)
                 {
                     SetFocus(context->SearchBoxHandle);
+                    return TRUE;
                 }
                 break;
             case VK_F5:
                 {
                     EtpObjectManagerRefresh(hwndDlg, context);
+                    return TRUE;
                 }
                 break;
             case VK_RETURN:
@@ -2635,6 +2679,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                                 EtpObjectManagerObjectProperties(hwndDlg, context, entry);
                             }
                         }
+
+                        return TRUE;
                     }
                 }
                 else if (GetFocus() == context->TreeViewHandle)
@@ -2655,11 +2701,13 @@ INT_PTR CALLBACK WinObjDlgProc(
                     if (shiftDown)
                     {
                         EtpObjectManagerObjectProperties(hwndDlg, context, &entry);
+                        return TRUE;
 
                     }
                     else if (ctrlDown)
                     {
-                         EtpObjectManagerOpenSecurity(hwndDlg, context, &entry);
+                        EtpObjectManagerOpenSecurity(hwndDlg, context, &entry);
+                        return TRUE;
                     }
                 }
                 break;
