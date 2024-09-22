@@ -13,6 +13,8 @@
 #ifndef _PH_APIIMPORT_H
 #define _PH_APIIMPORT_H
 
+EXTERN_C_START
+
 // ntdll
 
 typedef NTSTATUS (NTAPI *_NtQueryInformationEnlistment)(

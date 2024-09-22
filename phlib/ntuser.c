@@ -10,6 +10,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <ntuser.h>
 #include <user.h>
 
@@ -101,10 +102,13 @@ NTSTATUS PhConsoleControlSetForeground(
     NTSTATUS status;
     CONSOLESETFOREGROUND consoleInfo;
 
+    if (!ConsoleControl_Import())
+        return STATUS_NOT_SUPPORTED;
+
     consoleInfo.ProcessHandle = ProcessHandle;
     consoleInfo.Foreground = !!Foreground;
 
-    status = ConsoleControl(
+    status = ConsoleControl_Import()(
         ConsoleSetForeground,
         &consoleInfo,
         sizeof(CONSOLESETFOREGROUND)
@@ -121,12 +125,15 @@ NTSTATUS PhConsoleControlEndTask(
     NTSTATUS status;
     CONSOLEENDTASK consoleInfo;
 
+    if (!ConsoleControl_Import())
+        return STATUS_NOT_SUPPORTED;
+
     consoleInfo.ProcessId = ProcessId;
     consoleInfo.WindowHandle = WindowHandle;
     consoleInfo.ConsoleEventCode = CTRL_C_EVENT;
     consoleInfo.ConsoleFlags = 0;
 
-    status = ConsoleControl(
+    status = ConsoleControl_Import()(
         ConsoleEndTask,
         &consoleInfo,
         sizeof(CONSOLEENDTASK)

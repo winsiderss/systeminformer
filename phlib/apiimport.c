@@ -32,8 +32,8 @@ PVOID PhpImportProcedure(
     _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
     _Inout_ PULONG_PTR Cookie,
-    _In_ PWSTR ModuleName,
-    _In_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_ PCSTR ProcedureName
     )
 {
     if (PhBeginInitOnce(InitOnce))
@@ -41,14 +41,14 @@ PVOID PhpImportProcedure(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
 
         if (module)
         {
-            if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
+            if (procedure = PhGetDllBaseProcedureAddress(module, (PSTR)ProcedureName, 0))
             {
                 *Cookie = (ULONG_PTR)NtGetTickCount64();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
@@ -80,8 +80,8 @@ PVOID PhpImportProcedureNative(
     _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
     _Inout_ PULONG_PTR Cookie,
-    _In_ PWSTR ModuleName,
-    _In_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_ PCSTR ProcedureName
     )
 {
     if (PhBeginInitOnce(InitOnce))
@@ -89,7 +89,7 @@ PVOID PhpImportProcedureNative(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
@@ -191,76 +191,9 @@ PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 
 // CRT
 
-#pragma region API Forwarders
+#ifdef _WIN64
 
-NTSTATUS NTAPI NtCreateProcessStateChange_Stub(
-    _Out_ PHANDLE ProcessStateChangeHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ _Reserved_ ULONG64 Reserved
-    )
-{
-    if (NtCreateProcessStateChange_Import())
-        return NtCreateProcessStateChange_Import()(ProcessStateChangeHandle, DesiredAccess, ObjectAttributes, ProcessHandle, Reserved);
-    return STATUS_INVALID_KERNEL_INFO_VERSION;
-}
-
-NTSTATUS NTAPI NtChangeProcessState_Stub(
-    _In_ HANDLE ProcessStateChangeHandle,
-    _In_ HANDLE ProcessHandle,
-    _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
-    _In_opt_ _Reserved_ PVOID ExtendedInformation,
-    _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
-    _In_opt_ _Reserved_ ULONG64 Reserved
-    )
-{
-    if (NtChangeProcessState_Import())
-        return NtChangeProcessState_Import()(ProcessStateChangeHandle, ProcessHandle, StateChangeType, ExtendedInformation, ExtendedInformationLength, Reserved);
-    return STATUS_INVALID_KERNEL_INFO_VERSION;
-}
-
-NTSTATUS NTAPI NtPssCaptureVaSpaceBulk_Stub(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_ PNTPSS_MEMORY_BULK_INFORMATION BulkInformation,
-    _In_ SIZE_T BulkInformationLength,
-    _Out_opt_ PSIZE_T ReturnLength
-    )
-{
-    if (NtPssCaptureVaSpaceBulk_Import())
-        return NtPssCaptureVaSpaceBulk_Import()(ProcessHandle, BaseAddress, BulkInformation, BulkInformationLength, ReturnLength);
-    return STATUS_INVALID_KERNEL_INFO_VERSION;
-}
-
-NTSTATUS NTAPI NtCopyFileChunk_Stub(
-    _In_ HANDLE SourceHandle,
-    _In_ HANDLE DestinationHandle,
-    _In_opt_ HANDLE EventHandle,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _In_ ULONG Length,
-    _In_ PLARGE_INTEGER SourceOffset,
-    _In_ PLARGE_INTEGER DestOffset,
-    _In_opt_ PULONG SourceKey,
-    _In_opt_ PULONG DestKey,
-    _In_ ULONG Flags
-    )
-{
-    if (NtCopyFileChunk_Import())
-        return NtCopyFileChunk_Import()(SourceHandle, DestinationHandle, EventHandle, IoStatusBlock, Length, SourceOffset, DestOffset, SourceKey, DestKey, Flags);
-    return STATUS_INVALID_KERNEL_INFO_VERSION;
-}
-
-NTSTATUS NTAPI ConsoleControl_Stub(
-    _In_ CONSOLECONTROL Command,
-    _In_reads_bytes_(ConsoleInformationLength) PVOID ConsoleInformation,
-    _In_ ULONG ConsoleInformationLength
-    )
-{
-    if (ConsoleControl_Import())
-        return ConsoleControl_Import()(Command, ConsoleInformation, ConsoleInformationLength);
-    return STATUS_INVALID_KERNEL_INFO_VERSION;
-}
+EXTERN_C_START
 
 BOOL NTAPI CloseHandle_Stub(
     _In_ HANDLE Handle
@@ -320,11 +253,6 @@ HANDLE NTAPI GetProcessHeap_Stub(
     return NtCurrentPeb()->ProcessHeap;
 }
 
-DECLSPEC_SELECTANY typeof(&NtCreateProcessStateChange) __imp_NtCreateProcessStateChange = NtCreateProcessStateChange_Stub;
-DECLSPEC_SELECTANY typeof(&NtChangeProcessState) __imp_NtChangeProcessState = NtChangeProcessState_Stub;
-DECLSPEC_SELECTANY typeof(&NtPssCaptureVaSpaceBulk) __imp_NtPssCaptureVaSpaceBulk = NtPssCaptureVaSpaceBulk_Stub;
-DECLSPEC_SELECTANY typeof(&NtCopyFileChunk) __imp_NtCopyFileChunk = NtCopyFileChunk_Stub;
-DECLSPEC_SELECTANY typeof(&ConsoleControl) __imp_ConsoleControl = ConsoleControl_Stub;
 DECLSPEC_SELECTANY typeof(&CloseHandle) __imp_CloseHandle = CloseHandle_Stub;
 DECLSPEC_SELECTANY typeof(&GetFileSizeEx) __imp_GetFileSizeEx = GetFileSizeEx_Stub;
 DECLSPEC_SELECTANY typeof(&FlushFileBuffers) __imp_FlushFileBuffers = FlushFileBuffers_Stub;
@@ -334,4 +262,6 @@ DECLSPEC_SELECTANY typeof(&GetCurrentThreadId) __imp_GetCurrentThreadId = GetCur
 DECLSPEC_SELECTANY typeof(&GetCurrentProcessId) __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
 DECLSPEC_SELECTANY typeof(&GetProcessHeap) __imp_GetProcessHeap = GetProcessHeap_Stub;
 
-#pragma endregion
+EXTERN_C_END
+
+#endif

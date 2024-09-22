@@ -13123,7 +13123,6 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
     _In_ BOOLEAN FailIfExists
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN11_22H2)
     NTSTATUS status;
     HANDLE sourceHandle;
     HANDLE destinationHandle;
@@ -13138,7 +13137,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
     ULONG alignSize;
     ULONG blockSize;
 
-    if (WindowsVersion < WINDOWS_11_22H2)
+    if (!NtCopyFileChunk_Import())
         return STATUS_NOT_SUPPORTED;
 
     status = PhCreateFileWin32ExAlt(
@@ -13218,7 +13217,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
             blockSize = (ULONG)numberOfBytes;
         blockSize = ALIGN_UP_BY(blockSize, alignSize);
 
-        status = NtCopyFileChunk(
+        status = NtCopyFileChunk_Import()(
             sourceHandle,
             destinationHandle,
             NULL,
@@ -13263,9 +13262,6 @@ CleanupExit:
     NtClose(sourceHandle);
 
     return status;
-#else
-    return STATUS_NOT_SUPPORTED;
-#endif
 }
 
 NTSTATUS PhCopyFileChunkWin32(
@@ -13274,7 +13270,6 @@ NTSTATUS PhCopyFileChunkWin32(
     _In_ BOOLEAN FailIfExists
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN11_22H2)
     NTSTATUS status;
     HANDLE sourceHandle;
     HANDLE destinationHandle;
@@ -13284,7 +13279,7 @@ NTSTATUS PhCopyFileChunkWin32(
     LARGE_INTEGER destinationOffset = { 0 };
     LARGE_INTEGER fileSize;
 
-    if (WindowsVersion < WINDOWS_11_22H2)
+    if (!NtCopyFileChunk_Import())
         return STATUS_NOT_SUPPORTED;
 
     status = PhCreateFileWin32ExAlt(
@@ -13342,7 +13337,7 @@ NTSTATUS PhCopyFileChunkWin32(
             if (blockSize > numberOfBytes)
                 blockSize = (ULONG)numberOfBytes;
 
-            status = NtCopyFileChunk(
+            status = NtCopyFileChunk_Import()(
                 sourceHandle,
                 destinationHandle,
                 NULL,
@@ -13365,7 +13360,7 @@ NTSTATUS PhCopyFileChunkWin32(
     }
     else
     {
-        status = NtCopyFileChunk(
+        status = NtCopyFileChunk_Import()(
             sourceHandle,
             destinationHandle,
             NULL,
@@ -13397,9 +13392,6 @@ CleanupExit:
     NtClose(sourceHandle);
 
     return status;
-#else
-    return STATUS_NOT_SUPPORTED;
-#endif
 }
 
 NTSTATUS PhMoveFileWin32(
@@ -17082,7 +17074,7 @@ NTSTATUS PhFreezeProcess(
     HANDLE processHandle;
     HANDLE stateHandle;
 
-    if (WindowsVersion < WINDOWS_11)
+    if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
         return STATUS_UNSUCCESSFUL;
 
     status = PhOpenProcess(
@@ -17102,7 +17094,7 @@ NTSTATUS PhFreezeProcess(
         NULL
         );
 
-    status = NtCreateProcessStateChange(
+    status = NtCreateProcessStateChange_Import()(
         &stateHandle,
         STATECHANGE_SET_ATTRIBUTES,
         &objectAttributes,
@@ -17116,7 +17108,7 @@ NTSTATUS PhFreezeProcess(
         return status;
     }
 
-    status = NtChangeProcessState(
+    status = NtChangeProcessState_Import()(
         stateHandle,
         processHandle,
         ProcessStateChangeSuspend,
@@ -17143,7 +17135,7 @@ NTSTATUS PhThawProcess(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (WindowsVersion < WINDOWS_11)
+    if (!NtChangeProcessState_Import())
         return STATUS_UNSUCCESSFUL;
 
     status = PhOpenProcess(
@@ -17155,7 +17147,7 @@ NTSTATUS PhThawProcess(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = NtChangeProcessState(
+    status = NtChangeProcessState_Import()(
         FreezeHandle,
         processHandle,
         ProcessStateChangeResume,
@@ -18419,7 +18411,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 {
     NTSTATUS status;
 
-    if (WindowsVersion < WINDOWS_11)
+    if (!NtPssCaptureVaSpaceBulk_Import())
     {
         return STATUS_NOT_SUPPORTED;
     }
@@ -18452,7 +18444,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 
         // Allocate a large buffer and copy all entries.
 
-        while ((status = NtPssCaptureVaSpaceBulk(
+        while ((status = NtPssCaptureVaSpaceBulk_Import()(
             ProcessHandle,
             BaseAddress,
             buffer,
@@ -18499,7 +18491,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
         {
             // Get a batch of entries.
 
-            status = NtPssCaptureVaSpaceBulk(
+            status = NtPssCaptureVaSpaceBulk_Import()(
                 ProcessHandle,
                 buffer->NextValidAddress,
                 buffer,
