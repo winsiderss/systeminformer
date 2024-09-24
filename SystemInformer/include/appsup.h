@@ -631,12 +631,14 @@ PhCreateKsiSettingsBlob( // ksisup.c
     );
 
 PHAPPAPI
-NTSTATUS
+VOID
 NTAPI
-PhShowHandlePropertiesModal(
+PhShowHandlePropertiesPlugin(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ PWSTR OwnerPluginName,
+    _In_opt_ PWSTR Caption
     );
 // end_phapppub
 

@@ -144,6 +144,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_OBJMGR_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerWindowPosition")
 #define SETTING_NAME_OBJMGR_WINDOW_SIZE (PLUGIN_NAME L".ObjectManagerWindowSize")
 #define SETTING_NAME_OBJMGR_COLUMNS (PLUGIN_NAME L".ObjectManagerWindowColumns")
+#define SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerPropertiesWindowPosition")
 #define SETTING_NAME_OBJMGR_LIST_SORT (PLUGIN_NAME L".ObjectManagerWindowListSort")
 #define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
@@ -1048,6 +1049,10 @@ VOID EtHandlePropertiesInitializing(
     );
 
 VOID EtHandlePropertiesWindowPreOpen(
+    _In_ PVOID Parameter
+);
+
+VOID EtHandlePropertiesWindowUninitializing(
     _In_ PVOID Parameter
 );
 

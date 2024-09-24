@@ -30,6 +30,7 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesWindowPreOpenCallbackRegistration;
+PH_CALLBACK_REGISTRATION HandlePropertiesUninitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
@@ -318,6 +319,15 @@ VOID NTAPI HandlePropertiesWindowPreOpenCallback(
 {
     if (Parameter)
         EtHandlePropertiesWindowPreOpen(Parameter);
+}
+
+VOID NTAPI HandlePropertiesUninitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+)
+{
+    if (Parameter)
+        EtHandlePropertiesWindowUninitializing(Parameter);
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
@@ -1309,6 +1319,7 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_SIZE, L"@96|1237,627" },
                 { StringSettingType, SETTING_NAME_OBJMGR_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_LIST_SORT, L"0,0" },
+                { IntegerPairSettingType, SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },
@@ -1402,6 +1413,12 @@ LOGICAL DllMain(
                 HandlePropertiesWindowPreOpenCallback,
                 NULL,
                 &HandlePropertiesWindowPreOpenCallbackRegistration
+            );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackHandlePropertiesUninitializing),
+                HandlePropertiesUninitializingCallback,
+                NULL,
+                &HandlePropertiesUninitializingCallbackRegistration
             );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),

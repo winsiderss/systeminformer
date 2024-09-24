@@ -5662,6 +5662,11 @@ NTSTATUS PhpQueryDriverVariableSize(
         0,
         &returnLength
         );
+    if (returnLength == 0)
+    {
+        return STATUS_NOT_FOUND;
+    }
+
     buffer = PhAllocate(returnLength);
     status = KphQueryInformationDriver(
         DriverHandle,

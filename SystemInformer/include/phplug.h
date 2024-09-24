@@ -58,6 +58,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackOptionsWindowInitializing = 34, // PPH_PLUGIN_OBJECT_PROPERTIES Data [main thread]
     GeneralCallbackHandlePropertiesWindowPreOpen = 35, // PPH_PLUGIN_OBJECT_PROPERTIES Data [plugin thread]
+    GeneralCallbackHandlePropertiesUninitializing = 36, // PPH_PLUGIN_OBJECT_PROPERTIES Data [plugin thread]
 
     GeneralCallbackProcessProviderAddedEvent, // [process provider thread]
     GeneralCallbackProcessProviderModifiedEvent, // [process provider thread]
@@ -143,6 +144,7 @@ typedef struct _PH_PLUGIN_OBJECT_PROPERTIES
     // PPH_SERVICE_ITEM for GeneralCallbackServicePropertiesInitializing
     // PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT for GeneralCallbackHandlePropertiesInitializing
     // PHANDLE_PROPERTIES_CONTEXT for GeneralCallbackHandlePropertiesWindowPreOpen
+    // PHANDLE_PROPERTIES_CONTEXT for GeneralCallbackHandlePropertiesUninitializing
 
     PVOID Parameter;
     ULONG NumberOfPages;
@@ -226,6 +228,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
+    PH_STRINGREF OwnerPluginName;
 } HANDLE_PROPERTIES_CONTEXT, * PHANDLE_PROPERTIES_CONTEXT;
 
 typedef struct _PH_PLUGIN_PROCESS_STATS_EVENT
@@ -241,6 +244,7 @@ typedef struct _PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
+    PH_STRINGREF OwnerPluginName;
 } PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT, *PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT;
 
 typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM, *PPH_EMENU;

@@ -600,6 +600,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         {
             entry->TargetIsResolving = TRUE;
         }
+        else if (entry->TypeIndex == OBJECT_DRIVER && useKsi)
+        {
+            entry->TargetIsResolving = TRUE;
+        }
 
         PhAddItemList(Context->CurrentDirectoryList, entry);
     }
@@ -661,6 +665,7 @@ NTSTATUS PhpTargetResolverThreadStart(
 {
     PRESOLVER_THREAD_CONTEXT threadContext = Parameter;
     POBJECT_CONTEXT Context = threadContext->Context;
+    PH_AUTO_POOL autoPool;
 
     NTSTATUS status;
     HANDLE_OPEN_CONTEXT objectContext;
@@ -668,6 +673,8 @@ NTSTATUS PhpTargetResolverThreadStart(
     HANDLE objectHandle;
     ULONG SortColumn;
     PH_SORT_ORDER SortOrder;
+
+    PhInitializeAutoPool(&autoPool);
 
     objectContext.CurrentPath = PhReferenceObject(Context->CurrentPath);
 
@@ -814,6 +821,20 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
+        case OBJECT_DRIVER:
+        {
+            PPH_STRING driverName;
+
+            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
+            {
+                if (NT_SUCCESS(status = PhGetDriverImageFileName(objectHandle, &driverName)))
+                {
+                    PhMoveReference(&entry->Target, driverName);
+                }
+                NtClose(objectHandle);
+            }
+        }
+        break;
         }
 
 resolve_next:
@@ -831,7 +852,7 @@ resolve_next:
     }
 
     // Reapply sort and filter after done resolving and ensure selected item is visible
-    PPH_STRING curentFilter = PhGetWindowText(Context->SearchBoxHandle);
+    PPH_STRING curentFilter = PH_AUTO(PhGetWindowText(Context->SearchBoxHandle));
     if (!PhIsNullOrEmptyString(curentFilter))
     {
         EtpObjectManagerSearchControlCallback(  // HACK
@@ -849,7 +870,6 @@ resolve_next:
                 ListView_EnsureVisible(Context->ListViewHandle, index, TRUE);
         }
     }
-    PhDereferenceObject(curentFilter);
 
 exit_thread:
     PhDereferenceObject(objectContext.CurrentPath);
@@ -862,6 +882,7 @@ exit_thread:
     else
         status = STATUS_ABANDONED;
 
+    PhDeleteAutoPool(&autoPool);
     PhFree(threadContext);
     return status;
 }
@@ -1635,9 +1656,6 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         ULONG TypeIndex = -1;
 
         handleItem = PhCreateHandleItem(&HandleInfo);
-
-        // Object Manager plugin window
-        PhCopyStringZ(L"PH_PLUGIN", RTL_NUMBER_OF(L"PH_PLUGIN"), handleItem->HandleString, RTL_NUMBER_OF(handleItem->HandleString), NULL);
         handleItem->Handle = objectHandle;
         handleItem->ObjectName = PhReferenceObject(entry->Name);
 
@@ -1720,9 +1738,8 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
             EtObjectManagerTimeCached = objectInfo.CreationTime;
         }
 
-        status = PhShowHandlePropertiesModal(hwndDlg, NtCurrentProcessId(), handleItem);
-
-        NtClose(objectHandle);
+        // Object Manager plugin window
+        PhShowHandlePropertiesPlugin(hwndDlg, NtCurrentProcessId(), handleItem, PLUGIN_NAME, L"Object");
     }
 
     PhDereferenceObject(context->CurrentPath);
@@ -1733,12 +1750,11 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     return status;
 }
 
-BOOLEAN NTAPI EtpObjectManagerOpenTarget(
+VOID NTAPI EtpObjectManagerOpenTarget(
     _In_ HWND hwndDlg,
     _In_ POBJECT_CONTEXT context,
     _In_ POBJECT_ENTRY entry)
 {
-    BOOLEAN retval = TRUE;
     PH_STRINGREF directoryPart = PhGetStringRef(NULL);
     PH_STRINGREF pathPart;
     PH_STRINGREF remainingPart;
@@ -1797,8 +1813,6 @@ BOOLEAN NTAPI EtpObjectManagerOpenTarget(
         }
         else    // browse to target in explorer
         {
-            retval = FALSE;
-
             if (!PhIsNullOrEmptyString(entry->Target) &&
                 (PhDoesFileExist(&entry->Target->sr) || PhDoesFileExistWin32(entry->Target->Buffer))
                 )
@@ -1832,7 +1846,6 @@ BOOLEAN NTAPI EtpObjectManagerOpenTarget(
     }
 
     PhDereferenceObject(targetPath);
-    return retval;
 }
 
 VOID NTAPI EtpObjectManagerRefresh(
@@ -2407,42 +2420,55 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     menu = PhCreateEMenu();
 
-                    if (numberOfItems == 1)
+                    BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target);
+                    BOOLEAN isSymlink = entry->TypeIndex == OBJECT_SYMLINK;
+                    PPH_EMENU_ITEM propMenuItem;
+                    PPH_EMENU_ITEM secMenuItem;
+                    PPH_EMENU_ITEM gotoMenuItem = NULL;
+                    PPH_EMENU_ITEM copyPathMenuItem;
+
+                    PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES,
+                        !isSymlink ? L"Prope&rties\bEnter" : L"Prope&rties\bShift+Enter", NULL, NULL), ULONG_MAX);
+
+                    if (isSymlink)
                     {
-                        BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target);
-                        BOOLEAN isSymlink = entry->TypeIndex == OBJECT_SYMLINK;
-
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_PROPERTIES,
-                            !isSymlink ? L"Prope&rties\bEnter" : L"Prope&rties\bShift+Enter", NULL, NULL), ULONG_MAX);
-
-                        if (isSymlink)
-                        {
-                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_OPENLINK, L"&Open link\bEnter", NULL, NULL), 0);
-                        }
-                        else if (entry->TypeIndex == OBJECT_DEVICE && hasTarget)
-                        {
-                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to device driver", NULL, NULL), ULONG_MAX);
-                        }
-                        else if (entry->TypeIndex == OBJECT_ALPCPORT && hasTarget)
-                        {
-                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
-                        }
-                        else if (entry->TypeIndex == OBJECT_MUTANT && hasTarget)
-                        {
-                            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_GOTOTHREAD, L"&Go to thread...", NULL, NULL), ULONG_MAX);
-                        }
-
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
-                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name", NULL, NULL), ULONG_MAX);
-                        PhInsertCopyListViewEMenuItem(menu, IDC_COPYPATH, context->ListViewHandle);
-                        PhSetFlagsEMenuItem(menu, isSymlink ? IDC_OPENLINK : IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENLINK, L"&Open link\bEnter", NULL, NULL), 0);
                     }
-                    else
+                    else if (entry->TypeIndex == OBJECT_DEVICE)
                     {
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                        PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to device driver", NULL, NULL), ULONG_MAX);
+                    }
+                    else if (entry->TypeIndex == OBJECT_ALPCPORT)
+                    {
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
+                    }
+                    else if (entry->TypeIndex == OBJECT_MUTANT)
+                    {
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOTHREAD, L"&Go to thread...", NULL, NULL), ULONG_MAX);
+                    }
+                    else if (entry->TypeIndex == OBJECT_DRIVER)
+                    {
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
+                    }
+
+                    PhInsertEMenuItem(menu, secMenuItem = PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, copyPathMenuItem = PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPYPATH, context->ListViewHandle);
+                    PhSetFlagsEMenuItem(menu, isSymlink ? IDC_OPENLINK : IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+                    if (numberOfItems > 1)
+                    {
+                        PhSetDisabledEMenuItem(propMenuItem);
+                        if (gotoMenuItem)
+                            PhSetDisabledEMenuItem(gotoMenuItem);
+                        PhSetDisabledEMenuItem(secMenuItem);
+                        PhSetDisabledEMenuItem(copyPathMenuItem);
+                    }
+                    else if (!hasTarget && gotoMenuItem)
+                    {
+                        PhSetDisabledEMenuItem(gotoMenuItem);
                     }
 
                     item = PhShowEMenu(
@@ -2498,6 +2524,24 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                                         PhDereferenceObject(processItem);
                                     }
+                                }
+                                break;
+                            case IDC_OPENFILELOCATION:
+                                if (!PhIsNullOrEmptyString(entry->Target) &&
+                                    (PhDoesFileExist(&entry->Target->sr) || PhDoesFileExistWin32(entry->Target->Buffer))
+                                    )
+                                {
+                                    PhShellExecuteUserString(
+                                        hwndDlg,
+                                        L"FileBrowseExecutable",
+                                        PhGetString(entry->Target),
+                                        FALSE,
+                                        L"Make sure the Explorer executable file is present."
+                                    );
+                                }
+                                else
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to locate the target.", STATUS_NOT_FOUND, 0);
                                 }
                                 break;
                             case IDC_SECURITY:

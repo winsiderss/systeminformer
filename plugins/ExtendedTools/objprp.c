@@ -86,7 +86,7 @@ VOID EtHandlePropertiesInitializing(
 
         // Object Manager
         if (EtObjectManagerDialogHandle &&
-            PhEqualStringZ(context->HandleItem->HandleString, L"PH_PLUGIN", TRUE))
+            PhEqualStringZ(PhGetStringRefZ(&context->OwnerPluginName), PLUGIN_NAME, TRUE))
         {
             page = EtpCreateHandlePage(
                 context,
@@ -140,14 +140,21 @@ VOID EtHandlePropertiesWindowPreOpen(
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
     if (EtObjectManagerDialogHandle &&
-        PhEqualStringZ(context->HandleItem->HandleString, L"PH_PLUGIN", TRUE))
+        PhEqualStringZ(PhGetStringRefZ(&context->OwnerPluginName), PLUGIN_NAME, TRUE))
     {
-        WCHAR string[PH_INT64_STR_LEN_1];
-        PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1));
         INT index;
 
+        // HACK
+        if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
+        else
+            PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+
         // Show real handles count
+        WCHAR string[PH_INT64_STR_LEN_1];
+        PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1));
         ULONG real_count = wcstoul(count->Buffer, NULL, 10);
+
         if (real_count > 0) {
             PhPrintUInt32(string, real_count - 1);
             PhSetListViewSubItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
@@ -257,6 +264,27 @@ VOID EtHandlePropertiesWindowPreOpen(
                 NtClose(objectHandle);
             }
         }
+        // Show Driver image information
+        else if (PhEqualString2(context->HandleItem->TypeName, L"Driver", TRUE))
+        {
+            PPH_STRING driverName;
+
+            PhAddListViewGroup(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, L"Driver information");
+
+            index = PhAddListViewGroupItem(
+                context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_FILE,
+                PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
+                L"Driver Image",
+                NULL
+            );
+
+            if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
+            {
+                PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetString(driverName));
+                PhDereferenceObject(driverName);
+            }
+        }
 
         // Remove irrelevant information if we couldn't open real object
         if (!context->HandleItem->Object)
@@ -270,22 +298,22 @@ VOID EtHandlePropertiesWindowPreOpen(
                 PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT], 1, NULL);
             }
         }
-
-        PhSetWindowText(context->ParentWindow, L"Object Properties");
-
-        //PhCenterWindow(context->ParentWindow, EtObjectManagerDialogHandle);
-        // Do manual for skip PhAdjustRectangleToWorkingArea
-        RECT rect, parentRect;
-        PH_RECTANGLE rectangle, parentRectangle;
-
-        GetWindowRect(context->ParentWindow, &rect);
-        GetWindowRect(EtObjectManagerDialogHandle, &parentRect);
-        rectangle = PhRectToRectangle(rect);
-        parentRectangle = PhRectToRectangle(parentRect);
-
-        PhCenterRectangle(&rectangle, &parentRectangle);
-        MoveWindow(context->ParentWindow, rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, FALSE);
     }
+}
+
+VOID EtHandlePropertiesWindowUninitializing(
+    _In_ PVOID Parameter
+)
+{
+    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
+
+    if (context->HandleItem->Handle)
+        NtClose(context->HandleItem->Handle);
+
+    PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
+
+    PhDereferenceObject(context->HandleItem);
 }
 
 static HPROPSHEETPAGE EtpCommonCreatePage(

@@ -105,6 +105,8 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
+    PWSTR OwnerPluginName;
+    PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
 NTSTATUS PhpShowHandlePropertiesThread(
@@ -121,6 +123,11 @@ NTSTATUS PhpShowHandlePropertiesThread(
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
 
+    if (handleContext->OwnerPluginName)
+        PhInitializeStringRefLongHint(&context.OwnerPluginName, handleContext->OwnerPluginName);
+    else
+        PhInitializeEmptyStringRef(&context.OwnerPluginName);
+
     PhInitializeAutoPool(&autoPool);
 
     propSheetHeader.dwFlags =
@@ -130,7 +137,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_PROPTITLE;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = handleContext->ParentWindowHandle;
-    propSheetHeader.pszCaption = L"Handle";
+    propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
@@ -220,6 +227,11 @@ NTSTATUS PhpShowHandlePropertiesThread(
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
 
+        if (handleContext->OwnerPluginName)
+            PhInitializeStringRefLongHint(&propertiesContext.OwnerPluginName, handleContext->OwnerPluginName);
+        else
+            PhInitializeEmptyStringRef(&propertiesContext.OwnerPluginName);
+
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
         objectProperties.MaximumNumberOfPages = RTL_NUMBER_OF(pages);
@@ -252,28 +264,32 @@ VOID PhShowHandleProperties(
     context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
+    context->OwnerPluginName = NULL;
+    context->Caption = NULL;
     PhReferenceObject(HandleItem);
 
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
 }
 
-NTSTATUS PhShowHandlePropertiesModal(
+VOID PhShowHandlePropertiesPlugin(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_ PWSTR OwnerPluginName,
+    _In_opt_ PWSTR Caption
 )
 {
-    NTSTATUS status;
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
     context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
-    context->ParentWindowHandle = ParentWindowHandle;
+    context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
+    context->OwnerPluginName = OwnerPluginName;
+    context->Caption = Caption;
+    PhReferenceObject(HandleItem);
 
-    status = PhpShowHandlePropertiesThread(context);
-
-    return status;
+    PhCreateThread2(PhpShowHandlePropertiesThread, context);
 }
 
 VOID PhpUpdateHandleGeneralListViewGroups(
@@ -2161,11 +2177,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
-            // HACK
-            if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
-            else
-                PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+            // Plugins can load window position in GeneralCallbackHandlePropertiesWindowPreOpen, ex. Object Manager (Dart Vanya)
+            if (PhIsNullOrEmptyStringRef(&context->OwnerPluginName))
+            {
+                // HACK
+                if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
+                    PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+                else
+                    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+            }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -2194,9 +2214,19 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            // Don't save position for plugin window, ex. Object Manager (Dart Vanya)
-            if (!PhEqualStringZ(context->HandleItem->HandleString, L"PH_PLUGIN", FALSE))
+            // Plugins perform uninitializing in GeneralCallbackHandlePropertiesUninitializing, ex. Object Manager (Dart Vanya)
+            if (PhIsNullOrEmptyStringRef(&context->OwnerPluginName))
+            {
                 PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
+            }
+            else if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
+                memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
+                objectProperties.Parameter = context;
+
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesUninitializing), &objectProperties);
+            }
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
