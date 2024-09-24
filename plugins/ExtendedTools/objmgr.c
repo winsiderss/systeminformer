@@ -130,7 +130,7 @@ VOID NTAPI EtpObjectManagerChangeSelection(
 
 VOID NTAPI EtObjectManagerSortAndSelectOld(
     _In_ POBJECT_CONTEXT context,
-    _In_ PPH_STRING oldSelection
+    _In_opt_ PPH_STRING oldSelection
     );
 
 VOID NTAPI EtpObjectManagerSearchControlCallback(
@@ -1102,7 +1102,7 @@ NTSTATUS EtObjectManagerOpenHandle(
      )
 {
     NTSTATUS status;
-    HANDLE directoryHandle = NULL;
+    HANDLE directoryHandle;
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
 
@@ -1167,7 +1167,13 @@ NTSTATUS EtObjectManagerOpenHandle(
 
         if (OpenFlags & OBJECT_OPENSOURCE_ALPCPORT)
         {
-            status = EtpObjectManagerOpenRealAlpcPort(Handle, Context, DesiredAccess);
+            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealAlpcPort(Handle, Context, DesiredAccess)))
+            {
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, 0)))
+                {
+                    status = STATUS_NOT_ALL_ASSIGNED;
+                }
+            }
         }
         else
         {
@@ -1221,33 +1227,27 @@ NTSTATUS EtObjectManagerOpenHandle(
         else
             deviceName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
 
-        status = PhOpenDevice(Handle, NULL, DesiredAccess, &deviceName->sr, TRUE);
-
+        if (!NT_SUCCESS(status = PhOpenDevice(Handle, NULL, DesiredAccess, &deviceName->sr, TRUE)))
+        {
+            if (NT_SUCCESS(status = PhCreateFile(
+                Handle,
+                &deviceName->sr,
+                DesiredAccess,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE
+            )))
+            {
+                status = STATUS_NOT_ALL_ASSIGNED;
+            }
+        }
         PhDereferenceObject(deviceName);
     }
     else if (PhEqualString2(Context->Object->TypeName, L"Driver", TRUE))
     {
         status = PhOpenDriver(Handle, DesiredAccess, directoryHandle, &Context->Object->Name->sr);
     }
-    //else if (PhEqualString2(Context->Object->TypeName, L"File", TRUE))
-    //{
-    //    PPH_STRING deviceName;
-    //    if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
-    //        deviceName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-    //    else
-    //        deviceName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-
-    //    status = PhCreateFile(
-    //        Handle,
-    //        &deviceName->sr,
-    //        DesiredAccess,
-    //        FILE_ATTRIBUTE_NORMAL,
-    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    //        FILE_OPEN,
-    //        FILE_NON_DIRECTORY_FILE);
-
-    //    PhDereferenceObject(deviceName);
-    //}
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Event", TRUE))
     {
         status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
@@ -1267,9 +1267,19 @@ NTSTATUS EtObjectManagerOpenHandle(
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Key", TRUE))
     {
         if (OpenFlags & OBJECT_OPENSOURCE_KEY)
-            status = EtpObjectManagerOpenRealKey(Handle, Context, DesiredAccess);
+        {
+            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealKey(Handle, Context, DesiredAccess)))
+            {
+                if (NT_SUCCESS(status = NtOpenKey(Handle, DesiredAccess, &objectAttributes)))
+                {
+                    status = STATUS_NOT_ALL_ASSIGNED;
+                }   
+            } 
+        }
         else
+        {
             status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
+        }
     }
     else if (PhEqualString2(Context->Object->TypeName, L"KeyedEvent", TRUE))
     {
@@ -1325,43 +1335,32 @@ NTSTATUS EtObjectManagerOpenHandle(
     }
     else if (PhEqualString2(Context->Object->TypeName, L"FilterConnectionPort", TRUE))
     {
-        status = EtpObjectManagerOpenRealFilterPort(Handle, Context, DesiredAccess);
+        if (!NT_SUCCESS(status = EtpObjectManagerOpenRealFilterPort(Handle, Context, DesiredAccess)))
+        {
+            PPH_STRING clientName;  
+            HANDLE portHandle;
 
-        //PPH_STRING clientName;  
-        //HANDLE portHandle;
-    
-        //if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
-        //    clientName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-        //else
-        //    clientName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-        //PhStringRefToUnicodeString(&clientName->sr, &objectName);
+            if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
+                clientName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+            else
+                clientName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+            PhStringRefToUnicodeString(&clientName->sr, &objectName);
 
-        //status = PhFilterConnectCommunicationPort(
-        //    &clientName->sr,
-        //    0,
-        //    NULL,
-        //    0,
-        //    NULL,
-        //    &portHandle
-        //);
+            if (NT_SUCCESS(status = PhFilterConnectCommunicationPort(
+                &clientName->sr,
+                0,
+                NULL,
+                0,
+                NULL,
+                &portHandle
+            )))
+            {
+                *Handle = portHandle;
+                status = STATUS_NOT_ALL_ASSIGNED;
+            }
 
-//#include <fltuser.h>
-//#pragma comment(lib, "FltLib.lib")
-//        status = FilterConnectCommunicationPort(
-//            PhGetString(clientName),
-//            0,
-//            NULL,
-//            0,
-//            NULL,
-//            &portHandle
-//            );
-
-        //PhDereferenceObject(clientName);
-    
-        //if (status == ERROR_SUCCESS)
-        //{
-        //    *Handle = portHandle;
-        //}
+            PhDereferenceObject(clientName);
+        }
     }
     else if (PhEqualString2(Context->Object->TypeName, L"Partition", TRUE))
     {
@@ -1616,13 +1615,18 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     if (entry->TypeIndex == OBJECT_DIRECTORY)
         objectContext.Object->TypeName = PH_AUTO(PhCreateString(L"Directory"));
 
-    if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, OBJECT_OPENSOURCE_ALL)))
+    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
+
+    // Try to open with WRITE_DAC to allow change security from "Security" page
+    if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, OBJECT_OPENSOURCE_ALL)) ||
+        status == STATUS_NOT_ALL_ASSIGNED)
     {
-        if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)))
-        {
-            status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, 0, OBJECT_OPENSOURCE_ALL);
-        }
+        if (status == STATUS_NOT_ALL_ASSIGNED)
+            NtClose(objectHandle);
+
+        status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL);
     }
+
     if (NT_SUCCESS(status))
     {
         OBJECT_BASIC_INFORMATION objectInfo;
@@ -1654,12 +1658,12 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         else
             handleItem->BestObjectName = PhFormatString(L"%s\\%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
 
-        // Get object address
+        // Get object address and type index
         if (KsiLevel() >= KphLevelMed)
         {
             PKPH_PROCESS_HANDLE_INFORMATION handles;
             ULONG i;
-            if (NT_SUCCESS(status = KsiEnumerateProcessHandles(NtCurrentProcess(), &handles)))
+            if (NT_SUCCESS(KsiEnumerateProcessHandles(NtCurrentProcess(), &handles)))
             {
                 for (i = 0; i < handles->HandleCount; i++)
                 {
@@ -1677,7 +1681,7 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         {
             PSYSTEM_HANDLE_INFORMATION_EX handles;
             ULONG i;
-            if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
+            if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
             {
                 for (i = 0; i < handles->NumberOfHandles; i++)
                 {
@@ -1695,6 +1699,10 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
                 PhFree(handles);
             }
         }
+
+        // Show only real source object address
+        if (status == STATUS_NOT_ALL_ASSIGNED)
+            handleItem->Object = 0;
 
         if (NT_SUCCESS(status = PhGetHandleInformation(
             NtCurrentProcess(),
@@ -1909,10 +1917,7 @@ VOID NTAPI EtpObjectManagerRefresh(
     }
 
     // Reapply old selection
-    if (oldSelect)
-    {
-        EtObjectManagerSortAndSelectOld(context, oldSelect);
-    }
+    EtObjectManagerSortAndSelectOld(context, oldSelect);
 
     SendMessage(context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -1992,10 +1997,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     }
 
     // Keep current sort and selection after apply new filter
-    if (oldSelect)
-    {
-        EtObjectManagerSortAndSelectOld(context, oldSelect);
-    }
+    EtObjectManagerSortAndSelectOld(context, oldSelect);
 
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
@@ -2006,7 +2008,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
 VOID NTAPI EtObjectManagerSortAndSelectOld(
     _In_ POBJECT_CONTEXT context,
-    _In_ PPH_STRING oldSelection
+    _In_opt_ PPH_STRING oldSelection
     )
 {
     ULONG SortColumn;

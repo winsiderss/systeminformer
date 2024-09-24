@@ -155,19 +155,19 @@ VOID EtHandlePropertiesWindowPreOpen(
 
         PhRemoveListViewItem(context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
 
+        index = PhAddListViewGroupItem(
+            context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
+            PH_HANDLE_GENERAL_INDEX_OBJECT + 1,
+            L"Object attributes",
+            NULL
+        );
+
         // Show object attributes
         if (context->HandleItem->Attributes & OBJ_PERMANENT || context->HandleItem->Attributes & OBJ_EXCLUSIVE)
         {
             PPH_STRING attributes = NULL;
             
-            index = PhAddListViewGroupItem(
-                context->ListViewHandle,
-                PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
-                PH_HANDLE_GENERAL_INDEX_OBJECT + 1,
-                L"Object attributes",
-                NULL
-            );
-
             switch (context->HandleItem->Attributes & (OBJ_PERMANENT | OBJ_EXCLUSIVE))
             {
             case OBJ_PERMANENT:
@@ -257,7 +257,20 @@ VOID EtHandlePropertiesWindowPreOpen(
                 NtClose(objectHandle);
             }
         }
-        
+
+        // Remove irrelevant information if we couldn't open real object
+        if (!context->HandleItem->Object)
+        {
+            if (PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE))
+            {
+                PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FLAGS], 1, NULL);
+                PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER], 1, NULL);
+                PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, NULL);
+                PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCSERVER], 1, NULL);
+                PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT], 1, NULL);
+            }
+        }
+
         PhSetWindowText(context->ParentWindow, L"Object Properties");
 
         //PhCenterWindow(context->ParentWindow, EtObjectManagerDialogHandle);
