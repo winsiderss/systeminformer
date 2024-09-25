@@ -201,6 +201,7 @@
     <Text Include="resources\pooltag.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\callback.ico" />
     <Image Include="resources\cpu.ico" />
     <Image Include="resources\device.ico" />
     <Image Include="resources\dll.ico" />
@@ -210,6 +211,7 @@
     <Image Include="resources\folder.ico" />
     <Image Include="resources\job.ico" />
     <Image Include="resources\key.ico" />
+    <Image Include="resources\keyedevent.ico" />
     <Image Include="resources\link.ico" />
     <Image Include="resources\memory.ico" />
     <Image Include="resources\mutant.ico" />
@@ -217,6 +219,7 @@
     <Image Include="resources\section.ico" />
     <Image Include="resources\semaphore.ico" />
     <Image Include="resources\session.ico" />
+    <Image Include="resources\type.ico" />
     <Image Include="resources\unknown.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

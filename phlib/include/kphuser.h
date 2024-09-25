@@ -292,6 +292,16 @@ KphOpenDevice(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphOpenObjectByTypeIndex(
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG TypeIndex
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphQueryInformationProcess(
     _In_ HANDLE ProcessHandle,
     _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,

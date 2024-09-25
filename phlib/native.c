@@ -5915,8 +5915,6 @@ NTSTATUS PhUnloadDriver(
     return status;
 }
 
-
-
 NTSTATUS PhOpenDevice(
     _Out_ PHANDLE DeviceHandle,
     _Out_opt_ PHANDLE DriverHandle,
@@ -5939,6 +5937,49 @@ NTSTATUS PhOpenDevice(
             &objectName,
             OpenLowest
         );
+    }
+    else
+    {
+        return STATUS_NOT_IMPLEMENTED;
+    }
+}
+
+NTSTATUS PhOpenObjectByTypeIndex(
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG TypeIndex
+)
+{
+    if (KsiLevel() == KphLevelMax)
+    {
+        NTSTATUS status;
+        OBJECT_TYPES_INFORMATION typesInfo = { 0 };
+        ULONG returnLength;
+
+        status = NtQueryObject(NULL,
+            ObjectTypesInformation,
+            &typesInfo,
+            sizeof(typesInfo),
+            &returnLength);
+
+        if (typesInfo.NumberOfTypes != 0)
+        {
+            if (TypeIndex < 2 || TypeIndex > typesInfo.NumberOfTypes)
+            {
+                return STATUS_INVALID_PARAMETER;
+            }
+            else
+            {
+                return KphOpenObjectByTypeIndex(
+                    ObjectHandle,
+                    DesiredAccess,
+                    ObjectAttributes,
+                    TypeIndex
+                );
+            }
+        }
+        return STATUS_UNSUCCESSFUL;
     }
     else
     {

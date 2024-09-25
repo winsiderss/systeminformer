@@ -32,6 +32,9 @@
 #define IDI_JOB                         162
 #define IDI_MEMORY                      163
 #define IDD_OBJHANDLES                  164
+#define IDI_CALLBACK                    165
+#define IDI_KEYEDEVENT                  166
+#define IDI_TYPE                        167
 #define IDD_SYSINFO_NPU                 200
 #define ID_VIEW_NPUINFORMATION          201
 #define IDD_SYSINFO_NPUPANEL            202
@@ -188,7 +191,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        165
+#define _APS_NEXT_RESOURCE_VALUE        168
 #define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           135

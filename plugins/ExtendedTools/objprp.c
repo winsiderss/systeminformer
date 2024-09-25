@@ -636,8 +636,7 @@ VOID EtpEnumObjectHandles(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PH_STRINGREF FileName = PH_STRINGREF_INIT(L"File");
-        FileTypeIndex = PhGetObjectTypeNumber(&FileName);
+        FileTypeIndex = PhGetObjectTypeNumberZ(L"File");
         PhEndInitOnce(&initOnce);
     }
 
@@ -815,22 +814,43 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+                case NM_DBLCLK:
+                {
+                    LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
+                    PHANDLE_ENTRY entry;
+
+                    if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                    {
+                        PPH_PROCESS_ITEM processItem;
+
+                        if (processItem = PhReferenceProcessItem(entry->ProcessId))
+                        {
+                            SystemInformer_ShowProcessProperties(processItem);
+                            PhDereferenceObject(processItem);
+                        }
+                    }
+                }
+                break;
+            }
         }
         break;
     case WM_CONTEXTMENU:
         {
-            HANDLE UniqueProcessId = NULL;
+            PHANDLE_ENTRY entry = NULL;
 
             if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
             {
-                PHANDLE_ENTRY entry = PhGetSelectedListViewItemParam(context->ListViewHandle);
-                if (entry)
-                    UniqueProcessId = entry->ProcessId;
+                entry = PhGetSelectedListViewItemParam(context->ListViewHandle);
             }
 
             POINT point;
             PPH_EMENU menu;
-            PPH_EMENU item;
+            PPH_EMENU_ITEM item;
 
             point.x = GET_X_LPARAM(lParam);
             point.y = GET_Y_LPARAM(lParam);
@@ -840,13 +860,13 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             menu = PhCreateEMenu();
 
-            if (UniqueProcessId)
-            {
-                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
-                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            }
+            PhInsertEMenuItem(menu, item = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
             PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+            PhSetFlagsEMenuItem(menu, IDC_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+            if (!entry)
+                PhSetDisabledEMenuItem(item);
 
             item = PhShowEMenu(
                 menu,
@@ -865,7 +885,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     {
                         PPH_PROCESS_ITEM processItem;
 
-                        if (processItem = PhReferenceProcessItem((HANDLE)UniqueProcessId))
+                        if (processItem = PhReferenceProcessItem(entry->ProcessId))
                         {
                             SystemInformer_ShowProcessProperties(processItem);
                             PhDereferenceObject(processItem);

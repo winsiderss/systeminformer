@@ -160,6 +160,15 @@ typedef struct _KPHM_OPEN_DEVICE
     BOOLEAN OpenLowest;
 } KPHM_OPEN_DEVICE, * PKPHM_OPEN_DEVICE;
 
+typedef struct _KPHM_OPEN_OBJECT
+{
+    NTSTATUS Status;
+    PHANDLE ObjectHandle;
+    ACCESS_MASK DesiredAccess;
+    POBJECT_ATTRIBUTES ObjectAttributes;
+    ULONG TypeIndex;
+} KPHM_OPEN_OBJECT, * PKPHM_OPEN_OBJECT;
+
 typedef struct _KPHM_QUERY_INFORMATION_PROCESS
 {
     NTSTATUS Status;

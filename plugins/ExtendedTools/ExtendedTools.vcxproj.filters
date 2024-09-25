@@ -323,5 +323,14 @@
     <Image Include="resources\memory.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\callback.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\keyedevent.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\type.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

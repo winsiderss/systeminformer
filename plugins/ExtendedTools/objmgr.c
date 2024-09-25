@@ -42,6 +42,9 @@ typedef enum _ET_OBJECT_TYPE
     OBJECT_KEY,
     OBJECT_CPUPARTITION,
     OBJECT_MEMORYPARTITION,
+    OBJECT_KEYEDEVENT,
+    OBJECT_TYPE,
+    OBJECT_CALLBACK,
 
     OBJECT_MAX,
 
@@ -430,6 +433,18 @@ VOID EtInitializeListImages(
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MEMORY), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
     IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_MEMORYPARTITION, icon, &index);
     DestroyIcon(icon);
+
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEYEDEVENT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_KEYEDEVENT, icon, &index);
+    DestroyIcon(icon);
+
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_TYPE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_TYPE, icon, &index);
+    DestroyIcon(icon);
+
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_CALLBACK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_CALLBACK, icon, &index);
+    DestroyIcon(icon);
 }
 
 static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
@@ -496,6 +511,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         {
             entry->TypeIndex = OBJECT_ALPCPORT;
         }
+        else if (PhEqualStringRef2(TypeName, L"Callback", TRUE))
+        {
+            entry->TypeIndex = OBJECT_CALLBACK;
+        }
         else if (PhEqualStringRef2(TypeName, L"CpuPartition", TRUE))
         {
             entry->TypeIndex = OBJECT_CPUPARTITION;
@@ -503,10 +522,6 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         else if (PhEqualStringRef2(TypeName, L"Device", TRUE))
         {
             entry->TypeIndex = OBJECT_DEVICE;
-        }
-        else if (PhEqualStringRef2(TypeName, L"FilterConnectionPort", TRUE))
-        {
-            entry->TypeIndex = OBJECT_FILTERPORT;
         }
         else if (PhEqualStringRef2(TypeName, L"Driver", TRUE))
         {
@@ -516,17 +531,25 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         {
             entry->TypeIndex = OBJECT_EVENT;
         }
-        else if (PhEqualStringRef2(TypeName, L"Key", TRUE))
+        else if (PhEqualStringRef2(TypeName, L"FilterConnectionPort", TRUE))
         {
-            entry->TypeIndex = OBJECT_KEY;
-        }
-        else if (PhEqualStringRef2(TypeName, L"Mutant", TRUE))
-        {
-            entry->TypeIndex = OBJECT_MUTANT;
+            entry->TypeIndex = OBJECT_FILTERPORT;
         }
         else if (PhEqualStringRef2(TypeName, L"Job", TRUE))
         {
             entry->TypeIndex = OBJECT_JOB;
+        }
+        else if (PhEqualStringRef2(TypeName, L"Key", TRUE))
+        {
+            entry->TypeIndex = OBJECT_KEY;
+        }
+        else if (PhEqualStringRef2(TypeName, L"KeyedEvent", TRUE))
+        {
+            entry->TypeIndex = OBJECT_KEYEDEVENT;
+        }
+        else if (PhEqualStringRef2(TypeName, L"Mutant", TRUE))
+        {
+            entry->TypeIndex = OBJECT_MUTANT;
         }
         else if (PhEqualStringRef2(TypeName, L"Partition", TRUE))
         {
@@ -547,6 +570,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         else if (PhEqualStringRef2(TypeName, L"SymbolicLink", TRUE))
         {
             entry->TypeIndex = OBJECT_SYMLINK;
+        }
+        else if (PhEqualStringRef2(TypeName, L"Type", TRUE))
+        {
+            entry->TypeIndex = OBJECT_TYPE;
         }
 
         index = PhAddListViewItem(Context->ListViewHandle, MAXINT, LPSTR_TEXTCALLBACK, entry);
@@ -1423,6 +1450,11 @@ NTSTATUS EtObjectManagerOpenHandle(
             status = NtOpenCpuPartition_I(Handle, DesiredAccess, &objectAttributes);
         }
     }
+    // Callback, Type (and almost any object type except ALPC Port and Device)
+    else
+    {
+        status = PhOpenObjectByTypeIndex(Handle, DesiredAccess, &objectAttributes, PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName)));
+    }
 
     NtClose(directoryHandle);
 
@@ -1473,12 +1505,9 @@ NTSTATUS EtpObjectManagerOpenRealObject(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PH_STRINGREF AlpcName = PH_STRINGREF_INIT(L"ALPC Port");
-        AlpcPortTypeIndex = PhGetObjectTypeNumber(&AlpcName);
-        PH_STRINGREF FilterName = PH_STRINGREF_INIT(L"FilterConnectionPort");
-        FilterPortIndex = PhGetObjectTypeNumber(&FilterName);
-        PH_STRINGREF KeyName = PH_STRINGREF_INIT(L"Key");
-        KeyTypeIndex = PhGetObjectTypeNumber(&KeyName);
+        AlpcPortTypeIndex = PhGetObjectTypeNumberZ(L"ALPC Port");
+        FilterPortIndex = PhGetObjectTypeNumberZ(L"FilterConnectionPort");
+        KeyTypeIndex = PhGetObjectTypeNumberZ(L"Key");
         PhEndInitOnce(&initOnce);
     }
 
@@ -2368,7 +2397,7 @@ INT_PTR CALLBACK WinObjDlgProc(
     case WM_CONTEXTMENU:
         {
             PPH_EMENU menu;
-            PPH_EMENU item;
+            PPH_EMENU_ITEM item;
             POINT point;
 
             if ((HWND)wParam == context->ListViewHandle)

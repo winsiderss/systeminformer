@@ -735,6 +735,12 @@ IDI_JOB                 ICON                    "resources\\job.ico"
 
 IDI_MEMORY              ICON                    "resources\\memory.ico"
 
+IDI_CALLBACK            ICON                    "resources\\callback.ico"
+
+IDI_KEYEDEVENT          ICON                    "resources\\keyedevent.ico"
+
+IDI_TYPE                ICON                    "resources\\type.ico"
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -31,6 +31,7 @@ KPHM_DEFINE_HANDLER(KphpCommsSetInformationObject);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDriver);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationDriver);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDevice);
+KPHM_DEFINE_HANDLER(KphpCommsOpenObjectByTypeIndex);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
@@ -92,6 +93,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenDriver,                    KphpCommsOpenDriver,                    KphpCommsRequireMaximum },
 { KphMsgQueryInformationDriver,        KphpCommsQueryInformationDriver,        KphpCommsRequireMaximum },
 { KphMsgOpenDevice,                    KphpCommsOpenDevice,                    KphpCommsRequireMaximum },
+{ KphMsgOpenObjectByTypeIndex,         KphpCommsOpenObjectByTypeIndex,         KphpCommsRequireMaximum },
 { KphMsgQueryInformationProcess,       KphpCommsQueryInformationProcess,       KphpCommsQueryInformationProcessRequires },
 { KphMsgSetInformationProcess,         KphpCommsSetInformationProcess,         KphpCommsRequireMaximum },
 { KphMsgSetInformationThread,          KphpCommsSetInformationThread,          KphpCommsRequireMaximum },
@@ -730,6 +732,33 @@ NTSTATUS KSIAPI KphpCommsOpenDevice(
         msg->DesiredAccess,
         msg->ObjectName,
         msg->OpenLowest,
+        UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsOpenObjectByTypeIndex(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+)
+{
+    PKPHM_OPEN_OBJECT msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgOpenObjectByTypeIndex);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.OpenObject;
+
+    msg->Status = KphOpenObjectByTypeIndex(msg->ObjectHandle,
+        msg->DesiredAccess,
+        msg->ObjectAttributes,
+        msg->TypeIndex,
         UserMode);
 
     return STATUS_SUCCESS;

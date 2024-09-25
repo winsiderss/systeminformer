@@ -529,6 +529,7 @@ extern PSE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK KphSeUnregisterImageVerificati
 extern PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject;
 extern PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo;
 extern PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent;
+extern POBJECT_TYPE* KphDynObTypeIndexTable;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
@@ -755,6 +756,16 @@ NTSTATUS KphCompareObjects(
     _In_ HANDLE SecondObjectHandle,
     _In_ KPROCESSOR_MODE AccessMode
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenObjectByTypeIndex(
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG TypeIndex,
+    _In_ KPROCESSOR_MODE AccessMode
+);
 
 // process
 

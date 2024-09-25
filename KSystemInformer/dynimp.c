@@ -25,6 +25,7 @@ PSE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK KphSeUnregisterImageVerificationCallb
 PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject = NULL;
 PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo = NULL;
 PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
+POBJECT_TYPE* KphDynObTypeIndexTable = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
@@ -49,6 +50,40 @@ VOID KphDynamicImport(
     KphDynCiValidateFileObject = (PCI_VALIDATE_FILE_OBJECT)KphGetRoutineAddress(L"ci.dll", "CiValidateFileObject");
     KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
     KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
+
+    __try
+    {
+        // ObGetObjectType have equal machine code on 10.0.10240 - 10.0.22631
+        //
+        // nt!ObGetObjectType+0x1C      488d0d[????????]   lea     rcx,[nt!ObTypeIndexTable]
+        // lea  rcx, [rip + off32]
+        if ((*((PULONG)((PUCHAR)ObGetObjectType + 0x1C)) & 0xFFFFFF) == 0x0D8D48)
+        {
+            PVOID ObTypeIndexTableDecoded;
+            OBJECT_TYPES_INFORMATION typesInfo = { 0 };
+            ULONG returnLength;
+
+            ObTypeIndexTableDecoded = (PVOID)((PUCHAR)ObGetObjectType + 0x1C + 0x7 + *(PLONG)((PUCHAR)ObGetObjectType + 0x1F));
+
+            ZwQueryObject(NULL,
+                ObjectTypesInformation,
+                &typesInfo,
+                sizeof(typesInfo),
+                &returnLength);
+
+            if (typesInfo.NumberOfTypes != 0)
+            {
+                if (NT_SUCCESS(KphValidateAddressForSystemModules(ObTypeIndexTableDecoded, typesInfo.NumberOfTypes * sizeof(POBJECT_TYPE))))
+                {
+                    KphDynObTypeIndexTable = ObTypeIndexTableDecoded;
+                }
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        KphDynObTypeIndexTable = NULL;
+    }
 }
 
 /**

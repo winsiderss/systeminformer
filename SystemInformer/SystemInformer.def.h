@@ -1066,5 +1066,7 @@
 #define EXPORT_PHENUMHANDLESEX                                                                2045    
 #define EXPORT_PHGETOBJECTTYPENUMBER                                                          2046    
 #define EXPORT_PHOPENDEVICE                                                                   2047    
+#define EXPORT_PHOPENDEVICE                                                                   2047    
+#define EXPORT_PHOPENOBJECTBYTYPEINDEX                                                        2048    
 
 #endif _PH_EXPORT_DEF_H
