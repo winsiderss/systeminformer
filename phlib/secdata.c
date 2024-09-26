@@ -746,6 +746,10 @@ BOOLEAN PhGetAccessEntries(
     {
         Type = L"File";
     }
+    else if (PhEqualStringZ(Type, L"Driver", TRUE))
+    {
+        Type = L"File";
+    }
     else if (PhEqualStringZ(Type, L"PowerDefault", TRUE))
     {
         Type = L"Key";

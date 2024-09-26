@@ -67,6 +67,11 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     _In_ LPARAM lParam
     );
 
+PPH_STRING EtGetAccessString(
+    _In_ PPH_STRING TypeName,
+    _In_ ACCESS_MASK access
+    );
+
 extern HWND EtObjectManagerDialogHandle;
 extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
@@ -134,9 +139,17 @@ VOID EtHandlePropertiesInitializing(
     }
 }
 
+typedef enum _ET_OBJECT_POOLTYPE {
+    PagedPool = 1,
+    NonPagedPool = 0,
+    NonPagedPoolNx = 0x200,
+    NonPagedPoolSessionNx = NonPagedPoolNx + 32,
+    PagedPoolSessionNx = NonPagedPoolNx + 33
+} ET_OBJECT_POOLTYPE;
+
 VOID EtHandlePropertiesWindowPreOpen(
     _In_ PVOID Parameter
-)
+    )
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
@@ -289,6 +302,128 @@ VOID EtHandlePropertiesWindowPreOpen(
                 PhDereferenceObject(driverName);
             }
         }
+        else if (PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE))
+        {
+            POBJECT_TYPES_INFORMATION objectTypes;
+            POBJECT_TYPE_INFORMATION objectType;
+            ULONG typeIndex;
+            PPH_STRING accessString;
+            PH_STRING_BUILDER stringBuilder;
+
+            if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+            {
+                typeIndex = PhGetObjectTypeNumber(&context->HandleItem->ObjectName->sr);
+                objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+                for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+                {
+                    if (objectType->TypeIndex == typeIndex)
+                    {
+                        index = PH_HANDLE_GENERAL_CATEGORY_QUOTA;
+
+                        ListView_RemoveGroup(context->ListViewHandle, index);
+
+                        PhAddListViewGroup(context->ListViewHandle, index, L"Type information");
+
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 1, L"Index", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 2, L"Objects", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 3, L"Handles", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 4, L"Peak Objects", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 5, L"Peak Handles", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 6, L"Pool Type", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 7, L"Default Paged Charge", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 8, L"Default NP Charge", NULL);
+
+                        PhPrintUInt32(string, objectType->TypeIndex);
+                        PhSetListViewSubItem(context->ListViewHandle, 1, 1, string);
+                        PhPrintUInt32(string, objectType->TotalNumberOfObjects);
+                        PhSetListViewSubItem(context->ListViewHandle, 2, 1, string);
+                        PhPrintUInt32(string, objectType->TotalNumberOfHandles);
+                        PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
+                        PhPrintUInt32(string, objectType->HighWaterNumberOfObjects);
+                        PhSetListViewSubItem(context->ListViewHandle, 4, 1, string);
+                        PhPrintUInt32(string, objectType->HighWaterNumberOfHandles);
+                        PhSetListViewSubItem(context->ListViewHandle, 5, 1, string);
+                        PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
+
+                        switch (objectType->PoolType) {
+                        case NonPagedPool:
+                            PhSetListViewSubItem(context->ListViewHandle, 6, 1, L"Non Paged");
+                            break;
+                        case PagedPool:
+                            PhSetListViewSubItem(context->ListViewHandle, 6, 1, L"Paged");
+                            break;
+                        case NonPagedPoolNx:
+                            PhSetListViewSubItem(context->ListViewHandle, 6, 1, L"Non Paged NX");
+                            break;
+                        case PagedPoolSessionNx:
+                            PhSetListViewSubItem(context->ListViewHandle, 6, 1, L"Paged Session NX");
+                            break;
+                        }
+
+                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, string);
+                        PhPrintUInt32(string, objectType->DefaultNonPagedPoolCharge);
+                        PhSetListViewSubItem(context->ListViewHandle, 8, 1, string);
+
+                        index++;
+                        PhAddListViewGroup(context->ListViewHandle, index, L"Type access information");
+
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 1, L"Valid Access Mask", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 2, L"Generic Read", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 3, L"Generic Write", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 4, L"Generic Execute", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 5, L"Generic All", NULL);
+                        PhAddListViewGroupItem(context->ListViewHandle, index, 6, L"Invalid Attributes", NULL);
+
+                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->ValidAccessMask));
+                        PhSetListViewSubItem(context->ListViewHandle, 1, 1, PhGetString(accessString));
+                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericRead));
+                        PhSetListViewSubItem(context->ListViewHandle, 2, 1, PhGetString(accessString));
+                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericWrite));
+                        PhSetListViewSubItem(context->ListViewHandle, 3, 1, PhGetString(accessString));
+                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericExecute));
+                        PhSetListViewSubItem(context->ListViewHandle, 4, 1, PhGetString(accessString));
+                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericAll));
+                        PhSetListViewSubItem(context->ListViewHandle, 5, 1, PhGetString(accessString));
+
+                        PhInitializeStringBuilder(&stringBuilder, 10);
+                        if (objectType->InvalidAttributes & OBJ_KERNEL_HANDLE)
+                            PhAppendStringBuilder2(&stringBuilder, L"KERNEL_HANDLE, ");
+                        if (objectType->InvalidAttributes & OBJ_OPENLINK)
+                            PhAppendStringBuilder2(&stringBuilder, L"OPEN_LINK, ");
+                        if (objectType->InvalidAttributes & OBJ_OPENIF)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_OPENIF, ");
+                        if (objectType->InvalidAttributes & OBJ_PERMANENT)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_PERMANENT, ");
+                        if (objectType->InvalidAttributes & OBJ_EXCLUSIVE)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_EXCLUSIVE, ");
+                        if (objectType->InvalidAttributes & OBJ_INHERIT)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_INHERIT, ");
+                        if (objectType->InvalidAttributes & OBJ_CASE_INSENSITIVE)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_CASE_INSENSITIVE, ");
+                        if (objectType->InvalidAttributes & OBJ_FORCE_ACCESS_CHECK)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_FORCE_ACCESS_CHECK, ");
+                        if (objectType->InvalidAttributes & OBJ_IGNORE_IMPERSONATED_DEVICEMAP)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_IGNORE_IMPERSONATED_DEVICEMAP, ");
+                        if (objectType->InvalidAttributes & OBJ_DONT_REPARSE)
+                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_DONT_REPARSE, ");
+
+                        // Remove the trailing ", ".
+                        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                            PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                        accessString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+                        PhSetListViewSubItem(context->ListViewHandle, 6, 1, PhGetString(accessString));
+
+                        break;
+                    }
+
+                    objectType = PH_NEXT_OBJECT_TYPE(objectType);
+                }
+
+                PhFree(objectTypes);
+            }
+        }
 
         // Remove irrelevant information if we couldn't open real object
         if (!context->HandleItem->Object)
@@ -313,12 +448,15 @@ VOID EtHandlePropertiesWindowUninitializing(
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
     if (context->HandleItem->Handle)
+    {
         NtClose(context->HandleItem->Handle);
+
+        PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
+        PhDereferenceObject(EtObjectManagerOwnHandles);
+    }
 
     PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
-    PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
-    PhDereferenceObject(EtObjectManagerOwnHandles);
     PhDereferenceObject(context->HandleItem);
 }
 
@@ -374,7 +512,7 @@ static HPROPSHEETPAGE EtpCreateHandlePage(
     _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
     _In_ PWSTR Template,
     _In_ DLGPROC DlgProc
-)
+    )
 {
     HPROPSHEETPAGE propSheetPageHandle;
     PROPSHEETPAGE propSheetPage;
@@ -551,7 +689,7 @@ FORCEINLINE PVOID EtpGenericPropertyPageHeader(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ ULONG ContextHash
-)
+    )
 {
     PVOID context;
 
@@ -581,26 +719,22 @@ FORCEINLINE PVOID EtpGenericPropertyPageHeader(
     return context;
 }
 
-VOID EtpSetListViewAccess
-(
-    _In_ PHANDLES_PAGE_CONTEXT context,
-    _In_ INT index,
+PPH_STRING EtGetAccessString(
+    _In_ PPH_STRING TypeName,
     _In_ ACCESS_MASK access
-)
+    )
 {
-
+    PPH_STRING AccessString = NULL;
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
-    WCHAR string[PH_INT64_STR_LEN_1];
 
     if (PhGetAccessEntries(
-        PhGetStringOrEmpty(context->HandleItem->TypeName),
+        PhGetStringOrEmpty(TypeName),
         &accessEntries,
         &numberOfAccessEntries
     ))
     {
         PPH_STRING accessString;
-        PPH_STRING grantedAccessString;
 
         accessString = PH_AUTO(PhGetAccessString(
             access,
@@ -610,27 +744,25 @@ VOID EtpSetListViewAccess
 
         if (accessString->Length != 0)
         {
-            grantedAccessString = PH_AUTO(PhFormatString(
+            AccessString = PhFormatString(
                 L"0x%x (%s)",
                 access,
                 accessString->Buffer
-            ));
-
-            PhSetListViewSubItem(context->ListViewHandle, index, 2, grantedAccessString->Buffer);
+            );
         }
         else
         {
-            PhPrintPointer(string, UlongToPtr(access));
-            PhSetListViewSubItem(context->ListViewHandle, index, 2, string);
+            AccessString = PhFormatString(L"0x%x", access);
         }
 
         PhFree(accessEntries);
     }
     else
     {
-        PhPrintPointer(string, UlongToPtr(access));
-        PhSetListViewSubItem(context->ListViewHandle, index, 2, string);
+        AccessString = PhFormatString(L"0x%x", access);
     }
+
+    return AccessString;
 }
 
 VOID EtpEnumObjectHandles(
@@ -673,6 +805,7 @@ VOID EtpEnumObjectHandles(
             PPH_STRING bestObjectName;
             PHANDLE_ENTRY entry;
             PPH_STRING processName;
+            PPH_STRING accessString;
             CLIENT_ID ClientId = { 0 };
 
             // Skip other types
@@ -733,7 +866,8 @@ VOID EtpEnumObjectHandles(
                 PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
                 PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
 
-                EtpSetListViewAccess(context, lvItemIndex, handleInfo->GrantedAccess);
+                accessString = PH_AUTO(EtGetAccessString(context->HandleItem->TypeName, handleInfo->GrantedAccess));
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetString(accessString));
 
                 switch (handleInfo->HandleAttributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
                 {

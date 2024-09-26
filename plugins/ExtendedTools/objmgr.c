@@ -1728,7 +1728,7 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
     _In_ POBJECT_ENTRY entry)
 {
     NTSTATUS status;
-    HANDLE objectHandle;
+    HANDLE objectHandle = NULL;
     HANDLE_OPEN_CONTEXT objectContext;
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
@@ -1749,7 +1749,7 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL);
     }
 
-    if (NT_SUCCESS(status))
+    if (NT_SUCCESS(status) || entry->TypeIndex == OBJECT_TYPE) // special bypass to show Type information without KSI
     {
         PPH_HANDLE_ITEM handleItem;
         SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo = { 0 };
@@ -1776,31 +1776,38 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         else
             handleItem->BestObjectName = PhFormatString(L"%s\\%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
 
-        // Get object address and type index
-        EtpObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
-
-        // Show only real source object address
-        if (status == STATUS_NOT_ALL_ASSIGNED)
-            handleItem->Object = 0;
-
-        if (NT_SUCCESS(status = PhGetHandleInformation(
-            NtCurrentProcess(),
-            objectHandle,
-            ULONG_MAX,
-            &objectInfo,
-            NULL,
-            NULL,
-            NULL
-        )))
+        if (objectHandle)
         {
-            // We will remove access row in EtHandlePropertiesWindowPreOpen callback
-            //handleItem->GrantedAccess = objectInfo.GrantedAccess;
-            handleItem->Attributes = objectInfo.Attributes;
-            EtObjectManagerTimeCached = objectInfo.CreationTime;
-        }
+            // Get object address and type index
+            EtpObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
 
-        PhReferenceObject(EtObjectManagerOwnHandles);
-        PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
+            // Show only real source object address
+            if (status == STATUS_NOT_ALL_ASSIGNED)
+                handleItem->Object = 0;
+
+            if (NT_SUCCESS(status = PhGetHandleInformation(
+                NtCurrentProcess(),
+                objectHandle,
+                ULONG_MAX,
+                &objectInfo,
+                NULL,
+                NULL,
+                NULL
+            )))
+            {
+                // We will remove access row in EtHandlePropertiesWindowPreOpen callback
+                //handleItem->GrantedAccess = objectInfo.GrantedAccess;
+                handleItem->Attributes = objectInfo.Attributes;
+                EtObjectManagerTimeCached = objectInfo.CreationTime;
+            }
+
+            PhReferenceObject(EtObjectManagerOwnHandles);
+            PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
+        }
+        else
+        {
+            status = STATUS_NOT_ALL_ASSIGNED;
+        }
 
         EtObjectManagerPropWndIcon = PhImageListGetIcon(context->ListImageList, entry->TypeIndex, ILD_NORMAL | ILD_TRANSPARENT);
 
