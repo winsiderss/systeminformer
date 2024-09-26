@@ -57,23 +57,27 @@ VOID KphDynamicImport(
         //
         // nt!ObGetObjectType+0x1C      488d0d[????????]   lea     rcx,[nt!ObTypeIndexTable]
         // lea  rcx, [rip + off32]
-        if ((*((PULONG)((PUCHAR)ObGetObjectType + 0x1C)) & 0xFFFFFF) == 0x0D8D48)
+        PUCHAR rip;
+
+        rip = (PUCHAR)ObGetObjectType + 0x1C;
+
+        if ((*(PULONG)rip & 0xFFFFFF) == 0x0D8D48)
         {
             PVOID ObTypeIndexTableDecoded;
             OBJECT_TYPES_INFORMATION typesInfo = { 0 };
-            ULONG returnLength;
 
-            ObTypeIndexTableDecoded = (PVOID)((PUCHAR)ObGetObjectType + 0x1C + 0x7 + *(PLONG)((PUCHAR)ObGetObjectType + 0x1F));
+            rip += 3;
 
-            ZwQueryObject(NULL,
+            ObTypeIndexTableDecoded = (PVOID)(rip + sizeof(LONG) + *(PLONG)rip);
+
+            if (ZwQueryObject(NULL,
                 ObjectTypesInformation,
                 &typesInfo,
                 sizeof(typesInfo),
-                &returnLength);
-
-            if (typesInfo.NumberOfTypes != 0)
+                NULL) == STATUS_INFO_LENGTH_MISMATCH)
             {
-                if (NT_SUCCESS(KphValidateAddressForSystemModules(ObTypeIndexTableDecoded, typesInfo.NumberOfTypes * sizeof(POBJECT_TYPE))))
+                if (typesInfo.NumberOfTypes >= 2 && typesInfo.NumberOfTypes < 0x100 && 
+                    NT_SUCCESS(KphValidateAddressForSystemModules(ObTypeIndexTableDecoded, typesInfo.NumberOfTypes * sizeof(POBJECT_TYPE))))
                 {
                     KphDynObTypeIndexTable = ObTypeIndexTableDecoded;
                 }

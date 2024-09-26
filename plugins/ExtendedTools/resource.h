@@ -35,6 +35,7 @@
 #define IDI_CALLBACK                    165
 #define IDI_KEYEDEVENT                  166
 #define IDI_TYPE                        167
+#define IDI_TIMER                       168
 #define IDD_SYSINFO_NPU                 200
 #define ID_VIEW_NPUINFORMATION          201
 #define IDD_SYSINFO_NPUPANEL            202
@@ -122,6 +123,7 @@
 #define IDC_COPYPATH                    1125
 #define IDC_RESETSORT                   1126
 #define IDC_OPENFILELOCATION            1127
+#define IDC_CLOSEHANDLE                 1128
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -191,7 +193,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           135

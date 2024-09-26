@@ -741,6 +741,8 @@ IDI_KEYEDEVENT          ICON                    "resources\\keyedevent.ico"
 
 IDI_TYPE                ICON                    "resources\\type.ico"
 
+IDI_TIMER               ICON                    "resources\\timer.ico"
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

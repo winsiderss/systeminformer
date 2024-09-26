@@ -219,6 +219,7 @@
     <Image Include="resources\section.ico" />
     <Image Include="resources\semaphore.ico" />
     <Image Include="resources\session.ico" />
+    <Image Include="resources\timer.ico" />
     <Image Include="resources\type.ico" />
     <Image Include="resources\unknown.ico" />
   </ItemGroup>

@@ -332,5 +332,8 @@
     <Image Include="resources\type.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\timer.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

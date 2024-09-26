@@ -31,7 +31,7 @@ typedef struct _HANDLES_PAGE_CONTEXT
 typedef struct _ET_HANDLE_ENTRY
 {
     HANDLE ProcessId;
-    HANDLE Handle;
+    PPH_HANDLE_ITEM HandleItem;
     COLORREF Color;
 } HANDLE_ENTRY, * PHANDLE_ENTRY;
 
@@ -69,6 +69,8 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
 extern HWND EtObjectManagerDialogHandle;
 extern LARGE_INTEGER EtObjectManagerTimeCached;
+extern PPH_LIST EtObjectManagerOwnHandles;
+extern HICON EtObjectManagerPropWndIcon;
 
 VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
@@ -86,7 +88,7 @@ VOID EtHandlePropertiesInitializing(
 
         // Object Manager
         if (EtObjectManagerDialogHandle &&
-            PhEqualStringZ(PhGetStringRefZ(&context->OwnerPluginName), PLUGIN_NAME, TRUE))
+            PhEqualStringRef2(&context->OwnerPluginName, PLUGIN_NAME, TRUE))
         {
             page = EtpCreateHandlePage(
                 context,
@@ -140,7 +142,7 @@ VOID EtHandlePropertiesWindowPreOpen(
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
 
     if (EtObjectManagerDialogHandle &&
-        PhEqualStringZ(PhGetStringRefZ(&context->OwnerPluginName), PLUGIN_NAME, TRUE))
+        PhEqualStringRef2(&context->OwnerPluginName, PLUGIN_NAME, TRUE))
     {
         INT index;
 
@@ -149,6 +151,8 @@ VOID EtHandlePropertiesWindowPreOpen(
             PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
         else
             PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+
+        PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropWndIcon, NULL, 0);
 
         // Show real handles count
         WCHAR string[PH_INT64_STR_LEN_1];
@@ -313,6 +317,8 @@ VOID EtHandlePropertiesWindowUninitializing(
 
     PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
+    PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
+    PhDereferenceObject(EtObjectManagerOwnHandles);
     PhDereferenceObject(context->HandleItem);
 }
 
@@ -610,12 +616,12 @@ VOID EtpSetListViewAccess
                 accessString->Buffer
             ));
 
-            PhSetListViewSubItem(context->ListViewHandle, index, 3, grantedAccessString->Buffer);
+            PhSetListViewSubItem(context->ListViewHandle, index, 2, grantedAccessString->Buffer);
         }
         else
         {
             PhPrintPointer(string, UlongToPtr(access));
-            PhSetListViewSubItem(context->ListViewHandle, index, 3, string);
+            PhSetListViewSubItem(context->ListViewHandle, index, 2, string);
         }
 
         PhFree(accessEntries);
@@ -623,7 +629,7 @@ VOID EtpSetListViewAccess
     else
     {
         PhPrintPointer(string, UlongToPtr(access));
-        PhSetListViewSubItem(context->ListViewHandle, index, 3, string);
+        PhSetListViewSubItem(context->ListViewHandle, index, 2, string);
     }
 }
 
@@ -640,7 +646,10 @@ VOID EtpEnumObjectHandles(
         PhEndInitOnce(&initOnce);
     }
 
+    COLORREF ColorOwnObject = PhGetIntegerSetting(L"ColorOwnProcesses");
     COLORREF ColorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
+    COLORREF ColorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
+    COLORREF ColorProtectedInherit = PhGetIntegerSetting(L"ColorPartiallySuspended");
     COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG i;
@@ -659,21 +668,18 @@ VOID EtpEnumObjectHandles(
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
             INT lvItemIndex;
             WCHAR value[PH_INT64_STR_LEN_1];
-            PPH_PROCESS_ITEM processItem = NULL;
             BOOLEAN ObjectNameMath;
             HANDLE dupHandle;
             PPH_STRING bestObjectName;
             PHANDLE_ENTRY entry;
+            PPH_STRING processName;
+            CLIENT_ID ClientId = { 0 };
+
+            // Skip other types
+            if (handleInfo->ObjectTypeIndex != SourceTypeIndex)
+                continue;
 
             ObjectNameMath = FALSE;
-
-            // Skip other types and our context handle
-            if (handleInfo->ObjectTypeIndex != SourceTypeIndex ||
-                handleInfo->UniqueProcessId == (ULONG_PTR)NtCurrentProcessId() &&
-                handleInfo->HandleValue == (ULONG_PTR)context->HandleItem->Handle)
-            {
-                continue;
-            }
 
             // Lookup for matches in object name to find more handles for ALPC Port, File, Key
             if (isAlpcPort)
@@ -708,29 +714,46 @@ VOID EtpEnumObjectHandles(
 
             if (handleInfo->Object == context->HandleItem->Object || ObjectNameMath)
             {
-                processItem = PhReferenceProcessItem((HANDLE)handleInfo->UniqueProcessId);
+                // Skip Object Manager own handles
+                if ((HANDLE)handleInfo->UniqueProcessId == NtCurrentProcessId() &&
+                    PhFindItemList(EtObjectManagerOwnHandles, (PVOID)handleInfo->HandleValue) != ULONG_MAX)
+                {
+                    continue;
+                }
 
                 entry = PhAllocateZero(sizeof(HANDLE_ENTRY));
                 entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
+                entry->HandleItem = PhCreateHandleItem(handleInfo);
+                entry->Color = ColorNormal;
 
-                // RESERVED. TODO: add menu Close handle (Dart Vanya)
-                entry->Handle = (HANDLE)handleInfo->HandleValue;
-
-                // Highlight not own object handles
-                entry->Color = handleInfo->Object != context->HandleItem->Object ? ColorInherit : ColorNormal;
-
-                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, PhGetString(processItem->ProcessName), entry);
-
-                PhPrintUInt64(value, handleInfo->UniqueProcessId);
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
+                ClientId.UniqueProcess = entry->ProcessId;
+                processName = PH_AUTO(PhGetClientIdName(&ClientId));
+                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, PhGetString(processName), entry);
 
                 PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, value);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
 
                 EtpSetListViewAccess(context, lvItemIndex, handleInfo->GrantedAccess);
 
-                if (processItem)
-                    PhDereferenceObject(processItem);
+                switch (handleInfo->HandleAttributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
+                {
+                case OBJ_PROTECT_CLOSE:
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected");
+                    entry->Color = ColorProtected;
+                    break;
+                case OBJ_INHERIT:
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Inherit");
+                    entry->Color = ColorInherit;
+                    break;
+                case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected, Inherit");
+                    entry->Color = ColorProtectedInherit;
+                    break;
+                }
+
+                // Highlight own object handles
+                if (handleInfo->Object == context->HandleItem->Object)
+                    entry->Color = ColorOwnObject;
             }
         }
 
@@ -738,6 +761,35 @@ VOID EtpEnumObjectHandles(
     }
 }
 
+VOID EtpShowHandleProperties(
+    _In_ HWND hwndDlg,
+    _In_ PHANDLE_ENTRY entry
+    )
+{
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+        entry->ProcessId
+    )))
+    {
+        if (NT_SUCCESS(PhGetHandleInformation(
+            processHandle,
+            entry->HandleItem->Handle,
+            entry->HandleItem->TypeIndex,
+            NULL,
+            &entry->HandleItem->TypeName,
+            &entry->HandleItem->ObjectName,
+            &entry->HandleItem->BestObjectName
+        )))
+        {
+            PhShowHandlePropertiesPlugin(hwndDlg, entry->ProcessId, entry->HandleItem, NULL, NULL);
+        }
+
+        NtClose(processHandle);
+    }
+}
 COLORREF NTAPI EtpColorItemColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
@@ -773,10 +825,10 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 130, L"Process");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 48, L"PID");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Handle");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Access");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 118, L"Process");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Handle");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"Access");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Attributes");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
             ExtendedListView_SetItemColorFunction(context->ListViewHandle, EtpColorItemColorFunction);
@@ -790,6 +842,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;
@@ -803,9 +856,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 LVNI_ALL
             )) != INT_ERROR)
             {
-                PHANDLE_ENTRY param;
-                if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
-                    PhFree(param);
+                PHANDLE_ENTRY entry;
+                if (PhGetListViewItemParam(context->ListViewHandle, index, &entry))
+                {
+                    PhClearReference(&entry->HandleItem);
+                    PhFree(entry);
+                } 
             }
         }
         break;
@@ -826,13 +882,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
                     if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        PPH_PROCESS_ITEM processItem;
-
-                        if (processItem = PhReferenceProcessItem(entry->ProcessId))
-                        {
-                            SystemInformer_ShowProcessProperties(processItem);
-                            PhDereferenceObject(processItem);
-                        }
+                        EtpShowHandleProperties(hwndDlg, entry);
                     }
                 }
                 break;
@@ -841,65 +891,101 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         break;
     case WM_CONTEXTMENU:
         {
-            PHANDLE_ENTRY entry = NULL;
+            PHANDLE_ENTRY* listviewItems;
+            ULONG numberOfItems;
 
-            if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
+            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+            if (numberOfItems != 0)
             {
-                entry = PhGetSelectedListViewItemParam(context->ListViewHandle);
-            }
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM item;
+                PPH_EMENU_ITEM propMenuItem;
+                PPH_EMENU_ITEM gotoMenuItem;
 
-            POINT point;
-            PPH_EMENU menu;
-            PPH_EMENU_ITEM item;
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
-            point.x = GET_X_LPARAM(lParam);
-            point.y = GET_Y_LPARAM(lParam);
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-            if (point.x == -1 && point.y == -1)
-                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+                menu = PhCreateEMenu();
 
-            menu = PhCreateEMenu();
-
-            PhInsertEMenuItem(menu, item = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-            PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
-            PhSetFlagsEMenuItem(menu, IDC_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-            if (!entry)
-                PhSetDisabledEMenuItem(item);
-
-            item = PhShowEMenu(
-                menu,
-                hwndDlg,
-                PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                point.x,
-                point.y
-            );
-
-            if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
-            {
-                switch (item->Id)
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+                PhSetFlagsEMenuItem(menu, IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+                if (numberOfItems > 1)
                 {
-                case IDC_GOTOPROCESS:
+                    PhSetDisabledEMenuItem(propMenuItem);
+                    PhSetDisabledEMenuItem(gotoMenuItem);
+                }
+
+                item = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    point.x,
+                    point.y
+                );
+
+                if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
+                {
+                    switch (item->Id)
+                    {
+                    case IDC_CLOSEHANDLE:
+                    {
+                        HANDLE oldHandle;
+
+                        for (ULONG i = 0; i < numberOfItems; i++)
+                        {
+                            if (PhUiCloseHandles(hwndDlg, listviewItems[i]->ProcessId, &listviewItems[i]->HandleItem, 1, TRUE))
+                            {
+                                oldHandle = NULL;
+                                if (EtpDuplicateHandleFromProcessEx(&oldHandle, 0, listviewItems[i]->ProcessId, listviewItems[i]->HandleItem->Handle)
+                                    == STATUS_INVALID_HANDLE)   // HACK for protected handles
+                                {
+                                    PhRemoveListViewItem(context->ListViewHandle, PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItems[i]));
+                                    PhClearReference(&listviewItems[i]->HandleItem);
+                                    PhFree(listviewItems[i]);
+                                }
+                                else if (oldHandle)
+                                    NtClose(oldHandle);
+                            }
+                            else
+                                break; 
+                        }
+                    }
+                    break;
+                    case IDC_PROPERTIES:
+                    {
+                        EtpShowHandleProperties(hwndDlg, listviewItems[0]);
+                    }
+                    break;
+                    case IDC_GOTOPROCESS:
                     {
                         PPH_PROCESS_ITEM processItem;
 
-                        if (processItem = PhReferenceProcessItem(entry->ProcessId))
+                        if (processItem = PhReferenceProcessItem(listviewItems[0]->ProcessId))
                         {
                             SystemInformer_ShowProcessProperties(processItem);
                             PhDereferenceObject(processItem);
                         }
                     }
                     break;
-                case IDC_COPY:
+                    case IDC_COPY:
                     {
                         PhCopyListView(context->ListViewHandle);
                     }
                     break;
-                }
+                    }
 
-                PhDestroyEMenu(menu);
+                    PhDestroyEMenu(menu);
+                }
             }
         }
         break;
