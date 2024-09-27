@@ -46,6 +46,11 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
     PVOID Context;
 } PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
 
+typedef struct _PH_GENERAL_PROPSHEETCONTEXT
+{
+    WNDPROC PropSheetWindowHookProc;
+} PH_GENERAL_PROPSHEETCONTEXT, * PPH_GENERAL_PROPSHEETCONTEXT;
+
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
@@ -1883,6 +1888,110 @@ HMENU PhLoadMenu(
     return menuHandle;
 }
 
+LRESULT CALLBACK PhpGeneralPropSheetWndProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    PPH_GENERAL_PROPSHEETCONTEXT propSheetContext;
+    WNDPROC oldWndProc;
+
+    propSheetContext = PhGetWindowContext(hwnd, 0xF);
+
+    if (!propSheetContext)
+        return 0;
+
+    oldWndProc = propSheetContext->PropSheetWindowHookProc;
+
+    switch (uMsg)
+    {
+        case WM_NCDESTROY:
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+
+            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhFree(propSheetContext);
+        }
+        break;
+    case WM_SYSCOMMAND:
+        {
+            // Note: Clicking the X on the taskbar window thumbnail preview doesn't close modeless property sheets
+            // when there are more than 1 window and the window doesn't have focus... The MFC, ATL and WTL libraries
+            // check if the propsheet is modeless and SendMessage WM_CLOSE and so we'll implement the same solution. (dmex)
+            switch (wParam & 0xFFF0)
+            {
+            case SC_CLOSE:
+            {
+                PostMessage(hwnd, WM_CLOSE, 0, 0);
+                //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
+                //return TRUE;
+            }
+            break;
+            }
+        }
+        break;
+    //case WM_COMMAND:
+    //    {
+    //        switch (GET_WM_COMMAND_ID(wParam, lParam))
+    //        {
+    //        case IDOK:
+    //            // Prevent the OK button from working (even though
+    //            // it's already hidden). This prevents the Enter
+    //            // key from closing the dialog box.
+    //            return 0;
+    //        }
+    //    }
+    //    break;
+    case WM_KEYDOWN: // forward key messages
+        {
+            HWND pageWindowHandle;
+
+            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
+            {
+                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
+                {
+                    return TRUE;
+                }
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+INT CALLBACK PhpGeneralPropSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+)
+{
+    switch (uMsg)
+    {
+    case PSCB_INITIALIZED:
+    {
+        PPH_GENERAL_PROPSHEETCONTEXT propSheetContext;
+
+        propSheetContext = PhAllocate(sizeof(PH_GENERAL_PROPSHEETCONTEXT));
+        memset(propSheetContext, 0, sizeof(PH_GENERAL_PROPSHEETCONTEXT));
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetContext);
+
+        propSheetContext->PropSheetWindowHookProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+        PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
+
+        SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
+    }
+    break;
+    }
+
+    return 0;
+}
+
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )
@@ -1914,6 +2023,12 @@ BOOLEAN PhModalPropertySheet(
         topLevelOwner = NULL;
 
     Header->dwFlags |= PSH_MODELESS;
+    // Allow to close other modeless property sheets (ex. Handle properties) by clicking the X on the taskbar window thumbnail, also forward key messages (Dart Vanya)
+    if (!Header->pfnCallback)
+    {
+        Header->dwFlags |= PSH_USECALLBACK;
+        Header->pfnCallback = PhpGeneralPropSheetProc;
+    }
     hwnd = (HWND)PropertySheet(Header);
 
     if (!hwnd)

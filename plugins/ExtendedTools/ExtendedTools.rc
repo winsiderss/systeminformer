@@ -743,6 +743,7 @@ IDI_TYPE                ICON                    "resources\\type.ico"
 
 IDI_TIMER               ICON                    "resources\\timer.ico"
 
+IDI_WINSTA              ICON                    "resources\\winsta.ico"
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -222,6 +222,7 @@
     <Image Include="resources\timer.ico" />
     <Image Include="resources\type.ico" />
     <Image Include="resources\unknown.ico" />
+    <Image Include="resources\winsta.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

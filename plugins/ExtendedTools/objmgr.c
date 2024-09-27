@@ -47,6 +47,7 @@ typedef enum _ET_OBJECT_TYPE
     OBJECT_MEMORYPARTITION,
     OBJECT_KEYEDEVENT,
     OBJECT_TIMER,
+    OBJECT_WINDOWSTATION,
     OBJECT_TYPE,
     OBJECT_CALLBACK,
 
@@ -448,6 +449,10 @@ VOID EtInitializeListImages(
     IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_TIMER, icon, &index);
     DestroyIcon(icon);
 
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_WINSTA), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_WINDOWSTATION, icon, &index);
+    DestroyIcon(icon);
+
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_TYPE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
     IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, OBJECT_TYPE, icon, &index);
     DestroyIcon(icon);
@@ -589,6 +594,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         {
             entry->TypeIndex = OBJECT_TYPE;
         }
+        else if (PhEqualStringRef2(TypeName, L"WindowStation", TRUE))
+        {
+            entry->TypeIndex = OBJECT_WINDOWSTATION;
+        }
 
         index = PhAddListViewItem(Context->ListViewHandle, MAXINT, LPSTR_TEXTCALLBACK, entry);
         PhSetListViewItemImageIndex(Context->ListViewHandle, index, entry->TypeIndex);
@@ -644,6 +653,27 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         else if (entry->TypeIndex == OBJECT_DRIVER && useKsi)
         {
             entry->TargetIsResolving = TRUE;
+        }
+        else if (entry->TypeIndex == OBJECT_WINDOWSTATION)
+        {
+#define T_WINSTA_INTERACTIVE L"WinSta0"
+#define T_WINSTA_SYSTEM L"-0x0-3e7$"
+#define T_WINSTA_ANONYMOUS L"-0x0-3e6$"
+#define T_WINSTA_LOCALSERVICE L"-0x0-3e5$"
+#define T_WINSTA_NETWORK_SERVICE L"-0x0-3e4$"
+
+#define WINSTA_LOGON_SESSION L"logon session"
+
+            if (PhEqualString2(entry->Name, T_WINSTA_INTERACTIVE, TRUE))
+                entry->Target = PhCreateString(L"Interactive Window Station");
+            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_SYSTEM, TRUE) != SIZE_MAX)
+                entry->Target = PhFormatString(L"%s %s", L"System", WINSTA_LOGON_SESSION);
+            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_ANONYMOUS, TRUE) != SIZE_MAX)
+                entry->Target = PhFormatString(L"%s %s", L"Anonymous", WINSTA_LOGON_SESSION);
+            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_LOCALSERVICE, TRUE) != SIZE_MAX)
+                entry->Target = PhFormatString(L"%s %s", L"Local Service", WINSTA_LOGON_SESSION);
+            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_NETWORK_SERVICE, TRUE) != SIZE_MAX)
+                entry->Target = PhFormatString(L"%s %s", L"Network Service", WINSTA_LOGON_SESSION);
         }
 
         PhAddItemList(Context->CurrentDirectoryList, entry);
@@ -2318,21 +2348,11 @@ INT_PTR CALLBACK WinObjDlgProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
-        break;
-    case WM_WINDOWPOSCHANGED:
         {
-            LPWINDOWPOS pos = (LPWINDOWPOS)lParam;
-            static int prev_w = -1;
-
-            int new_w = pos->cx;
-            if (prev_w == -1)
-                prev_w = new_w;
-
-            ListView_SetColumnWidth(context->ListViewHandle, 0,
-                ListView_GetColumnWidth(context->ListViewHandle, 0) + (new_w - prev_w));
-            prev_w = new_w;
-        }
+            PhLayoutManagerLayout(&context->LayoutManager);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        } 
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -2437,6 +2457,9 @@ INT_PTR CALLBACK WinObjDlgProc(
                 {
                     LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
                     POBJECT_ENTRY entry;
+
+                    if (header->hwndFrom != context->ListViewHandle)
+                        break;
 
                     if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
@@ -2791,31 +2814,29 @@ INT_PTR CALLBACK WinObjDlgProc(
             case VK_RETURN:
                 if (GetFocus() == context->ListViewHandle)
                 {
-                    PVOID* listviewItems;
+                    POBJECT_ENTRY* listviewItems;
                     ULONG numberOfItems;
 
                     PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
                     if (numberOfItems == 1)
                     {
-                        POBJECT_ENTRY entry = listviewItems[0];
-
-                        if (entry->TypeIndex == OBJECT_SYMLINK && GetKeyState(VK_SHIFT) < 0)
+                        if (listviewItems[0]->TypeIndex == OBJECT_SYMLINK && GetKeyState(VK_SHIFT) < 0)
                         {
-                            EtpObjectManagerObjectProperties(hwndDlg, context, entry);
+                            EtpObjectManagerObjectProperties(hwndDlg, context, listviewItems[0]);
                         }
                         else if (GetKeyState(VK_CONTROL) < 0)
                         {
-                            EtpObjectManagerOpenSecurity(hwndDlg, context, entry);
+                            EtpObjectManagerOpenSecurity(hwndDlg, context, listviewItems[0]);
                         }
                         else
                         {
-                            if (entry->TypeIndex == OBJECT_SYMLINK)
+                            if (listviewItems[0]->TypeIndex == OBJECT_SYMLINK)
                             {
-                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                EtpObjectManagerOpenTarget(hwndDlg, context, listviewItems[0]);
                             }
                             else
                             {
-                                EtpObjectManagerObjectProperties(hwndDlg, context, entry);
+                                EtpObjectManagerObjectProperties(hwndDlg, context, listviewItems[0]);
                             }
                         }
 
@@ -2826,27 +2847,26 @@ INT_PTR CALLBACK WinObjDlgProc(
                 {
                     POBJECT_ITEM directory;
                     ET_OBJECT_ENTRY entry = { 0 };
-                    BOOLEAN shiftDown = GetKeyState(VK_SHIFT) < 0;
-                    BOOLEAN ctrlDown = GetKeyState(VK_CONTROL) < 0;
 
-                    if (shiftDown || ctrlDown)
+                    if (GetKeyState(VK_SHIFT) < 0)
                     {
-                        PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL);
-
-                        entry.Name = directory->Name;
-                        entry.TypeIndex = OBJECT_DIRECTORY;
+                        if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
+                        {
+                            entry.Name = directory->Name;
+                            entry.TypeIndex = OBJECT_DIRECTORY;
+                            EtpObjectManagerObjectProperties(hwndDlg, context, &entry);
+                            return TRUE;
+                        }
                     }
-
-                    if (shiftDown)
+                    else if (GetKeyState(VK_CONTROL) < 0)
                     {
-                        EtpObjectManagerObjectProperties(hwndDlg, context, &entry);
-                        return TRUE;
-
-                    }
-                    else if (ctrlDown)
-                    {
-                        EtpObjectManagerOpenSecurity(hwndDlg, context, &entry);
-                        return TRUE;
+                        if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
+                        {
+                            entry.Name = directory->Name;
+                            entry.TypeIndex = OBJECT_DIRECTORY;
+                            EtpObjectManagerOpenSecurity(hwndDlg, context, &entry);
+                            return TRUE;
+                        }
                     }
                 }
                 break;
@@ -2884,7 +2904,6 @@ NTSTATUS EtShowObjectManagerDialogThread(
     PhSetEvent(&EtObjectManagerDialogInitializedEvent);
 
     PostMessage(EtObjectManagerDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
-
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == INT_ERROR)

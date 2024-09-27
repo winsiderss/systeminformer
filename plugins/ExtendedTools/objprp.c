@@ -153,12 +153,11 @@ VOID EtHandlePropertiesWindowPreOpen(
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
     PHANDLE_PROPERTIES_CONTEXT context = objectProperties->Parameter;
+    INT index;
 
     if (EtObjectManagerDialogHandle &&
         PhEqualStringRef2(&context->OwnerPluginName, PLUGIN_NAME, TRUE))
     {
-        INT index;
-
         // HACK
         if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
             PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
@@ -188,24 +187,17 @@ VOID EtHandlePropertiesWindowPreOpen(
         );
 
         // Show object attributes
-        if (context->HandleItem->Attributes & OBJ_PERMANENT || context->HandleItem->Attributes & OBJ_EXCLUSIVE)
+        switch (context->HandleItem->Attributes & (OBJ_PERMANENT | OBJ_EXCLUSIVE))
         {
-            PPH_STRING attributes = NULL;
-            
-            switch (context->HandleItem->Attributes & (OBJ_PERMANENT | OBJ_EXCLUSIVE))
-            {
-            case OBJ_PERMANENT:
-                attributes = PH_AUTO(PhCreateString(L"Permanent"));
-                break;
-            case OBJ_EXCLUSIVE:
-                attributes = PH_AUTO(PhCreateString(L"Exclusive"));
-                break;
-            case OBJ_PERMANENT | OBJ_EXCLUSIVE:
-                attributes = PH_AUTO(PhCreateString(L"Permanent, Exclusive"));
-                break;
-            }
-
-            PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetString(attributes));
+        case OBJ_PERMANENT:
+            PhSetListViewSubItem(context->ListViewHandle, index, 1, L"Permanent");
+            break;
+        case OBJ_EXCLUSIVE:
+            PhSetListViewSubItem(context->ListViewHandle, index, 1, L"Exclusive");
+            break;
+        case OBJ_PERMANENT | OBJ_EXCLUSIVE:
+            PhSetListViewSubItem(context->ListViewHandle, index, 1, L"Permanent, Exclusive");
+            break;
         }
 
         // Show creation time
@@ -235,15 +227,14 @@ VOID EtHandlePropertiesWindowPreOpen(
             HANDLE DriverHandle;
             PPH_STRING driverName;
 
-            PhAddListViewGroup(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, L"Device driver information");
+            index = PH_HANDLE_GENERAL_CATEGORY_FILE;
+            PhAddListViewGroup(context->ListViewHandle, index, L"Device driver information");
 
-            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 1, L"Lower-edge driver", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, index, 1, L"Lower-edge driver", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, index, 2, L"Lower-edge driver image", NULL);
 
-            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 2, L"Lower-edge driver image", NULL);
-
-            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 3, L"Upper-edge driver", NULL);
-
-            PhAddListViewGroupItem(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_FILE, 4, L"Upper-edge driver Image", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, index, 3, L"Upper-edge driver", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, index, 4, L"Upper-edge driver Image", NULL);
 
             if (NT_SUCCESS(PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &context->HandleItem->BestObjectName->sr, TRUE)))
             {
@@ -417,10 +408,8 @@ VOID EtHandlePropertiesWindowPreOpen(
 
                         break;
                     }
-
                     objectType = PH_NEXT_OBJECT_TYPE(objectType);
                 }
-
                 PhFree(objectTypes);
             }
         }
@@ -436,6 +425,29 @@ VOID EtHandlePropertiesWindowPreOpen(
                 PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCSERVER], 1, NULL);
                 PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT], 1, NULL);
             }
+        }
+    }
+
+    // General ET plugin extension
+    if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
+    {
+        HANDLE hWinStation;
+        USEROBJECTFLAGS userFlags;
+
+        index = PhAddListViewGroup(context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_QUOTA + 1, L"Window Station information");
+        PhAddListViewGroupItem(context->ListViewHandle, index, 1, L"Visible", NULL);
+
+        if (NT_SUCCESS(EtpDuplicateHandleFromProcessEx(&hWinStation, WINSTA_READATTRIBUTES, context->ProcessId, context->HandleItem->Handle)))
+        {
+            if (GetUserObjectInformation((HWINSTA)hWinStation,
+                UOI_FLAGS,
+                &userFlags,
+                sizeof(USEROBJECTFLAGS),
+                NULL))
+            {
+                PhSetListViewSubItem(context->ListViewHandle, 1, 1, userFlags.dwFlags & WSF_VISIBLE ? L"True" : L"False");
+            }
+            NtClose(hWinStation);
         }
     }
 }
@@ -785,6 +797,7 @@ VOID EtpEnumObjectHandles(
     COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG i;
+    ULONG OwnHandlesIndex = 0;
     BOOLEAN useKsi = KsiLevel() >= KphLevelMed;
     
     BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
@@ -861,7 +874,10 @@ VOID EtpEnumObjectHandles(
 
                 ClientId.UniqueProcess = entry->ProcessId;
                 processName = PH_AUTO(PhGetClientIdName(&ClientId));
-                lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, PhGetString(processName), entry);
+                lvItemIndex = PhAddListViewItem(
+                    context->ListViewHandle,
+                    handleInfo->Object == context->HandleItem->Object ? OwnHandlesIndex++ : MAXINT,
+                    PhGetString(processName), entry);
 
                 PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
                 PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
@@ -924,6 +940,35 @@ VOID EtpShowHandleProperties(
         NtClose(processHandle);
     }
 }
+
+VOID EtpCloseObjectHandles(
+    PHANDLES_PAGE_CONTEXT context,
+    PHANDLE_ENTRY* listviewItems,
+    ULONG numberOfItems
+    )
+{
+    HANDLE oldHandle;
+
+    for (ULONG i = 0; i < numberOfItems; i++)
+    {
+        if (PhUiCloseHandles(context->WindowHandle, listviewItems[i]->ProcessId, &listviewItems[i]->HandleItem, 1, TRUE))
+        {
+            oldHandle = NULL;
+            if (EtpDuplicateHandleFromProcessEx(&oldHandle, 0, listviewItems[i]->ProcessId, listviewItems[i]->HandleItem->Handle)
+                == STATUS_INVALID_HANDLE)   // HACK for protected handles
+            {
+                PhRemoveListViewItem(context->ListViewHandle, PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItems[i]));
+                PhClearReference(&listviewItems[i]->HandleItem);
+                PhFree(listviewItems[i]);
+            }
+            else if (oldHandle)
+                NtClose(oldHandle);
+        }
+        else
+            break;
+    }
+}
+
 COLORREF NTAPI EtpColorItemColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
@@ -995,7 +1040,39 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 {
                     PhClearReference(&entry->HandleItem);
                     PhFree(entry);
-                } 
+                }
+            }
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            PHANDLE_ENTRY* listviewItems;
+            ULONG numberOfItems;
+
+            switch (LOWORD(wParam))
+            {
+            case VK_RETURN:
+                if (GetFocus() == context->ListViewHandle)
+                {
+                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    if (numberOfItems == 1)
+                    {
+                        EtpShowHandleProperties(hwndDlg, listviewItems[0]);
+                        return TRUE;
+                    }
+                }
+                break;
+            case VK_DELETE:
+                if (GetFocus() == context->ListViewHandle)
+                {
+                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    if (numberOfItems != 0)
+                    {
+                        EtpCloseObjectHandles(context, listviewItems, numberOfItems);
+                        return TRUE;
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1007,19 +1084,16 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             LPNMHDR header = (LPNMHDR)lParam;
 
-            switch (header->code)
+            if (header->code == NM_DBLCLK)
             {
-                case NM_DBLCLK:
-                {
-                    LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
-                    PHANDLE_ENTRY entry;
+                if (header->hwndFrom != context->ListViewHandle)
+                    break;
 
-                    if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
-                    {
-                        EtpShowHandleProperties(hwndDlg, entry);
-                    }
-                }
-                break;
+                LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
+                PHANDLE_ENTRY entry;
+
+                if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                    EtpShowHandleProperties(hwndDlg, entry);
             }
         }
         break;
@@ -1045,8 +1119,8 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
                 menu = PhCreateEMenu();
 
-                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose", NULL, NULL), ULONG_MAX);
-                PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties\bEnter", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
@@ -1073,26 +1147,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     {
                     case IDC_CLOSEHANDLE:
                     {
-                        HANDLE oldHandle;
-
-                        for (ULONG i = 0; i < numberOfItems; i++)
-                        {
-                            if (PhUiCloseHandles(hwndDlg, listviewItems[i]->ProcessId, &listviewItems[i]->HandleItem, 1, TRUE))
-                            {
-                                oldHandle = NULL;
-                                if (EtpDuplicateHandleFromProcessEx(&oldHandle, 0, listviewItems[i]->ProcessId, listviewItems[i]->HandleItem->Handle)
-                                    == STATUS_INVALID_HANDLE)   // HACK for protected handles
-                                {
-                                    PhRemoveListViewItem(context->ListViewHandle, PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItems[i]));
-                                    PhClearReference(&listviewItems[i]->HandleItem);
-                                    PhFree(listviewItems[i]);
-                                }
-                                else if (oldHandle)
-                                    NtClose(oldHandle);
-                            }
-                            else
-                                break; 
-                        }
+                        EtpCloseObjectHandles(context, listviewItems, numberOfItems);
                     }
                     break;
                     case IDC_PROPERTIES:

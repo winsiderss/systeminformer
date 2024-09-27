@@ -335,5 +335,8 @@
     <Image Include="resources\timer.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\winsta.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
