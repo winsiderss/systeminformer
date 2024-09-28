@@ -22,11 +22,84 @@
 #include <procprv.h>
 #include <secedit.h>
 
-/*
-Moved to phplug.h
-    PHP_HANDLE_GENERAL_INDEX
-    HANDLE_PROPERTIES_CONTEXT
-*/
+typedef enum _PHP_HANDLE_GENERAL_CATEGORY
+{
+    // common
+    PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
+    PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
+    PH_HANDLE_GENERAL_CATEGORY_QUOTA,
+    // extra
+    PH_HANDLE_GENERAL_CATEGORY_ALPC,
+    PH_HANDLE_GENERAL_CATEGORY_FILE,
+    PH_HANDLE_GENERAL_CATEGORY_SECTION,
+    PH_HANDLE_GENERAL_CATEGORY_MUTANT,
+    PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
+    PH_HANDLE_GENERAL_CATEGORY_ETW,
+    PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
+
+    PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
+} PHP_HANDLE_GENERAL_CATEGORY;
+
+typedef enum _PHP_HANDLE_GENERAL_INDEX
+{
+    PH_HANDLE_GENERAL_INDEX_NAME,
+    PH_HANDLE_GENERAL_INDEX_TYPE,
+    PH_HANDLE_GENERAL_INDEX_OBJECT,
+    PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
+
+    PH_HANDLE_GENERAL_INDEX_REFERENCES,
+    PH_HANDLE_GENERAL_INDEX_HANDLES,
+
+    PH_HANDLE_GENERAL_INDEX_PAGED,
+    PH_HANDLE_GENERAL_INDEX_NONPAGED,
+
+    PH_HANDLE_GENERAL_INDEX_FLAGS,
+    PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER,
+    PH_HANDLE_GENERAL_INDEX_PORTCONTEXT,
+
+    PH_HANDLE_GENERAL_INDEX_FILETYPE,
+    PH_HANDLE_GENERAL_INDEX_FILEMODE,
+    PH_HANDLE_GENERAL_INDEX_FILEPOSITION,
+    PH_HANDLE_GENERAL_INDEX_FILESIZE,
+    PH_HANDLE_GENERAL_INDEX_FILEPRIORITY,
+    PH_HANDLE_GENERAL_INDEX_FILEDRIVER,
+    PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
+
+    PH_HANDLE_GENERAL_INDEX_SECTIONTYPE,
+    PH_HANDLE_GENERAL_INDEX_SECTIONFILE,
+    PH_HANDLE_GENERAL_INDEX_SECTIONSIZE,
+
+    PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT,
+    PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED,
+    PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
+
+    PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION,
+    PH_HANDLE_GENERAL_INDEX_ALPCSERVER,
+    PH_HANDLE_GENERAL_INDEX_ALPCCLIENT,
+
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
+    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
+
+    PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
+    PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
+
+    PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
+
+    PH_HANDLE_GENERAL_INDEX_MAXIMUM
+} PHP_HANDLE_GENERAL_INDEX;
+
+typedef struct _HANDLE_PROPERTIES_CONTEXT
+{
+    HWND ListViewHandle;
+    HWND ParentWindow;
+    HANDLE ProcessId;
+    PPH_HANDLE_ITEM HandleItem;
+    PH_LAYOUT_MANAGER LayoutManager;
+    INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
+    PPH_PLUGIN OwnerPlugin;
+} HANDLE_PROPERTIES_CONTEXT, * PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
@@ -105,7 +178,7 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
-    PWSTR OwnerPluginName;
+    PPH_PLUGIN OwnerPlugin;
     PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
@@ -122,11 +195,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
 
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
-
-    if (handleContext->OwnerPluginName)
-        PhInitializeStringRefLongHint(&context.OwnerPluginName, handleContext->OwnerPluginName);
-    else
-        PhInitializeEmptyStringRef(&context.OwnerPluginName);
+    context.OwnerPlugin = handleContext->OwnerPlugin;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -226,11 +295,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         propertiesContext.ParentWindowHandle = handleContext->ParentWindowHandle;
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
-
-        if (handleContext->OwnerPluginName)
-            PhInitializeStringRefLongHint(&propertiesContext.OwnerPluginName, handleContext->OwnerPluginName);
-        else
-            PhInitializeEmptyStringRef(&propertiesContext.OwnerPluginName);
+        propertiesContext.OwnerPlugin = handleContext->OwnerPlugin;
 
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
@@ -258,24 +323,14 @@ VOID PhShowHandleProperties(
     _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
-    PHANDLE_PROPERTIES_THREAD_CONTEXT context;
-
-    context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
-    context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
-    context->ProcessId = ProcessId;
-    context->HandleItem = HandleItem;
-    context->OwnerPluginName = NULL;
-    context->Caption = NULL;
-    PhReferenceObject(HandleItem);
-
-    PhCreateThread2(PhpShowHandlePropertiesThread, context);
+    PhShowHandlePropertiesEx(ParentWindowHandle, ProcessId, HandleItem, NULL, NULL);
 }
 
-VOID PhShowHandlePropertiesPlugin(
+VOID PhShowHandlePropertiesEx(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_ PWSTR OwnerPluginName,
+    _In_ PPH_PLUGIN OwnerPlugin,
     _In_opt_ PWSTR Caption
 )
 {
@@ -285,7 +340,7 @@ VOID PhShowHandlePropertiesPlugin(
     context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
-    context->OwnerPluginName = OwnerPluginName;
+    context->OwnerPlugin = OwnerPlugin;
     context->Caption = Caption;
     PhReferenceObject(HandleItem);
 
@@ -2177,8 +2232,8 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
-            // Plugins can load window position in GeneralCallbackHandlePropertiesWindowPreOpen, ex. Object Manager (Dart Vanya)
-            if (PhIsNullOrEmptyStringRef(&context->OwnerPluginName))
+            // Plugins can load window position in GeneralCallbackHandlePropertiesWindowInitialized, ex. Object Manager (Dart Vanya)
+            if (!PhPluginsEnabled || !context->OwnerPlugin)
             {
                 // HACK
                 if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
@@ -2197,11 +2252,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             if (PhPluginsEnabled)
             {
-                PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
-                memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
-                objectProperties.Parameter = context;
+                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
+                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
 
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowPreOpen), &objectProperties);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
             }
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
@@ -2214,18 +2268,17 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            // Plugins perform uninitializing in GeneralCallbackHandlePropertiesUninitializing, ex. Object Manager (Dart Vanya)
-            if (PhIsNullOrEmptyStringRef(&context->OwnerPluginName))
+            if (!PhPluginsEnabled || !context->OwnerPlugin)
             {
                 PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
             }
+            // Plugins perform uninitializing in GeneralCallbackHandlePropertiesWindowUninitializing, ex. Object Manager (Dart Vanya)
             else if (PhPluginsEnabled)
             {
-                PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
-                memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
-                objectProperties.Parameter = context;
+                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
+                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
 
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesUninitializing), &objectProperties);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowUninitializing), Context);
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);

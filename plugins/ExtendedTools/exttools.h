@@ -1049,7 +1049,7 @@ VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
     );
 
-VOID EtHandlePropertiesWindowPreOpen(
+VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
 );
 
@@ -1646,11 +1646,15 @@ NTSTATUS EtpGetObjectName(
     _Out_ PPH_STRING* ObjectName
     );
 
-NTSTATUS EtpDuplicateHandleFromProcessEx(
+NTSTATUS EtDuplicateHandleFromProcessEx(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ HANDLE ProcessId,
     _In_ HANDLE SourceHandle
+    );
+
+PPH_STRING EtGetWindowStationType(
+    _In_ PPH_STRINGREF StationName
     );
 
 // poolmon

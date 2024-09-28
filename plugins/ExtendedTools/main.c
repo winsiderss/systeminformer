@@ -29,8 +29,8 @@ PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION HandlePropertiesWindowPreOpenCallbackRegistration;
-PH_CALLBACK_REGISTRATION HandlePropertiesUninitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION HandlePropertiesWindowInitializedCallbackRegistration;
+PH_CALLBACK_REGISTRATION HandlePropertiesWindowUninitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
@@ -312,16 +312,16 @@ VOID NTAPI HandlePropertiesInitializingCallback(
         EtHandlePropertiesInitializing(Parameter);
 }
 
-VOID NTAPI HandlePropertiesWindowPreOpenCallback(
+VOID NTAPI HandlePropertiesWindowInitializedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
 )
 {
     if (Parameter)
-        EtHandlePropertiesWindowPreOpen(Parameter);
+        EtHandlePropertiesWindowInitialized(Parameter);
 }
 
-VOID NTAPI HandlePropertiesUninitializingCallback(
+VOID NTAPI HandlePropertiesWindowUninitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
 )
@@ -1410,16 +1410,16 @@ LOGICAL DllMain(
                 &HandlePropertiesInitializingCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowPreOpen),
-                HandlePropertiesWindowPreOpenCallback,
+                PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized),
+                HandlePropertiesWindowInitializedCallback,
                 NULL,
-                &HandlePropertiesWindowPreOpenCallbackRegistration
+                &HandlePropertiesWindowInitializedCallbackRegistration
             );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackHandlePropertiesUninitializing),
-                HandlePropertiesUninitializingCallback,
+                PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowUninitializing),
+                HandlePropertiesWindowUninitializingCallback,
                 NULL,
-                &HandlePropertiesUninitializingCallbackRegistration
+                &HandlePropertiesWindowUninitializingCallbackRegistration
             );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),

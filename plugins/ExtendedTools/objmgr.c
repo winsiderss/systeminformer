@@ -155,24 +155,6 @@ NTSTATUS EtpObjectManagerOpenRealObject(
     _In_ PWSTR TypeName
     );
 
-NTSTATUS EtpObjectManagerOpenRealAlpcPort(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-    );
-
-NTSTATUS EtpObjectManagerOpenRealFilterPort(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-    );
-
-NTSTATUS EtpObjectManagerOpenRealKey(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-);
-
 _Success_(return)
 BOOLEAN PhGetTreeViewItemParam(
     _In_ HWND TreeViewHandle,
@@ -656,24 +638,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         }
         else if (entry->TypeIndex == OBJECT_WINDOWSTATION)
         {
-#define T_WINSTA_INTERACTIVE L"WinSta0"
-#define T_WINSTA_SYSTEM L"-0x0-3e7$"
-#define T_WINSTA_ANONYMOUS L"-0x0-3e6$"
-#define T_WINSTA_LOCALSERVICE L"-0x0-3e5$"
-#define T_WINSTA_NETWORK_SERVICE L"-0x0-3e4$"
-
-#define WINSTA_LOGON_SESSION L"logon session"
-
-            if (PhEqualString2(entry->Name, T_WINSTA_INTERACTIVE, TRUE))
-                entry->Target = PhCreateString(L"Interactive Window Station");
-            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_SYSTEM, TRUE) != SIZE_MAX)
-                entry->Target = PhFormatString(L"%s %s", L"System", WINSTA_LOGON_SESSION);
-            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_ANONYMOUS, TRUE) != SIZE_MAX)
-                entry->Target = PhFormatString(L"%s %s", L"Anonymous", WINSTA_LOGON_SESSION);
-            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_LOCALSERVICE, TRUE) != SIZE_MAX)
-                entry->Target = PhFormatString(L"%s %s", L"Local Service", WINSTA_LOGON_SESSION);
-            else if (PhFindStringInStringRefZ(&entry->Name->sr, T_WINSTA_NETWORK_SERVICE, TRUE) != SIZE_MAX)
-                entry->Target = PhFormatString(L"%s %s", L"Network Service", WINSTA_LOGON_SESSION);
+            entry->Target = EtGetWindowStationType(&entry->Name->sr);
         }
 
         PhAddItemList(Context->CurrentDirectoryList, entry);
@@ -1073,7 +1038,7 @@ VOID EtObjectManagerFreeListViewItems(
 }
 
 
-NTSTATUS EtpDuplicateHandleFromProcessEx(
+NTSTATUS EtDuplicateHandleFromProcessEx(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ HANDLE ProcessId,
@@ -1259,7 +1224,7 @@ NTSTATUS EtObjectManagerOpenHandle(
 
         if (OpenFlags & OBJECT_OPENSOURCE_ALPCPORT)
         {
-            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealAlpcPort(Handle, Context, DesiredAccess)))
+            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
             {
                 if (NT_SUCCESS(status = EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, 0)))
                 {
@@ -1360,7 +1325,7 @@ NTSTATUS EtObjectManagerOpenHandle(
     {
         if (OpenFlags & OBJECT_OPENSOURCE_KEY)
         {
-            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealKey(Handle, Context, DesiredAccess)))
+            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
             {
                 if (NT_SUCCESS(status = NtOpenKey(Handle, DesiredAccess, &objectAttributes)))
                 {
@@ -1427,7 +1392,7 @@ NTSTATUS EtObjectManagerOpenHandle(
     }
     else if (PhEqualString2(Context->Object->TypeName, L"FilterConnectionPort", TRUE))
     {
-        if (!NT_SUCCESS(status = EtpObjectManagerOpenRealFilterPort(Handle, Context, DesiredAccess)))
+        if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
         {
             PPH_STRING clientName;  
             HANDLE portHandle;
@@ -1505,33 +1470,6 @@ NTSTATUS EtObjectManagerOpenHandle(
     return status;
 }
 
-NTSTATUS EtpObjectManagerOpenRealAlpcPort(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-)
-{
-    return EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, L"ALPC Port");
-}
-
-NTSTATUS EtpObjectManagerOpenRealFilterPort(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-)
-{
-    return EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, L"FilterConnectionPort");
-}
-
-NTSTATUS EtpObjectManagerOpenRealKey(
-    _Out_ PHANDLE Handle,
-    _In_ PHANDLE_OPEN_CONTEXT Context,
-    _In_ ACCESS_MASK DesiredAccess
-)
-{
-    return EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, L"Key");
-}
-
 // Open real ALPC port by duplicating its "Connection" handle from the process that created the port
 // https://github.com/zodiacon/ObjectExplorer/blob/master/ObjExp/ObjectManager.cpp#L191
 // Open real FilterConnectionPort
@@ -1566,7 +1504,7 @@ NTSTATUS EtpObjectManagerOpenRealObject(
     else if (PhEqualStringZ(TypeName, L"Key", TRUE))
         TargetIndex = KeyTypeIndex;
     else
-        return STATUS_NOINTERFACE;
+        return STATUS_INVALID_PARAMETER;
 
     if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
         fullName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
@@ -1585,10 +1523,10 @@ NTSTATUS EtpObjectManagerOpenRealObject(
 
             if (handleInfo->ObjectTypeIndex == TargetIndex)
             {
-                if (!NT_SUCCESS(status = EtpDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess,
+                if (!NT_SUCCESS(status = EtDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess,
                     (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
                 {
-                    status = EtpDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess & handleInfo->GrantedAccess,
+                    status = EtDuplicateHandleFromProcessEx(&objectHandle, DesiredAccess & handleInfo->GrantedAccess,
                         (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue);
                 }
                 if (NT_SUCCESS(status))
@@ -1842,7 +1780,7 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         EtObjectManagerPropWndIcon = PhImageListGetIcon(context->ListImageList, entry->TypeIndex, ILD_NORMAL | ILD_TRANSPARENT);
 
         // Object Manager plugin window
-        PhShowHandlePropertiesPlugin(hwndDlg, NtCurrentProcessId(), handleItem, PLUGIN_NAME, L"Object");
+        PhShowHandlePropertiesEx(hwndDlg, NtCurrentProcessId(), handleItem, PluginInstance, L"Object");
     }
 
     PhDereferenceObject(context->CurrentPath);

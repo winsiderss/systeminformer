@@ -629,17 +629,6 @@ NTAPI
 PhCreateKsiSettingsBlob( // ksisup.c
     VOID
     );
-
-PHAPPAPI
-VOID
-NTAPI
-PhShowHandlePropertiesPlugin(
-    _In_ HWND ParentWindowHandle,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_ PWSTR OwnerPluginName,
-    _In_opt_ PWSTR Caption
-    );
 // end_phapppub
 
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name, dpiValue) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue) // phapppub
