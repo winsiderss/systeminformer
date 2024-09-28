@@ -180,7 +180,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
                 if (!entry->Name)
                 {
-                    entry->Name = PhGetObjectTypeName(handleInfo->ObjectTypeIndex);
+                    entry->Name = PhGetObjectTypeIndexName(handleInfo->ObjectTypeIndex);
 
                     if (PhIsNullOrEmptyString(entry->Name))
                     {
@@ -237,6 +237,8 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             }
 
             ExtendedListView_SortItems(context->ListViewHandle);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

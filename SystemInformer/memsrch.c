@@ -7,29 +7,66 @@
  *
  *     wj32    2010
  *     dmex    2017-2023
- *     jxy-s   2024
  *
  */
 
 #include <phapp.h>
-#include <settings.h>
-#include <colmgr.h>
-#include <mainwnd.h>
 #include <emenu.h>
-#include <cpysave.h>
-#include <strsrch.h>
-#include <procprv.h>
+#include <mainwnd.h>
+#include <memsrch.h>
 #include <memprv.h>
+#include <procprv.h>
+#include <settings.h>
+#include <strsrch.h>
+#include <colmgr.h>
+#include <cpysave.h>
 
-#define WM_PH_MEMSEARCH_SHOWMENU    (WM_USER + 3000)
-#define WM_PH_MEMSEARCH_FINISHED    (WM_USER + 3001)
+#define WM_PH_MEMORY_STATUS_UPDATE (WM_APP + 301)
 
-#define PH_MEMSEARCH_STATE_STOPPED   0
-#define PH_MEMSEARCH_STATE_SEARCHING 1
-#define PH_MEMSEARCH_STATE_FINISHED  2
+#define PH_SEARCH_UPDATE 1
+#define PH_SEARCH_COMPLETED 2
 
-static PH_STRINGREF EmptyStringsText = PH_STRINGREF_INIT(L"There are no strings to display.");
-static PH_STRINGREF LoadingStringsText = PH_STRINGREF_INIT(L"Loading strings...");
+typedef struct _MEMORY_STRING_CONTEXT
+{
+    HANDLE ProcessId;
+    HANDLE ProcessHandle;
+    ULONG MinimumLength;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN DetectUnicode : 1;
+            BOOLEAN Private : 1;
+            BOOLEAN Image : 1;
+            BOOLEAN Mapped : 1;
+            BOOLEAN EnableCloseDialog : 1;
+            BOOLEAN ExtendedUnicode : 1;
+            BOOLEAN Spare : 2;
+        };
+    };
+
+    HWND ParentWindowHandle;
+    HWND WindowHandle;
+    WNDPROC DefaultWindowProc;
+    PH_MEMORY_STRING_OPTIONS Options;
+    PPH_LIST Results;
+} MEMORY_STRING_CONTEXT, *PMEMORY_STRING_CONTEXT;
+
+typedef struct _MEMORY_STRING_SEARCH_CONTEXT
+{
+    PPH_MEMORY_SEARCH_OPTIONS Options;
+    HANDLE ProcessHandle;
+    ULONG TypeMask;
+    BOOLEAN DetectUnicode;
+
+    MEMORY_BASIC_INFORMATION BasicInfo;
+    PVOID NextReadAddress;
+    SIZE_T ReadRemaning;
+    PBYTE Buffer;
+    SIZE_T BufferSize;
+} MEMORY_STRING_SEARCH_CONTEXT, *PMEMORY_STRING_SEARCH_CONTEXT;
 
 typedef struct _PH_MEMSTRINGS_SETTINGS
 {
@@ -129,11 +166,151 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
     SIZE_T BufferSize;
 } PH_MEMSTRINGS_SEARCH_CONTEXT, *PPH_MEMSTRINGS_SEARCH_CONTEXT;
 
+INT_PTR CALLBACK PhpMemoryStringDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+BOOLEAN PhpShowMemoryStringProgressDialog(
+    _In_ PMEMORY_STRING_CONTEXT Context
+    );
+
 BOOLEAN PhpShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_opt_ PPH_LIST PrevNodeList
     );
+
+#define WM_PH_MEMSEARCH_SHOWMENU    (WM_USER + 3000)
+#define WM_PH_MEMSEARCH_FINISHED    (WM_USER + 3001)
+
+#define PH_MEMSEARCH_STATE_STOPPED   0
+#define PH_MEMSEARCH_STATE_SEARCHING 1
+#define PH_MEMSEARCH_STATE_FINISHED  2
+
+static PH_STRINGREF EmptyStringsText = PH_STRINGREF_INIT(L"There are no strings to display.");
+static PH_STRINGREF LoadingStringsText = PH_STRINGREF_INIT(L"Loading strings...");
+
+PVOID PhMemorySearchHeap = NULL;
+LONG PhMemorySearchHeapRefCount = 0;
+PH_QUEUED_LOCK PhMemorySearchHeapLock = PH_QUEUED_LOCK_INIT;
+
+PVOID PhAllocateForMemorySearch(
+    _In_ SIZE_T Size
+    )
+{
+    PVOID memory;
+
+    PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
+
+    if (!PhMemorySearchHeap)
+    {
+        assert(PhMemorySearchHeapRefCount == 0);
+        PhMemorySearchHeap = RtlCreateHeap(
+            HEAP_GROWABLE | HEAP_CLASS_1,
+            NULL,
+            8192 * 1024, // 8 MB
+            2048 * 1024, // 2 MB
+            NULL,
+            NULL
+            );
+    }
+
+    if (PhMemorySearchHeap)
+    {
+        RtlSetHeapInformation(
+            PhMemorySearchHeap,
+            HeapCompatibilityInformation,
+            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            sizeof(ULONG)
+            );
+
+        // Don't use HEAP_NO_SERIALIZE - it's very slow on Vista and above.
+        memory = RtlAllocateHeap(PhMemorySearchHeap, 0, Size);
+
+        if (memory)
+            PhMemorySearchHeapRefCount++;
+    }
+    else
+    {
+        memory = NULL;
+    }
+
+    PhReleaseQueuedLockExclusive(&PhMemorySearchHeapLock);
+
+    return memory;
+}
+
+VOID PhFreeForMemorySearch(
+    _In_ _Post_invalid_ PVOID Memory
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
+
+    RtlFreeHeap(PhMemorySearchHeap, 0, Memory);
+
+    if (--PhMemorySearchHeapRefCount == 0)
+    {
+        RtlDestroyHeap(PhMemorySearchHeap);
+        PhMemorySearchHeap = NULL;
+    }
+
+    PhReleaseQueuedLockExclusive(&PhMemorySearchHeapLock);
+}
+
+PVOID PhCreateMemoryResult(
+    _In_ PVOID Address,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T Length
+    )
+{
+    PPH_MEMORY_RESULT result;
+
+    result = PhAllocateForMemorySearch(sizeof(PH_MEMORY_RESULT));
+
+    if (!result)
+        return NULL;
+
+    result->RefCount = 1;
+    result->Address = Address;
+    result->BaseAddress = BaseAddress;
+    result->Length = Length;
+    result->Display.Length = 0;
+    result->Display.Buffer = NULL;
+
+    return result;
+}
+
+VOID PhReferenceMemoryResult(
+    _In_ PPH_MEMORY_RESULT Result
+    )
+{
+    _InterlockedIncrement(&Result->RefCount);
+}
+
+VOID PhDereferenceMemoryResult(
+    _In_ PPH_MEMORY_RESULT Result
+    )
+{
+    if (_InterlockedDecrement(&Result->RefCount) == 0)
+    {
+        if (Result->Display.Buffer)
+            PhFreeForMemorySearch(Result->Display.Buffer);
+
+        PhFreeForMemorySearch(Result);
+    }
+}
+
+VOID PhDereferenceMemoryResults(
+    _In_reads_(NumberOfResults) PPH_MEMORY_RESULT *Results,
+    _In_ ULONG NumberOfResults
+    )
+{
+    for (ULONG i = 0; i < NumberOfResults; i++)
+        PhDereferenceMemoryResult(Results[i]);
+}
 
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
 _Must_inspect_result_
@@ -144,7 +321,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     )
 {
     NTSTATUS status;
-    PPH_MEMSTRINGS_SEARCH_CONTEXT context;
+    PMEMORY_STRING_SEARCH_CONTEXT context;
 
     assert(Context);
 
@@ -157,7 +334,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
         goto ReadMemory;
 
     while (NT_SUCCESS(status = NtQueryVirtualMemory(
-        context->TreeContext->ProcessHandle,
+        context->ProcessHandle,
         PTR_ADD_OFFSET(context->BasicInfo.BaseAddress, context->BasicInfo.RegionSize),
         MemoryBasicInformation,
         &context->BasicInfo,
@@ -167,7 +344,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
     {
         SIZE_T length;
 
-        if (context->TreeContext->StopSearch)
+        if (context->Options->Cancel)
             break;
         if (context->BasicInfo.State != MEM_COMMIT)
             continue;
@@ -194,7 +371,7 @@ ReadMemory:
             length = min(context->ReadRemaning, context->BufferSize);
 
             if (NT_SUCCESS(status = NtReadVirtualMemory(
-                context->TreeContext->ProcessHandle,
+                context->ProcessHandle,
                 context->NextReadAddress,
                 context->Buffer,
                 length,
@@ -222,20 +399,401 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_MEMSTRINGS_SEARCH_CONTEXT context;
+    PMEMORY_STRING_SEARCH_CONTEXT context = Context;
+    PPH_MEMORY_RESULT result;
+
+    assert(context);
+
+    if (!context->DetectUnicode && Result->Unicode)
+        return context->Options->Cancel;
+
+    result = PhCreateMemoryResult(Result->Address, context->BasicInfo.BaseAddress, Result->Length);
+
+    result->Display.Buffer = PhAllocateForMemorySearch(Result->String->Length + sizeof(WCHAR));
+    memcpy(result->Display.Buffer, Result->String->Buffer, Result->String->Length);
+    result->Display.Buffer[Result->String->Length / sizeof(WCHAR)] = UNICODE_NULL;
+    result->Display.Length = Result->String->Length;
+
+    context->Options->Callback(result, context->Options->Context);
+
+    return context->Options->Cancel;
+}
+
+VOID PhSearchMemoryString(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_MEMORY_STRING_OPTIONS Options
+    )
+{
+    MEMORY_STRING_SEARCH_CONTEXT context;
+
+    memset(&context, 0, sizeof(MEMORY_STRING_SEARCH_CONTEXT));
+
+    context.Options = &Options->Header;
+    context.ProcessHandle = ProcessHandle;
+    context.TypeMask = Options->MemoryTypeMask;
+    context.DetectUnicode = Options->DetectUnicode;
+
+    PhSearchStrings(
+        Options->MinimumLength,
+        Options->ExtendedUnicode,
+        PhpMemoryStringSearchNextBuffer,
+        PhpMemoryStringSearchCallback,
+        &context
+        );
+}
+
+VOID PhShowMemoryStringDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    MEMORY_STRING_CONTEXT context;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessItem->ProcessId
+        )))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process", status, 0);
+        return;
+    }
+
+    memset(&context, 0, sizeof(MEMORY_STRING_CONTEXT));
+    context.ParentWindowHandle = ParentWindowHandle;
+    context.ProcessId = ProcessItem->ProcessId;
+    context.ProcessHandle = processHandle;
+
+    if (PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_MEMSTRING),
+        ParentWindowHandle,
+        PhpMemoryStringDlgProc,
+        &context
+        ) != IDOK)
+    {
+        NtClose(processHandle);
+        return;
+    }
+
+    context.Results = PhCreateList(1024);
+
+    if (PhpShowMemoryStringProgressDialog(&context))
+    {
+        PPH_SHOW_MEMORY_RESULTS showMemoryResults;
+
+        showMemoryResults = PhAllocate(sizeof(PH_SHOW_MEMORY_RESULTS));
+        showMemoryResults->ProcessId = ProcessItem->ProcessId;
+        showMemoryResults->Results = context.Results;
+
+        PhReferenceObject(context.Results);
+        SystemInformer_ShowMemoryResults(showMemoryResults);
+    }
+
+    PhDereferenceObject(context.Results);
+    NtClose(processHandle);
+}
+
+INT_PTR CALLBACK PhpMemoryStringDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PMEMORY_STRING_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PMEMORY_STRING_CONTEXT)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    ULONG64 minimumLength = 10;
+
+                    PhStringToInteger64(&PhaGetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH)->sr, 0, &minimumLength);
+
+                    if (minimumLength < 4)
+                    {
+                        PhShowError(hwndDlg, L"%s", L"The minimum length must be at least 4.");
+                        break;
+                    }
+
+                    context->MinimumLength = (ULONG)minimumLength;
+                    context->DetectUnicode = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_CHECKED;
+                    context->ExtendedUnicode = Button_GetCheck(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE)) == BST_CHECKED;
+                    context->Private = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE)) == BST_CHECKED;
+                    context->Image = Button_GetCheck(GetDlgItem(hwndDlg, IDC_IMAGE)) == BST_CHECKED;
+                    context->Mapped = Button_GetCheck(GetDlgItem(hwndDlg, IDC_MAPPED)) == BST_CHECKED;
+
+                    EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            case IDC_DETECTUNICODE:
+                {
+                    if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_UNCHECKED)
+                    {
+                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), BST_UNCHECKED);
+                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), FALSE);
+                    }
+                    else
+                    {
+                        Button_Enable(GetDlgItem(hwndDlg, IDC_EXTENDEDUNICODE), TRUE);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+static VOID NTAPI PhpMemoryStringResultCallback(
+    _In_ _Assume_refs_(1) PPH_MEMORY_RESULT Result,
+    _In_opt_ PVOID Context
+    )
+{
+    PMEMORY_STRING_CONTEXT context = Context;
+
+    if (context)
+        PhAddItemList(context->Results, Result);
+}
+
+NTSTATUS PhpMemoryStringThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    PMEMORY_STRING_CONTEXT context = Parameter;
+
+    context->Options.Header.Callback = PhpMemoryStringResultCallback;
+    context->Options.Header.Context = context;
+    context->Options.MinimumLength = context->MinimumLength;
+    context->Options.DetectUnicode = context->DetectUnicode;
+    context->Options.ExtendedUnicode = context->ExtendedUnicode;
+
+    if (context->Private)
+        context->Options.MemoryTypeMask |= MEM_PRIVATE;
+    if (context->Image)
+        context->Options.MemoryTypeMask |= MEM_IMAGE;
+    if (context->Mapped)
+        context->Options.MemoryTypeMask |= MEM_MAPPED;
+
+    PhSearchMemoryString(context->ProcessHandle, &context->Options);
+
+    SendMessage(
+        context->WindowHandle,
+        WM_PH_MEMORY_STATUS_UPDATE,
+        PH_SEARCH_COMPLETED,
+        0
+        );
+
+    return STATUS_SUCCESS;
+}
+
+LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PMEMORY_STRING_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    if (!(context = PhGetWindowContext(hwndDlg, 0xF)))
+        return 0;
+
+    oldWndProc = context->DefaultWindowProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwndDlg, 0xF);
+        }
+        break;
+    case WM_PH_MEMORY_STATUS_UPDATE:
+        {
+            switch (wParam)
+            {
+            case PH_SEARCH_COMPLETED:
+                {
+                    context->EnableCloseDialog = TRUE;
+                    SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
+}
+
+HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+    )
+{
+    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case TDN_CREATED:
+        {
+            context->WindowHandle = hwndDlg;
+
+            // Create the Taskdialog icons.
+            PhSetApplicationWindowIcon(hwndDlg);
+            SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)PhGetApplicationIcon(FALSE));
+
+            // Set the progress state.
+            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+            // Subclass the Taskdialog.
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpMemoryStringTaskDialogSubclassProc);
+
+            // Create the search thread.
+            PhCreateThread2(PhpMemoryStringThreadStart, context);
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDCANCEL)
+                context->Options.Header.Cancel = TRUE;
+
+            if (!context->EnableCloseDialog)
+                return S_FALSE;
+        }
+        break;
+    case TDN_TIMER:
+        {
+            PPH_STRING numberText;
+            PPH_STRING progressText;
+
+            numberText = PhFormatUInt64(context->Results->Count, TRUE);
+            progressText = PhFormatString(L"%s strings found...", numberText->Buffer);
+
+            SendMessage(hwndDlg, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)progressText->Buffer);
+
+            PhDereferenceObject(progressText);
+            PhDereferenceObject(numberText);
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+BOOLEAN PhpShowMemoryStringProgressDialog(
+    _In_ PMEMORY_STRING_CONTEXT Context
+    )
+{
+    TASKDIALOGCONFIG config;
+    INT result = 0;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.pfCallback = PhpMemoryStringTaskDialogCallback;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.hwndParent = Context->ParentWindowHandle;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Searching memory strings...";
+    config.pszContent = L" ";
+    config.cxWidth = 200;
+
+    if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDOK)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+//
+//
+//
+
+BOOLEAN PhpShowMemoryStringTreeProgressDialog(
+    _In_ PMEMORY_STRING_CONTEXT Context
+    );
+
+BOOLEAN PhpShowMemoryStringTreeDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PPH_LIST PrevNodeList
+    );
+
+_Function_class_(PH_STRING_SEARCH_CALLBACK)
+BOOLEAN NTAPI PhpMemoryStringTreeSearchCallback(
+    _In_ PPH_STRING_SEARCH_RESULT Result,
+    _In_ PVOID Context
+    )
+{
+    PPH_MEMSTRINGS_SEARCH_CONTEXT context = Context;
     PPH_MEMSTRINGS_CONTEXT treeContext;
     PPH_MEMSTRINGS_NODE node;
 
-    assert(Context);
-
-    context = Context;
     treeContext = context->TreeContext;
 
     node = PhAllocateZero(sizeof(PH_MEMSTRINGS_NODE));
-
     node->Index = ++treeContext->StringsCount;
     PhPrintUInt64(node->IndexString, node->Index);
-
     node->BaseAddress = context->BasicInfo.BaseAddress;
     node->Address = PTR_ADD_OFFSET(node->BaseAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
 
@@ -265,7 +823,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     return !!treeContext->StopSearch;
 }
 
-NTSTATUS PhpMemorySearchStringsThread(
+NTSTATUS PhpMemorySearchStringsTreeThread(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -302,7 +860,7 @@ NTSTATUS PhpMemorySearchStringsThread(
     return STATUS_SUCCESS;
 }
 
-VOID PhpMemoryStringsAddTreeNode(
+VOID PhpMemoryStringsTreeAddTreeNode(
     _In_ PPH_MEMSTRINGS_CONTEXT Context,
     _In_ PPH_MEMSTRINGS_NODE Entry
     )
@@ -321,7 +879,7 @@ VOID PhpMemoryStringsAddTreeNode(
     }
 }
 
-VOID PhpAddPendingMemoryStringsNodes(
+VOID PhpAddPendingMemoryStringsTreeNodes(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -334,7 +892,7 @@ VOID PhpAddPendingMemoryStringsNodes(
 
     for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
     {
-        PhpMemoryStringsAddTreeNode(Context, Context->SearchResults->Items[i]);
+        PhpMemoryStringsTreeAddTreeNode(Context, Context->SearchResults->Items[i]);
         needsFullUpdate = TRUE;
     }
     Context->SearchResultsAddIndex = i;
@@ -346,7 +904,7 @@ VOID PhpAddPendingMemoryStringsNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-VOID PhpDeleteMemoryStringsNodeList(
+VOID PhpDeleteMemoryStringsTreeNodeList(
     _In_ PPH_LIST NodeList
     )
 {
@@ -359,7 +917,7 @@ VOID PhpDeleteMemoryStringsNodeList(
     }
 }
 
-VOID PhpDeleteMemoryStringsTree(
+VOID PhpDeleteMemoryStringsTreeTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -372,25 +930,29 @@ VOID PhpDeleteMemoryStringsTree(
     }
     Context->StopSearch = FALSE;
 
-    PhpAddPendingMemoryStringsNodes(Context);
+    PhpAddPendingMemoryStringsTreeNodes(Context);
 
-    PhpDeleteMemoryStringsNodeList(Context->NodeList);
+    PhpDeleteMemoryStringsTreeNodeList(Context->NodeList);
 
     PhClearReference(&Context->NodeList);
     PhClearReference(&Context->SearchResults);
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
+
 }
 
-VOID PhpSearchMemoryStrings(
+VOID PhpSearchMemoryStringsTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
-    PhpDeleteMemoryStringsTree(Context);
+    PhpDeleteMemoryStringsTreeTree(Context);
+
     Context->NodeList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
 
     TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -399,10 +961,10 @@ VOID PhpSearchMemoryStrings(
     Context->State = PH_MEMSEARCH_STATE_SEARCHING;
     EnableWindow(Context->FilterHandle, FALSE);
 
-    PhCreateThreadEx(&Context->SearchThreadHandle, PhpMemorySearchStringsThread, Context);
+    PhCreateThreadEx(&Context->SearchThreadHandle, PhpMemorySearchStringsTreeThread, Context);
 }
 
-VOID PhpLoadSettingsMemoryStrings(
+VOID PhpLoadSettingsMemoryStringsTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -420,7 +982,7 @@ VOID PhpLoadSettingsMemoryStrings(
     PhDereferenceObject(sortSettings);
 }
 
-VOID PhpSaveSettingsMemoryStrings(
+VOID PhpSaveSettingsMemoryStringsTree(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -438,7 +1000,7 @@ VOID PhpSaveSettingsMemoryStrings(
     PhDereferenceObject(sortSettings);
 }
 
-VOID PhpInvalidateMemoryStringsAddresses(
+VOID PhpInvalidateMemoryStringsTreeAddresses(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -464,7 +1026,7 @@ VOID PhpInvalidateMemoryStringsAddresses(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-BOOLEAN PhpGetSelectedMemoryStringsNodes(
+BOOLEAN PhpGetSelectedMemoryStringsTreeNodes(
     _In_ PPH_MEMSTRINGS_CONTEXT Context,
     _Out_ PPH_MEMSTRINGS_NODE** Nodes,
     _Out_ PULONG NumberOfNodes
@@ -496,7 +1058,7 @@ BOOLEAN PhpGetSelectedMemoryStringsNodes(
     return FALSE;
 }
 
-VOID PhpCopyFilteredMemoryStringsNodes(
+VOID PhpCopyFilteredMemoryStringsTreeNodes(
     _In_ PPH_MEMSTRINGS_CONTEXT Context,
     _Out_ PPH_LIST* NodeList
     )
@@ -541,7 +1103,7 @@ BOOLEAN PhpMemoryStringsTreeFilterCallback(
     return PhSearchControlMatch(context->SearchMatchHandle, &node->String->sr);
 }
 
-VOID NTAPI PvpStringsSearchControlCallback(
+VOID NTAPI PvpStringsTreeSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     )
@@ -555,8 +1117,8 @@ VOID NTAPI PvpStringsSearchControlCallback(
     PhApplyTreeNewFilters(&context->FilterSupport);
 }
 
-#define SORT_FUNCTION(Column) PvpStringsTreeNewCompare##Column
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PvpStringsTreeNewCompare##Column( \
+#define SORT_FUNCTION(Column) PvpMemoryStringsTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PvpMemoryStringsTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
@@ -810,8 +1372,11 @@ VOID PhpInitializeMemoryStringsTree(
 
     Context->WindowHandle = WindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
+
     Context->NodeList = PhCreateList(1);
     Context->SearchResults = PhCreateList(1);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
@@ -832,17 +1397,15 @@ VOID PhpInitializeMemoryStringsTree(
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_MEMSTRINGS_TREE_COLUMN_ITEM_MAXIMUM, PhpMemoryStringsTreeNewPostSortFunction);
 
-    PhpLoadSettingsMemoryStrings(Context);
-
-    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
+    PhpLoadSettingsMemoryStringsTree(Context);
 }
 
-INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
+INT_PTR CALLBACK PhpMemoryStringsTreeMinimumLengthDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PULONG length;
 
@@ -913,14 +1476,13 @@ INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
-
     return FALSE;
 }
 
-ULONG PhpMemoryStringsMinimumLengthDialog(
+ULONG PhpMemoryStringsTreeMinimumLengthDialog(
     _In_ HWND WindowHandle,
     _In_ ULONG CurrentMinimumLength
-)
+    )
 {
     ULONG length;
 
@@ -930,14 +1492,14 @@ ULONG PhpMemoryStringsMinimumLengthDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMSTRINGSMINLEN),
         WindowHandle,
-        PhpMemoryStringsMinimumLengthDlgProc,
+        PhpMemoryStringsTreeMinimumLengthDlgProc,
         &length
         );
 
     return length;
 }
 
-VOID PhpMemoryStringsSetWindowTitle(
+VOID PhpMemoryStringsTreeSetWindowTitle(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )
 {
@@ -958,7 +1520,7 @@ VOID PhpMemoryStringsSetWindowTitle(
     SetWindowTextW(Context->WindowHandle, title->Buffer);
 }
 
-INT_PTR CALLBACK PhpMemoryStringsDlgProc(
+INT_PTR CALLBACK PhpMemoryStringsTreeDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -990,14 +1552,14 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
             context->FilterHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
-            PhpMemoryStringsSetWindowTitle(context);
+            PhpMemoryStringsTreeSetWindowTitle(context);
             PhRegisterDialog(hwndDlg);
 
             PhCreateSearchControl(
                 hwndDlg,
                 context->SearchHandle,
                 L"Search Strings (Ctrl+K)",
-                PvpStringsSearchControlCallback,
+                PvpStringsTreeSearchControlCallback,
                 context
                 );
 
@@ -1031,7 +1593,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             }
             else
             {
-                PhpSearchMemoryStrings(context);
+                PhpSearchMemoryStringsTree(context);
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -1039,8 +1601,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhpSaveSettingsMemoryStrings(context);
-            PhpDeleteMemoryStringsTree(context);
+            PhpSaveSettingsMemoryStringsTree(context);
+            PhpDeleteMemoryStringsTreeTree(context);
 
             PhSaveWindowPlacementToSetting(L"MemStringsWindowPosition", L"MemStringsWindowSize", hwndDlg);
 
@@ -1079,7 +1641,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
         break;
     case WM_PH_MEMSEARCH_FINISHED:
         {
-            PhpAddPendingMemoryStringsNodes(context);
+            PhpAddPendingMemoryStringsTreeNodes(context);
 
             context->State = PH_MEMSEARCH_STATE_FINISHED;
 
@@ -1097,7 +1659,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             if (context->State == PH_MEMSEARCH_STATE_STOPPED)
                 break;
 
-            PhpAddPendingMemoryStringsNodes(context);
+            PhpAddPendingMemoryStringsTreeNodes(context);
 
             if (context->State == PH_MEMSEARCH_STATE_SEARCHING)
                 PhInitFormatS(&format[count++], L"Searching... ");
@@ -1126,7 +1688,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             PPH_MEMSTRINGS_NODE* stringsNodes = NULL;
             ULONG numberOfNodes = 0;
 
-            if (!PhpGetSelectedMemoryStringsNodes(context, &stringsNodes, &numberOfNodes))
+            if (!PhpGetSelectedMemoryStringsTreeNodes(context, &stringsNodes, &numberOfNodes))
                 break;
 
             if (numberOfNodes != 0)
@@ -1287,58 +1849,58 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                         if (selectedItem == ansi)
                         {
                             context->Settings.Ansi = !context->Settings.Ansi;
-                            PhpSaveSettingsMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
                             PhApplyTreeNewFilters(&context->FilterSupport);
                         }
                         else if (selectedItem == unicode)
                         {
                             context->Settings.Unicode = !context->Settings.Unicode;
-                            PhpSaveSettingsMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
                             PhApplyTreeNewFilters(&context->FilterSupport);
                         }
                         else if (selectedItem == extendedUnicode)
                         {
                             context->Settings.ExtendedCharSet = !context->Settings.ExtendedCharSet;
-                            PhpSaveSettingsMemoryStrings(context);
-                            PhpSearchMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
+                            PhpSearchMemoryStringsTree(context);
                         }
                         else if (selectedItem == private)
                         {
                             context->Settings.Private = !context->Settings.Private;
-                            PhpSaveSettingsMemoryStrings(context);
-                            PhpSearchMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
+                            PhpSearchMemoryStringsTree(context);
                         }
                         else if (selectedItem == image)
                         {
                             context->Settings.Image = !context->Settings.Image;
-                            PhpSaveSettingsMemoryStrings(context);
-                            PhpSearchMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
+                            PhpSearchMemoryStringsTree(context);
                         }
                         else if (selectedItem == mapped)
                         {
                             context->Settings.Mapped = !context->Settings.Mapped;
-                            PhpSaveSettingsMemoryStrings(context);
-                            PhpSearchMemoryStrings(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
+                            PhpSearchMemoryStringsTree(context);
                         }
                         else if (selectedItem == minimumLength)
                         {
-                            ULONG length = PhpMemoryStringsMinimumLengthDialog(hwndDlg, context->Settings.MinimumLength);
+                            ULONG length = PhpMemoryStringsTreeMinimumLengthDialog(hwndDlg, context->Settings.MinimumLength);
                             if (length != context->Settings.MinimumLength)
                             {
                                 context->Settings.MinimumLength = length;
-                                PhpSaveSettingsMemoryStrings(context);
-                                PhpSearchMemoryStrings(context);
+                                PhpSaveSettingsMemoryStringsTree(context);
+                                PhpSearchMemoryStringsTree(context);
                             }
                         }
                         else if (selectedItem == zeroPad)
                         {
                             context->Settings.ZeroPadAddresses = !context->Settings.ZeroPadAddresses;
-                            PhpSaveSettingsMemoryStrings(context);
-                            PhpInvalidateMemoryStringsAddresses(context);
+                            PhpSaveSettingsMemoryStringsTree(context);
+                            PhpInvalidateMemoryStringsTreeAddresses(context);
                         }
                         else if (selectedItem == refresh)
                         {
-                            PhpSearchMemoryStrings(context);
+                            PhpSearchMemoryStringsTree(context);
                         }
                     }
 
@@ -1349,11 +1911,11 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 {
                     PPH_LIST nodeList;
 
-                    PhpCopyFilteredMemoryStringsNodes(context, &nodeList);
+                    PhpCopyFilteredMemoryStringsTreeNodes(context, &nodeList);
 
-                    if (!PhpShowMemoryStringDialog(hwndDlg, context->ProcessItem, nodeList))
+                    if (!PhpShowMemoryStringTreeDialog(hwndDlg, context->ProcessItem, nodeList))
                     {
-                        PhpDeleteMemoryStringsNodeList(nodeList);
+                        PhpDeleteMemoryStringsTreeNodeList(nodeList);
                         PhDereferenceObject(nodeList);
                     }
                 }
@@ -1368,7 +1930,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
             SetBkMode((HDC)wParam, TRANSPARENT);
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -1376,7 +1938,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
     return FALSE;
 }
 
-NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
+NTSTATUS NTAPI PhpShowMemoryStringTreeDialogThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -1391,7 +1953,7 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMSTRINGS),
         NULL,
-        PhpMemoryStringsDlgProc,
+        PhpMemoryStringsTreeDlgProc,
         Parameter
         );
 
@@ -1417,7 +1979,7 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
-BOOLEAN PhpShowMemoryStringDialog(
+BOOLEAN PhpShowMemoryStringTreeDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_opt_ PPH_LIST PrevNodeList
@@ -1442,7 +2004,7 @@ BOOLEAN PhpShowMemoryStringDialog(
     context->ProcessHandle = processHandle;
     context->PrevNodeList = PrevNodeList;
 
-    if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
+    if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringTreeDialogThreadStart, context)))
     {
         PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
         PhDereferenceObject(context->ProcessItem);
@@ -1454,10 +2016,10 @@ BOOLEAN PhpShowMemoryStringDialog(
     return TRUE;
 }
 
-VOID PhShowMemoryStringDialog(
+VOID PhShowMemoryStringTreeDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhpShowMemoryStringDialog(ParentWindowHandle, ProcessItem, NULL);
+    PhpShowMemoryStringTreeDialog(ParentWindowHandle, ProcessItem, NULL);
 }

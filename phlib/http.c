@@ -110,6 +110,18 @@ BOOLEAN PhHttpSocketCreate(
                 );
 #endif
         }
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+#ifdef WINHTTP_OPTION_TLS_FALSE_START
+            WinHttpSetOption(
+                httpContext->SessionHandle,
+                WINHTTP_OPTION_TLS_FALSE_START,
+                &(ULONG){ TRUE },
+                sizeof(ULONG)
+                );
+#endif
+        }
     }
 
     *HttpContext = httpContext;
@@ -1010,6 +1022,19 @@ HINTERNET PhCreateDohConnectionHandle(
                     WinHttpSetOption(
                         httpSessionHandle,
                         WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
+                        &(ULONG){ TRUE },
+                        sizeof(ULONG)
+                        );
+#endif
+                }
+
+
+                if (WindowsVersion >= WINDOWS_11)
+                {
+#ifdef WINHTTP_OPTION_TLS_FALSE_START
+                    WinHttpSetOption(
+                        httpSessionHandle,
+                        WINHTTP_OPTION_TLS_FALSE_START,
                         &(ULONG){ TRUE },
                         sizeof(ULONG)
                         );

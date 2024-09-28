@@ -24,6 +24,7 @@
 
 #include <actions.h>
 #include <colsetmgr.h>
+#include <memsrch.h>
 #include <netlist.h>
 #include <netprv.h>
 #include <notifico.h>
@@ -2485,11 +2486,7 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
-#ifdef _ARM64_
-    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
-#else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
-#endif
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
@@ -4234,6 +4231,24 @@ VOID PhMwpInvokeShowMemoryEditorDialog(
     PhFree(showMemoryEditor);
 }
 
+VOID PhMwpInvokeShowMemoryResultsDialog(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)Parameter;
+
+    PhShowMemoryResultsDialog(
+        showMemoryResults->ProcessId,
+        showMemoryResults->Results
+        );
+    PhDereferenceMemoryResults(
+        (PPH_MEMORY_RESULT*)showMemoryResults->Results->Items,
+        showMemoryResults->Results->Count
+        );
+    PhDereferenceObject(showMemoryResults->Results);
+    PhFree(showMemoryResults);
+}
+
 VOID PhMwpInvokeUpdateWindowFont(
     _In_opt_ PVOID Parameter
     )
@@ -4428,6 +4443,13 @@ PVOID PhPluginInvokeWindowCallback(
             PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)lparam;
 
             PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS:
+        {
+            PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)lparam;
+
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE:

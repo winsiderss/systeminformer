@@ -896,7 +896,7 @@ VOID PhFlushNetworkQueryData(
             data->NetworkItem->LocalHostnameResolved = TRUE;
         }
 
-        data->NetworkItem->JustResolved = TRUE;
+        InterlockedExchange(&data->NetworkItem->JustResolved, TRUE);
 
         PhDereferenceObject(data->NetworkItem);
         PhFree(data);

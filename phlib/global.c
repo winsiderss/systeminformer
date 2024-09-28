@@ -78,14 +78,13 @@ BOOLEAN PhIsExecutingInWow64(
     )
 {
 #ifndef _WIN64
-    static BOOLEAN valid = FALSE;
+    static volatile BOOLEAN valid = FALSE;
     static BOOLEAN isWow64 = FALSE;
 
-    if (!valid)
+    if (!ReadBooleanAcquire(&valid))
     {
         PhGetProcessIsWow64(NtCurrentProcess(), &isWow64);
-        MemoryBarrier();
-        valid = TRUE;
+        WriteBooleanRelease(&valid, TRUE);
     }
 
     return isWow64;

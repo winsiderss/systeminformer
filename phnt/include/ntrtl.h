@@ -894,7 +894,45 @@ RtlEndStrongEnumerationHashTable(
 
 // end_ntddk
 
+//
 // Critical sections
+//
+
+// These flags define the upper byte of the critical section SpinCount field
+#define RTL_CRITICAL_SECTION_FLAG_NO_DEBUG_INFO         0x01000000
+#define RTL_CRITICAL_SECTION_FLAG_DYNAMIC_SPIN          0x02000000
+#define RTL_CRITICAL_SECTION_FLAG_STATIC_INIT           0x04000000
+#define RTL_CRITICAL_SECTION_FLAG_RESOURCE_TYPE         0x08000000
+#define RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO      0x10000000
+#define RTL_CRITICAL_SECTION_ALL_FLAG_BITS              0xFF000000
+#define RTL_CRITICAL_SECTION_FLAG_RESERVED              (RTL_CRITICAL_SECTION_ALL_FLAG_BITS & (~(RTL_CRITICAL_SECTION_FLAG_NO_DEBUG_INFO | RTL_CRITICAL_SECTION_FLAG_DYNAMIC_SPIN | RTL_CRITICAL_SECTION_FLAG_STATIC_INIT | RTL_CRITICAL_SECTION_FLAG_RESOURCE_TYPE | RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO)))
+// These flags define possible values stored in the Flags field of a critsec debuginfo.
+#define RTL_CRITICAL_SECTION_DEBUG_FLAG_STATIC_INIT 0x00000001
+
+// typedef struct _RTL_CRITICAL_SECTION_DEBUG 
+// {
+//     USHORT Type;
+//     USHORT CreatorBackTraceIndex;
+//     struct _RTL_CRITICAL_SECTION *CriticalSection;
+//     LIST_ENTRY ProcessLocksList;
+//     ULONG EntryCount;
+//     ULONG ContentionCount;
+//     ULONG Flags;
+//     USHORT CreatorBackTraceIndexHigh;
+//     USHORT Identifier;
+// } RTL_CRITICAL_SECTION_DEBUG, *PRTL_CRITICAL_SECTION_DEBUG, RTL_RESOURCE_DEBUG, *PRTL_RESOURCE_DEBUG;
+//
+// #pragma pack(push, 8)
+// typedef struct _RTL_CRITICAL_SECTION 
+// {
+//     PRTL_CRITICAL_SECTION_DEBUG DebugInfo;
+//     LONG LockCount;
+//     LONG RecursionCount;
+//     HANDLE OwningThread;
+//     HANDLE LockSemaphore;
+//     ULONG_PTR SpinCount;
+// } RTL_CRITICAL_SECTION, *PRTL_CRITICAL_SECTION;
+// #pragma pack(pop)
 
 NTSYSAPI
 NTSTATUS
@@ -1148,6 +1186,9 @@ RtlAcquireReleaseSRWLockExclusive(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+
+#define RTL_CONDITION_VARIABLE_INIT {0}
+#define RTL_CONDITION_VARIABLE_LOCKMODE_SHARED 0x1
 
 // winbase:InitializeConditionVariable
 NTSYSAPI
@@ -2947,8 +2988,6 @@ RtlCreateUserProcess(
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
-
 #define RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION 1
 
 // private
@@ -2964,6 +3003,7 @@ typedef struct _RTL_USER_PROCESS_EXTENDED_PARAMETERS
     HANDLE JobHandle;
 } RTL_USER_PROCESS_EXTENDED_PARAMETERS, *PRTL_USER_PROCESS_EXTENDED_PARAMETERS;
 
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2974,7 +3014,6 @@ RtlCreateUserProcessEx(
     _In_opt_ PRTL_USER_PROCESS_EXTENDED_PARAMETERS ProcessExtendedParameters,
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -4881,6 +4920,14 @@ RtlDestroyHeap(
     _In_ _Post_invalid_ PVOID HeapHandle
     );
 
+#ifndef DECLSPEC_NOALIAS
+#if _MSC_VER < 1900
+#define DECLSPEC_NOALIAS
+#else
+#define DECLSPEC_NOALIAS __declspec(noalias)
+#endif
+#endif
+
 NTSYSAPI
 _Success_(return != 0)
 _Must_inspect_result_
@@ -4888,6 +4935,8 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 __drv_allocatesMem(Mem)
 DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlAllocateHeap(
@@ -4966,6 +5015,8 @@ _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _When_(Size > 0, __drv_allocatesMem(Mem))
 DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
+DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlReAllocateHeap(
@@ -9577,12 +9628,12 @@ RtlSetThreadPlaceholderCompatibilityMode(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE4)
-
 #undef PHCM_MAX
 #define PHCM_DISGUISE_FULL_PLACEHOLDERS ((CHAR)3)
 #define PHCM_MAX ((CHAR)3)
 #define PHCM_ERROR_NO_PEB ((CHAR)-3)
+
+#if (PHNT_VERSION >= PHNT_REDSTONE4)
 
 NTSYSAPI
 CHAR
@@ -10372,8 +10423,6 @@ RtlOverwriteFeatureConfigurationBuffer(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-
 #ifndef _RTL_RUN_ONCE_DEF
 #define _RTL_RUN_ONCE_DEF
 //
@@ -10397,6 +10446,8 @@ typedef union _RTL_RUN_ONCE
     PVOID Ptr;
 } RTL_RUN_ONCE, *PRTL_RUN_ONCE;
 #endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSAPI
 VOID
@@ -10523,7 +10574,6 @@ RtlWnfDllUnloadCallback(
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN11)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

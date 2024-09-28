@@ -2,6 +2,12 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
+REM Check if an argument is provided and if it is "INIT"
+set "IS_INIT=false"
+if "%1"=="INIT" (
+    set "IS_INIT=true"
+)
+
 for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
    set "VSINSTALLPATH=%%a"
 )
@@ -43,4 +49,10 @@ msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -prop
 if %ERRORLEVEL% neq 0 goto end
 
 :end
+
+REM If IS_INIT is not provided, print a message and exit
+if "%IS_INIT%"=="false" (
 pause
+) else (
+exit /b 0
+)

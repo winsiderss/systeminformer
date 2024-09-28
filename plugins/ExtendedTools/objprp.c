@@ -258,6 +258,8 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 }
 
                 NtClose(workerFactoryHandle);
+
+                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
             }
         }
         break;

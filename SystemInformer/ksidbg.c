@@ -1596,7 +1596,10 @@ VOID KsiDebugLogFinalize(
     VOID
     )
 {
-    PhUnregisterCallback(&PhInformerCallback, &KsiDebugMessageRegistration);
+    if (KsiDebugLogFileStream || KsiDebugRawFileStream)
+    {
+        PhUnregisterCallback(&PhInformerCallback, &KsiDebugMessageRegistration);
+    }
     PhClearReference(&KsiDebugRawFileStream);
     PhClearReference(&KsiDebugLogFileStream);
 }

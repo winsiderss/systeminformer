@@ -359,6 +359,8 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
         context->SettingName = PhCreateString((PWSTR)lParam);
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
     }
     else
     {

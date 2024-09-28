@@ -34,3 +34,7 @@
 #include "circbuf_i.h"
 
 #undef T
+#define T DOUBLE
+#include "circbuf_i.h"
+
+#undef T

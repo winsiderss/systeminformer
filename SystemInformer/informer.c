@@ -222,12 +222,14 @@ VOID PhInformerInitialize(
     VOID
     )
 {
+    OBJECT_ATTRIBUTES objectAttributes;
     PhInitializeRundownProtection(&KsiMessageRundown);
     KsiMessageObjectType = PhCreateObjectType(L"KsiMessage", 0, NULL);
     KsiMessageOrderingList = PhCreateList(KSI_MESSAGE_DRAIN_LIMIT);
     PhInitializeFreeList(&KsiMessageQueueFreeList, sizeof(KSI_MESSAGE_QUEUE_ENTRY), KSI_MESSAGE_DRAIN_LIMIT);
     InitializeSListHead(&KsiMessageQueueHeader);
-    if (NT_SUCCESS(NtCreateEvent(&KsiMessageQueueEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
+    InitializeObjectAttributes(&objectAttributes, NULL, OBJ_EXCLUSIVE, NULL, NULL);
+    if (NT_SUCCESS(NtCreateEvent(&KsiMessageQueueEvent, EVENT_ALL_ACCESS, &objectAttributes, NotificationEvent, FALSE)))
     {
         KsiMessageWorkerThreadHandle = PhCreateThread(0, PhpInformerMessageWorker, NULL);
     }

@@ -209,7 +209,14 @@ ULONG64 KphGetProcessStartKey(
         return 0;
     }
 
-    key = (process->SequenceNumber | ((ULONG64)SharedUserData->BootId << 48));
+    if (process->ProcessStartKey)
+    {
+        key = process->ProcessStartKey;
+    }
+    else
+    {
+        key = (process->SequenceNumber | ((ULONG64)SharedUserData->BootId << 48));
+    }
 
     KphDereferenceObject(process);
 

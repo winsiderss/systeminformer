@@ -940,6 +940,16 @@ WinStationSetInformationW(
     _In_ ULONG WinStationInformationLength
     );
 
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryCurrentSessionInformation(
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _In_reads_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_ ULONG WinStationInformationLength
+    );
+
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1176,5 +1186,47 @@ WinStationIsSessionRemoteable(
     _In_ ULONG SessionId,
     _Out_ PBOOLEAN IsRemote
     );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetAutologonPassword(
+    _In_ PCSTR KeyName,
+    _In_ PCSTR Password
+    );
+
+typedef enum _SessionType
+{
+    SESSIONTYPE_UNKNOWN = 0,
+    SESSIONTYPE_SERVICES,
+    SESSIONTYPE_LISTENER,
+    SESSIONTYPE_REGULARDESKTOP,
+    SESSIONTYPE_ALTERNATESHELL,
+    SESSIONTYPE_REMOTEAPP,
+    SESSIONTYPE_MEDIACENTEREXT
+} SESSIONTYPE;
+
+// rev
+typedef struct _TS_USER_SESSION
+{
+    ULONG Version;
+    ULONG SessionId;
+    ULONG Unknown;
+    SESSIONTYPE State;
+    ULONG field5;
+} TS_USER_SESSION, *PTS_USER_SESSION;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetAllUserSessions(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ PSID Sid,
+    _Out_ PVOID* Processes, // LocalFree
+    _Out_ PULONG NumberOfProcesses
+    );
+
 
 #endif

@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <mapimg.h>
 #include <mapldr.h>
 
@@ -463,7 +464,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
+    PPH_STRING fileName = nullptr;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
@@ -499,25 +500,40 @@ NTSTATUS PhGetProcedureAddressRemote(
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
     context.FileName = fileName;
 
-    memset(&parameters, 0, sizeof(PH_ENUM_PROCESS_MODULES_PARAMETERS));
-    parameters.Callback = PhpGetProcedureAddressRemoteCallback;
-    parameters.Context = &context;
-    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
-
-    switch (mappedImage.Magic)
     {
-    case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
-        status = PhEnumProcessModules32Ex(ProcessHandle, &parameters);
-        break;
-    case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
-        status = PhEnumProcessModulesEx(ProcessHandle, &parameters);
-        break;
+        PPH_STRING remoteFileName;
+
+        if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, mappedImage.ViewBase, &remoteFileName)))
+        {
+            if (PhEqualString(fileName, remoteFileName, FALSE))
+            {
+                context.DllBase = mappedImage.ViewBase;
+            }
+
+            PhDereferenceObject(remoteFileName);
+        }
     }
 
-    PhDereferenceObject(fileName);
+    if (!context.DllBase)
+    {
+        memset(&parameters, 0, sizeof(PH_ENUM_PROCESS_MODULES_PARAMETERS));
+        parameters.Callback = PhpGetProcedureAddressRemoteCallback;
+        parameters.Context = &context;
+        parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        switch (mappedImage.Magic)
+        {
+        case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+            status = PhEnumProcessModules32Ex(ProcessHandle, &parameters);
+            break;
+        case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+            status = PhEnumProcessModulesEx(ProcessHandle, &parameters);
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
 
     if (!context.DllBase)
     {
@@ -563,6 +579,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
 CleanupExit:
     PhUnloadMappedImage(&mappedImage);
+    PhClearReference(&fileName);
 
     return status;
 }
@@ -992,6 +1009,7 @@ PVOID PhGetDllBaseProcedureAddress(
     _In_opt_ USHORT ProcedureNumber
     )
 {
+    PVOID exportAddress;
     PIMAGE_NT_HEADERS imageNtHeader;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
@@ -1009,13 +1027,42 @@ PVOID PhGetDllBaseProcedureAddress(
         )))
         return NULL;
 
-    return PhGetLoaderEntryImageExportFunction(
+    exportAddress = PhGetLoaderEntryImageExportFunction(
         DllBase,
         dataDirectory,
         exportDirectory,
         ProcedureName,
         ProcedureNumber
         );
+
+    if (
+        WindowsVersion >= WINDOWS_10 &&
+        LdrControlFlowGuardEnforcedWithExportSuppression_Import() &&
+        LdrControlFlowGuardEnforcedWithExportSuppression_Import()()
+        )
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY configDirectory;
+
+        if (NT_SUCCESS(PhGetLoaderEntryImageDirectory(
+            DllBase,
+            imageNtHeader,
+            IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+            &dataDirectory,
+            &configDirectory,
+            NULL
+            )))
+        {
+            if (RTL_CONTAINS_FIELD(configDirectory, configDirectory->Size, GuardFlags))
+            {
+                if (BooleanFlagOn(configDirectory->GuardFlags, IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT))
+                {
+                    PhLoaderEntryGrantSuppressedCall(exportAddress);
+                }
+            }
+        }
+    }
+
+    return exportAddress;
 }
 
 PVOID PhGetDllBaseProcAddress(
@@ -1264,28 +1311,13 @@ VOID PhLoaderEntryGrantSuppressedCall(
     _In_ PVOID ExportAddress
     )
 {
-#if (PH_NATIVE_LOADER_FLOWGUARD)
     static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
-    static typeof(&LdrControlFlowGuardEnforced) LdrControlFlowGuardEnforced_I = NULL;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
-    if (!PhLoaderEntryCacheInitialized && PhInstanceHandle) // delay initialize (dmex)
+    if (!PhLoaderEntryCacheInitialized)
     {
         PhLoaderEntryCacheInitialized = TRUE;
-
-        if (!LdrControlFlowGuardEnforced_I && WindowsVersion >= WINDOWS_10)
-        {
-            LdrControlFlowGuardEnforced_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrControlFlowGuardEnforced", 0);
-        }
-
-        if (LdrControlFlowGuardEnforced_I && LdrControlFlowGuardEnforced_I())
-        {
-            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)SIZE_T_MAX); // initialize imports (dmex)
-
-            PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
-        }
-
-        return;
+        PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
     }
 
     if (PhLoaderEntryCacheHashtable && !PhFindItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress))
@@ -1295,7 +1327,6 @@ VOID PhLoaderEntryGrantSuppressedCall(
             PhAddItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress, UlongToPtr(TRUE));
         }
     }
-#endif
 }
 
 static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
@@ -1452,8 +1483,6 @@ PVOID PhGetLoaderEntryImageExportFunction(
             }
         }
     }
-
-    PhLoaderEntryGrantSuppressedCall(exportAddress);
 
     return exportAddress;
 }

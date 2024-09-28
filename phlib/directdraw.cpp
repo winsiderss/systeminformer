@@ -46,6 +46,29 @@ using namespace Gdiplus;
 //    return std::unique_ptr<Graphics>(Graphics::FromImage(image.get()));
 //}
 
+BOOLEAN PhInitializeGDIPlus(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN initialized = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static ULONG_PTR gdiplusToken = 0;
+        static GdiplusStartupInput gdiplusStartupInput{};
+
+        if (GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) == Status::Ok)
+        {
+            initialized = TRUE;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return initialized;
+}
+
 static Bitmap* PhGdiplusCreateBitmapFromDIB(
     _In_ HBITMAP OriginalBitmap
     )
@@ -74,24 +97,9 @@ HICON PhGdiplusConvertBitmapToIcon(
     _In_ COLORREF Background
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOLEAN initialized = FALSE;
     HICON icon;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        ULONG_PTR gdiplusToken = 0;
-        GdiplusStartupInput gdiplusStartupInput{};
-
-        if (GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) == Status::Ok)
-        {
-            initialized = TRUE;
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (initialized)
+    if (PhInitializeGDIPlus())
     {
         Bitmap* image = PhGdiplusCreateBitmapFromDIB(OriginalBitmap);
 
@@ -131,6 +139,23 @@ HICON PhGdiplusConvertBitmapToIcon(
 
     return nullptr;
 }
+
+HICON PhGdiplusConvertHBitmapToHIcon(
+    _In_ HBITMAP NitmapHandle
+    )
+{
+    HICON hIcon = nullptr;
+
+    if (PhInitializeGDIPlus())
+    {
+        Bitmap bitmap(NitmapHandle, nullptr);
+
+        bitmap.GetHICON(&hIcon);
+    }
+
+    return hIcon;
+}
+
 
 #ifdef PHNT_TRANSPARENT_BITMAP
 #include <uxtheme.h>
@@ -291,7 +316,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             RECT clientRect;
 
             GetClientRect(WindowHandle, &clientRect);
-            FillRect(hdc, &clientRect, GetStockBrush(BLACK_BRUSH));
+            FillRect(hdc, &clientRect, PhGetStockBrush(BLACK_BRUSH));
         }
         return TRUE;
 #endif

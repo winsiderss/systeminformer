@@ -699,7 +699,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  if (isSelected || isFocused)
                  {
                      FillRect(bufferDc, &bufferRect, context->BrushHot);
-                     //FrameRect(bufferDc, &bufferRect, GetStockBrush(BLACK_BRUSH));
+                     //FrameRect(bufferDc, &bufferRect, PhGetStockBrush(BLACK_BRUSH));
                      SetTextColor(bufferDc, context->TextColor);
                  }
                  else

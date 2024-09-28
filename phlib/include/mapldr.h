@@ -287,6 +287,13 @@ PhLoaderEntryImageRvaToVa(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhLoaderEntryGrantSuppressedCall(
+    _In_ PVOID ExportAddress
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetLoaderEntryImageExportFunction(

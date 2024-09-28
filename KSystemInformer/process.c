@@ -652,6 +652,7 @@ NTSTATUS KphQueryInformationProcess(
 
                 info->ProcessState = KphGetProcessState(process);
 
+                info->ProcessStartKey = KphGetProcessStartKey(processObject);
                 info->CreatorClientId.UniqueProcess = process->CreatorClientId.UniqueProcess;
                 info->CreatorClientId.UniqueThread = process->CreatorClientId.UniqueThread;
 

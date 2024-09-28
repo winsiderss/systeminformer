@@ -36,5 +36,9 @@
 #include "circbuf_h.h"
 
 #undef T
+#define T DOUBLE
+#include "circbuf_h.h"
+
+#undef T
 
 #endif

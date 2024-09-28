@@ -724,8 +724,7 @@ VOID PhSecondsSince1970ToTime(
  * \remarks If the function fails to allocate the block of memory, it raises an exception. The block
  * is guaranteed to be aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
-_May_raise_
-_Post_writable_byte_size_(Size)
+_Use_decl_annotations_
 PVOID PhAllocate(
     _In_ SIZE_T Size
     )
@@ -745,9 +744,7 @@ PVOID PhAllocate(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
-_Must_inspect_result_
-_Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_Use_decl_annotations_
 PVOID PhAllocateSafe(
     _In_ SIZE_T Size
     )
@@ -768,9 +765,7 @@ PVOID PhAllocateSafe(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
-_Must_inspect_result_
-_Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_Use_decl_annotations_
 PVOID PhAllocateExSafe(
     _In_ SIZE_T Size,
     _In_ ULONG Flags
@@ -789,6 +784,7 @@ PVOID PhAllocateExSafe(
  *
  * \param Memory A pointer to a block of memory.
  */
+_Use_decl_annotations_
 VOID PhFree(
     _Frees_ptr_opt_ PVOID Memory
     )
@@ -811,8 +807,7 @@ VOID PhFree(
  *
  * \remarks If the function fails to allocate the block of memory, it raises an exception.
  */
-_May_raise_
-_Post_writable_byte_size_(Size)
+_Use_decl_annotations_
 PVOID PhReAllocate(
     _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
@@ -822,13 +817,9 @@ PVOID PhReAllocate(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
-    // RtlReAllocateHeap does not behave the same as realloc when Memory is NULL.
-    // For consistency with realloc above and easier drop-in replacements for
-    // realloc, produce the same behavior as realloc. If Memory is NULL, then
-    // allocate a new block.
-    if (!Memory) return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
-
-    return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+    if (Memory)
+        return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+    return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
 #endif
 }
 
@@ -841,11 +832,9 @@ PVOID PhReAllocate(
  * \return A pointer to the new block of memory, or NULL if the block could not be allocated. The
  * existing contents of the memory block are copied to the new block.
  */
-_Must_inspect_result_
-_Ret_maybenull_
-_Post_writable_byte_size_(Size)
+_Use_decl_annotations_
 PVOID PhReAllocateSafe(
-    _In_ PVOID Memory,
+    _In_opt_ PVOID Memory,
     _In_ SIZE_T Size
     )
 {
@@ -853,13 +842,9 @@ PVOID PhReAllocateSafe(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
-    // RtlReAllocateHeap does not behave the same as realloc when Memory is NULL.
-    // For consistency with realloc above and easier drop-in replacements for
-    // realloc, produce the same behavior as realloc. If Memory is NULL, then
-    // allocate a new block.
-    if (!Memory) return RtlAllocateHeap(PhHeapHandle, 0, Size);
-
-    return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
+    if (Memory)
+        return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
+    return RtlAllocateHeap(PhHeapHandle, 0, Size);
 #endif
 }
 
@@ -2799,16 +2784,14 @@ PPH_STRING PhReferenceEmptyString(
     PPH_STRING string;
     PPH_STRING newString;
 
-    string = InterlockedCompareExchangePointer(
-        &PhSharedEmptyString,
-        NULL,
-        NULL
-        );
+    // Initial lightweight atomic read
+    string = ReadPointerAcquire(&PhSharedEmptyString);
 
     if (!string)
     {
         newString = PhCreateStringEx(NULL, 0);
 
+        // Final atomic compare-and-swap
         string = InterlockedCompareExchangePointer(
             &PhSharedEmptyString,
             newString,

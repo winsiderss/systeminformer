@@ -62,8 +62,8 @@
 #define IDD_LOG                         178
 #define IDD_MEMEDIT                     180
 #define IDD_MEMPROTECT                  182
-#define IDD_MEMSTRINGS                  183
-#define IDD_MEMSTRINGSMINLEN            185
+#define IDD_MEMRESULTS                  183
+#define IDD_MEMSTRING                   185
 #define IDD_OPTGRAPHS                   186
 #define IDD_PLUGINS                     187
 #define IDD_PLUGINMANAGER               187
@@ -128,6 +128,8 @@
 #define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
 #define IDD_INPUT                       275
 #define IDD_CHOOSENEW                   275
+#define IDD_MEMSTRINGSMINLEN            276
+#define IDD_MEMSTRINGS                  277
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -407,6 +409,11 @@
 #define IDC_VALUE                       1230
 #define IDC_DELAYEDSTART                1234
 #define IDC_MINIMUMLENGTH               1236
+#define IDC_DETECTUNICODE               1237
+#define IDC_PRIVATE                     1238
+#define IDC_IMAGE                       1239
+#define IDC_MAPPED                      1240
+#define IDC_EXTENDEDUNICODE             1241
 #define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251

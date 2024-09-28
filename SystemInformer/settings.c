@@ -35,7 +35,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
-    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
     PhpAddIntegerSetting(L"EnableAvxSupport", L"0");
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
@@ -88,6 +87,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableWarningsRunas", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
     PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
@@ -141,8 +141,6 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"InformationWindowSize", L"@96|140,190");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
-    PhpAddIntegerSetting(L"KsiEnable", L"0");
-    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
@@ -161,12 +159,10 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MemEditSize", L"@96|600,500");
-    PhpAddStringSetting(L"MemStringsTreeListColumns", L"");
-    PhpAddStringSetting(L"MemStringsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"MemStringsTreeListFlags", L"b"); // ANSI, Unicode, Private
-    PhpAddIntegerSetting(L"MemStringsMinimumLength", L"a"); // 10
-    PhpAddIntegerPairSetting(L"MemStringsWindowPosition", L"0,0");
-    PhpAddScalableIntegerPairSetting(L"MemStringsWindowSize", L"@96|550,420");
+    PhpAddStringSetting(L"MemFilterChoices", L"");
+    PhpAddStringSetting(L"MemResultsListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
+    PhpAddScalableIntegerPairSetting(L"MemResultsSize", L"@96|500,520");
     PhpAddIntegerSetting(L"MemoryListFlags", L"3");
     PhpAddStringSetting(L"MemoryTreeListColumns", L"");
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
@@ -239,6 +235,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
     PhpAddIntegerSetting(L"ShowHexId", L"0");
     PhpAddIntegerSetting(L"StartHidden", L"0");
+    PhpAddIntegerSetting(L"SysInfoShowCpuSpeedMhz", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
@@ -352,6 +349,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
+    PhpAddIntegerSetting(L"KsiEnable", L"0");
+    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddStringSetting(L"KsiServiceName", L"");
     PhpAddStringSetting(L"KsiObjectName", L"");
     PhpAddStringSetting(L"KsiPortName", L"");

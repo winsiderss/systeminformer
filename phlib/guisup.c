@@ -194,6 +194,47 @@ VOID PhInitializeMonospaceFont(
 }
 
 /**
+ * The PhGetScreenDC function retrieves a handle to a device context (DC) for the entire screen.
+ *
+ * \return The handle to the requested stock object.
+ */
+HDC PhGetScreenDC(
+    VOID
+    )
+{
+    static HDC hdc = nullptr;
+
+    if (hdc == NULL)
+    {
+        hdc = GetDC(NULL);
+    }
+
+    return hdc;    
+}
+
+/**
+ * The PhGetStockBrush function retrieves a handle to one of the stock pens, brushes, fonts, or palettes.
+ *
+ * \param Index The type of stock object.
+ * \return The handle to the requested stock object.
+ */
+HGDIOBJ PhGetStockObject(
+    _In_ INT Index
+    )
+{
+    static HBRUSH brush[STOCK_LAST] = { nullptr };
+
+    assert(Index <= STOCK_LAST);
+
+    if (brush[Index] == NULL)
+    {
+        brush[Index] = GetStockObject(Index);
+    }
+
+    return brush[Index];
+}
+
+/**
  * Opens the theme data for the specified window handle, class list, and window DPI.
  *
  * \param WindowHandle The handle to the window for which to open the theme data. Can be NULL.
@@ -412,12 +453,19 @@ BOOLEAN PhIsHungAppWindow(
     return !!IsHungAppWindow(WindowHandle);
 }
 
+HWND PhGetShellWindow(
+    VOID
+    )
+{
+    return GetShellWindow();
+}
+
 BOOLEAN PhCheckWindowThreadDesktop(
     _In_ HWND WindowHandle,
     _In_ HANDLE ThreadId
     )
 {
-    typedef INT32 (WINAPI* CheckWindowThreadDesktop)(
+    typedef LOGICAL (WINAPI* CheckWindowThreadDesktop)(
         _In_ HWND WindowHandle,
         _In_ ULONG ThreadId
         );
@@ -439,7 +487,7 @@ BOOLEAN PhCheckWindowThreadDesktop(
     if (!CheckWindowThreadDesktop_I)
         return FALSE;
 
-    return CheckWindowThreadDesktop_I(WindowHandle, HandleToUlong(ThreadId));
+    return !!CheckWindowThreadDesktop_I(WindowHandle, HandleToUlong(ThreadId));
 }
 
 LONG PhGetDpi(
@@ -522,7 +570,7 @@ LONG PhGetTaskbarDpi(
     HWND windowHandle;
     RECT windowRect = { 0 };
 
-    if (windowHandle = GetShellWindow())
+    if (windowHandle = PhGetShellWindow())
     {
         GetWindowRect(windowHandle, &windowRect);
     }
@@ -1281,7 +1329,7 @@ PVOID PhGetListViewInterface(
 {
     IListView* ListViewPtr = NULL;
 
-    DefWindowProc(
+    SendMessage(
         ListViewHandle,
         LVM_QUERYINTERFACE,
         (WPARAM)&IID_IListView,
@@ -3749,7 +3797,7 @@ VOID PhCustomDrawTreeTimeLine(
     if (FlagOn(Flags, PH_DRAW_TIMELINE_DARKTHEME))
         FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
     else
-        FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
+        FillRect(Hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
 
     PhInflateRect(&rect, -1, -1);
     rect.bottom += 1;
@@ -3765,18 +3813,18 @@ VOID PhCustomDrawTreeTimeLine(
         else
             SetDCBrushColor(Hdc, RGB(0, 130, 135));
 
-        SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
     }
     else
     {
-        FillRect(Hdc, &rect, GetSysColorBrush(COLOR_3DFACE));
+        FillRect(Hdc, &rect, (HBRUSH)(COLOR_BTNFACE + 1));
 
         if (FlagOn(flags, PH_DRAW_TIMELINE_OVERFLOW))
             SetDCBrushColor(Hdc, RGB(128, 128, 128));
         else
             SetDCBrushColor(Hdc, RGB(158, 202, 158));
 
-        SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
     }
 
     rect.left = (LONG)((LONG)rect.right + ((LONG)(rect.left - rect.right) * (percent / 100.f)));
@@ -3793,10 +3841,51 @@ VOID PhCustomDrawTreeTimeLine(
         PATCOPY
         );
 
-    FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
+    FrameRect(Hdc, &borderRect, PhGetStockBrush(GRAY_BRUSH));
 }
 
 // Windows Imaging Component (WIC) bitmap support
+
+HBITMAP PhCreateDIBSection(
+    _In_ HDC Hdc,
+    _In_ PH_BUFFERFORMAT Format,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    )
+{
+    switch (Format)
+    {
+    case PHBF_COMPATIBLEBITMAP:
+        {
+            if (Bits)
+            {
+                *Bits = NULL;
+            }
+            return CreateCompatibleBitmap(Hdc, Width, Height);
+        }
+        break;
+    case PHBF_DIB:
+    case PHBF_TOPDOWNDIB:
+    case PHBF_TOPDOWNMONODIB:
+        {
+            BITMAPINFO bitmapInfo;
+
+            memset(&bitmapInfo, 0, sizeof(BITMAPINFOHEADER));
+            bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bitmapInfo.bmiHeader.biWidth = Width;
+            bitmapInfo.bmiHeader.biHeight = Format == PHBF_TOPDOWNDIB ? -Height : Height;
+            bitmapInfo.bmiHeader.biPlanes = 1;
+            bitmapInfo.bmiHeader.biBitCount = Format == PHBF_TOPDOWNMONODIB ? 1 : 32;
+            bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+            return CreateDIBSection(Hdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+        }
+        break;
+    }
+
+    return NULL;
+}
 
 HBITMAP PhCreateBitmapHandle(
     _In_ LONG Width,
@@ -3806,7 +3895,6 @@ HBITMAP PhCreateBitmapHandle(
 {
     HBITMAP bitmapHandle;
     BITMAPINFO bitmapInfo;
-    HDC screenHdc;
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -3816,9 +3904,7 @@ HBITMAP PhCreateBitmapHandle(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    screenHdc = GetDC(NULL);
-    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
-    ReleaseDC(NULL, screenHdc);
+    bitmapHandle = CreateDIBSection(PhGetScreenDC(), &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
 
     return bitmapHandle;
 }
