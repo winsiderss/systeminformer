@@ -1609,7 +1609,7 @@ INT NTAPI WinObjTypeCompareFunction(
     return PhCompareStringZ(PhGetStringOrEmpty(item1->TypeName), PhGetStringOrEmpty(item2->TypeName), TRUE);
 }
 
-INT NTAPI WinObjSymlinkCompareFunction(
+INT NTAPI WinObjTargetCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -2190,7 +2190,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             ExtendedListView_SetSort(context->ListViewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, WinObjNameCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, WinObjTypeCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, WinObjSymlinkCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, WinObjTargetCompareFunction);
             ExtendedListView_SetTriStateCompareFunction(context->ListViewHandle, WinObjTriStateCompareFunction);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);

@@ -1934,18 +1934,18 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
             }
         }
         break;
-    //case WM_COMMAND:
-    //    {
-    //        switch (GET_WM_COMMAND_ID(wParam, lParam))
-    //        {
-    //        case IDOK:
-    //            // Prevent the OK button from working (even though
-    //            // it's already hidden). This prevents the Enter
-    //            // key from closing the dialog box.
-    //            return 0;
-    //        }
-    //    }
-    //    break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDOK:
+                // Prevent the OK button from working (even though
+                // it's already hidden). This prevents the Enter
+                // key from closing the dialog box.
+                return 0;
+            }
+        }
+        break;
     case WM_KEYDOWN: // forward key messages
         {
             HWND pageWindowHandle;
@@ -1985,6 +1985,11 @@ INT CALLBACK PhpGeneralPropSheetProc(
         PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
 
         SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
+
+        // Hide the OK button.
+        ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
+        // Set the Cancel button's text to "Close".
+        PhSetDialogItemText(hwndDlg, IDCANCEL, L"Close");
     }
     break;
     }

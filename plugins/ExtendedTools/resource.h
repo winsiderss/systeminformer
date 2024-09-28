@@ -178,6 +178,7 @@
 #define IDD_PROCNET                     8003
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
+#define IDD_OBJWINSTA                   8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005
@@ -194,7 +195,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           135

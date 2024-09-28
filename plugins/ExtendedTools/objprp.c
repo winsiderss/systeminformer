@@ -19,14 +19,9 @@ typedef struct _COMMON_PAGE_CONTEXT
 {
     PPH_HANDLE_ITEM HandleItem;
     HANDLE ProcessId;
-} COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
-
-typedef struct _HANDLES_PAGE_CONTEXT
-{
-    PPH_HANDLE_ITEM HandleItem;
     HWND WindowHandle;
     HWND ListViewHandle;
-} HANDLES_PAGE_CONTEXT, * PHANDLES_PAGE_CONTEXT;
+} COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 typedef struct _ET_HANDLE_ENTRY
 {
@@ -36,12 +31,6 @@ typedef struct _ET_HANDLE_ENTRY
 } HANDLE_ENTRY, * PHANDLE_ENTRY;
 
 HPROPSHEETPAGE EtpCommonCreatePage(
-    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DlgProc
-    );
-
-HPROPSHEETPAGE EtpCreateHandlePage(
     _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
     _In_ PWSTR Template,
     _In_ DLGPROC DlgProc
@@ -72,6 +61,13 @@ PPH_STRING EtGetAccessString(
     _In_ ACCESS_MASK access
     );
 
+INT_PTR CALLBACK EtpWinStaPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 extern HWND EtObjectManagerDialogHandle;
 extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
@@ -91,10 +87,32 @@ VOID EtHandlePropertiesInitializing(
     {
         HPROPSHEETPAGE page = NULL;
 
+        if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
+        {
+            page = EtpCommonCreatePage(
+                context,
+                MAKEINTRESOURCE(IDD_OBJWINSTA),
+                EtpWinStaPageDlgProc
+            );
+
+            // Insert our page into the second slot.
+            if (page)
+            {
+                if (objectProperties->NumberOfPages > 1)
+                {
+                    memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
+                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
+                }
+
+                objectProperties->Pages[1] = page;
+                objectProperties->NumberOfPages++;
+            }
+        }
+
         // Object Manager
         if (EtObjectManagerDialogHandle && context->OwnerPlugin == PluginInstance)
         {
-            page = EtpCreateHandlePage(
+            page = EtpCommonCreatePage(
                 context,
                 MAKEINTRESOURCE(IDD_OBJHANDLES),
                 EtpObjHandlesPageDlgProc
@@ -113,8 +131,9 @@ VOID EtHandlePropertiesInitializing(
                 objectProperties->NumberOfPages++;
             }
         }
+
         // TpWorkerFactory unnamed, so it won't interact with Object Manager
-        else if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
+        if (PhEqualString2(context->HandleItem->TypeName, L"TpWorkerFactory", TRUE))
         {
             page = EtpCommonCreatePage(
                 context,
@@ -144,7 +163,8 @@ typedef enum _ET_OBJECT_GENERAL_CATEGORY
     OBJECT_GENERAL_CATEGORY_DRIVER,
     OBJECT_GENERAL_CATEGORY_TYPE,
     OBJECT_GENERAL_CATEGORY_TYPE_ACCESS,
-    OBJECT_GENERAL_CATEGORY_WINDOWSTATION
+    OBJECT_GENERAL_CATEGORY_WINDOWSTATION,
+    OBJECT_GENERAL_CATEGORY_DESKTOP
 } ET_OBJECT_GENERAL_CATEGORY;
 
 typedef enum _ET_OBJECT_GENERAL_INDEX {
@@ -176,6 +196,10 @@ typedef enum _ET_OBJECT_GENERAL_INDEX {
 
     OBJECT_GENERAL_INDEX_WINSTATYPE,
     OBJECT_GENERAL_INDEX_WINSTAVISIBLE,
+
+    OBJECT_GENERAL_INDEX_DESKTOPIO,
+    OBJECT_GENERAL_INDEX_DESKTOPSID,
+    OBJECT_GENERAL_INDEX_DESKTOPHEAP,
 
     OBJECT_GENERAL_INDEX_MAXIMUM
 } ET_OBJECT_GENERAL_INDEX;
@@ -487,38 +511,90 @@ VOID EtHandlePropertiesWindowInitialized(
         }
     }
 
-    // General ET plugin extension
-    if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
+    // General ET plugin extensions
+    if (!PhIsNullOrEmptyString(context->HandleItem->TypeName))
     {
-        HANDLE hWinStation;
-        USEROBJECTFLAGS userFlags;
-        PPH_STRING StationType;
-        PH_STRINGREF StationName;
-        PH_STRINGREF pathPart;
-        
-        PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_WINDOWSTATION, L"Window Station information");
-
-        EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE] = PhAddListViewGroupItem(context->ListViewHandle,
-            OBJECT_GENERAL_CATEGORY_WINDOWSTATION, OBJECT_GENERAL_INDEX_WINSTATYPE, L"Type", NULL);
-        EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTAVISIBLE] = PhAddListViewGroupItem(context->ListViewHandle,
-            OBJECT_GENERAL_CATEGORY_WINDOWSTATION, OBJECT_GENERAL_INDEX_WINSTAVISIBLE, L"Visible", NULL);
-
-        PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &pathPart, &StationName);
-        StationType = PH_AUTO(EtGetWindowStationType(&StationName));
-        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE], 1, PhGetString(StationType));
-
-        if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_READATTRIBUTES, context->ProcessId, context->HandleItem->Handle)))
+        if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
         {
-            if (GetUserObjectInformation((HWINSTA)hWinStation,
-                UOI_FLAGS,
-                &userFlags,
-                sizeof(USEROBJECTFLAGS),
-                NULL))
+            HANDLE hWinStation;
+            USEROBJECTFLAGS userFlags;
+            PPH_STRING StationType;
+            PH_STRINGREF StationName;
+            PH_STRINGREF pathPart;
+
+            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_WINDOWSTATION, L"Window Station information");
+
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_WINDOWSTATION, OBJECT_GENERAL_INDEX_WINSTATYPE, L"Type", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTAVISIBLE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_WINDOWSTATION, OBJECT_GENERAL_INDEX_WINSTAVISIBLE, L"Visible", NULL);
+
+            if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName))
             {
-                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTAVISIBLE], 1,
-                    userFlags.dwFlags & WSF_VISIBLE ? L"True" : L"False");
+                if (PhFindCharInString(context->HandleItem->ObjectName, 0, L'\\') != SIZE_MAX)
+                    PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &pathPart, &StationName);
+                else
+                    StationName = context->HandleItem->ObjectName->sr;
+                StationType = PH_AUTO(EtGetWindowStationType(&StationName));
+                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE], 1, PhGetString(StationType));
             }
-            NtClose(hWinStation);
+
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_READATTRIBUTES, context->ProcessId, context->HandleItem->Handle)))
+            {
+                if (GetUserObjectInformation((HWINSTA)hWinStation,
+                    UOI_FLAGS,
+                    &userFlags,
+                    sizeof(USEROBJECTFLAGS),
+                    NULL))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTAVISIBLE], 1,
+                        userFlags.dwFlags & WSF_VISIBLE ? L"True" : L"False");
+                }
+                NtClose(hWinStation);
+            }
+        }
+        else if (PhEqualString2(context->HandleItem->TypeName, L"Desktop", TRUE))
+        {
+            HANDLE hDesktop;
+
+            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DESKTOP, L"Desktop information");
+
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPIO] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DESKTOP, OBJECT_GENERAL_INDEX_DESKTOPIO, L"Input desktop", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPSID] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DESKTOP, OBJECT_GENERAL_INDEX_DESKTOPSID, L"User SID", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DESKTOP, OBJECT_GENERAL_INDEX_DESKTOPHEAP, L"Heap size", NULL);
+
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hDesktop, DESKTOP_READOBJECTS, context->ProcessId, context->HandleItem->Handle)))
+            {
+                DWORD nLengthNeeded = 0;
+                ULONG vInfo = 0;
+                PSID UserSid = NULL;
+
+                if (GetUserObjectInformation((HDESK)hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPIO], 1, !!vInfo ? L"True" : L"False");
+                }
+
+                GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
+                if (nLengthNeeded)
+                    UserSid = PhAllocate(nLengthNeeded);
+                if (UserSid && GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+                {
+                    PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPSID], 1, PhGetString(sid));
+                    PhFree(UserSid);
+                }
+
+                if (GetUserObjectInformation((HDESK)hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+                {
+                    PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP], 1, PhGetString(size));
+                }
+
+                NtClose(hDesktop);
+            }
         }
     }
 }
@@ -617,35 +693,6 @@ INT CALLBACK EtpCommonPropPageProc(
         PhDereferenceObject(pageContext);
 
     return 1;
-}
-
-static HPROPSHEETPAGE EtpCreateHandlePage(
-    _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DlgProc
-    )
-{
-    HPROPSHEETPAGE propSheetPageHandle;
-    PROPSHEETPAGE propSheetPage;
-    PHANDLES_PAGE_CONTEXT handlesPageContext;
-
-    handlesPageContext = PhCreateAlloc(sizeof(HANDLES_PAGE_CONTEXT));
-    memset(handlesPageContext, 0, sizeof(HANDLES_PAGE_CONTEXT));
-    handlesPageContext->HandleItem = Context->HandleItem;
-
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.dwFlags = PSP_USECALLBACK;
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = Template;
-    propSheetPage.pfnDlgProc = DlgProc;
-    propSheetPage.lParam = (LPARAM)handlesPageContext;
-    propSheetPage.pfnCallback = EtpCommonPropPageProc;
-
-    propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
-    PhDereferenceObject(handlesPageContext); // already got a ref from above call
-
-    return propSheetPageHandle;
 }
 
 static NTSTATUS EtpDuplicateHandleFromProcess(
@@ -782,8 +829,6 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 }
 
                 NtClose(workerFactoryHandle);
-
-                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
             }
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
@@ -877,7 +922,7 @@ PPH_STRING EtGetAccessString(
 }
 
 VOID EtpEnumObjectHandles(
-    _In_ PHANDLES_PAGE_CONTEXT context
+    _In_ PCOMMON_PAGE_CONTEXT context
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -1023,7 +1068,7 @@ VOID EtpShowHandleProperties(
         entry->ProcessId
     )))
     {
-        if (NT_SUCCESS(PhGetHandleInformation(
+        PhGetHandleInformation(
             processHandle,
             entry->HandleItem->Handle,
             entry->HandleItem->TypeIndex,
@@ -1031,17 +1076,19 @@ VOID EtpShowHandleProperties(
             &entry->HandleItem->TypeName,
             &entry->HandleItem->ObjectName,
             &entry->HandleItem->BestObjectName
-        )))
-        {
-            PhShowHandlePropertiesEx(hwndDlg, entry->ProcessId, entry->HandleItem, NULL, NULL);
-        }
+        );
 
         NtClose(processHandle);
     }
+
+    if (!entry->HandleItem->TypeName)
+        entry->HandleItem->TypeName = PhGetObjectTypeIndexName(entry->HandleItem->TypeIndex);
+
+    PhShowHandlePropertiesEx(hwndDlg, entry->ProcessId, entry->HandleItem, NULL, NULL);
 }
 
 VOID EtpCloseObjectHandles(
-    PHANDLES_PAGE_CONTEXT context,
+    PCOMMON_PAGE_CONTEXT context,
     PHANDLE_ENTRY* listviewItems,
     ULONG numberOfItems
     )
@@ -1087,7 +1134,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     _In_ LPARAM lParam
 )
 {
-    PHANDLES_PAGE_CONTEXT context;
+    PCOMMON_PAGE_CONTEXT context;
 
     context = EtpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 
@@ -1277,12 +1324,152 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             }
         }
         break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    } 
+
+    return FALSE;
+}
+
+BOOL CALLBACK EtpEnumDesktopsCallback(
+    _In_ LPWSTR lpszDesktop,
+    _In_ LPARAM lParam
+)
+{
+    PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)lParam;
+    HANDLE hDesktop;
+    UINT lvItemIndex;
+
+    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, lpszDesktop, 0);
+
+    if (hDesktop = OpenDesktop(lpszDesktop, 0, FALSE, DESKTOP_READOBJECTS))
+    {
+        DWORD nLengthNeeded = 0;
+        ULONG vInfo = 0;
+        PSID UserSid = NULL;
+        
+        GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
+        if (nLengthNeeded)
+            UserSid = PhAllocate(nLengthNeeded);
+        if (UserSid && GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+        {
+            PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PhGetString(sid));
+            PhFree(UserSid);
+        }
+
+        if (GetUserObjectInformation((HDESK)hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+        {
+            PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetString(size));
+        }
+
+        if (GetUserObjectInformation((HDESK)hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+        {
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, !!vInfo ? L"True" : L"False");
+        }
+
+        NtClose(hDesktop);
+    }
+
+    return TRUE;
+}
+
+INT_PTR CALLBACK EtpWinStaPageDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    PCOMMON_PAGE_CONTEXT context;
+
+    context = EtpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HANDLE hWinStation;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 130, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 110, L"SID");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 65, L"Heap Size");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 55, L"Input");
+            PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
+            {
+                EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);
+                NtClose(hWinStation);
+            }
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PVOID* listviewItems;
+            ULONG numberOfItems;
+
+            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+            if (numberOfItems != 0)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM item;
+                HWND ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(ListViewHandle, &point);
+
+                menu = PhCreateEMenu();
+
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                PhInsertCopyListViewEMenuItem(menu, IDC_COPY, ListViewHandle);
+
+                item = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    point.x,
+                    point.y
+                );
+
+                if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
+                {
+                    switch (item->Id)
+                    {
+                    case IDC_COPY:
+                        PhCopyListView(ListViewHandle);
+                        break;
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+        }
+        break;
     }
 
     return FALSE;
