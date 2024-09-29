@@ -839,42 +839,6 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     return FALSE;
 }
 
-FORCEINLINE PVOID EtpGenericPropertyPageHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ ULONG ContextHash
-    )
-{
-    PVOID context;
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-    {
-        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-
-        context = (PVOID)propSheetPage->lParam;
-        PhSetWindowContext(hwndDlg, ContextHash, context);
-    }
-    break;
-    case WM_NCDESTROY:
-    {
-        context = PhGetWindowContext(hwndDlg, ContextHash);
-        PhRemoveWindowContext(hwndDlg, ContextHash);
-    }
-    break;
-    default:
-    {
-        context = PhGetWindowContext(hwndDlg, ContextHash);
-    }
-    break;
-    }
-
-    return context;
-}
-
 PPH_STRING EtGetAccessString(
     _In_ PPH_STRING TypeName,
     _In_ ACCESS_MASK access
@@ -921,7 +885,40 @@ PPH_STRING EtGetAccessString(
     return AccessString;
 }
 
-VOID EtpEnumObjectHandles(
+typedef struct _SEARCH_HANDLE_CONTEXT
+{
+    PPH_STRING SearchObjectName;
+    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
+    HANDLE ProcessHandle;
+    PPH_LIST SearchResults;
+    PPH_QUEUED_LOCK SearchResultsLock;
+} SEARCH_HANDLE_CONTEXT, * PSEARCH_HANDLE_CONTEXT;
+
+static NTSTATUS NTAPI EtpSearchHandleFunction(
+    _In_ PVOID Parameter
+)
+{
+    PSEARCH_HANDLE_CONTEXT handleContext = Parameter;
+    PPH_STRING ObjectName;
+
+    if (NT_SUCCESS(PhGetHandleInformation(handleContext->ProcessHandle, (HANDLE)handleContext->HandleInfo->HandleValue,
+        handleContext->HandleInfo->ObjectTypeIndex, NULL, NULL, &ObjectName, NULL)))
+    {
+        if (PhStartsWithString(ObjectName, handleContext->SearchObjectName, TRUE))
+        {
+            PhAcquireQueuedLockExclusive(handleContext->SearchResultsLock);
+            PhAddItemList(handleContext->SearchResults, handleContext->HandleInfo);
+            PhReleaseQueuedLockExclusive(handleContext->SearchResultsLock);
+        }
+        PhDereferenceObject(ObjectName);
+    }
+
+    PhFree(handleContext);
+
+    return STATUS_SUCCESS;
+}
+
+INT EtpEnumObjectHandles(
     _In_ PCOMMON_PAGE_CONTEXT context
     )
 {
@@ -934,125 +931,206 @@ VOID EtpEnumObjectHandles(
         PhEndInitOnce(&initOnce);
     }
 
+    COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
     COLORREF ColorOwnObject = PhGetIntegerSetting(L"ColorOwnProcesses");
     COLORREF ColorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
     COLORREF ColorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
     COLORREF ColorProtectedInherit = PhGetIntegerSetting(L"ColorPartiallySuspended");
-    COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
+
+    INT OwnHandlesIndex = 0;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
-    ULONG i;
-    ULONG OwnHandlesIndex = 0;
-    BOOLEAN useKsi = KsiLevel() >= KphLevelMed;
-    
+    ULONG_PTR i;
+    ULONG SourceTypeIndex;
+
     BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
     BOOLEAN isAlpcPort = PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE);
     BOOLEAN isRegKey = PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE);
+    BOOLEAN isTypeObject = PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE);
 
-    ULONG SourceTypeIndex = isDevice ? FileTypeIndex : context->HandleItem->TypeIndex;  // HACK
+    if (isDevice)
+        SourceTypeIndex = FileTypeIndex;    // HACK
+    else if (isTypeObject)
+        SourceTypeIndex = PhGetObjectTypeNumber(&context->HandleItem->ObjectName->sr);   // HACK
+    else
+        SourceTypeIndex = context->HandleItem->TypeIndex;
+
+    BOOLEAN useWorkQueue = isDevice && KsiLevel() < KphLevelMed;
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
+        PPH_LIST SearchResults = PhCreateList(128);
+        PH_WORK_QUEUE workQueue;
+        PH_QUEUED_LOCK SearchResultsLock = { 0 };
+
+        PPH_HASHTABLE processHandleHashtable = PhCreateSimpleHashtable(8);
+        PVOID* processHandlePtr;
+        HANDLE processHandle;
+        PPH_STRING ObjectName;
+        BOOLEAN ObjectNameMath;
+        
+        if (useWorkQueue)
+            PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
+
         for (i = 0; i < handles->NumberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
-            INT lvItemIndex;
-            WCHAR value[PH_INT64_STR_LEN_1];
-            BOOLEAN ObjectNameMath;
-            HANDLE dupHandle;
-            PPH_STRING bestObjectName;
-            PHANDLE_ENTRY entry;
-            PPH_STRING processName;
-            PPH_STRING accessString;
-            CLIENT_ID ClientId = { 0 };
 
             // Skip other types
             if (handleInfo->ObjectTypeIndex != SourceTypeIndex)
                 continue;
 
-            ObjectNameMath = FALSE;
+            ObjectNameMath = isTypeObject;
 
             // Lookup for matches in object name to find more handles for ALPC Port, File, Key
-            if (isAlpcPort)
+            if (isAlpcPort || isDevice || isRegKey)
             {
-                if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
-                    (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
+                // Open a handle to the process if we don't already have one.
+                processHandlePtr = PhFindItemSimpleHashtable(
+                    processHandleHashtable,
+                    (PVOID)handleInfo->UniqueProcessId
+                );
+
+                if (processHandlePtr)
+                    processHandle = (HANDLE)*processHandlePtr;
+                else
                 {
-                    if (NT_SUCCESS(PhGetHandleInformation(NtCurrentProcess(), dupHandle,
-                        handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &bestObjectName)))
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+                        (HANDLE)handleInfo->UniqueProcessId
+                    )))
                     {
-                        ObjectNameMath = PhFindStringInStringRef(&bestObjectName->sr, &context->HandleItem->ObjectName->sr, TRUE) != MAXULONG_PTR;
-                        PhDereferenceObject(bestObjectName);
+                        PhAddItemSimpleHashtable(
+                            processHandleHashtable,
+                            (PVOID)handleInfo->UniqueProcessId,
+                            processHandle
+                        );
                     }
-                    NtClose(dupHandle);
+                    else
+                        continue;
                 }
-            }
-            // If we're dealing with a file handle we must take special precautions so we don't hang.
-            else if (isDevice && useKsi || isRegKey)
-            {
-                if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&dupHandle, READ_CONTROL,
-                    (HANDLE)handleInfo->UniqueProcessId, (HANDLE)handleInfo->HandleValue)))
+
+                if (isAlpcPort)
                 {
-                    if (NT_SUCCESS(PhGetHandleInformation(NtCurrentProcess(), dupHandle,
-                        handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &bestObjectName)))
+                    if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
+                        handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &ObjectName)))
                     {
-                        ObjectNameMath = PhStartsWithString(bestObjectName, context->HandleItem->BestObjectName, TRUE);
-                        PhDereferenceObject(bestObjectName);
+                        if (PhEndsWithString(ObjectName, context->HandleItem->BestObjectName, TRUE))    // HACK
+                            ObjectNameMath = TRUE;
+                        PhDereferenceObject(ObjectName);
                     }
-                    NtClose(dupHandle);
+                }
+                else
+                {
+                    // If we're dealing with a file handle we must take special precautions so we don't hang.
+                    if (useWorkQueue)
+                    {
+                        PSEARCH_HANDLE_CONTEXT searchContext = PhAllocate(sizeof(SEARCH_HANDLE_CONTEXT));
+                        searchContext->SearchObjectName = context->HandleItem->BestObjectName;
+                        searchContext->ProcessHandle = processHandle;
+                        searchContext->HandleInfo = handleInfo;
+                        searchContext->SearchResults = SearchResults;
+                        searchContext->SearchResultsLock = &SearchResultsLock;
+
+                        PhQueueItemWorkQueue(&workQueue, EtpSearchHandleFunction, searchContext);
+                        continue;
+                    }
+
+                    if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
+                        handleInfo->ObjectTypeIndex, NULL, NULL, &ObjectName, NULL)))
+                    {
+                        if (PhStartsWithString(ObjectName, context->HandleItem->BestObjectName, TRUE))
+                            ObjectNameMath = TRUE;
+                        PhDereferenceObject(ObjectName);
+                    }
                 }
             }
 
             if (handleInfo->Object == context->HandleItem->Object || ObjectNameMath)
             {
-                // Skip Object Manager own handles
-                if ((HANDLE)handleInfo->UniqueProcessId == NtCurrentProcessId() &&
-                    PhFindItemList(EtObjectManagerOwnHandles, (PVOID)handleInfo->HandleValue) != ULONG_MAX)
-                {
-                    continue;
-                }
-
-                entry = PhAllocateZero(sizeof(HANDLE_ENTRY));
-                entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
-                entry->HandleItem = PhCreateHandleItem(handleInfo);
-                entry->Color = ColorNormal;
-
-                ClientId.UniqueProcess = entry->ProcessId;
-                processName = PH_AUTO(PhGetClientIdName(&ClientId));
-                lvItemIndex = PhAddListViewItem(
-                    context->ListViewHandle,
-                    handleInfo->Object == context->HandleItem->Object ? OwnHandlesIndex++ : MAXINT,
-                    PhGetString(processName), entry);
-
-                PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
-
-                accessString = PH_AUTO(EtGetAccessString(context->HandleItem->TypeName, handleInfo->GrantedAccess));
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetString(accessString));
-
-                switch (handleInfo->HandleAttributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
-                {
-                case OBJ_PROTECT_CLOSE:
-                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected");
-                    entry->Color = ColorProtected;
-                    break;
-                case OBJ_INHERIT:
-                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Inherit");
-                    entry->Color = ColorInherit;
-                    break;
-                case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
-                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected, Inherit");
-                    entry->Color = ColorProtectedInherit;
-                    break;
-                }
-
-                // Highlight own object handles
-                if (handleInfo->Object == context->HandleItem->Object)
-                    entry->Color = ColorOwnObject;
+                PhAcquireQueuedLockExclusive(&SearchResultsLock);
+                PhAddItemList(SearchResults, handleInfo);
+                PhReleaseQueuedLockExclusive(&SearchResultsLock);
             }
         }
 
+        if (useWorkQueue)
+        {
+            PhWaitForWorkQueue(&workQueue);
+            PhDeleteWorkQueue(&workQueue);
+        }
+
+        {
+            PPH_KEY_VALUE_PAIR entry;
+            ULONG i = 0;
+
+            while (PhEnumHashtable(processHandleHashtable, &entry, &i))
+                NtClose((HANDLE)entry->Value);
+
+            PhDereferenceObject(processHandleHashtable);
+        }
+
+        INT lvItemIndex;
+        WCHAR value[PH_INT64_STR_LEN_1];
+        PHANDLE_ENTRY entry;
+        PPH_STRING columnString;
+        CLIENT_ID ClientId = { 0 };
+
+        for (i = 0; i < SearchResults->Count; i++)
+        {
+            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = SearchResults->Items[i];
+
+            // Skip Object Manager own handles
+            if ((HANDLE)handleInfo->UniqueProcessId == NtCurrentProcessId() &&
+                PhFindItemList(EtObjectManagerOwnHandles, (PVOID)handleInfo->HandleValue) != ULONG_MAX)
+            {
+                continue;
+            }
+
+            entry = PhAllocateZero(sizeof(HANDLE_ENTRY));
+            entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
+            entry->HandleItem = PhCreateHandleItem(handleInfo);
+            entry->Color = ColorNormal;
+
+            ClientId.UniqueProcess = entry->ProcessId;
+            columnString = PH_AUTO(PhGetClientIdName(&ClientId));
+            lvItemIndex = PhAddListViewItem(
+                context->ListViewHandle,
+                handleInfo->Object == context->HandleItem->Object ? OwnHandlesIndex++ : MAXINT,     // object own handles first
+                PhGetString(columnString), entry);
+
+            PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, value);
+
+            columnString = PH_AUTO(EtGetAccessString(context->HandleItem->TypeName, handleInfo->GrantedAccess));
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetString(columnString));
+
+            switch (handleInfo->HandleAttributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
+            {
+            case OBJ_PROTECT_CLOSE:
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected");
+                entry->Color = ColorProtected;
+                break;
+            case OBJ_INHERIT:
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Inherit");
+                entry->Color = ColorInherit;
+                break;
+            case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, L"Protected, Inherit");
+                entry->Color = ColorProtectedInherit;
+                break;
+            }
+
+            // Highlight own object handles
+            if (handleInfo->Object == context->HandleItem->Object)
+                entry->Color = ColorOwnObject;
+        }
+
+        PhDereferenceObject(SearchResults);
         PhFree(handles);
     }
+
+    return OwnHandlesIndex;
 }
 
 VOID EtpShowHandleProperties(
@@ -1134,12 +1212,22 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     _In_ LPARAM lParam
 )
 {
-    PCOMMON_PAGE_CONTEXT context;
+    PCOMMON_PAGE_CONTEXT context = NULL;
 
-    context = EtpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
 
     if (!context)
-        return FALSE;
+        return TRUE;
 
     switch (uMsg)
     {
@@ -1162,13 +1250,25 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
-            EtpEnumObjectHandles(context);
+            INT OwnHandlesCount = EtpEnumObjectHandles(context);
+            INT TotalHandlesCount = ListView_GetItemCount(context->ListViewHandle);
 
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+            WCHAR string[PH_INT64_STR_LEN_1];
+            PhPrintUInt32(string, TotalHandlesCount);
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESTOTAL), string);
+            PhPrintUInt32(string, OwnHandlesCount);
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYOBJECT), string);
+            PhPrintUInt32(string, TotalHandlesCount - OwnHandlesCount);
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYNAME), string);
+
+            if (PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE))
+                PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYNAME_L), L"By type:");
         }
         break;
     case WM_DESTROY:
@@ -1188,6 +1288,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PhFree(entry);
                 }
             }
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_KEYDOWN:
@@ -1380,12 +1486,22 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ LPARAM lParam
 )
 {
-    PCOMMON_PAGE_CONTEXT context;
+    PCOMMON_PAGE_CONTEXT context = NULL;
 
-    context = EtpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
 
     if (!context)
-        return FALSE;
+        return TRUE;
 
     switch (uMsg)
     {
@@ -1397,10 +1513,10 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 130, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 110, L"SID");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 65, L"Heap Size");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 55, L"Input");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 152, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 105, L"SID");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 62, L"Heap Size");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 45, L"Input");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
 
@@ -1415,6 +1531,12 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_NOTIFY:

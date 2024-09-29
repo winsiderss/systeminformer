@@ -144,10 +144,6 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     _In_opt_ PVOID Context
     );
 
-NTSTATUS NTAPI EtpStartResolverThread(
-    POBJECT_CONTEXT Context
-    );
-
 NTSTATUS EtpObjectManagerOpenRealObject(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
@@ -1763,7 +1759,7 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
                 NULL
             )))
             {
-                // We will remove access row in EtHandlePropertiesWindowPreOpen callback
+                // We will remove access row in EtHandlePropertiesWindowInitialized callback
                 //handleItem->GrantedAccess = objectInfo.GrantedAccess;
                 handleItem->Attributes = objectInfo.Attributes;
                 EtObjectManagerTimeCached = objectInfo.CreationTime;

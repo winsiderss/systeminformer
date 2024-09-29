@@ -330,7 +330,7 @@ VOID PhShowHandlePropertiesEx(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM HandleItem,
-    _In_ PPH_PLUGIN OwnerPlugin,
+    _In_opt_ PPH_PLUGIN OwnerPlugin,
     _In_opt_ PWSTR Caption
 )
 {

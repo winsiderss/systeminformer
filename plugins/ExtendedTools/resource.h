@@ -125,6 +125,10 @@
 #define IDC_RESETSORT                   1126
 #define IDC_OPENFILELOCATION            1127
 #define IDC_CLOSEHANDLE                 1128
+#define IDC_OBJ_HANDLESTOTAL            1129
+#define IDC_OBJ_HANDLESBYOBJECT         1130
+#define IDC_OBJ_HANDLESBYNAME           1131
+#define IDC_OBJ_HANDLESBYNAME_L         1132
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -195,9 +199,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        171
+#define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1127
+#define _APS_NEXT_CONTROL_VALUE         1133
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
