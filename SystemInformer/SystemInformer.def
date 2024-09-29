@@ -1138,3 +1138,4 @@ EXPORTS
     PhOpenDevice                                                                  @2047     NONAME
     PhOpenObjectByTypeIndex                                                       @2048     NONAME
     PhGetObjectTypeIndexName                                                      @2049     NONAME
+    PhGetPnPDeviceName                                                            @2050     NONAME

@@ -175,6 +175,7 @@ typedef enum _ET_OBJECT_GENERAL_INDEX {
     OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH,
     OBJECT_GENERAL_INDEX_DEVICEDRVHIGH,
     OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH,
+    OBJECT_GENERAL_INDEX_DEVICEPNPNAME,
 
     OBJECT_GENERAL_INDEX_DRIVERIMAGE,
 
@@ -305,6 +306,9 @@ VOID EtHandlePropertiesWindowInitialized(
             EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH] = PhAddListViewGroupItem(context->ListViewHandle,
                 OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH, L"Upper-edge driver Image", NULL);
 
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEPNPNAME, L"PnP Device Name", NULL);
+
             if (NT_SUCCESS(PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &context->HandleItem->BestObjectName->sr, TRUE)))
             {
                 if (NT_SUCCESS(PhGetDriverName(DriverHandle, &driverName)))
@@ -339,6 +343,13 @@ VOID EtHandlePropertiesWindowInitialized(
 
                 NtClose(DriverHandle);
                 NtClose(objectHandle);
+            }
+
+            PPH_STRING devicePdoName = PhGetPnPDeviceName(context->HandleItem->BestObjectName);
+            if (devicePdoName)
+            {
+                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME], 1, PhGetString(devicePdoName));
+                PhDereferenceObject(devicePdoName);
             }
         }
         // Show Driver image information
@@ -945,6 +956,7 @@ INT EtpEnumObjectHandles(
     BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
     BOOLEAN isAlpcPort = PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE);
     BOOLEAN isRegKey = PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE);
+    BOOLEAN isWinSta = PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE);
     BOOLEAN isTypeObject = PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE);
 
     if (isDevice)
@@ -953,8 +965,6 @@ INT EtpEnumObjectHandles(
         SourceTypeIndex = PhGetObjectTypeNumber(&context->HandleItem->ObjectName->sr);   // HACK
     else
         SourceTypeIndex = context->HandleItem->TypeIndex;
-
-    BOOLEAN useWorkQueue = isDevice && KsiLevel() < KphLevelMed;
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -967,7 +977,8 @@ INT EtpEnumObjectHandles(
         HANDLE processHandle;
         PPH_STRING ObjectName;
         BOOLEAN ObjectNameMath;
-        
+        BOOLEAN useWorkQueue = isDevice && KsiLevel() < KphLevelMed;
+
         if (useWorkQueue)
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
 
@@ -982,7 +993,7 @@ INT EtpEnumObjectHandles(
             ObjectNameMath = isTypeObject;
 
             // Lookup for matches in object name to find more handles for ALPC Port, File, Key
-            if (isAlpcPort || isDevice || isRegKey)
+            if (isAlpcPort || isDevice || isRegKey || isWinSta)
             {
                 // Open a handle to the process if we don't already have one.
                 processHandlePtr = PhFindItemSimpleHashtable(

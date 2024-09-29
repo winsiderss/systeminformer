@@ -29,8 +29,8 @@ static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 
 typedef enum _ET_OBJECT_TYPE
 {
-    OBJECT_DIRECTORY = 0,
-    OBJECT_GENERIC,
+    OBJECT_UNKNOWN = 0,
+    OBJECT_DIRECTORY,
     OBJECT_SYMLINK,
     OBJECT_EVENT,
     OBJECT_MUTANT,
@@ -62,6 +62,7 @@ typedef struct _ET_OBJECT_ENTRY
     ET_OBJECT_TYPE TypeIndex;
     BOOL TargetIsResolving;
     CLIENT_ID TargetClientId;
+    BOOLEAN PdoDevice;
 } ET_OBJECT_ENTRY, *POBJECT_ENTRY;
 
 typedef struct _ET_OBJECT_ITEM
@@ -108,6 +109,14 @@ typedef struct _RESOLVER_THREAD_CONTEXT
     BOOL Break;
     POBJECT_CONTEXT Context;
 } RESOLVER_THREAD_CONTEXT, * PRESOLVER_THREAD_CONTEXT;
+
+typedef struct _RESOLVER_WORK_THREAD_CONTEXT
+{
+    POBJECT_CONTEXT Context;
+    POBJECT_ENTRY entry;
+    INT ItemIndex;
+    //BOOLEAN SortItems;
+} RESOLVER_WORK_THREAD_CONTEXT, * PRESOLVER_WORK_THREAD_CONTEXT;
 
 NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ HWND TreeViewHandle,
@@ -492,13 +501,12 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
     {
         INT index;
         POBJECT_ENTRY entry;
-        BOOLEAN useKsi;
+        BOOLEAN useKsi = KsiLevel() >= KphLevelMed;;
 
         entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
         entry->Name = PhCreateString2(Name);
         entry->TypeName = PhCreateString2(TypeName);
-        entry->TypeIndex = OBJECT_GENERIC;
-
+        entry->TypeIndex = OBJECT_UNKNOWN;
 
         if (PhEqualStringRef2(TypeName, L"ALPC Port", TRUE))
         {
@@ -515,6 +523,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         else if (PhEqualStringRef2(TypeName, L"Device", TRUE))
         {
             entry->TypeIndex = OBJECT_DEVICE;
+        }
+        else if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
+        {
+            entry->TypeIndex = OBJECT_DIRECTORY;
         }
         else if (PhEqualStringRef2(TypeName, L"Driver", TRUE))
         {
@@ -580,8 +592,6 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         index = PhAddListViewItem(Context->ListViewHandle, MAXINT, LPSTR_TEXTCALLBACK, entry);
         PhSetListViewItemImageIndex(Context->ListViewHandle, index, entry->TypeIndex);
 
-        useKsi = KsiLevel() >= KphLevelMed;
-
         if (entry->TypeIndex == OBJECT_SYMLINK)
         {
             NTSTATUS status;
@@ -610,25 +620,11 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
 
             PhDereferenceObject(objectContext.CurrentPath);
         }
-        else if (entry->TypeIndex == OBJECT_DEVICE && useKsi)
-        {
-            // Extremely slow open of \Device folder (several seconds), PhCreateFile returns STATUS_IO_TIMEOUT and it took forever
-            // Use separate resolve thread PhpTargetResolverThreadStart, starts from EtEnumCurrentDirectoryObjects
-            entry->TargetIsResolving = TRUE;
-        }
-        else if (entry->TypeIndex == OBJECT_ALPCPORT && useKsi)
-        {
-            entry->TargetIsResolving = TRUE;
-        }
-        else if (entry->TypeIndex == OBJECT_MUTANT)
-        {
-            entry->TargetIsResolving = TRUE;
-        }
-        else if (entry->TypeIndex == OBJECT_JOB)
-        {
-            entry->TargetIsResolving = TRUE;
-        }
-        else if (entry->TypeIndex == OBJECT_DRIVER && useKsi)
+        else if (entry->TypeIndex == OBJECT_DEVICE ||       // allow resolving without driver for PhGetPnPDeviceName()
+            entry->TypeIndex == OBJECT_ALPCPORT && useKsi ||
+            entry->TypeIndex == OBJECT_MUTANT ||
+            entry->TypeIndex == OBJECT_JOB ||
+            entry->TypeIndex == OBJECT_DRIVER && useKsi)
         {
             entry->TargetIsResolving = TRUE;
         }
@@ -691,38 +687,103 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
             return status;
 }
 
-NTSTATUS PhpTargetResolverThreadStart(
+NTSTATUS EtpTargetResolverWorkThreadStart(
+    _In_ PVOID Parameter
+);
+
+NTSTATUS EtpTargetResolverThreadStart(
     _In_ PVOID Parameter
 )
 {
     PRESOLVER_THREAD_CONTEXT threadContext = Parameter;
     POBJECT_CONTEXT Context = threadContext->Context;
-    PH_AUTO_POOL autoPool;
 
     NTSTATUS status;
-    HANDLE_OPEN_CONTEXT objectContext;
+    PRESOLVER_WORK_THREAD_CONTEXT workContext;
     POBJECT_ENTRY entry;
-    HANDLE objectHandle;
+    PH_WORK_QUEUE workQueue;
     ULONG SortColumn;
     PH_SORT_ORDER SortOrder;
 
-    PhInitializeAutoPool(&autoPool);
+    PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
 
-    objectContext.CurrentPath = PhReferenceObject(Context->CurrentPath);
+    ExtendedListView_GetSort(Context->ListViewHandle, &SortColumn, &SortOrder);
+    BOOLEAN SortItems = SortOrder != NoSortOrder && SortColumn == 2;
 
     for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
     {
+        // Thread was interrupted externally
+        if (threadContext->Break)
+            break;
+
         entry = Context->CurrentDirectoryList->Items[i];
 
-        // Don't check for KSI because resolving was enabled only for valid type & KsiLevel()
         if (!entry->TargetIsResolving)
-            goto resolve_next;
+            continue;
 
-        objectContext.Object = entry;
+        workContext = PhAllocateZero(sizeof(RESOLVER_WORK_THREAD_CONTEXT));
+        workContext->Context = Context;
+        workContext->entry = entry;
+        workContext->ItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
+        //workContext->SortItems = SortItems;
 
-        switch (entry->TypeIndex)
+        PhQueueItemWorkQueue(&workQueue, EtpTargetResolverWorkThreadStart, workContext);
+    }
+
+    PhWaitForWorkQueue(&workQueue);
+    PhDeleteWorkQueue(&workQueue);
+
+    if (!threadContext->Break)
+    {
+        // Reapply sort and filter after done resolving and ensure selected item is visible
+        PPH_STRING curentFilter = PhGetWindowText(Context->SearchBoxHandle);
+        if (!PhIsNullOrEmptyString(curentFilter))
         {
-        case OBJECT_DEVICE:
+            EtpObjectManagerSearchControlCallback(  // HACK
+                (ULONG_PTR)PhGetWindowContext(Context->SearchBoxHandle, SHRT_MAX), Context);
+        }
+        else
+        {
+            if (SortItems)
+            {
+                ExtendedListView_SortItems(Context->ListViewHandle);
+
+                INT index = ListView_GetNextItem(Context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                if (index != INT_ERROR)
+                    ListView_EnsureVisible(Context->ListViewHandle, index, TRUE);
+            }
+        }
+        if (curentFilter)
+            PhDereferenceObject(curentFilter);
+
+        Context->BreakResolverThread = NULL;
+        status = STATUS_SUCCESS;
+    }
+    else
+        status = STATUS_ABANDONED;
+
+    PhFree(threadContext);
+    return status;
+}
+
+NTSTATUS EtpTargetResolverWorkThreadStart(
+    _In_ PVOID Parameter
+)
+{
+    PRESOLVER_WORK_THREAD_CONTEXT threadContext = Parameter;
+    POBJECT_CONTEXT Context = threadContext->Context;
+    POBJECT_ENTRY entry = threadContext->entry;
+
+    NTSTATUS status;
+    HANDLE_OPEN_CONTEXT objectContext;
+    HANDLE objectHandle;
+
+    objectContext.CurrentPath = PhReferenceObject(Context->CurrentPath);
+    objectContext.Object = entry;
+
+    switch (entry->TypeIndex)
+    {
+    case OBJECT_DEVICE:
         {
             HANDLE DriverHandle;
             PPH_STRING deviceName;
@@ -747,10 +808,22 @@ NTSTATUS PhpTargetResolverThreadStart(
                 NtClose(objectHandle);
             }
 
+            // The device might be a PDO... Query the PnP manager for the friendly name of the device.
+            if (!entry->Target)
+            {
+                PPH_STRING devicePdoName = PhGetPnPDeviceName(deviceName);
+
+                if (devicePdoName)
+                {
+                    PhMoveReference(&entry->Target, devicePdoName);
+                    entry->PdoDevice = TRUE;
+                }
+            }
+
             PhDereferenceObject(deviceName);
         }
         break;
-        case OBJECT_ALPCPORT:
+    case OBJECT_ALPCPORT:
         {
             // Using fast connect to port since we only need query connection OwnerProcessId
             if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
@@ -789,7 +862,7 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
-        case OBJECT_MUTANT:
+    case OBJECT_MUTANT:
         {
             if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, 0)))
             {
@@ -810,7 +883,7 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
-        case OBJECT_JOB:
+    case OBJECT_JOB:
         {
             if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY, 0)))
             {
@@ -853,7 +926,7 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
-        case OBJECT_DRIVER:
+    case OBJECT_DRIVER:
         {
             PPH_STRING driverName;
 
@@ -867,56 +940,18 @@ NTSTATUS PhpTargetResolverThreadStart(
             }
         }
         break;
-        }
-
-resolve_next:
-        // Thread was interrupted externally
-        if (threadContext->Break)
-            goto exit_thread;
-
-        if (entry->TargetIsResolving)
-        {
-            // Target resolved successfully, redraw list item
-            entry->TargetIsResolving = FALSE;
-            INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);
-            ListView_RedrawItems(Context->ListViewHandle, index, index);
-        }
     }
 
-    // Reapply sort and filter after done resolving and ensure selected item is visible
-    PPH_STRING curentFilter = PH_AUTO(PhGetWindowText(Context->SearchBoxHandle));
-    if (!PhIsNullOrEmptyString(curentFilter))
-    {
-        EtpObjectManagerSearchControlCallback(  // HACK
-            (ULONG_PTR)PhGetWindowContext(Context->SearchBoxHandle, SHRT_MAX), Context);
-    }
-    else
-    {
-        ExtendedListView_GetSort(Context->ListViewHandle, &SortColumn, &SortOrder);
-        if (SortOrder != NoSortOrder && SortColumn == 2)
-        {
-            ExtendedListView_SortItems(Context->ListViewHandle);
+    // Target was successfully resolved, redraw list entry
+    entry->TargetIsResolving = FALSE;
+    ListView_RedrawItems(Context->ListViewHandle, threadContext->ItemIndex, threadContext->ItemIndex);
+    //if (threadContext->SortItems)
+    //    ExtendedListView_SortItems(Context->ListViewHandle);
 
-            INT index = ListView_GetNextItem(Context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
-            if (index != INT_ERROR)
-                ListView_EnsureVisible(Context->ListViewHandle, index, TRUE);
-        }
-    }
-
-exit_thread:
     PhDereferenceObject(objectContext.CurrentPath);
-
-    if (!threadContext->Break)
-    {
-        Context->BreakResolverThread = NULL;
-        status = STATUS_SUCCESS;
-    }
-    else
-        status = STATUS_ABANDONED;
-
-    PhDeleteAutoPool(&autoPool);
     PhFree(threadContext);
-    return status;
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS EtEnumCurrentDirectoryObjects(
@@ -986,7 +1021,7 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     threadContext->Context = Context;
     Context->BreakResolverThread = &threadContext->Break;
 
-    PhCreateThread2(PhpTargetResolverThreadStart, threadContext);
+    PhCreateThread2(EtpTargetResolverThreadStart, threadContext);
 
     return STATUS_SUCCESS;
 }
@@ -1686,7 +1721,7 @@ cleanup_exit:
     return status;
 }
 
-NTSTATUS NTAPI EtpObjectManagerObjectProperties(
+VOID NTAPI EtpObjectManagerObjectProperties(
     _In_ HWND hwndDlg,
     _In_ POBJECT_CONTEXT context,
     _In_ POBJECT_ENTRY entry)
@@ -1713,78 +1748,70 @@ NTSTATUS NTAPI EtpObjectManagerObjectProperties(
         status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL);
     }
 
-    if (NT_SUCCESS(status) || entry->TypeIndex == OBJECT_TYPE) // special bypass to show Type information without KSI
+    PPH_HANDLE_ITEM handleItem;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo = { 0 };
+    OBJECT_BASIC_INFORMATION objectInfo;
+
+    handleItem = PhCreateHandleItem(&HandleInfo);
+    handleItem->Handle = objectHandle;
+    handleItem->ObjectName = PhReferenceObject(entry->Name);
+
+    switch (entry->TypeIndex)
     {
-        PPH_HANDLE_ITEM handleItem;
-        SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo = { 0 };
-        OBJECT_BASIC_INFORMATION objectInfo;
-
-        handleItem = PhCreateHandleItem(&HandleInfo);
-        handleItem->Handle = objectHandle;
-        handleItem->ObjectName = PhReferenceObject(entry->Name);
-
-        switch (entry->TypeIndex)
-        {
-        case OBJECT_DIRECTORY:
-            handleItem->TypeName = PhCreateString(L"Directory");
-            break;
-        default:
-            handleItem->TypeName = PhReferenceObject(entry->TypeName);
-            break;
-        }
-
-        if (entry->TypeIndex == OBJECT_DIRECTORY)
-            handleItem->BestObjectName = PhReferenceObject(context->CurrentPath);
-        else if (PhEqualStringRef(&context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
-            handleItem->BestObjectName = PhFormatString(L"%s%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
-        else
-            handleItem->BestObjectName = PhFormatString(L"%s\\%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
-
-        if (objectHandle)
-        {
-            // Get object address and type index
-            EtpObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
-
-            // Show only real source object address
-            if (status == STATUS_NOT_ALL_ASSIGNED)
-                handleItem->Object = 0;
-
-            if (NT_SUCCESS(status = PhGetHandleInformation(
-                NtCurrentProcess(),
-                objectHandle,
-                ULONG_MAX,
-                &objectInfo,
-                NULL,
-                NULL,
-                NULL
-            )))
-            {
-                // We will remove access row in EtHandlePropertiesWindowInitialized callback
-                //handleItem->GrantedAccess = objectInfo.GrantedAccess;
-                handleItem->Attributes = objectInfo.Attributes;
-                EtObjectManagerTimeCached = objectInfo.CreationTime;
-            }
-
-            PhReferenceObject(EtObjectManagerOwnHandles);
-            PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
-        }
-        else
-        {
-            status = STATUS_NOT_ALL_ASSIGNED;
-        }
-
-        EtObjectManagerPropWndIcon = PhImageListGetIcon(context->ListImageList, entry->TypeIndex, ILD_NORMAL | ILD_TRANSPARENT);
-
-        // Object Manager plugin window
-        PhShowHandlePropertiesEx(hwndDlg, NtCurrentProcessId(), handleItem, PluginInstance, L"Object");
+    case OBJECT_DIRECTORY:
+        handleItem->TypeName = PhCreateString(L"Directory");
+        break;
+    default:
+        handleItem->TypeName = PhReferenceObject(entry->TypeName);
+        break;
     }
 
+    if (entry->TypeIndex == OBJECT_DIRECTORY)
+        handleItem->BestObjectName = PhReferenceObject(context->CurrentPath);
+    else if (PhEqualStringRef(&context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
+        handleItem->BestObjectName = PhFormatString(L"%s%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
+    else
+        handleItem->BestObjectName = PhFormatString(L"%s\\%s", PhGetString(context->CurrentPath), PhGetString(entry->Name));
+
+    if (objectHandle)
+    {
+        // Get object address and type index
+        EtpObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
+
+        // Show only real source object address
+        if (status == STATUS_NOT_ALL_ASSIGNED)
+            handleItem->Object = 0;
+
+        if (NT_SUCCESS(status = PhGetHandleInformation(
+            NtCurrentProcess(),
+            objectHandle,
+            ULONG_MAX,
+            &objectInfo,
+            NULL,
+            NULL,
+            NULL
+        )))
+        {
+            // We will remove access row in EtHandlePropertiesWindowInitialized callback
+            //handleItem->GrantedAccess = objectInfo.GrantedAccess;
+            handleItem->Attributes = objectInfo.Attributes;
+            EtObjectManagerTimeCached = objectInfo.CreationTime;
+        }
+
+        PhReferenceObject(EtObjectManagerOwnHandles);
+        PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
+    }
+    else
+    {
+        handleItem->TypeIndex = PhGetObjectTypeNumber(&entry->TypeName->sr);
+    }
+
+    EtObjectManagerPropWndIcon = PhImageListGetIcon(context->ListImageList, entry->TypeIndex, ILD_NORMAL | ILD_TRANSPARENT);
+
+    // Object Manager plugin window
+    PhShowHandlePropertiesEx(hwndDlg, NtCurrentProcessId(), handleItem, PluginInstance, L"Object");
+
     PhDereferenceObject(context->CurrentPath);
-
-    if (!NT_SUCCESS(status))
-        PhShowStatus(hwndDlg, L"Unable to open object type.", status, 0);
-
-    return status;
 }
 
 VOID NTAPI EtpObjectManagerOpenTarget(
@@ -2470,7 +2497,7 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     menu = PhCreateEMenu();
 
-                    BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target);
+                    BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target) && !entry->PdoDevice;
                     BOOLEAN isSymlink = entry->TypeIndex == OBJECT_SYMLINK;
                     PPH_EMENU_ITEM propMenuItem;
                     PPH_EMENU_ITEM secMenuItem;

@@ -1069,5 +1069,6 @@
 #define EXPORT_PHOPENDEVICE                                                                   2047    
 #define EXPORT_PHOPENOBJECTBYTYPEINDEX                                                        2048    
 #define EXPORT_PHGETOBJECTTYPEINDEXNAME                                                       2049    
+#define EXPORT_PHGETPNPDEVICENAME                                                             2050    
 
 #endif _PH_EXPORT_DEF_H
