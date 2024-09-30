@@ -506,6 +506,24 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhFree(objectTypes);
             }
         }
+        // HACK for \REGISTRY permissions
+        else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
+            PhEqualString2(context->HandleItem->BestObjectName, L"\\REGISTRY", TRUE))
+        {
+            OBJECT_ATTRIBUTES objectAttributes;
+            UNICODE_STRING objectName;
+            HANDLE registryHandle;
+
+            PhStringRefToUnicodeString(&context->HandleItem->BestObjectName->sr, &objectName);
+            InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+            if (NT_SUCCESS(NtOpenKey(&registryHandle, READ_CONTROL | WRITE_DAC, &objectAttributes)))
+            {
+                NtClose(context->HandleItem->Handle);
+                PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
+                context->HandleItem->Handle = registryHandle;
+                PhAddItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle);
+            }
+        }
 
         // Remove irrelevant information if we couldn't open real object
         if (PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE))

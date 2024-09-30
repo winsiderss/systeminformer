@@ -1688,7 +1688,7 @@ NTSTATUS EtpObjectManagerGetHandleInfoEx(
                     *ObjectAddres = handles->Handles[i].Object;
                     *TypeIndex = handles->Handles[i].ObjectTypeIndex;
                     status = STATUS_SUCCESS;
-                    goto cleanup_exit;
+                    break;
                 }
             }
         }
@@ -1709,13 +1709,12 @@ NTSTATUS EtpObjectManagerGetHandleInfoEx(
                     *ObjectAddres = handles->Handles[i].Object;
                     *TypeIndex = handles->Handles[i].ObjectTypeIndex;
                     status = STATUS_SUCCESS;
-                    goto cleanup_exit;
+                    break;
                 }
             }
         }
     }
 
-cleanup_exit:
     if (buffer)
         PhFree(buffer);
     return status;

@@ -253,7 +253,7 @@ VOID InitializeFwTreeList(
 
     InitializeFwTreeListDpi(FwTreeNewHandle);
 
-    PhSetControlTheme(FwTreeNewHandle, L"explorer");
+    PhSetControlTheme(FwTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
 
