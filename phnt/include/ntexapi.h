@@ -1587,7 +1587,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPointerAuthInformation, // SYSTEM_POINTER_AUTH_INFORMATION
     SystemSecureKernelDebuggerInformation,
     SystemOriginalImageFeatureInformation, // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
-    SystemMemoryNumaInformation, // SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT 
+    SystemMemoryNumaInformation, // SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT
     SystemMemoryNumaPerformanceInformation, // SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUTSYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
     SystemCodeIntegritySignedPoliciesFullInformation,
     SystemSecureSecretsInformation,
@@ -3853,6 +3853,14 @@ typedef struct _SYSTEM_HYPERVISOR_DETAIL_INFORMATION
 // private
 typedef struct _SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
 {
+    //
+    // First index is bucket (see: PoGetFrequencyBucket) selected based on latest frequency percent
+    // using _KPRCB.PowerState.FrequencyBucketThresholds.
+    //
+    // Second index is _KPRCB.PowerState.ArchitecturalEfficiencyClass, accounting for architecture
+    // dependent KeHeteroSystem and using _KPRCB.PowerState.EarlyBootArchitecturalEfficiencyClass
+    // instead, when appropriate.
+    //
     ULONGLONG Cycles[4][2];
 } SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION, *PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION;
 

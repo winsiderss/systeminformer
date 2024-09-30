@@ -2075,6 +2075,19 @@ VOID PhpEstimateIdleCyclesForARM(
 {
     // EXPERIMENTAL (jxy-s)
     //
+    // Update (2024-09-29) - 24H2 is now estimating the cycle counts for idle threads in the kernel
+    // making this routine obsolete. However, this means that the idle thread cycle counts returned
+    // from the kernel is not a reflection of the actual CPU effort of the idle threads. In other
+    // words the idle threads now represent the percentage of the CPU *not* being used by other
+    // processes, as it does on other architectures. The kernel has also broadly changed the cycle
+    // accounting across the entire system to no longer use PMCCNTR_EL0 and instead it uses
+    // KeQueryPerformanceCounter. This means it is currently impossible to represent the cycle
+    // accounting in a way best suited for the ARM architecture. The kernel appears to have opted
+    // for more consistency between architectures instead of accuracy for ARM.
+    //
+    assert(WindowsVersion < WINDOWS_11_24H2);
+
+    //
     // The kernel uses PMCCNTR_EL0 for CycleTime in threads and the processor control blocks.
     // Here is a snippet from ntoskrnl!KiIdleLoop:
     /*
@@ -2279,7 +2292,7 @@ VOID PhProcessProviderUpdate(
         pidBuckets[bucketIndex] = process;
 
 #ifdef _ARM64_ // see: PhpEstimateIdleCyclesForARM (jxy-s)
-        if (PhEnableCycleCpuUsage && process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
+        if (PhEnableCycleCpuUsage && (WindowsVersion >= WINDOWS_11_24H2 || process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID))
 #else
         if (PhEnableCycleCpuUsage)
 #endif
@@ -2434,7 +2447,7 @@ VOID PhProcessProviderUpdate(
     }
 
 #ifdef _ARM64_
-    if (PhEnableCycleCpuUsage)
+    if (PhEnableCycleCpuUsage && WindowsVersion < WINDOWS_11_24H2)
         PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
 #endif
 
