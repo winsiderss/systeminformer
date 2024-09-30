@@ -72,6 +72,7 @@ extern HWND EtObjectManagerDialogHandle;
 extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
 extern HICON EtObjectManagerPropWndIcon;
+extern PPH_HASHTABLE EtObjectManagerPropWnds;
 
 VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
@@ -223,6 +224,12 @@ VOID EtHandlePropertiesWindowInitialized(
 
     if (EtObjectManagerDialogHandle && context->OwnerPlugin == PluginInstance)
     {
+        if (context->HandleItem->Handle)
+        {
+            PhReferenceObject(EtObjectManagerPropWnds);
+            PhAddItemSimpleHashtable(EtObjectManagerPropWnds, context->ParentWindow, context->HandleItem);
+        }
+
         // HACK
         if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
             PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
@@ -235,9 +242,17 @@ VOID EtHandlePropertiesWindowInitialized(
         WCHAR string[PH_INT64_STR_LEN_1];
         ULONG64 real_count;
         PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
-        
-        if (PhStringToUInt64(&count->sr, 0, &real_count) && real_count > 0) {
-            PhPrintUInt32(string, (ULONG)real_count - 1);
+       
+        if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count) && real_count > 0) {
+            ULONG own_count = 0;
+            PPH_KEY_VALUE_PAIR entry;
+            ULONG i = 0;
+
+            while (PhEnumHashtable(EtObjectManagerPropWnds, &entry, &i))
+                if (PhEqualString(context->HandleItem->BestObjectName, ((PPH_HANDLE_ITEM)entry->Value)->BestObjectName, TRUE))
+                    own_count++;
+
+            PhPrintUInt32(string, (ULONG)real_count - own_count);
             PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
         }
 
@@ -345,11 +360,12 @@ VOID EtHandlePropertiesWindowInitialized(
                 NtClose(objectHandle);
             }
 
-            PPH_STRING devicePdoName = PhGetPnPDeviceName(context->HandleItem->BestObjectName);
+            PPH_STRING devicePdoName = PH_AUTO(PhGetPnPDeviceName(context->HandleItem->BestObjectName));
             if (devicePdoName)
             {
-                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME], 1, PhGetString(devicePdoName));
-                PhDereferenceObject(devicePdoName);
+                ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
+                PPH_STRING devicePdoName2 = PH_AUTO(PhSubstring(devicePdoName, 0, column_pos - 5));
+                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME], 1, PhGetString(devicePdoName2));
             }
         }
         // Show Driver image information
@@ -668,6 +684,9 @@ VOID EtHandlePropertiesWindowUninitializing(
 
             PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
             PhDereferenceObject(EtObjectManagerOwnHandles);
+
+            PhRemoveItemSimpleHashtable(EtObjectManagerPropWnds, context->ParentWindow);
+            PhDereferenceObject(EtObjectManagerPropWnds);
         }
 
         PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
@@ -1338,8 +1357,22 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
                     if (numberOfItems == 1)
                     {
-                        EtpShowHandleProperties(hwndDlg, listviewItems[0]);
-                        return TRUE;
+                        if (GetKeyState(VK_CONTROL) < 0)
+                        {
+                            PPH_PROCESS_ITEM processItem;
+
+                            if (processItem = PhReferenceProcessItem(listviewItems[0]->ProcessId))
+                            {
+                                SystemInformer_ShowProcessProperties(processItem);
+                                PhDereferenceObject(processItem);
+                                return TRUE;
+                            }
+                        }
+                        else
+                        {
+                            EtpShowHandleProperties(hwndDlg, listviewItems[0]);
+                            return TRUE;
+                        }
                     }
                 }
                 break;
@@ -1374,7 +1407,22 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PHANDLE_ENTRY entry;
 
                 if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
-                    EtpShowHandleProperties(hwndDlg, entry);
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPH_PROCESS_ITEM processItem;
+
+                        if (processItem = PhReferenceProcessItem(entry->ProcessId))
+                        {
+                            SystemInformer_ShowProcessProperties(processItem);
+                            PhDereferenceObject(processItem);
+                        }
+                    }
+                    else
+                    {
+                        EtpShowHandleProperties(hwndDlg, entry);
+                    }
+                }  
             }
         }
         break;
@@ -1402,7 +1450,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties\bEnter", NULL, NULL), ULONG_MAX);
-                PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process\bCtrl+Enter", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
                 PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);

@@ -23,6 +23,7 @@ static PH_STRINGREF DirectoryObjectType = PH_STRINGREF_INIT(L"Directory");
 HWND EtObjectManagerDialogHandle = NULL;
 LARGE_INTEGER EtObjectManagerTimeCached = {0, 0};
 PPH_LIST EtObjectManagerOwnHandles = NULL;
+PPH_HASHTABLE EtObjectManagerPropWnds = NULL;
 HICON EtObjectManagerPropWndIcon = NULL;
 static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
@@ -811,11 +812,13 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
             // The device might be a PDO... Query the PnP manager for the friendly name of the device.
             if (!entry->Target)
             {
-                PPH_STRING devicePdoName = PhGetPnPDeviceName(deviceName);
-
+                PPH_STRING devicePdoName = PH_AUTO(PhGetPnPDeviceName(deviceName));
                 if (devicePdoName)
                 {
-                    PhMoveReference(&entry->Target, devicePdoName);
+                    ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
+                    PPH_STRING devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos+1);
+                    devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
+                    PhMoveReference(&entry->Target, devicePdoName2);
                     entry->PdoDevice = TRUE;
                 }
             }
@@ -1733,7 +1736,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     objectContext.Object = entry;
 
     if (entry->TypeIndex == OBJECT_DIRECTORY)
-        objectContext.Object->TypeName = PH_AUTO(PhCreateString(L"Directory"));
+        objectContext.Object->TypeName = PhCreateString(L"Directory");
 
     PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
@@ -1754,11 +1757,13 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     handleItem = PhCreateHandleItem(&HandleInfo);
     handleItem->Handle = objectHandle;
     handleItem->ObjectName = PhReferenceObject(entry->Name);
+    EtObjectManagerTimeCached.QuadPart = 0;
 
     switch (entry->TypeIndex)
     {
     case OBJECT_DIRECTORY:
-        handleItem->TypeName = PhCreateString(L"Directory");
+        entry->TypeName = objectContext.Object->TypeName;
+        handleItem->TypeName = entry->TypeName;
         break;
     default:
         handleItem->TypeName = PhReferenceObject(entry->TypeName);
@@ -1808,7 +1813,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     EtObjectManagerPropWndIcon = PhImageListGetIcon(context->ListImageList, entry->TypeIndex, ILD_NORMAL | ILD_TRANSPARENT);
 
     // Object Manager plugin window
-    PhShowHandlePropertiesEx(hwndDlg, NtCurrentProcessId(), handleItem, PluginInstance, L"Object");
+    PhShowHandlePropertiesEx(hwndDlg, NtCurrentProcessId(), handleItem, PluginInstance, PhGetString(entry->TypeName));
 
     PhDereferenceObject(context->CurrentPath);
 }
@@ -1871,7 +1876,7 @@ VOID NTAPI EtpObjectManagerOpenTarget(
             findinfo.psz = directoryPart.Buffer;
             findinfo.flags = LVFI_STRING;
 
-            int item = ListView_FindItem(context->ListViewHandle, -1, &findinfo);
+            INT item = ListView_FindItem(context->ListViewHandle, INT_ERROR, &findinfo);
 
             // Navigate to target object
             if (item != INT_ERROR) {
@@ -1905,7 +1910,14 @@ VOID NTAPI EtpObjectManagerOpenTarget(
         findinfo.psz = namePart.Buffer;
         findinfo.flags = LVFI_STRING;
 
-        int item = ListView_FindItem(context->ListViewHandle, -1, &findinfo);
+        PPH_STRING curentFilter = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
+        if (!PhIsNullOrEmptyString(curentFilter))
+        {
+            PhSetWindowText(context->SearchBoxHandle, NULL);
+            EtpObjectManagerSearchControlCallback(0, context);
+        }
+
+        INT item = ListView_FindItem(context->ListViewHandle, INT_ERROR, &findinfo);
 
         if (item != INT_ERROR) {
             ListView_SetItemState(context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -2107,7 +2119,7 @@ VOID NTAPI EtObjectManagerSortAndSelectOld(
         findinfo.psz = oldSelection->Buffer;
         findinfo.flags = LVFI_STRING;
 
-        INT item = ListView_FindItem(context->ListViewHandle, -1, &findinfo);
+        INT item = ListView_FindItem(context->ListViewHandle, INT_ERROR, &findinfo);
 
         if (item != INT_ERROR) {
             ListView_SetItemState(context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -2183,6 +2195,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             context->CurrentDirectoryList = PhCreateList(100);
             if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
+            if (!EtObjectManagerPropWnds || !PhReferenceObjectSafe(EtObjectManagerPropWnds))
+                EtObjectManagerPropWnds = PhCreateSimpleHashtable(10);
                 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -2268,6 +2282,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                 PhDereferenceObject(context->CurrentDirectoryList);
             if (EtObjectManagerOwnHandles)
                 PhDereferenceObject(EtObjectManagerOwnHandles);
+            if (EtObjectManagerPropWnds)
+                PhDereferenceObject(EtObjectManagerPropWnds);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
@@ -2429,7 +2445,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                         }
                         else if (entry->TypeIndex == OBJECT_SYMLINK && !(GetKeyState(VK_SHIFT) < 0))
                         {
-                            EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                            if (!PhIsNullOrEmptyString(entry->Target))
+                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
                         }  
                         else
                         {
@@ -2792,7 +2809,10 @@ INT_PTR CALLBACK WinObjDlgProc(
                         {
                             if (listviewItems[0]->TypeIndex == OBJECT_SYMLINK)
                             {
-                                EtpObjectManagerOpenTarget(hwndDlg, context, listviewItems[0]);
+                                if (!PhIsNullOrEmptyString(listviewItems[0]->Target))
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, listviewItems[0]);
+                                else
+                                    break;
                             }
                             else
                             {
