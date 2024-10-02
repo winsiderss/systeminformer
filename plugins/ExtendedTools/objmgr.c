@@ -1802,6 +1802,17 @@ VOID NTAPI EtpObjectManagerObjectProperties(
             EtObjectManagerTimeCached = objectInfo.CreationTime;
         }
 
+        // HACK for \REGISTRY permissions
+        if (entry->TypeIndex == OBJECT_KEY && PhEqualString2(handleItem->BestObjectName, L"\\REGISTRY", TRUE))
+        {
+            HANDLE registryHandle;
+            if (NT_SUCCESS(EtObjectManagerOpenHandle(&registryHandle, &objectContext, READ_CONTROL | WRITE_DAC, 0)))
+            {
+                NtClose(objectHandle);
+                handleItem->Handle = objectHandle = registryHandle;
+            }
+        }
+
         PhReferenceObject(EtObjectManagerOwnHandles);
         PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
     }

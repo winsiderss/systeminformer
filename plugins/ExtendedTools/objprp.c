@@ -214,6 +214,8 @@ typedef enum _ET_OBJECT_POOLTYPE {
     PagedPoolSessionNx = NonPagedPoolNx + 33
 } ET_OBJECT_POOLTYPE;
 
+#define OBJECT_CHILD_HANDLEPROP_WND 1
+
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
     )
@@ -522,24 +524,6 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhFree(objectTypes);
             }
         }
-        // HACK for \REGISTRY permissions
-        else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
-            PhEqualString2(context->HandleItem->BestObjectName, L"\\REGISTRY", TRUE))
-        {
-            OBJECT_ATTRIBUTES objectAttributes;
-            UNICODE_STRING objectName;
-            HANDLE registryHandle;
-
-            PhStringRefToUnicodeString(&context->HandleItem->BestObjectName->sr, &objectName);
-            InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-            if (NT_SUCCESS(NtOpenKey(&registryHandle, READ_CONTROL | WRITE_DAC, &objectAttributes)))
-            {
-                NtClose(context->HandleItem->Handle);
-                PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
-                context->HandleItem->Handle = registryHandle;
-                PhAddItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle);
-            }
-        }
 
         // Remove irrelevant information if we couldn't open real object
         if (PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE))
@@ -554,6 +538,33 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, NULL);
             }
         }
+    }
+    else if (((ULONG_PTR)context->OwnerPlugin == ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WND))
+        && !PhIsNullOrEmptyString(context->HandleItem->ObjectName) && !PhEqualString(context->HandleItem->ObjectName, context->HandleItem->BestObjectName, TRUE))
+    {
+        // I don't know why new row always appending in the back. This stupid full rebuild of section only one workaround
+        PPH_STRING accessString = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1));
+        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
+        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT]);
+        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE]);
+        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME]);
+        
+        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME] = PhAddListViewGroupItem(context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 0, L"Name", NULL);
+        INT origNameIndex = PhAddListViewGroupItem(context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 1, L"Original name", NULL);
+        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE] = PhAddListViewGroupItem(context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 2, L"Type", NULL);
+        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT] = PhAddListViewGroupItem(context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 3, L"Object address", NULL);
+        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddListViewGroupItem(context->ListViewHandle,
+            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 4, L"Granted access", NULL);
+
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
+        PhSetListViewSubItem(context->ListViewHandle, origNameIndex, 1, PhGetString(context->HandleItem->ObjectName));
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
     }
 
     // General ET plugin extensions
@@ -1210,7 +1221,7 @@ VOID EtpShowHandleProperties(
     if (!entry->HandleItem->TypeName)
         entry->HandleItem->TypeName = PhGetObjectTypeIndexName(entry->HandleItem->TypeIndex);
 
-    PhShowHandlePropertiesEx(hwndDlg, entry->ProcessId, entry->HandleItem, NULL, NULL);
+    PhShowHandlePropertiesEx(hwndDlg, entry->ProcessId, entry->HandleItem, (PPH_PLUGIN)((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WND), NULL);
 }
 
 VOID EtpCloseObjectHandles(
