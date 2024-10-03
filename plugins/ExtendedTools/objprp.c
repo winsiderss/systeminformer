@@ -955,7 +955,7 @@ typedef struct _SEARCH_HANDLE_CONTEXT
 
 static NTSTATUS NTAPI EtpSearchHandleFunction(
     _In_ PVOID Parameter
-)
+    )
 {
     PSEARCH_HANDLE_CONTEXT handleContext = Parameter;
     PPH_STRING ObjectName;
@@ -1252,11 +1252,11 @@ VOID EtpCloseObjectHandles(
     }
 }
 
-COLORREF NTAPI EtpColorItemColorFunction(
+static COLORREF NTAPI EtpColorItemColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
-)
+    )
 {
     PHANDLE_ENTRY entry = Param;
 
@@ -1269,7 +1269,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PCOMMON_PAGE_CONTEXT context = NULL;
 
@@ -1523,16 +1523,16 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     return FALSE;
 }
 
-BOOL CALLBACK EtpEnumDesktopsCallback(
+static BOOL CALLBACK EtpEnumDesktopsCallback(
     _In_ LPWSTR lpszDesktop,
     _In_ LPARAM lParam
-)
+    )
 {
     PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)lParam;
     HANDLE hDesktop;
     UINT lvItemIndex;
 
-    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, lpszDesktop, 0);
+    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, lpszDesktop, PhCreateString(lpszDesktop));
 
     if (hDesktop = OpenDesktop(lpszDesktop, 0, FALSE, DESKTOP_READOBJECTS))
     {
@@ -1561,10 +1561,83 @@ BOOL CALLBACK EtpEnumDesktopsCallback(
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, !!vInfo ? L"True" : L"False");
         }
 
-        NtClose(hDesktop);
+        CloseDesktop(hDesktop);
     }
 
     return TRUE;
+}
+
+typedef struct _OPEN_DESKTOP_CONTEXT
+{
+    PPH_STRING DesktopName;
+    HANDLE DesktopWinStation;
+    HANDLE CurrentWinStation;
+} OPEN_DESKTOP_CONTEXT, * POPEN_DESKTOP_CONTEXT;
+
+static NTSTATUS EtpOpenSecurityDesktopHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    POPEN_DESKTOP_CONTEXT context = Context;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HDESK desktopHandle;
+
+    if (context->DesktopWinStation) SetProcessWindowStation(context->DesktopWinStation);
+    if (desktopHandle = OpenDesktop(
+        PhGetString(context->DesktopName),
+        0,
+        FALSE,
+        MAXIMUM_ALLOWED
+    ))
+    {
+        *Handle = desktopHandle;
+        status = STATUS_SUCCESS;
+    }
+    if (context->DesktopWinStation) SetProcessWindowStation(context->CurrentWinStation);
+
+    return status;
+}
+
+static NTSTATUS EtpCloseSecurityDesktop(
+    _In_ PVOID Context
+    )
+{
+    POPEN_DESKTOP_CONTEXT context = Context;
+
+    PhClearReference(&context->DesktopName);
+    if (context->DesktopWinStation) NtClose(context->DesktopWinStation);
+    PhFree(context);
+    return STATUS_SUCCESS;
+}
+
+VOID EtOpenDesktopSecurity(
+    PCOMMON_PAGE_CONTEXT context,
+    PPH_STRING deskName
+    )
+{
+    POPEN_DESKTOP_CONTEXT OpenContext = PhAllocateZero(sizeof(OPEN_DESKTOP_CONTEXT));
+    HANDLE hWinStation;
+
+    OpenContext->DesktopName = PhReferenceObject(deskName);
+    OpenContext->CurrentWinStation = GetProcessWindowStation();
+    if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
+    {
+        if (NtCompareObjects(OpenContext->CurrentWinStation, hWinStation) == STATUS_NOT_SAME_OBJECT)
+            OpenContext->DesktopWinStation = hWinStation;
+        else
+            NtClose(hWinStation);
+    }
+
+    PhEditSecurity(
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->WindowHandle,
+        PhGetString(deskName),
+        L"Desktop",
+        EtpOpenSecurityDesktopHandle,
+        EtpCloseSecurityDesktop,
+        OpenContext
+    );
 }
 
 INT_PTR CALLBACK EtpWinStaPageDlgProc(
@@ -1572,7 +1645,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PCOMMON_PAGE_CONTEXT context = NULL;
 
@@ -1612,13 +1685,37 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
             {
+                HANDLE currentStation = GetProcessWindowStation();
+                NTSTATUS status = NtCompareObjects(currentStation, hWinStation);
+                if (status == STATUS_NOT_SAME_OBJECT)
+                    SetProcessWindowStation(hWinStation);
                 EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);
+                if (status == STATUS_NOT_SAME_OBJECT)
+                    SetProcessWindowStation(currentStation);
                 NtClose(hWinStation);
             }
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            INT index = INT_ERROR;
+
+            while ((index = PhFindListViewItemByFlags(
+                context->ListViewHandle,
+                index,
+                LVNI_ALL
+            )) != INT_ERROR)
+            {
+                PPH_STRING deskName;
+                if (PhGetListViewItemParam(context->ListViewHandle, index, &deskName))
+                {
+                    PhDereferenceObject(deskName);
+                }
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -1631,6 +1728,22 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
         {
             PhHandleListViewNotifyBehaviors(lParam, context->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
             REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            if (header->code == NM_DBLCLK)
+            {
+                if (header->hwndFrom != context->ListViewHandle)
+                    break;
+
+                LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
+                PPH_STRING deskName;
+
+                if (deskName = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                {
+                    EtOpenDesktopSecurity(context, deskName);
+                }
+            }
         }
         break;
     case WM_CONTEXTMENU:
@@ -1644,6 +1757,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU_ITEM item;
+                PPH_EMENU_ITEM secMenuItem;
                 HWND ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
                 point.x = GET_X_LPARAM(lParam);
@@ -1654,8 +1768,13 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
                 menu = PhCreateEMenu();
 
+                PhInsertEMenuItem(menu, secMenuItem = PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bEnter", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
                 PhInsertCopyListViewEMenuItem(menu, IDC_COPY, ListViewHandle);
+                PhSetFlagsEMenuItem(menu, IDC_SECURITY, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+                if (numberOfItems > 1)
+                    PhSetDisabledEMenuItem(secMenuItem);
 
                 item = PhShowEMenu(
                     menu,
@@ -1673,6 +1792,9 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                     case IDC_COPY:
                         PhCopyListView(ListViewHandle);
                         break;
+                    case IDC_SECURITY:
+                        EtOpenDesktopSecurity(context, listviewItems[0]);
+                        break;
                     }
                 }
 
@@ -1680,6 +1802,27 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            PPH_STRING* listviewItems;
+            ULONG numberOfItems;
+
+            switch (LOWORD(wParam))
+            {
+            case VK_RETURN:
+                if (GetFocus() == context->ListViewHandle)
+                {
+                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    if (numberOfItems == 1)
+                    {
+                        EtOpenDesktopSecurity(context, listviewItems[0]);
+                        return TRUE;
+                    }
+                }
+                break;
+            }
+            break;
+        }
     }
 
     return FALSE;

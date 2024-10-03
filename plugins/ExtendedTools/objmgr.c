@@ -2052,7 +2052,7 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
     }
 
     PhEditSecurity(
-        hwndDlg,
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->WindowHandle,
         PhGetString(objectContext->Object->Name),
         PhGetString(objectContext->Object->TypeName),
         EtObjectManagerHandleOpenCallback,
