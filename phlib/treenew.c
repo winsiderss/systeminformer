@@ -5631,7 +5631,7 @@ VOID PhTnpPaint(
         // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
         // for headers that have custom text and need invalidating? (dmex)
 
-        if (Context->HeaderHandle && Context->Tracking) // GetCapture() != Context->HeaderHandle)
+        if (Context->HeaderHandle && !Context->Tracking) // GetCapture() != Context->HeaderHandle)
         {
             InvalidateRect(Context->HeaderHandle, NULL, FALSE);
         }
