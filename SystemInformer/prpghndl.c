@@ -73,6 +73,16 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
 
+static VOID NTAPI HandlesUpdateAutomaticallyHandler(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    PhSetEnabledProvider(&handlesContext->ProviderRegistration, (BOOLEAN)PtrToUlong(Parameter));
+}
+
 VOID PhpInitializeHandleMenu(
     _In_ PPH_EMENU Menu,
     _In_ HANDLE ProcessId,
@@ -478,6 +488,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
 
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackUpdateAutomatically),
+                HandlesUpdateAutomaticallyHandler,
+                handlesContext,
+                &handlesContext->ChangedEventRegistration
+                );
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
@@ -503,6 +520,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->Provider->HandleUpdatedEvent,
                 &handlesContext->UpdatedEventRegistration
                 );
+            PhUnregisterCallback(
+                PhGetGeneralCallback(GeneralCallbackUpdateAutomatically),
+                &handlesContext->ChangedEventRegistration
+                );
+
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
             PhDereferenceObject(handlesContext->Provider);
             PhDeleteProviderEventQueue(&handlesContext->EventQueue);
