@@ -6120,7 +6120,7 @@ VOID PhTnpDrawSelectionRectangle(
             if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
             {
                 // Draw the outline of the selection rectangle.
-                FrameRect(hdc, &rect, (HBRUSH)(COLOR_HIGHLIGHT + 1));
+                FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
 
                 // Fill in the selection rectangle.
                 oldBitmap = SelectBitmap(tempDc, bitmap);

@@ -647,8 +647,8 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
 
                 if (GetFocus() == WindowHandle)
                 {
-                    //SetDCBrushColor(hdc, GetSysColor(COLOR_HOTLIGHT)); // PhThemeWindowHighlightColor
-                    FrameRect(hdc, &windowRect, (HBRUSH)(COLOR_HOTLIGHT + 1));
+                    SetDCBrushColor(hdc, GetSysColor(COLOR_HOTLIGHT)); // PhThemeWindowHighlightColor
+                    FrameRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {

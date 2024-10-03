@@ -219,7 +219,7 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(GetCountPerPage)(THIS_ PULONG pCountPerPage) PURE;
     STDMETHOD(GetOrigin)(THIS_ POINT* pOrigin) PURE;
     STDMETHOD(GetSelectedCount)(THIS_ PULONG pSelectedCount) PURE;
-    STDMETHOD(SortItems)(THIS_ BOOL unknown, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) PURE;
+    STDMETHOD(SortItems)(THIS_ BOOL SortingByIndex, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) PURE;
     STDMETHOD(GetExtendedStyle)(THIS_ ULONG* pStyle) PURE;
     STDMETHOD(SetExtendedStyle)(THIS_ ULONG mask, ULONG style, ULONG* pOldStyle) PURE;
     STDMETHOD(GetHoverTime)(THIS_ PULONG pTime) PURE;
@@ -454,8 +454,8 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     ((This)->lpVtbl->GetOrigin(This, pOrigin))
 #define IListView_GetSelectedCount(This, pSelectedCount) \
     ((This)->lpVtbl->GetSelectedCount(This, pSelectedCount))
-#define IListView_SortItems(This, unknown, lParam, pComparisonFunction) \
-    ((This)->lpVtbl->SortItems(This, unknown, lParam, pComparisonFunction))
+#define IListView_SortItems(This, SortingByIndex, lParam, pComparisonFunction) \
+    ((This)->lpVtbl->SortItems(This, SortingByIndex, lParam, pComparisonFunction))
 #define IListView_GetExtendedStyle(This, pStyle) \
     ((This)->lpVtbl->GetExtendedStyle(This, pStyle))
 #define IListView_SetExtendedStyle(This, mask, style, pOldStyle) \
