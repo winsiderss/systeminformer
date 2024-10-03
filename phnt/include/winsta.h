@@ -1228,5 +1228,44 @@ WinStationGetAllUserSessions(
     _Out_ PULONG NumberOfProcesses
     );
 
+// rev
+typedef struct _TS_SESSION_VIRTUAL_ADDRESS
+{
+  USHORT AddressFamily;
+  USHORT AddressLength;
+  BYTE Address[20];
+} TS_SESSION_VIRTUAL_ADDRESS, *PTS_SESSION_VIRTUAL_ADDRESS;
+typedef USHORT ADDRESS_FAMILY;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQuerySessionVirtualIP(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ADDRESS_FAMILY Family,
+    _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
+    );
+    
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetDeviceId(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
+    _In_ SIZE_T BufferLength
+    );
+        
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLoggedOnCount(
+    _Out_ PULONG LoggedOnUserCount,
+    _Out_ PULONG LoggedOnDeviceCount
+    );
 
 #endif
