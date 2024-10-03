@@ -83,6 +83,59 @@ PVOID PhpInitializeRemoteDesktopServiceApi(
     return imageBaseAddress;
 }
 
+HRESULT PhCoSetProxyBlanket(
+    _In_ IUnknown* InterfacePtr
+    )
+{
+    HRESULT status;
+    IClientSecurity* clientSecurity;
+
+    status = IUnknown_QueryInterface(
+        InterfacePtr,
+        &IID_IClientSecurity,
+        &clientSecurity
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IClientSecurity_SetBlanket(
+            clientSecurity,
+            InterfacePtr,
+            RPC_C_AUTHN_WINNT,
+            RPC_C_AUTHZ_NONE,
+            NULL,
+            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+            RPC_C_IMP_LEVEL_IMPERSONATE,
+            NULL,
+            EOAC_NONE
+            );
+        IClientSecurity_Release(InterfacePtr);
+    }
+
+    return status;
+}
+
+PPH_STRING PhGetWbemClassObjectString(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    PPH_STRING string = NULL;
+    VARIANT variant = { 0 };
+
+    if (SUCCEEDED(IWbemClassObject_Get((IWbemClassObject*)WbemClassObject, Name, 0, &variant, NULL, 0)))
+    {
+        if (V_BSTR(&variant)) // Can be null (dmex)
+        {
+            string = PhCreateString(V_BSTR(&variant));
+        }
+
+        VariantClear(&variant);
+    }
+
+    return string;
+}
+
 // Power policy security descriptors
 
 NTSTATUS PhpGetPowerPolicySecurityDescriptor(
@@ -345,6 +398,13 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (HR_FAILED(status))
         goto CleanupExit;
 
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
     wbemObjectString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
@@ -512,6 +572,13 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
         NULL,
         NULL,
         &wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
         );
 
     if (HR_FAILED(status))
@@ -730,15 +797,8 @@ HRESULT PhRestartDefenderOfflineScan(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    status = CoSetProxyBlanket(
-        (IUnknown*)wbemServices,
-        RPC_C_AUTHN_WINNT,
-        RPC_C_AUTHZ_NONE,
-        NULL,
-        RPC_C_AUTHN_LEVEL_CALL,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
         );
 
     if (HR_FAILED(status))

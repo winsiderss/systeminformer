@@ -135,28 +135,15 @@ PVOID PhGetWmiUtilsDllBase(
         PhEndInitOnce(&initOnce);
     }
 
+
+    typedef void (WINAPI* _SetOaNoCache)(void);
+    _SetOaNoCache SetOaNoCache_I;
+
+    SetOaNoCache_I = PhGetModuleProcAddress(L"oleaut32.dll", "SetOaNoCache");
+
+    SetOaNoCache_I();
+
     return imageBaseAddress;
-}
-
-PPH_STRING PhGetWbemClassObjectString(
-    _In_ IWbemClassObject* WbemClassObject,
-    _In_ PCWSTR Name
-    )
-{
-    PPH_STRING string = NULL;
-    VARIANT variant = { 0 };
-
-    if (SUCCEEDED(IWbemClassObject_Get(WbemClassObject, Name, 0, &variant, NULL, 0)))
-    {
-        if (V_BSTR(&variant)) // Can be null (dmex)
-        {
-            string = PhCreateString(V_BSTR(&variant));
-        }
-
-        VariantClear(&variant);
-    }
-
-    return string;
 }
 
 HRESULT PhpWmiProviderExecMethod(
@@ -207,6 +194,13 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
     querySelectString = PhFormatString(
         L"%s %s %s %s %s %s = %s",
         L"SELECT",
@@ -241,8 +235,8 @@ HRESULT PhpWmiProviderExecMethod(
         PPH_STRING relativePath = NULL;
         ULONG count = 0;
 
-        if (FAILED(IEnumWbemClassObject_Next(wbemEnumerator, WBEM_INFINITE, 1, &wbemClassObject, &count)))
-            break;
+        IEnumWbemClassObject_Next(wbemEnumerator, WBEM_INFINITE, 1, &wbemClassObject, &count);
+
         if (count == 0)
             break;
 
@@ -357,6 +351,13 @@ HRESULT PhpQueryWmiProviderFileName(
         );
 
     if (FAILED(status))
+        goto CleanupExit;
+
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     querySelectString = PhFormatString(
@@ -511,6 +512,13 @@ HRESULT PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
     querySelectString = PhFormatString(
         L"%s %s %s %s %s %s = %s",
         L"SELECT",
@@ -544,8 +552,8 @@ HRESULT PhpQueryWmiProviderHostProcess(
         ULONG count = 0;
         PPH_WMI_ENTRY entry;
 
-        if (FAILED(IEnumWbemClassObject_Next(wbemEnumerator, Timeout, 1, &wbemClassObject, &count)))
-            break;
+        IEnumWbemClassObject_Next(wbemEnumerator, Timeout, 1, &wbemClassObject, &count);
+
         if (count == 0)
             break;
 
@@ -636,6 +644,13 @@ PPH_STRING PhpQueryWmiProviderStatistics(
         );
 
     if (FAILED(status))
+        goto CleanupExit;
+
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = IWbemServices_GetObject(

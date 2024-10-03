@@ -1760,7 +1760,7 @@ VOID PhpUpdateCpuCycleUsageInformation(
 {
     ULONG i;
     FLOAT baseCpuUsage;
-    FLOAT totalTimeDelta;
+    ULONG64 totalTimeDelta;
     ULONG64 totalTime;
 
     // Cycle time is not only lacking for kernel/user components, but also for individual
@@ -1793,8 +1793,8 @@ VOID PhpUpdateCpuCycleUsageInformation(
     // i_n/t_n = I'_n/T'_n ~= I_n/T_n as above.
     // Not scaling at all is currently the best solution, since it's fast, simple and guarantees that i_n/t_n <= 1.
 
-    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / (FLOAT)TotalCycleTime;
-    totalTimeDelta = (FLOAT)(PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / TotalCycleTime;
+    totalTimeDelta = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta;
 
     if (totalTimeDelta != 0)
     {
@@ -1813,8 +1813,8 @@ VOID PhpUpdateCpuCycleUsageInformation(
 
         if (totalTime != 0)
         {
-            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / (FLOAT)totalTime;
-            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / (FLOAT)totalTime;
+            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / totalTime;
+            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / totalTime;
         }
         else
         {
@@ -2116,7 +2116,7 @@ ntoskrnl!HalProcessorIdle:
     // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs:
     /*
 All counters are subject to any changes in clock frequency, including clock stopping caused by
-the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE whether or not
+the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE regardless of whether
 PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instructions.
     */
     // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle
@@ -2588,16 +2588,16 @@ VOID PhProcessProviderUpdate(
 
             if (PhEnableCycleCpuUsage)
             {
-                FLOAT totalDelta;
+                ULONG64 totalDelta;
 
-                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / (FLOAT)sysTotalCycleTime;
+                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
 
                 // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel
                 // and user deltas are both zero, we'll just have to use an estimate. Currently, we
                 // split the CPU usage evenly across the kernel and user components, except when the
                 // total user time is zero, in which case we assign it all to the kernel component.
 
-                totalDelta = (FLOAT)(processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta);
+                totalDelta = processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta;
 
                 if (totalDelta != 0)
                 {
@@ -2620,8 +2620,8 @@ VOID PhProcessProviderUpdate(
             }
             else
             {
-                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / (FLOAT)sysTotalTime;
-                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / (FLOAT)sysTotalTime;
+                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
                 newCpuUsage = kernelCpuUsage + userCpuUsage;
             }
 

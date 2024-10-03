@@ -3058,6 +3058,22 @@ RtlCloneUserProcess(
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlPrepareForProcessCloning(
+    VOID
+    );
+    
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCompleteProcessCloning(
+    _In_ LOGICAL Completed
+    );
+
 // private
 NTSYSAPI
 VOID

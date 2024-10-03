@@ -761,8 +761,7 @@ VOID PhMwpInitializeProcessMenu(
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPENDTREE))
                 PhDestroyEMenuItem(item);
         }
-
-        if (!Processes[0]->IsPartiallySuspended)
+        else
         {
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUME))
                 PhDestroyEMenuItem(item);

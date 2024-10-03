@@ -5631,7 +5631,7 @@ VOID PhTnpPaint(
         // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
         // for headers that have custom text and need invalidating? (dmex)
 
-        if (Context->HeaderHandle && Context->Tracking) // GetCapture() != Context->HeaderHandle)
+        if (Context->HeaderHandle && !Context->Tracking) // GetCapture() != Context->HeaderHandle)
         {
             InvalidateRect(Context->HeaderHandle, NULL, FALSE);
         }
@@ -6120,7 +6120,7 @@ VOID PhTnpDrawSelectionRectangle(
             if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
             {
                 // Draw the outline of the selection rectangle.
-                FrameRect(hdc, &rect, (HBRUSH)(COLOR_HIGHLIGHT + 1));
+                FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
 
                 // Fill in the selection rectangle.
                 oldBitmap = SelectBitmap(tempDc, bitmap);

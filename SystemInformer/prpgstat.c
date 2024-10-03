@@ -466,26 +466,42 @@ VOID PhpUpdateProcessStatistics(
 
             if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS, &objects))) // GDI handles
             {
-                if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK, &objectsTotal)))
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objectsTotal)))
                     objectsTotal = 1;
 
                 PPH_STRING string = PhFormatUInt64(objects, TRUE);
                 PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
                 PhMoveReference(&Context->GdiHandles, string);
-
-                PhMoveReference(&Context->PeakGdiHandles, PhFormatUInt64(objectsTotal, TRUE)); // GDI handles (Peak)
             }
 
             if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS, &objects))) // USER handles
             {
-                if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK, &objectsTotal)))
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objectsTotal)))
                     objectsTotal = 1;
 
                 PPH_STRING string = PhFormatUInt64(objects, TRUE);
                 PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
                 PhMoveReference(&Context->UserHandles, string);
+            }
 
-                PhMoveReference(&Context->PeakUserHandles, PhFormatUInt64(objectsTotal, TRUE)); // USER handles (Peak)
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
+            {
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->PeakGdiHandles, string);
+            }
+
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
+            {
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->PeakUserHandles, string);
             }
 
             PhGetProcessPagePriority(ProcessItem->QueryHandle, &Context->PagePriority);
