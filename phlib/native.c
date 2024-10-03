@@ -4861,20 +4861,48 @@ NTSTATUS PhSetFileRename(
     IO_STATUS_BLOCK ioStatusBlock;
     ULONG renameInfoLength;
 
-    renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
-    renameInfo = PhAllocateZero(renameInfoLength);
-    renameInfo->ReplaceIfExists = ReplaceIfExists;
-    renameInfo->RootDirectory = RootDirectory;
-    renameInfo->FileNameLength = (ULONG)NewFileName->Length;
-    memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+    if (WindowsVersion < WINDOWS_10_RS1)
+    {
+        PFILE_RENAME_INFORMATION renameInfo;
 
-    status = NtSetInformationFile(
-        FileHandle,
-        &ioStatusBlock,
-        renameInfo,
-        renameInfoLength,
-        FileRenameInformation
-        );
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
+        renameInfo->ReplaceIfExists = ReplaceIfExists;
+        renameInfo->RootDirectory = RootDirectory;
+        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+
+        status = NtSetInformationFile(
+            FileHandle,
+            &ioStatusBlock,
+            renameInfo,
+            renameInfoLength,
+            FileRenameInformation
+            );
+
+        _freea(renameInfo);
+    }
+    else
+    {
+        PFILE_RENAME_INFORMATION_EX renameInfo;
+
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
+        renameInfo->Flags = FILE_RENAME_POSIX_SEMANTICS | FILE_RENAME_IGNORE_READONLY_ATTRIBUTE | (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0);
+        renameInfo->RootDirectory = RootDirectory;
+        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+
+        status = NtSetInformationFile(
+            FileHandle,
+            &ioStatusBlock,
+            renameInfo,
+            renameInfoLength,
+            FileRenameInformationEx
+            );
+
+        _freea(renameInfo);
+    }
 
     return status;
 }
