@@ -15,18 +15,19 @@
 #include <wbemidl.h>
 #include <wtsapi32.h>
 #include <powrprof.h>
+#include <powersetting.h>
 #include <secwmi.h>
 
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
-_PowerGetActiveScheme PowerGetActiveScheme_I = NULL;
-_PowerSetActiveScheme PowerSetActiveScheme_I = NULL;
-_PowerRestoreDefaultPowerSchemes PowerRestoreDefaultPowerSchemes_I = NULL;
+typeof(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
+typeof(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
+typeof(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
 _PowerReadSecurityDescriptor PowerReadSecurityDescriptor_I = NULL;
 _PowerWriteSecurityDescriptor PowerWriteSecurityDescriptor_I = NULL;
-_WTSGetListenerSecurity WTSGetListenerSecurity_I = NULL;
-_WTSSetListenerSecurity WTSSetListenerSecurity_I = NULL;
+typeof(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
+typeof(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
 
 PVOID PhGetWbemProxImageBaseAddress(
     VOID
