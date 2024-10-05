@@ -129,6 +129,7 @@
 #define IDC_OBJ_HANDLESBYOBJECT         1130
 #define IDC_OBJ_HANDLESBYNAME           1131
 #define IDC_OBJ_HANDLESBYNAME_L         1132
+#define IDC_GOTODRIVER2                 1133
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -201,7 +202,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1133
+#define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

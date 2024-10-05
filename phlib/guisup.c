@@ -46,11 +46,6 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
     PVOID Context;
 } PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
 
-typedef struct _PH_GENERAL_PROPSHEETCONTEXT
-{
-    WNDPROC PropSheetWindowHookProc;
-} PH_GENERAL_PROPSHEETCONTEXT, * PPH_GENERAL_PROPSHEETCONTEXT;
-
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
@@ -1895,15 +1890,12 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
     _In_ LPARAM lParam
 )
 {
-    PPH_GENERAL_PROPSHEETCONTEXT propSheetContext;
     WNDPROC oldWndProc;
 
-    propSheetContext = PhGetWindowContext(hwnd, 0xF);
+    oldWndProc = PhGetWindowContext(hwnd, 0xF);
 
-    if (!propSheetContext)
+    if (!oldWndProc)
         return 0;
-
-    oldWndProc = propSheetContext->PropSheetWindowHookProc;
 
     switch (uMsg)
     {
@@ -1911,26 +1903,17 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
-
-            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
-
-            PhFree(propSheetContext);
         }
         break;
     case WM_SYSCOMMAND:
         {
-            // Note: Clicking the X on the taskbar window thumbnail preview doesn't close modeless property sheets
-            // when there are more than 1 window and the window doesn't have focus... The MFC, ATL and WTL libraries
-            // check if the propsheet is modeless and SendMessage WM_CLOSE and so we'll implement the same solution. (dmex)
             switch (wParam & 0xFFF0)
             {
-            case SC_CLOSE:
-            {
-                PostMessage(hwnd, WM_CLOSE, 0, 0);
-                //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
-                //return TRUE;
-            }
-            break;
+                case SC_CLOSE:
+                {
+                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                }
+                break;
             }
         }
         break;
@@ -1972,26 +1955,18 @@ INT CALLBACK PhpGeneralPropSheetProc(
 {
     switch (uMsg)
     {
-    case PSCB_INITIALIZED:
-    {
-        PPH_GENERAL_PROPSHEETCONTEXT propSheetContext;
+        case PSCB_INITIALIZED:
+        {
+            PhSetWindowContext(hwndDlg, 0xF, (PVOID)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
 
-        propSheetContext = PhAllocate(sizeof(PH_GENERAL_PROPSHEETCONTEXT));
-        memset(propSheetContext, 0, sizeof(PH_GENERAL_PROPSHEETCONTEXT));
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetContext);
-
-        propSheetContext->PropSheetWindowHookProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
-        PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
-
-        SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
-
-        // Hide the OK button.
-        ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
-        // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwndDlg, IDCANCEL, L"Close");
-    }
-    break;
+            // Hide the OK button.
+            ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
+            // Set the Cancel button's text to "Close".
+            PhSetDialogItemText(hwndDlg, IDCANCEL, L"Close");
+        }
+        break;
     }
 
     return 0;
