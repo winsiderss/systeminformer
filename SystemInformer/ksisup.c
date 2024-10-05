@@ -1245,7 +1245,6 @@ NTSTATUS PhCleanupKsi(
     }
 
     KphCommsStop();
-    PhInformerStop();
 #ifdef DEBUG
     KsiDebugLogFinalize();
 #endif
