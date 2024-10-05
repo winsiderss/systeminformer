@@ -60,6 +60,8 @@ typedef struct _ET_OBJECT_ENTRY
     PPH_STRING Name;
     PPH_STRING TypeName;
     PPH_STRING Target;
+    PPH_STRING TargetDrvLow;
+    PPH_STRING TargetDrvUp;
     ET_OBJECT_TYPE TypeIndex;
     BOOL TargetIsResolving;
     CLIENT_ID TargetClientId;
@@ -788,6 +790,8 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
         {
             HANDLE DriverHandle;
             PPH_STRING deviceName;
+            PPH_STRING driverNameLow = NULL;
+            PPH_STRING driverNameUp = NULL;
 
             if (PhEqualStringRef(&objectContext.CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
                 deviceName = PhFormatString(L"%s%s", PhGetString(objectContext.CurrentPath), PhGetString(entry->Name));
@@ -798,15 +802,42 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
             {
                 if (DriverHandle)
                 {
-                    PPH_STRING driverName;
+                    PhGetDriverName(DriverHandle, &driverNameLow);
 
-                    if (NT_SUCCESS(status = PhGetDriverName(DriverHandle, &driverName)))
-                    {
-                        PhMoveReference(&entry->Target, driverName);
-                    }
                     NtClose(DriverHandle);
                 }
                 NtClose(objectHandle);
+            }
+
+            if (NT_SUCCESS(status) && NT_SUCCESS(status = PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &deviceName->sr, FALSE)))
+            {
+                if (DriverHandle)
+                {
+                    PhGetDriverName(DriverHandle, &driverNameUp);
+
+                    NtClose(DriverHandle);
+                }
+                NtClose(objectHandle);
+            }
+
+            if (driverNameLow && driverNameUp)
+            {
+                if (!PhEqualString(driverNameLow, driverNameUp, TRUE))
+                    PhMoveReference(&entry->Target, PhFormatString(L"%s -> %s", PhGetString(driverNameUp), PhGetString(driverNameLow)));
+                else
+                    PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
+                PhMoveReference(&entry->TargetDrvLow, driverNameLow);
+                PhMoveReference(&entry->TargetDrvUp, driverNameUp);
+            }
+            else if (driverNameLow)
+            {
+                PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
+                PhMoveReference(&entry->TargetDrvLow, driverNameLow);
+            }
+            else if (driverNameUp)
+            {
+                PhMoveReference(&entry->Target, PhReferenceObject(driverNameUp));
+                PhMoveReference(&entry->TargetDrvUp, driverNameUp);
             }
 
             // The device might be a PDO... Query the PnP manager for the friendly name of the device.
@@ -1037,13 +1068,6 @@ VOID EtObjectManagerFreeListViewItems(
 
     if (Context->BreakResolverThread)
     {
-        //IO_STATUS_BLOCK isb;
-        //NTSTATUS status = NtCancelSynchronousIoFile(Context->TargetResolverThread, NULL, &isb);
-        //NtTerminateThread(Context->TargetResolverThread, STATUS_SUCCESS);
-        //NtWaitForSingleObject(Context->TargetResolverThread, FALSE, NULL);
-        //NtClose(Context->TargetResolverThread);
-        //Context->TargetResolverThread = NULL;
-
         *Context->BreakResolverThread = TRUE;
         Context->BreakResolverThread = NULL;
     }
@@ -1064,6 +1088,10 @@ VOID EtObjectManagerFreeListViewItems(
             PhClearReference(&param->TypeName);
             if (param->Target)
                 PhClearReference(&param->Target);
+            if (param->TargetDrvLow)
+                PhClearReference(&param->TargetDrvLow);
+            if (param->TargetDrvUp)
+                PhClearReference(&param->TargetDrvUp);
             PhFree(param);
         }
     }
@@ -1832,7 +1860,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
 VOID NTAPI EtpObjectManagerOpenTarget(
     _In_ HWND hwndDlg,
     _In_ POBJECT_CONTEXT context,
-    _In_ POBJECT_ENTRY entry)
+    _In_ PPH_STRING Target)
 {
     PH_STRINGREF directoryPart = PhGetStringRef(NULL);
     PH_STRINGREF pathPart;
@@ -1841,7 +1869,7 @@ VOID NTAPI EtpObjectManagerOpenTarget(
     HTREEITEM selectedTreeItem;
     PPH_STRING targetPath;
 
-    targetPath = PhReferenceObject(entry->Target);
+    targetPath = PhReferenceObject(Target);
     remainingPart = PhGetStringRef(targetPath);
     selectedTreeItem = context->RootTreeObject;
 
@@ -1897,14 +1925,14 @@ VOID NTAPI EtpObjectManagerOpenTarget(
         }
         else    // browse to target in explorer
         {
-            if (!PhIsNullOrEmptyString(entry->Target) &&
-                (PhDoesFileExist(&entry->Target->sr) || PhDoesFileExistWin32(entry->Target->Buffer))
+            if (!PhIsNullOrEmptyString(Target) &&
+                (PhDoesFileExist(&Target->sr) || PhDoesFileExistWin32(Target->Buffer))
                 )
             {
                 PhShellExecuteUserString(
                     hwndDlg,
                     L"FileBrowseExecutable",
-                    PhGetString(entry->Target),
+                    PhGetString(Target),
                     FALSE,
                     L"Make sure the Explorer executable file is present."
                 );
@@ -2270,10 +2298,9 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            ET_OBJECT_ENTRY entry = { 0 };
-            entry.Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
+            PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
 
-            EtpObjectManagerOpenTarget(hwndDlg, context, &entry);
+            EtpObjectManagerOpenTarget(hwndDlg, context, Target);
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeViewHandle, TRUE);
         }
@@ -2457,7 +2484,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                         else if (entry->TypeIndex == OBJECT_SYMLINK && !(GetKeyState(VK_SHIFT) < 0))
                         {
                             if (!PhIsNullOrEmptyString(entry->Target))
-                                EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                EtpObjectManagerOpenTarget(hwndDlg, context, entry->Target);
                         }  
                         else
                         {
@@ -2529,6 +2556,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PPH_EMENU_ITEM propMenuItem;
                     PPH_EMENU_ITEM secMenuItem;
                     PPH_EMENU_ITEM gotoMenuItem = NULL;
+                    PPH_EMENU_ITEM gotoMenuItem2 = NULL;
                     PPH_EMENU_ITEM copyPathMenuItem;
 
                     PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES,
@@ -2540,7 +2568,13 @@ INT_PTR CALLBACK WinObjDlgProc(
                     }
                     else if (entry->TypeIndex == OBJECT_DEVICE)
                     {
-                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to device driver", NULL, NULL), ULONG_MAX);
+                        if (entry->TargetDrvLow && entry->TargetDrvUp && !PhEqualString(entry->TargetDrvLow, entry->TargetDrvUp, TRUE))
+                        {
+                            PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTODRIVER2, L"Go to &upper device driver", NULL, NULL), ULONG_MAX);
+                            PhInsertEMenuItem(menu, gotoMenuItem2 = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to lower device driver", NULL, NULL), ULONG_MAX);
+                        }
+                        else
+                            PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to device driver", NULL, NULL), ULONG_MAX);
                     }
                     else if (entry->TypeIndex == OBJECT_ALPCPORT)
                     {
@@ -2565,14 +2599,15 @@ INT_PTR CALLBACK WinObjDlgProc(
                     if (numberOfItems > 1)
                     {
                         PhSetDisabledEMenuItem(propMenuItem);
-                        if (gotoMenuItem)
-                            PhSetDisabledEMenuItem(gotoMenuItem);
+                        if (gotoMenuItem) PhSetDisabledEMenuItem(gotoMenuItem);
+                        if (gotoMenuItem2) PhSetDisabledEMenuItem(gotoMenuItem2);
                         PhSetDisabledEMenuItem(secMenuItem);
                         PhSetDisabledEMenuItem(copyPathMenuItem);
                     }
-                    else if (!hasTarget && gotoMenuItem)
+                    else if (!hasTarget)
                     {
-                        PhSetDisabledEMenuItem(gotoMenuItem);
+                        if (gotoMenuItem) PhSetDisabledEMenuItem(gotoMenuItem);
+                        if (gotoMenuItem2) PhSetDisabledEMenuItem(gotoMenuItem2);
                     }
 
                     item = PhShowEMenu(
@@ -2596,9 +2631,18 @@ INT_PTR CALLBACK WinObjDlgProc(
                                 } 
                                 break;
                             case IDC_OPENLINK:
+                                {
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry->Target);
+                                }
+                                break;
                             case IDC_GOTODRIVER:
                                 {
-                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry);
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry->TargetDrvLow);
+                                }
+                                break;
+                            case IDC_GOTODRIVER2:
+                                {
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, entry->TargetDrvUp);
                                 }
                                 break;
                             case IDC_GOTOPROCESS:
@@ -2821,7 +2865,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                             if (listviewItems[0]->TypeIndex == OBJECT_SYMLINK)
                             {
                                 if (!PhIsNullOrEmptyString(listviewItems[0]->Target))
-                                    EtpObjectManagerOpenTarget(hwndDlg, context, listviewItems[0]);
+                                    EtpObjectManagerOpenTarget(hwndDlg, context, listviewItems[0]->Target);
                                 else
                                     break;
                             }
