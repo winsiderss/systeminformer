@@ -307,7 +307,7 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     {
         return ((entry1->BaseAddress == entry2->BaseAddress) &&
                 (entry1->EnclaveBaseAddress == entry2->EnclaveBaseAddress) &&
-                PhEqualString(entry1->FileName, entry2->FileName, TRUE));
+                PhEqualString(entry1->FileName, entry2->FileName, FALSE));
     }
     else
     {
