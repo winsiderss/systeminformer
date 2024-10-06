@@ -1569,22 +1569,23 @@ NtResumeProcess(
 #define ZwCurrentThread() NtCurrentThread()
 #define NtCurrentSession() ((HANDLE)(LONG_PTR)-3)
 #define ZwCurrentSession() NtCurrentSession()
+
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
+
+#define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
+#define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
 
 // Windows 8 and above
 #define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4) // NtOpenProcessToken(NtCurrentProcess())
 #define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5) // NtOpenThreadToken(NtCurrentThread())
 #define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
-
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
-// Not NT, but useful.
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define NtCurrentImageBase() ((PVOID)&__ImageBase)
+#define NtCurrentImageBase() ((PIMAGE_DOS_HEADER)&__ImageBase)
 
-// Not NT, but useful.
-#define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
-#define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
+#define NtCurrentSessionId() (RtlGetActiveConsoleId())
+#define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
 
 /**
  * Retrieves information about the specified process.

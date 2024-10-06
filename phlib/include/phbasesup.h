@@ -168,6 +168,8 @@ PhSecondsSince1970ToTime(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -179,6 +181,8 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -190,6 +194,8 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -208,6 +214,8 @@ PhFree(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -220,6 +228,8 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -233,6 +243,8 @@ _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _Success_(return != NULL)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
 PVOID
 NTAPI
@@ -576,7 +588,7 @@ PhAcquireRundownProtection(
 {
     ULONG_PTR value;
 
-    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
+    value = ReadULongPtrAcquire(&Protection->Value) & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&Protection->Value,
@@ -600,7 +612,7 @@ PhReleaseRundownProtection(
 {
     ULONG_PTR value;
 
-    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // Fail fast path when rundown is active
+    value = ReadULongPtrAcquire(&Protection->Value) & ~PH_RUNDOWN_ACTIVE; // Fail fast path when rundown is active
 
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&Protection->Value,

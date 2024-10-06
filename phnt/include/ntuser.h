@@ -29,6 +29,48 @@ NtUserQueryWindow(
     _In_ WINDOWINFOCLASS WindowInfo
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserTestForInteractiveUser(
+    _In_ PLUID AuthenticationId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserCheckAccessForIntegrityLevel(
+    _In_ ULONG ProcessIdFirst,
+    _In_ ULONG ProcessIdSecond,
+    _Out_ PBOOLEAN GrantedAccess
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserCheckProcessForClipboardAccess(
+    _In_ ULONG ProcessId,
+    _Out_ PULONG GrantedAccess
+    );
+
+NTSYSCALLAPI
+ULONG
+NTAPI
+NtUserInternalGetWindowText(
+    _In_ HWND WindowHandle,
+    _Out_writes_to_(cchMaxCount, return + 1) LPWSTR pString,
+    _In_ ULONG cchMaxCount
+    );
+
+NTSYSCALLAPI
+ULONG
+NTAPI
+NtUserGetClassName(
+    _In_ HWND WindowHandle,
+    _In_ LONGLONG Real,
+    _Out_ PUNICODE_STRING ClassName
+    );
+
 typedef enum _CONSOLECONTROL
 {
     ConsoleSetVDMCursorBounds = 0, // RECT
@@ -75,7 +117,7 @@ typedef struct _CONSOLEENDTASK
 } CONSOLEENDTASK, *PCONSOLEENDTASK;
 
 /**
- * Performs special kernel operations for console host applications.
+ * Performs special kernel operations for console host applications. (win32u.dll)
  * 
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications and terminating attached processes.
@@ -89,6 +131,26 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUserConsoleControl(
+    _In_ CONSOLECONTROL Command,
+    _In_reads_bytes_(ConsoleInformationLength) PVOID ConsoleInformation,
+    _In_ ULONG ConsoleInformationLength
+    );
+
+/**
+ * Performs special kernel operations for console host applications. (user32.dll)
+ *
+ * This includes reparenting the console window, allowing the console to pass foreground rights
+ * on to launched console subsystem applications and terminating attached processes.
+ *
+ * @param Command One of the CONSOLECONTROL values indicating which console control function should be executed.
+ * @param ConsoleInformation A pointer to one of the  structures specifying additional data for the requested console control function.
+ * @param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
+ * @return Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ConsoleControl(
     _In_ CONSOLECONTROL Command,
     _In_reads_bytes_(ConsoleInformationLength) PVOID ConsoleInformation,
     _In_ ULONG ConsoleInformationLength

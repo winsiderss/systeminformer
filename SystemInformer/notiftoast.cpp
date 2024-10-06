@@ -190,7 +190,6 @@ namespace PH
         ComPtr<IToastNotification> m_Toast{ nullptr };
 
     };
-
 }
 
 _Must_inspect_result_

@@ -12,7 +12,9 @@
 
 #include <ph.h>
 #include <apiimport.h>
+#include <ntuser.h>
 #include <mapldr.h>
+#include <sddl.h>
 
 /**
  * Imports a procedure from a specified module.
@@ -30,8 +32,8 @@ PVOID PhpImportProcedure(
     _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
     _Inout_ PULONG_PTR Cookie,
-    _In_ PWSTR ModuleName,
-    _In_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_ PCSTR ProcedureName
     )
 {
     if (PhBeginInitOnce(InitOnce))
@@ -39,14 +41,14 @@ PVOID PhpImportProcedure(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
 
         if (module)
         {
-            if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
+            if (procedure = PhGetDllBaseProcedureAddress(module, (PSTR)ProcedureName, 0))
             {
                 *Cookie = (ULONG_PTR)NtGetTickCount64();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
@@ -78,8 +80,8 @@ PVOID PhpImportProcedureNative(
     _Inout_ PPH_INITONCE InitOnce,
     _Inout_ PVOID *Cache,
     _Inout_ PULONG_PTR Cookie,
-    _In_ PWSTR ModuleName,
-    _In_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_ PCSTR ProcedureName
     )
 {
     if (PhBeginInitOnce(InitOnce))
@@ -87,7 +89,7 @@ PVOID PhpImportProcedureNative(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
@@ -158,6 +160,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
+PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppression);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
@@ -177,13 +181,103 @@ PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescr
 
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
 
-PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
-PH_DEFINE_IMPORT(L"kernel32.dll", PssQuerySnapshot);
-PH_DEFINE_IMPORT(L"kernel32.dll", PssFreeSnapshot);
-
 PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
+PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
+
+// CRT
+
+#ifdef _WIN64
+
+EXTERN_C_START
+
+BOOL NTAPI CloseHandle_Stub(
+    _In_ HANDLE Handle
+    )
+{
+    return NT_SUCCESS(NtClose(Handle));
+}
+
+BOOL NTAPI GetFileSizeEx_Stub(
+    _In_ HANDLE hFile,
+    _Out_ PLARGE_INTEGER lpFileSize
+    )
+{
+    return NT_SUCCESS(PhGetFileSize(hFile, lpFileSize));
+}
+
+BOOL NTAPI FlushFileBuffers_Stub(
+    _In_ HANDLE hFile
+    )
+{
+    return NT_SUCCESS(PhFlushBuffersFile(hFile));
+}
+
+BOOL NTAPI IsDebuggerPresent_Stub(
+    VOID
+    )
+{
+    return !!NtCurrentPeb()->BeingDebugged;
+}
+
+BOOL NTAPI TerminateProcess_Stub(
+    _In_ HANDLE hProcess,
+    _In_ UINT uExitCode
+    )
+{
+    return NT_SUCCESS(NtTerminateProcess(hProcess, PhDosErrorToNtStatus(uExitCode)));
+}
+
+ULONG NTAPI GetCurrentThreadId_Stub(
+    VOID
+    )
+{
+    return HandleToUlong(NtCurrentThreadId());
+}
+
+ULONG NTAPI GetCurrentProcessId_Stub(
+    VOID
+    )
+{
+    return HandleToUlong(NtCurrentProcessId());
+}
+
+HANDLE NTAPI GetProcessHeap_Stub(
+    VOID
+    )
+{
+    return NtCurrentPeb()->ProcessHeap;
+}
+
+LPSTR WINAPI GetCommandLineA_Stub(
+    VOID
+    )
+{
+    return NULL;
+}
+
+LPWSTR WINAPI GetCommandLineW_Stub(
+    VOID
+    )
+{
+    return NULL;
+}
+
+DECLSPEC_SELECTANY typeof(&CloseHandle) __imp_CloseHandle = CloseHandle_Stub;
+DECLSPEC_SELECTANY typeof(&GetFileSizeEx) __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY typeof(&FlushFileBuffers) __imp_FlushFileBuffers = FlushFileBuffers_Stub;
+DECLSPEC_SELECTANY typeof(&IsDebuggerPresent) __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
+DECLSPEC_SELECTANY typeof(&TerminateProcess) __imp_TerminateProcess = TerminateProcess_Stub;
+DECLSPEC_SELECTANY typeof(&GetCurrentThreadId) __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
+DECLSPEC_SELECTANY typeof(&GetCurrentProcessId) __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY typeof(&GetProcessHeap) __imp_GetProcessHeap = GetProcessHeap_Stub;
+DECLSPEC_SELECTANY typeof(&GetCommandLineA) __imp_GetCommandLineA = GetCommandLineA_Stub;
+DECLSPEC_SELECTANY typeof(&GetCommandLineW) __imp_GetCommandLineW = GetCommandLineW_Stub;
+
+EXTERN_C_END
+
+#endif

@@ -85,6 +85,23 @@ PhInitializeMonospaceFont(
     );
 
 PHLIBAPI
+HDC
+NTAPI
+PhGetScreenDC(
+    VOID
+    );
+
+PHLIBAPI
+HGDIOBJ
+NTAPI
+PhGetStockObject(
+    _In_ INT Index
+    );
+
+#define PhGetStockBrush(i) ((HBRUSH)PhGetStockObject(i))
+#define PhGetStockPen(i) ((HPEN)PhGetStockObject(i))
+
+PHLIBAPI
 HTHEME
 NTAPI
 PhOpenThemeData(
@@ -189,6 +206,13 @@ PhDrawThemeBackground(
     _In_ INT StateId,
     _In_ LPCRECT Rect,
     _In_opt_ LPCRECT ClipRect
+    );
+
+PHLIBAPI
+HWND
+NTAPI
+PhGetShellWindow(
+    VOID
     );
 
 PHLIBAPI
@@ -713,6 +737,13 @@ PhGetSelectedListViewItemParams(
     _In_ HWND WindowHandle,
     _Out_ PVOID **Items,
     _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetListViewInterface(
+    _In_ HWND ListViewHandle
     );
 
 PHLIBAPI
@@ -1766,6 +1797,22 @@ PhCustomDrawTreeTimeLine(
 
 // Windows Imaging Component (WIC) bitmap support
 
+typedef enum _PH_BUFFERFORMAT
+{
+    PHBF_COMPATIBLEBITMAP,    // Compatible bitmap
+    PHBF_DIB,                 // Device-independent bitmap
+    PHBF_TOPDOWNDIB,          // Top-down device-independent bitmap
+    PHBF_TOPDOWNMONODIB       // Top-down monochrome device-independent bitmap
+} PH_BUFFERFORMAT;
+
+HBITMAP PhCreateDIBSection(
+    _In_ HDC Hdc,
+    _In_ PH_BUFFERFORMAT Format,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    );
+
 typedef enum _PH_IMAGE_FORMAT_TYPE
 {
     PH_IMAGE_FORMAT_TYPE_NONE,
@@ -2350,6 +2397,10 @@ HICON PhGdiplusConvertBitmapToIcon(
 
 HWND PhCreateBackgroundWindow(
     _In_ HWND ParentWindowHandle
+    );
+
+HICON PhGdiplusConvertHBitmapToHIcon(
+    _In_ HBITMAP NitmapHandle
     );
 
 EXTERN_C_END

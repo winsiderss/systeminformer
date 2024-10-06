@@ -225,8 +225,8 @@ BOOLEAN NTAPI PhTnpNullCallback(
     _In_opt_ PVOID Context
     );
 
-VOID PhTnpCreateTreeNewContext(
-    _Out_ PPH_TREENEW_CONTEXT *Context
+PPH_TREENEW_CONTEXT PhTnpCreateTreeNewContext(
+    VOID
     );
 
 VOID PhTnpDestroyTreeNewContext(
@@ -238,7 +238,7 @@ VOID PhTnpDestroyTreeNewContext(
 BOOLEAN PhTnpOnCreate(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ CREATESTRUCT *CreateStruct
+    _In_ CONST CREATESTRUCT *CreateStruct
     );
 
 VOID PhTnpOnSize(

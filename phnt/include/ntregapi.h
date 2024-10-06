@@ -594,7 +594,7 @@ typedef struct _VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST
  * @param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
  * @param[in] CreateOptions The options to use when creating the key.
  * @param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -621,7 +621,7 @@ NtCreateKey(
  * @param[in] CreateOptions The options to use when creating the key.
  * @param[in] TransactionHandle A handle to the transaction.
  * @param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -644,7 +644,7 @@ NtCreateKeyTransacted(
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  * @remarks NtOpenKey ignores the security information in the ObjectAttributes structure.
  */
 NTSYSCALLAPI
@@ -664,7 +664,7 @@ NtOpenKey(
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * @param[in] TransactionHandle A handle to the transaction.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -685,7 +685,7 @@ NtOpenKeyTransacted(
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * @param[in] OpenOptions The options to use when opening the key.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -705,7 +705,7 @@ NtOpenKeyEx(
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * @param[in] OpenOptions The options to use when opening the key.
  * @param[in] TransactionHandle A handle to the transaction.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -723,7 +723,7 @@ NtOpenKeyTransactedEx(
  * Deletes a registry key.
  * 
  * @param[in] KeyHandle A handle to the key to be deleted.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -737,7 +737,7 @@ NtDeleteKey(
  * 
  * @param[in] KeyHandle A handle to the key to be renamed.
  * @param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -752,7 +752,7 @@ NtRenameKey(
  * 
  * @param[in] KeyHandle A handle to the key that contains the value to be deleted.
  * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -770,7 +770,7 @@ NtDeleteValueKey(
  * @param[out] KeyInformation A pointer to a buffer that receives the key information.
  * @param[in] Length The size of the buffer.
  * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -790,7 +790,7 @@ NtQueryKey(
  * @param[in] KeySetInformationClass The type of information to be set.
  * @param[in] KeySetInformation A pointer to a buffer that contains the key information.
  * @param[in] KeySetInformationLength The size of the buffer.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -811,7 +811,7 @@ NtSetInformationKey(
  * @param[out] KeyValueInformation A pointer to a buffer that receives the value information.
  * @param[in] Length The size of the buffer.
  * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -834,7 +834,7 @@ NtQueryValueKey(
  * @param[in] Type The type of the value.
  * @param[in] Data A pointer to a buffer that contains the value data.
  * @param[in] DataSize The size of the buffer.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -857,7 +857,7 @@ NtSetValueKey(
  * @param[out] ValueBuffer A pointer to a buffer that receives the value data.
  * @param[in, out] BufferLength A pointer to a variable that specifies the size of the buffer and receives the size of the data returned.
  * @param[out, optional] RequiredBufferLength A pointer to a variable that receives the size of the buffer required to hold the data.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -880,7 +880,7 @@ NtQueryMultipleValueKey(
  * @param[out] KeyInformation A pointer to a buffer that receives the key information.
  * @param[in] Length The size of the buffer.
  * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -903,7 +903,7 @@ NtEnumerateKey(
  * @param[out] KeyValueInformation A pointer to a buffer that receives the value information.
  * @param[in] Length The size of the buffer.
  * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -921,7 +921,7 @@ NtEnumerateValueKey(
  * Flushes the changes to a registry key.
  * 
  * @param[in] KeyHandle A handle to the key to be flushed.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -935,7 +935,7 @@ NtFlushKey(
  * 
  * @param[in] Count The number of keys to be compacted.
  * @param[in] KeyArray An array of handles to the keys to be compacted.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -949,7 +949,7 @@ NtCompactKeys(
  * Compresses a registry key.
  * 
  * @param[in] KeyHandle A handle to the key to be compressed.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -963,7 +963,7 @@ NtCompressKey(
  * 
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -979,7 +979,7 @@ NtLoadKey(
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * @param[in] Flags The options to use when loading the key.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1001,7 +1001,7 @@ NtLoadKey2(
  * @param[in, optional] DesiredAccess The access mask that specifies the desired access rights.
  * @param[out, optional] RootHandle A pointer to a handle that receives the root handle.
  * @param[in, reserved] Reserved Reserved.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1030,7 +1030,7 @@ NtLoadKeyEx(
  * @param[in, optional] DesiredAccess The access mask that specifies the desired access rights.
  * @param[out, optional] RootHandle A pointer to a handle that receives the root handle.
  * @param[in, reserved] Reserved Reserved.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1053,7 +1053,7 @@ NtLoadKey3(
  * @param[in] NewFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the new file.
  * @param[in] TargetHandle A handle to the target key.
  * @param[in] OldFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the old file.
- * @return NTSTATUS The status of the operation.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS

@@ -180,7 +180,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
                 if (!entry->Name)
                 {
-                    entry->Name = PhGetObjectTypeName(handleInfo->ObjectTypeIndex);
+                    entry->Name = PhGetObjectTypeIndexName(handleInfo->ObjectTypeIndex);
 
                     if (PhIsNullOrEmptyString(entry->Name))
                     {

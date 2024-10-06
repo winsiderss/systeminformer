@@ -1921,12 +1921,12 @@ PPH_STRINGREF PhGetHybridProcessorType(
     {
     case ARM_CORETYPE_LITTLE:
         {
-            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"LITTLE Core");
+            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
             return &hybridECoreTypeSr;
         }
     case ARM_CORETYPE_BIG:
         {
-            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"big Core");
+            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
             return &hybridPCoreTypeSr;
         }
     }

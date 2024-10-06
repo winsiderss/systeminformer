@@ -940,6 +940,16 @@ WinStationSetInformationW(
     _In_ ULONG WinStationInformationLength
     );
 
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQueryCurrentSessionInformation(
+    _In_ WINSTATIONINFOCLASS WinStationInformationClass,
+    _In_reads_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
+    _In_ ULONG WinStationInformationLength
+    );
+
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1175,6 +1185,87 @@ WinStationIsSessionRemoteable(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _Out_ PBOOLEAN IsRemote
+    );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSetAutologonPassword(
+    _In_ PCSTR KeyName,
+    _In_ PCSTR Password
+    );
+
+typedef enum _SessionType
+{
+    SESSIONTYPE_UNKNOWN = 0,
+    SESSIONTYPE_SERVICES,
+    SESSIONTYPE_LISTENER,
+    SESSIONTYPE_REGULARDESKTOP,
+    SESSIONTYPE_ALTERNATESHELL,
+    SESSIONTYPE_REMOTEAPP,
+    SESSIONTYPE_MEDIACENTEREXT
+} SESSIONTYPE;
+
+// rev
+typedef struct _TS_USER_SESSION
+{
+    ULONG Version;
+    ULONG SessionId;
+    ULONG Unknown;
+    SESSIONTYPE State;
+    ULONG field5;
+} TS_USER_SESSION, *PTS_USER_SESSION;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetAllUserSessions(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ PSID Sid,
+    _Out_ PVOID* Processes, // LocalFree
+    _Out_ PULONG NumberOfProcesses
+    );
+
+// rev
+typedef struct _TS_SESSION_VIRTUAL_ADDRESS
+{
+  USHORT AddressFamily;
+  USHORT AddressLength;
+  BYTE Address[20];
+} TS_SESSION_VIRTUAL_ADDRESS, *PTS_SESSION_VIRTUAL_ADDRESS;
+typedef USHORT ADDRESS_FAMILY;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQuerySessionVirtualIP(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ADDRESS_FAMILY Family,
+    _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
+    );
+    
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetDeviceId(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
+    _In_ SIZE_T BufferLength
+    );
+        
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLoggedOnCount(
+    _Out_ PULONG LoggedOnUserCount,
+    _Out_ PULONG LoggedOnDeviceCount
     );
 
 #endif

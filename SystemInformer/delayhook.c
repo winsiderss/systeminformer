@@ -148,7 +148,7 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
+            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -378,7 +378,7 @@ VOID ThemeWindowStatusBarDrawPart(
     {
         SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
-        FillRect(bufferDc, &blockRect, GetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
         //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
     }
     else
@@ -648,12 +648,12 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
                 if (GetFocus() == WindowHandle)
                 {
                     SetDCBrushColor(hdc, GetSysColor(COLOR_HOTLIGHT)); // PhThemeWindowHighlightColor
-                    FrameRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
+                    FrameRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {
                     SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                    FrameRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
+                    FrameRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
                 }
 
                 ReleaseDC(WindowHandle, hdc);
@@ -713,7 +713,7 @@ VOID ThemeWindowRenderHeaderControl(
         {
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
-            FillRect(bufferDc, &headerRect, GetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &headerRect, PhGetStockBrush(DC_BRUSH));
             //FrameRect(bufferDc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
         }
         else
@@ -732,7 +732,7 @@ VOID ThemeWindowRenderHeaderControl(
             //frameRect.right = headerRect.right;
             //frameRect.top = headerRect.top;
             //SetDCBrushColor(hdc, RGB(68, 68, 68)); // RGB(0x77, 0x77, 0x77));
-            //FrameRect(hdc, &headerRect, GetStockBrush(DC_BRUSH));
+            //FrameRect(hdc, &headerRect, PhGetStockBrush(DC_BRUSH));
 
             //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.right - 1, DrawInfo->rcItem.top, 1, DrawInfo->rcItem.bottom - DrawInfo->rcItem.top, PATCOPY);
             //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.left, DrawInfo->rcItem.bottom - 1, DrawInfo->rcItem.right - DrawInfo->rcItem.left, 1, PATCOPY);
@@ -1271,14 +1271,14 @@ HRESULT PhDrawThemeBackgroundHook(
 //    if (PartId == TDLG_PRIMARYPANEL && StateId == 0)
 //    {
 //        SetDCBrushColor(hdc, RGB(65, 65, 65));
-//        FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+//        FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
 //        return S_OK;
 //    }
 //
 //    if (PartId == TDLG_SECONDARYPANEL && StateId == 0)
 //    {
 //        SetDCBrushColor(hdc, RGB(45, 45, 45));
-//        FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
+//        FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
 //        return S_OK;
 //    }
 //

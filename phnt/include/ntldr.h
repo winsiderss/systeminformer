@@ -597,7 +597,6 @@ LdrStandardizeSystemPath(
     _In_ PUNICODE_STRING SystemPath
     );
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
 typedef struct _LDR_FAILURE_DATA
 {
     NTSTATUS Status;
@@ -605,6 +604,7 @@ typedef struct _LDR_FAILURE_DATA
     WCHAR AdditionalInfo[0x20];
 } LDR_FAILURE_DATA, *PLDR_FAILURE_DATA;
 
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 NTSYSAPI
 PLDR_FAILURE_DATA
 NTAPI
@@ -663,6 +663,37 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 // rev
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
+#endif
+
+// rev see also MEMORY_IMAGE_EXTENSION_INFORMATION
+typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
+{
+    PVOID ScpCfgHeader_Nop;
+    PVOID ScpCfgEnd_Nop;
+    PVOID ScpCfgHeader;
+    PVOID ScpCfgEnd;
+    PVOID ScpCfgHeader_ES;
+    PVOID ScpCfgEnd_ES;
+    PVOID ScpCfgHeader_Fptr;
+    PVOID ScpCfgEnd_Fptr;
+    PVOID LdrpGuardDispatchIcallNoESFptr;
+    PVOID __guard_dispatch_icall_fptr;
+    PVOID LdrpGuardCheckIcallNoESFptr;
+    PVOID __guard_check_icall_fptr;
+    PVOID LdrpHandleInvalidUserCallTarget;
+    struct
+    {
+        PVOID NtOpenFile;
+        PVOID NtCreateSection;
+        PVOID NtQueryAttributesFile;
+        PVOID NtOpenSection;
+        PVOID NtMapViewOfSection;
+    } LdrpCriticalLoaderFunctions;
+} RTL_SCPCFG_NTDLL_EXPORTS, *PRTL_SCPCFG_NTDLL_EXPORTS;
+
+// rev
+#if (PHNT_VERSION >= PHNT_WIN11_24H2)
+NTSYSAPI RTL_SCPCFG_NTDLL_EXPORTS RtlpScpCfgNtdllExports;
 #endif
 
 // Load as data table
@@ -862,7 +893,7 @@ NTSTATUS
 NTAPI
 LdrResGetRCConfig(
     _In_ PVOID DllHandle,
-    _In_ SIZE_T Length,
+    _In_opt_ SIZE_T Length,
     _Out_writes_bytes_opt_(Length) PVOID Config,
     _In_ ULONG Flags,
     _In_ BOOLEAN AlternateResource // LdrLoadAlternateResourceModule
@@ -1262,7 +1293,9 @@ LdrControlFlowGuardEnforcedWithExportSuppression(
     VOID
     )
 {
-    return LdrSystemDllInitBlock.CfgBitMap && (LdrSystemDllInitBlock.Flags & 3) == 0;
+    return LdrSystemDllInitBlock.CfgBitMap
+        && (LdrSystemDllInitBlock.Flags & 1) == 0
+        && (LdrSystemDllInitBlock.MitigationOptionsMap.Map[0] & 3) == 3; // PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_EXPORT_SUPPRESSION
 }
 #endif
 

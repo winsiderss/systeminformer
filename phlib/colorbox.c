@@ -175,8 +175,8 @@ LRESULT CALLBACK PhColorBoxWndProc(
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
 
                 // Select the border and fill.
-                oldBrush = SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-                oldPen = SelectPen(hdc, GetStockPen(DC_PEN));
+                oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
+                oldPen = SelectPen(hdc, PhGetStockPen(DC_PEN));
 
                 // Draw the border and fill.
                 Rectangle(hdc, updateRect.left, updateRect.top, updateRect.right, updateRect.bottom);

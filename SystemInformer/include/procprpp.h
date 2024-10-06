@@ -157,7 +157,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpProcessJobHookProc(
@@ -240,6 +240,7 @@ typedef struct _PH_MODULES_CONTEXT
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
+    PH_CALLBACK_REGISTRATION ChangedEventRegistration;
 
     HWND WindowHandle;
 // end_phapppub
@@ -274,6 +275,7 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
+    PH_CALLBACK_REGISTRATION ChangedEventRegistration;
 
     HWND WindowHandle;
 // end_phapppub

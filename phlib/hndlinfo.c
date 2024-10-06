@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -14,7 +14,6 @@
 #include <hndlinfo.h>
 #include <json.h>
 #include <kphuser.h>
-#include <mapldr.h>
 #include <lsasup.h>
 
 #include <devquery.h>
@@ -128,7 +127,7 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
         );
 }
 
-NTSTATUS PhpGetObjectBasicInformation(
+NTSTATUS PhGetObjectBasicInformation(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
@@ -178,7 +177,7 @@ NTSTATUS PhpGetObjectBasicInformation(
     return status;
 }
 
-NTSTATUS PhpGetObjectTypeName(
+NTSTATUS PhGetObjectTypeName(
     _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _In_ ULONG ObjectTypeNumber,
@@ -320,7 +319,7 @@ NTSTATUS PhpGetObjectTypeName(
     return status;
 }
 
-NTSTATUS PhpGetObjectName(
+NTSTATUS PhGetObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _In_ BOOLEAN WithTimeout,
@@ -403,7 +402,7 @@ NTSTATUS PhQueryObjectName(
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
 
-    return PhpGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
+    return PhGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
 }
 
 NTSTATUS PhQueryObjectBasicInformation(
@@ -414,10 +413,10 @@ NTSTATUS PhQueryObjectBasicInformation(
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
 
-    return PhpGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
+    return PhGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
-NTSTATUS PhpGetEtwObjectName(
+NTSTATUS PhGetEtwObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ PPH_STRING *ObjectName
@@ -1831,7 +1830,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get basic information.
     if (BasicInformation)
     {
-        status = PhpGetObjectBasicInformation(
+        status = PhGetObjectBasicInformation(
             ProcessHandle,
             objectHandle,
             BasicInformation
@@ -1846,7 +1845,7 @@ NTSTATUS PhGetHandleInformationEx(
         goto CleanupExit;
 
     // Get the type name.
-    status = PhpGetObjectTypeName(
+    status = PhGetObjectTypeName(
         ProcessHandle,
         objectHandle,
         ObjectTypeNumber,
@@ -1864,7 +1863,7 @@ NTSTATUS PhGetHandleInformationEx(
     // If we're dealing with a file handle we must take special precautions so we don't hang.
     if (PhEqualString2(typeName, L"File", TRUE) && !useKph)
     {
-        status = PhpGetObjectName(
+        status = PhGetObjectName(
             ProcessHandle,
             objectHandle,
             TRUE,
@@ -1873,7 +1872,7 @@ NTSTATUS PhGetHandleInformationEx(
     }
     else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && useKph)
     {
-        status = PhpGetEtwObjectName(
+        status = PhGetEtwObjectName(
             ProcessHandle,
             Handle,
             &objectName
@@ -1882,7 +1881,7 @@ NTSTATUS PhGetHandleInformationEx(
     else
     {
         // Query the object normally.
-        status = PhpGetObjectName(
+        status = PhGetObjectName(
             ProcessHandle,
             objectHandle,
             FALSE,
@@ -2067,7 +2066,7 @@ ULONG PhGetObjectTypeNumber(
     return objectIndex;
 }
 
-PPH_STRING PhGetObjectTypeName(
+PPH_STRING PhGetObjectTypeIndexName(
     _In_ ULONG TypeIndex
     )
 {

@@ -17,9 +17,8 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <actions.h>
-
-#include <winsta.h>
 
 #include <kphuser.h>
 #include <ksisup.h>
@@ -40,12 +39,7 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-static PH_STRINGREF DangerousProcesses[] =
-{
-    PH_STRINGREF_INIT(L"csrss.exe"), PH_STRINGREF_INIT(L"dwm.exe"), PH_STRINGREF_INIT(L"logonui.exe"),
-    PH_STRINGREF_INIT(L"lsass.exe"), PH_STRINGREF_INIT(L"lsm.exe"), PH_STRINGREF_INIT(L"services.exe"),
-    PH_STRINGREF_INIT(L"smss.exe"), PH_STRINGREF_INIT(L"wininit.exe"), PH_STRINGREF_INIT(L"winlogon.exe")
-};
+#include <winsta.h>
 
 static volatile LONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
@@ -1321,42 +1315,63 @@ BOOLEAN PhUiLogoffSession(
     return FALSE;
 }
 
+typedef struct _PH_PLUGIN_IS_DANGEROUS_PROCESS
+{
+    HANDLE ProcessId;
+    BOOLEAN DangerousProcess;
+} PH_PLUGIN_IS_DANGEROUS_PROCESS, *PPH_PLUGIN_IS_DANGEROUS_PROCESS;
+
 /**
  * Determines if a process is a system process.
  *
  * \param ProcessId The PID of the process to check.
  */
-static BOOLEAN PhpIsDangerousProcess(
+BOOLEAN PhIsDangerousProcess(
     _In_ HANDLE ProcessId
     )
 {
-    NTSTATUS status;
-    PPH_STRING systemDirectory;
+    static ULONG DangerousProcesses[] =
+    {
+        0x6ccbdb46, // csrss.exe
+        0x5920bffe, // dwm.exe
+        0x8880527b, // logonui.exe
+        0x9fd9b2be, // lsass.exe
+        0xb1c6af0a, // lsm.exe
+        0xaafce8c2, // services.exe
+        0xfe38787e, // smss.exe
+        0x9d662730, // wininit.exe
+        0x2aa5caab, // winlogon.exe
+    };
     PPH_STRING fileName;
-    PPH_STRING fullName;
+    ULONG hash;
 
     if (ProcessId == SYSTEM_PROCESS_ID)
         return TRUE;
 
-    if (!NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+    if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
-    systemDirectory = PH_AUTO(PhGetSystemDirectory());
     PhMoveReference(&fileName, PhGetFileName(fileName));
-    PH_AUTO(fileName);
+    hash = PhHashStringRefEx(&fileName->sr, TRUE, PH_STRING_HASH_X65599);
+    PhDereferenceObject(fileName);
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(DangerousProcesses); i++)
     {
-        fullName = PH_AUTO(PhConcatStringRef3(
-            &systemDirectory->sr,
-            &PhNtPathSeperatorString,
-            &DangerousProcesses[i]
-            ));
-
-        if (PhEqualString(fileName, fullName, TRUE))
-        {
+        if (hash == DangerousProcesses[i])
             return TRUE;
-        }
+    }
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_IS_DANGEROUS_PROCESS processInfo;
+
+        processInfo.ProcessId = ProcessId;
+        processInfo.DangerousProcess = FALSE;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackDangerousProcess), &processInfo);
+
+        if (processInfo.DangerousProcess)
+            return TRUE;
     }
 
     return FALSE;
@@ -1401,7 +1416,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
         HANDLE processHandle;
         BOOLEAN breakOnTermination = FALSE;
 
-        if (PhpIsDangerousProcess(Processes[i]->ProcessId))
+        if (PhIsDangerousProcess(Processes[i]->ProcessId))
         {
             critical = TRUE;
             dangerous = TRUE;
@@ -2186,7 +2201,7 @@ BOOLEAN PhUiFreezeTreeProcess(
     BOOLEAN cont = FALSE;
     HANDLE freezeHandle;
 
-    if (InterlockedCompareExchangePointer(&Process->FreezeHandle, NULL, NULL))
+    if (ReadPointerAcquire(&Process->FreezeHandle))
         return FALSE;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))

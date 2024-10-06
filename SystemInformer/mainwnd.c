@@ -1140,6 +1140,9 @@ VOID PhMwpOnCommand(
             case ID_UPDATEINTERVAL_VERYSLOW:
                 interval = 10000;
                 break;
+            default:
+                interval = 1000;
+                break;
             }
 
             PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
@@ -1149,7 +1152,10 @@ VOID PhMwpOnCommand(
     case ID_VIEW_UPDATEAUTOMATICALLY:
         {
             PhMwpUpdateAutomatically = !PhMwpUpdateAutomatically;
-            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, (PVOID)PhMwpUpdateAutomatically, NULL);
+
+            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
         }
         break;
     case ID_TOOLS_THREADSTACKS:
@@ -2486,11 +2492,7 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
-#ifdef _ARM64_
-    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
-#else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
-#endif
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");

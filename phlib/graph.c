@@ -557,7 +557,7 @@ VOID PhDrawGraphDirect(
 
         // Fill in the text box.
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
-        FillRect(hdc, &DrawInfo->TextBoxRect, GetStockBrush(DC_BRUSH));
+        FillRect(hdc, &DrawInfo->TextBoxRect, PhGetStockBrush(DC_BRUSH));
 
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
@@ -1057,7 +1057,7 @@ LRESULT CALLBACK PhpGraphWndProc(
     //                rect.right += 2;
     //                rect.bottom += 2;
     //                SetDCBrushColor(hdc, RGB(0x8f, 0x8f, 0x8f));
-    //                FrameRect(hdc, &rect, GetStockBrush(DC_BRUSH));
+    //                FrameRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
     //
     //                ReleaseDC(hwnd, hdc);
     //                return 0;

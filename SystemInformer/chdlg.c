@@ -592,7 +592,7 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
                 SetTextColor(hdc, color);
             }
 
-            return (INT_PTR)GetStockBrush(WHITE_BRUSH);
+            return (INT_PTR)PhGetStockBrush(WHITE_BRUSH);
         }
         break;
     }

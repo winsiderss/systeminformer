@@ -1360,15 +1360,19 @@ NTSTATUS PhSetDesktopWinStaAccess(
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
 
-    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
-        WindowHandle,
-        TD_YES_BUTTON | TD_NO_BUTTON,
-        TD_WARNING_ICON,
-        L"WARNING: This will grant Everyone access to the current window station and desktop.",
-        L"Are you sure you want to continue?"
-        ) == IDNO)
+    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
     {
-        return STATUS_ACCESS_DENIED;
+        if (PhGetIntegerSetting(L"EnableWarningsRunas") && PhShowMessageOneTime(
+            WindowHandle,
+            TD_YES_BUTTON | TD_NO_BUTTON,
+            TD_WARNING_ICON,
+            L"WARNING: This will grant Everyone access to the current window station and desktop.",
+            L"Are you sure you want to continue?"
+            ) == IDNO)
+        {
+            PhSetIntegerSetting(L"EnableWarningsRunas", 0);
+            return STATUS_ACCESS_DENIED;
+        }
     }
 
     // TODO: Set security on the correct window station and desktop.
@@ -2367,7 +2371,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             SetBkMode(hdc, TRANSPARENT);
 
-            return (INT_PTR)GetStockBrush(WHITE_BRUSH);
+            return (INT_PTR)PhGetStockBrush(WHITE_BRUSH);
         }
         break;
     case WM_COMMAND:
@@ -2456,11 +2460,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             SetBkMode(hdc, TRANSPARENT);
 
             clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_WINDOW + 1));
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_3DFACE));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_3DFACE + 1));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
         }
@@ -2497,7 +2501,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
                                     SetDCBrushColor(customDraw->hdc, RGB(0xff, 0xff, 0xff));
-                                    FillRect(customDraw->hdc, &customDraw->rc, GetStockBrush(DC_BRUSH));
+                                    FillRect(customDraw->hdc, &customDraw->rc, PhGetStockBrush(DC_BRUSH));
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {

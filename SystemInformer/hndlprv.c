@@ -311,7 +311,7 @@ NTSTATUS PhpCreateHandleItemFunction(
 
     if (PhIsNullOrEmptyString(handleItem->TypeName))
     {
-        PhMoveReference(&handleItem->TypeName, PhGetObjectTypeName(handleItem->TypeIndex));
+        PhMoveReference(&handleItem->TypeName, PhGetObjectTypeIndexName(handleItem->TypeIndex));
     }
 
     if (handleItem->TypeName)
@@ -543,7 +543,7 @@ VOID PhHandleProviderUpdate(
             {
                 PPH_STRING typeName;
 
-                if (typeName = PhGetObjectTypeName(handleItem->TypeIndex))
+                if (typeName = PhGetObjectTypeIndexName(handleItem->TypeIndex))
                 {
                     PhMoveReference(&handleItem->TypeName, typeName);
                 }

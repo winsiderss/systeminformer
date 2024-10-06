@@ -2991,6 +2991,46 @@ VOID PhFlushImageVersionInfoCache(
 }
 
 /**
+ * Retrieves the full path and file name of the specified file.
+ *
+ * \param FileName The name of the file.
+ * \param BufferLength The size of the buffer to receive the null-terminated string for the drive and path.
+ * \param Buffer A pointer to a buffer that receives the null-terminated string for the drive and path.
+ * \param FilePart A variable which receives the index of the base name.
+ * \param BytesRequired The length of the string including the terminating null character.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetFullPathName(
+    _In_ PCWSTR FileName,
+    _In_ SIZE_T BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR* FilePart,
+    _Out_opt_ PULONG BytesRequired)
+{
+    NTSTATUS status;
+    ULONG bytesRequired;
+
+    bytesRequired = 0;
+    status = RtlGetFullPathName_UEx(
+        FileName,
+        (ULONG)BufferLength, // * sizeof(WCHAR)
+        Buffer,
+        FilePart,
+        &bytesRequired
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *BytesRequired = bytesRequired; /* / sizeof(WCHAR) */
+
+    if (BufferLength < bytesRequired)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Gets an absolute file name.
  *
  * \param FileName A file name.
@@ -3008,49 +3048,38 @@ NTSTATUS PhGetFullPath(
     NTSTATUS status;
     PPH_STRING fullPath;
     ULONG fullPathLength;
-    ULONG returnLength;
-    PWSTR filePart;
+    ULONG returnLength = 0;
+    PWSTR filePart = NULL;
 
-#ifdef DEBUG
-    assert(RtlEqualMemory(FileName, RtlNtPathSeperatorString.Buffer, RtlNtPathSeperatorString.Length) == FALSE);
-#endif
-
-    fullPathLength = DOS_MAX_PATH_LENGTH;
+    fullPathLength = 0x100;
     fullPath = PhCreateStringEx(NULL, fullPathLength);
 
-    status = RtlGetFullPathName_UEx(
+    status = PhGetFullPathName(
         FileName,
-        (ULONG)fullPath->Length,
+        fullPath->Length + sizeof(UNICODE_NULL),
         fullPath->Buffer,
         &filePart,
         &returnLength
         );
 
-    if (!NT_SUCCESS(status))
+    if (status == STATUS_BUFFER_TOO_SMALL && returnLength > sizeof(UNICODE_NULL))
     {
-        PhDereferenceObject(fullPath);
-        return status;
-    }
-
-    if (returnLength > fullPathLength)
-    {
-        PhDereferenceObject(fullPath);
-        fullPathLength = returnLength * sizeof(WCHAR);
+        fullPathLength = returnLength - sizeof(UNICODE_NULL);
         fullPath = PhCreateStringEx(NULL, fullPathLength);
 
-        status = RtlGetFullPathName_UEx(
+        status = PhGetFullPathName(
             FileName,
-            (ULONG)fullPath->Length,
+            fullPath->Length + sizeof(UNICODE_NULL),
             fullPath->Buffer,
             &filePart,
             &returnLength
             );
+    }
 
-        if (!NT_SUCCESS(status))
-        {
-            PhDereferenceObject(fullPath);
-            return status;
-        }
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(fullPath);
+        return status;
     }
 
     PhTrimToNullTerminatorString(fullPath);
@@ -3256,7 +3285,7 @@ PPH_STRING PhGetSystemDirectory(
 
     // Use the cached value if possible.
 
-    if (systemDirectory = InterlockedCompareExchangePointer(&cachedSystemDirectory, NULL, NULL))
+    if (systemDirectory = ReadPointerAcquire(&cachedSystemDirectory))
         return PhReferenceObject(systemDirectory);
 
     PhGetSystemRoot(&systemRootString);
@@ -3304,7 +3333,7 @@ VOID PhGetSystemRoot(
         return;
     }
 
-    localSystemRoot.Buffer = USER_SHARED_DATA->NtSystemRoot;
+    localSystemRoot.Buffer = RtlGetNtSystemRoot();
     count = PhCountStringZ(localSystemRoot.Buffer);
     localSystemRoot.Length = count * sizeof(WCHAR);
 
@@ -3381,33 +3410,31 @@ PPH_STRING PhGetApplicationFileName(
     )
 {
     static PPH_STRING cachedFileName = NULL;
-    PPH_STRING fileName = NULL;
+    PPH_STRING fileName;
 
-    if (fileName = InterlockedCompareExchangePointer(
-        &cachedFileName,
-        NULL,
-        NULL
-        ))
+    if (fileName = ReadPointerAcquire(&cachedFileName))
     {
         return PhReferenceObject(fileName);
     }
 
-    if (
-        !NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)) ||
-        !NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)) ||
-        !NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName))
-        )
+    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
     {
-        if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+        if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
         {
-            PPH_STRING fullPath;
-
-            if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
             {
-                PhMoveReference(&fileName, fullPath);
-            }
+                if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+                {
+                    PPH_STRING fullPath;
 
-            PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+                    if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+                    {
+                        PhMoveReference(&fileName, fullPath);
+                    }
+
+                    PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+                }
+            }
         }
     }
 
@@ -3433,26 +3460,33 @@ PPH_STRING PhGetApplicationFileNameWin32(
     static PPH_STRING cachedFileName = NULL;
     PPH_STRING fileName;
 
-    if (fileName = InterlockedCompareExchangePointer(
-        &cachedFileName,
-        NULL,
-        NULL
-        ))
+    if (fileName = ReadPointerAcquire(&cachedFileName))
     {
         return PhReferenceObject(fileName);
     }
 
-    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
     {
-        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+        PPH_STRING fullPath;
+
+        if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
         {
-            PhMoveReference(&fileName, PhGetFileName(fileName));
-        }
-        else if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
-        {
-            PhMoveReference(&fileName, PhGetFileName(fileName));
+            PhMoveReference(&fileName, fullPath);
         }
     }
+
+    //if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //
+    //if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //{
+    //    if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+    //    {
+    //        if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
+    //        {
+    //            PhMoveReference(&fileName, PhGetFileName(fileName));
+    //        }
+    //    }
 
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -3474,19 +3508,18 @@ PPH_STRING PhGetApplicationDirectory(
     PPH_STRING directoryPath;
     PPH_STRING fileName;
 
-    if (directoryPath = InterlockedCompareExchangePointer(
-        &cachedDirectoryPath,
-        NULL,
-        NULL
-        ))
+    // Read the cached directory path with acquire semantics
+    if (directoryPath = ReadPointerAcquire(&cachedDirectoryPath))
     {
         return PhReferenceObject(directoryPath);
     }
 
+    // Get the application file name
     if (fileName = PhGetApplicationFileName())
     {
         ULONG_PTR indexOfFileName;
 
+        // Find the last path separator in the file name
         indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
 
         if (indexOfFileName != SIZE_MAX)
@@ -3494,6 +3527,7 @@ PPH_STRING PhGetApplicationDirectory(
         else
             indexOfFileName = 0;
 
+        // Extract the directory path from the file name
         if (indexOfFileName != 0)
         {
             directoryPath = PhSubstring(fileName, 0, indexOfFileName);
@@ -3502,6 +3536,7 @@ PPH_STRING PhGetApplicationDirectory(
         PhDereferenceObject(fileName);
     }
 
+    // Atomically set the cached directory path if it is currently NULL
     if (!InterlockedCompareExchangePointer(
         &cachedDirectoryPath,
         directoryPath,
@@ -3525,11 +3560,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
     PPH_STRING directoryPath;
     PPH_STRING fileName;
 
-    if (directoryPath = InterlockedCompareExchangePointer(
-        &cachedDirectoryPath,
-        NULL,
-        NULL
-        ))
+    if (directoryPath = ReadPointerAcquire(&cachedDirectoryPath))
     {
         return PhReferenceObject(directoryPath);
     }
@@ -3545,6 +3576,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
         else
             indexOfFileName = 0;
 
+        // Extract the directory path from the file name
         if (indexOfFileName != 0)
         {
             directoryPath = PhSubstring(fileName, 0, indexOfFileName);
@@ -3553,6 +3585,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
         PhDereferenceObject(fileName);
     }
 
+    // Atomically set the cached directory path if it is currently NULL
     if (!InterlockedCompareExchangePointer(
         &cachedDirectoryPath,
         directoryPath,
@@ -8618,12 +8651,12 @@ VOID PhFreeProcessSnapshot(
             }
         }
 
-        if (PssQuerySnapshot_Import()(
+        if (NT_SUCCESS(PssNtQuerySnapshot_Import()(
             SnapshotHandle,
-            PSS_QUERY_HANDLE_TRACE_INFORMATION,
+            PSSNT_QUERY_HANDLE_TRACE_INFORMATION,
             &handleInfo,
             sizeof(PSS_HANDLE_TRACE_INFORMATION)
-            ) == ERROR_SUCCESS)
+            )))
         {
             if (handleInfo.SectionHandle)
             {
@@ -8632,9 +8665,14 @@ VOID PhFreeProcessSnapshot(
         }
     }
 
-    if (PssFreeSnapshot_Import())
+    if (PssNtFreeRemoteSnapshot_Import())
     {
-        PssFreeSnapshot_Import()(ProcessHandle, SnapshotHandle);
+        PssNtFreeRemoteSnapshot_Import()(ProcessHandle, SnapshotHandle);
+    }
+
+    if (PssNtFreeSnapshot_Import())
+    {
+        PssNtFreeSnapshot_Import()(SnapshotHandle);
     }
 }
 
@@ -8871,15 +8909,28 @@ PPH_STRING PhGetActiveComputerName(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName");
+    //static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName");
+    PPH_STRING keyName;
     PPH_STRING computerName = NULL;
     HANDLE keyHandle;
+    PH_FORMAT format[8];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Control");
+    PhInitFormatC(&format[1], OBJ_NAME_PATH_SEPARATOR);
+    PhInitFormatS(&format[2], L"Computer");
+    PhInitFormatS(&format[3], L"Name");
+    PhInitFormatC(&format[4], OBJ_NAME_PATH_SEPARATOR);
+    PhInitFormatS(&format[5], L"Active");
+    PhInitFormatS(&format[6], L"Computer");
+    PhInitFormatS(&format[7], L"Name");
+
+    keyName = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         KEY_READ,
         PH_KEY_LOCAL_MACHINE,
-        &keyName,
+        &keyName->sr,
         0
         )))
     {
@@ -8894,6 +8945,8 @@ PPH_STRING PhGetActiveComputerName(
     //{
     //   return PhCreateStringEx(computerName, length * sizeof(WCHAR));
     //}
+
+    PhDereferenceObject(keyName);
 
     return computerName;
 }

@@ -713,10 +713,11 @@ VOID PhServiceProviderUpdate(
                 // The SCM doesn't generate notifications for drivers. So flush service
                 // information once in a while so we can detect driver events. (dmex)
                 if (runCount % PhServiceNonPollFlushInterval == 0)
+                {
+                    // Go through the queued services query data.
+                    PhFlushServiceQueryData();
                     goto UpdateStart;
-
-                // Go through the queued services query data.
-                PhFlushServiceQueryData();
+                }
 
                 // Non-poll gate is closed; skip all processing.
                 goto UpdateEnd;
