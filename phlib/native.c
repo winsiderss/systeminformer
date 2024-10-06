@@ -511,7 +511,7 @@ NTSTATUS PhTerminateProcess(
             ExitStatus
             );
 
-        if (status != STATUS_NOT_SUPPORTED)
+        if (status != STATUS_NOT_SUPPORTED && status != STATUS_ACCESS_DENIED)
             return status;
     }
 
