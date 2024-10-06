@@ -734,7 +734,7 @@ VOID PhModuleProviderUpdate(
 
                 if ((*moduleItem)->BaseAddress == module->BaseAddress &&
                     (*moduleItem)->EnclaveBaseAddress == module->EnclaveBaseAddress &&
-                    PhEqualString((*moduleItem)->FileName, module->FileName, TRUE))
+                    PhEqualString((*moduleItem)->FileName, module->FileName, FALSE))
                 {
                     found = TRUE;
                     break;
