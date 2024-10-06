@@ -511,7 +511,7 @@ NTSTATUS PhTerminateProcess(
             ExitStatus
             );
 
-        if (status != STATUS_NOT_SUPPORTED)
+        if (NT_SUCCESS(status))
             return status;
     }
 
@@ -8129,7 +8129,7 @@ NTSTATUS PhEnumPoolTagInformation(
  * Enumerates information about the big pool allocations in the system.
  *
  * \param Buffer A pointer to a variable that receives the buffer containing the big pool information.
- * 
+ *
  * \return The status of the operation.
  */
 NTSTATUS PhEnumBigPoolInformation(
@@ -10347,7 +10347,7 @@ VOID PhpRtlModulesToGenericModules(
         if (WindowsVersion >= WINDOWS_11_24H2 && !module->ImageBase)
         {
             // Assign pseudo address on 24H2 (dmex)
-            module->ImageBase = (PVOID)(ULONG64_MAX - i);  
+            module->ImageBase = (PVOID)(ULONG64_MAX - i);
         }
 
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
@@ -10526,7 +10526,7 @@ NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
         {
             if (basicInfo->Type == MEM_MAPPED)
                 type = PH_MODULE_TYPE_MAPPED_FILE;
-            else 
+            else
                 type = PH_MODULE_TYPE_MAPPED_IMAGE;
 
             if (Parameters->LastAllocationBase == basicInfo->AllocationBase)
@@ -10574,7 +10574,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
 {
     BOOLEAN querySucceeded;
     PVOID baseAddress;
-    MEMORY_BASIC_INFORMATION basicInfo;    
+    MEMORY_BASIC_INFORMATION basicInfo;
     PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
 
     memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
