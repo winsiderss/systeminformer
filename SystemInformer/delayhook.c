@@ -227,28 +227,34 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
             PAINTSTRUCT ps;
             HDC hdc;
             HICON iconHandle;
+            RECT clientRect;
 
             if (!PhGetWindowContext(WindowHandle, SCHAR_MAX))
                 break;
 
             if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0)) // Static_GetIcon(WindowHandle, 0)
             {
-                if (hdc = BeginPaint(WindowHandle, &ps))
+                if (BeginPaint(WindowHandle, &ps))
                 {
-                    FillRect(hdc, &ps.rcPaint, PhThemeWindowBackgroundBrush);
+                    // Fix artefacts when window moving back from off-screen (Dart Vanya)
+                    hdc = GetDC(WindowHandle);
+                    GetClientRect(WindowHandle, &clientRect);
+
+                    FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
 
                     DrawIconEx(
                         hdc,
-                        ps.rcPaint.left,
-                        ps.rcPaint.top,
+                        clientRect.left,
+                        clientRect.top,
                         iconHandle,
-                        ps.rcPaint.right - ps.rcPaint.left,
-                        ps.rcPaint.bottom - ps.rcPaint.top,
+                        clientRect.right - clientRect.left,
+                        clientRect.bottom - clientRect.top,
                         0,
                         NULL,
                         DI_NORMAL
                         );
 
+                    ReleaseDC(WindowHandle, hdc);
                     EndPaint(WindowHandle, &ps);
                 }
             }
@@ -378,17 +384,24 @@ VOID ThemeWindowStatusBarDrawPart(
     {
         SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        blockRect.left -= 3, blockRect.top -= 1;
         FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+        blockRect.left += 3, blockRect.top += 1;
     }
     else
     {
+        RECT separator;
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         FillRect(bufferDc, &blockRect, PhThemeWindowBackgroundBrush);
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+        separator = blockRect;
+        separator.left = separator.right - 1;
+        PhInflateRect(&separator, 0, -1);
+        SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        FillRect(bufferDc, &separator, PhGetStockBrush(DC_BRUSH));
     }
 
-    blockRect.left += 2;
+    blockRect.left += 2, blockRect.bottom -= 1;
     DrawText(
         bufferDc,
         text,
@@ -396,7 +409,7 @@ VOID ThemeWindowStatusBarDrawPart(
         &blockRect,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
         );
-    blockRect.left -= 2;
+    blockRect.left -= 2, blockRect.bottom += 1;
 }
 
 VOID ThemeWindowRenderStatusBar(
@@ -447,6 +460,8 @@ VOID ThemeWindowRenderStatusBar(
         {
             DrawFrameControl(bufferDc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
         }
+
+        // Top statusbar border will be drawn by bottom tabcontrol border
 
         for (INT i = 0; i < blockCount; i++)
         {

@@ -253,7 +253,23 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 if (newFont)
                                     SelectFont(customDraw->nmcd.hdc, newFont);
 
-                                if (colorChanged)
+                                // Fix text readability for hot and selected colored items (Dart Vanya)
+                                BOOLEAN UseThemeTextColor = FALSE;
+                                if (PhEnableThemeSupport)
+                                {
+                                    LVITEM item;
+                                    item.iItem = (DWORD)customDraw->nmcd.dwItemSpec;
+                                    item.mask = LVIF_STATE;
+                                    item.stateMask = LVIS_SELECTED;
+                                    ListView_GetItem(context->Handle, &item);
+                                    UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT || item.state & LVIS_SELECTED;
+                                }
+
+                                if (UseThemeTextColor)
+                                {
+                                    customDraw->clrText = PhThemeWindowTextColor;
+                                }
+                                else if (colorChanged)
                                 {
                                     if (PhGetColorBrightness(customDraw->clrTextBk) > 100) // slightly less than half
                                         customDraw->clrText = RGB(0x00, 0x00, 0x00);

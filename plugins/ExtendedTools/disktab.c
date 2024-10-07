@@ -262,7 +262,7 @@ VOID EtInitializeDiskTreeList(
 {
     DiskTreeNewHandle = WindowHandle;
 
-    PhSetControlTheme(DiskTreeNewHandle, L"explorer");
+    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(WindowHandle, FALSE);
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);

@@ -379,17 +379,24 @@ VOID ThemeWindowStatusBarDrawPart(
     {
         SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        blockRect.left -= 3, blockRect.top -= 1;
         FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+        blockRect.left += 3, blockRect.top += 1;
     }
     else
     {
+        RECT separator;
         SetTextColor(bufferDc, PhThemeWindowTextColor);
         FillRect(bufferDc, &blockRect, PhThemeWindowBackgroundBrush);
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+        CopyRect(&separator, &blockRect);
+        separator.left = separator.right - 1;
+        InflateRect(&separator, 0, -1);
+        SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        FillRect(bufferDc, &separator, PhGetStockBrush(DC_BRUSH));
     }
 
-    blockRect.left += 2;
+    blockRect.left += 2, blockRect.bottom -= 1;
     DrawText(
         bufferDc,
         text,
@@ -397,7 +404,7 @@ VOID ThemeWindowStatusBarDrawPart(
         &blockRect,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
         );
-    blockRect.left -= 2;
+    blockRect.left -= 2, blockRect.bottom += 1;
 }
 
 VOID ThemeWindowRenderStatusBar(
@@ -448,6 +455,8 @@ VOID ThemeWindowRenderStatusBar(
         {
             DrawFrameControl(bufferDc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
         }
+
+        // Top statusbar border will be drawn by bottom tabcontrol border
 
         for (INT i = 0; i < blockCount; i++)
         {
