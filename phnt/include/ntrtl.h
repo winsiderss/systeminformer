@@ -6053,6 +6053,8 @@ RtlLoadString(
 
 // Errors
 
+_When_(Status < 0, _Out_range_(>, 0))
+_When_(Status >= 0, _Out_range_(==, 0))
 NTSYSAPI
 ULONG
 NTAPI
