@@ -54,6 +54,7 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
+        PH_FORMAT format[7];
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
         PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
@@ -61,8 +62,15 @@ NTSTATUS SetupCreateUninstallKey(
         PhInitializeStringRef(&value, L"System Informer");
         PhSetValueKeyZ(keyHandle, L"DisplayName", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, L"3.0");
-        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
+        PhInitFormatC(&format[1], L'.');
+        PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
+        PhInitFormatC(&format[3], L'.');
+        PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
+        PhInitFormatC(&format[5], L'.');
+        PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
+        string = PhFormat(format, RTL_NUMBER_OF(format), 10);
+        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
         PhInitializeStringRef(&value, L"https://systeminformer.sourceforge.io/");
         PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
@@ -70,7 +78,7 @@ NTSTATUS SetupCreateUninstallKey(
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
         PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, L"System Informer");
+        PhInitializeStringRef(&value, L"Winsider Seminars & Solutions, Inc.");
         PhSetValueKeyZ(keyHandle, L"Publisher", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
@@ -936,12 +944,13 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     )
 {
     HANDLE objectHandle;
+    BOOLEAN setupMutant;
     UNICODE_STRING objectNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
 
     if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
-        !PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE) &&
+        !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
         !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
     {
         return TRUE;
@@ -974,8 +983,17 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HWND hwnd;
         HANDLE processHandle = NULL;
+        PROCESS_BASIC_INFORMATION processInfo;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+            goto CleanupExit;
+
+        // Do not terminate the setup process if it's the parent of this process. This scenario
+        // happens when the setup process restarts itself for elevation. The parent process will
+        // return the same exit code as this setup process instance, terminating breaks that.
+        if (setupMutant &&
+            NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &processInfo)) &&
+            processInfo.InheritedFromUniqueProcessId == objectInfo.ClientId.UniqueProcess)
             goto CleanupExit;
 
         PhOpenProcess(
