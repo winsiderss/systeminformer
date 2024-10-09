@@ -173,6 +173,8 @@ INT WINAPI wWinMain(
         }
     }
 
+    PhInitializeSuperclassControls();
+
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {
@@ -194,7 +196,6 @@ INT WINAPI wWinMain(
     PhGraphControlInitialization();
     PhHexEditInitialization();
     PhColorBoxInitialization();
-    PhInitializeSuperclassControls();
 
     PhInitializeAppSystem();
     PhInitializeCallbacks();

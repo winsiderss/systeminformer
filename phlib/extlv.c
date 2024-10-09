@@ -230,8 +230,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             {
                                 BOOLEAN colorChanged = FALSE;
                                 HFONT newFont = NULL;
+                                BOOLEAN isWindowDisabled = (BOOLEAN)GetProp(context->Handle, L"ELVM_WindowDisabled");     // HACK
 
-                                if (context->ItemColorFunction)
+                                if (context->ItemColorFunction && !isWindowDisabled)
                                 {
                                     customDraw->clrTextBk = context->ItemColorFunction(
                                         (INT)customDraw->nmcd.dwItemSpec,
@@ -253,29 +254,36 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 if (newFont)
                                     SelectFont(customDraw->nmcd.hdc, newFont);
 
-                                // Fix text readability for hot and selected colored items (Dart Vanya)
-                                BOOLEAN UseThemeTextColor = FALSE;
-                                if (PhEnableThemeSupport)
+                                if (!isWindowDisabled)
                                 {
-                                    LVITEM item;
-                                    item.iItem = (DWORD)customDraw->nmcd.dwItemSpec;
-                                    item.mask = LVIF_STATE;
-                                    item.stateMask = LVIS_SELECTED;
-                                    ListView_GetItem(context->Handle, &item);
-                                    UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT || item.state & LVIS_SELECTED;
-                                }
+                                    // Fix text readability for hot and selected colored items (Dart Vanya)
+                                    BOOLEAN UseThemeTextColor = FALSE;
+                                    if (PhEnableThemeSupport)
+                                    {
+                                        LVITEM item;
+                                        item.iItem = (DWORD)customDraw->nmcd.dwItemSpec;
+                                        item.mask = LVIF_STATE;
+                                        item.stateMask = LVIS_SELECTED;
+                                        ListView_GetItem(context->Handle, &item);
+                                        UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT || item.state & LVIS_SELECTED;
+                                    }
 
-                                if (UseThemeTextColor)
-                                {
-                                    customDraw->clrText = PhThemeWindowTextColor;
+                                    if (UseThemeTextColor)
+                                    {
+                                        customDraw->clrText = PhThemeWindowTextColor;
+                                    }
+                                    else if (colorChanged)
+                                    {
+                                        if (PhGetColorBrightness(customDraw->clrTextBk) > 100) // slightly less than half
+                                            customDraw->clrText = RGB(0x00, 0x00, 0x00);
+                                        else
+                                            customDraw->clrText = RGB(0xff, 0xff, 0xff);
+                                    }
                                 }
-                                else if (colorChanged)
+                                else
                                 {
-                                    if (PhGetColorBrightness(customDraw->clrTextBk) > 100) // slightly less than half
-                                        customDraw->clrText = RGB(0x00, 0x00, 0x00);
-                                    else
-                                        customDraw->clrText = RGB(0xff, 0xff, 0xff);
-                                }
+                                    customDraw->clrText = RGB(169, 169, 169); // Light Grey
+                                }    
 
                                 if (!newFont)
                                     return CDRF_DODEFAULT;

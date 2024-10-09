@@ -554,7 +554,7 @@ COLORREF NTAPI PhpZombieProcessesColorFunction(
         return RGB(0x77, 0x77, 0x77);
     }
 
-    return GetSysColor(COLOR_WINDOW);
+    return PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 }
 
 BOOLEAN NTAPI PhpZombieProcessesCallback(

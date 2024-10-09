@@ -2093,6 +2093,13 @@ PhInitializeWindowThemeEx(
 PHLIBAPI
 VOID
 NTAPI
+PhInitializeSysLinkTheme(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     );

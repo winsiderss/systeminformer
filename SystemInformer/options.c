@@ -3531,6 +3531,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                             }
 
                             PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+
+                            ListView_SetItemState(HighlightingListViewHandle, -1, 0, LVIS_SELECTED);
                         }
                     }
                 }
@@ -3550,6 +3552,101 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             }
 
             REFLECT_MESSAGE_DLG(hwndDlg, HighlightingListViewHandle, uMsg, wParam, lParam);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == HighlightingListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PCOLOR_ITEM ColorItem;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(HighlightingListViewHandle, &point);
+
+                if (ColorItem = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_RESET, L"&Reset", NULL, NULL), ULONG_MAX);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item && item->Id == IDC_RESET)
+                    {
+                        PH_STRINGREF SettingName;
+                        PH_STRINGREF UseSettingName;
+                        PPH_SETTING Color;
+                        PPH_SETTING UseColor;
+                         
+                        PhInitializeStringRef(&SettingName, ColorItem->SettingName);
+                        PhInitializeStringRef(&UseSettingName, ColorItem->UseSettingName);
+                        Color = PhGetSetting(&SettingName);
+                        UseColor = PhGetSetting(&UseSettingName);
+
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+                        PhSettingFromString(UseColor->Type, &UseColor->DefaultValue, NULL, PhSystemDpi, UseColor);
+
+                        ColorItem->CurrentColor = Color->u.Integer;
+                        ColorItem->CurrentUse = !!UseColor->u.Integer;
+
+                        INT index = PhFindListViewItemByParam(HighlightingListViewHandle, INT_ERROR, ColorItem);
+                        ListView_SetCheckState(HighlightingListViewHandle, index, ColorItem->CurrentUse);
+                        ListView_SetItemState(HighlightingListViewHandle, index, 0, LVIS_SELECTED);
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+            }
+            else if ((HWND)wParam == GetDlgItem(hwndDlg, IDC_NEWOBJECTS) || (HWND)wParam == GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS))
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_RESET, L"&Reset", NULL, NULL), ULONG_MAX);
+
+                item = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    point.x,
+                    point.y
+                );
+
+                if (item && item->Id == IDC_RESET)
+                {
+                    PH_STRINGREF SettingName;
+                    PPH_SETTING Color;
+                    BOOLEAN setNew = (HWND)wParam == GetDlgItem(hwndDlg, IDC_NEWOBJECTS);
+
+                    PhInitializeStringRef(&SettingName, setNew ? L"ColorNew" : L"ColorRemoved");
+                    Color = PhGetSetting(&SettingName);
+
+                    PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+
+                    ColorBox_SetColor(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), Color->u.Integer);
+                    InvalidateRect(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), NULL, TRUE);
+                }
+
+                PhDestroyEMenu(menu);
+            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -3645,6 +3742,8 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                     ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED); // deselect all items
 
                     EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                    if (PhEnableThemeSupport)   // Checkbox glitches when theme enabled (Dart Vanya)
+                        RedrawWindow(GET_WM_COMMAND_HWND(wParam, lParam), NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
                 }
                 break;
             }
@@ -3684,6 +3783,8 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                             }
 
                             PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+
+                            ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED);
                         }
                     }
                 }
@@ -3705,6 +3806,55 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             if (IsWindowEnabled(PhpGraphListViewHandle)) // HACK: Move to WM_COMMAND (dmex)
             {
                 REFLECT_MESSAGE_DLG(hwndDlg, PhpGraphListViewHandle, uMsg, wParam, lParam);
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == PhpGraphListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PCOLOR_ITEM ColorItem;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(PhpGraphListViewHandle, &point);
+
+                if (ColorItem = PhGetSelectedListViewItemParam(PhpGraphListViewHandle))
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_RESET, L"&Reset", NULL, NULL), ULONG_MAX);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item && item->Id == IDC_RESET)
+                    {
+                        PH_STRINGREF SettingName;
+                        PPH_SETTING Color;
+                         
+                        PhInitializeStringRef(&SettingName, ColorItem->SettingName);
+                        Color = PhGetSetting(&SettingName);
+
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+
+                        ColorItem->CurrentColor = Color->u.Integer;
+
+                        ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED);
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
             }
         }
         break;

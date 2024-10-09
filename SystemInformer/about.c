@@ -72,6 +72,8 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            if (PhEnableThemeSupport)
+                PhInitializeSysLinkTheme(GetDlgItem(hwndDlg, IDC_LINK_SF));
         }
         break;
     case WM_DESTROY:

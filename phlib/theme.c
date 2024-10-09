@@ -108,6 +108,13 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
     _In_ LPARAM lParam
     );
 
+LRESULT CALLBACK PhpThemeWindowListViewSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // Win10-RS5 (uxtheme.dll ordinal 132)
 BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
     VOID
@@ -278,6 +285,22 @@ VOID PhInitializeWindowThemeEx(
     }
 
     PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
+}
+
+VOID PhInitializeSysLinkTheme(
+    _In_ HWND WindowHandle
+    )
+{
+    WCHAR windowClassName[MAX_PATH];
+    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+        windowClassName[0] = UNICODE_NULL;
+
+    if (PhEqualStringZ(windowClassName, WC_LINK, TRUE))
+    {
+        LITEM linkChanges = { LIF_ITEMINDEX | LIF_STATE, 0, LIS_DEFAULTCOLORS , LIS_DEFAULTCOLORS };
+        while (SendMessage(WindowHandle, LM_SETITEM, 0, (LPARAM)&linkChanges))
+            linkChanges.iLink++;
+    }
 }
 
 VOID PhReInitializeWindowTheme(
@@ -656,6 +679,16 @@ VOID PhInitializeWindowThemeACLUI(
     InvalidateRect(ACLUIControl, NULL, FALSE);
 }
 
+VOID PhInitializeWindowThemeListView(
+    _In_ HWND ListViewControl
+)
+{
+    PhSetWindowContext(ListViewControl, LONG_MAX, (PVOID)GetWindowLongPtr(ListViewControl, GWLP_WNDPROC));
+    SetWindowLongPtr(ListViewControl, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowListViewSubclassProc);
+
+    InvalidateRect(ListViewControl, NULL, FALSE);
+}
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -684,9 +717,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE))
     {
-        if ((PhGetWindowStyle(WindowHandle) & BS_GROUPBOX) == BS_GROUPBOX)
+        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+        if ((style & BS_GROUPBOX) == BS_GROUPBOX)
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
+        }
+        else if (style > BS_DEFPUSHBUTTON)   // apply theme for CheckBox, Radio (Dart Vanya)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
@@ -747,7 +785,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         ListView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
-        //InvalidateRect(WindowHandle, NULL, FALSE);
+
+        PhInitializeWindowThemeListView(WindowHandle);
     }
     else if (PhEqualStringZ(windowClassName, WC_TREEVIEW, FALSE))
     {
@@ -2211,13 +2250,32 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
         {
             HDC hdc = (HDC)wParam;
 
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
+            return (INT_PTR)PhThemeWindowBackgroundBrush;
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc = (HDC)wParam;
+            HWND hControl = (HWND)lParam;
+            BOOLEAN useColorLink = FALSE;
+            WCHAR windowClassName[MAX_PATH];
+
+            if (!GetClassName(hControl, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if (PhEqualStringZ(windowClassName, WC_LINK, FALSE)) {
+                LITEM litem = { LIF_ITEMINDEX | LIF_STATE, 0, 0, LIS_DEFAULTCOLORS };
+                if (SendMessage(hControl, LM_GETITEM, 0, (LPARAM)&litem))
+                    useColorLink = litem.state & LIS_DEFAULTCOLORS;
+            }
+
+            SetBkMode(hdc, TRANSPARENT);
+            SetTextColor(hdc, !useColorLink ? PhThemeWindowTextColor : 0xE9BD5B); // To apply color for SysLink call PhInitializeSysLinkTheme() first
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
         break;
@@ -3164,6 +3222,75 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             return (INT_PTR)PhThemeWindowBackgroundBrush;
+        }
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+// https://github.com/notepad-plus-plus/notepad-plus-plus/issues/13933
+LRESULT CALLBACK PhpThemeWindowListViewSubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_PAINT:
+        if (!IsWindowEnabled(WindowHandle))
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(WindowHandle, &ps);
+
+            // Create a memory DC for double buffering
+            HDC memDC = CreateCompatibleDC(hdc);
+            HBITMAP memBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
+            HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+            // Fill background with the desired color
+            SetDCBrushColor(memDC, PhThemeWindowForegroundColor);   // Dark background
+            FillRect(memDC, &ps.rcPaint, PhGetStockBrush(DC_BRUSH));
+
+            // Temporarily enable the ListView to allow default painting
+            EnableWindow(WindowHandle, TRUE);
+
+            // Set new colors
+            ListView_SetBkColor(WindowHandle, PhThemeWindowForegroundColor); // Dark background
+            ListView_SetTextBkColor(WindowHandle, PhThemeWindowForegroundColor); // Dark text background
+            ListView_SetTextColor(WindowHandle, RGB(169, 169, 169)); // Light Grey
+
+            SetProp(WindowHandle, L"ELVM_WindowDisabled", (HANDLE)TRUE);     // HACK
+
+            // Call the default paint handler on the memory DC
+            CallWindowProc(oldWndProc, WindowHandle, WM_PRINTCLIENT, (WPARAM)memDC, PRF_CLIENT);
+
+            RemoveProp(WindowHandle, L"ELVM_WindowDisabled");
+
+            // Restore original colors
+            ListView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);
+            ListView_SetTextBkColor(WindowHandle, PhThemeWindowBackgroundColor);
+            ListView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
+
+            // Restore original enabled state
+            EnableWindow(WindowHandle, FALSE);
+
+            // Copy the painted image from the memory DC to the original DC
+            BitBlt(hdc, 0, 0, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, memDC, 0, 0, SRCCOPY);
+
+            // Cleanup
+            SelectObject(memDC, oldBitmap);
+            DeleteObject(memBitmap);
+            DeleteDC(memDC);
+
+            EndPaint(WindowHandle, &ps);
+            return 0;
         }
     }
 
