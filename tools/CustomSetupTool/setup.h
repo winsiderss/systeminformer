@@ -194,7 +194,7 @@ NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-NTSTATUS SetupDeleteUninstallKey(
+VOID SetupDeleteUninstallKey(
     VOID
     );
 
@@ -226,8 +226,6 @@ NTSTATUS SetupExecuteApplication(
 VOID SetupUpgradeSettingsFile(
     VOID
     );
-
-extern PH_STRINGREF UninstallKeyName;
 
 typedef struct _SETUP_EXTRACT_FILE
 {

@@ -27,10 +27,38 @@
 #error PH_RELEASE_CHANNEL_ID undefined
 #endif
 
-PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer");
+PH_STRINGREF UninstallKeyNames[] =
+{
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Preview"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Canary"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Developer"),
+};
 PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
 PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+
+VOID SetupDeleteUninstallKey(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(UninstallKeyNames); i++)
+    {
+        HANDLE keyHandle;
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            DELETE | KEY_WOW64_64KEY,
+            PH_KEY_LOCAL_MACHINE,
+            &UninstallKeyNames[i],
+            0
+            )))
+        {
+            NtDeleteKey(keyHandle);
+            NtClose(keyHandle);
+        }
+    }
+}
 
 NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
@@ -41,11 +69,13 @@ NTSTATUS SetupCreateUninstallKey(
     PH_STRINGREF value;
     ULONG ulong = 1;
 
+    SetupDeleteUninstallKey();
+
     status = PhCreateKey(
         &keyHandle,
         KEY_ALL_ACCESS | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
+        &UninstallKeyNames[PH_RELEASE_CHANNEL_ID],
         OBJ_OPENIF,
         0,
         NULL
@@ -88,30 +118,6 @@ NTSTATUS SetupCreateUninstallKey(
         PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
         PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
 
-        NtClose(keyHandle);
-    }
-
-    return status;
-}
-
-NTSTATUS SetupDeleteUninstallKey(
-    VOID
-    )
-{
-    NTSTATUS status;
-    HANDLE keyHandle;
-
-    status = PhOpenKey(
-        &keyHandle,
-        DELETE | KEY_WOW64_64KEY,
-        PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
-        0
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        status = NtDeleteKey(keyHandle);
         NtClose(keyHandle);
     }
 
@@ -921,7 +927,7 @@ PPH_STRING GetApplicationInstallPath(
         &keyHandle,
         KEY_READ | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
+        &UninstallKeyNames[PH_RELEASE_CHANNEL_ID],
         0
         )))
     {
