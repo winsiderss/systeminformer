@@ -923,16 +923,20 @@ PPH_STRING GetApplicationInstallPath(
     HANDLE keyHandle;
     PPH_STRING installPath = NULL;
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ | KEY_WOW64_64KEY,
-        PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyNames[PH_RELEASE_CHANNEL_ID],
-        0
-        )))
+    for (ULONG i = 0; i < RTL_NUMBER_OF(UninstallKeyNames); i++)
     {
-        installPath = PhQueryRegistryStringZ(keyHandle, L"InstallLocation");
-        NtClose(keyHandle);
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ | KEY_WOW64_64KEY,
+            PH_KEY_LOCAL_MACHINE,
+            &UninstallKeyNames[i],
+            0
+            )))
+        {
+            installPath = PhQueryRegistryStringZ(keyHandle, L"InstallLocation");
+            NtClose(keyHandle);
+            break;
+        }
     }
 
 #ifdef FORCE_TEST_UPDATE_LOCAL_INSTALL
