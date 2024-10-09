@@ -420,8 +420,8 @@ VOID SetupParseCommandLine(
     {
         { SETUP_CMD_INSTALL,   L"install",   NoArgumentType },
         { SETUP_CMD_UNINSTALL, L"uninstall", NoArgumentType },
-        { SETUP_CMD_UPDATE,    L"update",    NoArgumentType },
-        { SETUP_CMD_SILENT,    L"silent",    OptionalArgumentType },
+        { SETUP_CMD_UPDATE,    L"update",    OptionalArgumentType },
+        { SETUP_CMD_SILENT,    L"silent",    NoArgumentType },
     };
     PH_STRINGREF commandLine;
 
