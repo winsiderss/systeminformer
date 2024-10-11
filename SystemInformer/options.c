@@ -3710,6 +3710,11 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 
             if (PhGetIntegerSetting(L"GraphColorMode"))
                 EnableWindow(PhpGraphListViewHandle, TRUE);
+            else if (PhEnableThemeSupport)
+            {
+                ShowWindow(PhpGraphListViewHandle, SW_HIDE);
+                EnableWindow(PhpGraphListViewHandle, TRUE);
+            }
         }
         break;
     case WM_DESTROY:
@@ -3741,9 +3746,10 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                 {
                     ListView_SetItemState(PhpGraphListViewHandle, -1, 0, LVIS_SELECTED); // deselect all items
 
-                    EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
-                    if (PhEnableThemeSupport)   // Checkbox glitches when theme enabled (Dart Vanya)
-                        RedrawWindow(GET_WM_COMMAND_HWND(wParam, lParam), NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+                    if (PhEnableThemeSupport)
+                        ShowWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED ? SW_SHOW : SW_HIDE);
+                    else
+                        EnableWindow(PhpGraphListViewHandle, Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
                 }
                 break;
             }

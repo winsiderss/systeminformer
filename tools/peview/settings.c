@@ -27,6 +27,8 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
+    PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
     PhpAddIntegerSetting(L"EnableTreeListBorder", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
     PhpAddIntegerSetting(L"SearchControlRegex", L"0");

@@ -30,6 +30,7 @@ static WNDPROC PhDefaultEditWindowProcedure = NULL;
 static WNDPROC PhDefaultHeaderWindowProcedure = NULL;
 static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
+static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
@@ -1282,11 +1283,11 @@ typedef struct _TASKDIALOG_CALLBACK_WRAP
     LONG_PTR lpCallbackData;
 } TASKDIALOG_CALLBACK_WRAP, * PTASKDIALOG_CALLBACK_WRAP;
 
-typedef struct _TASKDIALOG_CONTROL_CONTEXT
+typedef struct _TASKDIALOG_COMMON_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
-} TASKDIALOG_CONTROL_CONTEXT, * PTASKDIALOG_CONTROL_CONTEXT;
+} TASKDIALOG_COMMON_CONTEXT, * PTASKDIALOG_COMMON_CONTEXT;
 
 typedef struct _TASKDIALOG_WINDOW_CONTEXT
 {
@@ -1294,6 +1295,8 @@ typedef struct _TASKDIALOG_WINDOW_CONTEXT
     ULONG Painting;
     PTASKDIALOG_CALLBACK_WRAP CallbackData;
 } TASKDIALOG_WINDOW_CONTEXT, * PTASKDIALOG_WINDOW_CONTEXT;
+
+#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!GetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName))) ClassName[0] = UNICODE_NULL
 
 HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     _In_ HWND hwndDlg,
@@ -1371,70 +1374,74 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     WCHAR className[MAX_PATH];
 
     // Apply theme to ListView checkboxes
-    if (iPartId == BP_CHECKBOX || iPartId == BP_RADIOBUTTON)
+    if (iPartId == BP_CHECKBOX /*|| iPartId == BP_RADIOBUTTON*/)
     {
-        HTHEME darkButtonTheme = PhOpenThemeData(NULL, L"DarkMode_Explorer::Button", 0);
-        HRESULT retVal = PhDefaultDrawThemeBackgroundEx(darkButtonTheme ? darkButtonTheme : hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-        if (darkButtonTheme)
-            PhCloseThemeData(darkButtonTheme);
-        return retVal;
-    }
-
-    if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)))
-    {
-        if (!PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE))
-            return PhDefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-    }
-
-    switch (iPartId)
-    {
-    case TDLG_PRIMARYPANEL:
-        SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-        FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
-        return S_OK;
-    case TDLG_FOOTNOTEPANE:
-        FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
-        return S_OK;
-    case TDLG_SECONDARYPANEL:
-    {
-        FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
-        RECT rect = *pRect;
-        rect.bottom = rect.top + 1;
-        SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
-        FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
-        PhOffsetRect(&rect, 0, 1);
-        SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-        FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
-        return S_OK;
-    }
-    case TDLG_FOOTNOTESEPARATOR:
-    {
-        SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
-        FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
-        RECT rect = *pRect;
-        rect.top += 1;
-        SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-        FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
-        return S_OK;
-    }
-    case TDLG_EXPANDOBUTTON:
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
+            PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
         {
-            // In Windows 11, buttons lack background, making them indistinguishable on dark backgrounds.
-            // To address this, we invert the button. This technique isn't applicable to Windows 10 as it causes the button's border to appear chipped.
-            static enum { yes, no, unknown } mustInvertButton = unknown;
-            if (mustInvertButton == unknown)
-            {
-                PhDefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-                int buttonCenterX = pOptions->rcClip.left + (pOptions->rcClip.right - pOptions->rcClip.left) / 2;
-                int buttonCenterY = pOptions->rcClip.top + (pOptions->rcClip.bottom - pOptions->rcClip.top) / 2;
-                COLORREF centerPixel = GetPixel(hdc, buttonCenterX, buttonCenterY);
-                mustInvertButton = centerPixel == PhThemeWindowTextColor ? no : yes;
-            }
-            FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
-            if (mustInvertButton == yes) InvertRect(hdc, pRect);
-            HRESULT retVal = PhDefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-            if (mustInvertButton == yes) InvertRect(hdc, pRect);
+            HTHEME darkButtonTheme = PhOpenThemeData(NULL, L"DarkMode_Explorer::Button", 0);
+            HRESULT retVal = PhDefaultDrawThemeBackgroundEx(darkButtonTheme ? darkButtonTheme : hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+            if (darkButtonTheme)
+                PhCloseThemeData(darkButtonTheme);
             return retVal;
+        }
+    }
+
+    // Micro optimization
+    if ((iPartId == TDLG_PRIMARYPANEL || iPartId == TDLG_FOOTNOTEPANE || iPartId == TDLG_SECONDARYPANEL || iPartId == TDLG_FOOTNOTESEPARATOR || iPartId == TDLG_EXPANDOBUTTON) &&
+        PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
+        PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE))
+    {
+        switch (iPartId)
+        {
+        case TDLG_PRIMARYPANEL:
+            SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+            FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
+            return S_OK;
+        case TDLG_FOOTNOTEPANE:
+            FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
+            return S_OK;
+        case TDLG_SECONDARYPANEL:
+        {
+            FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
+            RECT rect = *pRect;
+            rect.bottom = rect.top + 1;
+            SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
+            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            PhOffsetRect(&rect, 0, 1);
+            SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            return S_OK;
+        }
+        case TDLG_FOOTNOTESEPARATOR:
+        {
+            SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
+            FillRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
+            RECT rect = *pRect;
+            rect.top += 1;
+            SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+            FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+            return S_OK;
+        }
+        case TDLG_EXPANDOBUTTON:
+            {
+                // In Windows 11, buttons lack background, making them indistinguishable on dark backgrounds.
+                // To address this, we invert the button. This technique isn't applicable to Windows 10 as it causes the button's border to appear chipped.
+                static enum { yes, no, unknown } mustInvertButton = unknown;
+                if (mustInvertButton == unknown)
+                {
+                    PhDefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+                    int buttonCenterX = pOptions->rcClip.left + (pOptions->rcClip.right - pOptions->rcClip.left) / 2;
+                    int buttonCenterY = pOptions->rcClip.top + (pOptions->rcClip.bottom - pOptions->rcClip.top) / 2;
+                    COLORREF centerPixel = GetPixel(hdc, buttonCenterX, buttonCenterY);
+                    mustInvertButton = centerPixel == PhThemeWindowTextColor ? no : yes;
+                }
+                FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
+                if (mustInvertButton == yes) InvertRect(hdc, pRect);
+                HRESULT retVal = PhDefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+                if (mustInvertButton == yes) InvertRect(hdc, pRect);
+                return retVal;
+            }
         }
     }
 
@@ -1596,8 +1603,6 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //#define RGB_FROM_COLOREF(cref) \
 //    ((((cref) & 0x000000FF) << 16) | (((cref) & 0x0000FF00)) | (((cref) & 0x00FF0000) >> 16))
 
-#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!GetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName))) ClassName[0] = UNICODE_NULL
-
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
@@ -1610,15 +1615,20 @@ HRESULT WINAPI PhDrawThemeTextHook(
     _In_ LPCRECT pRect
     )
 {
-    WCHAR className[MAX_PATH];
-
-    if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-        PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
+    if ((iPartId == BP_RADIOBUTTON || iPartId == BP_COMMANDLINK) && iStateId != PBS_DISABLED)
     {
-        if ((iPartId == BP_RADIOBUTTON || iPartId == BP_COMMANDLINK) && iStateId != PBS_DISABLED)
+        WCHAR className[MAX_PATH];
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
+            PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
         {
-            DTTOPTS options = { sizeof(DTTOPTS), DTT_TEXTCOLOR, PhThemeWindowTextColor };
-            return PhDefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, (LPRECT)pRect, &options);
+            // I'm out of ideas how to not break radio buttons in other system dialogs other than using hardcoded white list
+            if (iPartId == BP_COMMANDLINK ||
+                PhEqualStringZ((PWSTR)pszText, L"Stable\n - Recommended", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Canary\n - Preview", FALSE))
+            {
+                DTTOPTS options = { sizeof(DTTOPTS), DTT_TEXTCOLOR, PhThemeWindowTextColor };
+                return PhDefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, (LPRECT)pRect, &options);
+            }
         }
     }
 
@@ -1637,10 +1647,9 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     _In_      const DTTOPTS* pOptions
     )
 {
-    WCHAR className[MAX_PATH];
-
     if (iPartId == BP_COMMANDLINK)
     {
+        WCHAR className[MAX_PATH];
         if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
             PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
         {
@@ -1699,8 +1708,8 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 )
 {
     WCHAR windowClassName[MAX_PATH];
-    PTASKDIALOG_CONTROL_CONTEXT context;
-    BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, LONG_MIN);
+    PTASKDIALOG_COMMON_CONTEXT context;
+    BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, (ULONG)'TDLG');
 
     if (CallbackData && !windowHasContext)
     {
@@ -1715,7 +1724,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
         PTASKDIALOG_WINDOW_CONTEXT context = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
         context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
         context->CallbackData = CallbackData;
-        PhSetWindowContext(WindowHandle, LONG_MIN, context);
+        PhSetWindowContext(WindowHandle, (ULONG)'TDLG', context);
         windowHasContext = TRUE;
     }
 
@@ -1731,9 +1740,9 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
 
-    context = PhAllocateZero(sizeof(TASKDIALOG_CONTROL_CONTEXT));
+    context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
     context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-    PhSetWindowContext(WindowHandle, LONG_MIN, context);
+    PhSetWindowContext(WindowHandle, (ULONG)'TDLG', context);
 
     if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
         PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
@@ -1759,10 +1768,10 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     )
 {
     LRESULT result;
-    PTASKDIALOG_CONTROL_CONTEXT context;
+    PTASKDIALOG_COMMON_CONTEXT context;
     WNDPROC OldWndProc;
 
-    if (!(context = PhGetWindowContext(hwnd, LONG_MIN)))
+    if (!(context = PhGetWindowContext(hwnd, (ULONG)'TDLG')))
         return 0;
 
     OldWndProc = context->DefaultWindowProc;
@@ -1812,7 +1821,7 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     case WM_DESTROY:
         {
             PhSetWindowProcedure(hwnd, OldWndProc);
-            PhRemoveWindowContext(hwnd, LONG_MIN);
+            PhRemoveWindowContext(hwnd, (ULONG)'TDLG');
             PhFree(context);
         }
         return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
@@ -1909,8 +1918,11 @@ VOID PhRegisterDetoursHooks(
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeBackgroundEx, (PVOID)PhDrawThemeBackgroundExHook)))
             goto CleanupExit;
-        if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultSystemParametersInfo, (PVOID)PhSystemParametersInfoHook)))
-            goto CleanupExit;
+        if (!PhDefaultEnableThemeAnimation)
+        {
+            if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultSystemParametersInfo, (PVOID)PhSystemParametersInfoHook)))
+                goto CleanupExit;
+        }
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeText, (PVOID)PhDrawThemeTextHook)))
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeTextEx, (PVOID)PhDrawThemeTextExHook)))
@@ -1974,6 +1986,8 @@ VOID PhInitializeSuperclassControls(
         {
             PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
         }
+
+        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
 
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();
