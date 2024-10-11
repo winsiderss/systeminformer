@@ -213,7 +213,10 @@ VOID ShowUpdateErrorPageDialog(
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Error updating to the latest version.";
+    if (Context->ErrorCode)
+        config.pszMainInstruction = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    else
+        config.pszMainInstruction = L"Error updating to the latest version.";
 
     if (Context->ErrorCode)
     {

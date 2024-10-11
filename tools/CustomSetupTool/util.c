@@ -27,10 +27,38 @@
 #error PH_RELEASE_CHANNEL_ID undefined
 #endif
 
-PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer");
+PH_STRINGREF UninstallKeyNames[] =
+{
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Preview"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Canary"),
+    PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Developer"),
+};
 PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
 PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+
+VOID SetupDeleteUninstallKey(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(UninstallKeyNames); i++)
+    {
+        HANDLE keyHandle;
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            DELETE | KEY_WOW64_64KEY,
+            PH_KEY_LOCAL_MACHINE,
+            &UninstallKeyNames[i],
+            0
+            )))
+        {
+            NtDeleteKey(keyHandle);
+            NtClose(keyHandle);
+        }
+    }
+}
 
 NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
@@ -41,11 +69,13 @@ NTSTATUS SetupCreateUninstallKey(
     PH_STRINGREF value;
     ULONG ulong = 1;
 
+    SetupDeleteUninstallKey();
+
     status = PhCreateKey(
         &keyHandle,
         KEY_ALL_ACCESS | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
+        &UninstallKeyNames[PH_RELEASE_CHANNEL_ID],
         OBJ_OPENIF,
         0,
         NULL
@@ -54,6 +84,7 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
+        PH_FORMAT format[7];
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
         PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
@@ -61,8 +92,15 @@ NTSTATUS SetupCreateUninstallKey(
         PhInitializeStringRef(&value, L"System Informer");
         PhSetValueKeyZ(keyHandle, L"DisplayName", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, L"3.0");
-        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
+        PhInitFormatC(&format[1], L'.');
+        PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
+        PhInitFormatC(&format[3], L'.');
+        PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
+        PhInitFormatC(&format[5], L'.');
+        PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
+        string = PhFormat(format, RTL_NUMBER_OF(format), 10);
+        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
         PhInitializeStringRef(&value, L"https://systeminformer.sourceforge.io/");
         PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
@@ -70,7 +108,7 @@ NTSTATUS SetupCreateUninstallKey(
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
         PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, L"System Informer");
+        PhInitializeStringRef(&value, L"Winsider Seminars & Solutions, Inc.");
         PhSetValueKeyZ(keyHandle, L"Publisher", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
@@ -80,30 +118,6 @@ NTSTATUS SetupCreateUninstallKey(
         PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
         PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
 
-        NtClose(keyHandle);
-    }
-
-    return status;
-}
-
-NTSTATUS SetupDeleteUninstallKey(
-    VOID
-    )
-{
-    NTSTATUS status;
-    HANDLE keyHandle;
-
-    status = PhOpenKey(
-        &keyHandle,
-        DELETE | KEY_WOW64_64KEY,
-        PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
-        0
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        status = NtDeleteKey(keyHandle);
         NtClose(keyHandle);
     }
 
@@ -909,16 +923,20 @@ PPH_STRING GetApplicationInstallPath(
     HANDLE keyHandle;
     PPH_STRING installPath = NULL;
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ | KEY_WOW64_64KEY,
-        PH_KEY_LOCAL_MACHINE,
-        &UninstallKeyName,
-        0
-        )))
+    for (ULONG i = 0; i < RTL_NUMBER_OF(UninstallKeyNames); i++)
     {
-        installPath = PhQueryRegistryStringZ(keyHandle, L"InstallLocation");
-        NtClose(keyHandle);
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ | KEY_WOW64_64KEY,
+            PH_KEY_LOCAL_MACHINE,
+            &UninstallKeyNames[i],
+            0
+            )))
+        {
+            installPath = PhQueryRegistryStringZ(keyHandle, L"InstallLocation");
+            NtClose(keyHandle);
+            break;
+        }
     }
 
 #ifdef FORCE_TEST_UPDATE_LOCAL_INSTALL
@@ -936,12 +954,13 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     )
 {
     HANDLE objectHandle;
+    BOOLEAN setupMutant;
     UNICODE_STRING objectNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
 
     if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
-        !PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE) &&
+        !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
         !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
     {
         return TRUE;
@@ -974,8 +993,17 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HWND hwnd;
         HANDLE processHandle = NULL;
+        PROCESS_BASIC_INFORMATION processInfo;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+            goto CleanupExit;
+
+        // Do not terminate the setup process if it's the parent of this process. This scenario
+        // happens when the setup process restarts itself for elevation. The parent process will
+        // return the same exit code as this setup process instance, terminating breaks that.
+        if (setupMutant &&
+            NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &processInfo)) &&
+            processInfo.InheritedFromUniqueProcessId == objectInfo.ClientId.UniqueProcess)
             goto CleanupExit;
 
         PhOpenProcess(
