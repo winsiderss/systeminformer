@@ -136,7 +136,10 @@ VOID ShowErrorPageDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Setup failed with an error.";
+    if (Context->ErrorCode)
+        config.pszMainInstruction = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    else
+        config.pszMainInstruction = L"Setup failed with an error.";
     config.pszContent = L"Select Close to exit setup.";
     config.cxWidth = 200;
 
@@ -177,29 +180,37 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
                 }
                 else
                 {
+                    NTSTATUS status;
                     PPH_STRING applicationFileName;
                     PH_STRINGREF applicationCommandLine;
 
-                    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                    if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                    {
+                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
                         return S_FALSE;
+                    }
                     if (!(applicationFileName = PhGetApplicationFileNameWin32()))
+                    {
+                        context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
                         return S_FALSE;
+                    }
 
-                    if (NT_SUCCESS(PhShellExecuteEx(
-                        hwndDlg, 
+                    if (NT_SUCCESS(status = PhShellExecuteEx(
+                        hwndDlg,
                         PhGetString(applicationFileName),
                         PhGetStringRefZ(&applicationCommandLine),
                         NULL,
                         SW_SHOW,
                         PH_SHELL_EXECUTE_ADMIN,
                         0,
-                        NULL
+                        &context->SubProcessHandle
                         )))
                     {
-                        PhExitApplication(STATUS_SUCCESS);
+                        ShowWindow(hwndDlg, SW_HIDE);
                     }
                     else
                     {
+                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
                         PhDereferenceObject(applicationFileName);
                         return S_FALSE;
                     }

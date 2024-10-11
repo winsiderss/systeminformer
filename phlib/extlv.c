@@ -494,7 +494,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 {
                     result = SUCCEEDED(IListView_SortItems(
                         context->Instance,
-                        TRUE,
+                        FALSE,
                         (WPARAM)context,
                         (PFNLVCOMPARE)PhpExtendedListViewCompareFastFunc
                         ));

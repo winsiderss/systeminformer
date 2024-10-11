@@ -1124,6 +1124,9 @@ VOID PhMwpOnCommand(
             case ID_UPDATEINTERVAL_VERYSLOW:
                 interval = 10000;
                 break;
+            default:
+                interval = 1000;
+                break;
             }
 
             PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
@@ -1133,7 +1136,10 @@ VOID PhMwpOnCommand(
     case ID_VIEW_UPDATEAUTOMATICALLY:
         {
             PhMwpUpdateAutomatically = !PhMwpUpdateAutomatically;
-            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, (PVOID)PhMwpUpdateAutomatically, NULL);
+
+            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
         }
         break;
     case ID_TOOLS_THREADSTACKS:

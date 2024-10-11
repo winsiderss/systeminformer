@@ -511,7 +511,7 @@ NTSTATUS PhTerminateProcess(
             ExitStatus
             );
 
-        if (status != STATUS_NOT_SUPPORTED)
+        if (NT_SUCCESS(status))
             return status;
     }
 
@@ -4858,24 +4858,51 @@ NTSTATUS PhSetFileRename(
     )
 {
     NTSTATUS status;
-    PFILE_RENAME_INFORMATION renameInfo;
     IO_STATUS_BLOCK ioStatusBlock;
     ULONG renameInfoLength;
 
-    renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
-    renameInfo = PhAllocateZero(renameInfoLength);
-    renameInfo->ReplaceIfExists = ReplaceIfExists;
-    renameInfo->RootDirectory = RootDirectory;
-    renameInfo->FileNameLength = (ULONG)NewFileName->Length;
-    memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+    if (WindowsVersion < WINDOWS_10_RS1)
+    {
+        PFILE_RENAME_INFORMATION renameInfo;
 
-    status = NtSetInformationFile(
-        FileHandle,
-        &ioStatusBlock,
-        renameInfo,
-        renameInfoLength,
-        FileRenameInformation
-        );
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
+        renameInfo->ReplaceIfExists = ReplaceIfExists;
+        renameInfo->RootDirectory = RootDirectory;
+        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+
+        status = NtSetInformationFile(
+            FileHandle,
+            &ioStatusBlock,
+            renameInfo,
+            renameInfoLength,
+            FileRenameInformation
+            );
+
+        _freea(renameInfo);
+    }
+    else
+    {
+        PFILE_RENAME_INFORMATION_EX renameInfo;
+
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
+        renameInfo->Flags = FILE_RENAME_POSIX_SEMANTICS | FILE_RENAME_IGNORE_READONLY_ATTRIBUTE | (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0);
+        renameInfo->RootDirectory = RootDirectory;
+        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+
+        status = NtSetInformationFile(
+            FileHandle,
+            &ioStatusBlock,
+            renameInfo,
+            renameInfoLength,
+            FileRenameInformationEx
+            );
+
+        _freea(renameInfo);
+    }
 
     return status;
 }
@@ -7180,10 +7207,12 @@ NTSTATUS PhEnumKernelModules(
     _Out_ PRTL_PROCESS_MODULES *Modules
     )
 {
+    static ULONG initialBufferSize = 0x1000;
     NTSTATUS status;
     PRTL_PROCESS_MODULES buffer;
-    ULONG bufferSize = 2048;
+    ULONG bufferSize;
 
+    bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
     status = NtQuerySystemInformation(
@@ -7209,6 +7238,7 @@ NTSTATUS PhEnumKernelModules(
     if (!NT_SUCCESS(status))
         return status;
 
+    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
     *Modules = buffer;
 
     return status;
@@ -7224,10 +7254,12 @@ NTSTATUS PhEnumKernelModulesEx(
     _Out_ PRTL_PROCESS_MODULE_INFORMATION_EX *Modules
     )
 {
+    static ULONG initialBufferSize = 0x1000;
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 2048;
+    ULONG bufferSize;
 
+    bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
     status = NtQuerySystemInformation(
@@ -7253,6 +7285,7 @@ NTSTATUS PhEnumKernelModulesEx(
     if (!NT_SUCCESS(status))
         return status;
 
+    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
     *Modules = buffer;
 
     return status;
@@ -7358,7 +7391,7 @@ NTSTATUS PhGetKernelFileNameEx(
 
     if (WindowsVersion >= WINDOWS_10_22H2)
     {
-        if (modules->Modules[0].ImageBase == 0)
+        if (modules->Modules[0].ImageBase == NULL)
         {
             modules->Modules[0].ImageBase = (PVOID)(ULONG64_MAX - 1);
         }
@@ -7741,7 +7774,7 @@ NTSTATUS PhEnumHandles(
     _Out_ PSYSTEM_HANDLE_INFORMATION *Handles
     )
 {
-    static ULONG initialBufferSize = 0x4000;
+    static ULONG initialBufferSize = 0x10000;
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize;
@@ -7772,7 +7805,7 @@ NTSTATUS PhEnumHandles(
         return status;
     }
 
-    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
+    if (bufferSize <= 0x200000) initialBufferSize = bufferSize;
     *Handles = (PSYSTEM_HANDLE_INFORMATION)buffer;
 
     return status;
@@ -8173,7 +8206,7 @@ NTSTATUS PhEnumPoolTagInformation(
  * Enumerates information about the big pool allocations in the system.
  *
  * \param Buffer A pointer to a variable that receives the buffer containing the big pool information.
- * 
+ *
  * \return The status of the operation.
  */
 NTSTATUS PhEnumBigPoolInformation(
@@ -10391,7 +10424,7 @@ VOID PhpRtlModulesToGenericModules(
         if (WindowsVersion >= WINDOWS_11_24H2 && !module->ImageBase)
         {
             // Assign pseudo address on 24H2 (dmex)
-            module->ImageBase = (PVOID)(ULONG64_MAX - i);  
+            module->ImageBase = (PVOID)(ULONG64_MAX - i);
         }
 
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
@@ -10456,7 +10489,7 @@ VOID PhpRtlModulesExToGenericModules(
         if (WindowsVersion >= WINDOWS_11_24H2 && !module->ImageBase)
         {
             // Assign pseudo address on 24H2 (dmex)
-            module->ImageBase = (PVOID)(ULONG64_MAX - module->NextOffset);
+            module->ImageBase = (PVOID)(ULONG64_MAX - module->LoadOrderIndex);
         }
 
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
@@ -10570,7 +10603,7 @@ NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
         {
             if (basicInfo->Type == MEM_MAPPED)
                 type = PH_MODULE_TYPE_MAPPED_FILE;
-            else 
+            else
                 type = PH_MODULE_TYPE_MAPPED_IMAGE;
 
             if (Parameters->LastAllocationBase == basicInfo->AllocationBase)
@@ -10618,7 +10651,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
 {
     BOOLEAN querySucceeded;
     PVOID baseAddress;
-    MEMORY_BASIC_INFORMATION basicInfo;    
+    MEMORY_BASIC_INFORMATION basicInfo;
     PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
 
     memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
@@ -14429,20 +14462,25 @@ NTSTATUS PhEnumDirectoryNamedPipe(
 {
     static CONST UNICODE_STRING objectName = RTL_CONSTANT_STRING(DEVICE_NAMED_PIPE);
     static CONST OBJECT_ATTRIBUTES objectAttributes = RTL_CONSTANT_OBJECT_ATTRIBUTES((PUNICODE_STRING)&objectName, OBJ_CASE_INSENSITIVE);
-    NTSTATUS status;
-    HANDLE directoryHandle;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HANDLE directoryHandle = NULL;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     IO_STATUS_BLOCK isb;
 
-    status = NtOpenFile(
-        &directoryHandle,
-        FILE_LIST_DIRECTORY | SYNCHRONIZE,
-        (POBJECT_ATTRIBUTES)&objectAttributes,
-        &isb,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
+    if (PhBeginInitOnce(&initOnce))
+    {
+       NtOpenFile(
+            &directoryHandle,
+            FILE_LIST_DIRECTORY | SYNCHRONIZE,
+            (POBJECT_ATTRIBUTES)&objectAttributes,
+            &isb,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+        PhEndInitOnce(&initOnce);
+    }
 
-    if (NT_SUCCESS(status))
+    if (directoryHandle)
     {
         status = PhEnumDirectoryFile(
             directoryHandle,
@@ -14450,8 +14488,6 @@ NTSTATUS PhEnumDirectoryNamedPipe(
             Callback,
             Context
             );
-
-        NtClose(directoryHandle);
     }
 
     return status;

@@ -82,6 +82,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
     GeneralCallbackDangerousProcess,
+    GeneralCallbackUpdateAutomatically,
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;

@@ -307,7 +307,7 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     {
         return ((entry1->BaseAddress == entry2->BaseAddress) &&
                 (entry1->EnclaveBaseAddress == entry2->EnclaveBaseAddress) &&
-                PhEqualString(entry1->FileName, entry2->FileName, TRUE));
+                PhEqualString(entry1->FileName, entry2->FileName, FALSE));
     }
     else
     {
@@ -463,27 +463,33 @@ NTSTATUS PhpModuleQueryWorker(
                 ULONG debugEntryLength;
                 PVOID debugEntry;
 
-                moduleItem->ImageMachine = remoteMappedImage.NtHeaders->FileHeader.Machine;
-                PhGetRemoteMappedImageCHPEVersionEx(&remoteMappedImage, readVirtualMemoryCallback, &moduleItem->ImageCHPEVersion);
-
-                moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;
+                PhGetRemoteMappedImageCHPEVersionEx(
+                    &remoteMappedImage,
+                    readVirtualMemoryCallback,
+                    &moduleItem->ImageCHPEVersion
+                    );
 
                 if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 {
-                    PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader;
+                    PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders32->OptionalHeader;
 
                     imageBase = UlongToPtr(optionalHeader->ImageBase);
                     entryPoint = optionalHeader->AddressOfEntryPoint;
                     moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
+                    moduleItem->ImageMachine = remoteMappedImage.NtHeaders32->FileHeader.Machine;
+                    moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders32->FileHeader.TimeDateStamp;
+                    moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders32->FileHeader.Characteristics;
                 }
                 else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                 {
-                    PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader;
+                    PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders64->OptionalHeader;
 
                     imageBase = (PVOID)optionalHeader->ImageBase;
                     entryPoint = optionalHeader->AddressOfEntryPoint;
                     moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
+                    moduleItem->ImageMachine = remoteMappedImage.NtHeaders64->FileHeader.Machine;
+                    moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders64->FileHeader.TimeDateStamp;
+                    moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders64->FileHeader.Characteristics;
                 }
 
                 if (moduleItem->BaseAddress != imageBase)
@@ -542,7 +548,7 @@ NTSTATUS PhpModuleQueryWorker(
                     ULONG entryPoint = 0;
                     USHORT characteristics = 0;
                     PIMAGE_DATA_DIRECTORY dataDirectory;
-                    PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
+                    PH_MAPPED_IMAGE_CFG cfgConfig = { NULL };
 
                     moduleItem->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
                     moduleItem->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
@@ -728,7 +734,7 @@ VOID PhModuleProviderUpdate(
 
                 if ((*moduleItem)->BaseAddress == module->BaseAddress &&
                     (*moduleItem)->EnclaveBaseAddress == module->EnclaveBaseAddress &&
-                    PhEqualString((*moduleItem)->FileName, module->FileName, TRUE))
+                    PhEqualString((*moduleItem)->FileName, module->FileName, FALSE))
                 {
                     found = TRUE;
                     break;
@@ -1166,13 +1172,7 @@ NTSTATUS PhEnumGenericEnclaveModules(
     NTSTATUS status;
     PVOID ntLdrEnclaveList;
 
-    ntLdrEnclaveList = InterlockedCompareExchangePointer(
-        &PhLdrEnclaveList,
-        NULL,
-        NULL
-        );
-
-    if (ntLdrEnclaveList)
+    if (ntLdrEnclaveList = ReadPointerAcquire(&PhLdrEnclaveList))
     {
         status = PhEnumProcessEnclaves(
             ProcessHandle,

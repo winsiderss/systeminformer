@@ -90,12 +90,67 @@ HRESULT CALLBACK TaskDialogUninstallConfirmCallbackProc(
 
     switch (uMsg)
     {
+    case TDN_NAVIGATED:
+        {
+            PhCenterWindow(hwndDlg, NULL);
+
+            if (!PhGetOwnTokenAttributes().Elevated)
+            {
+                SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
+            }
+        }
+        break;
     case TDN_BUTTON_CLICKED:
         {
             if ((INT)wParam == IDYES)
             {
+#ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
+                if (PhGetOwnTokenAttributes().Elevated)
+                {
+                    ShowUninstallingPageDialog(context);
+                    return S_FALSE;
+                }
+                else
+                {
+                    NTSTATUS status;
+                    PPH_STRING applicationFileName;
+                    PH_STRINGREF applicationCommandLine;
+
+                    if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                    {
+                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+                        return S_FALSE;
+                    }
+                    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
+                    {
+                        context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+                        return S_FALSE;
+                    }
+
+                    if (NT_SUCCESS(status = PhShellExecuteEx(
+                        hwndDlg,
+                        PhGetString(applicationFileName),
+                        PhGetStringRefZ(&applicationCommandLine),
+                        NULL,
+                        SW_SHOW,
+                        PH_SHELL_EXECUTE_ADMIN,
+                        0,
+                        &context->SubProcessHandle
+                        )))
+                    {
+                        ShowWindow(hwndDlg, SW_HIDE);
+                    }
+                    else
+                    {
+                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+                        PhDereferenceObject(applicationFileName);
+                        return S_FALSE;
+                    }
+                }
+#else
                 ShowUninstallingPageDialog(context);
                 return S_FALSE;
+#endif
             }
         }
         break;
@@ -242,7 +297,10 @@ VOID ShowUninstallErrorPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"System Informer could not be uninstalled.";
+    if (Context->ErrorCode)
+        config.pszMainInstruction = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    else
+        config.pszMainInstruction = L"Uninstall failed with an error.";
     config.pszContent = L"Click retry to try again or close to exit setup.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -271,7 +329,8 @@ VOID ShowUninstallPageDialog(
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = PhApplicationName;
     config.pszContent = L"Are you sure you want to uninstall System Informer?";
-    config.pszVerificationText = L"Remove application settings";
+    if (PhGetOwnTokenAttributes().Elevated)
+        config.pszVerificationText = L"Remove application settings";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.nDefaultButton = IDCANCEL;
 

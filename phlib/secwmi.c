@@ -15,18 +15,19 @@
 #include <wbemidl.h>
 #include <wtsapi32.h>
 #include <powrprof.h>
+#include <powersetting.h>
 #include <secwmi.h>
 
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
-_PowerGetActiveScheme PowerGetActiveScheme_I = NULL;
-_PowerSetActiveScheme PowerSetActiveScheme_I = NULL;
-_PowerRestoreDefaultPowerSchemes PowerRestoreDefaultPowerSchemes_I = NULL;
+typeof(&PowerGetActiveScheme) PowerGetActiveScheme_I = NULL;
+typeof(&PowerSetActiveScheme) PowerSetActiveScheme_I = NULL;
+typeof(&PowerRestoreDefaultPowerSchemes) PowerRestoreDefaultPowerSchemes_I = NULL;
 _PowerReadSecurityDescriptor PowerReadSecurityDescriptor_I = NULL;
 _PowerWriteSecurityDescriptor PowerWriteSecurityDescriptor_I = NULL;
-_WTSGetListenerSecurity WTSGetListenerSecurity_I = NULL;
-_WTSSetListenerSecurity WTSSetListenerSecurity_I = NULL;
+typeof(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
+typeof(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
 
 PVOID PhGetWbemProxImageBaseAddress(
     VOID
@@ -81,6 +82,59 @@ PVOID PhpInitializeRemoteDesktopServiceApi(
     }
 
     return imageBaseAddress;
+}
+
+HRESULT PhCoSetProxyBlanket(
+    _In_ IUnknown* InterfacePtr
+    )
+{
+    HRESULT status;
+    IClientSecurity* clientSecurity;
+
+    status = IUnknown_QueryInterface(
+        InterfacePtr,
+        &IID_IClientSecurity,
+        &clientSecurity
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IClientSecurity_SetBlanket(
+            clientSecurity,
+            InterfacePtr,
+            RPC_C_AUTHN_WINNT,
+            RPC_C_AUTHZ_NONE,
+            NULL,
+            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+            RPC_C_IMP_LEVEL_IMPERSONATE,
+            NULL,
+            EOAC_NONE
+            );
+        IClientSecurity_Release(InterfacePtr);
+    }
+
+    return status;
+}
+
+PPH_STRING PhGetWbemClassObjectString(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    PPH_STRING string = NULL;
+    VARIANT variant = { 0 };
+
+    if (SUCCEEDED(IWbemClassObject_Get((IWbemClassObject*)WbemClassObject, Name, 0, &variant, NULL, 0)))
+    {
+        if (V_BSTR(&variant)) // Can be null (dmex)
+        {
+            string = PhCreateString(V_BSTR(&variant));
+        }
+
+        VariantClear(&variant);
+    }
+
+    return string;
 }
 
 // Power policy security descriptors
@@ -345,6 +399,13 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (HR_FAILED(status))
         goto CleanupExit;
 
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
     wbemObjectString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
@@ -512,6 +573,13 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
         NULL,
         NULL,
         &wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
         );
 
     if (HR_FAILED(status))
@@ -730,15 +798,8 @@ HRESULT PhRestartDefenderOfflineScan(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    status = CoSetProxyBlanket(
-        (IUnknown*)wbemServices,
-        RPC_C_AUTHN_WINNT,
-        RPC_C_AUTHZ_NONE,
-        NULL,
-        RPC_C_AUTHN_LEVEL_CALL,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
         );
 
     if (HR_FAILED(status))
