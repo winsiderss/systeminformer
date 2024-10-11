@@ -1535,6 +1535,7 @@ NTSTATUS EtObjectManagerOpenHandle(
 // Open real ALPC port by duplicating its "Connection" handle from the process that created the port
 // https://github.com/zodiacon/ObjectExplorer/blob/master/ObjExp/ObjectManager.cpp#L191
 // Open real FilterConnectionPort
+// Open real \REGISTRY key
 NTSTATUS EtpObjectManagerOpenRealObject(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
@@ -2303,6 +2304,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             EtpObjectManagerOpenTarget(hwndDlg, context, Target);
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeViewHandle, TRUE);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_DESTROY:

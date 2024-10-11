@@ -262,7 +262,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                     item.mask = LVIF_STATE;
                                     item.stateMask = LVIS_SELECTED;
                                     ListView_GetItem(context->Handle, &item);
-
                                     UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT || item.state & LVIS_SELECTED;
                                 }
 
@@ -276,7 +275,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                         customDraw->clrText = RGB(0x00, 0x00, 0x00);
                                     else
                                         customDraw->clrText = RGB(0xff, 0xff, 0xff);
-                                }
+                                }    
 
                                 if (!newFont)
                                     return CDRF_DODEFAULT;

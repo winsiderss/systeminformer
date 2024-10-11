@@ -133,7 +133,10 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
-    PhpInitializeSettings();
+    if (!PhStartupParameters.Debug)
+    {
+        PhpInitializeSettings();
+    }
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
@@ -173,6 +176,8 @@ INT WINAPI wWinMain(
         }
     }
 
+    PhInitializeSuperclassControls();
+
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {
@@ -194,7 +199,6 @@ INT WINAPI wWinMain(
     PhGraphControlInitialization();
     PhHexEditInitialization();
     PhColorBoxInitialization();
-    PhInitializeSuperclassControls();
 
     PhInitializeAppSystem();
     PhInitializeCallbacks();
@@ -1195,6 +1199,8 @@ VOID PhpInitializeSettings(
     PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
     PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
@@ -1486,6 +1492,7 @@ VOID PhpProcessStartupParameters(
     if (PhStartupParameters.Debug)
     {
         // The symbol provider won't work if this is chosen.
+        PhpInitializeSettings();
         PhShowDebugConsole();
     }
 }

@@ -46,8 +46,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetDialogItemValue(WindowHandle, IDC_MAXHOPS, PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS), FALSE);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_EXTENDED_TCP), PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS) ? BST_CHECKED : BST_UNCHECKED);
 
-            PhSetDialogItemText(WindowHandle, IDC_KEYTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID)));
-            PhSetDialogItemText(WindowHandle, IDC_GEOIDTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY)));
+            PhSetDialogItemText(WindowHandle, IDC_KEYTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY)));
+            PhSetDialogItemText(WindowHandle, IDC_GEOIDTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID)));
 
             PhAddComboBoxStringRefs(comboHandle, OptionsGeoLiteEdition, RTL_NUMBER_OF(OptionsGeoLiteEdition));
             ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE));
@@ -87,7 +87,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     ShowGeoLiteConfigDialog(WindowHandle, UlongToPtr(IDC_KEYTEXT));
 
-                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
+                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
                     PhSetDialogItemText(WindowHandle, IDC_KEYTEXT, PhGetStringOrEmpty(string));
                 }
                 break;
@@ -100,7 +100,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     ShowGeoLiteConfigDialog(WindowHandle, UlongToPtr(IDC_GEOIDTEXT));
 
-                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
                     PhSetDialogItemText(WindowHandle, IDC_GEOIDTEXT, PhGetStringOrEmpty(string));
                 }
                 break;
@@ -181,12 +181,20 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
             PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             if (id == IDC_KEYTEXT)
-                PhSetDialogItemText(WindowHandle, id, PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID)->Buffer);
+            {
+                PhSetDialogItemText(WindowHandle, IDC_KEYTEXT_L, L"Paste the license key here:");
+                PhSetDialogItemText(WindowHandle, IDC_KEY_EDIT, PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY)->Buffer);
+            }
             else
-                PhSetDialogItemText(WindowHandle, id, PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY)->Buffer);
+            {
+                PhSetDialogItemText(WindowHandle, IDC_KEYTEXT_L, L"Paste the account id here:");
+                PhSetDialogItemText(WindowHandle, IDC_KEY_EDIT, PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID)->Buffer);
+            }
 
-            PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDCANCEL));
-        }
+            PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_KEY_EDIT));
+
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+    }
         break;
     case WM_DESTROY:
         {
@@ -205,18 +213,9 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
                     ULONG id = PtrToUlong(PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT));
                     PPH_STRING string;
 
-                    if (id == IDC_KEYTEXT)
-                    {
-                        string = PhGetWindowText(GetDlgItem(WindowHandle, IDC_KEYTEXT));
-                        PhSetStringSetting(SETTING_NAME_GEOLITE_API_ID, PhGetStringOrEmpty(string));
-                        PhClearReference(&string);
-                    }
-                    else
-                    {
-                        string = PhGetWindowText(GetDlgItem(WindowHandle, IDC_KEYTEXT));
-                        PhSetStringSetting(SETTING_NAME_GEOLITE_API_KEY, PhGetStringOrEmpty(string));
-                        PhClearReference(&string);
-                    }
+                    string = PhGetWindowText(GetDlgItem(WindowHandle, IDC_KEY_EDIT));
+                    PhSetStringSetting(id == IDC_KEYTEXT ? SETTING_NAME_GEOLITE_API_KEY : SETTING_NAME_GEOLITE_API_ID, PhGetStringOrEmpty(string));
+                    PhClearReference(&string);
 
                     EndDialog(WindowHandle, IDOK);
                 }

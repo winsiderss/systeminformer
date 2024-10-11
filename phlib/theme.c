@@ -168,6 +168,8 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 
 BOOLEAN PhEnableThemeSupport = FALSE;
 BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
+BOOLEAN PhEnableThemeAcrylicWindowSupport = FALSE;
+BOOLEAN PhEnableThemeNativeButtons = FALSE;
 BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
@@ -278,6 +280,22 @@ VOID PhInitializeWindowThemeEx(
     }
 
     PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
+}
+
+VOID PhInitializeSysLinkTheme(
+    _In_ HWND WindowHandle
+    )
+{
+    WCHAR windowClassName[MAX_PATH];
+    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+        windowClassName[0] = UNICODE_NULL;
+
+    if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+    {
+        LITEM linkChanges = { LIF_ITEMINDEX | LIF_STATE, 0, LIS_DEFAULTCOLORS , LIS_DEFAULTCOLORS };
+        while (SendMessage(WindowHandle, LM_SETITEM, 0, (LPARAM)&linkChanges))
+            linkChanges.iLink++;
+    }
 }
 
 VOID PhReInitializeWindowTheme(
@@ -684,9 +702,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE))
     {
-        if ((PhGetWindowStyle(WindowHandle) & BS_GROUPBOX) == BS_GROUPBOX)
+        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+        if ((style & BS_GROUPBOX) == BS_GROUPBOX)
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
+        }
+        else if (style > BS_DEFPUSHBUTTON)   // apply theme for CheckBox, Radio (Dart Vanya)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
@@ -747,7 +770,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         ListView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
-        //InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else if (PhEqualStringZ(windowClassName, WC_TREEVIEW, FALSE))
     {
@@ -872,6 +894,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         }
 
         PhInitializeWindowThemeACLUI(WindowHandle);
+    }
+    else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
+    {
+        // Fix scrollbar on multiline edit (Dart Vanya)
+        if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & ES_MULTILINE)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+        }
     }
 
     return TRUE;
@@ -1741,6 +1771,9 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
             }
             else
             {
+                if (PhEnableThemeNativeButtons && !PhEnableThemeAcrylicWindowSupport)
+                    return CDRF_DODEFAULT;
+
                 if (isSelected)
                 {
                     //switch (PhpThemeColorMode)
@@ -2193,7 +2226,9 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             HDC hdc = (HDC)wParam;
 
-            SetBkMode(hdc, TRANSPARENT);
+            //SetBkMode(hdc, TRANSPARENT);
+            // Fix typing in multiline edit (Dart Vanya)
+            SetBkColor(hdc, PhThemeWindowBackground2Color);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
@@ -2201,13 +2236,32 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
         {
             HDC hdc = (HDC)wParam;
 
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
+            return (INT_PTR)PhThemeWindowBackgroundBrush;
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc = (HDC)wParam;
+            HWND hControl = (HWND)lParam;
+            BOOLEAN useColorLink = FALSE;
+            WCHAR windowClassName[MAX_PATH];
+
+            if (!GetClassName(hControl, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if (PhEqualStringZ(windowClassName, WC_LINK, FALSE)) {
+                LITEM litem = { LIF_ITEMINDEX | LIF_STATE, 0, 0, LIS_DEFAULTCOLORS };
+                if (SendMessage(hControl, LM_GETITEM, 0, (LPARAM)&litem))
+                    useColorLink = litem.state & LIS_DEFAULTCOLORS;
+            }
+
+            SetBkMode(hdc, TRANSPARENT);
+            SetTextColor(hdc, !useColorLink ? PhThemeWindowTextColor : 0xE9BD5B); // To apply color for SysLink call PhInitializeSysLinkTheme() first
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
         break;
@@ -2310,12 +2364,19 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
+            HDC hdc;
+            RECT clientRect;
 
             if (!BeginPaint(WindowHandle, &ps))
                 break;
 
-            ThemeWindowRenderGroupBoxControl(WindowHandle, ps.hdc, &ps.rcPaint, oldWndProc);
+            // Fix artefacts when window moving back from off-screen (Dart Vanya)
+            hdc = GetDC(WindowHandle);
+            GetClientRect(WindowHandle, &clientRect);
 
+            ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
+
+            ReleaseDC(WindowHandle, hdc);
             EndPaint(WindowHandle, &ps);
         }
         goto DefaultWndProc;
@@ -2392,17 +2453,44 @@ VOID ThemeWindowRenderTabControl(
 
     INT currentSelection = TabCtrl_GetCurSel(WindowHandle);
     INT count = TabCtrl_GetItemCount(WindowHandle);
+    RECT itemRect = { 0 };
+    //RECT itemRectHighlighted;
+    //INT itemHighlighted = INT_ERROR;
+    INT headerBottom;
+    INT oldTop;
 
+    oldTop = clientRect->top;
+    TabCtrl_GetItemRect(WindowHandle, 0, &itemRect);
+    clientRect->top += (itemRect.bottom - itemRect.top) * TabCtrl_GetRowCount(WindowHandle) + 2;
+
+    SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+    FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
+    headerBottom = clientRect->top;
+    clientRect->top = oldTop;
+
+    TCITEM tabItem;
+    WCHAR tabHeaderText[MAX_PATH] = L"";
+
+    memset(&tabItem, 0, sizeof(TCITEM));
+
+    tabItem.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_STATE;
+    tabItem.dwStateMask = TCIS_BUTTONPRESSED | TCIS_HIGHLIGHTED;
+    tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
+    tabItem.pszText = tabHeaderText;
+    
     for (INT i = 0; i < count; i++)
     {
-        RECT itemRect;
+        if (i == currentSelection)
+            continue;
 
         TabCtrl_GetItemRect(WindowHandle, i, &itemRect);
 
+        PhOffsetRect(&itemRect, 2, 2);
+        itemRect.bottom += itemRect.bottom + 1 < headerBottom ? 1 : -1;
+        itemRect.right += itemRect.right + 1 < clientRect->right;
+
         if (PhPtInRect(&itemRect, Context->CursorPos))
         {
-            PhOffsetRect(&itemRect, 2, 2);
-
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
@@ -2426,12 +2514,12 @@ VOID ThemeWindowRenderTabControl(
             SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
             FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
 
-            //FrameRect(bufferDc, &itemRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+            //itemRectHighlighted = itemRect;
+            //itemHighlighted = i;
+            //continue;
         }
         else
         {
-            PhOffsetRect(&itemRect, 2, 2);
-
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
@@ -2451,30 +2539,16 @@ VOID ThemeWindowRenderTabControl(
             //    }
             //    break;
             //case 1: // Old colors
-            if (currentSelection == i)
             {
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);// PhThemeWindowHighlightColor); // PhThemeWindowForegroundColor);
+                SetDCBrushColor(bufferDc, RGB(49, 49, 49));
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
-            }
-            else
-            {
-                // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                FillRect(bufferDc, &itemRect, PhThemeWindowBackgroundBrush);
+                SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+                FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
             }
         }
 
         {
-            TCITEM tabItem;
-            WCHAR tabHeaderText[MAX_PATH] = L"";
-
-            memset(&tabItem, 0, sizeof(TCITEM));
-
-            tabItem.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_STATE;
-            tabItem.dwStateMask = TCIS_BUTTONPRESSED | TCIS_HIGHLIGHTED;
-            tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
-            tabItem.pszText = tabHeaderText;
-
             if (TabCtrl_GetItem(WindowHandle, i, &tabItem))
             {
                 DrawText(
@@ -2486,6 +2560,46 @@ VOID ThemeWindowRenderTabControl(
                     );
             }
         }
+    }
+
+    {
+        TabCtrl_GetItemRect(WindowHandle, currentSelection, &itemRect);
+
+        PhOffsetRect(&itemRect, 2, 2);
+        itemRect.bottom += itemRect.bottom + 1 < headerBottom ? 1 : -1;
+        itemRect.right += itemRect.right + 1 < clientRect->right;
+        PhInflateRect(&itemRect, 1, 1);     // draw selected tab slightly bigger
+        itemRect.bottom -= 1;
+        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
+        FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+
+        if (TabCtrl_GetItem(WindowHandle, currentSelection, &tabItem))
+        {
+            DrawText(
+                bufferDc,
+                tabItem.pszText,
+                (UINT)PhCountStringZ(tabItem.pszText),
+                &itemRect,
+                DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+            );
+        }
+
+        //if (itemHighlighted != INT_ERROR)
+        //{
+        //    SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        //    FillRect(bufferDc, &itemRectHighlighted, PhGetStockBrush(DC_BRUSH));
+
+        //    if (TabCtrl_GetItem(WindowHandle, itemHighlighted, &tabItem))
+        //    {
+        //        DrawText(
+        //            bufferDc,
+        //            tabItem.pszText,
+        //            (UINT)PhCountStringZ(tabItem.pszText),
+        //            &itemRectHighlighted,
+        //            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+        //        );
+        //    }
+        //}
     }
 }
 

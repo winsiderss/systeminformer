@@ -2068,6 +2068,8 @@ extern HFONT PhMonospaceFont;
 extern HBRUSH PhThemeWindowBackgroundBrush;
 extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
+extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
+extern BOOLEAN PhEnableThemeNativeButtons;
 extern BOOLEAN PhEnableThemeListviewBorder;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
@@ -2087,6 +2089,13 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeWindowThemeEx(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeSysLinkTheme(
     _In_ HWND WindowHandle
     );
 

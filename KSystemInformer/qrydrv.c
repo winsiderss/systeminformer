@@ -354,7 +354,7 @@ Exit:
  * \param[out_opt] DriverHandle Set to the opened handle to the device driver.
  * \param[in] DesiredAccess Desired access to the driver object.
  * \param[in] ObjectAttributes Object attributes for opening the driver object.
- * \param[in] OpenLowest Open lowest-level (TRUE) or topmost (FALSE) device object in the stack
+ * \param[in] OpenLowest Open lowest (TRUE) or topmost (FALSE) device object in the stack
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
@@ -405,7 +405,7 @@ NTSTATUS KphOpenDevice(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
             GENERAL,
-            "ObOpenObjectByPointer failed: %!STATUS!",
+            "IoGetDeviceObjectPointer failed: %!STATUS!",
             status);
 
         goto Exit;

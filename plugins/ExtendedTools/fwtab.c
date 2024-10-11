@@ -360,6 +360,8 @@ VOID LoadSettingsFwTreeList(
     {
         SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
     }
+
+    LoadSettingsFwTreeUpdateMask();
 }
 
 VOID SaveSettingsFwTreeList(
@@ -1408,6 +1410,15 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 data.MouseEvent->ScreenLocation.x,
                 data.MouseEvent->ScreenLocation.y
                 );
+
+            if (data.Selection)
+            {
+                if (data.Selection->Id == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ||
+                    data.Selection->Id == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
+                {
+                    LoadSettingsFwTreeUpdateMask();
+                }
+            }
 
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
