@@ -226,42 +226,80 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         break;
     case WM_PAINT:
         {
-            PAINTSTRUCT ps;
             HDC hdc;
-            HICON iconHandle;
+            //HICON iconHandle;
             RECT clientRect;
+            WCHAR windowClassName[MAX_PATH];
 
             if (!PhGetWindowContext(WindowHandle, SCHAR_MAX))
                 break;
 
-            if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0)) // Static_GetIcon(WindowHandle, 0)
+            if (!GetClassName(GetParent(WindowHandle), windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
             {
-                if (BeginPaint(WindowHandle, &ps))
+                static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                static HFONT hCheckFont = NULL;
+
+                LRESULT retval = CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+                hdc = GetDC(WindowHandle);
+                GetClientRect(WindowHandle, &clientRect);
+                INT buttonCenterX = clientRect.left + (clientRect.right - clientRect.left) / 2 + 1;
+                INT buttonCenterY = clientRect.top + (clientRect.bottom - clientRect.top) / 2;
+                COLORREF checkCenter = GetPixel(hdc, buttonCenterX, buttonCenterY);
+                if (checkCenter == RGB(0, 0, 0) || checkCenter == RGB(0xB4, 0xB4, 0xB4))   // right is checked or special permission checked
                 {
-                    // Fix artefacts when window moving back from off-screen (Dart Vanya)
-                    hdc = GetDC(WindowHandle);
-                    GetClientRect(WindowHandle, &clientRect);
-
+                    if (PhBeginInitOnce(&initOnce)) // cache font  
+                    {
+                        hCheckFont = CreateFont(
+                            clientRect.bottom - clientRect.top - 1,
+                            clientRect.right - clientRect.left - 3,
+                            0, 0,
+                            FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+                            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                            VARIABLE_PITCH, L"Segoe UI");
+                        PhEndInitOnce(&initOnce);
+                    }
+                    SetBkMode(hdc, TRANSPARENT);
+                    SetTextColor(hdc, checkCenter == RGB(0, 0, 0) ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
+                    SelectObject(hdc, hCheckFont);
+                    //HFONT hFontOriginal = (HFONT)SelectObject(hdc, hCheckFont);
                     FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
-
-                    DrawIconEx(
-                        hdc,
-                        clientRect.left,
-                        clientRect.top,
-                        iconHandle,
-                        clientRect.right - clientRect.left,
-                        clientRect.bottom - clientRect.top,
-                        0,
-                        NULL,
-                        DI_NORMAL
-                        );
-
-                    ReleaseDC(WindowHandle, hdc);
-                    EndPaint(WindowHandle, &ps);
+                    DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
+                    //SelectObject(hdc, hFontOriginal);
                 }
+                ReleaseDC(WindowHandle, hdc);
+                return retval;
             }
+            //else if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0)) // Static_GetIcon(WindowHandle, 0)
+            //{
+            //    PAINTSTRUCT ps;
+            //    if (PhGetWindowContext(GetParent(WindowHandle), LONG_MAX) &&
+            //        BeginPaint(WindowHandle, &ps))
+            //    {
+            //        // Fix artefacts when window moving back from off-screen (Dart Vanya)
+            //        hdc = GetDC(WindowHandle);
+            //        GetClientRect(WindowHandle, &clientRect);
+
+            //        FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
+
+            //        DrawIconEx(
+            //            hdc,
+            //            clientRect.left,
+            //            clientRect.top,
+            //            iconHandle,
+            //            clientRect.right - clientRect.left,
+            //            clientRect.bottom - clientRect.top,
+            //            0,
+            //            NULL,
+            //            DI_NORMAL
+            //            );
+
+            //        ReleaseDC(WindowHandle, hdc);
+            //        EndPaint(WindowHandle, &ps);
+            //    }
+            //}
         }
-        return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
     }
 
     return CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
@@ -1498,6 +1536,11 @@ HWND PhCreateWindowExHook(
         {
             PhInitializeTaskDialogTheme(windowHandle, 0);
         }
+        else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
+            PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
+        {
+            PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
+        }
     }
 
     return windowHandle;
@@ -1985,9 +2028,11 @@ VOID PvInitializeSuperclassControls(
         if (WindowsVersion >= WINDOWS_11)
         {
             PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+            PhEnableThemeAcrylicWindowSupport = PhDefaultEnableThemeAcrylicWindowSupport;
         }
 
         PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
+        PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
 
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();

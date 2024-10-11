@@ -707,7 +707,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
-        else if (style > BS_DEFPUSHBUTTON)   // apply theme for CheckBox, Radio (Dart Vanya)
+        else    // apply theme for CheckBox, Radio (Dart Vanya)
         {
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
@@ -3197,7 +3197,7 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            GetClientRect(WindowHandle, &clientRect);
+            GetClipBox(hdc, &clientRect);
             FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
         }
         return TRUE;
@@ -3210,6 +3210,5 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
     }
-
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
