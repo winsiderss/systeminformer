@@ -2132,6 +2132,13 @@ PhThemeWindowDrawItem(
     );
 
 PHLIBAPI
+LRESULT
+NTAPI
+PhThemeWindowDrawButton(
+    _In_ LPNMCUSTOMDRAW DrawInfo
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowMeasureItem(

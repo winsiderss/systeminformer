@@ -897,7 +897,7 @@ VOID PhShowStatus(
         }
         else
         {
-            PhShowError(WindowHandle, L"%s", statusMessage->Buffer);
+            PhShowError2(WindowHandle, statusMessage->Buffer, L"%s", L"");
         }
 
         PhDereferenceObject(statusMessage);
@@ -906,11 +906,11 @@ VOID PhShowStatus(
     {
         if (Message)
         {
-            PhShowError(WindowHandle, L"%s", Message);
+            PhShowError2(WindowHandle, Message, L"%s", L"");
         }
         else
         {
-            PhShowError(WindowHandle, L"%s", L"Unable to perform the operation.");
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", L"");
         }
     }
 }

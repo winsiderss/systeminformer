@@ -1377,7 +1377,7 @@ VOID ShowUpdateDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, ShowUpdateDialogThread, Context)))
         {
-            PhShowError(NULL, L"%s", L"Unable to create the window.");
+            PhShowError2(GetDesktopWindow(), L"Unable to create the window.", L"%s", L"");
             return;
         }
 

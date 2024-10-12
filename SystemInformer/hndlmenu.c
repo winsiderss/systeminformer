@@ -272,7 +272,7 @@ VOID PhShowHandleObjectProperties1(
                     PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
 
                     if (tooBig)
-                        PhShowWarning(hWnd, L"%s", L"The section size is greater than 32 MB. Only the first 32 MB will be available.");
+                        PhShowWarning2(hWnd, L"The section size is greater than 32 MB. Only the first 32 MB will be available.", L"%s", L"");
 
                     memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                     showMemoryEditor->ProcessId = NtCurrentProcessId();

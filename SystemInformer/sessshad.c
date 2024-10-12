@@ -220,7 +220,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     }
                     else
                     {
-                        PhShowError(hwndDlg, L"%s", L"The computer name is too long.");
+                        PhShowError2(hwndDlg, L"The computer name is too long.", L"%s", L"");
                     }
                 }
                 break;

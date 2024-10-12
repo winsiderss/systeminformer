@@ -244,19 +244,27 @@ VOID SetupSilent(
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
+        BOOLEAN start;
+
         switch (Context->SetupMode)
         {
         default:
         case SetupCommandInstall:
             status = SetupProgressThread(Context);
+            start = TRUE;
             break;
         case SetupCommandUninstall:
             status = SetupUninstallBuild(Context);
+            start = FALSE;
             break;
         case SetupCommandUpdate:
             status = SetupUpdateBuild(Context);
+            start = TRUE;
             break;
         }
+
+        if (start && NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
+            SetupExecuteApplication(Context);
     }
     else
     {
