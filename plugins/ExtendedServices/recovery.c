@@ -558,12 +558,11 @@ ErrorCase:
                     {
                         PPH_STRING errorMessage = PhGetNtMessage(status);
 
-                        if (PhShowMessage(
+                        if (PhShowContinueStatus(
                             WindowHandle,
-                            MB_ICONERROR | MB_RETRYCANCEL,
-                            L"Unable to change service recovery information: %s",
-                            PhGetStringOrDefault(errorMessage, L"Unknown error.")
-                            ) == IDRETRY)
+                            L"Unable to change service recovery information.",
+                            status,
+                            0))
                         {
                             SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, PSNRET_INVALID);
                         }

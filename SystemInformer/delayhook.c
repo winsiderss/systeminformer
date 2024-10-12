@@ -224,10 +224,26 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
             return TRUE;
         }
         break;
+    case WM_KILLFOCUS:
+        {
+            WCHAR windowClassName[MAX_PATH];
+            HWND ParentHandle = GetParent(WindowHandle);
+            if (!GetClassName(ParentHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
+            {
+                RECT rectClient;
+                GetClientRect(WindowHandle, &rectClient);
+                InflateRect(&rectClient, 2, 2);
+                MapWindowRect(WindowHandle, ParentHandle, &rectClient);
+                InvalidateRect(ParentHandle, &rectClient, TRUE);     // fix the annoying white border left by the previous active control
+            }
+        }
+        break;
     case WM_PAINT:
         {
             HDC hdc;
-            //HICON iconHandle;
+            HICON iconHandle;
             RECT clientRect;
             WCHAR windowClassName[MAX_PATH];
 
@@ -238,38 +254,41 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                 windowClassName[0] = UNICODE_NULL;
             if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
             {
-                static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                static HFONT hCheckFont = NULL;
-
-                LRESULT retval = CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
-                hdc = GetDC(WindowHandle);
-                GetClientRect(WindowHandle, &clientRect);
-                INT buttonCenterX = clientRect.left + (clientRect.right - clientRect.left) / 2 + 1;
-                INT buttonCenterY = clientRect.top + (clientRect.bottom - clientRect.top) / 2;
-                COLORREF checkCenter = GetPixel(hdc, buttonCenterX, buttonCenterY);
-                if (checkCenter == RGB(0, 0, 0) || checkCenter == RGB(0xB4, 0xB4, 0xB4))   // right is checked or special permission checked
+                if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0))
                 {
-                    if (PhBeginInitOnce(&initOnce)) // cache font  
+                    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                    static HFONT hCheckFont = NULL;
+
+                    LRESULT retval = CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+                    hdc = GetDC(WindowHandle);
+                    GetClientRect(WindowHandle, &clientRect);
+                    INT buttonCenterX = clientRect.left + (clientRect.right - clientRect.left) / 2 + 1;
+                    INT buttonCenterY = clientRect.top + (clientRect.bottom - clientRect.top) / 2;
+                    COLORREF checkCenter = GetPixel(hdc, buttonCenterX, buttonCenterY);
+                    if (checkCenter == RGB(0, 0, 0) || checkCenter == RGB(0xB4, 0xB4, 0xB4))   // right is checked or special permission checked
                     {
-                        hCheckFont = CreateFont(
-                            clientRect.bottom - clientRect.top - 1,
-                            clientRect.right - clientRect.left - 3,
-                            0, 0,
-                            FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
-                            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-                            VARIABLE_PITCH, L"Segoe UI");
-                        PhEndInitOnce(&initOnce);
+                        if (PhBeginInitOnce(&initOnce)) // cache font  
+                        {
+                            hCheckFont = CreateFont(
+                                clientRect.bottom - clientRect.top - 1,
+                                clientRect.right - clientRect.left - 3,
+                                0, 0,
+                                FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+                                CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                                VARIABLE_PITCH, L"Segoe UI");
+                            PhEndInitOnce(&initOnce);
+                        }
+                        SetBkMode(hdc, TRANSPARENT);
+                        SetTextColor(hdc, checkCenter == RGB(0, 0, 0) ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
+                        SelectFont(hdc, hCheckFont);
+                        //HFONT hFontOriginal = SelectFont(hdc, hCheckFont);
+                        FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
+                        DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
+                        //SelectFont(hdc, hFontOriginal);
                     }
-                    SetBkMode(hdc, TRANSPARENT);
-                    SetTextColor(hdc, checkCenter == RGB(0, 0, 0) ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
-                    SelectObject(hdc, hCheckFont);
-                    //HFONT hFontOriginal = (HFONT)SelectObject(hdc, hCheckFont);
-                    FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
-                    DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
-                    //SelectObject(hdc, hFontOriginal);
+                    ReleaseDC(WindowHandle, hdc);
+                    return retval;
                 }
-                ReleaseDC(WindowHandle, hdc);
-                return retval;
             }
             //else if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0)) // Static_GetIcon(WindowHandle, 0)
             //{
@@ -1658,25 +1677,25 @@ HRESULT WINAPI PhDrawThemeTextHook(
     _In_ LPCRECT pRect
     )
 {
-    if ((iPartId == BP_RADIOBUTTON || iPartId == BP_COMMANDLINK) && iStateId != PBS_DISABLED)
+    if ((iPartId == BP_COMMANDLINK /*|| iPartId == BP_RADIOBUTTON*/) && iStateId != PBS_DISABLED)
     {
         WCHAR className[MAX_PATH];
         if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
             PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
         {
             // I'm out of ideas how to not break radio buttons in other system dialogs other than using hardcoded white list
-            if (iPartId == BP_COMMANDLINK ||
-                PhEqualStringZ((PWSTR)pszText, L"Stable\n - Recommended", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Canary\n - Preview", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Realtime", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"High", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Above normal", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Normal", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Below normal", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Idle", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Medium", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Low", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Very low", FALSE))
+            //if (iPartId == BP_COMMANDLINK ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Stable\n - Recommended", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Canary\n - Preview", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Realtime", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"High", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Above normal", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Normal", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Below normal", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Idle", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Medium", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Low", FALSE) ||
+            //    PhEqualStringZ((PWSTR)pszText, L"Very low", FALSE))
             {
                 DTTOPTS options = { sizeof(DTTOPTS), DTT_TEXTCOLOR, PhThemeWindowTextColor };
                 return PhDefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, (LPRECT)pRect, &options);
@@ -1705,13 +1724,9 @@ HRESULT WINAPI PhDrawThemeTextExHook(
         if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
             PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
         {
-            DTTOPTS options;
+            DTTOPTS options = { sizeof(DTTOPTS) };
             if (pOptions)
                 options = *pOptions;
-            else {
-                memset(&options, 0, sizeof(options));
-                options.dwSize = sizeof(DTTOPTS);
-            }
             options.dwFlags |= DTT_TEXTCOLOR;
             PhDefaultGetThemeColor(hTheme, iPartId, iStateId, TMT_TEXTCOLOR, &options.crText);
             options.crText = PhMakeColorBrighter(options.crText, 90);
@@ -1765,13 +1780,13 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     if (CallbackData && !windowHasContext)
     {
-        PhInitializeThemeWindowFrame(WindowHandle);
-
         if (PhDefaultEnableStreamerMode)
         {
             if (SetWindowDisplayAffinity_Import())
                 SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
+
+        PhInitializeThemeWindowFrame(WindowHandle);
 
         PTASKDIALOG_WINDOW_CONTEXT context = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
         context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
@@ -1855,6 +1870,24 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
             }
         }
         return TRUE;
+    case WM_NOTIFY:
+        {
+            LPNMHDR data = (LPNMHDR)lParam;
+
+            if (data->code == NM_CUSTOMDRAW)
+            {
+                LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
+                WCHAR className[MAX_PATH];
+
+                if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                    className[0] = UNICODE_NULL;
+                if (PhEqualStringZ(className, WC_BUTTON, FALSE))
+                {
+                    return PhThemeWindowDrawButton(customDraw);
+                }
+            }
+        }
+        break;
     case TDM_NAVIGATE_PAGE:
         {
             PTASKDIALOG_WINDOW_CONTEXT WindowContext = (PTASKDIALOG_WINDOW_CONTEXT)context;

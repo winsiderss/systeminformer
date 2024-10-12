@@ -452,11 +452,10 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                         if (found)
                         {
-                            if (PhShowMessage(
-                                WindowHandle,
-                                MB_OKCANCEL | MB_ICONERROR,
-                                L"The selected privilege has already been added."
-                                ) == IDOK)
+                            if (PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON,
+                                    L"The selected privilege has already been added.",
+                                    L"%s",
+                                    L"") == IDOK)
                             {
                                 continue;
                             }
@@ -565,11 +564,24 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                     if (context->LaunchProtectedValid && launchProtected != 0 && launchProtected != context->OriginalLaunchProtected)
                     {
-                        if (PhShowMessage(
-                            WindowHandle,
-                            MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2,
-                            L"Setting service protection will prevent the service from being controlled, modified, or deleted. Do you want to continue?"
-                            ) == IDNO)
+                        INT result;
+                        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+
+                        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+                        config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+                        config.nDefaultButton = IDNO;
+                        config.hwndParent = WindowHandle;
+                        config.pszWindowTitle = L"System Informer";
+                        config.pszMainIcon = TD_WARNING_ICON;
+                        config.pszMainInstruction = L"Setting service protection will prevent the service from being controlled, modified, or deleted.";
+                        config.pszContent = L"Do you want to continue?";
+
+                        if (!PhShowTaskDialog(
+                            &config,
+                            &result,
+                            NULL,
+                            NULL
+                            ) || result != IDYES)
                         {
                             SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, PSNRET_INVALID);
                             return TRUE;
@@ -682,19 +694,14 @@ Done:
 
                         if (!NT_SUCCESS(status))
                         {
-                            PPH_STRING errorMessage = PhGetNtMessage(status);
-
-                            if (status == STATUS_CANCELLED || PhShowMessage(
+                            if (PhShowContinueStatus(
                                 WindowHandle,
-                                MB_ICONERROR | MB_RETRYCANCEL,
-                                L"Unable to change service information: %s",
-                                PhGetStringOrDefault(errorMessage, L"Unknown error.")
-                                ) == IDRETRY)
+                                L"Unable to change service information.",
+                                status,
+                                0))
                             {
                                 SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, PSNRET_INVALID);
                             }
-
-                            PhClearReference(&errorMessage);
                         }
                     }
 

@@ -295,7 +295,7 @@ VOID PhCreateTokenDialog(
         DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
         )))
     {
-        PhShowError2(NULL, L"Unable to duplicate the token.", L"%s", L"");
+        PhShowError2(GetDesktopWindow(), L"Unable to duplicate the token.", L"%s", L"");
         return;
     }
 
