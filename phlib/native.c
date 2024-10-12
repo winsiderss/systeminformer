@@ -10279,6 +10279,7 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
     PVOID Context;
     ULONG Type;
     ULONG LoadOrderIndex;
+    PPH_HASHTABLE BaseAddressHashtable;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
 
 static BOOLEAN EnumGenericProcessModulesCallback(
@@ -10294,6 +10295,11 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         // Assign pseudo address on 24H2 (dmex)
         Module->DllBase = (PVOID)(ULONG64_MAX - Context->LoadOrderIndex);
     }
+
+    if (PhFindEntryHashtable(Context->BaseAddressHashtable, &Module->DllBase))
+        return TRUE;
+
+    PhAddEntryHashtable(Context->BaseAddressHashtable, &Module->DllBase);
 
     RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
     moduleInfo.Type = Context->Type;
@@ -10332,7 +10338,8 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 VOID PhpRtlModulesToGenericModules(
     _In_ PRTL_PROCESS_MODULES Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION module;
@@ -10349,6 +10356,11 @@ VOID PhpRtlModulesToGenericModules(
             // Assign pseudo address on 24H2 (dmex)
             module->ImageBase = (PVOID)(ULONG64_MAX - i);
         }
+
+        if (PhFindEntryHashtable(BaseAddressHashtable, &module->ImageBase))
+            continue;
+
+        PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
 
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
 
@@ -10398,7 +10410,8 @@ VOID PhpRtlModulesToGenericModules(
 VOID PhpRtlModulesExToGenericModules(
     _In_ PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     PRTL_PROCESS_MODULE_INFORMATION_EX module = Modules;
@@ -10407,13 +10420,18 @@ VOID PhpRtlModulesExToGenericModules(
 
     while (module->NextOffset != 0)
     {
-        RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
-
         if (WindowsVersion >= WINDOWS_11_24H2 && !module->ImageBase)
         {
             // Assign pseudo address on 24H2 (dmex)
             module->ImageBase = (PVOID)(ULONG64_MAX - module->LoadOrderIndex);
         }
+
+        if (PhFindEntryHashtable(BaseAddressHashtable, &module->ImageBase))
+            continue;
+
+        PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
+
+        RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
 
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
@@ -10502,6 +10520,7 @@ typedef struct _PH_ENUM_MAPPED_MODULES_PARAMETERS
     BOOLEAN TrackingAllocationBase;
     PVOID LastAllocationBase;
     SIZE_T AllocationSize;
+    PPH_HASHTABLE BaseAddressHashtable;
 } PH_ENUM_MAPPED_MODULES_PARAMETERS, *PPH_ENUM_MAPPED_MODULES_PARAMETERS;
 
 NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
@@ -10540,18 +10559,23 @@ NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
                 {
                     Parameters->TrackingAllocationBase = FALSE;
 
-                    if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, Parameters->LastAllocationBase, &fileName)))
+                    if (!PhFindEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase))
                     {
-                        if (!PhpCallbackMappedFileOrImage(
-                            Parameters->LastAllocationBase,
-                            Parameters->AllocationSize,
-                            type,
-                            fileName,
-                            Parameters->Callback,
-                            Parameters->Context
-                            ))
+                        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase);
+
+                        if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, Parameters->LastAllocationBase, &fileName)))
                         {
-                            break;
+                            if (!PhpCallbackMappedFileOrImage(
+                                Parameters->LastAllocationBase,
+                                Parameters->AllocationSize,
+                                type,
+                                fileName,
+                                Parameters->Callback,
+                                Parameters->Context
+                                ))
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -10569,7 +10593,8 @@ VOID PhpEnumGenericMappedFilesAndImages(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
     BOOLEAN querySucceeded;
@@ -10580,6 +10605,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
     memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
     enumParameters.Callback = Callback;
     enumParameters.Context = Context;
+    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
 
     if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
         ProcessHandle,
@@ -10654,6 +10680,9 @@ VOID PhpEnumGenericMappedFilesAndImages(
                 continue;
             }
 
+            if (PhFindEntryHashtable(BaseAddressHashtable, &allocationBase))
+                continue;
+
             if (!NT_SUCCESS(PhGetProcessMappedFileName(
                 ProcessHandle,
                 allocationBase,
@@ -10695,6 +10724,21 @@ VOID PhpEnumGenericMappedFilesAndImages(
     }
 }
 
+BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return *(PVOID*)Entry1 == *(PVOID*)Entry2;
+}
+
+ULONG NTAPI PhpBaseAddressHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashIntPtr((ULONG_PTR)*(PVOID*)Entry);
+}
+
 /**
  * Enumerates the modules loaded by a process.
  *
@@ -10717,6 +10761,14 @@ NTSTATUS PhEnumGenericModules(
     )
 {
     NTSTATUS status;
+    PPH_HASHTABLE baseAddressHashtable;
+
+    baseAddressHashtable = PhCreateHashtable(
+        sizeof(PVOID),
+        PhpBaseAddressHashtableEqualFunction,
+        PhpBaseAddressHashtableHashFunction,
+        100
+        );
 
     if (ProcessId == SYSTEM_PROCESS_ID)
     {
@@ -10731,7 +10783,8 @@ NTSTATUS PhEnumGenericModules(
             PhpRtlModulesExToGenericModules(
                 modules,
                 Callback,
-                Context
+                Context,
+                baseAddressHashtable
                 );
             PhFree(modules);
         }
@@ -10744,7 +10797,8 @@ NTSTATUS PhEnumGenericModules(
                 PhpRtlModulesToGenericModules(
                     modules,
                     Callback,
-                    Context
+                    Context,
+                    baseAddressHashtable
                     );
                 PhFree(modules);
             }
@@ -10785,6 +10839,7 @@ NTSTATUS PhEnumGenericModules(
         context.Callback = Callback;
         context.Context = Context;
         context.Type = PH_MODULE_TYPE_MODULE;
+        context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
 
         parameters.Callback = EnumGenericProcessModulesCallback;
@@ -10805,6 +10860,7 @@ NTSTATUS PhEnumGenericModules(
             context.Callback = Callback;
             context.Context = Context;
             context.Type = PH_MODULE_TYPE_WOW64_MODULE;
+            context.BaseAddressHashtable = baseAddressHashtable;
             context.LoadOrderIndex = 0;
 
             status = PhEnumProcessModules32Ex(
@@ -10823,7 +10879,8 @@ NTSTATUS PhEnumGenericModules(
                 ProcessHandle,
                 Flags,
                 Callback,
-                Context
+                Context,
+                baseAddressHashtable
                 );
         }
 
@@ -10832,6 +10889,8 @@ NTSTATUS PhEnumGenericModules(
     }
 
 CleanupExit:
+
+    PhDereferenceObject(baseAddressHashtable);
 
     return status;
 }
