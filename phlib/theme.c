@@ -2359,6 +2359,8 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
         }
         break;
+    case WM_ENABLE:
+        goto DefaultWndProc;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_PAINT:

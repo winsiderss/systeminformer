@@ -233,8 +233,9 @@ INT WINAPI wWinMain(
 #ifndef DEBUG
     if (PhIsExecutingInWow64())
     {
-        PhShowWarning(
+        PhShowWarning2(
             NULL,
+            L"Warning.",
             L"%s",
             L"You are attempting to run the 32-bit version of System Informer on 64-bit Windows. "
             L"Most features will not work correctly.\n\n"
@@ -261,7 +262,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError(NULL, L"%s", L"Unable to initialize the main window.");
+        PhShowError2(NULL, L"Unable to initialize the main window.", L"%s", L"");
         return 1;
     }
 
@@ -1448,10 +1449,10 @@ VOID PhpProcessStartupParameters(
         NULL
         ) || PhStartupParameters.Help)
     {
-        PhShowInformation(
+        PhShowInformation2(
             NULL,
+            L"Command line options:",
             L"%s",
-            L"Command line options:\n\n"
             L"-debug\n"
             L"-elevate\n"
             L"-help\n"

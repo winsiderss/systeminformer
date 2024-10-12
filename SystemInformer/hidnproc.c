@@ -431,7 +431,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                             }
                             else
                             {
-                                PhShowError(hwndDlg, L"%s", L"Unable to create a process structure for the selected process.");
+                                PhShowError2(hwndDlg, L"Unable to create a process structure for the selected process.", L"%s", L"");
                             }
                         }
                     }

@@ -4952,11 +4952,7 @@ BOOLEAN PhUiCloseConnections(
 
     if (!SetTcpEntry_I)
     {
-        PhShowError(
-            WindowHandle,
-            L"%s",
-            L"This feature is not supported by your operating system."
-            );
+        PhShowError2(WindowHandle, L"This feature is not supported by your operating system.", L"%s", L"");
         return FALSE;
     }
 
@@ -5640,7 +5636,7 @@ BOOLEAN PhUiUnloadModule(
 
             if (status == STATUS_DLL_NOT_FOUND)
             {
-                PhShowError(WindowHandle, L"%s", L"Unable to find the module to unload.");
+                PhShowError2(WindowHandle, L"Unable to find the module to unload.", L"%s", L"");
                 return FALSE;
             }
 

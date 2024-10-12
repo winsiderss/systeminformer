@@ -814,7 +814,7 @@ VOID ShowGeoLiteUpdateDialog(
 {
     if (!GeoLiteCheckUpdatePlatformSupported())
     {
-        PhShowError(ParentWindowHandle, L"%s", L"The GeoLite updater doesn't support legacy versions of Windows.");
+        PhShowError2(ParentWindowHandle, L"The GeoLite updater doesn't support legacy versions of Windows.", L"%s", L"");
         return;
     }
 
@@ -853,7 +853,7 @@ VOID ShowGeoLiteUpdateDialog(
         {
             if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, ParentWindowHandle)))
             {
-                PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+                PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
                 return;
             }
 

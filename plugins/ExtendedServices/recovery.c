@@ -297,8 +297,9 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             {
                 if (context->NumberOfActions > 3)
                 {
-                    PhShowWarning(
+                    PhShowWarning2(
                         WindowHandle,
+                        L"Warning.",
                         L"The service has %lu failure actions configured, but this program only supports editing 3. "
                         L"If you save the recovery information using this program, the additional failure actions will be lost.",
                         context->NumberOfActions
@@ -314,9 +315,10 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 context->EnableFlagCheckBox = TRUE;
                 EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLEFORERRORSTOPS), TRUE);
 
-                PhShowWarning(
+                PhShowWarning2(
                     WindowHandle,
-                    L"Unable to query service recovery information: %s",
+                    L"Unable to query service recovery information.",
+                    L"%s",
                     PhGetStringOrDefault(errorMessage, L"Unknown error.")
                     );
 
@@ -585,6 +587,8 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     _In_ LPARAM lParam
     )
 {
+    if (WindowMessage == WM_INITDIALOG)
+        PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
     return FALSE;
 }
 

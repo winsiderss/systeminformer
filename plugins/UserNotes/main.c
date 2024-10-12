@@ -840,7 +840,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
+                        PhShowInformation2(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", L"%s", L"");
                     }
                     else
                     {
@@ -877,7 +877,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
+                        PhShowInformation2(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", L"%s", L"");
                     }
                     else
                     {
@@ -914,7 +914,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
+                        PhShowInformation2(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", L"%s", L"");
                     }
                     else
                     {

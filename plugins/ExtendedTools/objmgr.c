@@ -1326,7 +1326,7 @@ VOID EtShowObjectManagerDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&EtObjectManagerDialogThreadHandle, EtShowObjectManagerDialogThread, ParentWindowHandle)))
         {
-            PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+            PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
             return;
         }
 

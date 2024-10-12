@@ -553,7 +553,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
                     if (minimumLength < 4)
                     {
-                        PhShowError(hwndDlg, L"%s", L"The minimum length must be at least 4.");
+                        PhShowError2(hwndDlg, L"The minimum length must be at least 4.", L"%s", L"");
                         break;
                     }
 
@@ -1458,7 +1458,7 @@ INT_PTR CALLBACK PhpMemoryStringsTreeMinimumLengthDlgProc(
 
                     if (!minimumLength || minimumLength > MAXULONG32)
                     {
-                        PhShowError(hwndDlg, L"%s", L"Invalid minimum length");
+                        PhShowError2(hwndDlg, L"Invalid minimum length", L"%s", L"");
                         break;
                     }
 
@@ -2006,7 +2006,7 @@ BOOLEAN PhpShowMemoryStringTreeDialog(
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringTreeDialogThreadStart, context)))
     {
-        PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+        PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
         PhDereferenceObject(context->ProcessItem);
         NtClose(context->ProcessHandle);
         PhFree(context);

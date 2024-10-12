@@ -1429,7 +1429,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         {
                             if (!EspLookupEtwPublisherGuid(&subTypeString->sr, &context->EditingInfo->SubtypeBuffer))
                             {
-                                PhShowError(WindowHandle, L"%s", L"Unable to find the ETW publisher GUID.");
+                                PhShowError2(WindowHandle, L"Unable to find the ETW publisher GUID.", L"%s", L"");
                                 goto DoNotClose;
                             }
 
@@ -1459,7 +1459,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         }
                         else
                         {
-                            PhShowError(WindowHandle, L"%s", L"The custom subtype is invalid. Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\".");
+                            PhShowError2(WindowHandle, L"The custom subtype is invalid.", L"%s", L"Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\".");
                             goto DoNotClose;
                         }
                     }

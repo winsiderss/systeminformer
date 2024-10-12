@@ -1667,7 +1667,16 @@ HRESULT WINAPI PhDrawThemeTextHook(
             // I'm out of ideas how to not break radio buttons in other system dialogs other than using hardcoded white list
             if (iPartId == BP_COMMANDLINK ||
                 PhEqualStringZ((PWSTR)pszText, L"Stable\n - Recommended", FALSE) ||
-                PhEqualStringZ((PWSTR)pszText, L"Canary\n - Preview", FALSE))
+                PhEqualStringZ((PWSTR)pszText, L"Canary\n - Preview", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Realtime", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"High", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Above normal", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Normal", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Below normal", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Idle", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Medium", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Low", FALSE) ||
+                PhEqualStringZ((PWSTR)pszText, L"Very low", FALSE))
             {
                 DTTOPTS options = { sizeof(DTTOPTS), DTT_TEXTCOLOR, PhThemeWindowTextColor };
                 return PhDefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, (LPRECT)pRect, &options);
