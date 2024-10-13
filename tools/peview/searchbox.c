@@ -362,14 +362,14 @@ VOID PvpSearchDrawWindow(
     {
         if (GetFocus() == WindowHandle)
         {
-            SetDCBrushColor(Hdc, RGB(65, 65, 65));
+            SetDCBrushColor(Hdc, RGB(21, 10, 25));
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
+            SetDCBrushColor(Hdc, RGB(30,30,30));
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
@@ -378,14 +378,14 @@ VOID PvpSearchDrawWindow(
         }
         else
         {
-            SetDCBrushColor(Hdc, RGB(65, 65, 65));
+            SetDCBrushColor(Hdc, RGB(21, 10, 25));
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
             PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
+            SetDCBrushColor(Hdc, RGB(30,30,30));
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
@@ -479,7 +479,7 @@ VOID PvpSearchDrawButton(
     {
         if (PhEnableThemeSupport)
         {
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
+            SetDCBrushColor(Hdc, RGB(30,30,30));
             FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
         }
         else
@@ -1130,7 +1130,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 if (context->ThemeSupport)
                 {
                     SetTextColor(bufferDc, RGB(170, 170, 170));
-                    SetDCBrushColor(bufferDc, RGB(60, 60, 60));
+                    SetDCBrushColor(bufferDc, RGB(30,30,30));
                     FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
                 }
                 else

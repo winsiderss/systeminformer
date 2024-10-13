@@ -172,7 +172,7 @@ BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
-COLORREF PhThemeWindowBackground2Color = RGB(65, 65, 65);
+COLORREF PhThemeWindowBackground2Color = RGB(21, 10, 25);
 COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
 COLORREF PhThemeWindowTextColor = RGB(0xff, 0xff, 0xff); // RGB(255, 69, 0)
@@ -480,7 +480,7 @@ HBRUSH PhWindowThemeControlColor(
             if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
-                SetDCBrushColor(Hdc, RGB(60, 60, 60));
+                SetDCBrushColor(Hdc, RGB(30,30,30));
                 return PhGetStockBrush(DC_BRUSH);
             }
             else

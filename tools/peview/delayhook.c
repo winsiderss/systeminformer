@@ -1267,7 +1267,7 @@ HRESULT PhDrawThemeBackgroundHook(
 //
 //    if (PartId == TDLG_PRIMARYPANEL && StateId == 0)
 //    {
-//        SetDCBrushColor(hdc, RGB(65, 65, 65));
+//        SetDCBrushColor(hdc, RGB(21, 10, 25));
 //        FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
 //        return S_OK;
 //    }
