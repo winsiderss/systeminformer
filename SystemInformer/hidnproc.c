@@ -431,7 +431,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                             }
                             else
                             {
-                                PhShowError(hwndDlg, L"%s", L"Unable to create a process structure for the selected process.");
+                                PhShowError2(hwndDlg, L"Unable to create a process structure for the selected process.", L"%s", L"");
                             }
                         }
                     }
@@ -554,7 +554,7 @@ COLORREF NTAPI PhpZombieProcessesColorFunction(
         return RGB(0x77, 0x77, 0x77);
     }
 
-    return GetSysColor(COLOR_WINDOW);
+    return PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 }
 
 BOOLEAN NTAPI PhpZombieProcessesCallback(

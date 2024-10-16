@@ -114,6 +114,11 @@ VOID PvShowPePropertiesWindow(
         if (result == -1)
             break;
 
+        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
+        {
+            CallWindowProc(PvTabCurrentSection->DialogProc, PvTabCurrentSection->DialogHandle, message.message, message.wParam, message.lParam);
+        }
+
         if (!IsDialogMessage(PvPropertiesWindowHandle, &message))
         {
             TranslateMessage(&message);

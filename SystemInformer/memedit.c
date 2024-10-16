@@ -195,7 +195,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (context->RegionSize > 1024 * 1024 * 1024) // 1 GB
             {
-                PhShowError(context->OwnerHandle, L"%s", L"Unable to edit the memory region because it is too large.");
+                PhShowError2(context->OwnerHandle, L"Unable to edit the memory region because it is too large.", L"%s", L"");
                 return TRUE;
             }
 
@@ -213,7 +213,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (!context->Buffer)
             {
-                PhShowError(context->OwnerHandle, L"%s", L"Unable to allocate memory for the buffer.");
+                PhShowError2(context->OwnerHandle, L"Unable to allocate memory for the buffer.", L"%s", L"");
                 return TRUE;
             }
 
@@ -433,7 +433,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             if (offset >= context->RegionSize)
                             {
-                                PhShowError(hwndDlg, L"%s", L"The offset is too large.");
+                                PhShowError2(hwndDlg, L"The offset is too large.", L"%s", L"");
                                 continue;
                             }
 

@@ -1501,6 +1501,27 @@ PhUnloadDriver(
     _In_opt_ PWSTR Name
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_STRINGREF ObjectName,
+    _In_ BOOLEAN OpenLowest
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenObjectByTypeIndex(
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG TypeIndex
+    );
+
 typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_VIRTUAL_IMAGES_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress,

@@ -721,14 +721,6 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
-static NTSTATUS PhpCloseSecurityDesktopHandle(
-    _In_ PVOID Context
-    )
-{
-    CloseDesktop(Context);
-    return STATUS_SUCCESS;
-}
-
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -748,14 +740,6 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     }
 
     return STATUS_UNSUCCESSFUL;
-}
-
-static NTSTATUS PhpCloseSecurityStationHandle(
-    _In_ PVOID Context
-    )
-{
-    CloseWindowStation(Context);
-    return STATUS_SUCCESS;
 }
 
 static VOID PhpMwpOnDumpCommand(
@@ -1363,7 +1347,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Desktop",
                 L"Desktop",
                 PhpOpenSecurityDesktopHandle,
-                PhpCloseSecurityDesktopHandle,
+                NULL,
                 NULL
                 );
         }
@@ -1375,7 +1359,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Station",
                 L"WindowStation",
                 PhpOpenSecurityStationHandle,
-                PhpCloseSecurityStationHandle,
+                NULL,
                 NULL
                 );
         }

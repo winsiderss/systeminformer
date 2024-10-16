@@ -673,7 +673,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
 
                     if (!minimumLength || minimumLength > MAXULONG32)
                     {
-                        PhShowError(hwndDlg, L"%s", L"Invalid minimum length");
+                        PhShowError2(hwndDlg, L"Invalid minimum length", L"%s", L"");
                         break;
                     }
 
@@ -952,6 +952,16 @@ INT_PTR CALLBACK PvStringsDlgProc(
                 break;
             }
         }
+    case WM_KEYDOWN:
+        if (LOWORD(wParam) == 'K')
+        {
+            if (GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:

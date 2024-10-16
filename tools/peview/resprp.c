@@ -708,6 +708,16 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        if (LOWORD(wParam) == 'K')
+        {
+            if (GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:

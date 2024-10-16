@@ -445,6 +445,19 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     return status;
 }
 
+_Must_inspect_result_
+NTSTATUS PhFilterConnectCommunicationPort(
+    _In_ PPH_STRINGREF PortName,
+    _In_ ULONG Options,
+    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
+    _In_ USHORT SizeOfContext,
+    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
+    _Outptr_ HANDLE* Port
+    )
+{
+    return KphpFilterConnectCommunicationPort(PortName, Options, ConnectionContext, SizeOfContext, SecurityAttributes, Port);
+}
+
 /**
  * \brief Unhandled communications callback.
  *

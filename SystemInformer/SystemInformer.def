@@ -1126,3 +1126,16 @@ EXPORTS
     KsiLevel                                                                      @2036     NONAME
     KsiEnumerateProcessHandles                                                    @2037     NONAME
     KsiQueryHashInformationFile                                                   @2038     NONAME
+    KphQueryInformationObject                                                     @2040     NONAME
+    KphAlpcQueryInformation                                                       @2041     NONAME
+    KphDuplicateObject                                                            @2042     NONAME
+
+; phnative
+    PhGetDriverName                                                               @2043     NONAME
+    PhGetDriverImageFileName                                                      @2044     NONAME
+    PhEnumHandlesEx                                                               @2045     NONAME
+    PhGetObjectTypeNumber                                                         @2046     NONAME
+    PhOpenDevice                                                                  @2047     NONAME
+    PhOpenObjectByTypeIndex                                                       @2048     NONAME
+    PhGetObjectTypeIndexName                                                      @2049     NONAME
+    PhGetPnPDeviceName                                                            @2050     NONAME

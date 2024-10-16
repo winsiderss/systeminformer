@@ -168,6 +168,8 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 
 BOOLEAN PhEnableThemeSupport = FALSE;
 BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
+BOOLEAN PhEnableThemeAcrylicWindowSupport = FALSE;
+BOOLEAN PhEnableThemeNativeButtons = FALSE;
 BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
@@ -278,6 +280,22 @@ VOID PhInitializeWindowThemeEx(
     }
 
     PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
+}
+
+VOID PhInitializeSysLinkTheme(
+    _In_ HWND WindowHandle
+    )
+{
+    WCHAR windowClassName[MAX_PATH];
+    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+        windowClassName[0] = UNICODE_NULL;
+
+    if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+    {
+        LITEM linkChanges = { LIF_ITEMINDEX | LIF_STATE, 0, LIS_DEFAULTCOLORS , LIS_DEFAULTCOLORS };
+        while (SendMessage(WindowHandle, LM_SETITEM, 0, (LPARAM)&linkChanges))
+            linkChanges.iLink++;
+    }
 }
 
 VOID PhReInitializeWindowTheme(
@@ -684,9 +702,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE))
     {
-        if ((PhGetWindowStyle(WindowHandle) & BS_GROUPBOX) == BS_GROUPBOX)
+        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+        if ((style & BS_GROUPBOX) == BS_GROUPBOX)
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
+        }
+        else    // apply theme for CheckBox, Radio (Dart Vanya)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
@@ -747,7 +770,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         ListView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextBkColor(WindowHandle, PhThemeWindowBackgroundColor); // RGB(30, 30, 30)
         ListView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
-        //InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else if (PhEqualStringZ(windowClassName, WC_TREEVIEW, FALSE))
     {
@@ -872,6 +894,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         }
 
         PhInitializeWindowThemeACLUI(WindowHandle);
+    }
+    else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
+    {
+        // Fix scrollbar on multiline edit (Dart Vanya)
+        if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & ES_MULTILINE)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+        }
     }
 
     return TRUE;
@@ -1540,12 +1570,20 @@ VOID PhThemeDrawButtonIcon(
     }
 }
 
-LRESULT CALLBACK PhpThemeWindowDrawButton(
+LRESULT CALLBACK PhThemeWindowDrawButton(
     _In_ LPNMCUSTOMDRAW DrawInfo
     )
 {
+    LONG_PTR buttonStyle;
+
+    buttonStyle = PhGetWindowStyle(DrawInfo->hdr.hwndFrom);
+    // COMMANDLINK unsupported
+    if ((buttonStyle & BS_COMMANDLINK) == BS_COMMANDLINK || (buttonStyle & BS_DEFCOMMANDLINK) == BS_DEFCOMMANDLINK)
+        return CDRF_DODEFAULT;
+
     BOOLEAN isGrayed = (DrawInfo->uItemState & CDIS_GRAYED) == CDIS_GRAYED;
     BOOLEAN isChecked = (DrawInfo->uItemState & CDIS_CHECKED) == CDIS_CHECKED;
+    BOOLEAN isMixed = (DrawInfo->uItemState & CDIS_INDETERMINATE) == CDIS_INDETERMINATE;
     BOOLEAN isDisabled = (DrawInfo->uItemState & CDIS_DISABLED) == CDIS_DISABLED;
     BOOLEAN isSelected = (DrawInfo->uItemState & CDIS_SELECTED) == CDIS_SELECTED;
     BOOLEAN isHighlighted = (DrawInfo->uItemState & CDIS_HOT) == CDIS_HOT;
@@ -1562,32 +1600,51 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
     case CDDS_PREPAINT:
         {
             PPH_STRING buttonText;
-            LONG_PTR buttonStyle;
             HICON buttonIcon;
             LONG dpiValue;
 
+            BOOLEAN isCheckbox = (buttonStyle & BS_AUTOCHECKBOX) == BS_AUTOCHECKBOX || (buttonStyle & BS_AUTO3STATE) == BS_AUTO3STATE;
+            BOOLEAN isRadio = (buttonStyle & BS_AUTORADIOBUTTON) == BS_AUTORADIOBUTTON;
+
+            if (!isCheckbox && !isRadio && PhEnableThemeNativeButtons && !PhEnableThemeAcrylicWindowSupport)
+                return CDRF_DODEFAULT;
+
             dpiValue = PhGetWindowDpi(DrawInfo->hdr.hwndFrom);
             buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
-            buttonStyle = PhGetWindowStyle(DrawInfo->hdr.hwndFrom);
 
             if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
                 buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
 
-            if ((buttonStyle & BS_CHECKBOX) == BS_CHECKBOX)
+            // Add support for disabled and tristate checkboxes, support for radio with multiline (ex. TaskDialog) (Dart Vanya)
+            if (isCheckbox || isRadio)
             {
-                INT state = CBS_UNCHECKEDNORMAL;
+                INT state = isCheckbox ? CBS_UNCHECKEDNORMAL : RBS_UNCHECKEDNORMAL;
                 HTHEME themeHandle;
 
-                isChecked = Button_GetCheck(DrawInfo->hdr.hwndFrom) == BST_CHECKED;
+                isChecked = Button_GetCheck(DrawInfo->hdr.hwndFrom) & BST_CHECKED;
+                isMixed =  Button_GetCheck(DrawInfo->hdr.hwndFrom) & BST_INDETERMINATE;
 
-                if (DrawInfo->uItemState & CDIS_SELECTED)
-                    state = isChecked ? CBS_CHECKEDPRESSED : CBS_UNCHECKEDPRESSED;
+                if (isCheckbox)
+                {
+                    if (isDisabled)
+                        state = isChecked ? CBS_CHECKEDDISABLED : isMixed ? CBS_MIXEDDISABLED : CBS_UNCHECKEDDISABLED;
+                    else if (isSelected)
+                        state = isChecked ? CBS_CHECKEDPRESSED : isMixed ? CBS_MIXEDPRESSED : CBS_UNCHECKEDPRESSED;
+                    else if (isHighlighted)
+                        state = isChecked ? CBS_CHECKEDHOT : isMixed ? CBS_MIXEDHOT : CBS_UNCHECKEDHOT;
+                    else
+                        state = isChecked ? CBS_CHECKEDNORMAL : isMixed ? CBS_MIXEDNORMAL : CBS_UNCHECKEDNORMAL;
+                }
                 else
                 {
-                    if (DrawInfo->uItemState & CDIS_HOT)
-                        state = isChecked ? CBS_CHECKEDHOT : CBS_UNCHECKEDHOT;
+                    if (isDisabled)
+                        state = isChecked ? RBS_CHECKEDDISABLED : RBS_UNCHECKEDDISABLED;
+                    else if (isSelected)
+                        state = isChecked ? RBS_CHECKEDPRESSED : RBS_UNCHECKEDPRESSED;
+                    else if (isHighlighted)
+                        state = isChecked ? RBS_CHECKEDHOT : RBS_UNCHECKEDHOT;
                     else
-                        state = isChecked ? CBS_CHECKEDNORMAL : CBS_UNCHECKEDNORMAL;
+                        state = isChecked ? RBS_CHECKEDNORMAL : RBS_UNCHECKEDNORMAL;
                 }
 
                 if (buttonIcon)
@@ -1632,62 +1689,101 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 }
                 else
                 {
+                    SetBkMode(DrawInfo->hdc, TRANSPARENT);
+                    SetTextColor(DrawInfo->hdc, !isDisabled ? PhThemeWindowTextColor : RGB(0x9B, 0x9B, 0x9B));
+
                     if (themeHandle = PhOpenThemeData(DrawInfo->hdr.hwndFrom, VSCLASS_BUTTON, dpiValue))
                     {
                         SIZE checkBoxSize = { 0 };
+                        SIZE textSize = { 0 };
+                        INT linesCount;
 
                         PhGetThemePartSize(
                             themeHandle,
                             DrawInfo->hdc,
-                            BP_CHECKBOX,
+                            isCheckbox ? BP_CHECKBOX : BP_RADIOBUTTON,
                             state,
                             &bufferRect,
                             TS_TRUE,
                             &checkBoxSize
                             );
+                        GetTextExtentPoint32W(DrawInfo->hdc, L"T", 1, &textSize);
 
                         bufferRect.left = 0;
                         bufferRect.right = checkBoxSize.cx;
+                        linesCount = (bufferRect.bottom - bufferRect.top) / textSize.cy;
+                        if (linesCount > 1)
+                            bufferRect.bottom -= textSize.cy * (linesCount - 1);    // HACK (very sensitive value)
 
-                        //if (IsThemeBackgroundPartiallyTransparent(themeHandle, BP_CHECKBOX, state))
+                        //if (IsThemeBackgroundPartiallyTransparent(themeHandle, isCheckbox ? BP_CHECKBOX : BP_RADIOBUTTON, state))
                         //    DrawThemeParentBackground(DrawInfo->hdr.hwndFrom, DrawInfo->hdc, NULL);
 
                         PhDrawThemeBackground(
                             themeHandle,
                             DrawInfo->hdc,
-                            BP_CHECKBOX,
+                            isCheckbox ? BP_CHECKBOX : BP_RADIOBUTTON,
                             state,
                             &bufferRect,
                             NULL
                             );
 
-                        //DTTOPTS opts = { 0 };
-                        //opts.dwSize = sizeof(DTTOPTS);
-                        //opts.crText = RGB(255, 255, 255);
-                        //opts.dwFlags |= DTT_TEXTCOLOR;
-                        //
-                        //DrawThemeTextEx(
-                        //    themeHandle,
-                        //    DrawInfo->hdc,
-                        //    BP_CHECKBOX,
-                        //    state,
-                        //    buttonText->Buffer,
-                        //    (UINT)buttonText->Length / sizeof(WCHAR),
-                        //    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX,
-                        //    &bufferRect,
-                        //    &opts
-                        //    );
+                        bufferRect = DrawInfo->rc;
+                        bufferRect.left = checkBoxSize.cx + 4; // TNP_ICON_RIGHT_PADDING
 
-                        bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
-                        bufferRect.right = DrawInfo->rc.right;
-
-                        DrawText(
-                            DrawInfo->hdc,
-                            buttonText->Buffer,
-                            (UINT)buttonText->Length / sizeof(WCHAR),
-                            &bufferRect,
-                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                        if (linesCount == 1)
+                        {
+                            DrawText(
+                                DrawInfo->hdc,
+                                buttonText->Buffer,
+                                (UINT)buttonText->Length / sizeof(WCHAR),
+                                &bufferRect,
+                                DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
                             );
+                        }
+                        else
+                        {
+                            DrawText(
+                                DrawInfo->hdc,
+                                buttonText->Buffer,
+                                (UINT)buttonText->Length / sizeof(WCHAR),
+                                &bufferRect,
+                                DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
+                            );
+
+                            bufferRect.top = (DrawInfo->rc.bottom - DrawInfo->rc.top) / 2 - (bufferRect.bottom - bufferRect.top) / 2 - 1;
+                            bufferRect.bottom = DrawInfo->rc.bottom, bufferRect.right = DrawInfo->rc.right;
+
+                            DrawText(
+                                DrawInfo->hdc,
+                                buttonText->Buffer,
+                                (UINT)buttonText->Length / sizeof(WCHAR),
+                                &bufferRect,
+                                DT_LEFT | DT_TOP | DT_HIDEPREFIX
+                            );
+                        }
+
+                        if (isFocused && (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES)
+                        {
+                            DrawText(
+                                DrawInfo->hdc,
+                                buttonText->Buffer,
+                                (UINT)buttonText->Length / sizeof(WCHAR),
+                                &bufferRect,
+                                DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
+                            );
+                            PhInflateRect(&bufferRect, 1, 0);
+                            bufferRect.top += 1, bufferRect.bottom += 2;
+                            if (bufferRect.bottom > DrawInfo->rc.bottom - 1) bufferRect.bottom = DrawInfo->rc.bottom - 1;
+
+                            for (INT i = 0; i < bufferRect.right - bufferRect.left - 1; i += 2)
+                                SetPixel(DrawInfo->hdc, bufferRect.left + i + 1, bufferRect.bottom, PhThemeWindowHighlight2Color);
+                            for (INT i = 0; i < bufferRect.bottom - bufferRect.top - 1; i += 2)
+                                SetPixel(DrawInfo->hdc, bufferRect.right, bufferRect.bottom - i - 1, PhThemeWindowHighlight2Color);
+                            for (INT i = 0; i < bufferRect.right - bufferRect.left - 1; i += 2)
+                                SetPixel(DrawInfo->hdc, bufferRect.right - i - 1, bufferRect.top, PhThemeWindowHighlight2Color);
+                            for (INT i = 0; i < bufferRect.bottom - bufferRect.top - 1; i += 2)
+                                SetPixel(DrawInfo->hdc, bufferRect.left, bufferRect.top + i + 1, PhThemeWindowHighlight2Color);
+                        }
 
                         PhCloseThemeData(themeHandle);
                     }
@@ -1726,7 +1822,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                             DeleteFont(newFont);
                         }
 
-                        //bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
+                        bufferRect.left = 17;
                         bufferRect.right = DrawInfo->rc.right;
 
                         DrawText(
@@ -1774,7 +1870,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                 }
 
-                SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
+                SetBkMode(DrawInfo->hdc, TRANSPARENT);
+                SetDCBrushColor(DrawInfo->hdc, !isFocused ? PhThemeWindowBackground2Color : PhThemeWindowHighlightColor);
                 FrameRect(DrawInfo->hdc, &DrawInfo->rc, PhGetStockBrush(DC_BRUSH));
 
                 PhThemeDrawButtonIcon(DrawInfo, buttonIcon, &bufferRect, dpiValue);
@@ -1790,6 +1887,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                         );
                 }
             }
+            PhDereferenceObject(buttonText);
         }
 
         return CDRF_SKIPDEFAULT;
@@ -2162,7 +2260,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
 
                     if (PhEqualStringZ(className, WC_BUTTON, FALSE))
                     {
-                        return PhpThemeWindowDrawButton(customDraw);
+                        return PhThemeWindowDrawButton(customDraw);
                     }
                     else if (PhEqualStringZ(className, REBARCLASSNAME, FALSE))
                     {
@@ -2193,7 +2291,9 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             HDC hdc = (HDC)wParam;
 
-            SetBkMode(hdc, TRANSPARENT);
+            //SetBkMode(hdc, TRANSPARENT);
+            // Fix typing in multiline edit (Dart Vanya)
+            SetBkColor(hdc, PhThemeWindowBackground2Color);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
@@ -2201,13 +2301,32 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
         {
             HDC hdc = (HDC)wParam;
 
-            SetBkMode(hdc, TRANSPARENT);
+            SetBkColor(hdc, PhThemeWindowBackgroundColor);
             SetTextColor(hdc, PhThemeWindowTextColor);
+            return (INT_PTR)PhThemeWindowBackgroundBrush;
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc = (HDC)wParam;
+            HWND hControl = (HWND)lParam;
+            BOOLEAN useColorLink = FALSE;
+            WCHAR windowClassName[MAX_PATH];
+
+            if (!GetClassName(hControl, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if (PhEqualStringZ(windowClassName, WC_LINK, FALSE)) {
+                LITEM litem = { LIF_ITEMINDEX | LIF_STATE, 0, 0, LIS_DEFAULTCOLORS };
+                if (SendMessage(hControl, LM_GETITEM, 0, (LPARAM)&litem))
+                    useColorLink = litem.state & LIS_DEFAULTCOLORS;
+            }
+
+            SetBkColor(hdc, PhThemeWindowBackgroundColor);
+            SetTextColor(hdc, !useColorLink ? PhThemeWindowTextColor : 0xE9BD5B); // To apply color for SysLink call PhInitializeSysLinkTheme() first
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
         break;
@@ -2305,17 +2424,26 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
         }
         break;
+    case WM_ENABLE:
+        goto DefaultWndProc;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
+            HDC hdc;
+            RECT clientRect;
 
             if (!BeginPaint(WindowHandle, &ps))
                 break;
 
-            ThemeWindowRenderGroupBoxControl(WindowHandle, ps.hdc, &ps.rcPaint, oldWndProc);
+            // Fix artefacts when window moving back from off-screen (Dart Vanya)
+            hdc = GetDC(WindowHandle);
+            GetClientRect(WindowHandle, &clientRect);
 
+            ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
+
+            ReleaseDC(WindowHandle, hdc);
             EndPaint(WindowHandle, &ps);
         }
         goto DefaultWndProc;
@@ -2392,17 +2520,44 @@ VOID ThemeWindowRenderTabControl(
 
     INT currentSelection = TabCtrl_GetCurSel(WindowHandle);
     INT count = TabCtrl_GetItemCount(WindowHandle);
+    RECT itemRect = { 0 };
+    //RECT itemRectHighlighted;
+    //INT itemHighlighted = INT_ERROR;
+    INT headerBottom;
+    INT oldTop;
 
+    oldTop = clientRect->top;
+    TabCtrl_GetItemRect(WindowHandle, 0, &itemRect);
+    clientRect->top += (itemRect.bottom - itemRect.top) * TabCtrl_GetRowCount(WindowHandle) + 2;
+
+    SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+    FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
+    headerBottom = clientRect->top;
+    clientRect->top = oldTop;
+
+    TCITEM tabItem;
+    WCHAR tabHeaderText[MAX_PATH] = L"";
+
+    memset(&tabItem, 0, sizeof(TCITEM));
+
+    tabItem.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_STATE;
+    tabItem.dwStateMask = TCIS_BUTTONPRESSED | TCIS_HIGHLIGHTED;
+    tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
+    tabItem.pszText = tabHeaderText;
+    
     for (INT i = 0; i < count; i++)
     {
-        RECT itemRect;
+        if (i == currentSelection)
+            continue;
 
         TabCtrl_GetItemRect(WindowHandle, i, &itemRect);
 
+        PhOffsetRect(&itemRect, 2, 2);
+        itemRect.bottom += itemRect.bottom + 1 < headerBottom ? 1 : -1;
+        itemRect.right += itemRect.right + 1 < clientRect->right;
+
         if (PhPtInRect(&itemRect, Context->CursorPos))
         {
-            PhOffsetRect(&itemRect, 2, 2);
-
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
@@ -2426,12 +2581,12 @@ VOID ThemeWindowRenderTabControl(
             SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
             FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
 
-            //FrameRect(bufferDc, &itemRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+            //itemRectHighlighted = itemRect;
+            //itemHighlighted = i;
+            //continue;
         }
         else
         {
-            PhOffsetRect(&itemRect, 2, 2);
-
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
@@ -2451,30 +2606,16 @@ VOID ThemeWindowRenderTabControl(
             //    }
             //    break;
             //case 1: // Old colors
-            if (currentSelection == i)
             {
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);// PhThemeWindowHighlightColor); // PhThemeWindowForegroundColor);
+                SetDCBrushColor(bufferDc, RGB(49, 49, 49));
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
-            }
-            else
-            {
-                // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                FillRect(bufferDc, &itemRect, PhThemeWindowBackgroundBrush);
+                SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+                FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
             }
         }
 
         {
-            TCITEM tabItem;
-            WCHAR tabHeaderText[MAX_PATH] = L"";
-
-            memset(&tabItem, 0, sizeof(TCITEM));
-
-            tabItem.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_STATE;
-            tabItem.dwStateMask = TCIS_BUTTONPRESSED | TCIS_HIGHLIGHTED;
-            tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
-            tabItem.pszText = tabHeaderText;
-
             if (TabCtrl_GetItem(WindowHandle, i, &tabItem))
             {
                 DrawText(
@@ -2486,6 +2627,46 @@ VOID ThemeWindowRenderTabControl(
                     );
             }
         }
+    }
+
+    {
+        TabCtrl_GetItemRect(WindowHandle, currentSelection, &itemRect);
+
+        PhOffsetRect(&itemRect, 2, 2);
+        itemRect.bottom += itemRect.bottom + 1 < headerBottom ? 1 : -1;
+        itemRect.right += itemRect.right + 1 < clientRect->right;
+        PhInflateRect(&itemRect, 1, 1);     // draw selected tab slightly bigger
+        itemRect.bottom -= 1;
+        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
+        FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+
+        if (TabCtrl_GetItem(WindowHandle, currentSelection, &tabItem))
+        {
+            DrawText(
+                bufferDc,
+                tabItem.pszText,
+                (UINT)PhCountStringZ(tabItem.pszText),
+                &itemRect,
+                DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+            );
+        }
+
+        //if (itemHighlighted != INT_ERROR)
+        //{
+        //    SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
+        //    FillRect(bufferDc, &itemRectHighlighted, PhGetStockBrush(DC_BRUSH));
+
+        //    if (TabCtrl_GetItem(WindowHandle, itemHighlighted, &tabItem))
+        //    {
+        //        DrawText(
+        //            bufferDc,
+        //            tabItem.pszText,
+        //            (UINT)PhCountStringZ(tabItem.pszText),
+        //            &itemRectHighlighted,
+        //            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+        //        );
+        //    }
+        //}
     }
 }
 
@@ -3072,6 +3253,33 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
 
     switch (uMsg)
     {
+    case WM_NOTIFY:
+        {
+            LPNMHDR data = (LPNMHDR)lParam;
+
+            if (data->code == NM_CUSTOMDRAW)
+            {
+                LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
+                WCHAR className[MAX_PATH];
+
+                if (customDraw->dwDrawStage == CDDS_PREPAINT)
+                {
+                    if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                        className[0] = UNICODE_NULL;
+                    if (PhEqualStringZ(className, WC_BUTTON, FALSE))
+                    {
+                        HDC hdc = GetDC(WindowHandle);
+                        RECT rectControl = customDraw->rc;
+                        InflateRect(&rectControl, 2, 2);
+                        MapWindowRect(customDraw->hdr.hwndFrom, WindowHandle, &rectControl);
+                        FillRect(hdc, &rectControl, PhThemeWindowBackgroundBrush);   // fix the annoying white border left by the previous active control
+                        ReleaseDC(WindowHandle, hdc);
+                    }
+                    return CDRF_DODEFAULT;
+                }
+            }
+        }
+        break;
     case WM_NCDESTROY:
         {
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
@@ -3083,7 +3291,7 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            GetClientRect(WindowHandle, &clientRect);
+            GetClipBox(hdc, &clientRect);
             FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
         }
         return TRUE;
@@ -3096,6 +3304,5 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
     }
-
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }

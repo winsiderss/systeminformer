@@ -516,7 +516,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             if (!context->SymbolProvider)
             {
-                PhShowError(hwndDlg, L"%s", L"Unable to create the symbol provider.");
+                PhShowError2(hwndDlg, L"Unable to create the symbol provider.", L"%s", L"");
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }

@@ -262,6 +262,13 @@ PhCallKphQueryFileInformationWithTimeout(
     _In_ ULONG FileInformationLength
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetPnPDeviceName(
+    _In_ PPH_STRING ObjectName
+    );
+
 EXTERN_C_END
 
 #endif

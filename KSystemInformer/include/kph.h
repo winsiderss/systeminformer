@@ -529,6 +529,7 @@ extern PSE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK KphSeUnregisterImageVerificati
 extern PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject;
 extern PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo;
 extern PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent;
+extern POBJECT_TYPE* KphDynObTypeIndexTable;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
@@ -756,6 +757,16 @@ NTSTATUS KphCompareObjects(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenObjectByTypeIndex(
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG TypeIndex,
+    _In_ KPROCESSOR_MODE AccessMode
+);
+
 // process
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -833,6 +844,17 @@ NTSTATUS KphQueryInformationDriver(
     _Out_writes_bytes_opt_(DriverInformationLength) PVOID DriverInformation,
     _In_ ULONG DriverInformationLength,
     _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _Out_opt_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ BOOLEAN OpenLowest,
     _In_ KPROCESSOR_MODE AccessMode
     );
 

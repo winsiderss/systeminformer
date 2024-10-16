@@ -1354,6 +1354,7 @@ VOID DevicesTreeInitialize(
     if (PhGetIntegerSetting(L"EnableThemeSupport"))
     {
         PhInitializeWindowTheme(DeviceTreeHandle, TRUE);
+        PhSetControlTheme(DeviceTreeHandle, L"DarkMode_Explorer");
         TreeNew_ThemeSupport(DeviceTreeHandle, TRUE);
     }
 
