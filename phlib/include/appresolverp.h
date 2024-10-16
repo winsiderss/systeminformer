@@ -125,16 +125,16 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
     // IDesktopAppXActivator1
 
     STDMETHOD(Activate)(THIS,
-        _In_ PWSTR ApplicationUserModelId,
-        _In_ PWSTR PackageRelativeExecutable,
-        _In_ PWSTR Arguments,
+        _In_ PCWSTR ApplicationUserModelId,
+        _In_ PCWSTR PackageRelativeExecutable,
+        _In_ PCWSTR Arguments,
         _Out_ PHANDLE ProcessHandle
         ) PURE;
 
     STDMETHOD(ActivateWithOptions)(THIS,
-        _In_ PWSTR ApplicationUserModelId,
-        _In_ PWSTR Executable,
-        _In_ PWSTR Arguments,
+        _In_ PCWSTR ApplicationUserModelId,
+        _In_ PCWSTR Executable,
+        _In_ PCWSTR Arguments,
         _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
         _In_opt_ ULONG ParentProcessId,
         _Out_ PHANDLE ProcessHandle
@@ -143,22 +143,22 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
     // IDesktopAppXActivator2
 
     STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
-        _In_ PWSTR ApplicationUserModelId,
-        _In_ PWSTR Executable,
-        _In_ PWSTR Arguments,
+        _In_ PCWSTR ApplicationUserModelId,
+        _In_ PCWSTR Executable,
+        _In_ PCWSTR Arguments,
         _In_opt_ ULONG ParentProcessId,
         _In_opt_ PVOID ActivatedEventArgs,
         _Out_ PHANDLE ProcessHandle
         ) PURE;
 
     STDMETHOD(ActivateWithOptionsArgsWorkingDirectoryShowWindow)(THIS,
-        _In_ PWSTR ApplicationUserModelId,
-        _In_ PWSTR Executable,
-        _In_ PWSTR Arguments,
+        _In_ PCWSTR ApplicationUserModelId,
+        _In_ PCWSTR Executable,
+        _In_ PCWSTR Arguments,
         _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
         _In_opt_ ULONG ParentProcessId,
         _In_opt_ PVOID ActivatedEventArgs,
-        _In_ PWSTR WorkingDirectory,
+        _In_ PCWSTR WorkingDirectory,
         _In_ ULONG ShowWindow,
         _Out_ PHANDLE ProcessHandle) PURE;
 
@@ -403,7 +403,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ PWSTR AppUserModelId,
+        _In_ PCWSTR AppUserModelId,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
         ) PURE;
@@ -441,7 +441,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ PWSTR AppUserModelId,
+        _In_ PCWSTR AppUserModelId,
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
         ) PURE;
@@ -915,9 +915,9 @@ typedef enum PackageGlobalizationProperty
 // Package Properties
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetCurrentPackageContext(
     _In_ ULONG Index,
@@ -926,9 +926,9 @@ GetCurrentPackageContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageContext(
     _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
@@ -938,9 +938,9 @@ GetPackageContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageProperty(
     _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
@@ -950,9 +950,9 @@ GetPackageProperty(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackagePropertyString(
     _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
@@ -962,9 +962,9 @@ GetPackagePropertyString(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageOSMaxVersionTested(
     _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
@@ -974,9 +974,9 @@ GetPackageOSMaxVersionTested(
 // Package Application Properties
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetCurrentPackageApplicationContext(
     _In_ ULONG Index,
@@ -985,9 +985,9 @@ GetCurrentPackageApplicationContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageApplicationContext(
     _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
@@ -997,9 +997,9 @@ GetPackageApplicationContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageApplicationProperty(
     _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
@@ -1009,9 +1009,9 @@ GetPackageApplicationProperty(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageApplicationPropertyString(
     _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
@@ -1023,9 +1023,9 @@ GetPackageApplicationPropertyString(
 // Package Resource Properties
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetCurrentPackageResourcesContext(
     _In_ ULONG Index,
@@ -1034,9 +1034,9 @@ GetCurrentPackageResourcesContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetPackageResourcesContext(
     _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
@@ -1046,9 +1046,9 @@ GetPackageResourcesContext(
     );
 
 // rev
-WINBASEAPI
 _Success_(return == ERROR_SUCCESS)
-LONG
+WINBASEAPI
+ULONG
 WINAPI
 GetCurrentPackageApplicationResourcesContext(
     _In_ ULONG Index,
@@ -1162,11 +1162,11 @@ WINBASEAPI
 HRESULT
 WINAPI
 GetCurrentPackageInfo3(
-    _In_ const UINT32 flags,
+    _In_ ULONG flags,
     _In_ ULONG packagePathType, // PackagePathType
-    _Inout_ UINT32* bufferLength,
-    _Out_writes_bytes_opt_(*bufferLength) BYTE* buffer,
-    _Out_opt_ UINT32* count
+    _Inout_ PULONG bufferLength,
+    _Out_writes_bytes_opt_(*bufferLength) PVOID buffer,
+    _Out_opt_ PULONG count
     );
 
 // Package Globalization Properties

@@ -212,8 +212,8 @@ NTSTATUS LoadDb(
         {
             for (INT i = 0; i < PhGetXmlNodeAttributeCount(currentNode); i++)
             {
-                PSTR elementName;
-                PSTR elementValue;
+                PCSTR elementName;
+                PCSTR elementValue;
 
                 elementValue = PhGetXmlNodeAttributeByIndex(currentNode, i, &elementName);
 

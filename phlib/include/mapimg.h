@@ -78,7 +78,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImage(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -112,7 +112,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhMapViewOfEntireFile(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID *ViewBase,
     _Out_ PSIZE_T ViewSize
@@ -355,13 +355,13 @@ typedef struct _PH_MAPPED_IMAGE_EXPORT_ENTRY
 {
     USHORT Ordinal;
     ULONG Hint;
-    PSTR Name;
+    PCSTR Name;
 } PH_MAPPED_IMAGE_EXPORT_ENTRY, *PPH_MAPPED_IMAGE_EXPORT_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
 {
     PVOID Function;
-    PSTR ForwardedName;
+    PCSTR ForwardedName;
 } PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
 
 #define PH_GET_IMAGE_EXPORTS_ARM64X 0x00000001ul
@@ -397,7 +397,7 @@ NTSTATUS
 NTAPI
 PhGetMappedImageExportFunction(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_opt_ PSTR Name,
+    _In_opt_ PCSTR Name,
     _In_opt_ USHORT Ordinal,
     _Out_ PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
     );
@@ -407,7 +407,7 @@ NTSTATUS
 NTAPI
 PhGetMappedImageExportFunctionRemote(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_opt_ PSTR Name,
+    _In_opt_ PCSTR Name,
     _In_opt_ USHORT Ordinal,
     _In_ PVOID RemoteBase,
     _Out_ PVOID *Function
@@ -433,7 +433,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
     PPH_MAPPED_IMAGE MappedImage;
     ULONG Flags;
     ULONG NumberOfEntries;
-    PSTR Name;
+    PCSTR Name;
 
     union
     {
@@ -445,7 +445,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
 
 typedef struct _PH_MAPPED_IMAGE_IMPORT_ENTRY
 {
-    PSTR Name;
+    PCSTR Name;
     union
     {
         USHORT Ordinal;
@@ -788,7 +788,7 @@ typedef struct _PH_MAPPED_ARCHIVE_MEMBER
 {
     PPH_MAPPED_ARCHIVE MappedArchive;
     PH_MAPPED_ARCHIVE_MEMBER_TYPE Type;
-    PSTR Name;
+    PCSTR Name;
     ULONG Size;
     PVOID Data;
 
@@ -812,8 +812,8 @@ typedef struct _PH_MAPPED_ARCHIVE
 
 typedef struct _PH_MAPPED_ARCHIVE_IMPORT_ENTRY
 {
-    PSTR Name;
-    PSTR DllName;
+    PCSTR Name;
+    PCSTR DllName;
     union
     {
         USHORT Ordinal;
@@ -837,7 +837,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedArchive(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_ARCHIVE MappedArchive
     );

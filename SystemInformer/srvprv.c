@@ -1039,7 +1039,7 @@ UpdateStart:
     PhFree(services);
 
 UpdateEnd:
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), UlongToPtr(runCount));
     runCount++;
 }
 

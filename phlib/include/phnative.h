@@ -129,6 +129,15 @@ PhOpenThread(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenThreadClientId(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ CLIENT_ID ClientId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhOpenThreadPublic(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -395,7 +404,7 @@ NTSTATUS
 NTAPI
 PhQueryEnvironmentVariableToBufferZ(
     _In_opt_ PVOID Environment,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _Out_writes_opt_(BufferLength) PWSTR Buffer,
     _In_opt_ SIZE_T BufferLength,
     _Out_ PSIZE_T ReturnLength
@@ -432,7 +441,7 @@ NTSTATUS
 NTAPI
 PhQueryEnvironmentVariableZ(
     _In_opt_ PVOID Environment,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _Out_opt_ PPH_STRING* Value
     )
 {
@@ -457,8 +466,8 @@ NTSTATUS
 NTAPI
 PhSetEnvironmentVariableZ(
     _In_opt_ PVOID Environment,
-    _In_ PWSTR Name,
-    _In_opt_ PWSTR Value
+    _In_ PCWSTR Name,
+    _In_opt_ PCWSTR Value
     )
 {
     if (Value)
@@ -601,7 +610,7 @@ PhDestroyWindowRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhQueueWindowThreadProcedure(
+PhInvokeWindowThreadProcedureRemote(
     _In_ HWND WindowHandle,
     _In_ PVOID ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
@@ -1138,7 +1147,7 @@ BOOLEAN
 NTAPI
 PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
-    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ PLUID PrivilegeLuid,
     _In_ ULONG Attributes
     );
@@ -1156,7 +1165,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhAdjustPrivilege(
-    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ LONG Privilege,
     _In_ BOOLEAN Enable
     );
@@ -1166,7 +1175,7 @@ NTSTATUS
 NTAPI
 PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
-    _In_opt_ PWSTR GroupName,
+    _In_opt_ PCWSTR GroupName,
     _In_opt_ PSID GroupSid,
     _In_ ULONG Attributes
     );
@@ -1498,7 +1507,7 @@ NTSTATUS
 NTAPI
 PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PWSTR Name
+    _In_opt_ PCWSTR Name
     );
 
 typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_VIRTUAL_IMAGES_CALLBACK)(
@@ -2137,7 +2146,7 @@ NTAPI
 PhQuerySymbolicLinkObjectZ(
     _Out_ PPH_STRING* LinkTarget,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PWSTR ObjectName
+    _In_ PCWSTR ObjectName
     )
 {
     PH_STRINGREF name;
@@ -2261,12 +2270,15 @@ PhGetExistingPathPrefixWin32(
 typedef struct _PH_MODULE_INFO
 {
     ULONG Type;
+    ULONG Flags;
+    ULONG Size;
+    ULONG EnclaveType;
+
     PVOID BaseAddress;
     PVOID ParentBaseAddress;
     PVOID OriginalBaseAddress;
     PVOID EntryPoint;
-    ULONG Size;
-    ULONG Flags;
+
     PPH_STRING Name;
     PPH_STRING FileName;
 
@@ -2276,7 +2288,6 @@ typedef struct _PH_MODULE_INFO
     USHORT Reserved;
     LARGE_INTEGER LoadTime; // 0 if N/A
 
-    ULONG EnclaveType;
     PVOID EnclaveBaseAddress;
     SIZE_T EnclaveSize;
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
@@ -2404,7 +2415,7 @@ NTSTATUS
 NTAPI
 PhSetValueKeyZ(
     _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName,
+    _In_ PCWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
@@ -2436,7 +2447,7 @@ NTSTATUS
 NTAPI
 PhDeleteValueKeyZ(
     _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
+    _In_ PCWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
@@ -2477,7 +2488,7 @@ NTSTATUS
 NTAPI
 PhCreateFileWin32(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -2490,7 +2501,7 @@ NTSTATUS
 NTAPI
 PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
@@ -2505,7 +2516,7 @@ NTSTATUS
 NTAPI
 PhCreateFileWin32ExAlt(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -2550,7 +2561,7 @@ NTSTATUS
 NTAPI
 PhOpenFileWin32(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions
@@ -2561,7 +2572,7 @@ NTSTATUS
 NTAPI
 PhOpenFileWin32Ex(
     _Out_ PHANDLE FileHandle,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions,
@@ -2641,7 +2652,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryFullAttributesFileWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
@@ -2657,7 +2668,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryAttributesFileWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     );
 
@@ -2673,7 +2684,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesFileExistWin32(
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -2687,7 +2698,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesDirectoryExistWin32(
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -2708,7 +2719,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteFileWin32(
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -2722,8 +2733,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyFileWin32(
-    _In_ PWSTR OldFileName,
-    _In_ PWSTR NewFileName,
+    _In_ PCWSTR OldFileName,
+    _In_ PCWSTR NewFileName,
     _In_ BOOLEAN FailIfExists
     );
 
@@ -2731,8 +2742,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyFileChunkWin32(
-    _In_ PWSTR OldFileName,
-    _In_ PWSTR NewFileName,
+    _In_ PCWSTR OldFileName,
+    _In_ PCWSTR NewFileName,
     _In_ BOOLEAN FailIfExists
     );
 
@@ -2740,8 +2751,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhMoveFileWin32(
-    _In_ PWSTR OldFileName,
-    _In_ PWSTR NewFileName,
+    _In_ PCWSTR OldFileName,
+    _In_ PCWSTR NewFileName,
     _In_ BOOLEAN FailIfExists
     );
 
@@ -2817,7 +2828,7 @@ NTSTATUS
 NTAPI
 PhCreateNamedPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PWSTR PipeName
+    _In_ PCWSTR PipeName
     );
 
 PHLIBAPI
@@ -2825,7 +2836,7 @@ NTSTATUS
 NTAPI
 PhConnectPipe(
     _Out_ PHANDLE PipeHandle,
-    _In_ PWSTR PipeName
+    _In_ PCWSTR PipeName
     );
 
 PHLIBAPI
@@ -2869,7 +2880,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhWaitForNamedPipe(
-    _In_ PWSTR PipeName,
+    _In_ PCWSTR PipeName,
     _In_opt_ ULONG Timeout
     );
 
@@ -3181,7 +3192,7 @@ NTSTATUS
 NTAPI
 PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PNTSTATUS LastStatusValue
     );
 
@@ -3226,7 +3237,7 @@ NTSTATUS
 NTAPI
 PhGetThreadApartmentState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ POLETLSFLAGS ApartmentState
     );
 
@@ -3243,7 +3254,7 @@ NTSTATUS
 NTAPI
 PhGetThreadApartmentCallState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PPH_COM_CALLSTATE ApartmentCallState
     );
 

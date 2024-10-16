@@ -17,7 +17,7 @@
 
 static PVOID json_get_object(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     json_object* returnObj;
@@ -65,7 +65,7 @@ static NTSTATUS PhJsonErrorToNtStatus(
 }
 
 PVOID PhCreateJsonParser(
-    _In_ PSTR JsonString
+    _In_ PCSTR JsonString
     )
 {
     return json_tokener_parse(JsonString);
@@ -101,7 +101,7 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            (INT)jsonStringUtf8->Length
+            (LONG)jsonStringUtf8->Length
             );
         PhDereferenceObject(jsonStringUtf8);
     }
@@ -122,7 +122,7 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            (INT)jsonStringUtf8->Length
+            (LONG)jsonStringUtf8->Length
             );
     }
 
@@ -146,21 +146,21 @@ VOID PhFreeJsonObject(
 
 PPH_STRING PhGetJsonValueAsString(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     PVOID object;
     PCSTR value;
     size_t length;
 
-    if (object = json_get_object(Object, Key))
+    if (object = json_get_object(Object, (PCSTR)Key))
     {
         if (
             (length = json_object_get_string_len(object)) &&
             (value = json_object_get_string(object))
             )
         {
-            return PhConvertUtf8ToUtf16Ex((PSTR)value, length);
+            return PhConvertUtf8ToUtf16Ex(value, length);
         }
     }
 
@@ -179,7 +179,7 @@ PPH_STRING PhGetJsonObjectString(
         (value = json_object_get_string(Object))
         )
     {
-        return PhConvertUtf8ToUtf16Ex((PSTR)value, length);
+        return PhConvertUtf8ToUtf16Ex(value, length);
     }
 
     return PhReferenceEmptyString();
@@ -187,7 +187,7 @@ PPH_STRING PhGetJsonObjectString(
 
 LONGLONG PhGetJsonValueAsInt64(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     return json_object_get_int64(json_get_object(Object, Key));
@@ -195,7 +195,7 @@ LONGLONG PhGetJsonValueAsInt64(
 
 ULONGLONG PhGetJsonValueAsUInt64(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     return json_object_get_uint64(json_get_object(Object, Key));
@@ -216,7 +216,7 @@ PVOID PhCreateJsonObject(
 }
 
 PVOID PhCreateJsonStringObject(
-    _In_ PSTR Value
+    _In_ PCSTR Value
     )
 {
     return json_object_new_string(Value);
@@ -224,7 +224,7 @@ PVOID PhCreateJsonStringObject(
 
 PVOID PhGetJsonObject(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     return json_get_object(Object, Key);
@@ -255,7 +255,7 @@ PH_JSON_OBJECT_TYPE PhGetJsonObjectType(
     return PH_JSON_OBJECT_TYPE_UNKNOWN;
 }
 
-INT PhGetJsonObjectLength(
+LONG PhGetJsonObjectLength(
     _In_ PVOID Object
     )
 {
@@ -264,7 +264,7 @@ INT PhGetJsonObjectLength(
 
 BOOLEAN PhGetJsonObjectBool(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     return json_object_get_boolean(json_get_object(Object, Key)) == TRUE;
@@ -282,7 +282,7 @@ VOID PhAddJsonObjectValue(
 VOID PhAddJsonObject(
     _In_ PVOID Object,
     _In_ PCSTR Key,
-    _In_ PSTR Value
+    _In_ PCSTR Value
     )
 {
     json_object_object_add_ex(Object, Key, json_object_new_string(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
@@ -291,7 +291,7 @@ VOID PhAddJsonObject(
 VOID PhAddJsonObject2(
     _In_ PVOID Object,
     _In_ PCSTR Key,
-    _In_ PSTR Value,
+    _In_ PCSTR Value,
     _In_ SIZE_T Length
     )
 {
@@ -353,9 +353,9 @@ PVOID PhGetJsonArrayString(
     if (value = json_object_to_json_string_length(Object, JSON_C_TO_STRING_PLAIN, &length)) // json_object_get_string(Object))
     {
         if (Unicode)
-            return PhConvertUtf8ToUtf16Ex((PSTR)value, length);
+            return PhConvertUtf8ToUtf16Ex(value, length);
         else
-            return PhCreateBytesEx((PSTR)value, length);
+            return PhCreateBytesEx(value, length);
     }
 
     return NULL;
@@ -402,17 +402,16 @@ PVOID PhGetJsonObjectAsArrayList(
     )
 {
     PPH_LIST listArray;
-    json_object_iter json_array_ptr;
 
     listArray = PhCreateList(1);
 
-    json_object_object_foreachC(Object, json_array_ptr)
+    json_object_object_foreach(Object, key, value)
     {
         PJSON_ARRAY_LIST_OBJECT object;
 
         object = PhAllocateZero(sizeof(JSON_ARRAY_LIST_OBJECT));
-        object->Key = json_array_ptr.key;
-        object->Entry = json_array_ptr.val;
+        object->Key = key;
+        object->Entry = value;
 
         PhAddItemList(listArray, object);
     }
@@ -503,7 +502,7 @@ CleanupExit:
 // XML support
 
 PVOID PhLoadXmlObjectFromString(
-    _In_ PSTR String
+    _In_ PCSTR String
     )
 {
     mxml_node_t* currentNode;
@@ -680,7 +679,7 @@ VOID PhFreeXmlObject(
 
 PVOID PhGetXmlObject(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Path
+    _In_ PCSTR Path
     )
 {
     mxml_node_t* currentNode;
@@ -699,7 +698,7 @@ PVOID PhGetXmlObject(
 
 PVOID PhCreateXmlNode(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Name
+    _In_ PCSTR Name
     )
 {
     return mxmlNewElement(ParentNode, Name);
@@ -707,7 +706,7 @@ PVOID PhCreateXmlNode(
 
 PVOID PhCreateXmlOpaqueNode(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Value
+    _In_ PCSTR Value
     )
 {
     return mxmlNewOpaque(ParentNode, Value);
@@ -716,9 +715,9 @@ PVOID PhCreateXmlOpaqueNode(
 PVOID PhFindXmlObject(
     _In_ PVOID XmlNodeObject,
     _In_opt_ PVOID XmlTopObject,
-    _In_opt_ PSTR Element,
-    _In_opt_ PSTR Attribute,
-    _In_opt_ PSTR Value
+    _In_opt_ PCSTR Element,
+    _In_opt_ PCSTR Attribute,
+    _In_opt_ PCSTR Value
     )
 {
     return mxmlFindElement(XmlNodeObject, XmlTopObject, Element, Attribute, Value, MXML_DESCEND);
@@ -746,7 +745,7 @@ PPH_STRING PhGetXmlNodeOpaqueText(
 
     if (string = mxmlGetOpaque(XmlNodeObject))
     {
-        return PhConvertUtf8ToUtf16((PSTR)string);
+        return PhConvertUtf8ToUtf16(string);
     }
     else
     {
@@ -754,54 +753,54 @@ PPH_STRING PhGetXmlNodeOpaqueText(
     }
 }
 
-PSTR PhGetXmlNodeElementText(
+PCSTR PhGetXmlNodeElementText(
     _In_ PVOID XmlNodeObject
     )
 {
-    return (PSTR)mxmlGetElement(XmlNodeObject);
+    return mxmlGetElement(XmlNodeObject);
 }
 
-PSTR PhGetXmlNodeCDATAText(
+PCSTR PhGetXmlNodeCDATAText(
     _In_ PVOID XmlNodeObject
     )
 {
-    return (PSTR)mxmlGetCDATA(XmlNodeObject);
+    return mxmlGetCDATA(XmlNodeObject);
 }
 
 PPH_STRING PhGetXmlNodeAttributeText(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR AttributeName
+    _In_ PCSTR AttributeName
     )
 {
     PCSTR string;
 
     if (string = mxmlElementGetAttr(XmlNodeObject, AttributeName))
     {
-        return PhConvertUtf8ToUtf16((PSTR)string);
+        return PhConvertUtf8ToUtf16(string);
     }
 
     return NULL;
 }
 
-PSTR PhGetXmlNodeAttributeByIndex(
+PCSTR PhGetXmlNodeAttributeByIndex(
     _In_ PVOID XmlNodeObject,
-    _In_ INT Index,
-    _Out_ PSTR* AttributeName
+    _In_ LONG Index,
+    _Out_ PCSTR* AttributeName
     )
 {
-    return (PSTR)mxmlElementGetAttrByIndex(XmlNodeObject, Index, AttributeName);
+    return mxmlElementGetAttrByIndex(XmlNodeObject, Index, AttributeName);
 }
 
 VOID PhSetXmlNodeAttributeText(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Name,
-    _In_ PSTR Value
+    _In_ PCSTR Name,
+    _In_ PCSTR Value
     )
 {
     mxmlElementSetAttr(XmlNodeObject, Name, Value);
 }
 
-INT PhGetXmlNodeAttributeCount(
+LONG PhGetXmlNodeAttributeCount(
     _In_ PVOID XmlNodeObject
     )
 {

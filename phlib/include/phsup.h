@@ -275,8 +275,8 @@ FORCEINLINE int doublecmp(
 }
 
 FORCEINLINE int wcsicmp2(
-    _In_opt_ PWSTR Value1,
-    _In_opt_ PWSTR Value2
+    _In_opt_ PCWSTR Value1,
+    _In_opt_ PCWSTR Value2
     )
 {
     if (Value1 && Value2)

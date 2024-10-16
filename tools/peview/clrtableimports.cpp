@@ -278,7 +278,7 @@ HRESULT PvGetClrMetaDataInterface(
     if (!clrCoreBaseAddress)
         return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
 
-    if (MetaDataGetDispenser_I = reinterpret_cast<decltype(MetaDataGetDispenser_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, const_cast<PSTR>("MetaDataGetDispenser"), 0)))
+    if (MetaDataGetDispenser_I = reinterpret_cast<decltype(MetaDataGetDispenser_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "MetaDataGetDispenser", 0)))
     {
         MetaDataGetDispenser_I(CLSID_CorMetaDataDispenser, IID_IMetaDataDispenser, reinterpret_cast<PVOID*>(&clrMetadataInterface));
     }
@@ -294,7 +294,7 @@ HRESULT PvGetClrMetaDataInterface(
         ICLRMetaHost* clrMetaHost = nullptr;
         ICLRRuntimeInfo* clrRuntimeInfo = nullptr;
 
-        if (CLRCreateInstance_I = reinterpret_cast<decltype(CLRCreateInstance_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, const_cast<PSTR>("CLRCreateInstance"), 0)))
+        if (CLRCreateInstance_I = reinterpret_cast<decltype(CLRCreateInstance_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "CLRCreateInstance", 0)))
         {
             status = CLRCreateInstance_I(
                 CLSID_CLRMetaHost,
@@ -586,12 +586,12 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
             {
                 if (metaDataTables->GetString(index, &name) == S_OK)
                 {
-                    if (PhEqualBytesZ(const_cast<PSTR>(name), const_cast<PSTR>("System.Runtime"), TRUE))
+                    if (PhEqualBytesZ(name, "System.Runtime", TRUE))
                     {
                         // .NET Core
                         runtime = TRUE;
                     }
-                    else if (PhEqualBytesZ(const_cast<PSTR>(name), const_cast<PSTR>("mscorlib"), TRUE))
+                    else if (PhEqualBytesZ(name, "mscorlib", TRUE))
                     {
                         // .NET Framework
                         framework = TRUE;
@@ -612,14 +612,12 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
                 if (runtime)
                 {
-                    version = PhFormatString(const_cast<PWSTR>(L".NET Core %hu.%hu.%hu.%hu"),
-                        majorVersion, minorVersion, buildVersion, revisionVersion);
+                    version = PhFormatString(L".NET Core %hu.%hu.%hu.%hu", majorVersion, minorVersion, buildVersion, revisionVersion);
                     break;
                 }
                 else if (framework)
                 {
-                    version = PhFormatString(const_cast<PWSTR>(L".NET Framework %hu.%hu.%hu.%hu"),
-                        majorVersion, minorVersion, buildVersion, revisionVersion);
+                    version = PhFormatString(L".NET Framework %hu.%hu.%hu.%hu", majorVersion, minorVersion, buildVersion, revisionVersion);
                     break;
                 }
             }
@@ -657,7 +655,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
         PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
         importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
-        importDll->ImportName = PhCreateString(const_cast<wchar_t*>(L"Unknown"));
+        importDll->ImportName = PhCreateString(L"Unknown");
         importDll->ImportToken = ULONG_MAX;
 
         PhAddItemList(clrImportsList, importDll);
@@ -677,7 +675,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                     PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
                     importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
-                    importDll->ImportName = PhConvertUtf8ToUtf16(const_cast<char*>(moduleName));
+                    importDll->ImportName = PhConvertUtf8ToUtf16(moduleName);
                     importDll->ImportToken = TokenFromRid(i, mdtModuleRef);
 
                     PhAddItemList(clrImportsList, importDll);
@@ -810,7 +808,7 @@ EXTERN_C HRESULT PvClrImageEnumTables(
             PPH_STRING tableName;
             PVOID offset = nullptr;
 
-            tableName = PhConvertUtf8ToUtf16(const_cast<PSTR>(name));
+            tableName = PhConvertUtf8ToUtf16(name);
             metaDataTables->GetRow(i, 1, &offset);
 
             if (!Callback(i, size, tablecount, tableName, offset, Context))

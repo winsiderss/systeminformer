@@ -438,7 +438,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     // Build the failure actions structure.
 
                     failureActions.dwResetPeriod = PhGetDialogItemValue(WindowHandle, IDC_RESETFAILCOUNT) * 60 * 60 * 24;
-                    failureActions.lpRebootMsg = PhGetStringOrEmpty(context->RebootMessage);
+                    failureActions.lpRebootMsg = (PWSTR)PhGetStringOrEmpty(context->RebootMessage);
                     failureActions.lpCommand = PhaGetDlgItemText(WindowHandle, IDC_RUNPROGRAM)->Buffer;
                     failureActions.cActions = 3;
                     failureActions.lpsaActions = actions;

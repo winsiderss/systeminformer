@@ -57,7 +57,7 @@ PHLIBAPI
 VERIFY_RESULT
 NTAPI
 PhVerifyFile(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_opt_ PPH_STRING *SignerName
     );
 

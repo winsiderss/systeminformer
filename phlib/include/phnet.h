@@ -15,6 +15,10 @@
 
 EXTERN_C_START
 
+#ifndef __WINDOT11_H__
+#define __WINDOT11_H__ // Workaround windot11.h C2288 - WinSDK 10.0.22621 (dmex)
+#endif
+
 #ifndef PIO_APC_ROUTINE_DEFINED
 #define PIO_APC_ROUTINE_DEFINED 1
 #endif
@@ -213,7 +217,7 @@ BOOLEAN
 NTAPI
 PhHttpSocketCreate(
     _Out_ PPH_HTTP_CONTEXT *HttpContext,
-    _In_opt_ PWSTR HttpUserAgent
+    _In_opt_ PCWSTR HttpUserAgent
     );
 
 PHLIBAPI
@@ -460,8 +464,8 @@ PHLIBAPI
 PDNS_RECORD
 NTAPI
 PhHttpDnsQuery(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     );
 
@@ -469,8 +473,8 @@ PHLIBAPI
 PDNS_RECORD
 NTAPI
 PhDnsQuery(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     );
 
@@ -478,8 +482,8 @@ PHLIBAPI
 PDNS_RECORD
 NTAPI
 PhDnsQuery2(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType,
     _In_ USHORT DnsQueryMessageOptions
     );

@@ -1797,7 +1797,7 @@ NTSTATUS
 NTAPI
 RtlAnsiStringToUnicodeString(
     _Inout_ PUNICODE_STRING DestinationString,
-    _In_ PANSI_STRING SourceString,
+    _In_ PCANSI_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -3741,8 +3741,8 @@ NTAPI
 RtlQueryActivationContextApplicationSettings(
     _Reserved_ ULONG Flags,
     _In_ PACTIVATION_CONTEXT ActivationContext,
-    _In_ PWSTR SettingsNameSpace,
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingsNameSpace,
+    _In_ PCWSTR SettingName,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T RequiredLength
@@ -4161,7 +4161,7 @@ typedef enum _RTL_PATH_TYPE
 
 // Data exports (ntdll.lib/ntdllp.lib)
 
-NTSYSAPI PWSTR RtlNtdllName;
+NTSYSAPI PCWSTR RtlNtdllName;
 NTSYSAPI UNICODE_STRING RtlDosPathSeperatorsString;
 NTSYSAPI UNICODE_STRING RtlAlternateDosPathSeperatorString;
 NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
@@ -4530,7 +4530,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlReleasePath(
-    _In_ PWSTR Path
+    _In_ PCWSTR Path
     );
 
 #endif
@@ -5089,8 +5089,8 @@ NTAPI
 RtlCreateTagHeap(
     _In_ PVOID HeapHandle,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR TagPrefix,
-    _In_ PWSTR TagNames
+    _In_opt_ PCWSTR TagPrefix,
+    _In_ PCWSTR TagNames
     );
 
 NTSYSAPI
@@ -5981,7 +5981,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFormatMessage(
-    _In_ PWSTR MessageFormat,
+    _In_ PCWSTR MessageFormat,
     _In_ ULONG MaximumWidth,
     _In_ BOOLEAN IgnoreInserts,
     _In_ BOOLEAN ArgumentsAreAnsi,
@@ -6011,7 +6011,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlFormatMessageEx(
-    _In_ PWSTR MessageFormat,
+    _In_ PCWSTR MessageFormat,
     _In_ ULONG MaximumWidth,
     _In_ BOOLEAN IgnoreInserts,
     _In_ BOOLEAN ArgumentsAreAnsi,
@@ -6029,7 +6029,7 @@ NTAPI
 RtlGetFileMUIPath(
     _In_ ULONG Flags,
     _In_ PCWSTR FilePath,
-    _Inout_opt_ PWSTR Language,
+    _Inout_opt_ PCWSTR Language,
     _Inout_ PULONG LanguageLength,
     _Out_opt_ PWSTR FileMUIPath,
     _Inout_ PULONG FileMUIPathLength,
@@ -7062,7 +7062,7 @@ NTSTATUS
 NTAPI
 RtlAddAtomToAtomTable(
     _In_ PVOID AtomTableHandle,
-    _In_ PWSTR AtomName,
+    _In_ PCWSTR AtomName,
     _Inout_opt_ PRTL_ATOM Atom
     );
 
@@ -7071,7 +7071,7 @@ NTSTATUS
 NTAPI
 RtlLookupAtomInAtomTable(
     _In_ PVOID AtomTableHandle,
-    _In_ PWSTR AtomName,
+    _In_ PCWSTR AtomName,
     _Out_opt_ PRTL_ATOM Atom
     );
 
@@ -7109,7 +7109,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetIntegerAtom(
-    _In_ PWSTR AtomName,
+    _In_ PCWSTR AtomName,
     _Out_opt_ PUSHORT IntegerAtom
     );
 #endif
@@ -8535,7 +8535,7 @@ NTSTATUS
 NTAPI
 RtlCreateRegistryKey(
     _In_ ULONG RelativeTo,
-    _In_ PWSTR Path
+    _In_ PCWSTR Path
     );
 
 NTSYSAPI
@@ -8543,12 +8543,12 @@ NTSTATUS
 NTAPI
 RtlCheckRegistryKey(
     _In_ ULONG RelativeTo,
-    _In_ PWSTR Path
+    _In_ PCWSTR Path
     );
 
 _Function_class_(RTL_QUERY_REGISTRY_ROUTINE)
 typedef NTSTATUS (NTAPI RTL_QUERY_REGISTRY_ROUTINE)(
-    _In_ PWSTR ValueName,
+    _In_ PCWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
     _In_ ULONG ValueLength,
@@ -9230,7 +9230,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryImageMitigationPolicy(
-    _In_opt_ PWSTR ImagePath, // NULL for system-wide defaults
+    _In_opt_ PCWSTR ImagePath, // NULL for system-wide defaults
     _In_ IMAGE_MITIGATION_POLICY Policy,
     _In_ ULONG Flags,
     _Inout_ PVOID Buffer,
@@ -9242,7 +9242,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetImageMitigationPolicy(
-    _In_opt_ PWSTR ImagePath, // NULL for system-wide defaults
+    _In_opt_ PCWSTR ImagePath, // NULL for system-wide defaults
     _In_ IMAGE_MITIGATION_POLICY Policy,
     _In_ ULONG Flags,
     _Inout_ PVOID Buffer,

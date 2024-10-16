@@ -31,7 +31,7 @@ typedef struct _PH_GDI_HANDLE_ITEM
     PGDI_HANDLE_ENTRY Entry;
     ULONG Handle;
     PVOID Object;
-    PWSTR TypeName;
+    PCWSTR TypeName;
     PPH_STRING Information;
 } PH_GDI_HANDLE_ITEM, *PPH_GDI_HANDLE_ITEM;
 
@@ -67,7 +67,7 @@ VOID PhShowGdiHandlesDialog(
     SetForegroundWindow(windowHandle);
 }
 
-PWSTR PhpGetGdiHandleTypeName(
+PCWSTR PhpGetGdiHandleTypeName(
     _In_ ULONG Unique
     )
 {
@@ -258,8 +258,8 @@ VOID PhpRefreshGdiHandles(
 
     for (i = 0; i < handleCount; i++)
     {
-        PWSTR typeName;
-        INT lvItemIndex;
+        PCWSTR typeName;
+        LONG lvItemIndex;
         WCHAR pointer[PH_PTR_STR_LEN_1];
 
         handle = &gdiShared->Handles[i];
@@ -292,7 +292,7 @@ VOID PhpRefreshGdiHandles(
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
-INT NTAPI PhpGdiHandleHandleCompareFunction(
+LONG NTAPI PhpGdiHandleHandleCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -304,7 +304,7 @@ INT NTAPI PhpGdiHandleHandleCompareFunction(
     return uintcmp(item1->Handle, item2->Handle);
 }
 
-INT NTAPI PhpGdiHandleObjectCompareFunction(
+LONG NTAPI PhpGdiHandleObjectCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context

@@ -662,14 +662,14 @@ PPH_STRING PhGetWin32FormatMessage(
  *
  * \return The user's response.
  */
-INT PhShowMessage(
+LONG PhShowMessage(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Type,
-    _In_ PWSTR Format,
+    _In_ PCWSTR Format,
     ...
     )
 {
-    INT result;
+    LONG result;
     va_list argptr;
     PPH_STRING message;
 
@@ -696,16 +696,16 @@ static const PH_FLAG_MAPPING PhShowMessageTaskDialogButtonFlagMappings[] =
     { TD_CLOSE_BUTTON, TDCBF_CLOSE_BUTTON },
 };
 
-INT PhShowMessage2(
+LONG PhShowMessage2(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
-    _In_opt_ PWSTR Icon,
-    _In_opt_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     )
 {
-    INT result;
+    LONG result;
     va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
@@ -754,13 +754,13 @@ INT PhShowMessage2(
 BOOLEAN PhShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
-    _In_opt_ PWSTR Icon,
-    _In_opt_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     )
 {
-    INT result;
+    LONG result;
     va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
@@ -818,8 +818,8 @@ BOOLEAN PhShowTaskDialog(
     )
 {
     HRESULT status;
-    INT button;
-    INT radio;
+    LONG button;
+    LONG radio;
     BOOL selected;
 
     status = TaskDialogIndirect(
@@ -882,7 +882,7 @@ PPH_STRING PhGetStatusMessage(
  */
 VOID PhShowStatus(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Message,
+    _In_opt_ PCWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
     )
@@ -928,13 +928,13 @@ VOID PhShowStatus(
  */
 BOOLEAN PhShowContinueStatus(
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR Message,
+    _In_opt_ PCWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
     )
 {
     PPH_STRING statusMessage;
-    INT result;
+    LONG result;
 
     statusMessage = PhGetStatusMessage(Status, Win32Result);
 
@@ -965,9 +965,9 @@ BOOLEAN PhShowContinueStatus(
  */
 BOOLEAN PhShowConfirmMessage(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
-    _In_ PWSTR Object,
-    _In_opt_ PWSTR Message,
+    _In_ PCWSTR Verb,
+    _In_ PCWSTR Object,
+    _In_opt_ PCWSTR Message,
     _In_ BOOLEAN Warning
     )
 {
@@ -986,7 +986,7 @@ BOOLEAN PhShowConfirmMessage(
     action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
 
     {
-        INT button;
+        LONG button;
         TASKDIALOGCONFIG config;
         TASKDIALOG_BUTTON buttons[2];
 
@@ -1423,12 +1423,12 @@ PPH_STRING PhEllipsisStringPath(
 }
 
 FORCEINLINE BOOLEAN PhpMatchWildcards(
-    _In_ PWSTR Pattern,
-    _In_ PWSTR String,
+    _In_ PCWSTR Pattern,
+    _In_ PCWSTR String,
     _In_ BOOLEAN IgnoreCase
     )
 {
-    PWCHAR s, p;
+    PCWCHAR s, p;
     BOOLEAN star = FALSE;
 
     // Code is from http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
@@ -1490,8 +1490,8 @@ StarCheck:
  * \param IgnoreCase Whether to ignore character cases.
  */
 BOOLEAN PhMatchWildcards(
-    _In_ PWSTR Pattern,
-    _In_ PWSTR String,
+    _In_ PCWSTR Pattern,
+    _In_ PCWSTR String,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1567,8 +1567,8 @@ PPH_STRING PhEscapeStringForMenuPrefix(
  * \param MatchIfPrefix Specify TRUE to return 0 when \a A is a prefix of \a B.
  */
 LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
-    _In_ PWSTR A,
-    _In_ PWSTR B,
+    _In_ PCWSTR A,
+    _In_ PCWSTR B,
     _In_ BOOLEAN IgnoreCase,
     _In_ BOOLEAN MatchIfPrefix
     )
@@ -1647,11 +1647,11 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
  */
 PPH_STRING PhFormatDate(
     _In_opt_ PSYSTEMTIME Date,
-    _In_opt_ PWSTR Format
+    _In_opt_ PCWSTR Format
     )
 {
     PPH_STRING string;
-    INT bufferSize;
+    LONG bufferSize;
 
     bufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Date, Format, NULL, 0, NULL);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
@@ -1676,11 +1676,11 @@ PPH_STRING PhFormatDate(
  */
 PPH_STRING PhFormatTime(
     _In_opt_ PSYSTEMTIME Time,
-    _In_opt_ PWSTR Format
+    _In_opt_ PCWSTR Format
     )
 {
     PPH_STRING string;
-    INT bufferSize;
+    LONG bufferSize;
 
     bufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Time, Format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
@@ -1708,8 +1708,8 @@ PPH_STRING PhFormatDateTime(
     )
 {
     PPH_STRING string;
-    INT timeBufferSize;
-    INT dateBufferSize;
+    LONG timeBufferSize;
+    LONG dateBufferSize;
     ULONG count;
 
     timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
@@ -1737,6 +1737,7 @@ PPH_STRING PhFormatDateTime(
     return string;
 }
 
+_Success_(return)
 BOOLEAN PhFormatDateTimeToBuffer(
     _In_opt_ PSYSTEMTIME DateTime,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
@@ -1745,8 +1746,8 @@ BOOLEAN PhFormatDateTimeToBuffer(
     )
 {
     SIZE_T returnLength;
-    INT32 timeBufferSize;
-    INT32 dateBufferSize;
+    LONG timeBufferSize;
+    LONG dateBufferSize;
 
     timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     dateBufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0, NULL);
@@ -2053,7 +2054,7 @@ PPH_STRING PhFormatUInt64BitratePrefix(
 }
 
 PPH_STRING PhFormatDecimal(
-    _In_ PWSTR Value,
+    _In_ PCWSTR Value,
     _In_ ULONG FractionalDigits,
     _In_ BOOLEAN GroupDigits
     )
@@ -2252,7 +2253,7 @@ NTSTATUS PhStringToGuid(
  * it.
  */
 PVOID PhGetFileVersionInfo(
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     PVOID libraryModule;
@@ -2323,7 +2324,7 @@ PVOID PhGetFileVersionInfoValue(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
     )
 {
-    PWSTR keyOffset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
+    PCWSTR keyOffset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
 
     return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
 }
@@ -2332,7 +2333,7 @@ _Success_(return)
 BOOLEAN PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
     _In_ SIZE_T KeyLength,
-    _In_ PWSTR Key,
+    _In_ PCWSTR Key,
     _Out_opt_ PVOID* Buffer
     )
 {
@@ -2450,7 +2451,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
  */
 PPH_STRING PhGetFileVersionInfoString(
     _In_ PVOID VersionInfo,
-    _In_ PWSTR SubBlock
+    _In_ PCWSTR SubBlock
     )
 {
     PH_STRINGREF name;
@@ -2673,7 +2674,7 @@ VOID PhpGetImageVersionVersionStringEx(
 _Success_(return)
 BOOLEAN PhInitializeImageVersionInfo(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     PVOID versionInfo;
@@ -3040,7 +3041,7 @@ NTSTATUS PhGetFullPathName(
  * \return Successful or errant status.
  */
 NTSTATUS PhGetFullPath(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PPH_STRING *FullPath,
     _Out_opt_ PULONG IndexOfFileName
     )
@@ -3193,11 +3194,11 @@ PPH_STRING PhGetBaseNameChangeExtension(
     PH_STRINGREF baseFilePath;
 
     if ((indexOfBackslash = PhFindLastCharInStringRef(FileName, OBJ_NAME_PATH_SEPARATOR, FALSE)) == SIZE_MAX)
-        return NULL;
+        return PhConcatStringRef2(FileName, FileExtension);
     if ((indexOfLastDot = PhFindLastCharInStringRef(FileName, L'.', FALSE)) == SIZE_MAX)
-        return NULL;
+        return PhConcatStringRef2(FileName, FileExtension);
     if (indexOfLastDot < indexOfBackslash)
-        return NULL;
+        return PhConcatStringRef2(FileName, FileExtension);
 
     baseFileName.Buffer = FileName->Buffer + indexOfBackslash + 1;
     baseFileName.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
@@ -4261,7 +4262,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcess(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_opt_ PPH_STRINGREF CommandLine,
     _In_opt_ PVOID Environment,
     _In_opt_ PPH_STRINGREF CurrentDirectory,
@@ -4390,10 +4391,10 @@ NTSTATUS PhCreateProcess(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcessWin32(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PWSTR CurrentDirectory,
+    _In_opt_ PCWSTR CurrentDirectory,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _Out_opt_ PHANDLE ProcessHandle,
@@ -4467,10 +4468,10 @@ FORCEINLINE VOID PhpConvertProcessInformation(
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
 NTSTATUS PhCreateProcessWin32Ex(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PWSTR CurrentDirectory,
+    _In_opt_ PCWSTR CurrentDirectory,
     _In_opt_ PVOID StartupInfo,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
@@ -4668,18 +4669,20 @@ NTSTATUS PhCreateProcessAsUser(
 {
     NTSTATUS status;
     HANDLE tokenHandle;
-    PVOID defaultEnvironment = NULL;
-    STARTUPINFO startupInfo = { sizeof(startupInfo) };
     BOOLEAN needsDuplicate = FALSE;
+    PVOID defaultEnvironment = NULL;
+    STARTUPINFOEX startupInfo;
 
     if ((Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN))
         return STATUS_INVALID_PARAMETER_2;
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
 
-    startupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.wShowWindow = SW_NORMAL;
-    startupInfo.lpDesktop = Information->DesktopName;
+    RtlZeroMemory(&startupInfo, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.StartupInfo.wShowWindow = SW_NORMAL;
+    startupInfo.StartupInfo.lpDesktop = (PWSTR)Information->DesktopName;
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile.
     // This isn't compatible with some options.
@@ -4735,7 +4738,7 @@ NTSTATUS PhCreateProcessAsUser(
                 newFlags,
                 Information->Environment,
                 Information->CurrentDirectory,
-                &startupInfo,
+                &startupInfo.StartupInfo,
                 &processInfo
                 ))
                 status = STATUS_SUCCESS;
@@ -5213,7 +5216,7 @@ PPH_STRING PhGetSecurityDescriptorAsString(
 }
 
 PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
-    _In_ PWSTR SecurityDescriptorString
+    _In_ PCWSTR SecurityDescriptorString
     )
 {
     PVOID securityDescriptor = NULL;
@@ -5323,8 +5326,8 @@ BOOLEAN PhShellExecuteWin32(
  */
 VOID PhShellExecute(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Parameters
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Parameters
     )
 {
     SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
@@ -5359,10 +5362,10 @@ VOID PhShellExecute(
  */
 NTSTATUS PhShellExecuteEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Parameters,
-    _In_opt_ PWSTR Directory,
-    _In_ INT32 ShowWindowType,
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Parameters,
+    _In_opt_ PCWSTR Directory,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
     _Out_opt_ PHANDLE ProcessHandle
@@ -5422,7 +5425,7 @@ NTSTATUS PhShellExecuteEx(
  */
 VOID PhShellExploreFile(
     _In_ HWND WindowHandle,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -5485,7 +5488,7 @@ VOID PhShellExploreFile(
  */
 VOID PhShellProperties(
     _In_ HWND WindowHandle,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     SHELLEXECUTEINFO info;
@@ -6339,7 +6342,7 @@ PPH_STRING PhGetFileDialogFileName(
  */
 VOID PhSetFileDialogFileName(
     _In_ PVOID FileDialog,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -7297,13 +7300,13 @@ BOOLEAN PhParseCommandLineFuzzy(
 _Success_(return != NULL)
 PWSTR* PhCommandLineToArgv(
     _In_ PCWSTR CommandLine,
-    _Out_ PINT NumberOfArguments
+    _Out_ PLONG NumberOfArguments
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PWSTR* (WINAPI *CommandLineToArgvW_I)(
         _In_ PCWSTR CmdLine,
-        _Out_ PINT NumArgs
+        _Out_ PLONG NumArgs
         ) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
@@ -7329,14 +7332,14 @@ PPH_LIST PhCommandLineToList(
     )
 {
     PPH_LIST commandLineList = NULL;
-    INT32 commandLineCount;
+    LONG commandLineCount;
     PWSTR* commandLineArray;
 
     if (commandLineArray = PhCommandLineToArgv(CommandLine, &commandLineCount))
     {
         commandLineList = PhCreateList(commandLineCount);
 
-        for (INT32 i = 0; i < commandLineCount; i++)
+        for (LONG i = 0; i < commandLineCount; i++)
             PhAddItemList(commandLineList, PhCreateString(commandLineArray[i]));
 
         LocalFree(commandLineArray);
@@ -7372,8 +7375,8 @@ PPH_STRING PhCommandLineQuoteSpaces(
 }
 
 PPH_STRING PhSearchFilePath(
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Extension
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Extension
     )
 {
     PPH_STRING fullPath;
@@ -7810,7 +7813,7 @@ PVOID PhFileReadAllText(
 }
 
 PVOID PhFileReadAllTextWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ BOOLEAN Unicode
     )
 {
@@ -7915,7 +7918,7 @@ HRESULT PhGetClassObject(
 #else
     PVOID baseAddress;
 
-    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
     {
         if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
@@ -7987,7 +7990,7 @@ HRESULT PhGetActivationFactory(
 
     status = WindowsCreateStringReference(
         RuntimeClass,
-        (UINT32)PhCountStringZ((PWSTR)RuntimeClass),
+        (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
         &runtimeClassStringHandle
         );
@@ -8005,7 +8008,7 @@ HRESULT PhGetActivationFactory(
 #else
     PVOID baseAddress;
 
-    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
     {
         if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
@@ -8090,7 +8093,7 @@ HRESULT PhActivateInstance(
 
     status = WindowsCreateStringReference(
         RuntimeClass,
-        (UINT32)PhCountStringZ((PWSTR)RuntimeClass),
+        (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
         &runtimeClassStringHandle
         );
@@ -8117,7 +8120,7 @@ HRESULT PhActivateInstance(
 #else
     PVOID baseAddress;
 
-    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
     {
         if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
@@ -8469,14 +8472,14 @@ PPH_STRING PhApiSetResolveToHost(
 }
 
 HRESULT PhCreateProcessAsInteractiveUser(
-    _In_ PWSTR CommandLine,
-    _In_ PWSTR CurrentDirectory
+    _In_ PCWSTR CommandLine,
+    _In_ PCWSTR CurrentDirectory
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HRESULT (WINAPI* WdcRunTaskAsInteractiveUser_I)(
-        _In_ PWSTR CommandLine,
-        _In_ PWSTR CurrentDirectory,
+        _In_ PCWSTR CommandLine,
+        _In_ PCWSTR CurrentDirectory,
         _In_opt_ ULONG Flags
         ) = NULL;
 
@@ -9112,6 +9115,7 @@ VOID PhTaskbarListSetOverlayIcon(
 {
     ITaskbarList3_SetOverlayIcon((ITaskbarList3*)TaskbarHandle, WindowHandle, IconHandle, IconDescription);
 }
+
 BOOLEAN PhIsDirectXRunningFullScreen(
     VOID
     )

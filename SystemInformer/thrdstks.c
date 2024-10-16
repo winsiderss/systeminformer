@@ -331,7 +331,7 @@ VOID PhpThreadStacksMessage(
         return;
 
     va_start(args, Format);
-    message = PhFormatString_V((PWSTR)Format, args);
+    message = PhFormatString_V(Format, args);
     va_end(args);
 
     PhAcquireQueuedLockExclusive(&context->MessageLock);

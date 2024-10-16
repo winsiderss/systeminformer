@@ -527,7 +527,7 @@ VOID PhExpandAllMemoryNodes(
         TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-extern PWSTR PhGetProcessHeapClassText(
+extern PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     );
 

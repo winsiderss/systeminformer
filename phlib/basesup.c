@@ -817,8 +817,17 @@ PVOID PhReAllocate(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
+    if (Size == 0)
+    {
+        if (Memory)
+            PhFree(Memory);
+        return NULL;
+    }
     if (Memory)
+    {
         return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+    }
+
     return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
 #endif
 }
@@ -842,9 +851,30 @@ PVOID PhReAllocateSafe(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
+    if (Size == 0)
+    {
+        if (Memory)
+            PhFree(Memory);
+        return NULL;
+    }
     if (Memory)
-        return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
-    return RtlAllocateHeap(PhHeapHandle, 0, Size);
+    {
+        return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+    }
+
+    return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
+#endif
+}
+
+_Use_decl_annotations_
+SIZE_T PhSizeHeap(
+    _In_ PVOID Memory
+    )
+{
+#if defined(PH_DEBUG_HEAP)
+    return _msize(Memory);
+#else
+    return RtlSizeHeap(PhHeapHandle, 0, Memory);
 #endif
 }
 
@@ -858,10 +888,7 @@ PVOID PhReAllocateSafe(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
-_Must_inspect_result_
-_Ret_maybenull_
-_Post_writable_byte_size_(Size)
-_Success_(return != NULL)
+_Use_decl_annotations_
 PVOID PhAllocatePage(
     _In_ SIZE_T Size,
     _Out_opt_ PSIZE_T NewSize
@@ -1018,7 +1045,7 @@ NTSTATUS PhFreeVirtualMemory(
  * \param String The string.
  */
 SIZE_T PhCountStringZ(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     if (PhHasIntrinsics)
@@ -1072,7 +1099,7 @@ SIZE_T PhCountStringZ(
  * \return The new string, which can be freed using PhFree().
  */
 PSTR PhDuplicateBytesZ(
-    _In_ PSTR String
+    _In_ PCSTR String
     )
 {
     PSTR newString;
@@ -1095,7 +1122,7 @@ PSTR PhDuplicateBytesZ(
  * allocated.
  */
 PSTR PhDuplicateBytesZSafe(
-    _In_ PSTR String
+    _In_ PCSTR String
     )
 {
     PSTR newString;
@@ -1121,7 +1148,7 @@ PSTR PhDuplicateBytesZSafe(
  * \return The new string, which can be freed using PhFree().
  */
 PWSTR PhDuplicateStringZ(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     PWSTR newString;
@@ -1155,7 +1182,7 @@ PWSTR PhDuplicateStringZ(
  */
 _Success_(return)
 BOOLEAN PhCopyBytesZ(
-    _In_ PSTR InputBuffer,
+    _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
@@ -1218,7 +1245,7 @@ BOOLEAN PhCopyBytesZ(
  */
 _Success_(return)
 BOOLEAN PhCopyStringZ(
-    _In_ PWSTR InputBuffer,
+    _In_ PCWSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
@@ -1281,7 +1308,7 @@ BOOLEAN PhCopyStringZ(
  */
 _Success_(return)
 BOOLEAN PhCopyStringZFromBytes(
-    _In_ PSTR InputBuffer,
+    _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
@@ -1344,7 +1371,7 @@ BOOLEAN PhCopyStringZFromBytes(
  */
 _Success_(return)
 BOOLEAN PhCopyStringZFromMultiByte(
-    _In_ PSTR InputBuffer,
+    _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
@@ -1422,7 +1449,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 
 _Success_(return)
 BOOLEAN PhCopyStringZFromUtf8(
-    _In_ PSTR InputBuffer,
+    _In_ PCSTR InputBuffer,
     _In_ SIZE_T InputCount,
     _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
     _In_ SIZE_T OutputCount,
@@ -1501,8 +1528,8 @@ BOOLEAN PhCopyStringZFromUtf8(
 }
 
 FORCEINLINE LONG PhpCompareRightNatural(
-    _In_ PWSTR A,
-    _In_ PWSTR B
+    _In_ PCWSTR A,
+    _In_ PCWSTR B
     )
 {
     LONG bias = 0;
@@ -1541,8 +1568,8 @@ FORCEINLINE LONG PhpCompareRightNatural(
 }
 
 FORCEINLINE LONG PhpCompareLeftNatural(
-    _In_ PWSTR A,
-    _In_ PWSTR B
+    _In_ PCWSTR A,
+    _In_ PCWSTR B
     )
 {
     for (; ; A++, B++)
@@ -1573,8 +1600,8 @@ FORCEINLINE LONG PhpCompareLeftNatural(
 }
 
 FORCEINLINE LONG PhpCompareStringZNatural(
-    _In_ PWSTR A,
-    _In_ PWSTR B,
+    _In_ PCWSTR A,
+    _In_ PCWSTR B,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1668,8 +1695,8 @@ FORCEINLINE LONG PhpCompareStringZNatural(
  * \param IgnoreCase Whether to ignore character cases.
  */
 LONG PhCompareStringZNatural(
-    _In_ PWSTR A,
-    _In_ PWSTR B,
+    _In_ PCWSTR A,
+    _In_ PCWSTR B,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -2699,31 +2726,21 @@ CharFound2:
 }
 
 /**
- * Creates a string object from an existing null-terminated string.
- *
- * \param Buffer A null-terminated Unicode string.
- */
-PPH_STRING PhCreateString(
-    _In_ PWSTR Buffer
-    )
-{
-    return PhCreateStringEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR));
-}
-
-/**
  * Creates a string object using a specified length.
  *
  * \param Buffer A null-terminated Unicode string.
  * \param Length The length, in bytes, of the string.
  */
 PPH_STRING PhCreateStringEx(
-    _In_opt_ PWCHAR Buffer,
+    _In_opt_ PCWCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
     PH_STRINGREF sr;
-    sr.Buffer = Buffer;
+
+    sr.Buffer = (PWCH)Buffer;
     sr.Length = Length;
+
     return PhCreateString3(&sr, 0, NULL);
 }
 
@@ -2897,8 +2914,8 @@ PPH_STRING PhConcatStrings_V(
  * \param String2 The second string.
  */
 PPH_STRING PhConcatStrings2(
-    _In_ PWSTR String1,
-    _In_ PWSTR String2
+    _In_ PCWSTR String1,
+    _In_ PCWSTR String2
     )
 {
     PPH_STRING string;
@@ -3033,7 +3050,7 @@ PPH_STRING PhConcatStringRef4(
  * \param Format The format-control string.
  */
 PPH_STRING PhFormatString(
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     ...
     )
 {
@@ -3051,12 +3068,12 @@ PPH_STRING PhFormatString(
  * \param ArgPtr A pointer to the list of arguments.
  */
 PPH_STRING PhFormatString_V(
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     _In_ va_list ArgPtr
     )
 {
     PPH_STRING string;
-    INT length;
+    LONG length;
 
     length = _vscwprintf(Format, ArgPtr);
 
@@ -3075,7 +3092,7 @@ PPH_STRING PhFormatString_V(
  * \param Buffer A null-terminated byte string.
  */
 PPH_BYTES PhCreateBytes(
-    _In_ PSTR Buffer
+    _In_ PCSTR Buffer
     )
 {
     return PhCreateBytesEx(Buffer, strlen(Buffer) * sizeof(CHAR));
@@ -3088,7 +3105,7 @@ PPH_BYTES PhCreateBytes(
  * \param Length The length of \a Buffer, in bytes.
  */
 PPH_BYTES PhCreateBytesEx(
-    _In_opt_ PCHAR Buffer,
+    _In_opt_ PCCH Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -3112,12 +3129,12 @@ PPH_BYTES PhCreateBytesEx(
 }
 
 PPH_BYTES PhFormatBytes_V(
-    _In_ _Printf_format_string_ PSTR Format,
+    _In_ _Printf_format_string_ PCSTR Format,
     _In_ va_list ArgPtr
     )
 {
     PPH_BYTES string;
-    INT length;
+    LONG length;
 
     length = _vscprintf(Format, ArgPtr);
 
@@ -3131,7 +3148,7 @@ PPH_BYTES PhFormatBytes_V(
 }
 
 PPH_BYTES PhFormatBytes(
-    _In_ _Printf_format_string_ PSTR Format,
+    _In_ _Printf_format_string_ PCSTR Format,
     ...
     )
 {
@@ -3563,7 +3580,7 @@ BOOLEAN PhEncodeUnicode(
  * \param Output A buffer which will contain the converted string.
  */
 VOID PhZeroExtendToUtf16Buffer(
-    _In_reads_bytes_(InputLength) PCH Input,
+    _In_reads_bytes_(InputLength) PCCH Input,
     _In_ SIZE_T InputLength,
     _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWCH Output
     )
@@ -3598,7 +3615,7 @@ VOID PhZeroExtendToUtf16Buffer(
 }
 
 PPH_STRING PhZeroExtendToUtf16Ex(
-    _In_reads_bytes_(InputLength) PCH Input,
+    _In_reads_bytes_(InputLength) PCCH Input,
     _In_ SIZE_T InputLength
     )
 {
@@ -3611,7 +3628,7 @@ PPH_STRING PhZeroExtendToUtf16Ex(
 }
 
 PPH_BYTES PhConvertUtf16ToAsciiEx(
-    _In_ PWCH Buffer,
+    _In_ PCWCH Buffer,
     _In_ SIZE_T Length,
     _In_opt_ CHAR Replacement
     )
@@ -3626,7 +3643,7 @@ PPH_BYTES PhConvertUtf16ToAsciiEx(
 
     bytes = PhCreateBytesEx(NULL, Length / sizeof(WCHAR));
     PhInitializeUnicodeDecoder(&decoder, PH_UNICODE_UTF16);
-    in = Buffer;
+    in = (PWCH)Buffer;
     inRemaining = Length / sizeof(WCHAR);
     out = bytes->Buffer;
     outLength = 0;
@@ -3664,7 +3681,7 @@ PPH_BYTES PhConvertUtf16ToAsciiEx(
  * \param Buffer A null-terminated multi-byte string.
  */
 PPH_STRING PhConvertMultiByteToUtf16(
-    _In_ PSTR Buffer
+    _In_ PCSTR Buffer
     )
 {
     return PhConvertMultiByteToUtf16Ex(
@@ -3680,7 +3697,7 @@ PPH_STRING PhConvertMultiByteToUtf16(
  * \param Length The number of bytes to use.
  */
 PPH_STRING PhConvertMultiByteToUtf16Ex(
-    _In_ PCHAR Buffer,
+    _In_ PCSTR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -3721,7 +3738,7 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
  * \param Buffer A null-terminated UTF-16 string.
  */
 PPH_BYTES PhConvertUtf16ToMultiByte(
-    _In_ PWSTR Buffer
+    _In_ PCWSTR Buffer
     )
 {
     return PhConvertUtf16ToMultiByteEx(
@@ -3737,7 +3754,7 @@ PPH_BYTES PhConvertUtf16ToMultiByte(
  * \param Length The number of bytes to use.
  */
 PPH_BYTES PhConvertUtf16ToMultiByteEx(
-    _In_ PWCHAR Buffer,
+    _In_ PCWCH Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -3775,7 +3792,7 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
 _Success_(return)
 BOOLEAN PhConvertUtf8ToUtf16Size(
     _Out_ PSIZE_T BytesInUtf16String,
-    _In_reads_bytes_(BytesInUtf8String) PCH Utf8String,
+    _In_reads_bytes_(BytesInUtf8String) PCCH Utf8String,
     _In_ SIZE_T BytesInUtf8String
     )
 {
@@ -3837,7 +3854,7 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
     _Out_opt_ PSIZE_T BytesInUtf16String,
-    _In_reads_bytes_(BytesInUtf8String) PCH Utf8String,
+    _In_reads_bytes_(BytesInUtf8String) PCCH Utf8String,
     _In_ SIZE_T BytesInUtf8String
     )
 {
@@ -3919,7 +3936,7 @@ BOOLEAN PhConvertUtf8ToUtf16Buffer(
 }
 
 PPH_STRING PhConvertUtf8ToUtf16(
-    _In_ PSTR Buffer
+    _In_ PCSTR Buffer
     )
 {
     return PhConvertUtf8ToUtf16Ex(
@@ -3929,7 +3946,7 @@ PPH_STRING PhConvertUtf8ToUtf16(
 }
 
 PPH_STRING PhConvertUtf8ToUtf16Ex(
-    _In_ PCHAR Buffer,
+    _In_ PCCH Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -3965,7 +3982,7 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
 _Success_(return)
 BOOLEAN PhConvertUtf16ToUtf8Size(
     _Out_ PSIZE_T BytesInUtf8String,
-    _In_reads_bytes_(BytesInUtf16String) PWCH Utf16String,
+    _In_reads_bytes_(BytesInUtf16String) PCWCH Utf16String,
     _In_ SIZE_T BytesInUtf16String
     )
 {
@@ -4027,7 +4044,7 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
     _Out_opt_ PSIZE_T BytesInUtf8String,
-    _In_reads_bytes_(BytesInUtf16String) PWCH Utf16String,
+    _In_reads_bytes_(BytesInUtf16String) PCWCH Utf16String,
     _In_ SIZE_T BytesInUtf16String
     )
 {
@@ -4113,7 +4130,7 @@ BOOLEAN PhConvertUtf16ToUtf8Buffer(
 }
 
 PPH_BYTES PhConvertUtf16ToUtf8(
-    _In_ PWSTR Buffer
+    _In_ PCWSTR Buffer
     )
 {
     return PhConvertUtf16ToUtf8Ex(
@@ -4123,7 +4140,7 @@ PPH_BYTES PhConvertUtf16ToUtf8(
 }
 
 PPH_BYTES PhConvertUtf16ToUtf8Ex(
-    _In_ PWCHAR Buffer,
+    _In_ PCWCH Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -4357,7 +4374,7 @@ VOID PhAppendCharStringBuilder2(
  */
 VOID PhAppendFormatStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     ...
     )
 {
@@ -4370,11 +4387,11 @@ VOID PhAppendFormatStringBuilder(
 
 VOID PhAppendFormatStringBuilder_V(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     _In_ va_list ArgPtr
     )
 {
-    INT length;
+    LONG length;
     SIZE_T lengthInBytes;
 
     length = _vscwprintf(Format, ArgPtr);
@@ -4429,7 +4446,7 @@ VOID PhInsertStringBuilder(
 VOID PhInsertStringBuilder2(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     PhInsertStringBuilderEx(
@@ -4451,7 +4468,7 @@ VOID PhInsertStringBuilder2(
 VOID PhInsertStringBuilderEx(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_opt_ PWCHAR String,
+    _In_opt_ PCWCHAR String,
     _In_ SIZE_T Length
     )
 {
@@ -4687,11 +4704,11 @@ Done:
 
 VOID PhAppendFormatBytesBuilder_V(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_ _Printf_format_string_ PSTR Format,
+    _In_ _Printf_format_string_ PCSTR Format,
     _In_ va_list ArgPtr
     )
 {
-    INT length;
+    LONG length;
     SIZE_T lengthInBytes;
 
     length = _vscprintf(Format, ArgPtr);
@@ -4717,7 +4734,7 @@ VOID PhAppendFormatBytesBuilder_V(
 
 VOID PhAppendFormatBytesBuilder(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_ _Printf_format_string_ PSTR Format,
+    _In_ _Printf_format_string_ PCSTR Format,
     ...
     )
 {

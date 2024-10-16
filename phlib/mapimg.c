@@ -110,7 +110,7 @@ NTSTATUS PhInitializeMappedImage(
 }
 
 NTSTATUS PhLoadMappedImage(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -305,7 +305,7 @@ NTSTATUS PhUnloadMappedImage(
 }
 
 NTSTATUS PhMapViewOfEntireFile(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID *ViewBase,
     _Out_ PSIZE_T ViewSize
@@ -634,7 +634,7 @@ BOOLEAN PhGetMappedImageSectionName(
     SIZE_T returnCount;
 
     result = PhCopyStringZFromUtf8(
-        (PSTR)Section->Name,
+        (PCSTR)Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
         Count,
@@ -984,13 +984,26 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (dosHeaderOffset == 0 || dosHeaderOffset == SIZE_MAX)
         return STATUS_INVALID_PARAMETER;
 
-    status = ReadVirtualMemoryCallback(
-        ProcessHandle,
-        ViewBase,
-        &dosHeader,
-        sizeof(IMAGE_DOS_HEADER),
-        NULL
-        );
+    if (ReadVirtualMemoryCallback)
+    {
+        status = ReadVirtualMemoryCallback(
+            ProcessHandle,
+            ViewBase,
+            &dosHeader,
+            sizeof(IMAGE_DOS_HEADER),
+            NULL
+            );
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            ViewBase,
+            &dosHeader,
+            sizeof(IMAGE_DOS_HEADER),
+            NULL
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1007,13 +1020,26 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (ntHeadersOffset == 0 || ntHeadersOffset >= ViewSize || ntHeadersOffset >= RTL_IMAGE_MAX_DOS_HEADER)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    status = ReadVirtualMemoryCallback(
-        ProcessHandle,
-        PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
-        &ntHeaders,
-        sizeof(IMAGE_NT_HEADERS),
-        NULL
-        );
+    if (ReadVirtualMemoryCallback)
+    {
+        status = ReadVirtualMemoryCallback(
+            ProcessHandle,
+            PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+            &ntHeaders,
+            sizeof(IMAGE_NT_HEADERS),
+            NULL
+            );
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+            &ntHeaders,
+            sizeof(IMAGE_NT_HEADERS),
+            NULL
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1684,7 +1710,7 @@ NTSTATUS PhGetMappedImageExportEntry(
 {
     ULONG nameIndex = 0;
     BOOLEAN exportByName = FALSE;
-    PSTR name;
+    PCSTR name;
 
     if (Index >= Exports->ExportDirectory->NumberOfFunctions)
         return STATUS_PROCEDURE_NOT_FOUND;
@@ -1731,7 +1757,7 @@ NTSTATUS PhGetMappedImageExportEntry(
 
 ULONG PhLookupMappedImageExportName(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_ PSTR Name
+    _In_ PCSTR Name
     )
 {
     LONG low;
@@ -1746,7 +1772,7 @@ ULONG PhLookupMappedImageExportName(
 
     do
     {
-        PSTR name;
+        PCSTR name;
         INT comparison;
 
         i = (low + high) / 2;
@@ -1777,7 +1803,7 @@ ULONG PhLookupMappedImageExportName(
 
 NTSTATUS PhGetMappedImageExportFunction(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_opt_ PSTR Name,
+    _In_opt_ PCSTR Name,
     _In_opt_ USHORT Ordinal,
     _Out_ PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
     )
@@ -1834,7 +1860,7 @@ NTSTATUS PhGetMappedImageExportFunction(
 
 NTSTATUS PhGetMappedImageExportFunctionRemote(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_opt_ PSTR Name,
+    _In_opt_ PCSTR Name,
     _In_opt_ USHORT Ordinal,
     _In_ PVOID RemoteBase,
     _Out_ PVOID *Function
@@ -2860,7 +2886,7 @@ NTSTATUS PhGetMappedImageResource(
                     resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceType->NameOffset);
                     string1.Buffer = resourceString->NameString;
                     string1.Length = resourceString->Length * sizeof(WCHAR);
-                    PhInitializeStringRefLongHint(&string2, (PWSTR)Type);
+                    PhInitializeStringRefLongHint(&string2, Type);
 
                     if (!PhEqualStringRef(&string1, &string2, TRUE))
                         continue;
@@ -2885,7 +2911,7 @@ NTSTATUS PhGetMappedImageResource(
                     resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceName->NameOffset);
                     string1.Buffer = resourceString->NameString;
                     string1.Length = resourceString->Length * sizeof(WCHAR);
-                    PhInitializeStringRefLongHint(&string2, (PWSTR)Name);
+                    PhInitializeStringRefLongHint(&string2, Name);
 
                     if (!PhEqualStringRef(&string1, &string2, TRUE))
                         continue;
@@ -3837,7 +3863,7 @@ NTSTATUS PhGetMappedImageEhCont(
 _Success_(return)
 BOOLEAN PhGetMappedImagePogoEntryByName(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PSTR Name,
+    _In_ PCSTR Name,
     _Out_opt_ ULONG* DataLength,
     _Out_opt_ PVOID* DataBuffer
     )

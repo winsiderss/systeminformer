@@ -71,7 +71,7 @@ NTSTATUS
 NTAPI
 PhCreateFileStream(
     _Out_ PPH_FILE_STREAM *FileStream,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG ShareMode,
     _In_ ULONG CreateDisposition,
@@ -171,7 +171,7 @@ FORCEINLINE
 NTSTATUS
 PhWriteStringAsUtf8FileStream2(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     PH_STRINGREF string;
@@ -186,7 +186,7 @@ NTSTATUS
 NTAPI
 PhWriteStringAsUtf8FileStreamEx(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ PWSTR Buffer,
+    _In_ PCWSTR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -195,7 +195,7 @@ NTSTATUS
 NTAPI
 PhWriteStringFormatAsUtf8FileStream_V(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     _In_ va_list ArgPtr
     );
 
@@ -204,7 +204,7 @@ NTSTATUS
 NTAPI
 PhWriteStringFormatAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     ...
     );
 

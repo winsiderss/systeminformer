@@ -1035,7 +1035,7 @@ static VOID PhpUpdateProcessNodeWindow(
                     &ProcessNode->WindowText
                     );
 
-                ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
+                ProcessNode->WindowHung = !!PhIsHungAppWindow(ProcessNode->WindowHandle);
             }
         }
 

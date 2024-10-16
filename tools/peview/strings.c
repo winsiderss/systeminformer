@@ -77,6 +77,9 @@ typedef struct _PV_STRINGS_NODE
     ULONG_PTR Rva;
     PPH_STRING String;
 
+    PH_STRINGREF IndexStringRef;
+    PH_STRINGREF RvaStringRef;
+
     WCHAR IndexString[PH_INT64_STR_LEN_1];
     WCHAR RvaString[PH_PTR_STR_LEN_1];
     WCHAR LengthString[PH_INT64_STR_LEN_1];
@@ -122,15 +125,16 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     assert(Context);
 
     node = PhAllocateZero(sizeof(PV_STRINGS_NODE));
-
     node->Index = ++context->StringsCount;
-    PhPrintUInt64(node->IndexString, node->Index);
-
     node->Rva = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase);
-    PhPrintPointer(node->RvaString, (PVOID)node->Rva);
     node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
+
+    PhPrintUInt64(node->IndexString, node->Index);
+    PhPrintPointer(node->RvaString, (PVOID)node->Rva);
     PhPrintUInt64(node->LengthString, node->String->Length / 2);
+
+    PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
     PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
     PhAddItemList(context->SearchResults, node);

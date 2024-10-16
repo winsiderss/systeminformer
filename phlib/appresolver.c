@@ -260,7 +260,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
 
 HRESULT PhAppResolverActivateAppId(
     _In_ PPH_STRING ApplicationUserModelId,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR CommandLine,
     _Out_opt_ HANDLE *ProcessId
     )
 {
@@ -572,7 +572,7 @@ PPH_STRING PhGetAppContainerName(
 }
 
 PPH_STRING PhGetAppContainerSidFromName(
-    _In_ PWSTR AppContainerName
+    _In_ PCWSTR AppContainerName
     )
 {
     PSID appContainerSid;
@@ -759,7 +759,7 @@ BOOLEAN PhIsPackageCapabilitySid(
 }
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
-    _In_ PWSTR FilePath
+    _In_ PCWSTR FilePath
     )
 {
     IMrtResourceManager* resourceManager = NULL;
@@ -1386,9 +1386,9 @@ CleanupExit:
  * \remarks https://learn.microsoft.com/en-us/powershell/module/appx/invoke-commandindesktoppackage
  */
 HRESULT PhCreateProcessDesktopPackage(
-    _In_ PWSTR ApplicationUserModelId,
-    _In_ PWSTR Executable,
-    _In_ PWSTR Arguments,
+    _In_ PCWSTR ApplicationUserModelId,
+    _In_ PCWSTR Executable,
+    _In_ PCWSTR Arguments,
     _In_ BOOLEAN PreventBreakaway,
     _In_opt_ HANDLE ParentProcessId,
     _Out_opt_ PHANDLE ProcessHandle

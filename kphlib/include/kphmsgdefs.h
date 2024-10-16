@@ -137,7 +137,7 @@ typedef struct _KPHM_OPEN_DRIVER
     NTSTATUS Status;
     PHANDLE DriverHandle;
     ACCESS_MASK DesiredAccess;
-    POBJECT_ATTRIBUTES ObjectAttributes;
+    PCOBJECT_ATTRIBUTES ObjectAttributes;
 } KPHM_OPEN_DRIVER, *PKPHM_OPEN_DRIVER;
 
 typedef struct _KPHM_QUERY_INFORMATION_DRIVER
@@ -239,7 +239,7 @@ typedef struct _KPHM_CREATE_FILE
     NTSTATUS Status;
     PHANDLE FileHandle;
     ACCESS_MASK DesiredAccess;
-    POBJECT_ATTRIBUTES ObjectAttributes;
+    PCOBJECT_ATTRIBUTES ObjectAttributes;
     PIO_STATUS_BLOCK IoStatusBlock;
     PLARGE_INTEGER AllocationSize;
     ULONG FileAttributes;

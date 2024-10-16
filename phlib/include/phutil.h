@@ -252,12 +252,12 @@ PhGetWin32FormatMessage(
     );
 
 PHLIBAPI
-INT
+LONG
 NTAPI
 PhShowMessage(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Type,
-    _In_ PWSTR Format,
+    _In_ PCWSTR Format,
     ...
     );
 
@@ -266,15 +266,15 @@ PhShowMessage(
 #define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format, ##__VA_ARGS__)
 
 PHLIBAPI
-INT
+LONG
 NTAPI
 PhShowMessage2(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
-    _In_opt_ PWSTR Icon,
-    _In_opt_ PWSTR Title,
-    _In_ PWSTR Format,
-    ...
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    _In_ ...
     );
 
 #define TD_OK_BUTTON      0x0001
@@ -307,9 +307,9 @@ NTAPI
 PhShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
-    _In_opt_ PWSTR Icon,
-    _In_opt_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     );
 
@@ -353,7 +353,7 @@ VOID
 NTAPI
 PhShowStatus(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Message,
+    _In_opt_ PCWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
     );
@@ -363,7 +363,7 @@ BOOLEAN
 NTAPI
 PhShowContinueStatus(
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR Message,
+    _In_opt_ PCWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
     );
@@ -373,12 +373,11 @@ BOOLEAN
 NTAPI
 PhShowConfirmMessage(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
-    _In_ PWSTR Object,
-    _In_opt_ PWSTR Message,
+    _In_ PCWSTR Verb,
+    _In_ PCWSTR Object,
+    _In_opt_ PCWSTR Message,
     _In_ BOOLEAN Warning
     );
-
 
 /**
  * Finds an integer in an array of string-integer pairs.
@@ -398,13 +397,13 @@ BOOLEAN
 PhFindIntegerSiKeyValuePairs(
     _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
-    _In_ PWSTR String,
+    _In_ PCWSTR String,
     _Out_ PULONG Integer
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
-        if (PhEqualStringZ((PWSTR)KeyValuePairs[i].Key, String, TRUE))
+        if (PhEqualStringZ((PCWSTR)KeyValuePairs[i].Key, String, TRUE))
         {
             *Integer = PtrToUlong(KeyValuePairs[i].Value);
             return TRUE;
@@ -648,8 +647,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhMatchWildcards(
-    _In_ PWSTR Pattern,
-    _In_ PWSTR String,
+    _In_ PCWSTR Pattern,
+    _In_ PCWSTR String,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -664,8 +663,8 @@ PHLIBAPI
 LONG
 NTAPI
 PhCompareUnicodeStringZIgnoreMenuPrefix(
-    _In_ PWSTR A,
-    _In_ PWSTR B,
+    _In_ PCWSTR A,
+    _In_ PCWSTR B,
     _In_ BOOLEAN IgnoreCase,
     _In_ BOOLEAN MatchIfPrefix
     );
@@ -675,7 +674,7 @@ PPH_STRING
 NTAPI
 PhFormatDate(
     _In_opt_ PSYSTEMTIME Date,
-    _In_opt_ PWSTR Format
+    _In_opt_ PCWSTR Format
     );
 
 PHLIBAPI
@@ -683,7 +682,7 @@ PPH_STRING
 NTAPI
 PhFormatTime(
     _In_opt_ PSYSTEMTIME Time,
-    _In_opt_ PWSTR Format
+    _In_opt_ PCWSTR Format
     );
 
 PHLIBAPI
@@ -698,6 +697,7 @@ PhFormatDateTime(
 #define PH_DATETIME_STR_LEN 256
 #define PH_DATETIME_STR_LEN_1 (PH_DATETIME_STR_LEN + 1)
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -737,7 +737,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhFormatDecimal(
-    _In_ PWSTR Value,
+    _In_ PCWSTR Value,
     _In_ ULONG FractionalDigits,
     _In_ BOOLEAN GroupDigits
     );
@@ -808,7 +808,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfo(
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -825,7 +825,7 @@ NTAPI
 PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
     _In_ SIZE_T KeyLength,
-    _In_ PWSTR Key,
+    _In_ PCWSTR Key,
     _Out_opt_ PVOID* Buffer
     );
 
@@ -854,7 +854,7 @@ PPH_STRING
 NTAPI
 PhGetFileVersionInfoString(
     _In_ PVOID VersionInfo,
-    _In_ PWSTR SubBlock
+    _In_ PCWSTR SubBlock
     );
 
 PHLIBAPI
@@ -880,7 +880,7 @@ BOOLEAN
 NTAPI
 PhInitializeImageVersionInfo(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -932,7 +932,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetFullPath(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PPH_STRING *FullPath,
     _Out_opt_ PULONG IndexOfFileName
     );
@@ -947,7 +947,7 @@ PhExpandEnvironmentStrings(
 FORCEINLINE
 PPH_STRING
 PhExpandEnvironmentStringsZ(
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     PH_STRINGREF string;
@@ -977,7 +977,7 @@ PPH_STRING
 NTAPI
 PhGetBaseNameChangeExtensionZ(
     _In_ PPH_STRINGREF FileName,
-    _In_ PWSTR FileExtension
+    _In_ PCWSTR FileExtension
     )
 {
     PH_STRINGREF string;
@@ -1021,7 +1021,7 @@ PhGetSystemDirectoryWin32(
 FORCEINLINE
 PPH_STRING
 PhGetSystemDirectoryWin32Z(
-    _In_ PWSTR AppendPath
+    _In_ PCWSTR AppendPath
     )
 {
     PH_STRINGREF string;
@@ -1084,7 +1084,7 @@ PhGetApplicationDirectoryFileName(
 FORCEINLINE
 PPH_STRING
 PhGetApplicationDirectoryFileNameZ(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1113,7 +1113,7 @@ PhGetLocalAppDataDirectory(
 FORCEINLINE
 PPH_STRING
 PhGetLocalAppDataDirectoryZ(
-    _In_ PWSTR String,
+    _In_ PCWSTR String,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1135,7 +1135,7 @@ PhGetRoamingAppDataDirectory(
 FORCEINLINE
 PPH_STRING
 PhGetRoamingAppDataDirectoryZ(
-    _In_ PWSTR String,
+    _In_ PCWSTR String,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1172,7 +1172,7 @@ FORCEINLINE
 PPH_STRING
 PhGetKnownLocationZ(
     _In_ ULONG Folder,
-    _In_ PWSTR AppendPath,
+    _In_ PCWSTR AppendPath,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1213,7 +1213,7 @@ FORCEINLINE
 PPH_STRING
 PhGetKnownFolderPathZ(
     _In_ PCGUID Folder,
-    _In_ PWSTR AppendPath
+    _In_ PCWSTR AppendPath
     )
 {
     PH_STRINGREF string;
@@ -1229,7 +1229,7 @@ PhGetKnownFolderPathExZ(
     _In_ PCGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _In_ PWSTR AppendPath
+    _In_ PCWSTR AppendPath
     )
 {
     PH_STRINGREF string;
@@ -1280,7 +1280,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateProcess(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_opt_ PPH_STRINGREF CommandLine,
     _In_opt_ PVOID Environment,
     _In_opt_ PPH_STRINGREF CurrentDirectory,
@@ -1296,10 +1296,10 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateProcessWin32(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PWSTR CurrentDirectory,
+    _In_opt_ PCWSTR CurrentDirectory,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _Out_opt_ PHANDLE ProcessHandle,
@@ -1310,10 +1310,10 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateProcessWin32Ex(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PWSTR CurrentDirectory,
+    _In_opt_ PCWSTR CurrentDirectory,
     _In_opt_ PVOID StartupInfo,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
@@ -1324,19 +1324,19 @@ PhCreateProcessWin32Ex(
 
 typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
 {
-    _In_opt_ PWSTR ApplicationName;
-    _In_opt_ PWSTR CommandLine;
-    _In_opt_ PWSTR CurrentDirectory;
+    _In_opt_ PCWSTR ApplicationName;
+    _In_opt_ PCWSTR CommandLine;
+    _In_opt_ PCWSTR CurrentDirectory;
     _In_opt_ PVOID Environment;
-    _In_opt_ PWSTR DesktopName;
+    _In_opt_ PCWSTR DesktopName;
     _In_opt_ ULONG SessionId; // use PH_CREATE_PROCESS_SET_SESSION_ID
     union
     {
         struct
         {
-            _In_ PWSTR DomainName;
-            _In_ PWSTR UserName;
-            _In_ PWSTR Password;
+            _In_ PCWSTR DomainName;
+            _In_ PCWSTR UserName;
+            _In_ PCWSTR Password;
             _In_opt_ ULONG LogonType;
             _In_opt_ ULONG LogonFlags;
         };
@@ -1383,7 +1383,7 @@ PHLIBAPI
 PSECURITY_DESCRIPTOR
 NTAPI
 PhGetSecurityDescriptorFromString(
-    _In_ PWSTR SecurityDescriptorString
+    _In_ PCWSTR SecurityDescriptorString
     );
 
 _Success_(return)
@@ -1409,8 +1409,8 @@ VOID
 NTAPI
 PhShellExecute(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Parameters
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Parameters
     );
 
 #define PH_SHELL_EXECUTE_DEFAULT 0x0
@@ -1422,10 +1422,10 @@ NTSTATUS
 NTAPI
 PhShellExecuteEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Parameters,
-    _In_opt_ PWSTR Directory,
-    _In_ INT32 ShowWindowType,
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Parameters,
+    _In_opt_ PCWSTR Directory,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
     _Out_opt_ PHANDLE ProcessHandle
@@ -1436,7 +1436,7 @@ VOID
 NTAPI
 PhShellExploreFile(
     _In_ HWND WindowHandle,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -1444,7 +1444,7 @@ VOID
 NTAPI
 PhShellProperties(
     _In_ HWND WindowHandle,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 typedef struct _NOTIFYICONDATAW NOTIFYICONDATAW, *PNOTIFYICONDATAW;
@@ -1464,7 +1464,7 @@ PhShellGetKnownFolderPath(
     _In_ PCGUID rfid, // REFKNOWNFOLDERID
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _Outptr_ PWSTR * FolderPath
+    _Outptr_ PWSTR* FolderPath
     );
 
 PHLIBAPI
@@ -1499,7 +1499,7 @@ PPH_STRING
 NTAPI
 PhQueryRegistryStringZ(
     _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
+    _In_ PCWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
@@ -1522,7 +1522,7 @@ ULONG
 NTAPI
 PhQueryRegistryUlongZ(
     _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
+    _In_ PCWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
@@ -1545,7 +1545,7 @@ ULONG64
 NTAPI
 PhQueryRegistryUlong64Z(
     _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
+    _In_ PCWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
@@ -1671,7 +1671,7 @@ VOID
 NTAPI
 PhSetFileDialogFileName(
     _In_ PVOID FileDialog,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 PHLIBAPI
@@ -1827,7 +1827,7 @@ typedef enum _PH_COMMAND_LINE_OPTION_TYPE
 typedef struct _PH_COMMAND_LINE_OPTION
 {
     ULONG Id;
-    PWSTR Name;
+    PCWSTR Name;
     PH_COMMAND_LINE_OPTION_TYPE Type;
 } PH_COMMAND_LINE_OPTION, *PPH_COMMAND_LINE_OPTION;
 
@@ -1895,8 +1895,8 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhSearchFilePath(
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Extension
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR Extension
     );
 
 PHLIBAPI
@@ -1966,7 +1966,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhFileReadAllTextWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ BOOLEAN Unicode
     );
 
@@ -2118,8 +2118,8 @@ PHLIBAPI
 HRESULT
 NTAPI
 PhCreateProcessAsInteractiveUser(
-    _In_ PWSTR CommandLine,
-    _In_ PWSTR CurrentDirectory
+    _In_ PCWSTR CommandLine,
+    _In_ PCWSTR CurrentDirectory
     );
 
 PHLIBAPI
@@ -2127,8 +2127,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessReflection(
     _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI

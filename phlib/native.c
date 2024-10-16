@@ -3855,7 +3855,7 @@ BOOLEAN PhPrivilegeCheckAny(
  */
 BOOLEAN PhSetTokenPrivilege(
     _In_ HANDLE TokenHandle,
-    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ PLUID PrivilegeLuid,
     _In_ ULONG Attributes
     )
@@ -3917,7 +3917,7 @@ BOOLEAN PhSetTokenPrivilege2(
 }
 
 NTSTATUS PhAdjustPrivilege(
-    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ PCWSTR PrivilegeName,
     _In_opt_ LONG Privilege,
     _In_ BOOLEAN Enable
     )
@@ -3996,7 +3996,7 @@ NTSTATUS PhAdjustPrivilege(
 */
 NTSTATUS PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
-    _In_opt_ PWSTR GroupName,
+    _In_opt_ PCWSTR GroupName,
     _In_opt_ PSID GroupSid,
     _In_ ULONG Attributes
     )
@@ -5879,7 +5879,7 @@ NTSTATUS PhpUnloadDriver(
  */
 NTSTATUS PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PWSTR Name
+    _In_opt_ PCWSTR Name
     )
 {
     NTSTATUS status;
@@ -16005,31 +16005,18 @@ NTSTATUS PhGetProcessIsPosix(
 
 NTSTATUS PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PNTSTATUS LastStatusValue
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
-    }
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
@@ -16056,21 +16043,17 @@ NTSTATUS PhGetThreadLastStatusValue(
             );
     }
 
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
-
     return status;
 }
 
 NTSTATUS PhGetThreadApartmentState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ POLETLSFLAGS ApartmentState
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -16078,18 +16061,6 @@ NTSTATUS PhGetThreadApartmentState(
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
-    }
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
@@ -16145,9 +16116,6 @@ NTSTATUS PhGetThreadApartmentState(
         status = STATUS_UNSUCCESSFUL;
     }
 
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
-
     return status;
 }
 
@@ -16156,20 +16124,19 @@ NTSTATUS PhGetThreadApartmentState(
  * If a thread is blocked on a COM call, we can retrieve COM ownership information using these functions. Retrieves COM information when a thread is blocked on a COM call.
  *
  * \param ThreadHandle A handle to the thread.
- * \param ProcessHandle An optional handle to a process.
+ * \param ProcessHandle A handle to a process.
  * \param ApartmentCallState The COM call information.
  *
  * \return Successful or errant status.
  */
 NTSTATUS PhGetThreadApartmentCallState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PPH_COM_CALLSTATE ApartmentCallState
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -16177,18 +16144,6 @@ NTSTATUS PhGetThreadApartmentCallState(
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
-    }
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
@@ -16314,9 +16269,6 @@ NTSTATUS PhGetThreadApartmentCallState(
         status = STATUS_UNSUCCESSFUL;
     }
 
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
-
     return status;
 }
 
@@ -16377,14 +16329,14 @@ NTSTATUS PhGetThreadCriticalSectionOwnerThread(
  * Retrieves the connection state when a thread is blocked on a socket.
  *
  * \param ThreadHandle A handle to the thread.
- * \param ProcessHandle An optional handle to a process.
+ * \param ProcessHandle A handle to a process.
  * \param ThreadSocketState The state of the socket.
  *
  * \return Successful or errant status.
  */
 NTSTATUS PhGetThreadSocketState(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PPH_THREAD_SOCKET_STATE ThreadSocketState
     )
 {
@@ -16398,18 +16350,6 @@ NTSTATUS PhGetThreadSocketState(
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
-    }
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
@@ -16446,21 +16386,22 @@ NTSTATUS PhGetThreadSocketState(
 
     if (NT_SUCCESS(status) && winsockHandleAddress)
     {
-        static INT (WINAPI* LPFN_WSASTARTUP)(
+        static LONG (WINAPI* LPFN_WSASTARTUP)(
             _In_ WORD wVersionRequested,
             _Out_ PVOID* lpWSAData
             );
-        static INT (WINAPI* LPFN_GETSOCKOPT)(
+        static LONG (WINAPI* LPFN_GETSOCKOPT)(
             _In_ UINT_PTR s,
-            _In_ INT level,
-            _In_ INT optname,
+            _In_ LONG level,
+            _In_ LONG optname,
             _Out_writes_bytes_(*optlen) char FAR* optval,
             _Inout_ INT FAR* optlen
+            _Inout_ LONG FAR* optlen
             );
-        static INT (WINAPI* LPFN_CLOSESOCKET)(
-            _In_ UINT_PTR s
+        static LONG (WINAPI* LPFN_CLOSESOCKET)(
+            _In_ ULONG_PTR s
             );
-        static INT (WINAPI* LPFN_WSACLEANUP)(
+        static LONG (WINAPI* LPFN_WSACLEANUP)(
             void
             );
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -16481,14 +16422,14 @@ NTSTATUS PhGetThreadSocketState(
             _Field_size_bytes_(iSockaddrLength) PVOID lpSockaddr;
             // _When_(lpSockaddr->sa_family == AF_INET, _Field_range_(>=, sizeof(SOCKADDR_IN)))
             // _When_(lpSockaddr->sa_family == AF_INET6, _Field_range_(>=, sizeof(SOCKADDR_IN6)))
-            INT iSockaddrLength;
+            LONG iSockaddrLength;
         } SOCKET_ADDRESS, *PSOCKET_ADDRESS, *LPSOCKET_ADDRESS;
         typedef struct _CSADDR_INFO
         {
             SOCKET_ADDRESS LocalAddr;
             SOCKET_ADDRESS RemoteAddr;
-            INT iSocketType;
-            INT iProtocol;
+            LONG iSocketType;
+            LONG iProtocol;
         } CSADDR_INFO, *PCSADDR_INFO, FAR* LPCSADDR_INFO;
         PVOID wsaStartupData;
         HANDLE winsockTargetHandle;
@@ -18943,9 +18884,9 @@ BOOLEAN PhIsAppExecutionAliasTarget(
             reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK
             )
         {
-            PWSTR string;
+            PCWSTR string;
 
-            string = (PWSTR)reparseBuffer->AppExecLinkReparseBuffer.StringList;
+            string = (PCWSTR)reparseBuffer->AppExecLinkReparseBuffer.StringList;
 
             for (ULONG i = 0; i < reparseBuffer->AppExecLinkReparseBuffer.StringCount; i++)
             {

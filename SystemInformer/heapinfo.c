@@ -360,7 +360,7 @@ PPH_STRING PhGetProcessHeapFlagsText(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-PWSTR PhGetProcessHeapClassText(
+PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     )
 {

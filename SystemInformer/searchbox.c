@@ -60,9 +60,9 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PH_SEARCHCONTROL_BUTTON CaseButton;
 
     LONG ButtonWidth;
-    INT BorderSize;
-    INT ImageWidth;
-    INT ImageHeight;
+    LONG BorderSize;
+    LONG ImageWidth;
+    LONG ImageHeight;
     WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
@@ -81,7 +81,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
 
     PPH_STRING SearchboxText;
     ULONG64 SearchPointer;
-    INT SearchboxRegexError;
+    LONG SearchboxRegexError;
     PCRE2_SIZE SearchboxRegexErrorOffset;
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
@@ -1176,11 +1176,11 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (thanks to Katayama Hirofumi MZ) (modified) (dmex)
             if (wParam == VK_BACK && GetAsyncKeyState(VK_CONTROL) < 0)
             {
-                INT textStart = 0;
-                INT textEnd = 0;
-                INT textLength;
+                LONG textStart = 0;
+                LONG textEnd = 0;
+                LONG textLength;
 
-                textLength = (INT)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
+                textLength = (LONG)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
                 CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&textStart, (LPARAM)&textEnd);
 
                 if (textLength > 0 && textStart == textEnd)
@@ -1237,7 +1237,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 VOID PhCreateSearchControl(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText,
+    _In_opt_ PCWSTR BannerText,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -1309,7 +1309,7 @@ BOOLEAN PhSearchControlMatch(
 
 BOOLEAN PhSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -1321,7 +1321,7 @@ BOOLEAN PhSearchControlMatchZ(
 
 BOOLEAN PhSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;

@@ -325,7 +325,7 @@ VOID DotNetAsmDestroyNode(
 
 PDNA_NODE AddFakeClrNode(
     _In_ PASMPAGE_QUERY_CONTEXT Context,
-    _In_ PWSTR DisplayName
+    _In_ PCWSTR DisplayName
     )
 {
     PDNA_NODE node;
@@ -1272,9 +1272,9 @@ static VOID NTAPI DotNetEventCallback(
         case ModuleDCStart_V1:
             {
                 PModuleLoadUnloadRundown_V1 data = EventRecord->UserData;
-                PWSTR moduleILPath;
+                PCWSTR moduleILPath;
                 SIZE_T moduleILPathLength;
-                PWSTR moduleNativePath;
+                PCWSTR moduleNativePath;
                 SIZE_T moduleNativePathLength;
                 USHORT clrInstanceID;
                 PDNA_NODE node;

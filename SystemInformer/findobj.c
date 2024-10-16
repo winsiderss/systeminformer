@@ -923,7 +923,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
          PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
-        PWSTR typeName;
+        PCWSTR typeName;
 
         switch (Module->Type)
         {

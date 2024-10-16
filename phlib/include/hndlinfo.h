@@ -183,7 +183,7 @@ FORCEINLINE
 ULONG
 NTAPI
 PhGetObjectTypeNumberZ(
-    _In_ PWSTR TypeName
+    _In_ PCWSTR TypeName
     )
 {
     PH_STRINGREF typeName;

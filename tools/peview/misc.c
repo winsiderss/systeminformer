@@ -103,10 +103,10 @@ PPH_STRING PvResolveReparsePointTarget(
             } AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
 
             PAppExecLinkReparseBuffer appexeclink;
-            PWSTR string;
+            PCWSTR string;
 
             appexeclink = (PAppExecLinkReparseBuffer)reparseBuffer->GenericReparseBuffer.DataBuffer;
-            string = (PWSTR)appexeclink->StringList;
+            string = (PCWSTR)appexeclink->StringList;
 
             for (ULONG i = 0; i < appexeclink->StringCount; i++)
             {

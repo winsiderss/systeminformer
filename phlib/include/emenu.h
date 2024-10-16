@@ -66,7 +66,7 @@ PHLIBAPI
 PPH_EMENU_ITEM PhCreateEMenuItem(
     _In_ ULONG Flags,
     _In_ ULONG Id,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ HBITMAP Bitmap,
     _In_opt_ PVOID Context
     );
@@ -75,14 +75,16 @@ PPH_EMENU_ITEM
 PhCreateEMenuItemCallback(
     _In_ ULONG Flags,
     _In_ ULONG Id,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ HBITMAP Bitmap,
     _In_opt_ PVOID Context,
     _In_opt_ PPH_EMENU_ITEM_DELAY_FUNCTION DelayFunction
     );
 
 PHLIBAPI
-VOID PhDestroyEMenuItem(
+VOID
+NTAPI
+PhDestroyEMenuItem(
     _In_ PPH_EMENU_ITEM Item
     );
 
@@ -91,10 +93,12 @@ VOID PhDestroyEMenuItem(
 #define PH_EMENU_FIND_LITERAL 0x4
 
 PHLIBAPI
-PPH_EMENU_ITEM PhFindEMenuItem(
+PPH_EMENU_ITEM
+NTAPI
+PhFindEMenuItem(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ ULONG Id
     );
 
@@ -105,7 +109,7 @@ NTAPI
 PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ ULONG Id,
     _Out_opt_ PPH_EMENU_ITEM *FoundParent,
     _Out_opt_ PULONG FoundIndex
@@ -188,8 +192,8 @@ PHLIBAPI
 VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
-    _In_ PWSTR Resource,
-    _In_ INT SubMenuIndex
+    _In_ PCWSTR Resource,
+    _In_ LONG SubMenuIndex
     );
 
 #define PH_EMENU_SHOW_SEND_COMMAND 0x1

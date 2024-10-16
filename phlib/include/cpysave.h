@@ -70,8 +70,8 @@ PPH_STRING
 NTAPI
 PhGetListViewItemText(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT SubItemIndex
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
     );
 
 PHLIBAPI
@@ -86,8 +86,8 @@ PPH_STRING
 NTAPI
 PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT SubItemIndex
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
     );
 
 PHLIBAPI

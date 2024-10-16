@@ -30,15 +30,15 @@ BOOLEAN PhInitializeProcessorInformation(
     );
 
 PVOID PhInstanceHandle = NULL;
-PWSTR PhApplicationName = NULL;
+PCWSTR PhApplicationName = NULL;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 static WCHAR WindowsVersionStringBuffer[40] = { L'0', L'.', L'0', L'.', L'0', UNICODE_NULL };
-PWSTR WindowsVersionString = WindowsVersionStringBuffer;
-PWSTR WindowsVersionName = L"Windows";
+PCWSTR WindowsVersionString = WindowsVersionStringBuffer;
+PCWSTR WindowsVersionName = L"Windows";
 
 // Internal data
 #ifdef DEBUG
@@ -46,7 +46,7 @@ PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
 NTSTATUS PhInitializePhLib(
-    _In_ PWSTR ApplicationName,
+    _In_ PCWSTR ApplicationName,
     _In_ PVOID ImageBaseAddress
     )
 {

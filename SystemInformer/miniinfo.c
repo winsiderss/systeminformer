@@ -59,7 +59,7 @@ VOID PhPinMiniInformation(
     _In_ LONG PinCount,
     _In_opt_ ULONG PinDelayMs,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR SectionName,
+    _In_opt_ PCWSTR SectionName,
     _In_opt_ PPOINT SourcePoint
     )
 {
@@ -851,7 +851,7 @@ PPH_MINIINFO_SECTION PhMipFindSection(
 }
 
 PPH_MINIINFO_SECTION PhMipCreateInternalSection(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_ PPH_MINIINFO_SECTION_CALLBACK Callback
     )
@@ -1215,7 +1215,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_ PPH_MINIINFO_LIST_SECTION Template
     )
@@ -1238,7 +1238,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback
     )
@@ -1254,8 +1254,8 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
 BOOLEAN PhMipListSectionCallback(
     _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     PPH_MINIINFO_LIST_SECTION listSection = Section->Context;
@@ -1301,9 +1301,6 @@ BOOLEAN PhMipListSectionCallback(
     case MiniInfoCreateDialog:
         {
             PPH_MINIINFO_CREATE_DIALOG createDialog = Parameter1;
-
-            if (!createDialog)
-                break;
 
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_MINIINFO_LIST);

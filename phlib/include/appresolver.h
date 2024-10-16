@@ -26,7 +26,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
 
 HRESULT PhAppResolverActivateAppId(
     _In_ PPH_STRING ApplicationUserModelId,
-    _In_opt_ PWSTR CommandLine,
+    _In_opt_ PCWSTR CommandLine,
     _Out_opt_ HANDLE *ProcessId
     );
 
@@ -53,7 +53,7 @@ PPH_STRING PhGetAppContainerName(
     );
 
 PPH_STRING PhGetAppContainerSidFromName(
-    _In_ PWSTR AppContainerName
+    _In_ PCWSTR AppContainerName
     );
 
 PPH_STRING PhGetAppContainerPackageName(
@@ -70,7 +70,7 @@ PPH_STRING PhGetPackagePath(
     );
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
-    _In_ PWSTR FilePath
+    _In_ PCWSTR FilePath
     );
 
 typedef struct _PH_APPUSERMODELID_ENUM_ENTRY
@@ -123,9 +123,9 @@ HRESULT PhAppResolverEndCrashDumpTask(
 // Desktop Bridge
 
 HRESULT PhCreateProcessDesktopPackage(
-    _In_ PWSTR ApplicationUserModelId,
-    _In_ PWSTR Executable,
-    _In_ PWSTR Arguments,
+    _In_ PCWSTR ApplicationUserModelId,
+    _In_ PCWSTR Executable,
+    _In_ PCWSTR Arguments,
     _In_ BOOLEAN PreventBreakaway,
     _In_opt_ HANDLE ParentProcessId,
     _Out_opt_ PHANDLE ProcessHandle

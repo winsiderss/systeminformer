@@ -1353,7 +1353,7 @@ PPH_STRING PhSipGetCpuBrandString(
         __cpuid(&cpubrand[8], 0x80000004);
 
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhConvertUtf8ToUtf16Ex((PSTR)cpubrand, brandLength);
+        brand = PhConvertUtf8ToUtf16Ex((PCSTR)cpubrand, brandLength);
 #else
         static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
         HANDLE keyHandle;

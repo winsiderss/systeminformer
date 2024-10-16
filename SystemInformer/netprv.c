@@ -1241,7 +1241,7 @@ VOID PhNetworkProviderUpdate(
 
     PhFree(connections);
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), UlongToPtr(runCount));
     runCount++;
 }
 

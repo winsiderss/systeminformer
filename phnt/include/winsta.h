@@ -838,7 +838,7 @@ NTSYSAPI
 HANDLE
 NTAPI
 WinStationOpenServerW(
-    _In_opt_ PWSTR ServerName
+    _In_opt_ PCWSTR ServerName
     );
 
 // rev
@@ -965,7 +965,7 @@ BOOLEAN
 NTAPI
 LogonIdFromWinStationNameW(
     _In_opt_ HANDLE ServerHandle,
-    _In_ PWSTR pWinStationName,
+    _In_ PCWSTR pWinStationName,
     _Out_ PULONG SessionId
     );
 
@@ -976,9 +976,9 @@ NTAPI
 WinStationSendMessageW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ PWSTR Title,
+    _In_ PCWSTR Title,
     _In_ ULONG TitleLength,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_ ULONG MessageLength,
     _In_ ULONG Style,
     _In_ ULONG Timeout,
@@ -993,7 +993,7 @@ WinStationConnectW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ULONG TargetSessionId,
-    _In_opt_ PWSTR pPassword,
+    _In_opt_ PCWSTR pPassword,
     _In_ BOOLEAN bWait
     );
 
@@ -1022,7 +1022,7 @@ BOOLEAN
 NTAPI
 WinStationShadow(
     _In_opt_ HANDLE ServerHandle,
-    _In_ PWSTR TargetServerName,
+    _In_ PCWSTR TargetServerName,
     _In_ ULONG TargetSessionId,
     _In_ UCHAR HotKeyVk,
     _In_ USHORT HotkeyModifiers // KBD*

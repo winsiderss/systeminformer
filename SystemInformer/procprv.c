@@ -3109,7 +3109,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
     runCount++;
 }
 
@@ -3975,11 +3975,12 @@ BOOLEAN PhDuplicateProcessInformation(
     if (!PhProcessInformation)
         return FALSE;
 
-    infoLength = RtlSizeHeap(PhHeapHandle, 0, PhProcessInformation);
+    infoLength = PhSizeHeap(PhProcessInformation);
 
     if (!infoLength)
         return FALSE;
 
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
+
     return TRUE;
 }

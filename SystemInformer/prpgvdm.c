@@ -80,8 +80,8 @@ BOOL WINAPI PhpVDMEnumTaskWOWCallback(
     _In_ ULONG ThreadId,
     _In_ USHORT Mod16,
     _In_ USHORT Task16,
-    _In_ PSTR ModName,
-    _In_ PSTR FileName,
+    _In_ PCSTR ModName,
+    _In_ PCSTR FileName,
     _In_ LPARAM Context
     )
 {
