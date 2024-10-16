@@ -292,7 +292,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                                     for (LONG i = numberOfItems - 1; i >= 0; i--)
                                     {
-                                        PhRemoveListViewItem(listviewHandle, i);
+                                        PhRemoveListViewItem(listviewHandle, PhFindListViewItemByParam(listviewHandle, INT_ERROR, listviewItems[i]));
                                     }
 
                                     SendMessage(listviewHandle, WM_SETREDRAW, TRUE, 0);
