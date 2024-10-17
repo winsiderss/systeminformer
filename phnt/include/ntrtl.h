@@ -27,6 +27,9 @@ typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
 #define RTL_STATIC_LIST_HEAD(x) \
     LIST_ENTRY (x) = { &(x), &(x) }
 
+#define RTL_LIST_FOREACH(Entry, ListHead) \
+    for ((Entry) = &(ListHead); (Entry) != &(ListHead); (Entry) = (Entry)->Flink)
+
 FORCEINLINE
 VOID
 InitializeListHead(
@@ -1183,6 +1186,16 @@ RtlAcquireReleaseSRWLockExclusive(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN10)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlConvertSRWLockExclusiveToShared(
+    _Inout_ PRTL_SRWLOCK SRWLock
+    );
+#endif
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -1309,7 +1322,21 @@ RtlWakeAddressAll(
 NTSYSAPI
 VOID
 NTAPI
+RtlWakeAddressAllNoFence(
+    _In_ PVOID Address
+    );
+
+NTSYSAPI
+VOID
+NTAPI
 RtlWakeAddressSingle(
+    _In_ PVOID Address
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeAddressSingleNoFence(
     _In_ PVOID Address
     );
 
@@ -1800,6 +1827,23 @@ RtlAnsiStringToUnicodeString(
     _In_ PCANSI_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
+
+NTSYSAPI 
+ULONG
+NTAPI
+RtlxAnsiStringToUnicodeSize(
+    _In_ PCANSI_STRING AnsiString
+    );
+
+// NTSYSAPI
+// ULONG
+// NTAPI
+// RtlAnsiStringToUnicodeSize(
+//     _In_ PCANSI_STRING AnsiString
+//     );
+
+#define RtlAnsiStringToUnicodeSize(STRING) \
+    RtlxAnsiStringToUnicodeSize(STRING)
 
 NTSYSAPI
 NTSTATUS
@@ -4969,7 +5013,7 @@ NTAPI
 RtlFreeHeap(
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG Flags,
-    _Frees_ptr_opt_ PVOID BaseAddress
+    _Frees_ptr_opt_ _Post_invalid_ PVOID BaseAddress
     );
 #else
 _Success_(return)
@@ -8892,6 +8936,11 @@ RtlLocateSupervisorFeature(
 
 #endif
 
+#define ELEVATION_FLAG_TOKEN_CHECKS 0x00000001
+#define ELEVATION_FLAG_VIRTUALIZATION 0x00000002
+#define ELEVATION_FLAG_SHORTCUT_REDIR 0x00000004
+#define ELEVATION_FLAG_NO_SIGNATURE_CHECK 0x00000008
+
 // private
 typedef union _RTL_ELEVATION_FLAGS
 {
@@ -8901,7 +8950,8 @@ typedef union _RTL_ELEVATION_FLAGS
         ULONG ElevationEnabled : 1;
         ULONG VirtualizationEnabled : 1;
         ULONG InstallerDetectEnabled : 1;
-        ULONG ReservedBits : 29;
+        ULONG AdminApprovalModeType : 2;
+        ULONG ReservedBits : 27;
     };
 } RTL_ELEVATION_FLAGS, *PRTL_ELEVATION_FLAGS;
 
