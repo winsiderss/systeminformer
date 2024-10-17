@@ -363,6 +363,16 @@ NtSetEvent(
     _Out_opt_ PLONG PreviousState
     );
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetEventEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
