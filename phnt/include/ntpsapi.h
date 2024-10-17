@@ -1911,6 +1911,48 @@ NtTestAlert(
     VOID
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+// rev
+/**
+ * Sends an alert to the specified thread.
+ *
+ * @param ThreadId The thread ID of the thread to be alerted.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThreadByThreadId(
+    _In_ HANDLE ThreadId
+    );
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThreadByThreadIdEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+#endif
+
+// rev
+/**
+ * Waits for an alert to be delivered to the specified thread.
+ *
+ * @param Address The address to wait for an alert on.
+ * @param Timeout The timeout value for waiting, or NULL for no timeout.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForAlertByThreadId(
+    _In_opt_ PVOID Address,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2082,39 +2124,6 @@ NtQueueApcThreadEx2(
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
-    );
-
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
-// rev
-/**
- * Sends an alert to the specified thread.
- *
- * @param ThreadId The thread ID of the thread to be alerted.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtAlertThreadByThreadId(
-    _In_ HANDLE ThreadId
-    );
-
-// rev
-/**
- * Waits for an alert to be delivered to the specified thread.
- *
- * @param Address The address to wait for an alert on.
- * @param Timeout The timeout value for waiting, or NULL for no timeout.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtWaitForAlertByThreadId(
-    _In_opt_ PVOID Address,
-    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 #endif
