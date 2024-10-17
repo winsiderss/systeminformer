@@ -270,22 +270,6 @@ NtUserOpenDesktop(
     );
 
 NTSYSCALLAPI
-HANDLE
-NTAPI
-NtUserOpenInputDesktop(
-    _In_ ULONG Flags,
-    _In_ LOGICAL InheritHandle,
-    _In_ ACCESS_MASK DesiredAccess
-    );
-
-NTSYSCALLAPI
-HANDLE
-NTAPI
-NtUserGetThreadDesktop(
-    _In_ ULONG ThreadId
-    );
-
-NTSYSCALLAPI
 LOGICAL
 NTAPI
 NtUserSetThreadDesktop(
@@ -425,13 +409,6 @@ BOOL
 NTAPI
 NtUserCloseDesktop(
     _In_ HDESK hDesktop
-    );
-
-NTSYSCALLAPI
-BOOL
-NTAPI
-NtUserCloseWindowStation(
-    _In_ HWINSTA hWinSta
     );
 
 NTSYSCALLAPI
@@ -859,9 +836,9 @@ NTSYSCALLAPI
 HDESK
 NTAPI
 NtUserOpenInputDesktop(
-    _In_ ULONG dwFlags,
-    _In_ BOOL fInherit,
-    _In_ ACCESS_MASK dwDesiredAccess
+    _In_ ULONG Flags,
+    _In_ BOOL Inherit,
+    _In_ ACCESS_MASK DesiredAccess
     );
 
 NTSYSCALLAPI
@@ -998,13 +975,6 @@ BOOL
 NTAPI
 NtUserSetProcessRestrictionExemption(
     _In_ BOOL EnableExemption
-    );
-
-NTSYSCALLAPI
-BOOL
-NTAPI
-NtUserSetProcessWindowStation(
-    _In_ HWINSTA StationHandle
     );
 
 NTSYSCALLAPI
