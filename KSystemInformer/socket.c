@@ -84,7 +84,7 @@ NTSTATUS KphpWskIoCompletionRoutine(
     UNREFERENCED_PARAMETER(DeviceObject);
     UNREFERENCED_PARAMETER(Irp);
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Context);
 
     KeSetEvent((PKEVENT)Context, IO_NO_INCREMENT, FALSE);
@@ -106,7 +106,7 @@ NTSTATUS KphpWskIoCreate(
     _Out_ PKPH_WSK_IO Io
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KeInitializeEvent(&Io->Event, NotificationEvent, FALSE);
 
@@ -137,7 +137,7 @@ VOID KphpWskIoReset(
     _Inout_ PKPH_WSK_IO Io
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KeResetEvent(&Io->Event);
     IoReuseIrp(Io->Irp, STATUS_UNSUCCESSFUL);
@@ -159,7 +159,7 @@ VOID KphpWskIoDelete(
     _In_ PKPH_WSK_IO Io
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (Io->Irp)
     {
@@ -186,7 +186,7 @@ NTSTATUS KphpWskIoWaitForCompletion(
 {
     NTSTATUS status;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (RequestStatus != STATUS_PENDING)
     {
@@ -229,7 +229,7 @@ VOID KphSocketClose(
     NTSTATUS status;
     PKPH_SOCKET socket;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
 
@@ -279,7 +279,7 @@ NTSTATUS KphSocketConnect(
     NTSTATUS status;
     PKPH_SOCKET socket;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     *Socket = NULL;
 
@@ -364,7 +364,7 @@ NTSTATUS KphSocketSend(
     WSK_BUF wskBuffer;
     BOOLEAN unlockPages;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
     unlockPages = FALSE;
@@ -445,7 +445,7 @@ NTSTATUS KphSocketRecv(
     WSK_BUF wskBuffer;
     BOOLEAN unlockPages;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
     unlockPages = FALSE;
@@ -506,7 +506,7 @@ Exit:
     return status;
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Initializes the socket infrastructure.
@@ -522,7 +522,7 @@ NTSTATUS KphInitializeSocket(
     NTSTATUS status;
     WSK_CLIENT_NPI wskClient;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     wskClient.ClientContext = NULL;
     wskClient.Dispatch = &KphpWskDispatch;
@@ -576,7 +576,7 @@ VOID KphCleanupSocket(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (KphpWskProviderCaptured)
     {
@@ -614,7 +614,7 @@ NTSTATUS KphGetAddressInfo(
     NTSTATUS status;
     KPH_WSK_IO io;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *AddressInfo = NULL;
 
@@ -665,7 +665,7 @@ VOID KphFreeAddressInfo(
     _In_freesMem_ PADDRINFOEXW AddressInfo
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphpWskProvider.Dispatch->WskFreeAddressInfo(KphpWskProvider.Client,
                                                  AddressInfo);
@@ -683,7 +683,7 @@ NTSTATUS KphpSecStatusToNtStatus(
     _In_ SECURITY_STATUS SecStatus
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     switch (SecStatus)
     {
@@ -806,7 +806,7 @@ SECURITY_STATUS KphpSecAcquireCredentialsHandle(
     _Out_opt_ PTimeStamp Expiry
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -836,7 +836,7 @@ SECURITY_STATUS KphpSecDeleteSecurityContext(
     _In_ PCtxtHandle Context
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
     NT_ASSERT(SecIsValidHandle(Context));
@@ -859,7 +859,7 @@ SECURITY_STATUS KphpSecFreeContextBuffer(
     _Inout_ PVOID ContextBuffer
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -881,7 +881,7 @@ SECURITY_STATUS KphpSecFreeCredentialsHandle(
     _In_ PCredHandle Credential
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
     NT_ASSERT(SecIsValidHandle(Credential));
@@ -916,7 +916,7 @@ SECURITY_STATUS KphpSecInitializeSecurityContext(
     _Out_opt_ PTimeStamp Expiry
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -952,7 +952,7 @@ SECURITY_STATUS KphpSecQueryContextAttributes(
     _Out_ PVOID Buffer
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -978,7 +978,7 @@ SECURITY_STATUS KphpSecEncryptMessage(
     _In_ ULONG MessageSeqNo
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -1004,7 +1004,7 @@ SECURITY_STATUS KphpSecDecryptMessage(
     _Out_opt_ PULONG QOP
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -1028,7 +1028,7 @@ SECURITY_STATUS KphpSecApplyControlToken(
     _In_ PSecBufferDesc Input
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -1053,7 +1053,7 @@ VOID KphSocketTlsClose(
     PKPH_TLS tls;
     KAPC_STATE apcState;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KeStackAttachProcess(PsInitialSystemProcess, &apcState);
 
@@ -1096,7 +1096,7 @@ NTSTATUS KphSocketTlsCreate(
     SCH_CREDENTIALS credentials;
     TLS_PARAMETERS tlsParameters[1];
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Tls = NULL;
 
@@ -1190,7 +1190,7 @@ NTSTATUS KphpSocketTlsReallocateBuffer(
 {
     PVOID buffer;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (Tls->Length >= Length)
     {
@@ -1244,7 +1244,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
     SECURITY_STATUS secStatus;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     secStatus = KphpSecQueryContextAttributes(&Tls->ContextHandle,
                                               SECPKG_ATTR_STREAM_SIZES,
@@ -1343,7 +1343,7 @@ NTSTATUS KphpSocketTlsHandshakeExtra(
     ULONG offset;
     ULONG end;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Extra->BufferType == SECBUFFER_EXTRA);
 
@@ -1426,7 +1426,7 @@ NTSTATUS KphpSocketTlsHandshakeRecv(
     NTSTATUS status;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (*Received >= Tls->Length)
     {
@@ -1514,7 +1514,7 @@ NTSTATUS KphSocketTlsHandshake(
     SecBufferDesc outDesc;
     ULONG flags;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     tls = (PKPH_TLS)Tls;
 
@@ -1744,7 +1744,7 @@ VOID KphSocketTlsShutdown(
     SecBufferDesc outDesc;
     ULONG flags;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     tls = (PKPH_TLS)Tls;
 
@@ -1885,7 +1885,7 @@ NTSTATUS KphSocketTlsSend(
     SecBuffer buffers[3];
     SecBufferDesc desc;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     tls = (PKPH_TLS)Tls;
 
@@ -2008,7 +2008,7 @@ NTSTATUS KphSocketTlsRecv(
     PVOID buffer;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KeStackAttachProcess(PsInitialSystemProcess, &apcState);
 

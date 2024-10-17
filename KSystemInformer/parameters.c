@@ -57,7 +57,7 @@ static KPH_PARAMETER KphpParameters[] =
 };
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Cleans up the driver parameters.
@@ -67,7 +67,7 @@ VOID KphCleanupParameters(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpParameters); i++)
     {
@@ -109,7 +109,7 @@ VOID KphInitializeParameters(
         keyHandle = NULL;
     }
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpParameters); i++)
     {

@@ -29,17 +29,30 @@
 
 #define KSIAPI NTAPI
 
-#define PAGED_CODE_PASSIVE()                                                  \
-    PAGED_CODE()                                                              \
-    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
-#define NPAGED_CODE_PASSIVE()                                                 \
-    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
-#define NPAGED_CODE_APC_MAX()                                                 \
-    NT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL)
-#define NPAGED_CODE_DISPATCH_MAX()                                            \
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL)
-#define NPAGED_CODE_DISPATCH_MIN()                                            \
-    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL)
+#define KPH_PAGED_CODE()                                                      \
+    PAGED_CODE();                                                             \
+    NT_ANALYSIS_ASSUME((KeGetCurrentIrql() == APC_LEVEL) ||                   \
+                       (KeGetCurrentIrql() == PASSIVE_LEVEL))
+#define KPH_PAGED_CODE_PASSIVE()                                              \
+    PAGED_CODE();                                                             \
+    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);                           \
+    NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define KPH_NPAGED_CODE_PASSIVE()                                             \
+    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);                           \
+    NT_ANALYSIS_ASSUME(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define KPH_NPAGED_CODE_APC_MAX()                                             \
+    NT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);                               \
+    NT_ANALYSIS_ASSUME((KeGetCurrentIrql() == APC_LEVEL) ||                   \
+                       (KeGetCurrentIrql() == PASSIVE_LEVEL))
+#define KPH_NPAGED_CODE_DISPATCH_MAX()                                        \
+    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);                          \
+    NT_ANALYSIS_ASSUME((KeGetCurrentIrql() == DISPATCH_LEVEL) ||              \
+                       (KeGetCurrentIrql() == APC_LEVEL) ||                   \
+                       (KeGetCurrentIrql() == PASSIVE_LEVEL))
+#define KPH_NPAGED_CODE_DISPATCH_MIN()                                        \
+    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);                          \
+    NT_ANALYSIS_ASSUME((KeGetCurrentIrql() == DISPATCH_LEVEL) ||              \
+                       (KeGetCurrentIrql() == HIGH_LEVEL))
 
 //
 // N.B. This decorates code to indicate that the code supports up to APC_LEVEL
@@ -47,9 +60,9 @@
 // Code in this path should also only allocate from non-paged pool to avoid
 // deadlocks.
 //
-#define NPAGED_CODE_APC_MAX_FOR_PAGING_IO() NPAGED_CODE_APC_MAX()
+#define KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO() KPH_NPAGED_CODE_APC_MAX()
 
-#define PAGED_FILE()                                                          \
+#define KPH_PAGED_FILE()                                                      \
     __pragma(bss_seg("PAGEBBS"))                                              \
     __pragma(code_seg("PAGE"))                                                \
     __pragma(data_seg("PAGEDATA"))                                            \

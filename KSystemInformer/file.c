@@ -13,7 +13,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Checks if a file handle is safe to issue a query through.
@@ -33,7 +33,7 @@ NTSTATUS KphpCheckFileHandleForQuery(
     NTSTATUS status;
     PFILE_OBJECT fileObject;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     //
     // We are stack attached and "invading" the process to perform the query.
@@ -105,7 +105,7 @@ NTSTATUS KphQueryInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -255,7 +255,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -417,7 +417,7 @@ NTSTATUS KphCreateFile(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (AccessMode != KernelMode)
     {

@@ -29,7 +29,7 @@ SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Protects select sections.
@@ -41,7 +41,7 @@ VOID KphpProtectSections(
 {
     NTSTATUS status;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (!KphDynMmProtectDriverSection)
     {
@@ -81,7 +81,7 @@ VOID KphpDriverCleanup(
     _In_ PDRIVER_OBJECT DriverObject
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphDebugInformerStop();
     KphRegistryInformerStop();
@@ -112,7 +112,7 @@ VOID DriverUnload(
     _In_ PDRIVER_OBJECT DriverObject
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Driver Unloading...");
 
@@ -141,7 +141,7 @@ NTSTATUS DriverEntry(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     WPP_INIT_TRACING(DriverObject, RegistryPath);
 

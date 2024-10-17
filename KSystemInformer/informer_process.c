@@ -26,7 +26,7 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcesCreateApcLookaside = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Allocates the process create APC which is used to track when a thread
@@ -42,7 +42,7 @@ PKPH_PROCESS_CREATE_APC KphpAllocateProcessCreateApc(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpProcesCreateApcLookaside);
 
@@ -65,7 +65,7 @@ VOID KphpFreeProcessCreateApc(
     _In_freesMem_ PKPH_PROCESS_CREATE_APC Apc
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(KphpProcesCreateApcLookaside);
 
@@ -96,7 +96,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     PKPH_PROCESS_CONTEXT creatorProcess;
     KPH_PROCESS_STATE processState;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!CreateInfo)
     {
@@ -183,7 +183,7 @@ VOID KphpCreateProcessNotifyInformer(
     PEPROCESS parentProcess;
     PKPH_PROCESS_CONTEXT actorProcess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = NULL;
     reply = NULL;
@@ -375,7 +375,7 @@ KphpProcessCreateCleanupRoutine(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Reason);
 
@@ -411,7 +411,7 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
@@ -452,7 +452,7 @@ VOID KphpPerformProcessCreationTracking(
     PKPH_PROCESS_CREATE_APC apc;
     BOOLEAN stopProtecting;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!CreateInfo)
     {
@@ -581,7 +581,7 @@ VOID KphpCreateProcessNotifyRoutine(
 {
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!CreateInfo)
     {
@@ -610,7 +610,7 @@ NTSTATUS KphProcessInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = KphCreateNPagedLookasideObject(&KphpProcesCreateApcLookaside,
                                             sizeof(KPH_PROCESS_CREATE_APC),
@@ -680,7 +680,7 @@ VOID KphProcessInformerStop(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphpProcesCreateApcLookaside)
     {

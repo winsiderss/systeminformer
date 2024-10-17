@@ -13,7 +13,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 typedef struct _KPH_DOWNLOAD_CONTEXT
 {
@@ -43,7 +43,7 @@ VOID KphpDownloadContextClose(
     _In_ PKPH_DOWNLOAD_CONTEXT Context
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (Context->Socket)
     {
@@ -96,7 +96,7 @@ NTSTATUS KphpDownloadBinary(
     KPH_SOCKET_HANDLE socket;
     KPH_TLS_HANDLE tls;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     *Response = NULL;
     *Socket = NULL;
@@ -374,7 +374,7 @@ NTSTATUS KphDownloadBinary(
     KPH_URL_INFORMATION urlInfo;
     PKPH_HTTP_RESPONSE response;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     *Handle = NULL;
 
@@ -587,7 +587,7 @@ NTSTATUS KphDownloadBinaryContinue(
 {
     PKPH_DOWNLOAD_CONTEXT context;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     context = Handle;
 
@@ -610,7 +610,7 @@ VOID KphDownloadBinaryClose(
 {
     PKPH_DOWNLOAD_CONTEXT context;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     context = Handle;
 

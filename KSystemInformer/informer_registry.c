@@ -92,7 +92,7 @@ static const UNICODE_STRING KphpCmDefaultValueName = RTL_CONSTANT_STRING(L"(Defa
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static PAGED_LOOKASIDE_LIST KphpCmCallContextLookaside = { 0 };
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 static volatile ULONG64 KphpCmSequence = 0;
 static BOOLEAN KphpCmRegistered = FALSE;
@@ -113,7 +113,7 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     KPH_REG_OPTIONS options;
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     options.Flags = 0;
 
@@ -214,7 +214,7 @@ KPH_MESSAGE_ID KphpRegGetMessageId(
 {
     KPH_MESSAGE_ID messageId;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
 #define KPH_REG_MESSAGE_ID2(reg, name)                                        \
     case RegNtPre##reg:                                                       \
@@ -274,7 +274,7 @@ VOID KphpRegFillCommonMessage(
     _In_ PKPH_REG_PRE_INFORMATION PreInfo
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     Message->Kernel.Reg.ClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Reg.ClientId.UniqueThread = PsGetCurrentThreadId();
@@ -520,7 +520,7 @@ VOID KphpRegCopyObjectInfo(
     PUNICODE_STRING objectName;
     PUNICODE_STRING* objectNamePointer;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     objectName = NULL;
 
@@ -606,7 +606,7 @@ VOID KphpRegFillObjectInfo(
 {
     KPH_MESSAGE_FIELD_ID fieldId;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (IncludeObjectName)
     {
@@ -648,7 +648,7 @@ NTSTATUS KphpRegMakeObjectName(
     BOOLEAN needsSeparator;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *ObjectName = NULL;
 
@@ -757,7 +757,7 @@ VOID KphpRegFillCreateKeyObjectInfo(
     NTSTATUS status;
     PUNICODE_STRING objectName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     Message->Kernel.Reg.Transaction = CreateInfo->Transaction;
 
@@ -824,7 +824,7 @@ VOID KphpRegFillLoadKeyObjectInfo(
     NTSTATUS status;
     PUNICODE_STRING objectName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!IncludeObjectName)
     {
@@ -889,7 +889,7 @@ VOID KphpRegCopyUnicodeStringWithDefault(
     NTSTATUS status;
     UNICODE_STRING string;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!String)
     {
@@ -972,7 +972,7 @@ VOID KphpRegCopyUnicodeString(
     _In_opt_ PUNICODE_STRING String
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphpRegCopyUnicodeStringWithDefault(Message, FieldId, String, NULL);
 }
@@ -989,7 +989,7 @@ VOID KphpRegCopyValueName(
     _In_opt_ PUNICODE_STRING ValueName
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphpRegCopyUnicodeStringWithDefault(Message,
                                         KphMsgFieldValueName,
@@ -1016,7 +1016,7 @@ VOID KphpRegCopyMultipleValueNames(
     PUNICODE_STRING valueNames;
     ULONG remaining;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!ValueEntries || !EntryCount)
     {
@@ -1198,7 +1198,7 @@ VOID KphpRegCopyBuffer(
     USHORT remaining;
     KPHM_SIZED_BUFFER sizedBuffer;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!Buffer)
     {
@@ -1274,7 +1274,7 @@ VOID KphpRegCopyObjectName(
     POBJECT_NAME_INFORMATION nameInfo;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!Object)
     {
@@ -1381,7 +1381,7 @@ VOID KphpRegCopyHandleName(
     KAPC_STATE apcState;
     PVOID object;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!Handle)
     {
@@ -1443,7 +1443,7 @@ VOID KphpRegFillPostOpMessage(
     BOOLEAN enableObjectNames;
     BOOLEAN enableValueNames;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     enableObjectNames = Context->Options.EnablePostObjectNames;
     enableValueNames = Context->Options.EnablePostValueNames;
@@ -1797,7 +1797,7 @@ VOID KphpRegFillPreOpMessage(
     _In_ PKPH_REG_OPTIONS Options
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     Message->Kernel.Reg.PostOperation = FALSE;
 
@@ -1971,7 +1971,7 @@ VOID KphpRegPostOpSend(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -2002,7 +2002,7 @@ VOID KphpRegFreeCallContext(
     _In_ PKPH_REG_CALL_CONTEXT Context
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (Context->ObjectName)
     {
@@ -2028,7 +2028,7 @@ VOID KphpRegPostOp(
 {
     PKPH_REG_CALL_CONTEXT context;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = PostInfo->Common.CallContext;
 
@@ -2065,7 +2065,7 @@ NTSTATUS KphpRegPreOpSetCallContext(
     NTSTATUS status;
     PKPH_REG_CALL_CONTEXT context;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = KphAllocateFromPagedLookaside(&KphpCmCallContextLookaside);
     if (!context)
@@ -2187,7 +2187,7 @@ VOID KphpRegPreOpSend(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -2235,7 +2235,7 @@ VOID KphpRegPreOp(
     NTSTATUS status;
     LARGE_INTEGER timeStamp;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(!Options->InPost);
 
@@ -2291,7 +2291,7 @@ NTSTATUS KphpRegistryCallback(
     ULONG64 sequence;
     KPH_REG_OPTIONS options;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(CallbackContext);
 
@@ -2333,7 +2333,7 @@ NTSTATUS KphRegistryInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphInitializePagedLookaside(&KphpCmCallContextLookaside,
                                 sizeof(KPH_REG_CALL_CONTEXT),
@@ -2372,7 +2372,7 @@ VOID KphRegistryInformerStop(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphpCmRegistered)
     {

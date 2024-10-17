@@ -46,7 +46,7 @@ KPH_PROTECTED_DATA_SECTION_POP();
 static KPH_REFERENCE KphpDriverUnloadProtectionRef = { 0 };
 static PVOID KphpDriverUnloadPreviousRoutine = NULL;
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Allocates an image load APC object.
@@ -61,7 +61,7 @@ PVOID KSIAPI KphpAllocateImageLoadApc(
     _In_ SIZE_T Size
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     return KphAllocateNPaged(Size, KPH_TAG_IMAGE_LOAD_APC);
 }
@@ -84,7 +84,7 @@ NTSTATUS KSIAPI KphpInitializeImageLoadApc(
     PKPH_IMAGE_LOAD_APC apc;
     PKPH_IMAGE_LOAD_APC_INIT init;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Parameter);
 
@@ -119,7 +119,7 @@ VOID KSIAPI KphpDeleteImageLoadApc(
 {
     PKPH_IMAGE_LOAD_APC apc;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     apc = Object;
 
@@ -143,7 +143,7 @@ VOID KSIAPI KphpFreeImageLoadApc(
     _In_freesMem_ PVOID Object
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(Object, KPH_TAG_IMAGE_LOAD_APC);
 }
@@ -168,7 +168,7 @@ NTSTATUS KphpShouldSuppressObjectProtections(
     NTSTATUS status;
     BOOLEAN isLsass;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Suppress = FALSE;
 
@@ -244,7 +244,7 @@ BOOLEAN KSIAPI KphpEnumProcessHandlesForProtection(
     ACCESS_MASK grantedAccess;
     ACCESS_MASK allowedAccessMask;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
@@ -358,7 +358,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
     PKPH_ENUM_FOR_PROTECTION parameter;
     BOOLEAN suppress;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
@@ -432,7 +432,7 @@ VOID KphStopProtectingProcess(
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphAcquireRWLockExclusive(&Process->ProtectionLock);
 
@@ -463,7 +463,7 @@ BOOLEAN KphIsProtectedProcess(
 {
     BOOLEAN isProtectedProcess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphAcquireRWLockShared(&Process->ProtectionLock);
     isProtectedProcess = Process->Protected ? TRUE : FALSE;
@@ -498,7 +498,7 @@ NTSTATUS KphStartProtectingProcess(
     BOOLEAN accessGranted;
     KPH_ENUM_FOR_PROTECTION context;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     releaseLock = FALSE;
 
@@ -598,7 +598,7 @@ KphpShouldPermitCreatorProcess(
 {
     KPH_PROCESS_STATE processState;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Process->VerifiedProcess);
 
@@ -640,7 +640,7 @@ VOID KphApplyObProtections(
     ACCESS_MASK desiredAccess;
     PACCESS_MASK access;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     process = NULL;
     actor = NULL;
@@ -863,7 +863,7 @@ VOID KSIAPI KphpImageLoadCleanupRoutine(
 {
     PKPH_IMAGE_LOAD_APC apc;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Reason);
 
@@ -893,7 +893,7 @@ VOID NTAPI KphpImageLoadKernelNormalRoutine(
     KAPC_STATE apcState;
     BOOLEAN attachToTarget;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(NormalContext);
     UNREFERENCED_PARAMETER(SystemArgument2);
@@ -960,7 +960,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineSecond(
     _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Apc);
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);
@@ -999,7 +999,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     PKPH_IMAGE_LOAD_APC secondApc;
     KPH_IMAGE_LOAD_APC_INIT init;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     secondApc = NULL;
 
@@ -1103,7 +1103,7 @@ VOID KphpHandleUntrustedImageLoad(
     KPH_IMAGE_LOAD_APC_INIT init;
     PKPH_IMAGE_LOAD_APC apc;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Process->VerifiedProcess);
 
@@ -1295,7 +1295,7 @@ NTSTATUS KphpReOpenImageFile(
     PVOID dataBase;
     SIZE_T dataSize;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     fileHandle = NULL;
     fileObject = NULL;
@@ -1483,7 +1483,7 @@ VOID KphpApplyImageProtections(
     SIZE_T dataSize;
     SE_SIGNING_LEVEL signingLevel;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(!KeAreAllApcsDisabled());
 
@@ -1691,7 +1691,7 @@ VOID NTAPI KphpImageLoadKernelNormalRoutineApcsDisabled(
 {
     PKPH_IMAGE_LOAD_APC apc;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(NormalContext);
     UNREFERENCED_PARAMETER(SystemArgument2);
@@ -1725,7 +1725,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineApcsDisabled(
     _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Apc);
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);
@@ -1756,7 +1756,7 @@ VOID KphpApplyImageProtectionsApcsDisabled(
     PKPH_IMAGE_LOAD_APC apc;
     KPH_IMAGE_LOAD_APC_INIT init;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KeAreAllApcsDisabled());
 
@@ -1840,7 +1840,7 @@ VOID KphApplyImageProtections(
     _In_ PIMAGE_INFO_EX ImageInfo
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphAcquireRWLockShared(&Process->ProtectionLock);
 
@@ -1907,7 +1907,7 @@ NTSTATUS KphAcquireDriverUnloadProtection(
     NTSTATUS status;
     LONG previousCount;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     status = KphAcquireReference(&KphpDriverUnloadProtectionRef,
                                  &previousCount);
@@ -1976,7 +1976,7 @@ NTSTATUS KphReleaseDriverUnloadProtection(
     NTSTATUS status;
     LONG previousCount;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     status = KphReleaseReference(&KphpDriverUnloadProtectionRef,
                                  &previousCount);
@@ -2043,7 +2043,7 @@ LONG KphGetDriverUnloadProtectionCount(
 {
     LONG count;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     count = ReadAcquire(&KphpDriverUnloadProtectionRef.Count);
 
@@ -2076,7 +2076,7 @@ NTSTATUS KphpStripProtectedProcessMasks(
     ACCESS_MASK prevProcessAllowedMask;
     ACCESS_MASK prevThreadAllowedMask;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = KphReferenceDynData();
     if (!dyn)
@@ -2165,7 +2165,7 @@ NTSTATUS KphStripProtectedProcessMasks(
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT processContext;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     processContext = NULL;
 
@@ -2226,7 +2226,7 @@ VOID KphInitializeProtection(
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpAllocateImageLoadApc;
     typeInfo.Initialize = KphpInitializeImageLoadApc;

@@ -123,7 +123,7 @@ static const ANSI_STRING KphpHttpHeaderLineEnding = RTL_CONSTANT_STRING("\r\n");
 static const ANSI_STRING KphpHttpHeaderItemSeparator = RTL_CONSTANT_STRING(": ");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Trims whitespace from the beginning and end of a string.
@@ -141,7 +141,7 @@ VOID KphpHttpTrimWhitespace(
 {
     CHAR c;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     while (String->Length)
     {
@@ -202,7 +202,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
     ULONG remaining;
     PVOID end;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     buffer = Buffer;
     remaining = Length;
@@ -349,7 +349,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
     PVOID separator;
     ULONG remaining;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     RtlZeroMemory(Item, sizeof(*Item));
     *ParsedLength = 0;
@@ -485,7 +485,7 @@ NTSTATUS KphpHttpParseResponseHeaders(
     ULONG inputCount;
     ULONG count;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     buffer = Buffer;
     remaining = Length;
@@ -557,7 +557,7 @@ VOID KphHttpFreeResponse(
     _In_freesMem_ PKPH_HTTP_RESPONSE Response
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(Response, KPH_TAG_HTTP_RESPONSE);
 }
@@ -597,7 +597,7 @@ NTSTATUS KphHttpParseResponse(
     ULONG headerItemCount;
     ULONG needed;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     response = NULL;
     buffer = Buffer;
@@ -762,7 +762,7 @@ NTSTATUS KphHttpBuildRequest(
     ULONG remaining;
     ULONG length;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     buffer = Buffer;
     remaining = *Length;

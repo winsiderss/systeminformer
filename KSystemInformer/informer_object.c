@@ -44,7 +44,7 @@ static PVOID KphpObRegistrationHandle = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 static PAGED_LOOKASIDE_LIST KphpObCallContextLookaside = { 0 };
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 static ULONG64 KphpObSequence = 0;
 
@@ -63,7 +63,7 @@ KPH_OB_OPTIONS KphpObGetOptions(
     KPH_OB_OPTIONS options;
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     options.Flags = 0;
 
@@ -148,7 +148,7 @@ KPH_MESSAGE_ID KphpObPreGetMessageId(
 {
     KPH_MESSAGE_ID messageId;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
     {
@@ -204,7 +204,7 @@ KPH_MESSAGE_ID KphpObPostGetMessageId(
 {
     KPH_MESSAGE_ID messageId;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
     {
@@ -264,7 +264,7 @@ VOID KphpObCopyObjectName(
     POBJECT_NAME_INFORMATION info;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     info = NULL;
 
@@ -332,7 +332,7 @@ VOID KphpObPreFillMessage(
     _In_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
@@ -425,7 +425,7 @@ VOID KphpObPostFillMessage(
     _In_ PKPH_OB_CALL_CONTEXT Context
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
@@ -526,7 +526,7 @@ VOID KphpObPostOpSend(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -568,7 +568,7 @@ VOID KphpObPostOp(
     PKPH_OB_CALL_CONTEXT context;
     ULONG64 sequence;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -601,7 +601,7 @@ VOID KphpObPreOpSetCallContext(
 {
     PKPH_OB_CALL_CONTEXT context;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = KphAllocateFromPagedLookaside(&KphpObCallContextLookaside);
     if (!context)
@@ -661,7 +661,7 @@ VOID KphpObPreOpSend(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -709,7 +709,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     ULONG64 sequence;
     LARGE_INTEGER timeStamp;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -755,7 +755,7 @@ NTSTATUS KphObjectInformerStart(
     OB_CALLBACK_REGISTRATION callbackRegistration;
     OB_OPERATION_REGISTRATION operationRegistration[3];
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphAltitude);
 
@@ -812,7 +812,7 @@ VOID KphObjectInformerStop(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (KphpObRegistrationHandle)
     {

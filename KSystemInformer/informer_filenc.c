@@ -47,7 +47,7 @@ NTSTATUS KphpFltGetFileNameInformation(
     NTSTATUS status;
     ULONG flags;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(Data->Iopb->TargetFileObject);
 
@@ -90,7 +90,7 @@ NTSTATUS KphpFltNameCacheFileNameLength(
 {
     ULONG length;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
@@ -115,7 +115,7 @@ VOID KphpFltNameCacheCopyFileName(
     _Inout_ PUNICODE_STRING FileName
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
@@ -143,7 +143,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     ULONG length;
     PFLT_CONTEXT oldContext;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject);
 
@@ -265,7 +265,7 @@ NTSTATUS KphpFltGetFileNameUseNameCache(
     PKPH_FLT_FILE_NAME_CACHE_ENTRY cacheEntry;
     PKPH_FLT_FILE_NAME_CACHE_ENTRY existingCacheEntry;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject);
 
@@ -418,7 +418,7 @@ NTSTATUS KphpFltGetFileNameCopy(
     NTSTATUS status;
     ULONG length;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->Volume);
     NT_ASSERT(FltObjects->FileObject);
@@ -474,7 +474,7 @@ NTSTATUS KphpFltGetVolumeName(
 {
     ULONG length;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     if (!FltObjects->Volume)
     {
@@ -528,7 +528,7 @@ NTSTATUS KphpFltGetFileName(
 {
     NTSTATUS status;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject == Data->Iopb->TargetFileObject);
 
@@ -600,7 +600,7 @@ NTSTATUS KphpFltGetDestinationFileNameInformation(
     ULONG fileNameLength;
     ULONG flags;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject);
 
@@ -700,7 +700,7 @@ NTSTATUS KphpFltGetDestFileName(
     _Out_ PKPH_FLT_FILE_NAME FltDestFileName
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FltObjects->FileObject == Data->Iopb->TargetFileObject);
 
@@ -728,7 +728,7 @@ VOID KphpFltReleaseFileName(
     _In_ PKPH_FLT_FILE_NAME FltFileName
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     switch (FltFileName->Type)
     {
@@ -787,7 +787,7 @@ VOID KphpFltReapFileNameCache(
     KIRQL previosIrql;
     PKPH_FLT_FILE_NAME_CACHE_ENTRY cacheEntry;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     NT_ASSERT(FlagOn(Data->Flags, FLTFL_CALLBACK_DATA_POST_OPERATION));
     NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_CLOSE);
@@ -835,7 +835,7 @@ PVOID KSIAPI KphpFltAllocateCachedFileName(
     _In_ SIZE_T Size
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     return KphAllocateNPaged(Size, KPH_TAG_FLT_CACHED_FILE_NAME);
 }
@@ -851,12 +851,12 @@ VOID KSIAPI KphpFltFreeCachedFileName(
     _In_freesMem_ PVOID Object
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     KphFree(Object, KPH_TAG_FLT_CACHED_FILE_NAME);
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Cleans up the file name cache.
@@ -870,7 +870,7 @@ VOID KphpFltCleanupFileNameCache(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphpFileNameCacheInitialized)
     {
@@ -903,7 +903,7 @@ VOID KphpFltInitializeFileNameCache(
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     InitializeListHead(&KphpFileNameCacheList);
 
