@@ -265,12 +265,10 @@
     <ClCompile Include="cid_tracking.c" />
     <ClCompile Include="comms.c" />
     <ClCompile Include="comms_handlers.c" />
-    <ClCompile Include="download.c" />
     <ClCompile Include="dyndata.c" />
     <ClCompile Include="dynimp.c" />
     <ClCompile Include="file.c" />
     <ClCompile Include="hash.c" />
-    <ClCompile Include="http.c" />
     <ClCompile Include="imgcoherency.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
@@ -297,7 +295,6 @@
     <ClCompile Include="util.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="vm.c" />
-    <ClCompile Include="socket.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
