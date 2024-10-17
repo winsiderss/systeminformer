@@ -45,60 +45,33 @@ namespace CustomBuildTool
                 if (buildPostString.LongLength == 0)
                     return null;
 
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/releases"))
                 {
-                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
 
-                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var httpResult = Http.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+
+                    if (httpResult == null)
                     {
-                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
-                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
-
-                        using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
-                        {
-                            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                            var httpTask = httpClient.PostAsync($"{BaseUrl}/releases", httpContent);
-                            httpTask.Wait();
-
-                            if (!httpTask.Result.IsSuccessStatusCode)
-                            {
-                                Program.PrintColorMessage($"[CreateRelease-Post] {httpTask.Result}", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var httpResult = httpTask.Result.Content.ReadAsStringAsync();
-                            httpResult.Wait();
-
-                            if (!httpResult.IsCompletedSuccessfully || string.IsNullOrWhiteSpace(httpResult.Result))
-                            {
-                                Program.PrintColorMessage("[CreateRelease-ReadAsStringAsync]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var response = JsonSerializer.Deserialize(httpResult.Result, GithubReleasesResponseContext.Default.GithubReleasesResponse);
-
-                            if (response == null)
-                            {
-                                Program.PrintColorMessage("[CreateRelease-GithubReleasesResponse]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            if (string.IsNullOrWhiteSpace(response.UploadUrl))
-                            {
-                                Program.PrintColorMessage("[CreateRelease-upload_url]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            return response;
-                        }
+                        Program.PrintColorMessage("[CreateRelease-GithubReleasesResponse]", ConsoleColor.Red);
+                        return null;
                     }
-                }
+
+                    if (string.IsNullOrWhiteSpace(httpResult.UploadUrl))
+                    {
+                        Program.PrintColorMessage("[CreateRelease-upload_url]", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    return httpResult;
+                }             
             }
             catch (Exception ex)
             {
@@ -117,83 +90,100 @@ namespace CustomBuildTool
 
             try
             {
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                HttpResponseMessage responseMessage = null;
+                GithubReleasesResponse githubResponseMessage = null;
+
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/releases/tags/{Version}"))
                 {
-                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
 
-                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    responseMessage = Http.SendMessageResponse(requestMessage);
+
+                    if (!responseMessage.IsSuccessStatusCode)
                     {
-                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
-                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
-
-                        var httpTask = httpClient.GetAsync($"{BaseUrl}/releases/tags/{Version}");
-                        httpTask.Wait();
-
-                        if (!httpTask.Result.IsSuccessStatusCode)
+                        if (responseMessage.StatusCode == HttpStatusCode.NotFound)
                         {
-                            if (httpTask.Result.StatusCode == HttpStatusCode.NotFound)
-                            {
-                                return true; // tag doesn't exist
-                            }
-                            else
-                            {
-                                Program.PrintColorMessage("[DeleteRelease-GetAsync] " + httpTask.Result, ConsoleColor.Red);
-                                return false;
-                            }
+                            return true; // tag doesn't exist
                         }
-
-                        var httpResult = httpTask.Result.Content.ReadAsStringAsync();
-                        httpResult.Wait();
-
-                        if (!httpResult.IsCompletedSuccessfully || string.IsNullOrWhiteSpace(httpResult.Result))
+                        else
                         {
-                            Program.PrintColorMessage("[DeleteRelease-ReadAsStringAsync]", ConsoleColor.Red);
+                            Program.PrintColorMessage("[DeleteRelease-GetAsync] " + responseMessage, ConsoleColor.Red);
                             return false;
                         }
+                    }
+                }
 
-                        var response = JsonSerializer.Deserialize(httpResult.Result, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+                {
+                    var result = Task.Run(responseMessage.Content.ReadAsStringAsync).GetAwaiter().GetResult();
 
-                        if (response == null)
-                        {
-                            Program.PrintColorMessage("[DeleteRelease-GithubReleasesResponse]", ConsoleColor.Red);
-                            return false;
-                        }
+                    if (string.IsNullOrWhiteSpace(result))
+                    {
+                        Program.PrintColorMessage("[DeleteRelease-ReadAsStringAsync]", ConsoleColor.Red);
+                        return false;
+                    }
 
-                        if (string.IsNullOrWhiteSpace(response.ReleaseId))
-                        {
-                            Program.PrintColorMessage("[DeleteRelease-ReleaseId]", ConsoleColor.Red);
-                            return false;
-                        }
+                    githubResponseMessage = JsonSerializer.Deserialize(result, GithubReleasesResponseContext.Default.GithubReleasesResponse);
 
-                        // Delete the release (required)
-                        var httpDeleteReleaseTask = httpClient.DeleteAsync($"{BaseUrl}/releases/{response.ReleaseId}");
-                        httpDeleteReleaseTask.Wait();
+                    if (githubResponseMessage == null)
+                    {
+                        Program.PrintColorMessage("[DeleteRelease-GithubReleasesResponse]", ConsoleColor.Red);
+                        return false;
+                    }
+                }
 
-                        if (!httpDeleteReleaseTask.IsCompletedSuccessfully)
-                        {
-                            Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
-                            return false;
-                        }
+                if (string.IsNullOrWhiteSpace(githubResponseMessage.ReleaseId))
+                {
+                    Program.PrintColorMessage("[DeleteRelease-ReleaseId]", ConsoleColor.Red);
+                    return false;
+                }
 
-                        // Delete the release tag (optional)
-                        var httpDeleteTagTask = httpClient.DeleteAsync($"{BaseUrl}/git/refs/tags/{Version}");
-                        httpDeleteTagTask.Wait();
+                // Delete the release (required)
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/releases/{githubResponseMessage.ReleaseId}"))
+                {
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
 
-                        return true;
+                    var response = Http.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(response))
+                    {
+                        Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
+                        return false;
+                    }
+                }
+
+                // Delete the release tag (optional)
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/git/refs/tags/{Version}"))
+                {
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
+
+                    var response = Http.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(response))
+                    {
+                        Program.PrintColorMessage("[DeleteRelease-DeleteAsync]", ConsoleColor.Red);
+                        return false;
                     }
                 }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[DeleteRelease] " + ex, ConsoleColor.Red);
+                return false;
             }
 
-            return false;
+            return true;
         }
 
         public static GithubReleasesResponse UpdateRelease(string ReleaseId)
@@ -216,59 +206,32 @@ namespace CustomBuildTool
                 if (buildPostString.LongLength == 0)
                     return null;
 
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/releases/{ReleaseId}"))
                 {
-                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
 
-                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var response = Http.SendMessage(requestMessage, GithubReleasesResponseContext.Default.GithubReleasesResponse);
+
+                    if (response == null)
                     {
-                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
-                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
-
-                        using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
-                        {
-                            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                            var httpTask = httpClient.PostAsync($"{BaseUrl}/releases/{ReleaseId}", httpContent);
-                            httpTask.Wait();
-
-                            if (!httpTask.Result.IsSuccessStatusCode)
-                            {
-                                Program.PrintColorMessage("[UpdateRelease-Post] " + httpTask.Result, ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var httpResult = httpTask.Result.Content.ReadAsStringAsync();
-                            httpResult.Wait();
-
-                            if (!httpResult.IsCompletedSuccessfully || string.IsNullOrWhiteSpace(httpResult.Result))
-                            {
-                                Program.PrintColorMessage("[UpdateRelease-ReadAsStringAsync]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var response = JsonSerializer.Deserialize(httpResult.Result, GithubReleasesResponseContext.Default.GithubReleasesResponse);
-
-                            if (response == null)
-                            {
-                                Program.PrintColorMessage("[UpdateRelease-GithubReleasesResponse]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            if (string.IsNullOrWhiteSpace(response.UploadUrl))
-                            {
-                                Program.PrintColorMessage("[UpdateRelease-upload_url]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            return response;
-                        }
+                        Program.PrintColorMessage("[UpdateRelease-GithubReleasesResponse]", ConsoleColor.Red);
+                        return null;
                     }
+
+                    if (string.IsNullOrWhiteSpace(response.UploadUrl))
+                    {
+                        Program.PrintColorMessage("[UpdateRelease-upload_url]", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    return response;
                 }
             }
             catch (Exception ex)
@@ -298,61 +261,34 @@ namespace CustomBuildTool
 
             try
             {
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                using (FileStream fileStream = File.OpenRead(FileName))
+                using (BufferedStream bufferedStream = new BufferedStream(fileStream))
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url))
                 {
-                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
+                    requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    requestMessage.Version = HttpVersion.Version20;
 
-                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                    requestMessage.Content = new StreamContent(bufferedStream);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                    var response = Http.SendMessage(requestMessage, GithubAssetsResponseContext.Default.GithubAssetsResponse);
+
+                    if (response == null)
                     {
-                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
-                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
-
-                        using (FileStream fileStream = File.OpenRead(FileName))
-                        using (BufferedStream bufferedStream = new BufferedStream(fileStream))
-                        using (StreamContent streamContent = new StreamContent(bufferedStream))
-                        {
-                            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-
-                            var httpUpload = httpClient.PostAsync(upload_url, streamContent);
-                            httpUpload.Wait();
-
-                            if (!httpUpload.Result.IsSuccessStatusCode)
-                            {
-                                Program.PrintColorMessage("[UploadAssets-Post] " + httpUpload.Result, ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var httpUploadResult = httpUpload.Result.Content.ReadAsStringAsync();
-                            httpUploadResult.Wait();
-
-                            if (!httpUploadResult.IsCompletedSuccessfully || string.IsNullOrWhiteSpace(httpUploadResult.Result))
-                            {
-                                Program.PrintColorMessage("[UploadAssets-ReadAsStringAsync]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            var response = JsonSerializer.Deserialize(httpUploadResult.Result, GithubAssetsResponseContext.Default.GithubAssetsResponse);
-
-                            if (response == null)
-                            {
-                                Program.PrintColorMessage("[UploadAssets-GithubAssetsResponse]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            if (!response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
-                            {
-                                Program.PrintColorMessage("[UploadAssets-download_url]", ConsoleColor.Red);
-                                return null;
-                            }
-
-                            return response;
-                        }
+                        Program.PrintColorMessage("[UploadAssets-GithubAssetsResponse]", ConsoleColor.Red);
+                        return null;
                     }
+
+                    if (!response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
+                    {
+                        Program.PrintColorMessage("[UploadAssets-download_url]", ConsoleColor.Red);
+                        return null;
+                    }
+
+                    return response;
                 }
             }
             catch (Exception ex)
@@ -361,29 +297,6 @@ namespace CustomBuildTool
             }
 
             return null;
-        }
-
-        private static readonly string[] TrustedSubjects =
-        {
-            "CN=*.github.com",
-            "CN=*.github.com, O=\"GitHub, Inc.\", L=San Francisco, S=California, C=US",
-        };
-
-        private static bool CertValidationCallback(
-            HttpRequestMessage Rquest,
-            X509Certificate Cert,
-            X509Chain Chain,
-            SslPolicyErrors Errors
-            )
-        {
-            if (Errors != SslPolicyErrors.None)
-                return false;
-
-            if (TrustedSubjects.Contains(Cert.Subject))
-                return true;
-
-            Program.PrintColorMessage($"[CertValidationCallback] {Cert.Subject}", ConsoleColor.Red);
-            return false;
         }
     }
 
