@@ -427,12 +427,12 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
  *
  * \param[in] Process The process to stop protecting.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphStopProtectingProcess(
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     KphAcquireRWLockExclusive(&Process->ProtectionLock);
 

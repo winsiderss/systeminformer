@@ -585,6 +585,7 @@ VOID KphpCidEnumerate(
     )
 {
     ULONG_PTR table;
+    BOOLEAN leaveCriticalRegion;
     PKPH_CID_TABLE_ENTRY tableL0;
     PKPH_CID_TABLE_ENTRY* tableL1;
     PKPH_CID_TABLE_ENTRY** tableL2;
@@ -598,7 +599,15 @@ VOID KphpCidEnumerate(
         return;
     }
 
-    KeEnterCriticalRegion();
+    if (KeGetCurrentIrql() <= APC_LEVEL)
+    {
+        KeEnterCriticalRegion();
+        leaveCriticalRegion = TRUE;
+    }
+    else
+    {
+        leaveCriticalRegion = FALSE;
+    }
 
     switch (table & KPH_CID_TABLE_LEVEL_MASK)
     {
@@ -695,7 +704,10 @@ VOID KphpCidEnumerate(
 
 Exit:
 
-    KeLeaveCriticalRegion();
+    if (leaveCriticalRegion)
+    {
+        KeLeaveCriticalRegion();
+    }
 }
 
 /**

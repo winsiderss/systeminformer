@@ -69,29 +69,6 @@ PKPHM_QUEUE_ITEM KphpAllocateMessageQueueItem()
 }
 
 /**
- * \brief Frees a message queue item.
- *
- * \param[in] Item Message queue item to free.
- */
-_IRQL_requires_max_(DISPATCH_LEVEL)
-VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
-{
-    NT_ASSERT(Item);
-    KPH_NPAGED_CODE_DISPATCH_MAX();
-
-    if (Item->NonPaged)
-    {
-        KphFreeNPagedMessage(Item->Message);
-    }
-    else
-    {
-        KphFreeMessage(Item->Message);
-    }
-
-    KphFreeToNPagedLookaside(&KphpMessageQueueItemLookaside, Item);
-}
-
-/**
  * \brief Allocates a non-paged message.
  *
  * \return Non-paged message, null on allocation failure.
@@ -283,6 +260,28 @@ BOOLEAN KphCommsInformerEnabled(
 KPH_PAGED_FILE();
 
 /**
+ * \brief Frees a message queue item.
+ *
+ * \param[in] Item Message queue item to free.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (Item->NonPaged)
+    {
+        KphFreeNPagedMessage(Item->Message);
+    }
+    else
+    {
+        KphFreeMessage(Item->Message);
+    }
+
+    KphFreeToNPagedLookaside(&KphpMessageQueueItemLookaside, Item);
+}
+
+/**
  * \brief Allocates a client object.
  *
  * \param[in] Size The size requested from the object infrastructure.
@@ -344,7 +343,7 @@ NTSTATUS KSIAPI KphpInitializeClientObject(
  * \param[in] Object The client object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpDeleteClientObject(
     _Inout_ PVOID Object
     )
@@ -352,7 +351,7 @@ VOID KSIAPI KphpDeleteClientObject(
     NTSTATUS status;
     PKPH_CLIENT client;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     client = Object;
 
@@ -388,12 +387,12 @@ VOID KSIAPI KphpDeleteClientObject(
  * \param[in] Object The client object to free.
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpFreeClientObject(
     _In_freesMem_ PVOID Object
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphFree(Object, KPH_TAG_CLIENT);
 }

@@ -38,12 +38,12 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
  *
  * \param[in] Context The download context to close.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpDownloadContextClose(
     _In_ PKPH_DOWNLOAD_CONTEXT Context
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (Context->Socket)
     {
@@ -72,7 +72,7 @@ VOID KphpDownloadContextClose(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpDownloadBinary(
     _In_ PKPH_URL_INFORMATION UrlInfo,
@@ -96,7 +96,7 @@ NTSTATUS KphpDownloadBinary(
     KPH_SOCKET_HANDLE socket;
     KPH_TLS_HANDLE tls;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Response = NULL;
     *Socket = NULL;
@@ -357,7 +357,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphDownloadBinary(
     _In_ PANSI_STRING Url,
@@ -374,7 +374,7 @@ NTSTATUS KphDownloadBinary(
     KPH_URL_INFORMATION urlInfo;
     PKPH_HTTP_RESPONSE response;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Handle = NULL;
 
@@ -576,7 +576,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphDownloadBinaryContinue(
     _In_ KPH_DOWNLOAD_HANDLE Handle,
@@ -587,7 +587,7 @@ NTSTATUS KphDownloadBinaryContinue(
 {
     PKPH_DOWNLOAD_CONTEXT context;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = Handle;
 
@@ -603,14 +603,14 @@ NTSTATUS KphDownloadBinaryContinue(
  *
  * \param[in] Handle The download handle to close.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDownloadBinaryClose(
     _In_ KPH_DOWNLOAD_HANDLE Handle
     )
 {
     PKPH_DOWNLOAD_CONTEXT context;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = Handle;
 

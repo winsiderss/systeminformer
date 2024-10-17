@@ -135,6 +135,8 @@ PKPH_PROCESS_CONTEXT KphGetEProcessContext(
     _In_ PEPROCESS Process
     )
 {
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     if (Process == PsInitialSystemProcess)
     {
         return KphGetSystemProcessContext();
@@ -384,7 +386,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeProcessContext(
     _Inout_ PVOID Object,
@@ -397,7 +399,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     HANDLE processHandle;
     PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     process = Object;
     processObject = Parameter;
@@ -938,7 +940,7 @@ Exit:
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeThreadContext(
     _Inout_ PVOID Object,
@@ -950,7 +952,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     PETHREAD threadObject;
     HANDLE threadHandle;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     thread = Object;
     threadObject = Parameter;
@@ -1325,7 +1327,7 @@ VOID KphCidCleanup(
  * object is already being tracked and is not of the expected type. The caller
  * *must* dereference the object when they are through with it.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 PVOID KphpTrackContext(
     _In_ HANDLE Cid,
@@ -1396,7 +1398,7 @@ PVOID KphpUntrackContext(
     PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
 
-    KPH_PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE();
 
     entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
@@ -2327,7 +2329,7 @@ NTSTATUS KphQueryInformationProcessContext(
     NTSTATUS status;
     ULONG returnLength;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     returnLength = 0;
 
@@ -2435,7 +2437,7 @@ NTSTATUS KphQueryInformationThreadContext(
     NTSTATUS status;
     ULONG returnLength;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     returnLength = 0;
 

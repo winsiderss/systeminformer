@@ -60,7 +60,7 @@ NTSTATUS KphInitializeKnownDll(
     PVOID baseAddress;
     SIZE_T viewSize;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     sectionHandle = NULL;
     sectionObject = NULL;

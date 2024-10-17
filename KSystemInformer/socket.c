@@ -176,7 +176,7 @@ VOID KphpWskIoDelete(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphpWskIoWaitForCompletion(
     _In_ PKPH_WSK_IO Io,
@@ -187,6 +187,7 @@ NTSTATUS KphpWskIoWaitForCompletion(
     NTSTATUS status;
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
+    _Analysis_assume_(KeGetCurrentIrql() == APC_LEVEL);
 
     if (RequestStatus != STATUS_PENDING)
     {
@@ -221,7 +222,7 @@ NTSTATUS KphpWskIoWaitForCompletion(
  *
  * \param[in] Socket A handle to the socket object to close.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphSocketClose(
     _In_freesMem_ KPH_SOCKET_HANDLE Socket
     )
@@ -265,7 +266,7 @@ VOID KphSocketClose(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketConnect(
     _In_ USHORT SocketType,
@@ -350,7 +351,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketSend(
     _In_ KPH_SOCKET_HANDLE Socket,
@@ -431,7 +432,7 @@ Exit:
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketRecv(
     _In_ KPH_SOCKET_HANDLE Socket,

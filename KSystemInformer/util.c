@@ -1853,6 +1853,7 @@ VOID KphFreeProcessImageName(
 {
     KPH_PAGED_CODE();
 
+#pragma prefast(suppress : 28121) // SAL is incorrect in wdm.h
     RtlFreeUnicodeString(ImageName);
 }
 

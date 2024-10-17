@@ -87,6 +87,11 @@
 #define _In_aliasesMem_ _In_ _Pre_notnull_ _Post_ptr_invalid_ __drv_aliasesMem
 #define _Return_allocatesMem_ __drv_allocatesMem(Mem) _Post_maybenull_ _Must_inspect_result_
 #define _Return_allocatesMem_size_(size) _Return_allocatesMem_ _Post_writable_byte_size_(size)
+#define _IRQL_requires_for_wait_(timeout)                                     \
+    _When_(((timeout == NULL) || (timeout->QuadPart != 0)),                   \
+           _IRQL_requires_max_(APC_LEVEL))                                    \
+    _When_(((timeout != NULL) && (timeout->QuadPart == 0)),                   \
+           _IRQL_requires_max_(DISPATCH_LEVEL))
 
 #ifndef MAX_PATH
 #define MAX_PATH 260
@@ -1916,7 +1921,7 @@ NTSTATUS KphStartProtectingProcess(
     _In_ ACCESS_MASK ThreadAllowedMask
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphStopProtectingProcess(
     _In_ PKPH_PROCESS_CONTEXT Process
     );
@@ -2299,12 +2304,12 @@ VOID KphFreeAddressInfo(
     _In_freesMem_ PADDRINFOEXW AddressInfo
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphSocketClose(
     _In_freesMem_ KPH_SOCKET_HANDLE Socket
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketConnect(
     _In_ USHORT SocketType,
@@ -2315,7 +2320,7 @@ NTSTATUS KphSocketConnect(
     _Outptr_allocatesMem_ PKPH_SOCKET_HANDLE Socket
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketSend(
     _In_ KPH_SOCKET_HANDLE Socket,
@@ -2324,7 +2329,7 @@ NTSTATUS KphSocketSend(
     _In_ ULONG Length
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_for_wait_(Timeout)
 _Must_inspect_result_
 NTSTATUS KphSocketRecv(
     _In_ KPH_SOCKET_HANDLE Socket,
@@ -2443,7 +2448,7 @@ NTSTATUS KphHttpBuildRequest(
 typedef PVOID KPH_DOWNLOAD_HANDLE;
 typedef PVOID* PKPH_DOWNLOAD_HANDLE;
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphDownloadBinary(
     _In_ PANSI_STRING Url,
@@ -2454,7 +2459,7 @@ NTSTATUS KphDownloadBinary(
     _Outptr_allocatesMem_ PKPH_DOWNLOAD_HANDLE Handle
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphDownloadBinaryContinue(
     _In_ KPH_DOWNLOAD_HANDLE Handle,
@@ -2463,7 +2468,7 @@ NTSTATUS KphDownloadBinaryContinue(
     _Inout_ PULONG Length
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDownloadBinaryClose(
     _In_ KPH_DOWNLOAD_HANDLE Handle
     );

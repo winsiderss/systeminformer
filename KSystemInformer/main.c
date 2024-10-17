@@ -41,7 +41,7 @@ VOID KphpProtectSections(
 {
     NTSTATUS status;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphDynMmProtectDriverSection)
     {
