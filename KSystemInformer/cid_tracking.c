@@ -610,14 +610,14 @@ Exit:
  * \param[in] Object The process context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpDeleteProcessContext(
     _Inout_ PVOID Object
     )
 {
     PKPH_PROCESS_CONTEXT process;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     process = Object;
 
@@ -660,12 +660,12 @@ VOID KSIAPI KphpDeleteProcessContext(
  * \param[in] Object The process context object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpFreeProcessContext(
     _In_freesMem_ PVOID Object
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpProcessContextLookaside);
 
@@ -1044,14 +1044,14 @@ Exit:
  * \param[in] Object The thread context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpDeleteThreadContext(
     _Inout_ PVOID Object
     )
 {
     PKPH_THREAD_CONTEXT thread;
 
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     thread = Object;
 
@@ -1075,12 +1075,12 @@ VOID KSIAPI KphpDeleteThreadContext(
  * \param[in] Object The thread context object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpFreeThreadContext(
     _In_freesMem_ PVOID Object
     )
 {
-    KPH_PAGED_CODE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpThreadContextLookaside);
 
@@ -1159,6 +1159,7 @@ NTSTATUS KphCidInitialize(
     typeInfo.Delete = KphpDeleteProcessContext;
     typeInfo.Free = KphpFreeProcessContext;
     typeInfo.Flags = 0;
+    typeInfo.DeferDelete = TRUE;
 
     KphCreateObjectType(&KphpProcessContextTypeName,
                         &typeInfo,
@@ -1169,6 +1170,7 @@ NTSTATUS KphCidInitialize(
     typeInfo.Delete = KphpDeleteThreadContext;
     typeInfo.Free = KphpFreeThreadContext;
     typeInfo.Flags = 0;
+    typeInfo.DeferDelete = TRUE;
 
     KphCreateObjectType(&KphpThreadContextTypeName,
                         &typeInfo,
