@@ -1036,7 +1036,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
     {
         PH_STRINGREF scalePart;
-        ULONG64 integer;
+        LONG64 integer;
 
         PhSkipStringRef(&remainingPart, sizeof(WCHAR));
         PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
@@ -1371,8 +1371,9 @@ VOID PhSaveListViewGroupStatesToSetting(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(Name, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID PhLoadCustomColorList(

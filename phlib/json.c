@@ -437,18 +437,31 @@ PVOID PhLoadJsonObjectFromFile(
     return NULL;
 }
 
+static CONST PH_FLAG_MAPPING PhJsonFormatFlagMappings[] =
+{
+    { PH_JSON_TO_STRING_PLAIN, JSON_C_TO_STRING_PLAIN },
+    { PH_JSON_TO_STRING_SPACED, JSON_C_TO_STRING_SPACED },
+    { PH_JSON_TO_STRING_PRETTY, JSON_C_TO_STRING_PRETTY },
+};
+
 NTSTATUS PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
-    _In_ PVOID Object
+    _In_ PVOID Object,
+    _In_opt_ ULONG Flags
     )
 {
-    INT json_flags = JSON_C_TO_STRING_PRETTY;
+    static PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
     NTSTATUS status;
-    HANDLE fileHandle;
+    LONG json_flags = 0;
+    HANDLE fileHandle = NULL;
+    PPH_STRING fileName;
     IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
     size_t json_length;
     PCSTR json_string;
+
+    json_flags = 0;
+    PhMapFlags1(&json_flags, Flags, PhJsonFormatFlagMappings, RTL_NUMBER_OF(PhJsonFormatFlagMappings));
 
     json_string = json_object_to_json_string_length(
         Object,
@@ -461,10 +474,23 @@ NTSTATUS PhSaveJsonObjectToFile(
 
     allocationSize.QuadPart = json_length;
 
+    // Create the directory if it does not exist.
+
+    status = PhCreateDirectoryFullPath(FileName);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Create a temporary filename.
+
+    fileName = PhGetBaseNameChangeExtension(FileName, &extension);
+
+    // Create the temporary file.
+
     status = PhCreateFileEx(
         &fileHandle,
-        FileName,
-        FILE_GENERIC_WRITE,
+        &fileName->sr,
+        FILE_GENERIC_WRITE | DELETE,
         NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
@@ -474,10 +500,14 @@ NTSTATUS PhSaveJsonObjectToFile(
         NULL
         );
 
+    // Cleanup the temporary filename.
+
+    PhDereferenceObject(fileName);
+
     if (!NT_SUCCESS(status))
-    {
         goto CleanupExit;
-    }
+
+    // Write the buffer to the temporary file.
 
     status = NtWriteFile(
         fileHandle,
@@ -491,9 +521,29 @@ NTSTATUS PhSaveJsonObjectToFile(
         NULL
         );
 
-    NtClose(fileHandle);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Flush the temporary file.
+
+    PhFlushBuffersFile(fileHandle);
+
+    // Atomically update the target file:
+    // https://learn.microsoft.com/en-us/windows/win32/fileio/deprecation-of-txf#applications-updating-a-single-file-with-document-like-data
+
+    status = PhSetFileRename(
+        fileHandle,
+        NULL,
+        TRUE,
+        FileName
+        );
 
 CleanupExit:
+    if (fileHandle)
+    {
+        NtClose(fileHandle);
+    }
+
     json_object_put((struct json_object*)json_string);
 
     return status;
@@ -584,11 +634,13 @@ NTSTATUS PhSaveXmlObjectToFile(
     _In_opt_ PVOID XmlSaveCallback
     )
 {
+    static PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
     NTSTATUS status;
+    PPH_STRING fileName;
     HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
-    INT xml_length;
+    LONG xml_length;
     PSTR xml_buffer;
 
     xml_length = mxmlSaveString(XmlRootObject, NULL, 0, XmlSaveCallback);
@@ -623,10 +675,16 @@ NTSTATUS PhSaveXmlObjectToFile(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    // Create a temporary filename.
+
+    fileName = PhGetBaseNameChangeExtension(FileName, &extension);
+
+    // Create the temporary file.
+
     status = PhCreateFileEx(
         &fileHandle,
-        FileName,
-        FILE_GENERIC_WRITE,
+        &fileName->sr,
+        FILE_GENERIC_WRITE | DELETE,
         NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
@@ -636,8 +694,14 @@ NTSTATUS PhSaveXmlObjectToFile(
         NULL
         );
 
+    // Cleanup the temporary filename.
+
+    PhDereferenceObject(fileName);
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+
+    // Write the buffer to the temporary file.
 
     status = NtWriteFile(
         fileHandle,
@@ -651,10 +715,22 @@ NTSTATUS PhSaveXmlObjectToFile(
         NULL
         );
 
-    //if (mxmlSaveFd(XmlRootObject, fileHandle, XmlSaveCallback) == INT_ERROR)
-    //{
-    //    status = STATUS_UNSUCCESSFUL;
-    //}
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Flush the temporary file.
+
+    PhFlushBuffersFile(fileHandle);
+
+    // Atomically update the target file:
+    // https://learn.microsoft.com/en-us/windows/win32/fileio/deprecation-of-txf#applications-updating-a-single-file-with-document-like-data
+
+    status = PhSetFileRename(
+        fileHandle,
+        NULL,
+        TRUE,
+        FileName
+        );
 
 CleanupExit:
     if (fileHandle)

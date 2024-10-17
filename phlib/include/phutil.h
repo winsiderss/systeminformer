@@ -2018,6 +2018,14 @@ PhDelayExecution(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhDelayExecutionEx(
+    _In_ BOOLEAN Alertable,
+    _In_ PLARGE_INTEGER DelayInterval
+    );
+
+PHLIBAPI
 ULONGLONG
 NTAPI
 PhReadTimeStampCounter(

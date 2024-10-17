@@ -1117,14 +1117,14 @@ HINTERNET PhCreateDohRequestHandle(
     return httpRequestHandle;
 }
 
-static _DnsQuery_W DnsQuery_W_I = NULL;
+static typeof(&DnsQuery_W) DnsQuery_W_I = nullptr;
 #if (PHNT_DNSQUERY_FUTURE)
-static _DnsQueryEx DnsQueryEx_I = NULL;
-static _DnsCancelQuery DnsCancelQuery_I = NULL;
+static typeof(&DnsQueryEx) DnsQueryEx_I = nullptr;
+static typeof(&DnsCancelQuery) DnsCancelQuery_I = nullptr;
 #endif
-static _DnsExtractRecordsFromMessage_W DnsExtractRecordsFromMessage_W_I = NULL;
-static _DnsWriteQuestionToBuffer_W DnsWriteQuestionToBuffer_W_I = NULL;
-static _DnsFree DnsFree_I = NULL;
+static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = nullptr;
+static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = nullptr;
+static typeof(&DnsFree) DnsFree_I = nullptr;
 
 static BOOLEAN PhDnsApiInitialized(
     VOID

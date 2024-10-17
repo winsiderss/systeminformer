@@ -287,16 +287,16 @@ PSLIST_ENTRY NTAPI InterlockedFlushSList_Stub(
     return RtlInterlockedFlushSList(ListHead);
 }
 
-DECLSPEC_SELECTANY typeof(&CloseHandle) __imp_CloseHandle = CloseHandle_Stub;
-DECLSPEC_SELECTANY typeof(&GetFileSizeEx) __imp_GetFileSizeEx = GetFileSizeEx_Stub;
-DECLSPEC_SELECTANY typeof(&FlushFileBuffers) __imp_FlushFileBuffers = FlushFileBuffers_Stub;
-DECLSPEC_SELECTANY typeof(&IsDebuggerPresent) __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
-DECLSPEC_SELECTANY typeof(&TerminateProcess) __imp_TerminateProcess = TerminateProcess_Stub;
-DECLSPEC_SELECTANY typeof(&GetCurrentThreadId) __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
-DECLSPEC_SELECTANY typeof(&GetCurrentProcessId) __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
-DECLSPEC_SELECTANY typeof(&GetProcessHeap) __imp_GetProcessHeap = GetProcessHeap_Stub;
-DECLSPEC_SELECTANY typeof(&GetCommandLineA) __imp_GetCommandLineA = GetCommandLineA_Stub;
-DECLSPEC_SELECTANY typeof(&GetCommandLineW) __imp_GetCommandLineW = GetCommandLineW_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;

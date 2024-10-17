@@ -3128,12 +3128,12 @@ HICON PhCreateIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ResourceDirectory,
     _In_ PVOID IconDirectory,
-    _In_ INT32 Width,
-    _In_ INT32 Height,
-    _In_ UINT32 Flags
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ ULONG Flags
     )
 {
-    INT32 iconResourceId;
+    LONG iconResourceId;
     ULONG iconResourceLength;
     PVOID iconResourceBuffer;
 
