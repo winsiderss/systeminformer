@@ -8545,37 +8545,20 @@ NTSTATUS PhCreateProcessClone(
 
 NTSTATUS PhCreateProcessReflection(
     _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessHandle
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE processHandle = ProcessHandle;
+    NTSTATUS status;
     PROCESS_REFLECTION_INFORMATION reflectionInfo = { 0 };
 
-    if (!ProcessHandle)
-    {
-        status = PhOpenProcess(
-            &processHandle,
-            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
-            ProcessId
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-        return status;
-
     status = RtlCreateProcessReflection(
-        processHandle,
+        ProcessHandle,
         RTL_PROCESS_REFLECTION_FLAGS_INHERIT_HANDLES,
         NULL,
         NULL,
         NULL,
         &reflectionInfo
         );
-
-    if (!ProcessHandle && processHandle)
-        NtClose(processHandle);
 
     if (NT_SUCCESS(status))
     {
