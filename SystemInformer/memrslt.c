@@ -18,7 +18,7 @@
 #include <procprv.h>
 #include <settings.h>
 
-#include "../tools/thirdparty/pcre/pcre2.h"
+#include <thirdparty.h>
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2
@@ -33,43 +33,7 @@ typedef struct _MEMORY_RESULTS_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } MEMORY_RESULTS_CONTEXT, *PMEMORY_RESULTS_CONTEXT;
 
-INT_PTR CALLBACK PhpMemoryResultsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 static RECT MinimumSize = { -1, -1, -1, -1 };
-
-VOID PhShowMemoryResultsDialog(
-    _In_ HANDLE ProcessId,
-    _In_ PPH_LIST Results
-    )
-{
-    HWND windowHandle;
-    PMEMORY_RESULTS_CONTEXT context;
-    ULONG i;
-
-    context = PhAllocateZero(sizeof(MEMORY_RESULTS_CONTEXT));
-    context->ProcessId = ProcessId;
-    context->Results = Results;
-
-    PhReferenceObject(Results);
-
-    for (i = 0; i < Results->Count; i++)
-        PhReferenceMemoryResult(Results->Items[i]);
-
-    windowHandle = PhCreateDialog(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_MEMRESULTS),
-        NULL,
-        PhpMemoryResultsDlgProc,
-        context
-        );
-    ShowWindow(windowHandle, SW_SHOW);
-    SetForegroundWindow(windowHandle);
-}
 
 static PPH_STRING PhpGetStringForSelectedResults(
     _In_ HWND ListViewHandle,
@@ -686,7 +650,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                                     showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)result->Address - (ULONG_PTR)basicInfo.BaseAddress);
                                                     showMemoryEditor->SelectLength = (ULONG)result->Length;
 
-                                                    SystemInformer_ShowMemoryResults(showMemoryEditor);
+                                                    SystemInformer_ShowMemoryEditor(showMemoryEditor);
                                                 }
 
                                                 NtClose(processHandle);
@@ -751,4 +715,33 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
     }
 
     return FALSE;
+}
+
+VOID PhShowMemoryResultsDialog(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_LIST Results
+    )
+{
+    HWND windowHandle;
+    PMEMORY_RESULTS_CONTEXT context;
+    ULONG i;
+
+    context = PhAllocateZero(sizeof(MEMORY_RESULTS_CONTEXT));
+    context->ProcessId = ProcessId;
+    context->Results = Results;
+
+    PhReferenceObject(Results);
+
+    for (i = 0; i < Results->Count; i++)
+        PhReferenceMemoryResult(Results->Items[i]);
+
+    windowHandle = PhCreateDialog(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_MEMRESULTS),
+        NULL,
+        PhpMemoryResultsDlgProc,
+        context
+        );
+    ShowWindow(windowHandle, SW_SHOW);
+    SetForegroundWindow(windowHandle);
 }
