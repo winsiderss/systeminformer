@@ -63,6 +63,14 @@ NtUserInternalGetWindowText(
     );
 
 NTSYSCALLAPI
+HICON
+NTAPI
+NtUserInternalGetWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_ ULONG IconType
+    );
+
+NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserGetClassName(
@@ -858,6 +866,29 @@ NtUserPrintWindow(
     _In_ ULONG nFlags
     );
 
+typedef enum _USERTHREADINFOCLASS USERTHREADINFOCLASS;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ USERTHREADINFOCLASS ThreadInformationClass,
+    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserSetInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ USERTHREADINFOCLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength
+    );
+
 NTSYSCALLAPI
 BOOL
 NTAPI
@@ -975,14 +1006,6 @@ BOOL
 NTAPI
 NtUserSetProcessRestrictionExemption(
     _In_ BOOL EnableExemption
-    );
-
-NTSYSCALLAPI
-BOOL
-NTAPI
-NtUserSetWindowPlacement(
-    _In_ HWND WindowHandle,
-    _In_ const WINDOWPLACEMENT* lpwndpl
     );
 
 NTSYSCALLAPI
