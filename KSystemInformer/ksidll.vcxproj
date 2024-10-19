@@ -112,7 +112,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -123,6 +123,7 @@
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <BuildStlModules>false</BuildStlModules>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -149,7 +150,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <WppEnabled>true</WppEnabled>
@@ -160,6 +161,7 @@
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -185,7 +187,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
@@ -200,6 +202,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -226,7 +229,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <WppEnabled>true</WppEnabled>
@@ -240,6 +243,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>

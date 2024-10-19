@@ -1,39 +1,49 @@
+// Microsoft Visual C++ generated resource script.
+//
 #pragma code_page(65001)
 
 #include <windows.h>
 #include <sistatus.rc>
 
-#define VER_COMMA 3,2,1,0
-#define VER_STR "3.2\0"
+#define VER_FILEVERSION             3,2,1,0
+#define VER_FILEVERSION_STR         "3.2\0"
 
-#define VER_FILEVERSION VER_COMMA
-#define VER_FILEVERSION_STR VER_STR
-#define VER_PRODUCTVERSION VER_COMMA
-#define VER_PRODUCTVERSION_STR VER_STR
+#define VER_PRODUCTVERSION          VER_FILEVERSION
+#define VER_PRODUCTVERSION_STR      VER_FILEVERSION_STR
 
-#ifndef DEBUG
-#define VER_DEBUG 0
+#if DEBUG
+#define VER_DEBUG                   VS_FF_DEBUG
+#define VER_PRERELEASE              VS_FF_PRERELEASE
+#define VER_PRIVATE                 VS_FF_PRIVATEBUILD
 #else
-#define VER_DEBUG VS_FF_DEBUG
+#define VER_DEBUG                   0
+#define VER_PRERELEASE              0
+#define VER_PRIVATE                 0
 #endif
 
-#define VER_PRIVATEBUILD 0
-#define VER_PRERELEASE 0
+#define VER_FILEFLAGSMASK           VS_FFI_FILEFLAGSMASK
+#define VER_FILEFLAGS               (VER_PRERELEASE | VER_DEBUG | VER_PRIVATE)
+#define VER_FILEOS                  VOS_NT_WINDOWS32
 
-#define VER_COMPANYNAME_STR "System Informer\0"
-#define VER_FILEDESCRIPTION_STR "System Informer\0"
-#define VER_LEGALCOPYRIGHT_STR "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved.\0"
-#define VER_ORIGINALFILENAME_STR "SystemInformer.sys\0"
-#define VER_PRODUCTNAME_STR "System Informer\0"
+#define VER_FILETYPE                VFT_DRV
+#define VER_FILESUBTYPE             VFT2_DRV_SYSTEM
 
+#define VER_COMPANYNAME_STR         "System Informer\0"
+#define VER_FILEDESCRIPTION_STR     "System Informer\0"
+#define VER_LEGALCOPYRIGHT_STR      "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved.\0"
+#define VER_ORIGINALFILENAME_STR    "SystemInformer.sys\0"
+#define VER_INTERNALNAME_STR        "SystemInformer.sys\0"
+#define VER_PRODUCTNAME_STR         "System Informer\0"
+
+#if !defined(DEFAULT_VERSIONINFO)
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION    	VER_FILEVERSION
-PRODUCTVERSION 	VER_PRODUCTVERSION
-FILEFLAGSMASK  	VS_FFI_FILEFLAGSMASK
-FILEFLAGS      	(VER_PRIVATEBUILD | VER_PRERELEASE | VER_DEBUG)
-FILEOS         	VOS__WINDOWS32
-FILETYPE       	VFT_DRV
-FILESUBTYPE    	VFT2_DRV_SYSTEM
+FILEVERSION     VER_FILEVERSION
+PRODUCTVERSION  VER_PRODUCTVERSION
+FILEFLAGSMASK   VER_FILEFLAGSMASK
+FILEFLAGS       VER_FILEFLAGS
+FILEOS          VER_FILEOS
+FILETYPE        VER_FILETYPE
+FILESUBTYPE     VER_FILESUBTYPE
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -42,16 +52,19 @@ BEGIN
             VALUE "CompanyName",      VER_COMPANYNAME_STR
             VALUE "FileDescription",  VER_FILEDESCRIPTION_STR
             VALUE "FileVersion",      VER_FILEVERSION_STR
-            VALUE "InternalName",     VER_ORIGINALFILENAME_STR
+            VALUE "InternalName",     VER_INTERNALNAME_STR
             VALUE "LegalCopyright",   VER_LEGALCOPYRIGHT_STR
             VALUE "OriginalFilename", VER_ORIGINALFILENAME_STR
             VALUE "ProductName",      VER_PRODUCTNAME_STR
             VALUE "ProductVersion",   VER_PRODUCTVERSION_STR
         END
     END
-
     BLOCK "VarFileInfo"
     BEGIN
         VALUE "Translation", 0x409, 1252
     END
 END
+#else
+#include <ntverp.h>
+#include "common.ver"
+#endif

@@ -162,6 +162,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -194,6 +205,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -219,6 +241,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -247,6 +280,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -279,6 +323,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -309,6 +364,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
