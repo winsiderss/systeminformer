@@ -14,10 +14,10 @@
 #include <kphmsg.h>
 
 #ifdef KPH_INFORMER_P
-#define KPH_DEFINE_INFORMER_SETTING(name)                                     \
-    const KPH_INFORMER_SETTINGS KphInformer##name = { .##name = TRUE }
+#define KPH_DEFINE_INFORMER_SETTING(name)                                      \
+    const KPH_INFORMER_SETTINGS KphInformer##name = { .name = TRUE }
 #else
-#define KPH_DEFINE_INFORMER_SETTING(name)                                     \
+#define KPH_DEFINE_INFORMER_SETTING(name)                                      \
     extern const KPH_INFORMER_SETTINGS KphInformer##name
 #endif
 

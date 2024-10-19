@@ -77,18 +77,18 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
         process = KphGetSystemProcessContext();
     }
 
-#define KPH_FLT_SETTING(majorFunction, name)                                  \
-    case majorFunction:                                                       \
-    {                                                                         \
-        if (KphInformerEnabled(FilePre##name, process))                       \
-        {                                                                     \
-            options.PreEnabled = TRUE;                                        \
-        }                                                                     \
-        if (KphInformerEnabled(FilePost##name, process))                      \
-        {                                                                     \
-            options.PostEnabled = TRUE;                                       \
-        }                                                                     \
-        break;                                                                \
+#define KPH_FLT_SETTING(majorFunction, name)                                   \
+    case majorFunction:                                                        \
+    {                                                                          \
+        if (KphInformerEnabled(FilePre##name, process))                        \
+        {                                                                      \
+            options.PreEnabled = TRUE;                                         \
+        }                                                                      \
+        if (KphInformerEnabled(FilePost##name, process))                       \
+        {                                                                      \
+            options.PostEnabled = TRUE;                                        \
+        }                                                                      \
+        break;                                                                 \
     }
 
     switch (Data->Iopb->MajorFunction)

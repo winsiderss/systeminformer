@@ -121,8 +121,8 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     dyn = Object;
     init = Parameter;
 
-#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->##x = C_2sTo4(init->Kernel->##x)
-#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->##x = init->Lxcore ? C_2sTo4(init->Lxcore->##x) : ULONG_MAX;
+#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = C_2sTo4(init->Kernel->x)
+#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
 
     KPH_LOAD_DYNITEM_KERNEL(EgeGuid);
     KPH_LOAD_DYNITEM_KERNEL(EpObjectTable);

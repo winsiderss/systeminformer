@@ -76,14 +76,14 @@ KPH_OB_OPTIONS KphpObGetOptions(
         process = KphGetCurrentProcessContext();
     }
 
-#define KPH_OB_SETTING(name)                                                  \
-    if (KphInformerEnabled(HandlePre##name, process))                         \
-    {                                                                         \
-        options.PreEnabled = TRUE;                                            \
-    }                                                                         \
-    if (KphInformerEnabled(HandlePost##name, process))                        \
-    {                                                                         \
-        options.PostEnabled = TRUE;                                           \
+#define KPH_OB_SETTING(name)                                                   \
+    if (KphInformerEnabled(HandlePre##name, process))                          \
+    {                                                                          \
+        options.PreEnabled = TRUE;                                             \
+    }                                                                          \
+    if (KphInformerEnabled(HandlePost##name, process))                         \
+    {                                                                          \
+        options.PostEnabled = TRUE;                                            \
     }
 
     if (Info->Operation == OB_OPERATION_HANDLE_CREATE)

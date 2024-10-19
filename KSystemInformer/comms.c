@@ -892,7 +892,7 @@ VOID KphGetMessageTimeouts(
     KPH_PAGED_CODE();
 
 #define KPH_GET_MESSAGE_TIMEOUT(t) \
-    Timeouts->##t.QuadPart = Client->MessageTimeouts.##t.QuadPart
+    Timeouts->t.QuadPart = Client->MessageTimeouts.t.QuadPart
 
     KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
@@ -922,7 +922,7 @@ NTSTATUS KphSetMessageTimeouts(
     // to the minimum timeout.
     //
 #define KPH_VALIDATE_MESSAGE_TIMEOUT(t) \
-    (Timeouts->##t.QuadPart <= KphpMessageMinTimeout.QuadPart)
+    (Timeouts->t.QuadPart <= KphpMessageMinTimeout.QuadPart)
 
     if (!KPH_VALIDATE_MESSAGE_TIMEOUT(AsyncTimeout) ||
         !KPH_VALIDATE_MESSAGE_TIMEOUT(DefaultTimeout) ||
@@ -934,7 +934,7 @@ NTSTATUS KphSetMessageTimeouts(
     }
 
 #define KPH_SET_MESSAGE_TIMEOUT(t) \
-    Client->MessageTimeouts.##t.QuadPart = Timeouts->##t.QuadPart
+    Client->MessageTimeouts.t.QuadPart = Timeouts->t.QuadPart
 
     KPH_SET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_SET_MESSAGE_TIMEOUT(DefaultTimeout);

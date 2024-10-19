@@ -61,17 +61,17 @@ PVOID KphSearchMemory(
     //
     // Optimization for a pattern size that fits into a register.
     //
-#define KPH_SEARCH_MEMORY_SIZED(type)                                         \
-    case sizeof(type):                                                        \
-    {                                                                         \
-        KPH_SEARCH_MEMORY_FOR                                                 \
-        {                                                                     \
-            if (*(type*)buffer == *(type*)Pattern)                            \
-            {                                                                 \
-                return buffer;                                                \
-            }                                                                 \
-        }                                                                     \
-        break;                                                                \
+#define KPH_SEARCH_MEMORY_SIZED(type)                                          \
+    case sizeof(type):                                                         \
+    {                                                                          \
+        KPH_SEARCH_MEMORY_FOR                                                  \
+        {                                                                      \
+            if (*(type*)buffer == *(type*)Pattern)                             \
+            {                                                                  \
+                return buffer;                                                 \
+            }                                                                  \
+        }                                                                      \
+        break;                                                                 \
     }
 
     switch (PatternLength)

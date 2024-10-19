@@ -124,6 +124,7 @@
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <BuildStlModules>false</BuildStlModules>
       <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -162,6 +163,7 @@
       <BuildStlModules>false</BuildStlModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -203,6 +205,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -244,6 +247,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>

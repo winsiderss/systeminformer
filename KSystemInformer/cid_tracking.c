@@ -630,8 +630,7 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     if (process->ImageFileName)
     {
-#pragma warning(suppress: 4995) // intentional use of ExFreePool
-        ExFreePool(process->ImageFileName);
+        KphFreePool(process->ImageFileName);
     }
 
     if (process->AllocatedImageName)
@@ -1456,11 +1455,11 @@ BOOLEAN KSIAPI KphpCidEnumPostPopulate(
 
 // from phnative.h
 #define KPH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
-#define KPH_NEXT_PROCESS(Process) (                                           \
-    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ?               \
-    (PSYSTEM_PROCESS_INFORMATION)Add2Ptr((Process),                           \
-    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) :              \
-    NULL                                                                      \
+#define KPH_NEXT_PROCESS(Process) (                                            \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ?                \
+    (PSYSTEM_PROCESS_INFORMATION)Add2Ptr((Process),                            \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) :               \
+    NULL                                                                       \
     )
 
 /**

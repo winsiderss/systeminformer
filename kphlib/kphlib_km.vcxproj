@@ -150,6 +150,7 @@
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -191,6 +192,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -229,6 +231,7 @@
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -268,6 +271,7 @@
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -309,6 +313,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -352,6 +357,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>

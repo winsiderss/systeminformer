@@ -306,8 +306,7 @@ NTSTATUS KphQueryInformationDriver(
                 }
             }
 
-#pragma warning(suppress: 4995) // intentional use of ExFreePool
-            ExFreePool(fullDriverPath.Buffer);
+            KphFreePool(fullDriverPath.Buffer);
             break;
         }
         default:

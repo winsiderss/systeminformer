@@ -126,23 +126,23 @@ KPH_REG_OPTIONS KphpRegGetOptions(
         process = KphGetSystemProcessContext();
     }
 
-#define KPH_REG_SETTING2(reg, name)                                           \
-    case RegNtPre##reg:                                                       \
-    {                                                                         \
-        if (KphInformerEnabled(RegPre##name, process))                        \
-        {                                                                     \
-            options.PreEnabled = TRUE;                                        \
-        }                                                                     \
-        if (KphInformerEnabled(RegPost##name, process))                       \
-        {                                                                     \
-            options.PostEnabled = TRUE;                                       \
-        }                                                                     \
-        break;                                                                \
-    }                                                                         \
-    case RegNtPost##reg:                                                      \
-    {                                                                         \
-        options.InPost = TRUE;                                                \
-        break;                                                                \
+#define KPH_REG_SETTING2(reg, name)                                            \
+    case RegNtPre##reg:                                                        \
+    {                                                                          \
+        if (KphInformerEnabled(RegPre##name, process))                         \
+        {                                                                      \
+            options.PreEnabled = TRUE;                                         \
+        }                                                                      \
+        if (KphInformerEnabled(RegPost##name, process))                        \
+        {                                                                      \
+            options.PostEnabled = TRUE;                                        \
+        }                                                                      \
+        break;                                                                 \
+    }                                                                          \
+    case RegNtPost##reg:                                                       \
+    {                                                                          \
+        options.InPost = TRUE;                                                 \
+        break;                                                                 \
     }
 #define KPH_REG_SETTING(name) KPH_REG_SETTING2(name, name)
 
@@ -282,8 +282,8 @@ VOID KphpRegFillCommonMessage(
     Message->Kernel.Reg.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     Message->Kernel.Reg.PreviousMode = (ExGetPreviousMode() != KernelMode);
 
-#define KPH_REG_COPY_PARAMETER(name, value)                                   \
-    Message->Kernel.Reg.Parameters.##name.##value = PreInfo->##name.##value
+#define KPH_REG_COPY_PARAMETER(name, value)                                    \
+    Message->Kernel.Reg.Parameters.name.value = PreInfo->name.value
 
     switch (RegClass)
     {
@@ -1458,17 +1458,17 @@ VOID KphpRegFillPostOpMessage(
 
     KphpRegFillCommonMessage(Message, RegClass, preInfo);
 
-#define KPH_REG_COPY_OUT_PARAM(n, v)                                          \
-    if (preInfo->##n.##v)                                                     \
-    {                                                                         \
-        __try                                                                 \
-        {                                                                     \
-            Message->Kernel.Reg.Post.##n.##v = *preInfo->##n.##v;             \
-        }                                                                     \
-        __except (EXCEPTION_EXECUTE_HANDLER)                                  \
-        {                                                                     \
-            Message->Kernel.Reg.Post.##n.##v = 0;                             \
-        }                                                                     \
+#define KPH_REG_COPY_OUT_PARAM(n, v)                                           \
+    if (preInfo->n.v)                                                          \
+    {                                                                          \
+        __try                                                                  \
+        {                                                                      \
+            Message->Kernel.Reg.Post.n.v = *preInfo->n.v;                      \
+        }                                                                      \
+        __except (EXCEPTION_EXECUTE_HANDLER)                                   \
+        {                                                                      \
+            Message->Kernel.Reg.Post.n.v = 0;                                  \
+        }                                                                      \
     }
 
     switch (RegClass)
@@ -1803,17 +1803,17 @@ VOID KphpRegFillPreOpMessage(
 
     KphpRegFillCommonMessage(Message, RegClass, PreInfo);
 
-#define KPH_REG_COPY_IN_PARAM(n, v)                                           \
-    if (PreInfo->##n.##v)                                                     \
-    {                                                                         \
-        __try                                                                 \
-        {                                                                     \
-            Message->Kernel.Reg.Pre.##n.##v = *PreInfo->##n.##v;              \
-        }                                                                     \
-        __except (EXCEPTION_EXECUTE_HANDLER)                                  \
-        {                                                                     \
-            Message->Kernel.Reg.Pre.##n.##v = 0;                              \
-        }                                                                     \
+#define KPH_REG_COPY_IN_PARAM(n, v)                                            \
+    if (PreInfo->n.v)                                                          \
+    {                                                                          \
+        __try                                                                  \
+        {                                                                      \
+            Message->Kernel.Reg.Pre.n.v = *PreInfo->n.v;                       \
+        }                                                                      \
+        __except (EXCEPTION_EXECUTE_HANDLER)                                   \
+        {                                                                      \
+            Message->Kernel.Reg.Pre.n.v = 0;                                   \
+        }                                                                      \
     }
 
     switch (RegClass)
@@ -2119,13 +2119,13 @@ NTSTATUS KphpRegPreOpSetCallContext(
 
     status = STATUS_SUCCESS;
 
-#define KPH_REG_SET_CALL_CONTEXT2(reg, name)                                  \
-    case RegNtPre##reg:                                                       \
-    {                                                                         \
-        NT_ASSERT(!PreInfo->##name.CallContext);                              \
-        PreInfo->##name.CallContext = context;                                \
-        context = NULL;                                                       \
-        break;                                                                \
+#define KPH_REG_SET_CALL_CONTEXT2(reg, name)                                   \
+    case RegNtPre##reg:                                                        \
+    {                                                                          \
+        NT_ASSERT(!PreInfo->name.CallContext);                                 \
+        PreInfo->name.CallContext = context;                                   \
+        context = NULL;                                                        \
+        break;                                                                 \
     }
 #define KPH_REG_SET_CALL_CONTEXT(name) KPH_REG_SET_CALL_CONTEXT2(name, name)
 
