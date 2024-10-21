@@ -198,9 +198,10 @@ NTSTATUS EtTpmReadPublic(
 }
 
 _Must_inspect_result_
-NTSTATUS EtTpmRead(
+NTSTATUS EtTpmReadOffset(
     _In_ TBS_HCONTEXT TbsContextHandle,
     _In_ TPM_NV_INDEX Index,
+    _In_ USHORT Offset,
     _Out_writes_bytes_all_(DataSize) PBYTE Data,
     _In_ USHORT DataSize
     )
@@ -232,7 +233,7 @@ NTSTATUS EtTpmRead(
     command->AuthSession.PasswordSize = 0;
     footer = (TPM_NV_READ_CMD_FOOTER*)&command->AuthSession.Password[0];
 
-    footer->Offset = 0;
+    footer->Offset = _byteswap_ushort(Offset);
     footer->Size = _byteswap_ushort(DataSize);
 
     size = FIELD_OFFSET(TPM_NV_READ_REPLY, Data);
@@ -273,6 +274,50 @@ CleanupExit:
     PhFree(reply);
 
     return status;
+}
+
+_Must_inspect_result_
+NTSTATUS EtTpmRead(
+    _In_ TBS_HCONTEXT TbsContextHandle,
+    _In_ TPM_NV_INDEX Index,
+    _Out_writes_bytes_all_(DataSize) PBYTE Data,
+    _In_ USHORT DataSize
+    )
+{
+    NTSTATUS status;
+    USHORT remaining;
+    USHORT offset;
+
+    RtlZeroMemory(Data, DataSize);
+
+    remaining = DataSize;
+    offset = 0;
+
+    while (remaining)
+    {
+        USHORT readSize;
+
+        //
+        // Certain TPMs do not support reads over a certain sizes that is
+        // smaller than the specification recommends.
+        //
+        readSize = min(remaining, 512);
+
+        status = EtTpmReadOffset(TbsContextHandle,
+                                 Index,
+                                 offset,
+                                 PTR_ADD_OFFSET(Data, offset),
+                                 readSize);
+        if (!NT_SUCCESS(status))
+        {
+            return status;
+        }
+
+        offset += readSize;
+        remaining -= readSize;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS TpmOpen(
