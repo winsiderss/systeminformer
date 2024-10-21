@@ -165,6 +165,13 @@
 #define IDD_TPM                         50002
 #define IDC_TPM_LIST                    50003
 #define IDC_TPM_LIST_REFRESH            50004
+#define IDD_TPM_EDIT                    50005
+#define IDC_TPM_HEXEDIT                 50006
+#define IDC_TPM_REREAD                  50007
+#define IDC_TPM_WRITE                   50008
+#define IDC_TPM_SAVE                    50009
+#define IDC_TPM_BYTESPERROW             50010
+
 
 // Next default values for new objects
 //

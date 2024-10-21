@@ -10,9 +10,7 @@
  */
 
 #include "exttools.h"
-#include "tpm.h"
 #include "secedit.h"
-#include <tbs.h>
 
 const TPM_RH TpmRHOwner = TPM_RH_OWNER;
 const TPM_RH TpmRHNull = TPM_RH_NULL;
@@ -60,6 +58,127 @@ typedef struct _TPM_WINDOW_CONTEXT
     HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
 } TPM_WINDOW_CONTEXT, *PTPM_WINDOW_CONTEXT;
+
+NTSTATUS EtTpmReturnCodeToStatus(
+    _In_ ULONG ReturnCode
+    )
+{
+#define ET_TPM_20_EC_MAP(n) case TPM_RC_##n: return STATUS_TPM_20_E_##n
+
+    switch (_byteswap_ulong(ReturnCode))
+    {
+    case TPM_RC_SUCCESS:
+        return STATUS_SUCCESS;
+    case TPM_RC_BAD_TAG:
+        return STATUS_TPM_BADTAG;
+    ET_TPM_20_EC_MAP(INITIALIZE);
+    ET_TPM_20_EC_MAP(FAILURE);
+    ET_TPM_20_EC_MAP(SEQUENCE);
+    ET_TPM_20_EC_MAP(PRIVATE);
+    ET_TPM_20_EC_MAP(HMAC);
+    ET_TPM_20_EC_MAP(DISABLED);
+    ET_TPM_20_EC_MAP(EXCLUSIVE);
+    ET_TPM_20_EC_MAP(AUTH_TYPE);
+    ET_TPM_20_EC_MAP(POLICY);
+    ET_TPM_20_EC_MAP(PCR);
+    ET_TPM_20_EC_MAP(PCR_CHANGED);
+    ET_TPM_20_EC_MAP(UPGRADE);
+    ET_TPM_20_EC_MAP(TOO_MANY_CONTEXTS);
+    ET_TPM_20_EC_MAP(AUTH_UNAVAILABLE);
+    ET_TPM_20_EC_MAP(REBOOT);
+    ET_TPM_20_EC_MAP(UNBALANCED);
+    ET_TPM_20_EC_MAP(COMMAND_SIZE);
+    ET_TPM_20_EC_MAP(COMMAND_CODE);
+    ET_TPM_20_EC_MAP(AUTHSIZE);
+    ET_TPM_20_EC_MAP(AUTH_CONTEXT);
+    ET_TPM_20_EC_MAP(NV_RANGE);
+    ET_TPM_20_EC_MAP(NV_SIZE);
+    ET_TPM_20_EC_MAP(NV_AUTHORIZATION);
+    ET_TPM_20_EC_MAP(NV_UNINITIALIZED);
+    ET_TPM_20_EC_MAP(NV_SPACE);
+    ET_TPM_20_EC_MAP(NV_DEFINED);
+    ET_TPM_20_EC_MAP(BAD_CONTEXT);
+    ET_TPM_20_EC_MAP(CPHASH);
+    ET_TPM_20_EC_MAP(PARENT);
+    ET_TPM_20_EC_MAP(NEEDS_TEST);
+    ET_TPM_20_EC_MAP(NO_RESULT);
+    ET_TPM_20_EC_MAP(SENSITIVE);
+    ET_TPM_20_EC_MAP(ASYMMETRIC);
+    ET_TPM_20_EC_MAP(ATTRIBUTES);
+    ET_TPM_20_EC_MAP(HASH);
+    ET_TPM_20_EC_MAP(VALUE);
+    ET_TPM_20_EC_MAP(HIERARCHY);
+    ET_TPM_20_EC_MAP(KEY_SIZE);
+    ET_TPM_20_EC_MAP(MGF);
+    ET_TPM_20_EC_MAP(MODE);
+    ET_TPM_20_EC_MAP(TYPE);
+    ET_TPM_20_EC_MAP(HANDLE);
+    ET_TPM_20_EC_MAP(KDF);
+    ET_TPM_20_EC_MAP(RANGE);
+    ET_TPM_20_EC_MAP(AUTH_FAIL);
+    ET_TPM_20_EC_MAP(NONCE);
+    ET_TPM_20_EC_MAP(PP);
+    ET_TPM_20_EC_MAP(SCHEME);
+    ET_TPM_20_EC_MAP(SIZE);
+    ET_TPM_20_EC_MAP(SYMMETRIC);
+    ET_TPM_20_EC_MAP(TAG);
+    ET_TPM_20_EC_MAP(SELECTOR);
+    ET_TPM_20_EC_MAP(INSUFFICIENT);
+    ET_TPM_20_EC_MAP(SIGNATURE);
+    ET_TPM_20_EC_MAP(KEY);
+    ET_TPM_20_EC_MAP(POLICY_FAIL);
+    ET_TPM_20_EC_MAP(INTEGRITY);
+    ET_TPM_20_EC_MAP(TICKET);
+    ET_TPM_20_EC_MAP(RESERVED_BITS);
+    ET_TPM_20_EC_MAP(BAD_AUTH);
+    ET_TPM_20_EC_MAP(EXPIRED);
+    ET_TPM_20_EC_MAP(POLICY_CC);
+    ET_TPM_20_EC_MAP(BINDING);
+    ET_TPM_20_EC_MAP(CURVE);
+    ET_TPM_20_EC_MAP(ECC_POINT);
+    case TPM_RC_CONTEXT_GAP:
+        return STATUS_TPM_CONTEXT_GAP;
+    case TPM_RC_OBJECT_MEMORY:
+    case TPM_RC_SESSION_MEMORY:
+    case TPM_RC_MEMORY:
+        return STATUS_TPM_NOSPACE;
+    case TPM_RC_SESSION_HANDLES:
+    case TPM_RC_OBJECT_HANDLES:
+        return STATUS_TPM_BAD_HANDLE;
+    case TPM_RC_LOCALITY:
+        return STATUS_TPM_BAD_LOCALITY;
+    case TPM_RC_YIELDED:
+    case TPM_RC_CANCELED:
+        return STATUS_TPM_COMMAND_CANCELED;
+    case TPM_RC_TESTING:
+        return STATUS_TPM_DOING_SELFTEST;
+    case TPM_RC_REFERENCE_H0:
+    case TPM_RC_REFERENCE_H1:
+    case TPM_RC_REFERENCE_H2:
+    case TPM_RC_REFERENCE_H3:
+    case TPM_RC_REFERENCE_H4:
+    case TPM_RC_REFERENCE_H5:
+    case TPM_RC_REFERENCE_H6:
+    case TPM_RC_REFERENCE_S0:
+    case TPM_RC_REFERENCE_S1:
+    case TPM_RC_REFERENCE_S2:
+    case TPM_RC_REFERENCE_S3:
+    case TPM_RC_REFERENCE_S4:
+    case TPM_RC_REFERENCE_S5:
+    case TPM_RC_REFERENCE_S6:
+        return STATUS_TPM_BAD_HANDLE;
+    case TPM_RC_NV_RATE:
+        return STATUS_TPM_RETRY;
+    case TPM_RC_LOCKOUT:
+        return STATUS_TPM_AREA_LOCKED;
+    case TPM_RC_RETRY:
+        return STATUS_TPM_RETRY;
+    case TPM_RC_NV_UNAVAILABLE:
+        return STATUS_NOT_FOUND;
+    default:
+        return STATUS_UNSUCCESSFUL;
+    }
+}
 
 _Must_inspect_result_
 NTSTATUS EtTpmOpen(
@@ -133,7 +252,7 @@ NTSTATUS EtTpmQueryIndices(
     if (reply.Header.ResponseCode != TPM_RC_SUCCESS)
     {
         *IndexCount = 0;
-        return STATUS_TPM_20_E_FAILURE;
+        return EtTpmReturnCodeToStatus(reply.Header.ResponseCode);
     }
 
     indexCount = _byteswap_ulong(reply.Data.Data.Handles.Count);
@@ -189,7 +308,7 @@ NTSTATUS EtTpmReadPublic(
     }
 
     if (reply.Header.ResponseCode != TPM_RC_SUCCESS)
-        return STATUS_TPM_20_E_FAILURE;
+        return EtTpmReturnCodeToStatus(reply.Header.ResponseCode);
 
     *Attributes = _byteswap_ulong(reply.NvPublic.Attributes);
     *DataSize = _byteswap_ushort(reply.NvPublic.DataSize);
@@ -258,7 +377,7 @@ NTSTATUS EtTpmReadOffset(
 
     if (reply->Header.ResponseCode != TPM_RC_SUCCESS)
     {
-        status = STATUS_TPM_20_E_FAILURE;
+        status = EtTpmReturnCodeToStatus(reply->Header.ResponseCode);
         goto CleanupExit;
     }
 
@@ -509,12 +628,11 @@ NTSTATUS EtEnumerateTpmEntries(
     {
         INT lvItemIndex;
         USHORT dataSize;
-        PBYTE data;
         PPH_STRING string;
         TPMA_NV attributes;
 
         string = PhFormatString(L"0x%08lx", indices[i].Value);
-        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, string->Buffer, NULL);
+        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, string->Buffer, ULongToPtr(indices[i].Value));
         PhDereferenceObject(string);
 
         if (!NT_SUCCESS(EtTpmReadPublic(
@@ -524,13 +642,6 @@ NTSTATUS EtEnumerateTpmEntries(
             &dataSize
             )))
             continue;
-
-        data = PhAllocateZero(dataSize);
-        if (!NT_SUCCESS(EtTpmRead(tbsContextHandle, indices[i], data, dataSize)))
-        {
-            PhFree(data);
-            data = NULL;
-        }
 
         string = PhFormatSize(dataSize, ULONG_MAX);
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, string->Buffer);
@@ -576,14 +687,6 @@ NTSTATUS EtEnumerateTpmEntries(
         string = EtMakeTpmAttributesString(attributes);
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, string->Buffer);
         PhDereferenceObject(string);
-
-        if (data)
-        {
-            string = PhBufferToHexString(data, dataSize);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, string->Buffer);
-            PhDereferenceObject(string);
-            PhFree(data);
-        }
     }
 
     ExtendedListView_SortItems(Context->ListViewHandle);
@@ -663,8 +766,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 85, L"Owner rights");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 85, L"Auth rights");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 85, L"Platform rights");
-            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Attributes");
-            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 200, L"Data");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 400, L"Attributes");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_TPM_LISTVIEW_COLUMNS, context->ListViewHandle);
@@ -725,15 +827,77 @@ INT_PTR CALLBACK EtTpmDlgProc(
                 {
                     if (hdr->hwndFrom == context->ListViewHandle)
                     {
-                        PEFI_ENTRY entry;
+                        PVOID entry;
 
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
-                            EtShowFirmwareEditDialog(hwndDlg, entry);
+                            TPM_NV_INDEX index;
+                            index.Value = PtrToUlong(entry);
+                            EtShowTpmEditDialog(hwndDlg, index);
                         }
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Edit", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case 1:
+                                TPM_NV_INDEX index;
+                                index.Value = PtrToUlong(listviewItems[0]);
+                                EtShowTpmEditDialog(hwndDlg, index);
+                                break;
+                            case PHAPP_IDC_COPY:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
             }
         }
         break;

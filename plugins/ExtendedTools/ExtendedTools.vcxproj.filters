@@ -177,6 +177,9 @@
     <ClCompile Include="npusys.c">
       <Filter>Source Files\Neural</Filter>
     </ClCompile>
+    <ClCompile Include="tpm_editor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
