@@ -150,7 +150,7 @@ typedef ULONG TPM_PT;
 //
 // TPM2.0 Session Attributes
 //
-typedef union
+typedef union _TPMA_SESSION
 {
     struct
     {
@@ -173,7 +173,7 @@ typedef BYTE TPMI_YES_NO;
 //
 // Definition of a TPM2.0 Handle
 //
-typedef union
+typedef union _TPM_HANDLE
 {
     struct
     {
@@ -193,7 +193,7 @@ C_ASSERT(sizeof(TPM_HANDLE) == sizeof(ULONG));
 // TPM2.0 Hash Algorithm Sizes
 // Only SHA-256 supported for now
 //
-typedef union
+typedef union _TPMU_HA
 {
     BYTE Sha256[32];
 } TPMU_HA;
@@ -201,7 +201,7 @@ typedef union
 //
 // Definition of a TPM2.0 Hash Agile Structure (Algorithm and Digest)
 //
-typedef struct
+typedef struct _TPMT_HA
 {
     TPM_ALG HashAlg;
     TPMU_HA Digest;
@@ -210,7 +210,7 @@ typedef struct
 //
 // Definition of a Hash Digest Buffer, which encodes a TPM2.0 Hash Agile
 //
-typedef struct
+typedef struct _TPM2B_DIGEST
 {
     USHORT BufferSize;
     TPMT_HA Buffer;
@@ -219,7 +219,7 @@ typedef struct
 //
 // Definition of a maximum sized buffer
 //
-typedef struct
+typedef struct _TPM2B_MAX_BUFFER
 {
     USHORT Size;
     BYTE Buffer[1024];
@@ -228,14 +228,17 @@ typedef struct
 //
 // Architecturally Defined Permanent Handles
 //
-#define TPM_RH_OWNER TPM_RH{ 1, 0, 0, TPM_HT_PERMANENT }
-#define TPM_RH_NULL TPM_RH{ 7, 0, 0, TPM_HT_PERMANENT }
-#define TPM_RS_PW TPM_RH{ 9, 0, 0, TPM_HT_PERMANENT }
+#define TPM_RH_OWNER { 1, 0, 0, TPM_HT_PERMANENT }
+#define TPM_RH_NULL  { 7, 0, 0, TPM_HT_PERMANENT }
+#define TPM_RS_PW    { 9, 0, 0, TPM_HT_PERMANENT }
+extern const TPM_RH TpmRHOwner;
+extern const TPM_RH TpmRHNull;
+extern const TPM_RH TpmRSPassword;
 
 //
 // TPM2.0 Handle List
 //
-typedef struct
+typedef struct _TPML_HANDLE
 {
     ULONG Count;
     TPM_HANDLE Handle[TPM_MAX_CAP_HANDLES];
@@ -244,7 +247,7 @@ typedef struct
 //
 // TPM2.0 Ticket for Hash Check
 //
-typedef struct
+typedef struct _TPMT_TK_HASHCHECK
 {
     TPM_ST Tag;
     TPMI_RH_HIERARCHY Hierarchy;
@@ -254,7 +257,7 @@ typedef struct
 //
 // TPM2.0 Union of capability data returned by TPM2_CC_GetCapabilities
 //
-typedef union
+typedef union _TPMU_CAPABILITIES
 {
     TPML_HANDLE Handles;
 } TPMU_CAPABILITIES, *PTPMU_CAPABILITIES;
@@ -262,7 +265,7 @@ typedef union
 //
 // TPM2.0 Payload for each capablity returned by TPM2_CC_GetCapabilities
 //
-typedef struct
+typedef struct _TPMS_CAPABILITY_DATA
 {
     TPM_CAP Capability;
     TPMU_CAPABILITIES Data;
@@ -271,7 +274,7 @@ typedef struct
 //
 // TPM2.0 Payload for TPM2_CC_ReadClock
 //
-typedef struct
+typedef struct _TPMS_CLOCK_INFO
 {
     ULONG64 Clock;
     ULONG ResetCount;
@@ -279,7 +282,7 @@ typedef struct
     TPMI_YES_NO Safe;
 } TPMS_CLOCK_INFO;
 
-typedef struct
+typedef struct _TPMS_TIME_INFO
 {
     ULONG64 Time;
     TPMS_CLOCK_INFO ClockInfo;
@@ -288,7 +291,7 @@ typedef struct
 //
 // Definition of the header of any TPM2.0 Command
 //
-typedef struct
+typedef struct _TPM_CMD_HEADER
 {
     TPM_ST SessionTag;
     ULONG Size;
@@ -298,7 +301,7 @@ typedef struct
 //
 // Definition of the header of any TPM2.0 Response
 //
-typedef struct
+typedef struct _TPM_REPLY_HEADER
 {
     TPM_ST SessionTag;
     ULONG Size;
@@ -310,7 +313,7 @@ C_ASSERT(sizeof(TPM_CMD_HEADER) == sizeof(TPM_REPLY_HEADER));
 // Attached to any TPM2.0 Response with TPM_ST_SESSIONS when an authorization
 // session with no nonce was sent.
 //
-typedef struct
+typedef struct _TPMS_AUTH_RESPONSE_NO_NONCE
 {
     USHORT NonceSize;
     TPMA_SESSION SessionAttributes;
@@ -321,7 +324,7 @@ typedef struct
 // Attached to any TPM2.0 Command with TPM_ST_SESSIONS and an authorization
 // session with no nonce but with an optional HMAC/password present.
 //
-typedef struct
+typedef struct _TPMS_AUTH_COMMAND_NO_NONCE
 {
     ULONG SessionSize;
     TPMI_SH_AUTH_SESSION SessionHandle;
@@ -334,7 +337,7 @@ typedef struct
 //
 // NV_ReadLock
 //
-typedef struct
+typedef struct _TPM_NV_READ_LOCK_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_PROVISION AuthHandle;
@@ -342,7 +345,7 @@ typedef struct
     TPMS_AUTH_COMMAND_NO_NONCE AuthSession;
 } TPM_NV_READ_LOCK_CMD_HEADER, *PTPM_NV_READ_LOCK_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_READ_LOCK_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -352,7 +355,7 @@ typedef struct
 //
 // NV_WriteLock
 //
-typedef struct
+typedef struct _TPM_NV_WRITE_LOCK_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_PROVISION AuthHandle;
@@ -360,7 +363,7 @@ typedef struct
     TPMS_AUTH_COMMAND_NO_NONCE AuthSession;
 } TPM_NV_WRITE_LOCK_CMD_HEADER, *PTPM_NV_WRITE_LOCK_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_WRITE_LOCK_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -370,7 +373,7 @@ typedef struct
 //
 // NV_UndefineSpace
 //
-typedef struct
+typedef struct _TPM_NV_UNDEFINE_SPACE_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_PROVISION AuthHandle;
@@ -378,7 +381,7 @@ typedef struct
     TPMS_AUTH_COMMAND_NO_NONCE AuthSession;
 } TPM_NV_UNDEFINE_SPACE_CMD_HEADER, *PTPM_NV_UNDEFINE_SPACE_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_UNDEFINE_SPACE_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -388,20 +391,20 @@ typedef struct
 //
 // NV_DefineSpace
 //
-typedef struct
+typedef struct _TPM_NV_DEFINE_SPACE_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_PROVISION AuthHandle;
     TPMS_AUTH_COMMAND_NO_NONCE AuthSession;
 } TPM_NV_DEFINE_SPACE_CMD_HEADER, *PTPM_NV_DEFINE_SPACE_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_DEFINE_SPACE_CMD_BODY
 {
     USHORT AuthSize;
     BYTE Data[1];
 } TPM_NV_DEFINE_SPACE_CMD_BODY, *PTPM_NV_DEFINE_SPACE_CMD_BODY;
 
-typedef struct
+typedef struct _TPM_NV_DEFINE_SPACE_CMD_FOOTER
 {
     USHORT NvPublicSize;
     TPMI_RH_NV_INDEX NvIndex;
@@ -411,7 +414,7 @@ typedef struct
     USHORT DataSize;
 } TPM_NV_DEFINE_SPACE_CMD_FOOTER, *PTPM_NV_DEFINE_SPACE_CMD_FOOTER;
 
-typedef struct
+typedef struct _TPM_NV_DEFINE_SPACE_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -421,13 +424,13 @@ typedef struct
 //
 // NV_ReadPublic
 //
-typedef struct
+typedef struct _TPM_NV_READ_PUBLIC_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_NV_INDEX NvIndex;
 } TPM_NV_READ_PUBLIC_CMD_HEADER, *PTPM_NV_READ_PUBLIC_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_READ_PUBLIC_REPLY
 {
     TPM_REPLY_HEADER Header;
     TPM_NV_DEFINE_SPACE_CMD_FOOTER NvPublic;
@@ -437,7 +440,7 @@ typedef struct
 //
 // NV_Write
 //
-typedef struct
+typedef struct _TPM_NV_WRITE_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_NV_AUTH AuthHandle;
@@ -451,18 +454,18 @@ typedef struct
     // TPM_NV_WRITE_CMD_FOOTER;
 } TPM_NV_WRITE_CMD_HEADER, *PTPM_NV_WRITE_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_WRITE_CMD_BODY
 {
     USHORT Size;
     BYTE Data[1];
 } TPM_NV_WRITE_CMD_BODY, *PTPM_NV_WRITE_CMD_BODY;
 
-typedef struct
+typedef struct _TPM_NV_WRITE_CMD_FOOTER
 {
     USHORT Offset;
 } TPM_NV_WRITE_CMD_FOOTER, *PTPM_NV_WRITE_CMD_FOOTER;
 
-typedef struct
+typedef struct _TPM_NV_WRITE_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -472,7 +475,7 @@ typedef struct
 //
 // NV_Read
 //
-typedef struct
+typedef struct _TPM_NV_READ_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPMI_RH_NV_AUTH AuthHandle;
@@ -486,13 +489,13 @@ typedef struct
     // TPM_NV_READ_CMD_FOOTER;
 } TPM_NV_READ_CMD_HEADER, *PTPM_NV_READ_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_NV_READ_CMD_FOOTER
 {
     USHORT Size;
     USHORT Offset;
 } TPM_NV_READ_CMD_FOOTER, *PTPM_NV_READ_CMD_FOOTER;
 
-typedef struct
+typedef struct _TPM_NV_READ_REPLY
 {
     TPM_REPLY_HEADER Header;
     ULONG ParameterSize;
@@ -506,7 +509,7 @@ typedef struct
 //
 // Get_Capabilities
 //
-typedef struct
+typedef struct _TPM_GET_CAPABILITY_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     TPM_CAP Capability;
@@ -514,7 +517,7 @@ typedef struct
     ULONG PropertyCount;
 } TPM_GET_CAPABILITY_CMD_HEADER, *PTPM_GET_CAPABILITY_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_GET_CAPABILITY_REPLY
 {
     TPM_REPLY_HEADER Header;
     TPMI_YES_NO MoreData;
@@ -522,20 +525,20 @@ typedef struct
 } TPM_GET_CAPABILITY_REPLY, *PTPM_GET_CAPABILITY_REPLY;
 
 // GetRandom
-typedef struct
+typedef struct _TPM_GET_RANDOM_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     USHORT BytesRequested;
 } TPM_GET_RANDOM_CMD_HEADER, * PTPM_GET_RANDOM_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_GET_RANDOM_REPLY
 {
     TPM_REPLY_HEADER Header;
     TPM2B_DIGEST RandomBytes;
 } TPM_GET_RANDOM_REPLY;
 
 // ReadClock
-typedef struct
+typedef struct _TPM_READ_CLOCK_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
 } TPM_READ_CLOCK_CMD_HEADER, *PTPM_READ_CLOCK_CMD_HEADER;
@@ -549,7 +552,7 @@ typedef struct
 //
 // Hash
 //
-typedef struct
+typedef struct _TPM_HASH_CMD_HEADER
 {
     TPM_CMD_HEADER Header;
     //
@@ -560,19 +563,19 @@ typedef struct
     // TPM_HASH_CMD_FOOTER;
 } TPM_HASH_CMD_HEADER, *PTPM_HASH_CMD_HEADER;
 
-typedef struct
+typedef struct _TPM_HASH_CMD_BODY
 {
     USHORT Size;
     BYTE Buffer[1];
 } TPM_HASH_CMD_BODY, *PTPM_HASH_CMD_BODY;
 
-typedef struct
+typedef struct _TPM_HASH_CMD_FOOTER
 {
     TPM_ALG AlgHash;
     TPMI_RH_HIERARCHY Hierarchy;
 } TPM_HASH_CMD_FOOTER, *PTPM_HASH_CMD_FOOTER;
 
-typedef struct
+typedef struct _TPM_HASH_CMD_REPLY
 {
     TPM_REPLY_HEADER Header;
     TPM2B_DIGEST OutHash;

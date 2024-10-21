@@ -14,6 +14,10 @@
 #include "secedit.h"
 #include <tbs.h>
 
+const TPM_RH TpmRHOwner = TPM_RH_OWNER;
+const TPM_RH TpmRHNull = TPM_RH_NULL;
+const TPM_RH TpmRSPassword = TPM_RS_PW;
+
 CONST PH_ACCESS_ENTRY TpmAttributeEntries[31] =
 {
     { L"TPMA_NV_PPWRITE", TPMA_NV_PPWRITE, FALSE, FALSE, L"Platform write" },
@@ -191,6 +195,84 @@ NTSTATUS EtTpmReadPublic(
     *DataSize = _byteswap_ushort(reply.NvPublic.DataSize);
 
     return STATUS_SUCCESS;
+}
+
+_Must_inspect_result_
+NTSTATUS EtTpmRead(
+    _In_ TBS_HCONTEXT TbsContextHandle,
+    _In_ TPM_NV_INDEX Index,
+    _Out_writes_bytes_all_(DataSize) PBYTE Data,
+    _In_ USHORT DataSize
+    )
+{
+    NTSTATUS status;
+    BYTE buffer[FIELD_OFFSET(TPM_NV_READ_CMD_HEADER, AuthSession.Password) + sizeof(TPM_NV_READ_CMD_FOOTER)];
+    ULONG size;
+    PTPM_NV_READ_CMD_HEADER command;
+    PTPM_NV_READ_CMD_FOOTER footer;
+    PTPM_NV_READ_REPLY reply;
+    ULONG resultLength;
+
+    command = (TPM_NV_READ_CMD_HEADER*)buffer;
+
+    command->Header.SessionTag = _byteswap_ushort(TPM_ST_SESSIONS);
+    command->Header.CommandCode = _byteswap_ulong(TPM_CC_NV_Read);
+    command->Header.Size = _byteswap_ulong(sizeof(buffer));
+
+    command->NvIndex.Value = _byteswap_ulong(Index.Value);
+
+    command->AuthHandle.Value = _byteswap_ulong(TpmRHOwner.Value);
+
+    size = FIELD_OFFSET(TPMS_AUTH_COMMAND_NO_NONCE, Password);
+    size -= RTL_FIELD_SIZE(TPMS_AUTH_COMMAND_NO_NONCE, SessionSize);
+    command->AuthSession.SessionSize = _byteswap_ulong(size);
+    command->AuthSession.SessionHandle.Value = _byteswap_ulong(TpmRSPassword.Value);
+    command->AuthSession.NonceSize = 0;
+    command->AuthSession.SessionAttributes.Value = 0;
+    command->AuthSession.PasswordSize = 0;
+    footer = (TPM_NV_READ_CMD_FOOTER*)&command->AuthSession.Password[0];
+
+    footer->Offset = 0;
+    footer->Size = _byteswap_ushort(DataSize);
+
+    size = FIELD_OFFSET(TPM_NV_READ_REPLY, Data);
+    size += DataSize;
+    size += sizeof(TPMS_AUTH_RESPONSE_NO_NONCE);
+    reply = PhAllocateZero(size);
+    resultLength = size;
+
+    if (Tbsip_Submit_Command(
+        TbsContextHandle,
+        TBS_COMMAND_LOCALITY_ZERO,
+        TBS_COMMAND_PRIORITY_NORMAL,
+        (PCBYTE)command,
+        sizeof(buffer),
+        (PBYTE)reply,
+        &resultLength
+        ) != TBS_SUCCESS)
+    {
+        status = STATUS_TPM_20_E_FAILURE;
+        goto CleanupExit;
+    }
+
+    if (reply->Header.ResponseCode != TPM_RC_SUCCESS)
+    {
+        status = STATUS_TPM_20_E_FAILURE;
+        goto CleanupExit;
+    }
+
+    for (ULONG i = 0; i < DataSize; i++)
+    {
+        Data[i] = reply->Data[i];
+    }
+
+    status = STATUS_SUCCESS;
+
+CleanupExit:
+
+    PhFree(reply);
+
+    return status;
 }
 
 NTSTATUS TpmOpen(
@@ -382,6 +464,7 @@ NTSTATUS EtEnumerateTpmEntries(
     {
         INT lvItemIndex;
         USHORT dataSize;
+        PBYTE data;
         PPH_STRING string;
         TPMA_NV attributes;
 
@@ -396,6 +479,13 @@ NTSTATUS EtEnumerateTpmEntries(
             &dataSize
             )))
             continue;
+
+        data = PhAllocateZero(dataSize);
+        if (!NT_SUCCESS(EtTpmRead(tbsContextHandle, indices[i], data, dataSize)))
+        {
+            PhFree(data);
+            data = NULL;
+        }
 
         string = PhFormatSize(dataSize, ULONG_MAX);
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, string->Buffer);
@@ -441,6 +531,14 @@ NTSTATUS EtEnumerateTpmEntries(
         string = EtMakeTpmAttributesString(attributes);
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, string->Buffer);
         PhDereferenceObject(string);
+
+        if (data)
+        {
+            string = PhBufferToHexString(data, dataSize);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, string->Buffer);
+            PhDereferenceObject(string);
+            PhFree(data);
+        }
     }
 
     ExtendedListView_SortItems(Context->ListViewHandle);
@@ -520,7 +618,8 @@ INT_PTR CALLBACK EtTpmDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 85, L"Owner rights");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 85, L"Auth rights");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 85, L"Platform rights");
-            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 400, L"Attributes");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Attributes");
+            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 200, L"Data");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_TPM_LISTVIEW_COLUMNS, context->ListViewHandle);
