@@ -32,6 +32,10 @@ static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
+BOOL(WINAPI* PhIsDarkModeAllowedForWindow_I)(
+    _In_ HWND WindowHandle
+    ) = NULL;
+
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -925,40 +929,35 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
     {
         CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
 
-        // Don't apply header theme for unsupported dialogs: Advanced Security and Digital Signature Details (Dart Vanya)
-        if (!FindWindowEx(GetAncestor(WindowHandle, GA_ROOT), NULL, L"DirectUIHWND", NULL) &&
-            !FindWindowEx(GetParent(createStruct->hwndParent), NULL, L"NativeFontCtl", NULL))
+        if (createStruct->hwndParent)
         {
-            if (createStruct->hwndParent)
+            WCHAR windowClassName[MAX_PATH];
+
+            if (!GetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+
+            if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
             {
-                WCHAR windowClassName[MAX_PATH];
+                LONG_PTR windowStyle = PhGetWindowStyle(createStruct->hwndParent);
 
-                if (!GetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName)))
-                    windowClassName[0] = UNICODE_NULL;
-
-                if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+                if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
                 {
-                    LONG_PTR windowStyle = PhGetWindowStyle(createStruct->hwndParent);
+                    PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
-                    if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
-                    {
-                        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
-
-                        return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
-                    }
+                    return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
                 }
             }
-			
-			context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-			context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
-			context->CursorPos.x = LONG_MIN;
-			context->CursorPos.y = LONG_MIN;
-			PhSetWindowContext(WindowHandle, LONG_MAX, context);
-
-			PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
-
-			InvalidateRect(WindowHandle, NULL, FALSE);
         }
+			
+		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
+		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+		context->CursorPos.x = LONG_MIN;
+		context->CursorPos.y = LONG_MIN;
+		PhSetWindowContext(WindowHandle, LONG_MAX, context);
+
+		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
+		InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else
     {
@@ -1043,6 +1042,17 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             break;
         case WM_PAINT:
             {
+                // Don't apply header theme for unsupported dialogs: Advanced Security, Digital Signature Details, etc. (Dart Vanya)
+                if (!PhIsDarkModeAllowedForWindow_I(GetParent(WindowHandle)))
+                {
+                    PhRemoveWindowContext(WindowHandle, LONG_MAX);
+                    if (context->ThemeHandle)
+                        PhCloseThemeData(context->ThemeHandle);
+                    PhFree(context);
+                    PhSetControlTheme(WindowHandle, L"Explorer");
+                    break;
+                }
+
                 //PAINTSTRUCT ps;
                 //HDC BufferedHDC;
                 //HPAINTBUFFER BufferedPaint;
@@ -1310,6 +1320,12 @@ static HRESULT(WINAPI* PhDefaultGetThemeColor)(
     _In_  int      iStateId,
     _In_  int      iPropId,
     _Out_ COLORREF* pColor
+    ) = NULL;
+
+// uxtheme.dll ordinal 49
+static HTHEME(WINAPI* PhDefaultOpenNcThemeData)(
+    _In_ HWND    hwnd,
+    _In_ LPCWSTR pszClassList
     ) = NULL;
 
 static BOOL (WINAPI* PhDefaultSystemParametersInfo)(
@@ -1754,6 +1770,20 @@ HRESULT PhGetThemeColorHook(
     return retVal;
 }
 
+HTHEME PhOpenNcThemeDataHook(
+    _In_ HWND    hwnd,
+    _In_ LPCWSTR pszClassList
+)
+{
+    if (PhEqualStringZ((PWSTR)pszClassList, VSCLASS_SCROLLBAR, TRUE) &&
+        PhIsDarkModeAllowedForWindow_I(hwnd))
+    {
+        return PhDefaultOpenNcThemeData(NULL, L"Explorer::ScrollBar");
+    }
+
+    return PhDefaultOpenNcThemeData(hwnd, pszClassList);
+}
+
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID CallbackData
@@ -1972,6 +2002,8 @@ VOID PhRegisterDetoursHooks(
         PhDefaultDrawThemeText = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeText", 0);
         PhDefaultDrawThemeTextEx = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeTextEx", 0);
         PhDefaultGetThemeColor = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeColor", 0);
+        PhIsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
+        PhDefaultOpenNcThemeData = PhGetDllBaseProcedureAddress(baseAddress, NULL, 49);
     }
 
     if (baseAddress = PhGetLoaderEntryDllBaseZ(L"Comctl32.dll"))
@@ -1998,6 +2030,8 @@ VOID PhRegisterDetoursHooks(
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeTextEx, (PVOID)PhDrawThemeTextExHook)))
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultGetThemeColor, (PVOID)PhGetThemeColorHook)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultOpenNcThemeData, (PVOID)PhOpenNcThemeDataHook)))
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultTaskDialogIndirect, (PVOID)PhTaskDialogIndirectHook)))
             goto CleanupExit;

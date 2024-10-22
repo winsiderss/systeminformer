@@ -240,8 +240,17 @@ VOID PhInitializeWindowTheme(
 
         if (defaultWindowProc != PhpThemeWindowSubclassProc)
         {
+            WCHAR windowClassName[MAX_PATH];
             PhSetWindowContext(WindowHandle, LONG_MAX, defaultWindowProc);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
+
+            if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                windowClassName[0] = UNICODE_NULL;
+            if ((PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE)) &&
+                WindowsVersion >= WINDOWS_10_RS5)
+            {
+                AllowDarkModeForWindow_I(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
+            }  
         }
 
         PhEnumChildWindows(
@@ -742,7 +751,9 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(tooltipWindow, L"");
             //    break;
             //case 1: // Old colors
-            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            //PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            AllowDarkModeForWindow_I(WindowHandle, TRUE);
+            PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
             PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
 
@@ -821,6 +832,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //case 1: // Old colors
             PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            AllowDarkModeForWindow_I(WindowHandle, TRUE);
         }
 
         if (PhEnableThemeListviewBorder)
@@ -3270,12 +3282,11 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
                     {
                         HDC hdc = GetDC(WindowHandle);
                         RECT rectControl = customDraw->rc;
-                        InflateRect(&rectControl, 2, 2);
+                        PhInflateRect(&rectControl, 2, 2);
                         MapWindowRect(customDraw->hdr.hwndFrom, WindowHandle, &rectControl);
                         FillRect(hdc, &rectControl, PhThemeWindowBackgroundBrush);   // fix the annoying white border left by the previous active control
                         ReleaseDC(WindowHandle, hdc);
                     }
-                    return CDRF_DODEFAULT;
                 }
             }
         }
