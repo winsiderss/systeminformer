@@ -1618,7 +1618,8 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG AllocatedImageName : 1;
-            ULONG Reserved : 24;
+            ULONG SystemAllocatedImageFileName : 1;
+            ULONG Reserved : 23;
         };
     };
 

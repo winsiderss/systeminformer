@@ -540,9 +540,70 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->FileObject = NULL;
     }
 
-    status = SeLocateProcessImageName(process->EProcess,
-                                      &process->ImageFileName);
-    if (NT_SUCCESS(status))
+    if (process->FileObject)
+    {
+        ULONG returnLength;
+
+        status = KphQueryNameFileObject(process->FileObject,
+                                        NULL,
+                                        0,
+                                        &returnLength);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            POBJECT_NAME_INFORMATION nameInfo;
+
+            nameInfo = KphAllocateNPaged(returnLength,
+                                         KPH_TAG_PROCESS_IMAGE_FILE_NAME);
+            if (nameInfo)
+            {
+                status = KphQueryNameFileObject(process->FileObject,
+                                                nameInfo,
+                                                returnLength,
+                                                &returnLength);
+                if (NT_SUCCESS(status))
+                {
+                    C_ASSERT(FIELD_OFFSET(OBJECT_NAME_INFORMATION, Name) == 0);
+                    process->ImageFileName = (PUNICODE_STRING)nameInfo;
+                }
+                else
+                {
+                    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                                  TRACKING,
+                                  "KphQueryNameFileObject failed: %!STATUS!",
+                                  status);
+
+                    KphFree(nameInfo, KPH_TAG_PROCESS_IMAGE_FILE_NAME);
+                }
+            }
+            else
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              TRACKING,
+                              "Failed to allocate process image file name.");
+            }
+        }
+    }
+
+    if (!process->ImageFileName)
+    {
+        status = SeLocateProcessImageName(process->EProcess,
+                                          &process->ImageFileName);
+        if (NT_SUCCESS(status))
+        {
+            process->SystemAllocatedImageFileName = TRUE;
+        }
+        else
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          TRACKING,
+                          "SeLocateProcessImageName failed: %!STATUS!",
+                          status);
+
+            process->ImageFileName = NULL;
+        }
+    }
+
+    if (process->ImageFileName)
     {
         status = KphGetFileNameFinalComponent(process->ImageFileName,
                                               &process->ImageName);
@@ -555,15 +616,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
             NT_ASSERT(process->ImageName.Length == 0);
         }
-    }
-    else
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      TRACKING,
-                      "SeLocateProcessImageName failed: %!STATUS!",
-                      status);
-
-        process->ImageFileName = NULL;
     }
 
     if (process->ImageName.Length == 0)
@@ -630,7 +682,14 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     if (process->ImageFileName)
     {
-        KphFreePool(process->ImageFileName);
+        if (process->SystemAllocatedImageFileName)
+        {
+            KphFreePool(process->ImageFileName);
+        }
+        else
+        {
+            KphFree(process->ImageFileName, KPH_TAG_PROCESS_IMAGE_FILE_NAME);
+        }
     }
 
     if (process->AllocatedImageName)
