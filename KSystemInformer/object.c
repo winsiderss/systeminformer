@@ -2021,7 +2021,7 @@ NTSTATUS KphQueryInformationObject(
             KeStackAttachProcess(PsInitialSystemProcess, &apcState);
 
             baseAddress = NULL;
-            viewSize = 0;
+            viewSize = PAGE_SIZE;
             status = ZwMapViewOfSection(sectionHandle,
                                         ZwCurrentProcess(),
                                         &baseAddress,
@@ -2056,9 +2056,9 @@ NTSTATUS KphQueryInformationObject(
                 ZwUnmapViewOfSection(ZwCurrentProcess(), baseAddress);
             }
 
-            ObCloseHandle(sectionHandle, KernelMode);
-
             KeUnstackDetachProcess(&apcState);
+
+            ObCloseHandle(sectionHandle, KernelMode);
 
             if (NT_SUCCESS(status))
             {
