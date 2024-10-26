@@ -3730,7 +3730,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
 
                     cpuUsage *= 100;
-                    cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
+                    cpuUsage = cpuUsage * PhCountBitsUlongPtr(processItem->AffinityMask);
 
                     if (cpuUsage >= PhMaxPrecisionLimit)
                     {

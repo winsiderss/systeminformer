@@ -245,6 +245,7 @@ typedef struct _PH_PROCESS_ITEM
     // Dynamic
 
     KPRIORITY BasePriority;
+    KAFFINITY AffinityMask;
     ULONG PriorityClass;
     LARGE_INTEGER KernelTime;
     LARGE_INTEGER UserTime;

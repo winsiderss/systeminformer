@@ -929,16 +929,19 @@ VOID PhpThreadProviderUpdate(
             threadItem->StartAddress = (ULONG64)startAddress;
 
             // Get the base priority increment (relative to the process priority).
+            // Get the thread affinity.
             if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                 threadItem->ThreadHandle,
                 &basicInfo
                 )))
             {
                 threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                threadItem->AffinityMask = basicInfo.AffinityMask;
             }
             else
             {
                 threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                threadItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
             }
 
             if (threadProvider->SymbolsLoadedRunId != 0)
@@ -1175,8 +1178,10 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Update the base priority increment.
+            // Update the thread affinity.
             {
                 KPRIORITY oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
+                KAFFINITY oldAffinityMask = threadItem->AffinityMask;
 
                 if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
@@ -1184,13 +1189,16 @@ VOID PhpThreadProviderUpdate(
                     )))
                 {
                     threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                    threadItem->AffinityMask = basicInfo.AffinityMask;
                 }
                 else
                 {
                     threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                    threadItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
                 }
 
-                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement)
+                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement ||
+                    threadItem->AffinityMask != oldAffinityMask)
                 {
                     modified = TRUE;
                 }

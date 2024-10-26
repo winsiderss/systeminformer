@@ -1156,12 +1156,12 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // Process flags
-    if (ProcessItem->QueryHandle)
+    // Process basic information
     {
         PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        if (ProcessItem->QueryHandle &&
+            NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
         {
             ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
@@ -1170,6 +1170,11 @@ VOID PhpFillProcessItem(
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
+            ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
+        }
+        else
+        {
+            ProcessItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
         }
     }
 
@@ -2631,6 +2636,30 @@ VOID PhProcessProviderUpdate(
 
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
+
+            // Update the process affinity. Usually not frequently changed, do so lazily.
+            if (runCount % 5 == 0)
+            {
+                KAFFINITY oldAffinityMask;
+                KAFFINITY affinityMask;
+
+                oldAffinityMask = processItem->AffinityMask;
+
+                if (processItem->QueryHandle &&
+                    NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
+                {
+                    processItem->AffinityMask = affinityMask;
+                }
+                else
+                {
+                    processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+                }
+
+                if (processItem->AffinityMask != oldAffinityMask)
+                {
+                    modified = TRUE;
+                }
+            }
 
             // Average
             if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE))
