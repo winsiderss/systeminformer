@@ -2046,6 +2046,7 @@ BOOLEAN PhMipCpuListSectionCallback(
             PPH_LIST processes;
             FLOAT cpuUsage;
             PPH_STRING cpuUsageText;
+            PH_FORMAT format[3];
 
             if (!getUsageText)
                 break;
@@ -2053,18 +2054,22 @@ BOOLEAN PhMipCpuListSectionCallback(
             processes = getUsageText->ProcessGroup->Processes;
             cpuUsage = *(PFLOAT)getUsageText->SortData->UserData * 100;
 
-            if (cpuUsage >= 0.01f)
+            if (cpuUsage >= PhMaxPrecisionLimit)
             {
-                PH_FORMAT format[2];
-
                 // %.2f%%
                 PhInitFormatF(&format[0], cpuUsage, PhMaxPrecisionUnit);
                 PhInitFormatC(&format[1], L'%');
 
-                cpuUsageText = PhFormat(format, RTL_NUMBER_OF(format), 16);
+                cpuUsageText = PhFormat(format, 2, 16);
             }
             else if (cpuUsage != 0)
-                cpuUsageText = PhCreateString(L"< 0.01%");
+            {
+                PhInitFormatS(&format[0], L"< ");
+                PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
+                PhInitFormatC(&format[2], L'%');
+
+                cpuUsageText = PhFormat(format, 3, 16);
+            }
             else
                 cpuUsageText = NULL;
 

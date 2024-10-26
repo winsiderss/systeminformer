@@ -18,6 +18,7 @@ EXTERN_C_START
 extern WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
 extern USHORT PhMaxPrecisionUnit;
+extern FLOAT PhMaxPrecisionLimit;
 
 typedef struct _PH_INTEGER_PAIR
 {

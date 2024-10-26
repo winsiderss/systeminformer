@@ -30,6 +30,8 @@
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
 DECLSPEC_SELECTANY USHORT PhMaxPrecisionUnit = 2;
+DECLSPEC_SELECTANY FLOAT PhMaxPrecisionLimit = 0.01f;
+
 
 /**
  * Ensures a rectangle is positioned within the specified bounds.

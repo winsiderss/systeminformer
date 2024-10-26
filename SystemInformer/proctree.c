@@ -2768,7 +2768,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
                     cpuUsage *= 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -3732,7 +3732,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     cpuUsage *= 100;
                     cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3945,7 +3945,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuAverageUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3972,7 +3972,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuKernelUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3999,7 +3999,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuUserUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
