@@ -3290,6 +3290,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhRemoveEndStringBuilder(&sb, 2);
 
                     PhMoveReference(&node->DepStatusText, PhFinalStringBuilderString(&sb));
+                    getCellText->Text = node->DepStatusText->sr;
                 }
                 break;
             case PHPRTLC_VIRTUALIZED:
