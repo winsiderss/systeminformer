@@ -1258,6 +1258,9 @@ VOID PhTnpOnKeyDown(
         return;
     if (PhTnpProcessNodeKey(Context, VirtualKey))
         return;
+
+    // pass unhandled key presses to parent
+    SendMessage(GetParent(hwnd), WM_KEYDOWN, VirtualKey, Data);
 }
 
 VOID PhTnpOnChar(
