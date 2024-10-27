@@ -53,6 +53,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     };
 
     HWND ParentWindowHandle;
+    HWND PreviousFocusWindowHandle;
     LONG WindowDpi;
 
     PH_SEARCHCONTROL_BUTTON SearchButton;
@@ -1024,6 +1025,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
@@ -1211,6 +1215,17 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     }
                 }
             }
+            if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PhpSearchUpdateText(hWnd, context, FALSE);
+                if (context->PreviousFocusWindowHandle)
+                {
+                    SetFocus(context->PreviousFocusWindowHandle);
+                    context->PreviousFocusWindowHandle = NULL;
+                }
+                return 1;
+            }
         }
         break;
     case WM_CHAR:
@@ -1218,6 +1233,12 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (dmex)
             if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
                 return 1;
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
         }
         break;
     case EM_SETCUEBANNER:
