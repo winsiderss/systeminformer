@@ -1259,6 +1259,15 @@ VOID PhTnpOnKeyDown(
     if (PhTnpProcessNodeKey(Context, VirtualKey))
         return;
 
+    // handle standard key presses
+    switch (VirtualKey)
+    {
+    case 'A':
+        if (GetKeyState(VK_CONTROL) < 0)
+            TreeNew_SelectRange(hwnd, 0, -1);
+        return;
+    }
+
     // pass unhandled key presses to parent
     SendMessage(GetParent(hwnd), WM_KEYDOWN, VirtualKey, Data);
 }

@@ -930,10 +930,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
                     }
                 }
                 break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
-                break;
             }
         }
         return TRUE;

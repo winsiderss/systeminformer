@@ -1172,10 +1172,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->WindowHandle, WM_COMMAND, ID_ENV_COPY, 0);
                 break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
-                break;
             case VK_DELETE:
                 SendMessage(context->WindowHandle, WM_COMMAND, ID_ENV_DELETE, 0);
                 break;

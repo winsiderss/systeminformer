@@ -4550,10 +4550,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_COPY, 0);
                 break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(ProcessTreeListHandle, 0, -1);
-                break;
             case VK_DELETE:
                 if (GetKeyState(VK_SHIFT) >= 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
