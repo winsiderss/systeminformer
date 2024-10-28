@@ -888,6 +888,14 @@ LRESULT CALLBACK MainWindowProc(
 
                         goto DefaultWndProc;
                     }
+
+                    if (GetFocus() == SearchboxHandle)
+                    {
+                        SendMessage(SearchboxHandle, WM_KEYDOWN, VK_ESCAPE, 0);
+                        SetSearchFocus(WindowHandle, FALSE);
+
+                        goto DefaultWndProc;
+                    }
                 }
                 break;
             case ID_SEARCH:
