@@ -1215,7 +1215,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     }
                 }
             }
-            if (wParam == VK_ESCAPE)
+            else if (wParam == VK_ESCAPE)
             {
                 PhSetWindowText(hWnd, L"");
                 PhpSearchUpdateText(hWnd, context, FALSE);
