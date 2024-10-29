@@ -632,6 +632,17 @@ BOOLEAN PhpSearchUpdateText(
     return TRUE;
 }
 
+void PhpSearchRestoreFocus(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
+
 LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -1215,15 +1226,18 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     }
                 }
             }
+            // Clear search and restore focus for esc key
             else if (wParam == VK_ESCAPE)
             {
                 PhSetWindowText(hWnd, L"");
                 PhpSearchUpdateText(hWnd, context, FALSE);
-                if (context->PreviousFocusWindowHandle)
-                {
-                    SetFocus(context->PreviousFocusWindowHandle);
-                    context->PreviousFocusWindowHandle = NULL;
-                }
+                PhpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PhpSearchRestoreFocus(context);
                 return 1;
             }
         }
@@ -1237,6 +1251,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     case WM_GETDLGCODE:
         {
+            // Intercept esc key (otherwise it would get sent to parent window)
             if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
                 return DLGC_WANTMESSAGE;
         }
