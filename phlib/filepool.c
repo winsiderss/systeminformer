@@ -246,7 +246,7 @@ CleanupExit:
  */
 NTSTATUS PhCreateFilePool2(
     _Out_ PPH_FILE_POOL *Pool,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ BOOLEAN ReadOnly,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,

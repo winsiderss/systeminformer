@@ -69,10 +69,10 @@ static HTHEME ThemeData;
 static BOOLEAN ThemeHasItemBackground;
 
 VOID PhShowSystemInformationDialog(
-    _In_opt_ PWSTR SectionName
+    _In_opt_ PCWSTR SectionName
     )
 {
-    InitialSectionName = SectionName;
+    InitialSectionName = (PWSTR)SectionName;
 
     if (!PhSipThread)
     {

@@ -234,7 +234,7 @@ typedef BOOL (WINAPI *_SymSetDiaSession)(
 
 // undocumented
 typedef VOID (WINAPI *_SymFreeDiaString)(
-    _In_ PWSTR DiaString
+    _In_ PCWSTR DiaString
     );
 
 #endif

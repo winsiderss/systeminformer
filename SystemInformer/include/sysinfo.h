@@ -201,7 +201,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhShowSystemInformationDialog(
-    _In_opt_ PWSTR SectionName
+    _In_opt_ PCWSTR SectionName
     );
 // end_phapppub
 

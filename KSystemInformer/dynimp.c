@@ -27,7 +27,7 @@ PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo = NULL;
 PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Dynamically imports routines.
@@ -37,7 +37,7 @@ VOID KphDynamicImport(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphDynPsSetLoadImageNotifyRoutineEx = (PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)KphGetSystemRoutineAddress(L"PsSetLoadImageNotifyRoutineEx");
     KphDynPsSetCreateProcessNotifyRoutineEx2 = (PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)KphGetSystemRoutineAddress(L"PsSetCreateProcessNotifyRoutineEx2");
@@ -66,7 +66,7 @@ PVOID KphGetSystemRoutineAddress(
 {
     UNICODE_STRING systemRoutineName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
@@ -93,7 +93,7 @@ PVOID KphpGetRoutineAddressByModuleList(
     PVOID routine;
     UNICODE_STRING moduleName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     routine = NULL;
     RtlInitUnicodeString(&moduleName, ModuleName);
@@ -163,7 +163,7 @@ PVOID KphGetRoutineAddress(
     _In_z_ PCSTR RoutineName
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     return KphpGetRoutineAddressByModuleList(ModuleName, RoutineName);
 }

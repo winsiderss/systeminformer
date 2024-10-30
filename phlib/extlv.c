@@ -72,8 +72,8 @@ INT PhpExtendedListViewCompareFastFunc(
 
 INT PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
-    _In_ INT X,
-    _In_ INT Y,
+    _In_ LONG X,
+    _In_ LONG Y,
     _In_ PVOID XParam,
     _In_ PVOID YParam,
     _In_ ULONG Column,
@@ -82,8 +82,8 @@ INT PhpCompareListViewItems(
 
 INT PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
-    _In_ INT X,
-    _In_ INT Y,
+    _In_ LONG X,
+    _In_ LONG Y,
     _In_ ULONG Column
     );
 
@@ -549,12 +549,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
  */
 VOID PhSetHeaderSortIcon(
     _In_ HWND hwnd,
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_ PH_SORT_ORDER Order
     )
 {
-    INT count;
-    INT i;
+    LONG count;
+    LONG i;
 
     count = Header_GetItemCount(hwnd);
 
@@ -597,9 +597,9 @@ INT PhpExtendedListViewCompareFunc(
     )
 {
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
-    INT result;
-    INT x = (INT)lParam1;
-    INT y = (INT)lParam2;
+    LONG result;
+    LONG x = (LONG)lParam1;
+    LONG y = (LONG)lParam2;
     ULONG i;
     PULONG fallbackColumns;
     LVITEM xItem;
@@ -732,8 +732,8 @@ INT PhpExtendedListViewCompareFastFunc(
 
 FORCEINLINE INT PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
-    _In_ INT X,
-    _In_ INT Y,
+    _In_ LONG X,
+    _In_ LONG Y,
     _In_ PVOID XParam,
     _In_ PVOID YParam,
     _In_ ULONG Column,
@@ -771,8 +771,8 @@ FORCEINLINE INT PhpCompareListViewItems(
 
 INT PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
-    _In_ INT X,
-    _In_ INT Y,
+    _In_ LONG X,
+    _In_ LONG Y,
     _In_ ULONG Column
     )
 {

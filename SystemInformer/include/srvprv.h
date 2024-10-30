@@ -121,7 +121,7 @@ FORCEINLINE
 PPH_SERVICE_ITEM
 NTAPI
 PhReferenceServiceItemZ(
-    _In_ PWSTR Name
+    _In_ PCWSTR Name
     )
 {
     PH_STRINGREF name;

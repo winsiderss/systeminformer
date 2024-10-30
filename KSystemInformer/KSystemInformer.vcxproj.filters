@@ -99,16 +99,7 @@
     <ClCompile Include="knowndll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="socket.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="back_trace.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="download.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="http.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="parameters.c">

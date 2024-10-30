@@ -395,14 +395,14 @@ VOID ThemeWindowStatusBarDestroyBufferedContext(
     }
 }
 
-INT ThemeWindowStatusBarUpdateRectToIndex(
+LONG ThemeWindowStatusBarUpdateRectToIndex(
     _In_ HWND WindowHandle,
     _In_ WNDPROC WindowProcedure,
     _In_ PRECT UpdateRect,
-    _In_ INT Count
+    _In_ LONG Count
     )
 {
-    for (INT i = 0; i < Count; i++)
+    for (LONG i = 0; i < Count; i++)
     {
         RECT blockRect = { 0 };
 
@@ -428,7 +428,7 @@ VOID ThemeWindowStatusBarDrawPart(
     _In_ HWND WindowHandle,
     _In_ HDC bufferDc,
     _In_ PRECT clientRect,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
     RECT blockRect = { 0 };
@@ -487,7 +487,7 @@ VOID ThemeWindowRenderStatusBar(
 
     FillRect(bufferDc, clientRect, PhThemeWindowBackgroundBrush);
 
-    INT blockCount = (INT)CallWindowProc(
+    LONG blockCount = (LONG)CallWindowProc(
         PhDefaultStatusbarWindowProcedure,
         WindowHandle,
         SB_GETPARTS,
@@ -526,7 +526,7 @@ VOID ThemeWindowRenderStatusBar(
 
         // Top statusbar border will be drawn by bottom tabcontrol border
 
-        for (INT i = 0; i < blockCount; i++)
+        for (LONG i = 0; i < blockCount; i++)
         {
             ThemeWindowStatusBarDrawPart(Context, WindowHandle, bufferDc, clientRect, i);
         }
@@ -1394,8 +1394,8 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 HRESULT PhDrawThemeBackgroundHook(
     _In_ HTHEME Theme,
     _In_ HDC Hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
     _In_ LPCRECT Rect,
     _In_ LPCRECT ClipRect
     )
@@ -1526,10 +1526,10 @@ HWND PhCreateWindowExHook(
     _In_opt_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
     _In_ ULONG Style,
-    _In_ INT X,
-    _In_ INT Y,
-    _In_ INT Width,
-    _In_ INT Height,
+    _In_ LONG X,
+    _In_ LONG Y,
+    _In_ LONG Width,
+    _In_ LONG Height,
     _In_opt_ HWND Parent,
     _In_opt_ HMENU Menu,
     _In_opt_ PVOID Instance,

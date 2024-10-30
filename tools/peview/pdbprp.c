@@ -496,14 +496,6 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     }
                 }
                 break;
-            case 'A':
-                {
-                    if (GetKeyState(VK_CONTROL) < 0)
-                    {
-                        TreeNew_SelectRange(hwnd, 0, -1);
-                    }
-                }
-                break;
             }
         }
         return TRUE;

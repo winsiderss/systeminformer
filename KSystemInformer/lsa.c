@@ -18,7 +18,7 @@ static const UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaComma
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static volatile HANDLE KphpLsassProcessId = NULL;
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Retrieves the process ID of lsass.
@@ -38,7 +38,7 @@ NTSTATUS KphpGetLsassProcessId(
     KAPC_STATE apcState;
     KPH_ALPC_COMMUNICATION_INFORMATION info;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     //
     // We cache the process ID of lsass since opening and closing the connection
@@ -159,7 +159,7 @@ NTSTATUS KphProcessIsLsass(
     SECURITY_SUBJECT_CONTEXT subjectContext;
     BOOLEAN result;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *IsLsass = FALSE;
 
@@ -211,7 +211,7 @@ VOID KphInvalidateLsass(
     _In_ HANDLE ProcessId
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     InterlockedCompareExchangePointer(&KphpLsassProcessId, NULL, ProcessId);
 }

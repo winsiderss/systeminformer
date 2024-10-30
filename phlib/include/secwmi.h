@@ -43,7 +43,7 @@ typedef ULONG (WINAPI* _PowerReadSecurityDescriptor)(
 typedef ULONG (WINAPI* _PowerWriteSecurityDescriptor)(
     _In_ POWER_DATA_ACCESSOR AccessFlags,
     _In_ PGUID PowerGuid,
-    _In_ PWSTR StringSecurityDescriptor
+    _In_ PCWSTR StringSecurityDescriptor
     );
 
 PVOID PhGetWbemProxImageBaseAddress(

@@ -106,7 +106,7 @@ PELF64_IMAGE_SEGMENT_HEADER PhGetWslImageSegmentByType(
 
 PVOID PhGetMappedWslImageSectionData(
     _In_ PPH_MAPPED_IMAGE MappedWslImage,
-    _In_opt_ PSTR Name,
+    _In_opt_ PCSTR Name,
     _In_opt_ USHORT Index
     )
 {
@@ -202,7 +202,7 @@ PELF64_IMAGE_SECTION_HEADER PhGetMappedWslImageSectionByType(
 
 PELF64_IMAGE_SECTION_HEADER PhGetMappedWslImageSectionByName(
     _In_ PPH_MAPPED_IMAGE MappedWslImage,
-    _In_ PSTR Name
+    _In_ PCSTR Name
     )
 {
     if (Name)
@@ -323,8 +323,8 @@ BOOLEAN PhGetMappedWslImageSections(
 typedef struct _PH_ELF_VERSION_RECORD
 {
     USHORT Version;
-    PSTR Name;
-    PSTR FileName;
+    PCSTR Name;
+    PCSTR FileName;
 } PH_ELF_VERSION_RECORD, *PPH_ELF_VERSION_RECORD;
 
 static PPH_LIST PhpParseMappedWslImageVersionRecords(
@@ -380,7 +380,7 @@ static VOID PhpFreeMappedWslImageVersionRecords(
     PhDereferenceObject(RecordsList);
 }
 
-static PSTR PhpFindWslImageVersionRecordName(
+static PCSTR PhpFindWslImageVersionRecordName(
     _In_ PPH_LIST VersionRecordList,
     _In_ USHORT VersionIndex
     )
@@ -463,7 +463,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 // import library name
                 if (versionTable && versionRecords)
                 {
-                    PSTR moduleName;
+                    PCSTR moduleName;
 
                     if (moduleName = PhpFindWslImageVersionRecordName(versionRecords, versionTable[ii].vs_vers))
                     {

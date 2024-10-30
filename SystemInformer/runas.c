@@ -118,7 +118,7 @@ BOOLEAN PhRunAsExecuteCommandPrompt(
     );
 
 VOID PhpSplitUserName(
-    _In_ PWSTR UserName,
+    _In_ PCWSTR UserName,
     _Out_opt_ PPH_STRING* DomainPart,
     _Out_opt_ PPH_STRING* UserPart
     );
@@ -1541,13 +1541,13 @@ NTSTATUS PhExecuteRunAsCommand(
  */
 NTSTATUS PhExecuteRunAsCommand2(
     _In_ HWND WindowHandle,
-    _In_ PWSTR CommandLine,
-    _In_opt_ PWSTR UserName,
-    _In_opt_ PWSTR Password,
+    _In_ PCWSTR CommandLine,
+    _In_opt_ PCWSTR UserName,
+    _In_opt_ PCWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
     _In_opt_ ULONG SessionId,
-    _In_opt_ PWSTR DesktopName,
+    _In_opt_ PCWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken
     )
 {
@@ -1556,13 +1556,13 @@ NTSTATUS PhExecuteRunAsCommand2(
 
 NTSTATUS PhExecuteRunAsCommand3(
     _In_ HWND WindowHandle,
-    _In_ PWSTR CommandLine,
-    _In_opt_ PWSTR UserName,
-    _In_opt_ PWSTR Password,
+    _In_ PCWSTR CommandLine,
+    _In_opt_ PCWSTR UserName,
+    _In_opt_ PCWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
     _In_opt_ ULONG SessionId,
-    _In_opt_ PWSTR DesktopName,
+    _In_opt_ PCWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
     _In_ BOOLEAN CreateSuspendedProcess,
     _In_ BOOLEAN CreateUIAccessProcess
@@ -1643,7 +1643,7 @@ NTSTATUS PhExecuteRunAsCommand3(
 }
 
 VOID PhpSplitUserName(
-    _In_ PWSTR UserName,
+    _In_ PCWSTR UserName,
     _Out_opt_ PPH_STRING *DomainPart,
     _Out_opt_ PPH_STRING *UserPart
     )
@@ -2866,10 +2866,6 @@ BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_COPY, 0);
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             case VK_DELETE:
                 SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_CLOSE, 0);

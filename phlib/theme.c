@@ -495,7 +495,7 @@ HBRUSH PhWindowThemeControlColor(
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ HWND ChildWindowHandle,
-    _In_ INT Type
+    _In_ LONG Type
     )
 {
     SetBkMode(Hdc, TRANSPARENT);
@@ -1346,7 +1346,7 @@ BOOLEAN PhThemeWindowMeasureItem(
 
             if (hdc = GetDC(WindowHandle))
             {
-                PWSTR text;
+                PCWSTR text;
                 SIZE_T textCount;
                 SIZE textSize;
                 //HFONT oldFont = NULL;

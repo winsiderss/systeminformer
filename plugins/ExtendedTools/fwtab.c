@@ -1386,9 +1386,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 if (GetKeyState(VK_CONTROL) < 0)
                     EtFwHandleFwCommand(WindowHandle, ID_DISK_COPY);
                 break;
-            case 'A':
-                TreeNew_SelectRange(FwTreeNewHandle, 0, -1);
-                break;
             }
         }
         return TRUE;

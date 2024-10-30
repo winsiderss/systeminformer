@@ -20,7 +20,7 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static PVOID KphpImageVerificationCallbackHandle = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Performs image tracking.
@@ -34,7 +34,7 @@ VOID KphpPerformImageTracking(
     _In_ PIMAGE_INFO_EX ImageInfo
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(ImageInfo);
 
@@ -63,7 +63,7 @@ VOID KphpLoadImageNotifyInformer(
     PUNICODE_STRING fileName;
     BOOLEAN freeFileName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     actorProcess = KphGetCurrentProcessContext();
     targetProcess = KphGetProcessContext(ProcessId);
@@ -172,7 +172,7 @@ VOID KphpLoadImageNotifyRoutine(
     PKPH_PROCESS_CONTEXT process;
     PIMAGE_INFO_EX imageInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(FullImageName);
     NT_ASSERT(ImageInfo->ExtendedInfoPresent);
@@ -213,7 +213,7 @@ KphpImageVerificationCallback(
     PKPH_MESSAGE msg;
     KPHM_SIZED_BUFFER buffer;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(CallbackContext);
 
@@ -343,7 +343,7 @@ NTSTATUS KphImageInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (KphDynPsSetLoadImageNotifyRoutineEx)
     {
@@ -410,7 +410,7 @@ VOID KphImageInformerStop(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (KphpImageVerificationCallbackHandle)
     {

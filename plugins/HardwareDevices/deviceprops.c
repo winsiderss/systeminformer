@@ -602,8 +602,8 @@ VOID DeviceInitializePropsPage(
             INT lvItemIndex;
             PPH_STRING nameString = NULL;
             PPH_STRING valueString = NULL;
-            PWSTR name;
-            PWSTR value;
+            PCWSTR name;
+            PCWSTR value;
 
             if (PhLookupDevicePropertyClass(&prop->CompKey.Key, &propClass))
             {

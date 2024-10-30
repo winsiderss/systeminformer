@@ -1485,7 +1485,7 @@ NTAPI
 NtCreateProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ParentProcess,
     _In_ BOOLEAN InheritObjectTable,
     _In_opt_ HANDLE SectionHandle,
@@ -1522,7 +1522,7 @@ NTAPI
 NtCreateProcessEx(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ParentProcess,
     _In_ ULONG Flags, // PROCESS_CREATE_FLAGS_*
     _In_opt_ HANDLE SectionHandle,
@@ -1537,7 +1537,7 @@ NTAPI
 NtOpenProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PCLIENT_ID ClientId
     );
 
@@ -1685,7 +1685,7 @@ NTAPI
 NtCreateProcessStateChange(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _In_opt_ _Reserved_ ULONG64 Reserved
     );
@@ -1740,7 +1740,7 @@ NTAPI
 NtCreateThreadStateChange(
     _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ThreadHandle,
     _In_opt_ ULONG64 Reserved
     );
@@ -1769,7 +1769,7 @@ NTAPI
 NtCreateThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _Out_ PCLIENT_ID ClientId,
     _In_ PCONTEXT ThreadContext,
@@ -1783,7 +1783,7 @@ NTAPI
 NtOpenThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PCLIENT_ID ClientId
     );
 
@@ -1910,6 +1910,48 @@ NTAPI
 NtTestAlert(
     VOID
     );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+// rev
+/**
+ * Sends an alert to the specified thread.
+ *
+ * @param ThreadId The thread ID of the thread to be alerted.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThreadByThreadId(
+    _In_ HANDLE ThreadId
+    );
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThreadByThreadIdEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+#endif
+
+// rev
+/**
+ * Waits for an alert to be delivered to the specified thread.
+ *
+ * @param Address The address to wait for an alert on.
+ * @param Timeout The timeout value for waiting, or NULL for no timeout.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForAlertByThreadId(
+    _In_opt_ PVOID Address,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2082,39 +2124,6 @@ NtQueueApcThreadEx2(
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
-    );
-
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN8)
-// rev
-/**
- * Sends an alert to the specified thread.
- *
- * @param ThreadId The thread ID of the thread to be alerted.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtAlertThreadByThreadId(
-    _In_ HANDLE ThreadId
-    );
-
-// rev
-/**
- * Waits for an alert to be delivered to the specified thread.
- *
- * @param Address The address to wait for an alert on.
- * @param Timeout The timeout value for waiting, or NULL for no timeout.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtWaitForAlertByThreadId(
-    _In_opt_ PVOID Address,
-    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 #endif
@@ -2662,8 +2671,8 @@ NtCreateUserProcess(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK ProcessDesiredAccess,
     _In_ ACCESS_MASK ThreadDesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ProcessObjectAttributes,
-    _In_opt_ POBJECT_ATTRIBUTES ThreadObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ProcessObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ThreadObjectAttributes,
     _In_ ULONG ProcessFlags, // PROCESS_CREATE_FLAGS_*
     _In_ ULONG ThreadFlags, // THREAD_CREATE_FLAGS_*
     _In_opt_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
@@ -2713,7 +2722,7 @@ NTAPI
 NtCreateThreadEx(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
     _In_opt_ PVOID Argument,
@@ -2982,7 +2991,7 @@ NTAPI
 NtCreateJobObject(
     _Out_ PHANDLE JobHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -2991,7 +3000,7 @@ NTAPI
 NtOpenJobObject(
     _Out_ PHANDLE JobHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -3085,7 +3094,7 @@ NTSTATUS
 NTAPI
 NtAllocateReserveObject(
     _Out_ PHANDLE MemoryReserveHandle,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
 #endif

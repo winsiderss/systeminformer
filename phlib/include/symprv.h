@@ -136,7 +136,7 @@ BOOLEAN
 NTAPI
 PhGetSymbolFromName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _Out_ PPH_SYMBOL_INFORMATION Information
     );
 
@@ -192,7 +192,7 @@ VOID
 NTAPI
 PhSetSearchPathSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PWSTR Path
+    _In_ PCWSTR Path
     );
 
 #ifdef _WIN64
@@ -344,7 +344,7 @@ PPH_STRING
 NTAPI
 PhUndecorateSymbolName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PWSTR DecoratedName
+    _In_ PCWSTR DecoratedName
     );
 
 typedef struct _PH_SYMBOL_INFO
@@ -404,7 +404,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSymbolProviderFreeDiaString(
-    _In_ PWSTR DiaString
+    _In_ PCWSTR DiaString
     );
 
 // Inline stack support

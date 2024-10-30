@@ -27,7 +27,7 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpSessionTokenType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Allocate a session token object.
@@ -43,7 +43,7 @@ PVOID KSIAPI KphpAllocateSessionToken(
     _In_ SIZE_T Size
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     //
     // N.B. The session token object is allocated from non-paged pool because it
@@ -64,7 +64,7 @@ VOID KSIAPI KphpFreeSessionToken(
     _In_freesMem_ PVOID Object
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(Object, KPH_TAG_SESSION_TOKEN_OBJECT);
 }
@@ -89,7 +89,7 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
     PKPH_SESSION_TOKEN token;
     PKPH_SESSION_TOKEN_INIT init;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
@@ -175,7 +175,7 @@ NTSTATUS KphRequestSessionAccessToken(
     KPH_SESSION_TOKEN_INIT tokenInit;
     PKPH_SESSION_TOKEN token;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(AccessToken, sizeof(KPH_SESSION_ACCESS_TOKEN));
 
@@ -270,7 +270,7 @@ NTSTATUS KphpVerifySessionToken(
     KPH_PROCESS_STATE targetState;
     PBYTE signature;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     signature = NULL;
     dyn = NULL;
@@ -384,7 +384,7 @@ NTSTATUS KphpAssignProcessSessionToken(
     PKPH_THREAD_CONTEXT actor;
     PKPH_SESSION_TOKEN token;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     token = NULL;
 
@@ -467,7 +467,7 @@ NTSTATUS KphAssignProcessSessionToken(
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT processContext;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     processObject = NULL;
     processContext = NULL;
@@ -545,7 +545,7 @@ NTSTATUS KphpAssignThreadSessionToken(
     PKPH_THREAD_CONTEXT actor;
     PKPH_SESSION_TOKEN token;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     actor = NULL;
     token = NULL;
@@ -629,7 +629,7 @@ NTSTATUS KphAssignThreadSessionToken(
     PETHREAD threadObject;
     PKPH_THREAD_CONTEXT threadContext;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     threadObject = NULL;
     threadContext = NULL;
@@ -703,7 +703,7 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
     LARGE_INTEGER systemTime;
     LONG useCount;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KeQuerySystemTime(&systemTime);
 
@@ -779,7 +779,7 @@ BOOLEAN KphpThreadSessionTokenPrivilegeCheck(
     BOOLEAN result;
     PKPH_SESSION_TOKEN token;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     result = FALSE;
 
@@ -812,7 +812,7 @@ BOOLEAN KphpProcessSessionTokenPrivilegeCheck(
     BOOLEAN result;
     PKPH_SESSION_TOKEN token;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     result = FALSE;
 
@@ -842,7 +842,7 @@ BOOLEAN KphSessionTokenPrivilegeCheck(
     _In_ ULONG Privileges
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (KphpThreadSessionTokenPrivilegeCheck(Thread, Privileges))
     {
@@ -868,7 +868,7 @@ VOID KphInitializeSessionToken(
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpAllocateSessionToken;
     typeInfo.Initialize = KphpInitializeSessionToken;

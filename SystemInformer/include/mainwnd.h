@@ -220,7 +220,7 @@ typedef struct _PH_MAIN_TAB_PAGE
     PPH_MAIN_TAB_PAGE_CALLBACK Callback;
     PVOID Context;
 
-    INT Index;
+    LONG Index;
     union
     {
         ULONG StateFlags;
@@ -257,7 +257,7 @@ typedef struct _PH_MAIN_TAB_PAGE
 // end_phapppub
 
 BOOLEAN PhMainWndInitialization(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     );
 
 VOID PhAddMiniProcessMenuItems(
@@ -279,8 +279,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhShowIconNotification(
-    _In_ PWSTR Title,
-    _In_ PWSTR Text
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text
     );
 // end_phapppub
 
@@ -294,7 +294,7 @@ VOID PhShowOptionsRestartRequired(
 
 BOOLEAN PhShowOptionsDefaultInstallLocation(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR Message
+    _In_ PCWSTR Message
     );
 
 VOID PhShowProcessContextMenu(

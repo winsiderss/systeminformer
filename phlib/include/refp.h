@@ -126,7 +126,7 @@ typedef struct _PH_OBJECT_TYPE
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
     /** The name of the type. */
-    PWSTR Name;
+    PCWSTR Name;
     /** A free list to use when allocating for this type. */
     PH_FREE_LIST FreeList;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;

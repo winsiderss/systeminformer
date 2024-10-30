@@ -49,7 +49,7 @@ static const PH_FLAG_MAPPING EMenuStateMappings[] =
 PPH_EMENU_ITEM PhCreateEMenuItem(
     _In_ ULONG Flags,
     _In_ ULONG Id,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ HBITMAP Bitmap,
     _In_opt_ PVOID Context
     )
@@ -61,7 +61,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
 
     item->Flags = Flags;
     item->Id = Id;
-    item->Text = Text;
+    item->Text = (PWSTR)Text;
     item->Bitmap = Bitmap;
     item->Context = Context;
 
@@ -71,7 +71,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
 PPH_EMENU_ITEM PhCreateEMenuItemCallback(
     _In_ ULONG Flags,
     _In_ ULONG Id,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ HBITMAP Bitmap,
     _In_opt_ PVOID Context,
     _In_opt_ PPH_EMENU_ITEM_DELAY_FUNCTION DelayFunction
@@ -83,7 +83,7 @@ PPH_EMENU_ITEM PhCreateEMenuItemCallback(
     item = PhAllocateZero(sizeof(PH_EMENU_ITEM));
     item->Flags = Flags;
     item->Id = Id;
-    item->Text = Text;
+    item->Text = (PWSTR)Text;
     item->Bitmap = Bitmap;
     item->Context = Context;
     item->DelayFunction = DelayFunction;
@@ -160,7 +160,7 @@ VOID PhDestroyEMenuItem(
 PPH_EMENU_ITEM PhFindEMenuItem(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ ULONG Id
     )
 {
@@ -187,7 +187,7 @@ _Success_(return != NULL)
 PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR Text,
+    _In_opt_ PCWSTR Text,
     _In_opt_ ULONG Id,
     _Out_opt_ PPH_EMENU_ITEM *FoundParent,
     _Out_opt_ PULONG FoundIndex
@@ -709,8 +709,8 @@ VOID PhHMenuToEMenuItem(
 VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
-    _In_ PWSTR Resource,
-    _In_ INT SubMenuIndex
+    _In_ PCWSTR Resource,
+    _In_ LONG SubMenuIndex
     )
 {
     HMENU menu;
@@ -981,8 +981,8 @@ BOOLEAN PhGetHMenuStringToBuffer(
 
     if (GetMenuItemInfo(Menu, Id, TRUE, &menuInfo))
     {
-        if (ReturnLength)
-            *ReturnLength = menuInfo.cch;
+        if (ReturnLength) *ReturnLength = menuInfo.cch;
+        Buffer[menuInfo.cch] = UNICODE_NULL;
         return TRUE;
     }
 

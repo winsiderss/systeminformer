@@ -14,7 +14,7 @@
 #include <settings.h>
 
 PPH_LIST PhInitializeColumnSetList(
-    _In_ PWSTR SettingName
+    _In_ PCWSTR SettingName
     )
 {
     PPH_LIST columnSetList;
@@ -65,7 +65,7 @@ CleanupExit:
 }
 
 VOID PhSaveSettingsColumnList(
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingName,
     _In_ PPH_LIST ColumnSetList
     )
 {
@@ -125,7 +125,7 @@ VOID PhDeleteColumnSetList(
 
 _Success_(return)
 BOOLEAN PhLoadSettingsColumnSet(
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,
     _Out_ PPH_STRING *TreeListSettings,
     _Out_ PPH_STRING *TreeSortSettings
@@ -188,7 +188,7 @@ BOOLEAN PhLoadSettingsColumnSet(
 }
 
 VOID PhSaveSettingsColumnSet(
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,
     _In_ PPH_STRING TreeListSettings,
     _In_ PPH_STRING TreeSortSettings
@@ -262,7 +262,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
 
 VOID PhShowColumnSetEditorDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR SettingName
+    _In_ PCWSTR SettingName
     )
 {
     PhDialogBox(
@@ -270,14 +270,14 @@ VOID PhShowColumnSetEditorDialog(
         MAKEINTRESOURCE(IDD_COLUMNSETS),
         ParentWindowHandle,
         PhpColumnSetEditorDlgProc,
-        SettingName
+        (PVOID)SettingName
         );
 }
 
 VOID PhpMoveListViewItem(
     _In_ HWND ListViewHandle,
-    _In_ INT ItemIndex1,
-    _In_ INT ItemIndex2
+    _In_ LONG ItemIndex1,
+    _In_ LONG ItemIndex2
     )
 {
     LVITEM item1;
@@ -316,7 +316,7 @@ VOID PhpMoveSelectedListViewItemUp(
     _In_ HWND ListViewHandle
     )
 {
-    INT lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED);
+    LONG lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
     if (lvItemIndex != INT_ERROR)
     {
@@ -332,7 +332,7 @@ VOID PhpMoveSelectedListViewItemDown(
     _In_ HWND ListViewHandle
     )
 {
-    INT lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED);
+    LONG lvItemIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
     if (lvItemIndex != INT_ERROR)
     {
@@ -356,11 +356,9 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PH_COLUMNSET_DIALOG_CONTEXT));
-        context->SettingName = PhCreateString((PWSTR)lParam);
+        context->SettingName = PhCreateString((PCWSTR)lParam);
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
-
-        PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
     }
     else
     {
@@ -401,13 +399,16 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             Button_Enable(context->MoveUpButtonHandle, FALSE);
             Button_Enable(context->MoveDownButtonHandle, FALSE);
             Button_Enable(context->RemoveButtonHandle, FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhDeleteColumnSetList(context->ColumnSetList);
 
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -430,7 +431,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 break;
             case IDC_RENAME:
                 {
-                    INT lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                    LONG lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (lvItemIndex != INT_ERROR)
                     {
@@ -441,7 +442,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 break;
             case IDC_MOVEUP:
                 {
-                    INT lvItemIndex;
+                    LONG lvItemIndex;
                     PPH_COLUMN_SET_ENTRY entry;
                     ULONG index;
 
@@ -463,7 +464,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 break;
             case IDC_MOVEDOWN:
                 {
-                    INT lvItemIndex;
+                    LONG lvItemIndex;
                     PPH_COLUMN_SET_ENTRY entry;
                     ULONG index;
 
@@ -485,7 +486,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                 break;
             case IDC_REMOVE:
                 {
-                    INT lvItemIndex;
+                    LONG lvItemIndex;
                     PPH_COLUMN_SET_ENTRY entry;
                     ULONG index;
 
@@ -523,7 +524,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             {
             case NM_DBLCLK:
                 {
-                    INT lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                    LONG lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (lvItemIndex != INT_ERROR)
                     {
@@ -535,9 +536,9 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             case LVN_ITEMCHANGED:
                 {
                     LPNMLISTVIEW listview = (LPNMLISTVIEW)lParam;
-                    INT index;
-                    INT lvItemIndex;
-                    INT count;
+                    LONG index;
+                    LONG lvItemIndex;
+                    LONG count;
 
                     index = listview->iItem;
                     lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);

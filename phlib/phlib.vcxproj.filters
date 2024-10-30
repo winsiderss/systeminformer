@@ -176,10 +176,28 @@
     <ClCompile Include="symprv_std.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="strsrch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="appsupport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ntuser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="counters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativemodule.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativepipe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="hvsocketcontrol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="strsrch.c">
+    <ClCompile Include="nativethread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -389,6 +407,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\thirdparty.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\user.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

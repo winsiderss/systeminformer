@@ -744,7 +744,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
 
     //SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
     //
-    //info.lpFile = L"ProcessHacker.exe";
+    //info.lpFile = L"SystemInformer.exe";
     //info.lpParameters = L"-plugin " PLUGIN_NAME L":UpdateGeoIp";
     //info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
     //info.nShow = SW_SHOWNORMAL;

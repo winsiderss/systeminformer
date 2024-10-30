@@ -66,9 +66,9 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
 _Success_(return)
 BOOLEAN PhpShowElevatePrompt(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_opt_ PVOID Context,
-    _Out_ PINT32 Button
+    _Out_ PLONG Button
     )
 {
     TASKDIALOGCONFIG config;
@@ -76,7 +76,7 @@ BOOLEAN PhpShowElevatePrompt(
     {
         { IDYES, L"Continue"}
     };
-    INT button;
+    LONG button;
 
     // Currently the error dialog box is similar to the one displayed
     // when you try to label a drive in Windows Explorer. It's much better
@@ -181,14 +181,14 @@ BOOLEAN PhpElevationLevelAndConnectToPhSvc(
  */
 BOOLEAN PhpShowErrorAndConnectToPhSvc(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_ NTSTATUS Status,
     _Out_ PBOOLEAN Connected,
     _Out_ PBOOLEAN Cancelled
     )
 {
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
-    INT button = IDNO;
+    LONG button = IDNO;
 
     *Connected = FALSE;
     *Cancelled = FALSE;
@@ -1395,8 +1395,8 @@ BOOLEAN PhIsDangerousProcess(
  */
 static BOOLEAN PhpShowContinueMessageProcesses(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
-    _In_opt_ PWSTR Message,
+    _In_ PCWSTR Verb,
+    _In_opt_ PCWSTR Message,
     _In_ BOOLEAN WarnOnlyIfDangerous,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
@@ -1545,7 +1545,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
  */
 static BOOLEAN PhpShowErrorProcess(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
+    _In_ PCWSTR Verb,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -3714,7 +3714,7 @@ VOID PhpShowServiceProgressInitializeText(
         Context->Object = L"the selected services";
 
     // Make sure the verb is all lowercase.
-    *Verb = PhaLowerString(PhaCreateString((PWSTR)Context->Verb));
+    *Verb = PhaLowerString(PhaCreateString(Context->Verb));
 
     // "terminate" -> "Terminate"
     *VerbCaps = PhaDuplicateString(*Verb);
@@ -3744,7 +3744,7 @@ VOID PhShowServiceProgressDialogConfirmMessage(
     config.pfCallback = PhpUiServiceConfirmDialogCallbackProc;
     config.pszMainIcon = Context->Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
     config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
-    if (Context->Message) config.pszContent = PhaConcatStrings2((PWSTR)Context->Message, L" Are you sure you want to continue?")->Buffer;
+    if (Context->Message) config.pszContent = PhaConcatStrings2(Context->Message, L" Are you sure you want to continue?")->Buffer;
 
     buttons[0].nButtonID = IDYES;
     buttons[0].pszButtonText = verbCaps->Buffer;
@@ -3936,14 +3936,14 @@ VOID PhShowServiceProgressDialog(
 
 static BOOLEAN PhpShowContinueMessageServices(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Verb,
+    _In_ PCWSTR Message,
     _In_ BOOLEAN Warning,
     _In_ PPH_SERVICE_ITEM* Services,
     _In_ ULONG NumberOfServices
     )
 {
-    PWSTR object;
+    PCWSTR object;
     BOOLEAN cont = FALSE;
 
     if (NumberOfServices == 0)
@@ -5852,7 +5852,7 @@ BOOLEAN PhUiFreeMemory(
 
 static BOOLEAN PhpShowErrorHandle(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Verb,
+    _In_ PCWSTR Verb,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result

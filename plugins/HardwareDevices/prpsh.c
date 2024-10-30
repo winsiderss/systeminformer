@@ -45,7 +45,7 @@ INT CALLBACK PvpStandardPropPageProc(
     );
 
 PPV_PROPCONTEXT HdCreatePropContext(
-    _In_ PWSTR Caption
+    _In_ PCWSTR Caption
     )
 {
     PPV_PROPCONTEXT propContext;

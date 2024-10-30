@@ -17,7 +17,7 @@ PPH_OBJECT_TYPE PhFileStreamType = NULL;
 
 NTSTATUS PhCreateFileStream(
     _Out_ PPH_FILE_STREAM *FileStream,
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
@@ -793,7 +793,7 @@ NTSTATUS PhWriteStringAsUtf8FileStream(
 
 NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ PWSTR Buffer,
+    _In_ PCWSTR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -812,7 +812,7 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
 
     while (Length != 0)
     {
-        block.Buffer = Buffer;
+        block.Buffer = (PWCH)Buffer;
         block.Length = PAGE_SIZE;
 
         if (block.Length > Length)
@@ -866,7 +866,7 @@ CleanupExit:
 
 NTSTATUS PhWriteStringFormatAsUtf8FileStream_V(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     _In_ va_list ArgPtr
     )
 {
@@ -882,7 +882,7 @@ NTSTATUS PhWriteStringFormatAsUtf8FileStream_V(
 
 NTSTATUS PhWriteStringFormatAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ _Printf_format_string_ PWSTR Format,
+    _In_ _Printf_format_string_ PCWSTR Format,
     ...
     )
 {

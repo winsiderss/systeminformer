@@ -1379,6 +1379,18 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K')
+            {
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    SetFocus(context->SearchBoxHandle);
+                    return TRUE;
+                }
+            }
+        }
+        break;
     case WM_TIMER:
         {
             switch (wParam)
@@ -2106,7 +2118,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_REFRESH));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->TreeNewHandle);
                 return TRUE;
             }
         }

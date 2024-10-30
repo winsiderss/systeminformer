@@ -360,7 +360,7 @@ PPH_STRING PhGetProcessHeapFlagsText(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-PWSTR PhGetProcessHeapClassText(
+PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     )
 {
@@ -417,38 +417,38 @@ VOID PhpEnumerateProcessHeaps(
         status = PhOpenProcess(
             &processHandle,
             PROCESS_ALL_ACCESS,
-            Context->ProcessItem->ProcessId
+            clientProcessId
             );
     }
-    else if (WindowsVersion >= WINDOWS_10)
+    else
     {
         // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
         status = PhOpenProcess(
             &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
-            Context->ProcessItem->ProcessId
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION | // PLM
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE, // Reflection
+            clientProcessId
             );
     }
 
     if (processHandle)
     {
         PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
-    }
 
-    if (PhGetIntegerSetting(L"EnableHeapReflection"))
-    {
-        // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
-        // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
-
-        status = PhCreateProcessReflection(
-            &reflectionInfo,
-            NULL,
-            clientProcessId
-            );
-
-        if (NT_SUCCESS(status))
+        if (PhGetIntegerSetting(L"EnableHeapReflection"))
         {
-            clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+            // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
+            // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+            status = PhCreateProcessReflection(
+                &reflectionInfo,
+                processHandle
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+            }
         }
     }
 
@@ -636,6 +636,9 @@ VOID PhpEnumerateProcessHeaps(
 
 CleanupExit:
     PhFreeProcessReflection(&reflectionInfo);
+
+    if (processHandle)
+        NtClose(processHandle);
 
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);

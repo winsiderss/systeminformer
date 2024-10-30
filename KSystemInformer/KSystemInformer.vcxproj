@@ -111,7 +111,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -123,6 +123,8 @@
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <BuildStlModules>false</BuildStlModules>
+      <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -148,7 +150,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -160,6 +162,8 @@
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -200,6 +204,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -240,6 +246,8 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <ConformanceMode>true</ConformanceMode>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;Netio.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -265,12 +273,10 @@
     <ClCompile Include="cid_tracking.c" />
     <ClCompile Include="comms.c" />
     <ClCompile Include="comms_handlers.c" />
-    <ClCompile Include="download.c" />
     <ClCompile Include="dyndata.c" />
     <ClCompile Include="dynimp.c" />
     <ClCompile Include="file.c" />
     <ClCompile Include="hash.c" />
-    <ClCompile Include="http.c" />
     <ClCompile Include="imgcoherency.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
@@ -297,7 +303,6 @@
     <ClCompile Include="util.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="vm.c" />
-    <ClCompile Include="socket.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

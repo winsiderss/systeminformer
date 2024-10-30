@@ -99,8 +99,8 @@ typedef struct
 
 ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -216,7 +216,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
-    _Outptr_ PWSTR *ppszResourceName
+    _Outptr_ PCWSTR *ppszResourceName
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_OpenElevatedEditor(

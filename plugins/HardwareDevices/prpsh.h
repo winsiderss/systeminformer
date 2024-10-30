@@ -48,7 +48,7 @@ typedef struct _PV_PROPPAGECONTEXT
 } PV_PROPPAGECONTEXT, *PPV_PROPPAGECONTEXT;
 
 PPV_PROPCONTEXT HdCreatePropContext(
-    _In_ PWSTR Caption
+    _In_ PCWSTR Caption
     );
 
 BOOLEAN PvAddPropPage(

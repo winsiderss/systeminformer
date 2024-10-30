@@ -46,7 +46,7 @@ typedef struct _PH_TREENEW_COLUMN
     };
     ULONG Id;
     PVOID Context;
-    PWSTR Text;
+    PCWSTR Text;
     LONG Width;
     ULONG Alignment;
     ULONG DisplayIndex; // -1 for fixed column or invalid
@@ -660,7 +660,7 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumn(
     _In_ HWND hwnd,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Width,
     _In_ ULONG Alignment,
     _In_ ULONG DisplayIndex,
@@ -689,7 +689,7 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx(
     _In_ HWND hwnd,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Width,
     _In_ ULONG Alignment,
     _In_ ULONG DisplayIndex,
@@ -721,7 +721,7 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
     _In_ HWND hwnd,
     _In_ ULONG Id,
     _In_ BOOLEAN Visible,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Width,
     _In_ ULONG Alignment,
     _In_ ULONG DisplayIndex,
