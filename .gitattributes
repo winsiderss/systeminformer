@@ -10,6 +10,7 @@
 *.dbproj merge=union
 
 # Project files
+*.appinstaller eol=crlf
 *.bat eol=crlf
 *.c eol=crlf
 *.cs eol=crlf
@@ -26,8 +27,12 @@
 *.hpp eol=crlf
 *.inc eol=crlf
 *.inf eol=crlf
+*.map eol=crlf
 *.manifest eol=crlf
+*.mc eol=crlf
 *.md eol=crlf
+*.natvis eol=crlf
+*.ps1 eol=crlf
 *.props eol=crlf
 *.pubxml eol=crlf
 *.resx eol=crlf
