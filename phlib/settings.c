@@ -432,7 +432,7 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
 }
 
 _May_raise_ BOOLEAN PhGetBinarySetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _Out_ PVOID Buffer
     )
 {
@@ -723,13 +723,13 @@ NTSTATUS PhLoadSettings(
 
 PSTR PhpSettingsSaveCallback(
     _In_ PVOID node,
-    _In_ INT position
+    _In_ LONG position
     )
 {
 #define MXML_WS_AFTER_OPEN 1
 #define MXML_WS_AFTER_CLOSE 3
 
-    PSTR elementName;
+    PCSTR elementName;
 
     if (!(elementName = PhGetXmlNodeElementText(node)))
         return NULL;
@@ -899,8 +899,8 @@ PPH_SETTING PhGetSetting(
 }
 
 VOID PhLoadWindowPlacementFromSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
+    _In_opt_ PCWSTR PositionSettingName,
+    _In_opt_ PCWSTR SizeSettingName,
     _In_ HWND WindowHandle
     )
 {
@@ -975,8 +975,8 @@ VOID PhLoadWindowPlacementFromSetting(
 }
 
 VOID PhSaveWindowPlacementToSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
+    _In_opt_ PCWSTR PositionSettingName,
+    _In_opt_ PCWSTR SizeSettingName,
     _In_ HWND WindowHandle
     )
 {
@@ -1015,7 +1015,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     ULONG columnIndex;
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
     ULONG maxOrder;
-    ULONG scale;
+    LONG scale;
     LONG dpi;
 
 #ifdef DEBUG
@@ -1036,7 +1036,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
     {
         PH_STRINGREF scalePart;
-        ULONG64 integer;
+        LONG64 integer;
 
         PhSkipStringRef(&remainingPart, sizeof(WCHAR));
         PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
@@ -1044,7 +1044,7 @@ BOOLEAN PhLoadListViewColumnSettings(
         if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
             return FALSE;
 
-        scale = (ULONG)integer;
+        scale = (LONG)integer;
     }
     else
     {
@@ -1178,7 +1178,7 @@ PPH_STRING PhSaveListViewColumnSettings(
 }
 
 VOID PhLoadListViewColumnsFromSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
@@ -1190,7 +1190,7 @@ VOID PhLoadListViewColumnsFromSetting(
 }
 
 VOID PhSaveListViewColumnsToSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
@@ -1202,7 +1202,7 @@ VOID PhSaveListViewColumnsToSetting(
 }
 
 VOID PhLoadListViewSortColumnsFromSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
@@ -1244,7 +1244,7 @@ VOID PhLoadListViewSortColumnsFromSetting(
 }
 
 VOID PhSaveListViewSortColumnsToSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
@@ -1273,7 +1273,7 @@ VOID PhSaveListViewSortColumnsToSetting(
 }
 
 VOID PhLoadListViewGroupStatesFromSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
@@ -1294,7 +1294,7 @@ VOID PhLoadListViewGroupStatesFromSetting(
     if (!PhStringToInteger64(&part, 10, &countInteger))
         return;
 
-    for (INT index = 0; index < (INT)countInteger; index++)
+    for (LONG index = 0; index < (LONG)countInteger; index++)
     {
         ULONG64 groupId;
         ULONG64 stateMask;
@@ -1329,18 +1329,18 @@ VOID PhLoadListViewGroupStatesFromSetting(
 }
 
 VOID PhSaveListViewGroupStatesToSetting(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
     )
 {
-    INT index;
-    INT count;
+    LONG index;
+    LONG count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    count = (INT)ListView_GetGroupCount(ListViewHandle);
+    count = (LONG)ListView_GetGroupCount(ListViewHandle);
 
     PhAppendFormatStringBuilder(
         &stringBuilder,
@@ -1371,12 +1371,13 @@ VOID PhSaveListViewGroupStatesToSetting(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(Name, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID PhLoadCustomColorList(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PULONG CustomColorList,
     _In_ ULONG CustomColorCount
     )
@@ -1415,7 +1416,7 @@ CleanupExit:
 }
 
 VOID PhSaveCustomColorList(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PULONG CustomColorList,
     _In_ ULONG CustomColorCount
     )

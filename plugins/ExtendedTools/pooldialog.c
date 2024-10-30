@@ -113,7 +113,7 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
 {
     PPOOLTAG_CONTEXT context = Context;
 
-    if (ProcessesUpdatedCount != 3)
+    if (PtrToUlong(Parameter) < 3)
         return;
 
     EtUpdatePoolTagTable(Context);
@@ -380,11 +380,6 @@ NTSTATUS EtShowPoolMonDialogThread(
     {
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
-        {
-            CallWindowProc(EtPoolMonDlgProc, EtPoolTagDialogHandle, message.message, message.wParam, message.lParam);
-        }
 
         if (!IsDialogMessage(EtPoolTagDialogHandle, &message))
         {

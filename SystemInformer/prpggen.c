@@ -545,7 +545,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             if (PhEnableThemeSupport)
             {
                 PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
-                PhInitializeSysLinkTheme(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK));
             }
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);

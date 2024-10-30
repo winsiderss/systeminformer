@@ -10,6 +10,10 @@
  */
 
 #pragma once
+
+#ifndef PH_NOTIFTOAST_H
+#define PH_NOTIFTOAST_H
+
 #include <phapp.h>
 
 EXTERN_C_START
@@ -62,3 +66,5 @@ PhShowToastStringRef(
     );
 
 EXTERN_C_END
+
+#endif

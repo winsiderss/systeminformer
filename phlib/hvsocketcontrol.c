@@ -23,9 +23,9 @@ static const UNICODE_STRING HvSocketControlName       = RTL_CONSTANT_STRING(L"Hv
 static const UNICODE_STRING HvSocketAddressInfoName   = RTL_CONSTANT_STRING(L"AddressInfo");
 static const UNICODE_STRING HvSocketControlFileName   = RTL_CONSTANT_STRING(L"\\Device\\HvSocketSystem\\HvSocketControl");
 
-static const OBJECT_ATTRIBUTES HvSocketSystemDeviceAttributes  = RTL_CONSTANT_OBJECT_ATTRIBUTES((PUNICODE_STRING)&HvSocketSystemDevicePath, 0);
-static const OBJECT_ATTRIBUTES HvSocketVmGroupDeviceAttributes = RTL_CONSTANT_OBJECT_ATTRIBUTES((PUNICODE_STRING)&HvSocketVmGroupDevicePath, 0);
-static const OBJECT_ATTRIBUTES HvSocketControlAttributes       = RTL_CONSTANT_OBJECT_ATTRIBUTES((PUNICODE_STRING)&HvSocketControlFileName, 0);
+static const OBJECT_ATTRIBUTES HvSocketSystemDeviceAttributes  = RTL_CONSTANT_OBJECT_ATTRIBUTES(&HvSocketSystemDevicePath, 0);
+static const OBJECT_ATTRIBUTES HvSocketVmGroupDeviceAttributes = RTL_CONSTANT_OBJECT_ATTRIBUTES(&HvSocketVmGroupDevicePath, 0);
+static const OBJECT_ATTRIBUTES HvSocketControlAttributes       = RTL_CONSTANT_OBJECT_ATTRIBUTES(&HvSocketControlFileName, 0);
 
 #define IOCTL_HVSOCKET_UPDATE_ADDRESS_INFO          CTL_CODE(FILE_DEVICE_TRANSPORT, 0x1, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 #define IOCTL_HVSOCKET_UPDATE_PARTITION_PROPERTIES  CTL_CODE(FILE_DEVICE_TRANSPORT, 0x2, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)

@@ -24,6 +24,7 @@
 #include "resource.h"
 
 #include "framemon.h"
+#include "tpm.h"
 
 // d3dkmddi requires the WDK (dmex)
 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
@@ -45,6 +46,7 @@ __has_include (<d3dkmthk.h>)
 #endif
 
 #include <cfgmgr32.h>
+#include <tbs.h>
 
 // Undocumented device properties (Win10 only)
 DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
@@ -1671,6 +1673,38 @@ BOOLEAN EtTpmIsReady(
 
 VOID EtShowTpmDialog(
     _In_ HWND ParentWindowHandle
+    );
+
+_Must_inspect_result_
+NTSTATUS EtTpmOpen(
+    _Out_ PTBS_HCONTEXT TbsContextHandle
+    );
+
+NTSTATUS EtTpmClose(
+    _In_ TBS_HCONTEXT TbsContextHandle
+    );
+
+_Must_inspect_result_
+NTSTATUS EtTpmReadPublic(
+    _In_ TBS_HCONTEXT TbsContextHandle,
+    _In_ TPM_NV_INDEX Index,
+    _Out_ TPMA_NV* Attributes,
+    _Out_ PUSHORT DataSize
+    );
+
+_Must_inspect_result_
+NTSTATUS EtTpmRead(
+    _In_ TBS_HCONTEXT TbsContextHandle,
+    _In_ TPM_NV_INDEX Index,
+    _Out_writes_bytes_all_(DataSize) PBYTE Data,
+    _In_ USHORT DataSize
+    );
+
+// tpm_editor
+
+VOID EtShowTpmEditDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ TPM_NV_INDEX Index
     );
 
 #endif

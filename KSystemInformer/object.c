@@ -81,7 +81,7 @@ ULONG KphObpGetHandleAttributes(
 #endif
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Gets a pointer to the handle table of a process. On success, acquires
@@ -106,7 +106,7 @@ NTSTATUS KphReferenceProcessHandleTable(
     PHANDLE_TABLE handleTable;
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *HandleTable = NULL;
 
@@ -161,7 +161,7 @@ VOID KphDereferenceProcessHandleTable(
     _In_ PEPROCESS Process
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     PsReleaseProcessExitSynchronization(Process);
 }
@@ -182,7 +182,7 @@ VOID KphpUnlockHandleTableEntry(
 {
     PEX_PUSH_LOCK handleContentionEvent;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Dyn->HtHandleContentionEvent != ULONG_MAX);
 
@@ -231,7 +231,7 @@ BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback(
     PKPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
     BOOLEAN result;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Context);
 
@@ -265,7 +265,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     KPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
     PHANDLE_TABLE handleTable;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = KphReferenceDynData();
     if (!dyn ||
@@ -336,7 +336,7 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     POBJECT_TYPE objectType;
     PKPH_PROCESS_HANDLE entryInBuffer;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     context = Context;
 
@@ -437,7 +437,7 @@ NTSTATUS KphEnumerateProcessHandles(
     PEPROCESS process;
     KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
     process = NULL;
@@ -600,7 +600,7 @@ NTSTATUS KphQueryNameObject(
     NTSTATUS status;
     POBJECT_TYPE objectType;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     objectType = ObGetObjectType(Object);
 
@@ -679,7 +679,7 @@ NTSTATUS KphpExtractNameFileObject(
     ULONG subNameLength;
     PFILE_OBJECT relatedFileObject;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (FlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
     {
@@ -865,7 +865,7 @@ NTSTATUS KphQueryNameFileObject(
     PFLT_FILE_NAME_INFORMATION fileNameInfo;
     FLT_FILE_NAME_OPTIONS nameOptions;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     nameOptions = FLT_FILE_NAME_NORMALIZED;
 
@@ -957,7 +957,7 @@ NTSTATUS KphQueryInformationObject(
     KPROCESSOR_MODE accessMode;
     PKPH_PROCESS_CONTEXT processContext;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
     process = NULL;
@@ -2021,7 +2021,7 @@ NTSTATUS KphQueryInformationObject(
             KeStackAttachProcess(PsInitialSystemProcess, &apcState);
 
             baseAddress = NULL;
-            viewSize = 0;
+            viewSize = PAGE_SIZE;
             status = ZwMapViewOfSection(sectionHandle,
                                         ZwCurrentProcess(),
                                         &baseAddress,
@@ -2056,9 +2056,9 @@ NTSTATUS KphQueryInformationObject(
                 ZwUnmapViewOfSection(ZwCurrentProcess(), baseAddress);
             }
 
-            ObCloseHandle(sectionHandle, KernelMode);
-
             KeUnstackDetachProcess(&apcState);
+
+            ObCloseHandle(sectionHandle, KernelMode);
 
             if (NT_SUCCESS(status))
             {
@@ -2173,7 +2173,7 @@ NTSTATUS KphSetInformationObject(
     PEPROCESS process;
     KAPC_STATE apcState;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     objectInformation = NULL;
     process = NULL;
@@ -2318,7 +2318,7 @@ NTSTATUS KphOpenNamedObject(
     NTSTATUS status;
     HANDLE objectHandle;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (AccessMode != KernelMode)
     {
@@ -2393,7 +2393,7 @@ NTSTATUS KphOpenObjectByTypeIndex(
     _In_ KPROCESSOR_MODE AccessMode
 )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphDynObTypeIndexTable)
     {
@@ -2433,7 +2433,7 @@ NTSTATUS KphDuplicateObject(
     PEPROCESS targetProcess;
     HANDLE targetHandle;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     targetProcess = NULL;
     sourceProcess = NULL;
@@ -2576,7 +2576,7 @@ NTSTATUS KphpCompareObjects(
     PVOID firstObject;
     PVOID secondObject;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = ObReferenceObjectByHandle(FirstObjectHandle,
                                        0,
@@ -2656,7 +2656,7 @@ NTSTATUS KphCompareObjects(
     PEPROCESS process;
     KAPC_STATE apcState;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,

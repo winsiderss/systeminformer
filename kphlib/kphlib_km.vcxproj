@@ -150,6 +150,7 @@
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -162,6 +163,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -180,6 +192,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -194,6 +207,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -207,6 +231,7 @@
       <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -219,6 +244,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -235,6 +271,7 @@
       <GuardSignedReturns>true</GuardSignedReturns>
       <BuildStlModules>false</BuildStlModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -247,6 +284,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -265,6 +313,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -279,6 +328,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -297,6 +357,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -309,6 +370,17 @@
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
+    <MessageCompile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <Verbose>true</Verbose>
+      <RCFilePath>$(IntDir)\include</RCFilePath>
+      <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+    </MessageCompile>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />

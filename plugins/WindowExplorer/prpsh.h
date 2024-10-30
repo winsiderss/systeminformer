@@ -117,7 +117,7 @@ PvPropPageDlgProcHeader(
         PhSetWindowContext(hwndDlg, ULONG_MAX, (HANDLE)lParam);
     }
 
-    propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
+    propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, ULONG_MAX);
 
     if (!propSheetPage)
         return FALSE;

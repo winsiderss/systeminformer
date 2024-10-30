@@ -345,6 +345,9 @@
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
+    <ClCompile Include="nativepipe.c" />
+    <ClCompile Include="nativemodule.c" />
+    <ClCompile Include="nativethread.c" />
     <ClCompile Include="ntuser.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />

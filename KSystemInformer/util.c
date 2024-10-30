@@ -16,11 +16,6 @@
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
-static const ANSI_STRING KphpUrlSchemeSeparator = RTL_CONSTANT_STRING("://");
-static const ANSI_STRING KphpUrlPathSeparator = RTL_CONSTANT_STRING("/");
-static const ANSI_STRING KphpUrlParametersSeparator = RTL_CONSTANT_STRING("?");
-static const ANSI_STRING KphpUrlAnchorSeparator = RTL_CONSTANT_STRING("#");
-static const ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
@@ -66,17 +61,17 @@ PVOID KphSearchMemory(
     //
     // Optimization for a pattern size that fits into a register.
     //
-#define KPH_SEARCH_MEMORY_SIZED(type)                                         \
-    case sizeof(type):                                                        \
-    {                                                                         \
-        KPH_SEARCH_MEMORY_FOR                                                 \
-        {                                                                     \
-            if (*(type*)buffer == *(type*)Pattern)                            \
-            {                                                                 \
-                return buffer;                                                \
-            }                                                                 \
-        }                                                                     \
-        break;                                                                \
+#define KPH_SEARCH_MEMORY_SIZED(type)                                          \
+    case sizeof(type):                                                         \
+    {                                                                          \
+        KPH_SEARCH_MEMORY_FOR                                                  \
+        {                                                                      \
+            if (*(type*)buffer == *(type*)Pattern)                             \
+            {                                                                  \
+                return buffer;                                                 \
+            }                                                                  \
+        }                                                                      \
+        break;                                                                 \
     }
 
     switch (PatternLength)
@@ -116,7 +111,7 @@ BOOLEAN KphAcquireRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return ExAcquireRundownProtection(Rundown);
 }
@@ -131,7 +126,7 @@ VOID KphReleaseRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     ExReleaseRundownProtection(Rundown);
 }
@@ -151,7 +146,7 @@ ULONG64 KphGetProcessSequenceNumber(
     ULONG64 sequence;
     PKPH_PROCESS_CONTEXT process;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (KphDynPsGetProcessSequenceNumber)
     {
@@ -191,7 +186,7 @@ ULONG64 KphGetProcessStartKey(
     ULONG64 key;
     PKPH_PROCESS_CONTEXT process;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (KphDynPsGetProcessStartKey)
     {
@@ -237,7 +232,7 @@ PVOID KphGetCurrentThreadSubProcessTag(
     PVOID subProcessTag;
     PTEB teb;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (PsIsSystemThread(PsGetCurrentThread()))
     {
@@ -310,7 +305,7 @@ PVOID KphGetThreadSubProcessTagEx(
     PVOID subProcessTag;
     PTEB teb;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (PsIsSystemThread(Thread))
     {
@@ -380,7 +375,7 @@ PVOID KphGetThreadSubProcessTag(
     _In_ PETHREAD Thread
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return KphGetThreadSubProcessTagEx(Thread, FALSE);
 }
@@ -395,7 +390,7 @@ VOID KphInitializeRundown(
     _Out_ PKPH_RUNDOWN Rundown
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExInitializeRundownProtection(Rundown);
 }
@@ -411,7 +406,7 @@ VOID KphWaitForRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExWaitForRundownProtectionRelease(Rundown);
 }
@@ -426,7 +421,7 @@ VOID KphInitializeRWLock(
     _Out_ PKPH_RWLOCK Lock
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltInitializePushLock(Lock);
 }
@@ -441,7 +436,7 @@ VOID KphDeleteRWLock(
     _In_ PKPH_RWLOCK Lock
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltDeletePushLock(Lock);
 }
@@ -457,7 +452,7 @@ VOID KphAcquireRWLockExclusive(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockExclusive(Lock);
 }
@@ -473,7 +468,7 @@ VOID KphAcquireRWLockShared(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockShared(Lock);
 }
@@ -489,7 +484,7 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltReleasePushLock(Lock);
 }
@@ -512,7 +507,7 @@ BOOLEAN KphIsSameFile(
     PSECTION_OBJECT_POINTERS first;
     PSECTION_OBJECT_POINTERS second;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     first = FirstFileObject->SectionObjectPointer;
     second = SecondFileObject->SectionObjectPointer;
@@ -537,7 +532,7 @@ BOOLEAN KphIsSameFile(
     return TRUE;
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Acquires a reference to a reference object.
@@ -558,7 +553,7 @@ NTSTATUS KphAcquireReference(
     _Out_opt_ PLONG PreviousCount
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     for (;;)
     {
@@ -611,7 +606,7 @@ NTSTATUS KphReleaseReference(
     _Out_opt_ PLONG PreviousCount
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     for (;;)
     {
@@ -663,7 +658,7 @@ NTSTATUS KphValidateAddressForSystemModules(
     BOOLEAN valid;
     PVOID endAddress;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (Add2Ptr(Address, Length) < Address)
     {
@@ -740,7 +735,7 @@ NTSTATUS KphQueryRegistryString(
     PUNICODE_STRING string;
     ULONG length;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *String = NULL;
     info = NULL;
@@ -850,7 +845,7 @@ VOID KphFreeRegistryString(
     _In_freesMem_ PUNICODE_STRING String
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(String, KPH_TAG_REG_STRING);
 }
@@ -880,7 +875,7 @@ NTSTATUS KphQueryRegistryBinary(
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Buffer = NULL;
     *Length = 0;
@@ -954,7 +949,7 @@ VOID KphFreeRegistryBinary(
     _In_freesMem_ PBYTE Buffer
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(CONTAINING_RECORD(Buffer, KEY_VALUE_PARTIAL_INFORMATION, Data),
             KPH_TAG_REG_BINARY);
@@ -982,7 +977,7 @@ NTSTATUS KphQueryRegistryULong(
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *Value = 0;
 
@@ -1043,7 +1038,7 @@ NTSTATUS KphMapViewInSystem(
     SIZE_T fileSize;
     LARGE_INTEGER sectionOffset;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     sectionHandle = NULL;
     sectionObject = NULL;
@@ -1165,7 +1160,7 @@ VOID KphUnmapViewInSystem(
     _In_ PVOID MappedBase
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     MmUnmapViewInSystemSpace(MappedBase);
 }
@@ -1190,7 +1185,7 @@ NTSTATUS KphGetNameFileObject(
     ULONG returnLength;
     POBJECT_NAME_INFORMATION nameInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *FileName = NULL;
 
@@ -1264,7 +1259,7 @@ VOID KphFreeNameFileObject(
     _In_freesMem_ PUNICODE_STRING FileName
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(CONTAINING_RECORD(FileName, OBJECT_NAME_INFORMATION, Name),
             KPH_TAG_FILE_OBJECT_NAME);
@@ -1288,7 +1283,7 @@ BOOLEAN KphSinglePrivilegeCheckEx(
 {
     PRIVILEGE_SET requiredPrivileges;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     requiredPrivileges.PrivilegeCount = 1;
     requiredPrivileges.Control = PRIVILEGE_SET_ALL_NECESSARY;
@@ -1317,7 +1312,7 @@ BOOLEAN KphSinglePrivilegeCheck(
     BOOLEAN accessGranted;
     SECURITY_SUBJECT_CONTEXT subjectContext;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     SeCaptureSubjectContext(&subjectContext);
 
@@ -1349,7 +1344,7 @@ NTSTATUS KphpGetKernelFileName(
     SYSTEM_SINGLE_MODULE_INFORMATION info;
     ANSI_STRING fullPathName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(FileName, sizeof(UNICODE_STRING));
 
@@ -1396,7 +1391,7 @@ NTSTATUS KphGetKernelVersion(
     NTSTATUS status;
     UNICODE_STRING kernelFileName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = KphpGetKernelFileName(&kernelFileName);
     if (!NT_SUCCESS(status))
@@ -1454,7 +1449,7 @@ NTSTATUS KphGetFileVersion(
     UNICODE_STRING keyName;
     PVS_FIXEDFILEINFO fileInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
 
@@ -1679,7 +1674,7 @@ NTSTATUS KphpSetCfgCallTargetInformation(
     CFG_CALL_TARGET_LIST_INFORMATION targetListInfo;
     ULONG numberOfEntriesProcessed;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     memoryRange.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     memoryRange.NumberOfBytes = PAGE_SIZE;
@@ -1719,7 +1714,7 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
 {
     ULONG flags;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     flags = CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID;
 
@@ -1745,7 +1740,7 @@ NTSTATUS KphDisableXfgOnTarget(
 {
     ULONG flags;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     flags = CFG_CALL_TARGET_CONVERT_XFG_TO_CFG;
 
@@ -1775,7 +1770,7 @@ NTSTATUS KphGetFileNameFinalComponent(
     _Out_ PUNICODE_STRING FinalComponent
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     for (USHORT i = (FileName->Length / sizeof(WCHAR)); i > 0; i--)
     {
@@ -1816,7 +1811,7 @@ NTSTATUS KphGetProcessImageName(
     PUCHAR fileName;
     SIZE_T len;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     fileName = PsGetProcessImageFileName(Process);
 
@@ -1851,8 +1846,9 @@ VOID KphFreeProcessImageName(
     _In_freesMem_ PUNICODE_STRING ImageName
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
+#pragma prefast(suppress : 28121) // SAL is incorrect in wdm.h
     RtlFreeUnicodeString(ImageName);
 }
 
@@ -1876,7 +1872,7 @@ NTSTATUS KphOpenParametersKey(
     UNICODE_STRING parametersKeyName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     *KeyHandle = NULL;
 
@@ -1918,244 +1914,6 @@ NTSTATUS KphOpenParametersKey(
 }
 
 /**
- * \brief Parses a URL into its components.
- *
- * \details The output information references information in the input URL
- * buffer. The parsed output information *must* outlive the input URL buffer.
- *
- * \param[in] Url The URL to parse.
- * \param[out] UrlInfo The parsed URL information.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphParseUrlInformation(
-    _In_ PANSI_STRING Url,
-    _Out_ PKPH_URL_INFORMATION UrlInfo
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG remaining;
-    PVOID part;
-    ULONG_PTR length;
-
-    PAGED_CODE();
-
-    buffer = Url->Buffer;
-    remaining = Url->Length;
-
-    RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
-
-    //
-    // Extract any Scheme
-    //
-
-    part = KphSearchMemory(buffer,
-                           remaining,
-                           KphpUrlSchemeSeparator.Buffer,
-                           KphpUrlSchemeSeparator.Length);
-    if (part)
-    {
-        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
-                                     &UrlInfo->Scheme.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->Scheme.Buffer = buffer;
-        UrlInfo->Scheme.MaximumLength = UrlInfo->Scheme.Length;
-
-        buffer = Add2Ptr(part, KphpUrlSchemeSeparator.Length);
-        remaining -= (UrlInfo->Scheme.Length + KphpUrlSchemeSeparator.Length);
-    }
-
-    //
-    // Extract any Parameters
-    //
-
-    part = KphSearchMemory(buffer,
-                           remaining,
-                           KphpUrlParametersSeparator.Buffer,
-                           KphpUrlParametersSeparator.Length);
-    if (part)
-    {
-        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
-
-        status = RtlULongPtrToUShort(length, &UrlInfo->Parameters.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->Parameters.Buffer = part;
-        UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
-    }
-
-    //
-    // Extract any Anchor
-    //
-
-    part = KphSearchMemory(buffer,
-                           remaining,
-                           KphpUrlAnchorSeparator.Buffer,
-                           KphpUrlAnchorSeparator.Length);
-
-    if (part)
-    {
-        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
-
-        status = RtlULongPtrToUShort(length, &UrlInfo->Anchor.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->Anchor.Buffer = part;
-        UrlInfo->Anchor.MaximumLength = UrlInfo->Anchor.Length;
-
-        if (UrlInfo->Parameters.Buffer)
-        {
-            UrlInfo->Parameters.Length -= UrlInfo->Anchor.Length;
-            UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
-        }
-    }
-
-    //
-    // Extract any Authority
-    //
-
-    part = KphSearchMemory(buffer,
-                           remaining,
-                           KphpUrlPathSeparator.Buffer,
-                           KphpUrlPathSeparator.Length);
-    if (part)
-    {
-        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
-                                     &UrlInfo->Authority.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->Authority.Buffer = buffer;
-        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
-
-        buffer = part;
-        remaining -= UrlInfo->Authority.Length;
-    }
-    else
-    {
-        UrlInfo->Authority.Buffer = buffer;
-
-        if (UrlInfo->Parameters.Buffer)
-        {
-            length = PtrOffset(UrlInfo->Authority.Buffer,
-                               UrlInfo->Parameters.Buffer);
-        }
-        else if (UrlInfo->Anchor.Buffer)
-        {
-            length = PtrOffset(UrlInfo->Authority.Buffer,
-                               UrlInfo->Anchor.Buffer);
-        }
-        else
-        {
-            length = remaining;
-        }
-
-        status = RtlULongPtrToUShort(length, &UrlInfo->Authority.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
-
-        UrlInfo->Path = KphpUrlPathSeparator;
-    }
-
-    //
-    // Break Authority into parts, if any.
-    //
-
-    part = KphSearchMemory(UrlInfo->Authority.Buffer,
-                           UrlInfo->Authority.Length,
-                           KphpUrlPortSeparator.Buffer,
-                           KphpUrlPortSeparator.Length);
-    if (part)
-    {
-        status = RtlULongPtrToUShort(PtrOffset(UrlInfo->Authority.Buffer, part),
-                                     &UrlInfo->DomainName.Length);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        UrlInfo->DomainName.Buffer = UrlInfo->Authority.Buffer;
-        UrlInfo->DomainName.MaximumLength = UrlInfo->DomainName.Length;
-
-        UrlInfo->Port.Buffer = Add2Ptr(part, KphpUrlPortSeparator.Length);
-        UrlInfo->Port.Length = (UrlInfo->Authority.Length -
-                                UrlInfo->DomainName.Length -
-                                KphpUrlPortSeparator.Length);
-        UrlInfo->Port.MaximumLength = UrlInfo->Port.Length;
-    }
-    else
-    {
-        UrlInfo->DomainName = UrlInfo->Authority;
-    }
-
-    if (UrlInfo->Path.Buffer == KphpUrlPathSeparator.Buffer)
-    {
-        //
-        // There was no path specified, we're done.
-        //
-        status = STATUS_SUCCESS;
-        goto Exit;
-    }
-
-    //
-    // Extract the Path
-    //
-
-    UrlInfo->Path.Buffer = buffer;
-
-    if (UrlInfo->Parameters.Buffer)
-    {
-        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Parameters.Buffer);
-    }
-    else if (UrlInfo->Anchor.Buffer)
-    {
-        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Anchor.Buffer);
-    }
-    else
-    {
-        length = remaining;
-    }
-
-    status = RtlULongPtrToUShort(length, &UrlInfo->Path.Length);
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
-
-    UrlInfo->Path.MaximumLength = UrlInfo->Path.Length;
-
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    if (!NT_SUCCESS(status))
-    {
-        RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
-    }
-
-    return status;
-}
-
-/**
  * \brief Performs a domination check between a calling process and a target
  * process.
  *
@@ -2183,7 +1941,7 @@ NTSTATUS KphDominationCheck(
     PS_PROTECTION processProtection;
     PS_PROTECTION targetProtection;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (AccessMode == KernelMode)
     {
@@ -2254,7 +2012,7 @@ NTSTATUS KphDominationAndPrivilegeCheck(
     BOOLEAN granted;
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (AccessMode == KernelMode)
     {
@@ -2308,7 +2066,7 @@ NTSTATUS KphGetSigningLevel(
     ANSI_STRING subject;
     BOOLEAN microsoftSigned;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = SeGetCachedSigningLevel(FileObject,
                                      &flags,
@@ -2446,7 +2204,7 @@ NTSTATUS KphImageNtHeader(
     NTSTATUS status;
     ULONG64 size;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     status = RtlImageNtHeaderEx(0, Base, Size, &Headers->Headers);
     if (!NT_SUCCESS(status))

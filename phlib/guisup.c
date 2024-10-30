@@ -219,10 +219,10 @@ HDC PhGetScreenDC(
  * \return The handle to the requested stock object.
  */
 HGDIOBJ PhGetStockObject(
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
-    static HBRUSH brush[STOCK_LAST] = { nullptr };
+    static HBRUSH brush[STOCK_LAST + 1] = { nullptr };
 
     assert(Index <= STOCK_LAST);
 
@@ -294,8 +294,8 @@ BOOLEAN PhIsThemeActive(
 
 BOOLEAN PhIsThemePartDefined(
     _In_ HTHEME ThemeHandle,
-    _In_ INT PartId,
-    _In_ INT StateId
+    _In_ LONG PartId,
+    _In_ LONG StateId
     )
 {
     if (!IsThemePartDefined_I)
@@ -320,9 +320,9 @@ BOOLEAN PhGetThemeClass(
 _Success_(return)
 BOOLEAN PhGetThemeColor(
     _In_ HTHEME ThemeHandle,
-    _In_ INT PartId,
-    _In_ INT StateId,
-    _In_ INT PropId,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_ LONG PropId,
     _Out_ COLORREF* Color
     )
 {
@@ -335,10 +335,10 @@ BOOLEAN PhGetThemeColor(
 _Success_(return)
 BOOLEAN PhGetThemeInt(
     _In_ HTHEME ThemeHandle,
-    _In_ INT PartId,
-    _In_ INT StateId,
-    _In_ INT PropId,
-    _Out_ PINT Value
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_ LONG PropId,
+    _Out_ PLONG Value
     )
 {
     if (!GetThemeInt_I)
@@ -351,8 +351,8 @@ _Success_(return)
 BOOLEAN PhGetThemePartSize(
     _In_ HTHEME ThemeHandle,
     _In_opt_ HDC hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
     _In_opt_ LPCRECT Rect,
     _In_ THEMEPARTSIZE Flags,
     _Out_ PSIZE Size
@@ -367,8 +367,8 @@ BOOLEAN PhGetThemePartSize(
 BOOLEAN PhDrawThemeBackground(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
     _In_ LPCRECT Rect,
     _In_opt_ LPCRECT ClipRect
     )
@@ -382,10 +382,10 @@ BOOLEAN PhDrawThemeBackground(
 BOOLEAN PhDrawThemeTextEx(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
     _In_reads_(cchText) LPCWSTR Text,
-    _In_ INT cchText,
+    _In_ LONG cchText,
     _In_ ULONG TextFlags,
     _Inout_ LPRECT Rect,
     _In_opt_ const PVOID Options // DTTOPTS*
@@ -446,8 +446,7 @@ BOOLEAN PhGetWindowRect(
 }
 
 BOOLEAN PhIsHungAppWindow(
-    _In_ HWND WindowHandle,
-    _In_ HDESK DesktopHandle
+    _In_ HWND WindowHandle
     )
 {
     return !!IsHungAppWindow(WindowHandle);
@@ -711,7 +710,7 @@ LONG PhGetDpiValue(
  * \return The value of the system metric.
  */
 LONG PhGetSystemMetrics(
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_opt_ LONG DpiValue
     )
 {
@@ -736,8 +735,8 @@ BOOLEAN PhGetSystemSafeBootMode(
 }
 
 BOOL PhGetSystemParametersInfo(
-    _In_ INT Action,
-    _In_ UINT Param1,
+    _In_ LONG Action,
+    _In_ ULONG Param1,
     _Pre_maybenull_ _Post_valid_ PVOID Param2,
     _In_opt_ LONG DpiValue
     )
@@ -794,14 +793,14 @@ VOID PhGetSizeDpiValue(
     rect->bottom = rectangle.Top + rectangle.Height;
 }
 
-INT PhAddListViewColumn(
+LONG PhAddListViewColumn(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT DisplayIndex,
-    _In_ INT SubItemIndex,
-    _In_ INT Format,
-    _In_ INT Width,
-    _In_ PWSTR Text
+    _In_ LONG Index,
+    _In_ LONG DisplayIndex,
+    _In_ LONG SubItemIndex,
+    _In_ LONG Format,
+    _In_ LONG Width,
+    _In_ PCWSTR Text
     )
 {
     LVCOLUMN column;
@@ -813,17 +812,17 @@ INT PhAddListViewColumn(
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
     column.cx = Width < 0 ? -Width : PhGetDpi(Width, dpiValue);
-    column.pszText = Text;
+    column.pszText = (PWSTR)Text;
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
 
     return ListView_InsertColumn(ListViewHandle, Index, &column);
 }
 
-INT PhAddListViewItem(
+LONG PhAddListViewItem(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ PWSTR Text,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
     _In_opt_ PVOID Param
     )
 {
@@ -832,24 +831,24 @@ INT PhAddListViewItem(
     item.mask = LVIF_TEXT | LVIF_PARAM;
     item.iItem = Index;
     item.iSubItem = 0;
-    item.pszText = Text;
+    item.pszText = (PWSTR)Text;
     item.lParam = (LPARAM)Param;
 
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
-INT PhFindListViewItemByFlags(
+LONG PhFindListViewItemByFlags(
     _In_ HWND ListViewHandle,
-    _In_ INT StartIndex,
+    _In_ LONG StartIndex,
     _In_ ULONG Flags
     )
 {
     return ListView_GetNextItem(ListViewHandle, StartIndex, Flags);
 }
 
-INT PhFindListViewItemByParam(
+LONG PhFindListViewItemByParam(
     _In_ HWND ListViewHandle,
-    _In_ INT StartIndex,
+    _In_ LONG StartIndex,
     _In_opt_ PVOID Param
     )
 {
@@ -864,8 +863,8 @@ INT PhFindListViewItemByParam(
 _Success_(return)
 BOOLEAN PhGetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _Out_ PINT ImageIndex
+    _In_ LONG Index,
+    _Out_ PLONG ImageIndex
     )
 {
     LVITEM item;
@@ -885,7 +884,7 @@ BOOLEAN PhGetListViewItemImageIndex(
 _Success_(return)
 BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
+    _In_ LONG Index,
     _Outptr_ PVOID *Param
     )
 {
@@ -905,7 +904,7 @@ BOOLEAN PhGetListViewItemParam(
 
 BOOLEAN PhSetListViewItemParam(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_ PVOID Param
     )
 {
@@ -920,7 +919,7 @@ BOOLEAN PhSetListViewItemParam(
 
 VOID PhRemoveListViewItem(
     _In_ HWND ListViewHandle,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
     ListView_DeleteItem(ListViewHandle, Index);
@@ -928,8 +927,8 @@ VOID PhRemoveListViewItem(
 
 VOID PhSetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT ImageIndex
+    _In_ LONG Index,
+    _In_ LONG ImageIndex
     )
 {
     LVITEM item;
@@ -944,9 +943,9 @@ VOID PhSetListViewItemImageIndex(
 
 VOID PhSetListViewSubItem(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT SubItemIndex,
-    _In_ PWSTR Text
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex,
+    _In_ PCWSTR Text
     )
 {
     LVITEM item;
@@ -954,7 +953,7 @@ VOID PhSetListViewSubItem(
     item.mask = LVIF_TEXT;
     item.iItem = Index;
     item.iSubItem = SubItemIndex;
-    item.pszText = Text;
+    item.pszText = (PWSTR)Text;
 
     ListView_SetItem(ListViewHandle, &item);
 }
@@ -969,10 +968,10 @@ VOID PhRedrawListViewItems(
     UpdateWindow(ListViewHandle);
 }
 
-INT PhAddListViewGroup(
+LONG PhAddListViewGroup(
     _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ PWSTR Text
+    _In_ LONG GroupId,
+    _In_ PCWSTR Text
     )
 {
     LVGROUP group;
@@ -983,16 +982,16 @@ INT PhAddListViewGroup(
     group.uAlign = LVGA_HEADER_LEFT;
     group.state = LVGS_COLLAPSIBLE;
     group.iGroupId = GroupId;
-    group.pszHeader = Text;
+    group.pszHeader = (PWSTR)Text;
 
-    return (INT)ListView_InsertGroup(ListViewHandle, MAXUINT, &group);
+    return (LONG)ListView_InsertGroup(ListViewHandle, MAXUINT, &group);
 }
 
-INT PhAddListViewGroupItem(
+LONG PhAddListViewGroupItem(
     _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ INT Index,
-    _In_ PWSTR Text,
+    _In_ LONG GroupId,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
     _In_opt_ PVOID Param
     )
 {
@@ -1001,7 +1000,7 @@ INT PhAddListViewGroupItem(
     item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iItem = Index;
     item.iSubItem = 0;
-    item.pszText = Text;
+    item.pszText = (PWSTR)Text;
     item.iGroupId = GroupId;
 
     if (Param)
@@ -1013,16 +1012,16 @@ INT PhAddListViewGroupItem(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
-INT PhAddTabControlTab(
+LONG PhAddTabControlTab(
     _In_ HWND TabControlHandle,
-    _In_ INT Index,
-    _In_ PWSTR Text
+    _In_ LONG Index,
+    _In_ PCWSTR Text
     )
 {
     TCITEM item;
 
     item.mask = TCIF_TEXT;
-    item.pszText = Text;
+    item.pszText = (PWSTR)Text;
 
     return TabCtrl_InsertItem(TabControlHandle, Index, &item);
 }
@@ -1133,11 +1132,11 @@ NTSTATUS PhGetWindowTextToBuffer(
 
 PPH_STRING PhGetComboBoxString(
     _In_ HWND WindowHandle,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
     PPH_STRING string;
-    INT length;
+    LONG length;
 
     if (Index == INT_ERROR)
     {
@@ -1167,9 +1166,9 @@ PPH_STRING PhGetComboBoxString(
     }
 }
 
-INT PhSelectComboBoxString(
+LONG PhSelectComboBoxString(
     _In_ HWND WindowHandle,
-    _In_ PWSTR String,
+    _In_ PCWSTR String,
     _In_ BOOLEAN Partial
     )
 {
@@ -1179,7 +1178,7 @@ INT PhSelectComboBoxString(
     }
     else
     {
-        INT index;
+        LONG index;
 
         index = ComboBox_FindStringExact(WindowHandle, INT_ERROR, String);
 
@@ -1196,11 +1195,11 @@ INT PhSelectComboBoxString(
 
 PPH_STRING PhGetListBoxString(
     _In_ HWND WindowHandle,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
     PPH_STRING string;
-    INT length;
+    LONG length;
 
     if (Index == INT_ERROR)
     {
@@ -1236,8 +1235,8 @@ VOID PhSetStateAllListViewItems(
     _In_ ULONG Mask
     )
 {
-    INT i;
-    INT count;
+    LONG i;
+    LONG count;
 
     count = ListView_GetItemCount(WindowHandle);
 
@@ -1254,7 +1253,7 @@ PVOID PhGetSelectedListViewItemParam(
     _In_ HWND WindowHandle
     )
 {
-    INT index;
+    LONG index;
     PVOID param;
 
     index = PhFindListViewItemByFlags(
@@ -1285,7 +1284,7 @@ VOID PhGetSelectedListViewItemParams(
     )
 {
     PH_ARRAY array;
-    INT index;
+    LONG index;
     PVOID param;
 
     PhInitializeArray(&array, sizeof(PVOID), 2);
@@ -1307,9 +1306,9 @@ VOID PhGetSelectedListViewItemParams(
 
 VOID PhSetImageListBitmap(
     _In_ HIMAGELIST ImageList,
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_ HINSTANCE InstanceHandle,
-    _In_ LPCWSTR BitmapName
+    _In_ PCWSTR BitmapName
     )
 {
     HBITMAP bitmap;
@@ -1388,7 +1387,7 @@ static ULONG SharedIconCacheHashtableHashFunction(
 
 HICON PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
@@ -1398,8 +1397,8 @@ HICON PhLoadIcon(
     PHP_ICON_ENTRY entry;
     PPHP_ICON_ENTRY actualEntry;
     HICON icon = NULL;
-    INT width;
-    INT height;
+    LONG width;
+    LONG height;
 
     if (PhBeginInitOnce(&SharedIconCacheInitOnce))
     {
@@ -1721,7 +1720,7 @@ HWND PhCreateDialogFromTemplate(
     _In_ HWND Parent,
     _In_ ULONG Style,
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DialogProc,
     _In_ PVOID Parameter
     )
@@ -1756,7 +1755,7 @@ HWND PhCreateDialogFromTemplate(
 
 HWND PhCreateDialog(
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
@@ -1837,7 +1836,7 @@ HWND PhCreateMessageWindow(
 
 INT_PTR PhDialogBox(
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
@@ -2557,7 +2556,7 @@ HWND PhGetProcessMainWindowEx(
 
 ULONG PhGetDialogItemValue(
     _In_ HWND WindowHandle,
-    _In_ INT ControlID
+    _In_ LONG ControlID
     )
 {
     ULONG64 controlValue = 0;
@@ -2578,7 +2577,7 @@ ULONG PhGetDialogItemValue(
 
 VOID PhSetDialogItemValue(
     _In_ HWND WindowHandle,
-    _In_ INT ControlID,
+    _In_ LONG ControlID,
     _In_ ULONG Value,
     _In_ BOOLEAN Signed
     )
@@ -2599,7 +2598,7 @@ VOID PhSetDialogItemValue(
 
 VOID PhSetDialogItemText(
     _In_ HWND WindowHandle,
-    _In_ INT ControlID,
+    _In_ LONG ControlID,
     _In_ PCWSTR WindowText
     )
 {
@@ -3064,18 +3063,18 @@ BOOLEAN PhGetSendMessageReceiver(
 // rev from ExtractIconExW
 _Success_(return)
 BOOLEAN PhExtractIcon(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static INT (WINAPI *PrivateExtractIconExW)(
+    static LONG (WINAPI *PrivateExtractIconExW)(
         _In_ PCWSTR FileName,
-        _In_ INT IconIndex,
+        _In_ LONG IconIndex,
         _Out_opt_ HICON* IconLarge,
         _Out_opt_ HICON* IconSmall,
-        _In_ INT IconCount
+        _In_ LONG IconCount
         ) = NULL;
     HICON iconLarge = NULL;
     HICON iconSmall = NULL;
@@ -3117,7 +3116,7 @@ _Success_(return)
 BOOLEAN PhLoadIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
-    _In_ INT32 ResourceIndex,
+    _In_ LONG ResourceIndex,
     _In_ PCWSTR ResourceType,
     _Out_opt_ ULONG* ResourceLength,
     _Out_opt_ PVOID* ResourceBuffer
@@ -3225,12 +3224,12 @@ HICON PhCreateIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ResourceDirectory,
     _In_ PVOID IconDirectory,
-    _In_ INT32 Width,
-    _In_ INT32 Height,
-    _In_ UINT32 Flags
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ ULONG Flags
     )
 {
-    INT32 iconResourceId;
+    LONG iconResourceId;
     ULONG iconResourceLength;
     PVOID iconResourceBuffer;
 
@@ -3366,7 +3365,7 @@ _Success_(return)
 BOOLEAN PhExtractIconEx(
     _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
-    _In_ INT32 IconIndex,
+    _In_ LONG IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
     _In_ LONG WindowDpi
@@ -3538,11 +3537,11 @@ CleanupExit:
 // Imagelist support
 
 HIMAGELIST PhImageListCreate(
-    _In_ INT32 Width,
-    _In_ INT32 Height,
-    _In_ UINT32 Flags,
-    _In_ INT32 InitialCount,
-    _In_ INT32 GrowCount
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ LONG Flags,
+    _In_ LONG InitialCount,
+    _In_ LONG GrowCount
     )
 {
     HRESULT status;
@@ -3585,7 +3584,7 @@ BOOLEAN PhImageListDestroy(
 
 BOOLEAN PhImageListSetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT32 Count
+    _In_ ULONG Count
     )
 {
     return SUCCEEDED(IImageList2_SetImageCount((IImageList2*)ImageListHandle, Count));
@@ -3593,7 +3592,7 @@ BOOLEAN PhImageListSetImageCount(
 
 BOOLEAN PhImageListGetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PINT32 Count
+    _Out_ PLONG Count
     )
 {
     return SUCCEEDED(IImageList2_GetImageCount((IImageList2*)ImageListHandle, Count));
@@ -3613,12 +3612,12 @@ BOOLEAN PhImageListSetBkColor(
         ));
 }
 
-INT32 PhImageListAddIcon(
+LONG PhImageListAddIcon(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HICON IconHandle
     )
 {
-    INT32 index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     IImageList2_ReplaceIcon(
         (IImageList2*)ImageListHandle,
@@ -3630,13 +3629,13 @@ INT32 PhImageListAddIcon(
     return index;
 }
 
-INT32 PhImageListAddBitmap(
+LONG PhImageListAddBitmap(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
 {
-    INT32 index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     IImageList2_Add(
         (IImageList2*)ImageListHandle,
@@ -3650,7 +3649,7 @@ INT32 PhImageListAddBitmap(
 
 BOOLEAN PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 Index
+    _In_ LONG Index
     )
 {
     return SUCCEEDED(IImageList2_Remove(
@@ -3661,8 +3660,8 @@ BOOLEAN PhImageListRemoveIcon(
 
 HICON PhImageListGetIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 Index,
-    _In_ UINT32 Flags
+    _In_ LONG Index,
+    _In_ ULONG Flags
     )
 {
     HICON iconhandle = NULL;
@@ -3679,8 +3678,8 @@ HICON PhImageListGetIcon(
 
 BOOLEAN PhImageListGetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PINT32 cx,
-    _Out_ PINT32 cy
+    _Out_ PLONG cx,
+    _Out_ PLONG cy
     )
 {
     return SUCCEEDED(IImageList2_GetIconSize(
@@ -3692,7 +3691,7 @@ BOOLEAN PhImageListGetIconSize(
 
 BOOLEAN PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 Index,
+    _In_ LONG Index,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
@@ -3707,10 +3706,10 @@ BOOLEAN PhImageListReplace(
 
 BOOLEAN PhImageListDrawIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 Index,
+    _In_ LONG Index,
     _In_ HDC Hdc,
-    _In_ INT32 x,
-    _In_ INT32 y,
+    _In_ LONG x,
+    _In_ LONG y,
     _In_ UINT32 Style,
     _In_ BOOLEAN Disabled
     )
@@ -3732,12 +3731,12 @@ BOOLEAN PhImageListDrawIcon(
 
 BOOLEAN PhImageListDrawEx(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 Index,
+    _In_ LONG Index,
     _In_ HDC Hdc,
-    _In_ INT32 x,
-    _In_ INT32 y,
-    _In_ INT32 dx,
-    _In_ INT32 dy,
+    _In_ LONG x,
+    _In_ LONG y,
+    _In_ LONG dx,
+    _In_ LONG dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
     _In_ UINT32 Style,
@@ -3765,8 +3764,8 @@ BOOLEAN PhImageListDrawEx(
 
 BOOLEAN PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT32 cx,
-    _In_ INT32 cy
+    _In_ LONG cx,
+    _In_ LONG cy
     )
 {
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
@@ -4333,7 +4332,7 @@ HBITMAP PhLoadImageFromResource(
 
 // Load image and auto-detect the format (dmex)
 HBITMAP PhLoadImageFromFile(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _In_ LONG Width,
     _In_ LONG Height
     )
@@ -4727,7 +4726,7 @@ VOID PhEnumerateRecentList(
     )
 {
     HANDLE listHandle;
-    INT listCount;
+    LONG listCount;
 
     if (!PhpInitializeMRUList())
         return;
@@ -4741,7 +4740,7 @@ VOID PhEnumerateRecentList(
         0
         );
 
-    for (INT i = 0; i < listCount; i++)
+    for (LONG i = 0; i < listCount; i++)
     {
         PH_STRINGREF string;
         SIZE_T returnLength;

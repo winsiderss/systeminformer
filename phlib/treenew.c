@@ -1258,6 +1258,18 @@ VOID PhTnpOnKeyDown(
         return;
     if (PhTnpProcessNodeKey(Context, VirtualKey))
         return;
+
+    // handle standard key presses
+    switch (VirtualKey)
+    {
+    case 'A':
+        if (GetKeyState(VK_CONTROL) < 0)
+            TreeNew_SelectRange(hwnd, 0, -1);
+        return;
+    }
+
+    // pass unhandled key presses to parent
+    SendMessage(GetParent(hwnd), WM_KEYDOWN, VirtualKey, Data);
 }
 
 VOID PhTnpOnChar(
@@ -2960,7 +2972,7 @@ LONG PhTnpInsertColumnHeader(
     memset(&item, 0, sizeof(HDITEM));
     item.mask = HDI_WIDTH | HDI_TEXT | HDI_FORMAT | HDI_LPARAM | HDI_ORDER;
     item.cxy = Column->Width;
-    item.pszText = Column->Text;
+    item.pszText = (PWSTR)Column->Text;
     item.fmt = 0;
     item.lParam = (LPARAM)Column;
 
@@ -3009,7 +3021,7 @@ VOID PhTnpChangeColumnHeader(
     if (Mask & TN_COLUMN_TEXT)
     {
         item.mask |= HDI_TEXT;
-        item.pszText = Column->Text;
+        item.pszText = (PWSTR)Column->Text;
     }
 
     if (Mask & TN_COLUMN_WIDTH)
@@ -3358,7 +3370,7 @@ VOID PhTnpAutoSizeColumnHeader(
         // Check the column header text width.
         if (Column->Text)
         {
-            PWSTR text;
+            PCWSTR text;
             SIZE_T textCount;
             HDC hdc;
             SIZE textSize;
@@ -6539,7 +6551,7 @@ BOOLEAN PhTnpGetHeaderTooltipText(
     LOGICAL result;
     PPH_TREENEW_COLUMN column;
     RECT itemRect;
-    PWSTR text;
+    PCWSTR text;
     SIZE_T textCount;
     HFONT oldFont;
     HDC hdc;
@@ -6735,12 +6747,12 @@ BOOLEAN TnHeaderCustomPaint(
     if (column->Text)
     {
         PWSTR textBuffer;
-        INT textLength;
+        LONG textLength;
         RECT textRect;
         HFONT oldFont;
         PH_STRINGREF headerString;
         ULONG fmt = 0;
-        INT sdf = 0;
+        LONG sdf = 0;
 
         if (FlagOn(column->Alignment, PH_ALIGN_LEFT))
             SetFlag(fmt, HDF_LEFT);
@@ -6762,8 +6774,8 @@ BOOLEAN TnHeaderCustomPaint(
                 sdf = HSAS_SORTEDUP;
         }
 
-        textBuffer = column->Text;
-        textLength = (INT)PhCountStringZ(column->Text);
+        textBuffer = (PWSTR)column->Text;
+        textLength = (LONG)PhCountStringZ(column->Text);
 
         textRect = CustomDraw->rc;
         textRect.left += PhGetDpi(5, Context->WindowDpi);
@@ -6794,7 +6806,7 @@ BOOLEAN TnHeaderCustomPaint(
             DrawText(
                 CustomDraw->hdc,
                 headerString.Buffer,
-                (INT)headerString.Length / (INT)sizeof(WCHAR),
+                (LONG)headerString.Length / (LONG)sizeof(WCHAR),
                 &textRect,
                 DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_TOP | DT_RIGHT);
             if (oldFont) SelectFont(CustomDraw->hdc, oldFont);

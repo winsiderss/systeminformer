@@ -1027,7 +1027,7 @@ VOID DnGetProcessDotNetRuntimes(
         dprintf(
             "Runtime version: %S @ 0x%I64x [%S]\n",
             PhGetString(entry->RuntimeVersion),
-            entry->DllBase,
+            (ULONG_PTR)entry->DllBase,
             PhGetString(entry->FileName)
             );
 
@@ -1749,7 +1749,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT context;
 
     memset(&context, 0, sizeof(DN_CLRDT_ENUM_IMAGE_BASE_CONTEXT));
-    context.FullName = PhCreateString((PWSTR)imagePath);
+    context.FullName = PhCreateString(imagePath);
     context.BaseName = PhGetBaseName(context.FullName);
 
     PhEnumGenericModules(

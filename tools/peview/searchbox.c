@@ -5,18 +5,18 @@
  *
  * Authors:
  *
- *     dmex    2012-2022
+ *     dmex    2012-2023
  *     jxy-s   2023
  *
  */
 
 #include <peview.h>
+#include <settings.h>
 #include <vssym32.h>
-//#include <wincodec.h>
 #include <emenu.h>
 #include <thirdparty.h>
 
-typedef struct _PV_SEARCHCONTROL_BUTTON
+typedef struct _PH_SEARCHCONTROL_BUTTON
 {
     union
     {
@@ -34,9 +34,9 @@ typedef struct _PV_SEARCHCONTROL_BUTTON
     ULONG Index;
     ULONG ImageIndex;
     ULONG ActiveImageIndex;
-} PV_SEARCHCONTROL_BUTTON, *PPV_SEARCHCONTROL_BUTTON;
+} PH_SEARCHCONTROL_BUTTON, *PPH_SEARCHCONTROL_BUTTON;
 
-#define PV_SC_BUTTON_COUNT 3
+#define PH_SC_BUTTON_COUNT 3
 
 typedef struct _PV_SEARCHCONTROL_CONTEXT
 {
@@ -45,141 +45,149 @@ typedef struct _PV_SEARCHCONTROL_CONTEXT
         ULONG Flags;
         struct
         {
-            ULONG ThemeSupport : 1;
             ULONG Hot : 1;
             ULONG HotTrack : 1;
-            ULONG ColorMode : 8;
             ULONG UseSearchPointer : 1;
-            ULONG Spare : 20;
+            ULONG Spare : 29;
         };
     };
 
-    PV_SEARCHCONTROL_BUTTON SearchButton;
-    PV_SEARCHCONTROL_BUTTON RegexButton;
-    PV_SEARCHCONTROL_BUTTON CaseButton;
+    HWND ParentWindowHandle;
+    HWND PreviousFocusWindowHandle;
+    LONG WindowDpi;
 
-    LONG CXWidth;
-    INT CXBorder;
-    INT ImageWidth;
-    INT ImageHeight;
+    PH_SEARCHCONTROL_BUTTON SearchButton;
+    PH_SEARCHCONTROL_BUTTON RegexButton;
+    PH_SEARCHCONTROL_BUTTON CaseButton;
+
+    LONG ButtonWidth;
+    LONG BorderSize;
+    LONG ImageWidth;
+    LONG ImageHeight;
     WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
     PPH_STRING CueBannerText;
+
+    HDC BufferedDc;
+    HBITMAP BufferedOldBitmap;
+    HBITMAP BufferedBitmap;
+    RECT BufferedContextRect;
+
+    HBRUSH FrameBrush;
+    HBRUSH WindowBrush;
 
     PPV_SEARCHCONTROL_CALLBACK Callback;
     PVOID CallbackContext;
 
     PPH_STRING SearchboxText;
     ULONG64 SearchPointer;
-    INT SearchboxRegexError;
+    LONG SearchboxRegexError;
     PCRE2_SIZE SearchboxRegexErrorOffset;
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
 } PV_SEARCHCONTROL_CONTEXT, *PPV_SEARCHCONTROL_CONTEXT;
 
-VOID PvpSearchFreeTheme(
-    _Inout_ PPV_SEARCHCONTROL_CONTEXT Context
+VOID PvpSearchControlCreateBufferedContext(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ RECT BufferRect
     )
 {
-    NOTHING;
-}
+    Context->BufferedDc = CreateCompatibleDC(Hdc);
 
-VOID PvpSearchInitializeFont(
-    _Inout_ PPV_SEARCHCONTROL_CONTEXT Context,
-    _In_ HWND WindowHandle
-    )
-{
-    LOGFONT logFont;
-    LONG dpiValue;
-
-    if (Context->WindowFont)
-        DeleteFont(Context->WindowFont);
-
-    dpiValue = PhGetWindowDpi(WindowHandle);
-
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+    if (!Context->BufferedDc)
         return;
 
-    Context->WindowFont = CreateFont(
-        -PhMultiplyDivideSigned(10, dpiValue, 72),
-        0,
-        0,
-        0,
-        FW_MEDIUM,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
+    Context->BufferedContextRect = BufferRect;
+    Context->BufferedBitmap = CreateCompatibleBitmap(
+        Hdc,
+        Context->BufferedContextRect.right,
+        Context->BufferedContextRect.bottom
         );
 
-    SetWindowFont(WindowHandle, Context->WindowFont, TRUE);
+    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
 }
 
-VOID PvpSearchInitializeTheme(
-    _Inout_ PPV_SEARCHCONTROL_CONTEXT Context,
+VOID PvpSearchControlDestroyBufferedContext(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->BufferedDc && Context->BufferedOldBitmap)
+    {
+        SelectBitmap(Context->BufferedDc, Context->BufferedOldBitmap);
+    }
+
+    if (Context->BufferedBitmap)
+    {
+        DeleteBitmap(Context->BufferedBitmap);
+        Context->BufferedBitmap = NULL;
+    }
+
+    if (Context->BufferedDc)
+    {
+        DeleteDC(Context->BufferedDc);
+        Context->BufferedDc = NULL;
+    }
+}
+
+VOID PvpSearchControlInitializeFont(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
 {
-    LONG dpiValue;
-    INT borderX;
+    if (Context->WindowFont)
+    {
+        DeleteFont(Context->WindowFont);
+        Context->WindowFont = NULL;
+    }
 
-    dpiValue = PhGetWindowDpi(WindowHandle);
+    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, WindowHandle, Context->WindowDpi);
+}
 
-    Context->CXWidth = PhGetDpi(20, dpiValue);
-    Context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
+VOID PvpSearchControlInitializeTheme(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context,
+    _In_ HWND WindowHandle
+    )
+{
+    LONG borderSize;
 
-    borderX = PhGetSystemMetrics(SM_CXBORDER, dpiValue);
+    borderSize = PhGetSystemMetrics(SM_CXBORDER, Context->WindowDpi);
+
+    Context->CaseButton.Index = 0;
+    Context->RegexButton.Index = 1;
+    Context->SearchButton.Index = 2;
+
+    Context->ButtonWidth = PhGetDpi(20, Context->WindowDpi);
+    Context->BorderSize = borderSize;
+    Context->FrameBrush = GetSysColorBrush(COLOR_WINDOWFRAME);
+    Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
 
     if (PhIsThemeActive())
     {
-        HTHEME themeDataHandle;
+        HTHEME themeHandle;
 
-        if (themeDataHandle = PhOpenThemeData(WindowHandle, VSCLASS_EDIT, dpiValue))
+        if (themeHandle = PhOpenThemeData(WindowHandle, VSCLASS_EDIT, Context->WindowDpi))
         {
-            //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
-
-            if (!PhGetThemeInt(
-                themeDataHandle,
-                EP_EDITBORDER_NOSCROLL,
-                EPSHV_NORMAL,
-                TMT_BORDERSIZE,
-                &Context->CXBorder
-                ))
+            if (PhGetThemeInt(themeHandle, 0, 0, TMT_BORDERSIZE, &borderSize))
             {
-                Context->CXBorder = borderX * 2;
+                Context->BorderSize = borderSize;
             }
 
-            PhCloseThemeData(themeDataHandle);
+            PhCloseThemeData(themeHandle);
         }
-        else
-        {
-            Context->CXBorder = borderX * 2;
-        }
-    }
-    else
-    {
-        Context->CXBorder = borderX * 2;
     }
 }
 
-VOID PvpSearchInitializeImages(
-    _Inout_ PPV_SEARCHCONTROL_CONTEXT Context,
+VOID PvpSearchControlInitializeImages(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
 {
     HBITMAP bitmap;
-    LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(WindowHandle);
-
-    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(4, dpiValue);
-    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + PhGetDpi(4, dpiValue);
+    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi) + PhGetDpi(4, Context->WindowDpi);
+    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi) + PhGetDpi(4, Context->WindowDpi);
 
     if (Context->ImageListHandle)
     {
@@ -195,17 +203,17 @@ VOID PvpSearchInitializeImages(
             Context->ImageWidth,
             Context->ImageHeight,
             ILC_MASK | ILC_COLOR32,
-            2,
-            0
+            2, 0
             );
     }
+
     PhImageListSetImageCount(Context->ImageListHandle, 4);
 
     // Search Button
     Context->SearchButton.ImageIndex = ULONG_MAX;
     Context->SearchButton.ActiveImageIndex = ULONG_MAX;
 
-    if (Context->ThemeSupport)
+    if (PhEnableThemeSupport)
     {
         bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_MODERN_LIGHT), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
         if (bitmap)
@@ -226,7 +234,7 @@ VOID PvpSearchInitializeImages(
         }
     }
 
-    if (Context->ThemeSupport)
+    if (PhEnableThemeSupport)
     {
         bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_MODERN_LIGHT), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
         if (bitmap)
@@ -285,7 +293,7 @@ VOID PvpSearchInitializeImages(
     Context->RegexButton.ImageIndex = ULONG_MAX;
     Context->RegexButton.ActiveImageIndex = ULONG_MAX;
 
-    if (Context->ThemeSupport)
+    if (PhEnableThemeSupport)
     {
         bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_REGEX_MODERN_LIGHT), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
         if (bitmap)
@@ -310,7 +318,7 @@ VOID PvpSearchInitializeImages(
     Context->CaseButton.ImageIndex = ULONG_MAX;
     Context->CaseButton.ActiveImageIndex = ULONG_MAX;
 
-    if (Context->ThemeSupport)
+    if (PhEnableThemeSupport)
     {
         bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_CASE_MODERN_LIGHT), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
         if (bitmap)
@@ -332,23 +340,42 @@ VOID PvpSearchInitializeImages(
     }
 }
 
-VOID PhSearchControlButtonRect(
+VOID PvpSearchControlButtonRect(
     _In_ PPV_SEARCHCONTROL_CONTEXT Context,
-    _In_ PPV_SEARCHCONTROL_BUTTON Button,
+    _In_ PPH_SEARCHCONTROL_BUTTON Button,
     _In_ RECT WindowRect,
     _Out_ PRECT ButtonRect
     )
 {
     *ButtonRect = WindowRect;
 
-    ButtonRect->left = ((ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1);
-    ButtonRect->top += Context->CXBorder;
-    ButtonRect->right -= Context->CXBorder;
-    ButtonRect->bottom -= Context->CXBorder;
+    ButtonRect->left = ((ButtonRect->right - Context->ButtonWidth) - Context->BorderSize - 1);
+    ButtonRect->top += Context->BorderSize;
+    ButtonRect->right -= Context->BorderSize;
+    ButtonRect->bottom -= Context->BorderSize;
 
     // Shift the button rect to the left based on the button index.
-    ButtonRect->left -= ((Context->CXWidth + Context->CXBorder - 1) * (PV_SC_BUTTON_COUNT - 1 - Button->Index));
-    ButtonRect->right -= ((Context->CXWidth + Context->CXBorder - 1) * (PV_SC_BUTTON_COUNT - 1 - Button->Index));
+    ButtonRect->left -= ((Context->ButtonWidth + Context->BorderSize - 1) * (PH_SC_BUTTON_COUNT - 1 - Button->Index));
+    ButtonRect->right -= ((Context->ButtonWidth + Context->BorderSize - 1) * (PH_SC_BUTTON_COUNT - 1 - Button->Index));
+}
+
+VOID PvpSearchControlThemeChanged(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context,
+    _In_ HWND WindowHandle
+    )
+{
+    PvpSearchControlInitializeFont(Context, WindowHandle);
+    PvpSearchControlInitializeTheme(Context, WindowHandle);
+    PvpSearchControlInitializeImages(Context, WindowHandle);
+
+    // Reset the client area margins.
+    CallWindowProc(Context->DefaultWindowProc, WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
+
+    // Refresh the non-client area.
+    SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+
+    // Force the edit control to update its non-client area.
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
 }
 
 VOID PvpSearchDrawWindow(
@@ -397,7 +424,7 @@ VOID PvpSearchDrawWindow(
 
 VOID PvpSearchDrawButton(
     _In_ PPV_SEARCHCONTROL_CONTEXT Context,
-    _In_ PPV_SEARCHCONTROL_BUTTON Button,
+    _In_ PPH_SEARCHCONTROL_BUTTON Button,
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ RECT WindowRect
@@ -405,7 +432,7 @@ VOID PvpSearchDrawButton(
 {
     RECT buttonRect;
 
-    PhSearchControlButtonRect(Context, Button, WindowRect, &buttonRect);
+    PvpSearchControlButtonRect(Context, Button, WindowRect, &buttonRect);
 
     if (Button->Pushed)
     {
@@ -484,7 +511,7 @@ VOID PvpSearchDrawButton(
         }
         else
         {
-            FillRect(Hdc, &buttonRect, (HBRUSH)(COLOR_WINDOW + 1));
+            FillRect(Hdc, &buttonRect, Context->WindowBrush);
         }
     }
 
@@ -574,14 +601,17 @@ BOOLEAN PvpSearchUpdateText(
     PPH_STRING newSearchboxText;
     ULONG_PTR matchHandle;
 
-    newSearchboxText = PH_AUTO(PhGetWindowText(hWnd));
+    newSearchboxText = PhGetWindowText(hWnd);
 
     Context->SearchButton.Active = (newSearchboxText->Length > 0);
 
     if (!Force && PhEqualString(newSearchboxText, Context->SearchboxText, FALSE))
+    {
+        PhDereferenceObject(newSearchboxText);
         return FALSE;
+    }
 
-    PhSwapReference(&Context->SearchboxText, newSearchboxText);
+    PhMoveReference(&Context->SearchboxText, newSearchboxText);
 
     Context->UseSearchPointer = PhStringToInteger64(&newSearchboxText->sr, 0, &Context->SearchPointer);
 
@@ -602,6 +632,16 @@ BOOLEAN PvpSearchUpdateText(
     return TRUE;
 }
 
+void PvpSearchRestoreFocus(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
 
 LRESULT CALLBACK PvpSearchWndSubclassProc(
     _In_ HWND hWnd,
@@ -620,9 +660,10 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
-            PvpSearchFreeTheme(context);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, SHRT_MAX);
 
             if (context->WindowFont)
             {
@@ -642,7 +683,11 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 context->CueBannerText = NULL;
             }
 
-            PhDereferenceObject(context->SearchboxText);
+            if (context->SearchboxText)
+            {
+                PhDereferenceObject(context->SearchboxText);
+                context->SearchboxText = NULL;
+            }
 
             if (context->SearchboxRegexCode)
             {
@@ -654,27 +699,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 pcre2_match_data_free(context->SearchboxRegexMatchData);
             }
 
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hWnd, SHRT_MAX);
+            PvpSearchControlDestroyBufferedContext(context);
+
             PhFree(context);
         }
         break;
     case WM_ERASEBKGND:
-        return 1;
-    case WM_DPICHANGED:
-        {
-            PvpSearchFreeTheme(context);
-            PvpSearchInitializeTheme(context, hWnd);
-            PvpSearchInitializeFont(context, hWnd);
-            PvpSearchInitializeImages(context, hWnd);
-
-            // Refresh the non-client area.
-            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-
-            // Force the edit control to update its non-client area.
-            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-        }
-        break;
+        return TRUE;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
@@ -683,7 +714,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
-            ncCalcSize->rgrc[0].right -= (context->CXWidth * PV_SC_BUTTON_COUNT);
+            ncCalcSize->rgrc[0].right -= (context->ButtonWidth * PH_SC_BUTTON_COUNT);
         }
         return 0;
     case WM_NCPAINT:
@@ -695,7 +726,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             updateRegion = (HRGN)wParam;
 
-            if (updateRegion == (HRGN)1) // HRGN_FULL
+            if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
             flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
@@ -705,23 +736,22 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             if (hdc = GetDCEx(hWnd, updateRegion, flags))
             {
-                HDC bufferDc;
+                RECT windowRectStart;
                 RECT bufferRect;
-                HBITMAP bufferBitmap;
-                HBITMAP oldBufferBitmap;
 
                 // Get the screen coordinates of the window.
                 GetWindowRect(hWnd, &windowRect);
                 // Adjust the coordinates (start from 0,0).
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+                windowRectStart = windowRect;
 
                 // Exclude client area.
                 ExcludeClipRect(
                     hdc,
-                    windowRect.left + 2,
-                    windowRect.top + 2,
-                    windowRect.right - (context->CXWidth * PV_SC_BUTTON_COUNT) - 2,
-                    windowRect.bottom - 2
+                    windowRect.left + (context->BorderSize + 1),
+                    windowRect.top + (context->BorderSize + 1),
+                    windowRect.right - (context->ButtonWidth * PH_SC_BUTTON_COUNT) - (context->BorderSize + 1),
+                    windowRect.bottom - (context->BorderSize + 1)
                     );
 
                 bufferRect.left = 0;
@@ -729,55 +759,54 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 bufferRect.right = windowRect.right - windowRect.left;
                 bufferRect.bottom = windowRect.bottom - windowRect.top;
 
-                bufferDc = CreateCompatibleDC(hdc);
-                bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-                oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+                if (context->BufferedDc && (
+                    context->BufferedContextRect.right < bufferRect.right ||
+                    context->BufferedContextRect.bottom < bufferRect.bottom))
+                {
+                    PvpSearchControlDestroyBufferedContext(context);
+                }
+
+                if (!context->BufferedDc)
+                {
+                    PvpSearchControlCreateBufferedContext(context, hdc, bufferRect);
+                }
+
+                if (!context->BufferedDc)
+                    break;
 
                 if (GetFocus() == hWnd)
                 {
-                    FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
+                    FrameRect(context->BufferedDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
                     PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
-                    PhInflateRect(&windowRect, 1, 1);
+                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
                 }
                 else if (context->Hot)
                 {
-                    if (context->ThemeSupport)
+                    if (PhEnableThemeSupport)
                     {
-                        SetDCBrushColor(bufferDc, RGB(0x8f, 0x8f, 0x8f));
-                        FrameRect(bufferDc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(context->BufferedDc, RGB(0x8f, 0x8f, 0x8f));
+                        FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else
                     {
-                        SetDCBrushColor(bufferDc, RGB(43, 43, 43));
-                        FrameRect(bufferDc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(context->BufferedDc, RGB(43, 43, 43));
+                        FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
 
                     PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
-                    PhInflateRect(&windowRect, 1, 1);
+                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
                 }
                 else
                 {
-                    if (context->ThemeSupport)
-                    {
-                        //SetDCBrushColor(bufferDc, RGB(43, 43, 43));
-                        FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOWFRAME));
-                    }
-                    else
-                    {
-                        FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOWFRAME));
-                    }
-
+                    FrameRect(context->BufferedDc, &windowRect, context->FrameBrush);
                     PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(bufferDc, &windowRect, (HBRUSH)(COLOR_WINDOW + 1));
-                    PhInflateRect(&windowRect, 1, 1);
+                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
                 }
 
-                PvpSearchDrawWindow(context, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->SearchButton, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->RegexButton, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->CaseButton, hWnd, bufferDc, windowRect);
+                PvpSearchDrawWindow(context, hWnd, context->BufferedDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->SearchButton, hWnd, context->BufferedDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->RegexButton, hWnd, context->BufferedDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->CaseButton, hWnd, context->BufferedDc, windowRectStart);
 
                 BitBlt(
                     hdc,
@@ -785,17 +814,11 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     bufferRect.top,
                     bufferRect.right,
                     bufferRect.bottom,
-                    bufferDc,
+                    context->BufferedDc,
                     0,
                     0,
                     SRCCOPY
                     );
-
-
-                BitBlt(hdc, bufferRect.left, bufferRect.top, bufferRect.right, bufferRect.bottom, bufferDc, 0, 0, SRCCOPY);
-                SelectBitmap(bufferDc, oldBufferBitmap);
-                DeleteBitmap(bufferBitmap);
-                DeleteDC(bufferDc);
 
                 ReleaseDC(hWnd, hdc);
             }
@@ -815,16 +838,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted buttons.
-            PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
 
-            PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
 
-            PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
                 return HTBORDER;
         }
         break;
@@ -841,14 +864,14 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
 
-            PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            context->SearchButton.Pushed = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
+            context->RegexButton.Pushed = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Pushed = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
+            context->CaseButton.Pushed = PtInRect(&buttonRect, windowPoint);
 
             SetCapture(hWnd);
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -867,24 +890,24 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
 
-            PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
             {
                 SetFocus(hWnd);
                 PhSetWindowText(hWnd, L"");
                 PvpSearchUpdateText(hWnd, context, FALSE);
             }
 
-            PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
             {
                 context->RegexButton.Active = !context->RegexButton.Active;
                 PhSetIntegerSetting(L"SearchControlRegex", context->RegexButton.Active);
                 PvpSearchUpdateText(hWnd, context, TRUE);
             }
 
-            PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            if (PhPtInRect(&buttonRect, windowPoint))
+            PvpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
+            if (PtInRect(&buttonRect, windowPoint))
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(L"SearchControlCaseSensitive", context->CaseButton.Active);
@@ -910,13 +933,12 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             ULONG selStart;
             ULONG selEnd;
 
-            SendMessage(hWnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
-
             windowPoint.x = GET_X_LPARAM(lParam);
             windowPoint.y = GET_Y_LPARAM(lParam);
 
-            menu = PhCreateEMenu();
+            CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
 
+            menu = PhCreateEMenu();
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_UNDO, L"Undo", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CUT, L"Cut", NULL, NULL), ULONG_MAX);
@@ -944,13 +966,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             if (item)
             {
-                PPH_STRING text = PH_AUTO(PhGetWindowText(hWnd));
+                PPH_STRING text = PhGetWindowText(hWnd);
 
                 switch (item->Id)
                 {
                     case IDC_UNDO:
                         {
-                            SendMessage(hWnd, EM_UNDO, 0, 0);
+                            CallWindowProc(oldWndProc, hWnd, EM_UNDO, 0, 0);
                             PvpSearchUpdateText(hWnd, context, FALSE);
                         }
                         break;
@@ -991,9 +1013,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                         }
                         break;
                     case IDC_SELECTALL:
-                        SendMessage(hWnd, EM_SETSEL, 0, -1);
+                        {
+                            CallWindowProc(oldWndProc, hWnd, EM_SETSEL, 0, -1);
+                        }
                         break;
                 }
+
+                PhDereferenceObject(text);
             }
 
             PhDestroyEMenu(menu);
@@ -1010,22 +1036,21 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         {
-            PvpSearchFreeTheme(context);
-            PvpSearchInitializeTheme(context, hWnd);
-            PvpSearchInitializeFont(context, hWnd);
+            PvpSearchControlThemeChanged(context, hWnd);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            context->WindowDpi = PhGetWindowDpi(context->ParentWindowHandle);
 
-            // Reset the client area margins.
-            SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
-
-            // Refresh the non-client area.
-            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-
-            // Force the edit control to update its non-client area.
-            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            PvpSearchControlThemeChanged(context, hWnd);
         }
         break;
     case WM_MOUSEMOVE:
@@ -1041,16 +1066,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
-            context->Hot = PhPtInRect(&windowRect, windowPoint);
+            context->Hot = PtInRect(&windowRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
+            context->RegexButton.Hot = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
+            context->CaseButton.Hot = PtInRect(&buttonRect, windowPoint);
 
             // Check that the mouse is within the inserted button.
             if (!context->HotTrack)
@@ -1084,16 +1109,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
-            context->Hot = PhPtInRect(&windowRect, windowPoint);
+            context->Hot = PtInRect(&windowRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
-            context->RegexButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
+            context->RegexButton.Hot = PtInRect(&buttonRect, windowPoint);
 
-            PhSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
-            context->CaseButton.Hot = PhPtInRect(&buttonRect, windowPoint);
+            PvpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
+            context->CaseButton.Hot = PtInRect(&buttonRect, windowPoint);
 
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
@@ -1109,9 +1134,10 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
             }
 
-            HDC hdc = (HDC)wParam ? (HDC)wParam : GetDC(hWnd);
+            PAINTSTRUCT paintStruct;
+            HDC hdc;
 
-            if (hdc)
+            if (hdc = BeginPaint(hWnd, &paintStruct))
             {
                 HDC bufferDc;
                 RECT clientRect;
@@ -1127,16 +1153,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
                 SetBkMode(bufferDc, TRANSPARENT);
 
-                if (context->ThemeSupport)
+                if (PhEnableThemeSupport)
                 {
                     SetTextColor(bufferDc, RGB(170, 170, 170));
                     SetDCBrushColor(bufferDc, RGB(60, 60, 60));
-                    FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+                    FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {
                     SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                    FillRect(bufferDc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+                    FillRect(bufferDc, &clientRect, context->WindowBrush);
                 }
 
                 oldFont = SelectFont(bufferDc, GetWindowFont(hWnd));
@@ -1156,33 +1182,31 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 DeleteBitmap(bufferBitmap);
                 DeleteDC(bufferDc);
 
-                if (!(HDC)wParam)
-                {
-                    ReleaseDC(hWnd, hdc);
-                }
+                EndPaint(hWnd, &paintStruct);
             }
-
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
-        break;
+        return 0;
     case WM_KEYDOWN:
         {
             // Delete previous word for ctrl+backspace (thanks to Katayama Hirofumi MZ) (modified) (dmex)
             if (wParam == VK_BACK && GetAsyncKeyState(VK_CONTROL) < 0)
             {
-                UINT textStart = 0;
-                UINT textEnd = 0;
-                UINT textLength;
+                LONG textStart = 0;
+                LONG textEnd = 0;
+                LONG textLength;
 
-                textLength = (UINT)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
+                textLength = (LONG)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
                 CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&textStart, (LPARAM)&textEnd);
 
                 if (textLength > 0 && textStart == textEnd)
                 {
-                    PWSTR textBuffer;
+                    ULONG textBufferLength;
+                    WCHAR textBuffer[0x100];
 
-                    textBuffer = PhAllocateZero((textLength + 1) * sizeof(WCHAR));
-                    GetWindowText(hWnd, textBuffer, textLength);
+                    if (!NT_SUCCESS(PhGetWindowTextToBuffer(hWnd, 0, textBuffer, RTL_NUMBER_OF(textBuffer), &textBufferLength)))
+                    {
+                        break;
+                    }
 
                     for (; 0 < textStart; --textStart)
                     {
@@ -1190,22 +1214,31 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                         {
                             CallWindowProc(oldWndProc, hWnd, EM_SETSEL, textStart, textEnd);
                             CallWindowProc(oldWndProc, hWnd, EM_REPLACESEL, TRUE, (LPARAM)L"");
-                            PhFree(textBuffer);
                             return 1;
                         }
                     }
 
                     if (textStart == 0)
                     {
-                        //CallWindowProc(oldWndProc, hWnd, WM_SETTEXT, 0, (LPARAM)L"");
                         PhSetWindowText(hWnd, L"");
                         PvpSearchUpdateText(hWnd, context, FALSE);
-                        PhFree(textBuffer);
                         return 1;
                     }
-
-                    PhFree(textBuffer);
                 }
+            }
+            // Clear search and restore focus for esc key
+            else if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PvpSearchUpdateText(hWnd, context, FALSE);
+                PvpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PvpSearchRestoreFocus(context);
+                return 1;
             }
         }
         break;
@@ -1214,6 +1247,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (dmex)
             if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
                 return 1;
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            // Intercept esc key (otherwise it would get sent to parent window)
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
         }
         break;
     case EM_SETCUEBANNER:
@@ -1231,8 +1271,9 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 }
 
 VOID PvCreateSearchControl(
+    _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText,
+    _In_opt_ PCWSTR BannerText,
     _In_ PPV_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -1240,18 +1281,9 @@ VOID PvCreateSearchControl(
     PPV_SEARCHCONTROL_CONTEXT context;
 
     context = PhAllocateZero(sizeof(PV_SEARCHCONTROL_CONTEXT));
-
-    context->ThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport"); // HACK
-    context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
-
-    context->CaseButton.Index = 0;
-    context->RegexButton.Index = 1;
-    context->SearchButton.Index = 2;
-
-    //PhpSearchInitializeTheme(context);
-    PvpSearchInitializeImages(context, WindowHandle);
-
+    context->ParentWindowHandle = ParentWindowHandle;
     context->CueBannerText = BannerText ? PhCreateString(BannerText) : NULL;
+    context->WindowDpi = PhGetWindowDpi(ParentWindowHandle);
 
     context->Callback = Callback;
     context->CallbackContext = Context;
@@ -1267,7 +1299,7 @@ VOID PvCreateSearchControl(
     SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PvpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
-    SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
+    PvpSearchControlThemeChanged(context, WindowHandle);
 }
 
 BOOLEAN PvSearchControlMatch(
@@ -1313,7 +1345,7 @@ BOOLEAN PvSearchControlMatch(
 
 BOOLEAN PvSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -1325,7 +1357,7 @@ BOOLEAN PvSearchControlMatchZ(
 
 BOOLEAN PvSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -1369,5 +1401,4 @@ BOOLEAN PvSearchControlMatchPointerRange(
     return ((context->SearchPointer >= (ULONG64)Pointer) &&
             (context->SearchPointer < (ULONG64)pointerEnd));
 }
-
 

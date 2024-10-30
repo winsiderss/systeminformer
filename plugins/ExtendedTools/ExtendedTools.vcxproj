@@ -149,6 +149,7 @@
     <ClCompile Include="reparse.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="tpm.c" />
+    <ClCompile Include="tpm_editor.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
     <ClCompile Include="etwprprp.c" />

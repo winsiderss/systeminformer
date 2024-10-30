@@ -123,8 +123,8 @@ static NTSTATUS PhEditSecurityAdvancedThread(
  * \param Context A user-defined value to pass to the callback functions.
  */
 PVOID PhCreateSecurityPage(
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
@@ -164,8 +164,8 @@ PVOID PhCreateSecurityPage(
  */
 VOID PhEditSecurity(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
@@ -205,8 +205,8 @@ VOID PhEditSecurity(
  */
 VOID PhEditSecurityEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -236,8 +236,8 @@ VOID PhEditSecurityEx(
 
 ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -424,7 +424,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
     ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | (WindowsVersion >= WINDOWS_8 ? SI_VIEW_ONLY : 0) | SI_EDIT_EFFECTIVE;
-    ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
+    ObjectInfo->pszObjectName = (PWSTR)PhGetString(this->ObjectName);
 
     if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
@@ -802,7 +802,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation3_Release(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
     _In_ ISecurityInformation3 *This,
-    _Outptr_ PWSTR *ppszResourceName
+    _Outptr_ PCWSTR *ppszResourceName
     )
 {
     PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
@@ -924,25 +924,25 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
                 break;
             }
 
-            sidInfo.pwzCommonName = PhGetString(sidString);
+            sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
         else if (sidString = PhGetAppContainerPackageName(sidInfo.pSid))
         {
             PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_PACKAGE)"));
-            sidInfo.pwzCommonName = PhGetString(sidString);
+            sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
         else if (sidString = PhGetAppContainerName(sidInfo.pSid))
         {
             PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CONTAINER)"));
-            sidInfo.pwzCommonName = PhGetString(sidString);
+            sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
         else if (sidString = PhGetCapabilitySidName(sidInfo.pSid))
         {
             PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CAPABILITY)"));
-            sidInfo.pwzCommonName = PhGetString(sidString);
+            sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
 

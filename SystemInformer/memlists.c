@@ -168,7 +168,7 @@ PH_MEMORY_LIST_COMMAND_CALLBACK(
 typedef PH_MEMORY_LIST_COMMAND_CALLBACK *PPH_MEMORY_LIST_COMMAND_CALLBACK;
 
 PPH_STRING PhpCreateCommandStatusString(
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_ NTSTATUS Status
     )
 {

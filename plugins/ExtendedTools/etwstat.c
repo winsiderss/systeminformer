@@ -258,12 +258,15 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+    ULONG runCount = PtrToUlong(Parameter);
     ULONG64 maxDiskValue = 0;
     ULONG64 maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxDiskBlock = NULL;
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
     PLIST_ENTRY listEntry;
+
+    if (runCount < 2)
+        return;
 
     // Since Windows 8, we no longer get the correct process/thread IDs in the
     // event headers for disk events. We need to update our process information since
@@ -402,8 +405,6 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 #endif
         }
     }
-
-    runCount++;
 }
 
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
@@ -459,10 +460,7 @@ VOID EtpUpdateProcessInformation(
         EtpProcessInformation = NULL;
     }
 
-    if (!PhDuplicateProcessInformation(&EtpProcessInformation))
-    {
-        PhEnumProcesses(&EtpProcessInformation);
-    }
+    PhEnumProcesses(&EtpProcessInformation);
 
     PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
 }

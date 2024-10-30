@@ -390,7 +390,7 @@ VOID PhUpdateProcessStatisticsValue(
         Context->CpuUsageAverage = cpuAverageValue * 100;
     }
 
-    Context->CpuUsageRelative = (FLOAT)(ProcessItem->CpuUsage * 100) * PhSystemProcessorInformation.NumberOfProcessors;
+    Context->CpuUsageRelative = (FLOAT)(ProcessItem->CpuUsage * 100) * PhCountBitsUlongPtr(ProcessItem->AffinityMask);
 
     {
         ULONG64 cycleTime;

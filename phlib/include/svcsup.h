@@ -62,7 +62,7 @@ NTAPI
 PhOpenService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PWSTR ServiceName
+    _In_ PCWSTR ServiceName
     );
 
 PHLIBAPI
@@ -331,7 +331,7 @@ PPH_STRING
 NTAPI
 PhGetServiceNameForModuleReference(
     _In_ HANDLE ProcessId,
-    _In_ PWSTR ModuleName
+    _In_ PCWSTR ModuleName
     );
 
 PHLIBAPI
@@ -339,7 +339,7 @@ NTSTATUS
 NTAPI
 PhGetThreadServiceTag(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PVOID *ServiceTag
     );
 
@@ -362,7 +362,7 @@ PPH_STRING
 NTAPI
 PhGetServiceConfigFileName(
     _In_ ULONG ServiceType,
-    _In_ PWSTR ServicePathName,
+    _In_ PCWSTR ServicePathName,
     _In_ PPH_STRINGREF ServiceName
     );
 

@@ -14,7 +14,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Opens a thread.
@@ -42,7 +42,7 @@ NTSTATUS KphOpenThread(
     PETHREAD thread;
     HANDLE threadHandle = NULL;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     thread = NULL;
 
@@ -182,7 +182,7 @@ NTSTATUS KphOpenThreadProcess(
     PETHREAD thread;
     HANDLE processHandle;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     thread = NULL;
 
@@ -313,7 +313,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     ULONG backTraceHash;
     LARGE_INTEGER timeout;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     backTrace = NULL;
     thread = NULL;
@@ -487,7 +487,7 @@ NTSTATUS KphSetInformationThread(
     HANDLE threadHandle;
     THREADINFOCLASS threadInformationClass;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     threadInformation = NULL;
     thread = NULL;
@@ -718,7 +718,7 @@ NTSTATUS KphQueryInformationThread(
     PKPH_THREAD_CONTEXT thread;
     ULONG returnLength;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
     threadObject = NULL;

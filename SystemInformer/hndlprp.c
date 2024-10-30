@@ -1738,7 +1738,7 @@ VOID PhpUpdateHandleGeneral(
 
         if (NT_SUCCESS(status))
         {
-            PWSTR sectionType = L"Unknown";
+            PCWSTR sectionType = L"Unknown";
             PPH_STRING sectionSize = NULL;
 
             if (FlagOn(basicInfo.AllocationAttributes, SEC_COMMIT))

@@ -334,7 +334,7 @@ NTSTATUS PhFreeLibraryAsImageResource(
 }
 
 PVOID PhGetDllHandle(
-    _In_ PWSTR DllName
+    _In_ PCWSTR DllName
     )
 {
 #if (PHNT_NATIVE_LDR)
@@ -357,8 +357,8 @@ PVOID PhGetDllHandle(
 }
 
 PVOID PhGetModuleProcAddress(
-    _In_ PWSTR ModuleName,
-    _In_opt_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_opt_ PCSTR ProcedureName
     )
 {
 #if (PHNT_NATIVE_LDR)
@@ -380,7 +380,7 @@ PVOID PhGetModuleProcAddress(
 
 PVOID PhGetProcedureAddress(
     _In_ PVOID DllHandle,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     )
 {
@@ -457,7 +457,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
 NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
@@ -766,7 +766,7 @@ PPH_STRING PhLoadString(
     {
         string = PhCreateStringEx(
             stringBuffer->NameString,
-            stringBuffer->Length * sizeof(WCHAR)
+            stringBuffer->Length * sizeof(WCHAR) - sizeof(UNICODE_NULL)
             );
     }
 
@@ -1005,7 +1005,7 @@ PVOID PhGetLoaderEntryDllBase(
 
 PVOID PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     )
 {
@@ -1067,7 +1067,7 @@ PVOID PhGetDllBaseProcedureAddress(
 
 PVOID PhGetDllBaseProcAddress(
     _In_ PVOID BaseAddress,
-    _In_opt_ PSTR ProcedureName
+    _In_opt_ PCSTR ProcedureName
     )
 {
     if (IS_INTRESOURCE(ProcedureName))
@@ -1077,8 +1077,8 @@ PVOID PhGetDllBaseProcAddress(
 }
 
 PVOID PhGetDllProcedureAddress(
-    _In_ PWSTR DllName,
-    _In_opt_ PSTR ProcedureName,
+    _In_ PCWSTR DllName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     )
 {
@@ -1333,7 +1333,7 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_ PULONG ExportNameTable,
-    _In_ PSTR ExportName
+    _In_ PCSTR ExportName
     )
 {
     LONG low;
@@ -1374,7 +1374,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
-    _In_opt_ PSTR ExportName,
+    _In_opt_ PCSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
     )
 {
@@ -1428,15 +1428,18 @@ PVOID PhGetLoaderEntryImageExportFunction(
         ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
         )
     {
-        WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
-        PH_STRINGREF dllForwarderRef;
+        SIZE_T dllForwarderLength;
         PH_STRINGREF dllNameRef;
+        PH_STRINGREF dllForwarderRef;
         PH_STRINGREF dllProcedureRef;
+        WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
 
         // This is a forwarder RVA.
 
-        PhZeroExtendToUtf16Buffer((PSTR)exportAddress, strlen((PSTR)exportAddress), dllForwarderName);
-        PhInitializeStringRefLongHint(&dllForwarderRef, dllForwarderName);
+        dllForwarderLength = PhCountBytesZ((PCSTR)exportAddress);
+        PhZeroExtendToUtf16Buffer((PCSTR)exportAddress, dllForwarderLength, dllForwarderName);
+        dllForwarderRef.Length = dllForwarderLength * sizeof(WCHAR);
+        dllForwarderRef.Buffer = dllForwarderName;
 
         if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
         {
@@ -1489,7 +1492,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
 
 PVOID PhGetDllBaseProcedureAddressWithHint(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ProcedureName,
+    _In_ PCSTR ProcedureName,
     _In_ USHORT ProcedureHint
     )
 {
@@ -1528,15 +1531,18 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                 ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(exportDirectory, dataDirectory->Size))
                 )
             {
-                WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
-                PH_STRINGREF dllForwarderRef;
+                SIZE_T dllForwarderLength;
                 PH_STRINGREF dllNameRef;
+                PH_STRINGREF dllForwarderRef;
                 PH_STRINGREF dllProcedureRef;
+                WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
 
                 // This is a forwarder RVA.
 
-                PhZeroExtendToUtf16Buffer((PSTR)exportAddress, strlen((PSTR)exportAddress), dllForwarderName);
-                PhInitializeStringRefLongHint(&dllForwarderRef, dllForwarderName);
+                dllForwarderLength = PhCountBytesZ((PCSTR)exportAddress);
+                PhZeroExtendToUtf16Buffer((PCSTR)exportAddress, dllForwarderLength, dllForwarderName);
+                dllForwarderRef.Length = dllForwarderLength * sizeof(WCHAR);
+                dllForwarderRef.Buffer = dllForwarderName;
 
                 if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
                 {
@@ -1593,8 +1599,8 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
 
 NTSTATUS PhLoaderEntryDetourImportProcedure(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ImportName,
-    _In_ PSTR ProcedureName,
+    _In_ PCSTR ImportName,
+    _In_ PCSTR ProcedureName,
     _In_ PVOID FunctionAddress,
     _Out_opt_ PVOID* OriginalAddress
     )
@@ -1628,7 +1634,7 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
 
     while (importDirectory->Name && importDirectory->OriginalFirstThunk)
     {
-        PSTR importName;
+        PCSTR importName;
         PIMAGE_THUNK_DATA importThunk;
         PIMAGE_THUNK_DATA originalThunk;
         PIMAGE_IMPORT_BY_NAME importByName;
@@ -1693,7 +1699,7 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
 
 VOID PhLoaderEntrySnapShowErrorMessage(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ImportName,
+    _In_ PCSTR ImportName,
     _In_ PIMAGE_THUNK_DATA OriginalThunk
     )
 {
@@ -1814,11 +1820,11 @@ VOID CALLBACK LoaderEntryImageImportThunkWorkQueueCallback(
 NTSTATUS PhLoaderEntrySnapImportDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDirectory,
-    _In_ PSTR ImportDllName
+    _In_ PCSTR ImportDllName
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-    PSTR importName;
+    PCSTR importName;
     PIMAGE_THUNK_DATA importThunk;
     PIMAGE_THUNK_DATA originalThunk;
     PVOID importBaseAddress;
@@ -1835,7 +1841,7 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
     {
         WCHAR dllImportName[DOS_MAX_PATH_LENGTH] = L"";
 
-        PhZeroExtendToUtf16Buffer(importName, strlen(importName), dllImportName);
+        PhZeroExtendToUtf16Buffer(importName, PhCountBytesZ(importName), dllImportName);
 
         importBaseAddress = PhLoadLibrary(dllImportName);
     }
@@ -1930,7 +1936,7 @@ typedef struct _PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT
 {
     PVOID BaseAddress;
     PIMAGE_IMPORT_DESCRIPTOR ImportDirectory;
-    PSTR ImportName;
+    PCSTR ImportName;
 } PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT, *PPH_LOADER_IMPORTS_WORKQUEUE_CONTEXT;
 
 VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
@@ -1960,7 +1966,7 @@ VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ PSTR ImportDllName
+    _In_ PCSTR ImportDllName
     )
 {
     NTSTATUS status;
@@ -2098,7 +2104,7 @@ CleanupExit:
 static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeaders,
-    _In_ PSTR ImportDllName
+    _In_ PCSTR ImportDllName
     )
 {
     NTSTATUS status;
@@ -2149,7 +2155,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
     while (delayImportDirectory->ImportAddressTableRVA && delayImportDirectory->ImportNameTableRVA)
     {
-        PSTR importName;
+        PCSTR importName;
         PVOID* importHandle;
         PIMAGE_THUNK_DATA importAddressTable;
         PIMAGE_THUNK_DATA importNameTable;
@@ -2168,16 +2174,16 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
                 importBaseAddress = PhInstanceHandle;
                 status = STATUS_SUCCESS;
             }
-            else if (*importHandle)
+            else if (ReadPointerAcquire(importHandle))
             {
-                importBaseAddress = *importHandle;
+                importBaseAddress = ReadPointerAcquire(importHandle);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 WCHAR dllImportName[DOS_MAX_PATH_LENGTH] = L"";
 
-                PhZeroExtendToUtf16Buffer(importName, strlen(importName), dllImportName);
+                PhZeroExtendToUtf16Buffer(importName, PhCountBytesZ(importName), dllImportName);
 
                 if (importBaseAddress = PhLoadLibrary(dllImportName))
                 {
@@ -2462,7 +2468,7 @@ PPH_STRING PhGetExportNameFromOrdinal(
                 )
             {
                 // This is a forwarder RVA.
-                return PhZeroExtendToUtf16((PSTR)baseAddress);
+                return PhZeroExtendToUtf16((PCSTR)baseAddress);
             }
             else
             {
@@ -2611,7 +2617,7 @@ NTSTATUS PhLoaderEntryUnloadDll(
 
 NTSTATUS PhLoaderEntryLoadAllImportsForDll(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ImportDllName
+    _In_ PCSTR ImportDllName
     )
 {
     NTSTATUS status;
@@ -2635,8 +2641,8 @@ NTSTATUS PhLoaderEntryLoadAllImportsForDll(
 }
 
 NTSTATUS PhLoadAllImportsForDll(
-    _In_ PWSTR TargetDllName,
-    _In_ PSTR ImportDllName
+    _In_ PCWSTR TargetDllName,
+    _In_ PCSTR ImportDllName
     )
 {
     PVOID imageBaseAddress;
@@ -2745,7 +2751,7 @@ CleanupExit:
 
 // based on GetBinaryTypeW (dmex)
 NTSTATUS PhGetFileBinaryTypeWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PULONG BinaryType
     )
 {

@@ -28,7 +28,7 @@ PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
 POBJECT_TYPE* KphDynObTypeIndexTable = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Dynamically imports routines.
@@ -38,7 +38,7 @@ VOID KphDynamicImport(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphDynPsSetLoadImageNotifyRoutineEx = (PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)KphGetSystemRoutineAddress(L"PsSetLoadImageNotifyRoutineEx");
     KphDynPsSetCreateProcessNotifyRoutineEx2 = (PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)KphGetSystemRoutineAddress(L"PsSetCreateProcessNotifyRoutineEx2");
@@ -51,6 +51,7 @@ VOID KphDynamicImport(
     KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
     KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
 
+#ifdef _WIN64
     __try
     {
         // ObGetObjectType have equal machine code on 10.0.10240 - 10.0.22631
@@ -88,6 +89,7 @@ VOID KphDynamicImport(
     {
         KphDynObTypeIndexTable = NULL;
     }
+#endif // _WIN64
 }
 
 /**
@@ -105,7 +107,7 @@ PVOID KphGetSystemRoutineAddress(
 {
     UNICODE_STRING systemRoutineName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
@@ -132,7 +134,7 @@ PVOID KphpGetRoutineAddressByModuleList(
     PVOID routine;
     UNICODE_STRING moduleName;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     routine = NULL;
     RtlInitUnicodeString(&moduleName, ModuleName);
@@ -202,7 +204,7 @@ PVOID KphGetRoutineAddress(
     _In_z_ PCSTR RoutineName
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     return KphpGetRoutineAddressByModuleList(ModuleName, RoutineName);
 }

@@ -18,9 +18,12 @@
 #include <intrin.h>
 #include <wchar.h>
 #include <assert.h>
+#include <stdalign.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <malloc.h>
+#include <float.h>
 
 // Memory
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
@@ -275,8 +278,8 @@ FORCEINLINE int doublecmp(
 }
 
 FORCEINLINE int wcsicmp2(
-    _In_opt_ PWSTR Value1,
-    _In_opt_ PWSTR Value2
+    _In_opt_ PCWSTR Value1,
+    _In_opt_ PCWSTR Value2
     )
 {
     if (Value1 && Value2)

@@ -1328,7 +1328,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1609,9 +1609,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100.f;
-                    cpuUsage *= PhSystemProcessorInformation.NumberOfProcessors; // linux style (dmex)
+                    cpuUsage *= PhCountBitsUlongPtr(threadItem->AffinityMask);  // linux style (dmex)
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1880,7 +1880,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUserUsage * 100.f;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1915,7 +1915,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuKernelUsage * 100.f;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -2125,10 +2125,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_THREAD_COPY, 0);
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             case VK_DELETE:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_THREAD_TERMINATE, 0);

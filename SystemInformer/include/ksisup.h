@@ -31,20 +31,20 @@ PhCleanupKsi(
 VOID
 PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Icon,
+    _In_opt_ PCWSTR Icon,
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
-    _In_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     );
 
 VOID
 PhShowKsiMessage(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Icon,
-    _In_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_opt_ PCWSTR Icon,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     );
 

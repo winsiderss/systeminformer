@@ -88,7 +88,7 @@ typedef enum _BCD_MESSAGE_TYPE
 
 typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
     _In_ BCD_MESSAGE_TYPE type,
-    _In_ PWSTR Message
+    _In_ PCWSTR Message
     );
     
 /**

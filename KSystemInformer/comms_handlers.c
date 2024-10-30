@@ -126,7 +126,7 @@ const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -136,7 +136,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsRequireMaximum(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
     UNREFERENCED_PARAMETER(Client);
@@ -153,7 +153,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsRequireMedium(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
     UNREFERENCED_PARAMETER(Client);
@@ -170,7 +170,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsRequireLow(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
     UNREFERENCED_PARAMETER(Client);
@@ -189,7 +189,7 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
 {
     PKPHM_GET_INFORMER_SETTINGS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerSettings);
 
@@ -212,7 +212,7 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
 {
     PKPHM_SET_INFORMER_SETTINGS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerSettings);
 
@@ -237,7 +237,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessRequires(
 {
     ACCESS_MASK desiredAccess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcess);
 
@@ -263,7 +263,7 @@ NTSTATUS KSIAPI KphpCommsOpenProcess(
 {
     PKPHM_OPEN_PROCESS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcess);
 
@@ -289,7 +289,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessTokenRequires(
 {
     ACCESS_MASK desiredAccess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessToken);
 
@@ -315,7 +315,7 @@ NTSTATUS KSIAPI KphpCommsOpenProcessToken(
 {
     PKPHM_OPEN_PROCESS_TOKEN msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessToken);
 
@@ -341,7 +341,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessJobRequires(
 {
     ACCESS_MASK desiredAccess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessJob);
 
@@ -367,7 +367,7 @@ NTSTATUS KSIAPI KphpCommsOpenProcessJob(
 {
     PKPHM_OPEN_PROCESS_JOB msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessJob);
 
@@ -393,7 +393,7 @@ NTSTATUS KSIAPI KphpCommsTerminateProcess(
 {
     PKPHM_TERMINATE_PROCESS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgTerminateProcess);
 
@@ -418,7 +418,7 @@ NTSTATUS KSIAPI KphpCommsReadVirtualMemory(
 {
     PKPHM_READ_VIRTUAL_MEMORY msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgReadVirtualMemory);
 
@@ -446,7 +446,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadRequires(
 {
     ACCESS_MASK desiredAccess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThread);
 
@@ -472,7 +472,7 @@ NTSTATUS KSIAPI KphpCommsOpenThread(
 {
     PKPHM_OPEN_THREAD msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThread);
 
@@ -498,7 +498,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadProcessRequires(
 {
     ACCESS_MASK desiredAccess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThreadProcess);
 
@@ -524,7 +524,7 @@ NTSTATUS KSIAPI KphpCommsOpenThreadProcess(
 {
     PKPHM_OPEN_THREAD_PROCESS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThreadProcess);
 
@@ -550,7 +550,7 @@ NTSTATUS KSIAPI KphpCommsCaptureStackBackTraceThread(
 {
     PKPHM_CAPTURE_STACK_BACKTRACE_THREAD msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCaptureStackBackTraceThread);
 
@@ -581,7 +581,7 @@ NTSTATUS KSIAPI KphpCommsEnumerateProcessHandles(
 {
     PKPHM_ENUMERATE_PROCESS_HANDLES msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgEnumerateProcessHandles);
 
@@ -608,7 +608,7 @@ NTSTATUS KSIAPI KphpCommsQueryInformationObject(
 {
     PKPHM_QUERY_INFORMATION_OBJECT msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationObject);
 
@@ -637,7 +637,7 @@ NTSTATUS KSIAPI KphpCommsSetInformationObject(
 {
     PKPHM_SET_INFORMATION_OBJECT msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationObject);
 
@@ -665,7 +665,7 @@ NTSTATUS KSIAPI KphpCommsOpenDriver(
 {
     PKPHM_OPEN_DRIVER msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenDriver);
 
@@ -691,7 +691,7 @@ NTSTATUS KSIAPI KphpCommsQueryInformationDriver(
 {
     PKPHM_QUERY_INFORMATION_DRIVER msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationDriver);
 
@@ -719,7 +719,7 @@ NTSTATUS KSIAPI KphpCommsOpenDevice(
 {
     PKPHM_OPEN_DEVICE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenDevice);
 
@@ -747,7 +747,7 @@ NTSTATUS KSIAPI KphpCommsOpenObjectByTypeIndex(
 {
     PKPHM_OPEN_OBJECT msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenObjectByTypeIndex);
 
@@ -772,7 +772,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationProcessRequires(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationProcess);
 
@@ -809,7 +809,7 @@ NTSTATUS KSIAPI KphpCommsQueryInformationProcess(
 {
     PKPHM_QUERY_INFORMATION_PROCESS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationProcess);
 
@@ -837,7 +837,7 @@ NTSTATUS KSIAPI KphpCommsSetInformationProcess(
 {
     PKPHM_SET_INFORMATION_PROCESS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationProcess);
 
@@ -864,7 +864,7 @@ NTSTATUS KSIAPI KphpCommsSetInformationThread(
 {
     PKPHM_SET_INFORMATION_THREAD msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationThread);
 
@@ -891,7 +891,7 @@ NTSTATUS KSIAPI KphpCommsSystemControl(
 {
     PKPHM_SYSTEM_CONTROL msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSystemControl);
 
@@ -917,7 +917,7 @@ NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
 {
     PKPHM_ALPC_QUERY_INFORMATION msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgAlpcQueryInformation);
 
@@ -946,7 +946,7 @@ NTSTATUS KSIAPI KphpCommsQueryInformationFile(
 {
     PKPHM_QUERY_INFORMATION_FILE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationFile);
 
@@ -975,7 +975,7 @@ NTSTATUS KSIAPI KphpCommsQueryVolumeInformationFile(
 {
     PKPHM_QUERY_VOLUME_INFORMATION_FILE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryVolumeInformationFile);
 
@@ -1004,7 +1004,7 @@ NTSTATUS KSIAPI KphpCommsDuplicateObject(
 {
     PKPHM_DUPLICATE_OBJECT msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgDuplicateObject);
 
@@ -1031,7 +1031,7 @@ NTSTATUS KSIAPI KphpCommsQueryPerformanceCounter(
 {
     PKPHM_QUERY_PERFORMANCE_COUNTER msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryPerformanceCounter);
 
@@ -1055,7 +1055,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsCreateFileRequires(
     ACCESS_MASK desiredAccess;
     ULONG createDisposition;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCreateFile);
 
@@ -1088,7 +1088,7 @@ NTSTATUS KSIAPI KphpCommsCreateFile(
 {
     PKPHM_CREATE_FILE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCreateFile);
 
@@ -1121,7 +1121,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationThreadRequires(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationThread);
 
@@ -1151,7 +1151,7 @@ NTSTATUS KSIAPI KphpCommsQueryInformationThread(
 {
     PKPHM_QUERY_INFORMATION_THREAD msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationThread);
 
@@ -1179,7 +1179,7 @@ NTSTATUS KSIAPI KphpCommsQuerySection(
 {
     PKPHM_QUERY_SECTION msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQuerySection);
 
@@ -1207,7 +1207,7 @@ NTSTATUS KSIAPI KphpCommsCompareObjects(
 {
     PKPHM_COMPARE_OBJECTS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCompareObjects);
 
@@ -1233,7 +1233,7 @@ NTSTATUS KSIAPI KphpCommsGetMessageTimeouts(
 {
     PKPHM_GET_MESSAGE_TIMEOUTS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageTimeouts);
 
@@ -1254,7 +1254,7 @@ NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
 {
     PKPHM_SET_MESSAGE_TIMEOUTS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetMessageTimeouts);
 
@@ -1275,7 +1275,7 @@ NTSTATUS KSIAPI KphpCommsAcquireDriverUnloadProtection(
 {
     PKPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgAcquireDriverUnloadProtection);
 
@@ -1316,7 +1316,7 @@ NTSTATUS KSIAPI KphpCommsReleaseDriverUnloadProtection(
 {
     PKPHM_RELEASE_DRIVER_UNLOAD_PROTECTION msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgReleaseDriverUnloadProtection);
 
@@ -1357,7 +1357,7 @@ NTSTATUS KSIAPI KphpCommsGetConnectedClientCount(
 {
     PKPHM_GET_CONNECTED_CLIENT_COUNT msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetConnectedClientCount);
 
@@ -1380,7 +1380,7 @@ NTSTATUS KSIAPI KphpCommsActivateDynData(
 {
     PKPHM_ACTIVATE_DYNDATA msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgActivateDynData);
 
@@ -1407,7 +1407,7 @@ NTSTATUS KSIAPI KphpCommsRequestSessionAccessToken(
 {
     PKPHM_REQUEST_SESSION_ACCESS_TOKEN msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgRequestSessionAccessToken);
 
@@ -1433,7 +1433,7 @@ NTSTATUS KSIAPI KphpCommsAssignProcessSessionToken(
 {
     PKPHM_ASSIGN_PROCESS_SESSION_TOKEN msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgAssignProcessSessionToken);
 
@@ -1459,7 +1459,7 @@ NTSTATUS KSIAPI KphpCommsAssignThreadSessionToken(
 {
     PKPHM_ASSIGN_THREAD_SESSION_TOKEN msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgAssignThreadSessionToken);
 
@@ -1485,7 +1485,7 @@ NTSTATUS KSIAPI KphpCommsGetInformerProcessFilter(
 {
     PKPHM_GET_INFORMER_PROCESS_FILTER msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerProcessFilter);
 
@@ -1510,7 +1510,7 @@ NTSTATUS KSIAPI KphpCommsSetInformerProcessFilter(
 {
     PKPHM_SET_INFORMER_PROCESS_FILTER msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerProcessFilter);
 
@@ -1535,7 +1535,7 @@ NTSTATUS KSIAPI KphpCommsStripProtectedProcessMasks(
 {
     PKPHM_STRIP_PROTECTED_PROCESS_MASKS msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgStripProtectedProcessMasks);
 
@@ -1559,7 +1559,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryVirtualMemoryRequires(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryVirtualMemory);
 
@@ -1590,7 +1590,7 @@ NTSTATUS KSIAPI KphpCommsQueryVirtualMemory(
 {
     PKPHM_QUERY_VIRTUAL_MEMORY msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryVirtualMemory);
 
@@ -1619,7 +1619,7 @@ NTSTATUS KSIAPI KphpCommsQueryHashInformationFile(
 {
     PKPHM_QUERY_HASH_INFORMATION_FILE msg;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryHashInformationFile);
 

@@ -16,7 +16,7 @@
 
 typedef struct _PH_CHOOSE_PROCESS_DIALOG_CONTEXT
 {
-    PWSTR Message;
+    PCWSTR Message;
     HANDLE ProcessId;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -35,7 +35,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
 _Success_(return)
 BOOLEAN PhShowChooseProcessDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _Out_ PHANDLE ProcessId
     )
 {
@@ -86,14 +86,14 @@ static VOID PhpRefreshProcessList(
 
     do
     {
-        INT lvItemIndex;
+        LONG lvItemIndex;
         PPH_STRING name;
         HANDLE processHandle;
         PPH_STRING fileName = NULL;
         HICON icon = NULL;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
         PPH_STRING userName = NULL;
-        INT imageIndex = INT_MAX;
+        LONG imageIndex = INT_MAX;
 
         if (process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
             name = PhCreateStringFromUnicodeString(&process->ImageName);

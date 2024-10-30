@@ -61,7 +61,7 @@ typedef NTSTATUS (NTAPI* _NtSetInformationVirtualMemory)(
 typedef NTSTATUS (NTAPI* _NtCreateProcessStateChange)(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _In_opt_ ULONG64 Reserved
     );

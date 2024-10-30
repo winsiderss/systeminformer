@@ -1584,7 +1584,7 @@ VOID PhShowOptionsRestartRequired(
 
 BOOLEAN PhShowOptionsDefaultInstallLocation(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR Message
+    _In_ PCWSTR Message
     )
 {
     RTL_ELEVATION_FLAGS flags;
@@ -2403,7 +2403,7 @@ typedef struct _PH_OPTIONS_ADVANCED_ROOT_NODE
 
 
 #define SORT_FUNCTION(Column) OptionsAdvancedTreeNewCompare##Column
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl OptionsAdvancedTreeNewCompare##Column( \
+#define BEGIN_SORT_FUNCTION(Column) static long __cdecl OptionsAdvancedTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
@@ -2411,7 +2411,7 @@ typedef struct _PH_OPTIONS_ADVANCED_ROOT_NODE
 { \
     PPH_OPTIONS_ADVANCED_ROOT_NODE node1 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)_elem1; \
     PPH_OPTIONS_ADVANCED_ROOT_NODE node2 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)_elem2; \
-    int sortResult = 0;
+    LONG sortResult = 0;
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
@@ -2628,7 +2628,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
                     SORT_FUNCTION(Value),
                     SORT_FUNCTION(Default),
                 };
-                int(__cdecl * sortFunction)(void*, const void*, const void*);
+                long (__cdecl* sortFunction)(void*, const void*, const void*);
 
                 if (context->TreeNewSortColumn < PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -2770,10 +2770,6 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->WindowHandle, WM_COMMAND, IDC_COPY, 0);
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             }
         }

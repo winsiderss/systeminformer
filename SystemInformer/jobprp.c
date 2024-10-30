@@ -65,7 +65,7 @@ VOID PhShowJobProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context,
-    _In_opt_ PWSTR Title
+    _In_opt_ PCWSTR Title
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
@@ -154,11 +154,11 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
 
 static VOID PhpAddLimit(
     _In_ HWND Handle,
-    _In_ PWSTR Name,
-    _In_ PWSTR Value
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Value
     )
 {
-    INT lvItemIndex;
+    LONG lvItemIndex;
 
     lvItemIndex = PhAddListViewItem(Handle, MAXINT, Name, NULL);
     PhSetListViewSubItem(Handle, lvItemIndex, 1, Value);
@@ -770,7 +770,7 @@ INT CALLBACK PhpJobStatisticsSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
-)
+    )
 {
     if (uMsg == PSCB_INITIALIZED && PhEnableThemeSupport)
     {

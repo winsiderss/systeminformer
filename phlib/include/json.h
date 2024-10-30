@@ -16,7 +16,7 @@ EXTERN_C_START
 
 typedef struct _JSON_ARRAY_LIST_OBJECT
 {
-    PSTR Key;
+    PCSTR Key;
     PVOID Entry;
 } JSON_ARRAY_LIST_OBJECT, *PJSON_ARRAY_LIST_OBJECT;
 
@@ -24,7 +24,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhCreateJsonParser(
-    _In_ PSTR JsonString
+    _In_ PCSTR JsonString
     );
 
 PHLIBAPI
@@ -47,7 +47,7 @@ PPH_STRING
 NTAPI
 PhGetJsonValueAsString(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     );
 
 PHLIBAPI
@@ -62,7 +62,7 @@ LONGLONG
 NTAPI
 PhGetJsonValueAsInt64(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     );
 
 PHLIBAPI
@@ -70,14 +70,14 @@ ULONGLONG
 NTAPI
 PhGetJsonValueAsUInt64(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     );
 
 FORCEINLINE
 ULONG
 PhGetJsonValueAsUlong(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     )
 {
     return (ULONG)PhGetJsonValueAsUInt64(Object, Key);
@@ -102,7 +102,7 @@ PVOID
 NTAPI
 PhGetJsonObject(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     );
 
 typedef enum _PH_JSON_OBJECT_TYPE
@@ -125,7 +125,7 @@ PhGetJsonObjectType(
     );
 
 PHLIBAPI
-INT
+LONG
 NTAPI
 PhGetJsonObjectLength(
     _In_ PVOID Object
@@ -136,7 +136,7 @@ BOOLEAN
 NTAPI
 PhGetJsonObjectBool(
     _In_ PVOID Object,
-    _In_ PSTR Key
+    _In_ PCSTR Key
     );
 
 PHLIBAPI
@@ -154,7 +154,7 @@ NTAPI
 PhAddJsonObject(
     _In_ PVOID Object,
     _In_ PCSTR Key,
-    _In_ PSTR Value
+    _In_ PCSTR Value
     );
 
 PHLIBAPI
@@ -163,7 +163,7 @@ NTAPI
 PhAddJsonObject2(
     _In_ PVOID Object,
     _In_ PCSTR Key,
-    _In_ PSTR Value,
+    _In_ PCSTR Value,
     _In_ SIZE_T Length
     );
 
@@ -242,7 +242,7 @@ PhGetJsonArrayIndexObject(
 
 typedef BOOLEAN (NTAPI* PPH_ENUM_JSON_OBJECT_CALLBACK)(
     _In_ PVOID Object,
-    _In_ PSTR Key,
+    _In_ PCSTR Key,
     _In_ PVOID Value,
     _In_opt_ PVOID Context
     );
@@ -267,12 +267,17 @@ PhLoadJsonObjectFromFile(
     _In_ PPH_STRINGREF FileName
     );
 
+#define PH_JSON_TO_STRING_PLAIN 0x0001
+#define PH_JSON_TO_STRING_SPACED 0x0002
+#define PH_JSON_TO_STRING_PRETTY 0x0004
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
-    _In_ PVOID Object
+    _In_ PVOID Object,
+    _In_opt_ ULONG Flags
     );
 
 // XML
@@ -281,7 +286,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhLoadXmlObjectFromString(
-    _In_ PSTR String
+    _In_ PCSTR String
     );
 
 PHLIBAPI
@@ -313,7 +318,7 @@ PVOID
 NTAPI
 PhGetXmlObject(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Path
+    _In_ PCSTR Path
     );
 
 PHLIBAPI
@@ -322,9 +327,9 @@ NTAPI
 PhFindXmlObject(
     _In_ PVOID XmlNodeObject,
     _In_opt_ PVOID XmlTopObject,
-    _In_opt_ PSTR Element,
-    _In_opt_ PSTR Attribute,
-    _In_opt_ PSTR Value
+    _In_opt_ PCSTR Element,
+    _In_opt_ PCSTR Attribute,
+    _In_opt_ PCSTR Value
     );
 
 PHLIBAPI
@@ -335,14 +340,14 @@ PhGetXmlNodeOpaqueText(
     );
 
 PHLIBAPI
-PSTR
+PCSTR
 NTAPI
 PhGetXmlNodeElementText(
     _In_ PVOID XmlNodeObject
     );
 
 PHLIBAPI
-PSTR
+PCSTR
 NTAPI
 PhGetXmlNodeCDATAText(
     _In_ PVOID XmlNodeObject
@@ -353,16 +358,16 @@ PPH_STRING
 NTAPI
 PhGetXmlNodeAttributeText(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR AttributeName
+    _In_ PCSTR AttributeName
     );
 
 PHLIBAPI
-PSTR
+PCSTR
 NTAPI
 PhGetXmlNodeAttributeByIndex(
     _In_ PVOID XmlNodeObject,
-    _In_ INT Index,
-    _Out_ PSTR* AttributeName
+    _In_ LONG Index,
+    _Out_ PCSTR* AttributeName
     );
 
 PHLIBAPI
@@ -370,12 +375,12 @@ VOID
 NTAPI
 PhSetXmlNodeAttributeText(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Name,
-    _In_ PSTR Value
+    _In_ PCSTR Name,
+    _In_ PCSTR Value
     );
 
 PHLIBAPI
-INT
+LONG
 NTAPI
 PhGetXmlNodeAttributeCount(
     _In_ PVOID XmlNodeObject
@@ -400,7 +405,7 @@ PVOID
 NTAPI
 PhCreateXmlNode(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Name
+    _In_ PCSTR Name
     );
 
 PHLIBAPI
@@ -408,11 +413,11 @@ PVOID
 NTAPI
 PhCreateXmlOpaqueNode(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Value
+    _In_ PCSTR Value
     );
 
 typedef PVOID (NTAPI* PH_XML_LOAD_OBJECT_FROM_STRING)(
-    _In_ PSTR String
+    _In_ PCSTR String
     );
 
 typedef NTSTATUS (NTAPI* PH_XML_LOAD_OBJECT_FROM_FILE)(
@@ -432,25 +437,25 @@ typedef VOID (NTAPI* PH_XML_FREE_OBJECT)(
 
 typedef PVOID (NTAPI* PH_XML_GET_OBJECT)(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Path
+    _In_ PCSTR Path
     );
 
 typedef PVOID (NTAPI* PH_XML_CREATE_NODE)(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Name
+    _In_ PCSTR Name
     );
 
 typedef PVOID (NTAPI* PH_XML_CREATE_OPAQUE_NODE)(
     _In_opt_ PVOID ParentNode,
-    _In_ PSTR Value
+    _In_ PCSTR Value
     );
 
 typedef PVOID (NTAPI* PH_XML_FIND_OBJECT)(
     _In_ PVOID XmlNodeObject,
     _In_ PVOID XmlTopObject,
-    _In_ PSTR Element,
-    _In_ PSTR Attribute,
-    _In_ PSTR Value
+    _In_ PCSTR Element,
+    _In_ PCSTR Attribute,
+    _In_ PCSTR Value
     );
 
 typedef PVOID (NTAPI* PH_XML_GET_NODE_FIRST_CHILD)(
@@ -465,28 +470,28 @@ typedef PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_OPAQUE_TEXT)(
     _In_ PVOID XmlNodeObject
     );
 
-typedef PSTR (NTAPI* PH_XML_GET_XML_NODE_ELEMENT_TEXT)(
+typedef PCSTR (NTAPI* PH_XML_GET_XML_NODE_ELEMENT_TEXT)(
     _In_ PVOID XmlNodeObject
     );
 
 typedef PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT)(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR AttributeName
+    _In_ PCSTR AttributeName
     );
 
-typedef PSTR (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)(
+typedef PCSTR (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)(
     _In_ PVOID XmlNodeObject,
-    _In_ INT Index,
-    _Out_ PSTR* AttributeName
+    _In_ LONG Index,
+    _Out_ PCSTR* AttributeName
     );
 
 typedef VOID (NTAPI* PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT)(
     _In_ PVOID XmlNodeObject,
-    _In_ PSTR Name,
-    _In_ PSTR Value
+    _In_ PCSTR Name,
+    _In_ PCSTR Value
     );
 
-typedef INT (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
+typedef LONG (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
     _In_ PVOID XmlNodeObject
     );
 

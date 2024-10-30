@@ -584,6 +584,7 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Resources (Ctrl+K)",
                 PvpPeResourcesSearchControlCallback,

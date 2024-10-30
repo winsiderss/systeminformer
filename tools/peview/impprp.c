@@ -452,6 +452,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Imports (Ctrl+K)",
                 PvpPeImportsSearchControlCallback,
@@ -939,10 +940,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
                         PhDereferenceObject(text);
                     }
                 }
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             }
         }

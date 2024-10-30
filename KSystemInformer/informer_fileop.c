@@ -64,7 +64,7 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
     KPH_FLT_OPTIONS options;
     PKPH_PROCESS_CONTEXT process;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     options.Flags = 0;
 
@@ -77,18 +77,18 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
         process = KphGetSystemProcessContext();
     }
 
-#define KPH_FLT_SETTING(majorFunction, name)                                  \
-    case majorFunction:                                                       \
-    {                                                                         \
-        if (KphInformerEnabled(FilePre##name, process))                       \
-        {                                                                     \
-            options.PreEnabled = TRUE;                                        \
-        }                                                                     \
-        if (KphInformerEnabled(FilePost##name, process))                      \
-        {                                                                     \
-            options.PostEnabled = TRUE;                                       \
-        }                                                                     \
-        break;                                                                \
+#define KPH_FLT_SETTING(majorFunction, name)                                   \
+    case majorFunction:                                                        \
+    {                                                                          \
+        if (KphInformerEnabled(FilePre##name, process))                        \
+        {                                                                      \
+            options.PreEnabled = TRUE;                                         \
+        }                                                                      \
+        if (KphInformerEnabled(FilePost##name, process))                       \
+        {                                                                      \
+            options.PostEnabled = TRUE;                                        \
+        }                                                                      \
+        break;                                                                 \
     }
 
     switch (Data->Iopb->MajorFunction)
@@ -176,7 +176,7 @@ KPH_MESSAGE_ID KphpFltGetMessageId(
 {
     KPH_MESSAGE_ID messageId;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
 #define KPH_FLT_MESSAGE_ID(majorFunction, name)                               \
     case majorFunction:                                                       \
@@ -263,7 +263,7 @@ VOID KphpFltInitMessage(
     ULONG_PTR stackHighLimit;
     POPLOCK_KEY_CONTEXT oplockKeyContext;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     KphMsgInit(Message, KphpFltGetMessageId(MajorFunction, PostOperation));
 
@@ -348,7 +348,7 @@ VOID KphpFltCopyFileName(
     NTSTATUS status;
     PUNICODE_STRING string;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     switch (FltFileName->Type)
     {
@@ -439,7 +439,7 @@ VOID KphpFltCopyBuffer(
     PMDL mdl;
     BOOLEAN unlockPages;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     mdl = NULL;
     unlockPages = FALSE;
@@ -636,7 +636,7 @@ VOID KphpFltCopyFsControl(
     PVOID buffer;
     ULONG length;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_FILE_SYSTEM_CONTROL);
 
@@ -796,7 +796,7 @@ VOID KphpFltCopyIoControl(
     PVOID buffer;
     ULONG length;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT((Data->Iopb->MajorFunction == IRP_MJ_DEVICE_CONTROL) ||
               (Data->Iopb->MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL));
@@ -1006,7 +1006,7 @@ VOID KphpFltFillCommonMessage(
     _In_ PFLT_CALLBACK_DATA Data
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (Data->Thread)
     {
@@ -1074,7 +1074,7 @@ VOID KphpFltFillPreOpMessage(
     ULONG destLength;
     BOOLEAN truncate;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     KphpFltFillCommonMessage(Message, Data);
 
@@ -1247,7 +1247,7 @@ VOID KphpFltFillPostOpMessage(
     ULONG length;
     KPH_MESSAGE_FIELD_ID fieldId;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphpFltFillCommonMessage(Message, Data);
 
@@ -1411,7 +1411,7 @@ BOOLEAN KphpFltHandleNameTunneling(
     NTSTATUS status;
     PFLT_FILE_NAME_INFORMATION reTunneledFileNameInfo;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     NT_ASSERT(FileNameInfo->Format == FLT_FILE_NAME_NORMALIZED);
 
@@ -1476,7 +1476,7 @@ BOOLEAN KphpFltIsNameTunnelingPossible(
     _In_ PFLT_CALLBACK_DATA Data
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (Data->Iopb->MajorFunction == IRP_MJ_CREATE)
     {
@@ -1522,7 +1522,7 @@ VOID KphpFltPostOpHandleNameTunneling(
     BOOLEAN tunneledFileName;
     BOOLEAN tunneledDestFileName;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     NT_ASSERT(KphpFltIsNameTunnelingPossible(Data));
 
@@ -1581,7 +1581,7 @@ VOID KphpFltFreeCompletionContext(
     _In_ PKPH_FLT_COMPLETION_CONTEXT CompletionContext
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (CompletionContext->Message)
     {
@@ -1636,7 +1636,7 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
     PKPH_FLT_COMPLETION_CONTEXT context;
     PKPH_MESSAGE reply;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     sequence = InterlockedIncrementU64(&KphpFltSequence);
 
@@ -1770,7 +1770,7 @@ NTSTATUS KphpFltPreOpCreateCompletionContext(
     NTSTATUS status;
     PKPH_FLT_COMPLETION_CONTEXT context;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     *CompletionContext = NULL;
 
@@ -1915,7 +1915,7 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
     PKPH_MESSAGE message;
     PKPH_MESSAGE reply;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
     reply = NULL;
@@ -2150,7 +2150,7 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
     KPH_FLT_FILE_NAME fltDestFileName;
     LARGE_INTEGER timeStamp;
 
-    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
+    KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     *CompletionContext = NULL;
 
@@ -2311,7 +2311,7 @@ Exit:
     return callbackStatus;
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Cleans up the file operation filter.
@@ -2321,7 +2321,7 @@ VOID KphpFltCleanupFileOp(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!KphpFltOpInitialized)
     {
@@ -2339,7 +2339,7 @@ VOID KphpFltInitializeFileOp(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphInitializeNPagedLookaside(&KphpFltCompletionContextLookaside,
                                  sizeof(KPH_FLT_COMPLETION_CONTEXT),

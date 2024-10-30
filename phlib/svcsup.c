@@ -324,23 +324,19 @@ NTSTATUS PhOpenServiceManager(
 NTSTATUS PhOpenService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PWSTR ServiceName
+    _In_ PCWSTR ServiceName
     )
 {
-    NTSTATUS status;
     SC_HANDLE serviceHandle;
 
     if (serviceHandle = OpenService(PhGetServiceManagerHandle(), ServiceName, DesiredAccess))
     {
         *ServiceHandle = serviceHandle;
-        status = STATUS_SUCCESS;
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_SUCCESS;
     }
 
-    return status;
+    *ServiceHandle = nullptr;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 NTSTATUS PhOpenServiceKey(
@@ -438,6 +434,7 @@ NTSTATUS PhCreateService(
         }
         else
         {
+            *ServiceHandle = nullptr;
             status = PhGetLastWin32ErrorAsNtStatus();
         }
 
@@ -625,7 +622,7 @@ NTSTATUS PhSetServiceObjectSecurity(
 
 NTSTATUS PhQueryServiceStatus(
     _In_ SC_HANDLE ServiceHandle,
-    _Inout_ LPSERVICE_STATUS_PROCESS ServiceStatus
+    _Out_ LPSERVICE_STATUS_PROCESS ServiceStatus
     )
 {
     NTSTATUS status;
@@ -868,6 +865,7 @@ BOOLEAN PhSetServiceDelayedAutoStart(
         ));
 }
 
+_Success_(return)
 BOOLEAN PhGetServiceTriggerInfo(
     _In_ SC_HANDLE ServiceHandle,
     _Out_opt_ PSERVICE_TRIGGER_INFO* ServiceTriggerInfo
@@ -912,17 +910,31 @@ PPH_STRINGREF PhGetServiceStateString(
     _In_ ULONG ServiceState
     )
 {
+    switch (ServiceState)
+    {
+    case SERVICE_STOPPED:
+    case SERVICE_START_PENDING:
+    case SERVICE_STOP_PENDING:
+    case SERVICE_RUNNING:
+    case SERVICE_CONTINUE_PENDING:
+    case SERVICE_PAUSE_PENDING:
+    case SERVICE_PAUSED:
+        return PhpServiceStatePairs[ServiceState - 1].Key;
+    }
+
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhpServiceStatePairs,
         sizeof(PhpServiceStatePairs),
         ServiceState,
-        (PWSTR*)&string
+        &string
         ))
+    {
         return string;
-    else
-        return &PhpServiceUnknownString;
+    }
+
+    return &PhpServiceUnknownString;
 }
 
 PPH_STRINGREF PhGetServiceTypeString(
@@ -931,15 +943,17 @@ PPH_STRINGREF PhGetServiceTypeString(
 {
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhpServiceTypePairs,
         sizeof(PhpServiceTypePairs),
         ServiceType,
-        (PWSTR*)&string
+        &string
         ))
+    {
         return string;
-    else
-        return &PhpServiceUnknownString;
+    }
+
+    return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceTypeInteger(
@@ -963,17 +977,29 @@ PPH_STRINGREF PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
     )
 {
+    switch (ServiceStartType)
+    {
+    case SERVICE_BOOT_START:
+    case SERVICE_SYSTEM_START:
+    case SERVICE_AUTO_START:
+    case SERVICE_DEMAND_START:
+    case SERVICE_DISABLED:
+        return PhpServiceStartTypePairs[ServiceStartType].Key;
+    }
+
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhpServiceStartTypePairs,
         sizeof(PhpServiceStartTypePairs),
         ServiceStartType,
-        (PWSTR*)&string
+        &string
         ))
+    {
         return string;
-    else
-        return &PhpServiceUnknownString;
+    }
+
+    return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceStartTypeInteger(
@@ -997,17 +1023,28 @@ PPH_STRINGREF PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl
     )
 {
+    switch (ServiceErrorControl)
+    {
+    case SERVICE_ERROR_IGNORE:
+    case SERVICE_ERROR_NORMAL:
+    case SERVICE_ERROR_SEVERE:
+    case SERVICE_ERROR_CRITICAL:
+        return PhpServiceErrorControlPairs[ServiceErrorControl].Key;
+    }
+
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhpServiceErrorControlPairs,
         sizeof(PhpServiceErrorControlPairs),
         ServiceErrorControl,
-        (PWSTR*)&string
+        &string
         ))
+    {
         return string;
-    else
-        return &PhpServiceUnknownString;
+    }
+
+    return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceErrorControlInteger(
@@ -1067,7 +1104,7 @@ PPH_STRING PhGetServiceNameFromTag(
 
 PPH_STRING PhGetServiceNameForModuleReference(
     _In_ HANDLE ProcessId,
-    _In_ PWSTR ModuleName
+    _In_ PCWSTR ModuleName
     )
 {
     static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
@@ -1097,7 +1134,7 @@ PPH_STRING PhGetServiceNameForModuleReference(
     if (moduleNameRef.OutParams.pmszNames)
     {
         PH_STRING_BUILDER sb;
-        PWSTR serviceName;
+        PCWSTR serviceName;
 
         PhInitializeStringBuilder(&sb, 0x40);
 
@@ -1108,7 +1145,7 @@ PPH_STRING PhGetServiceNameForModuleReference(
             PhRemoveEndStringBuilder(&sb, 2);
 
         serviceNames = PhFinalStringBuilderString(&sb);
-        LocalFree(moduleNameRef.OutParams.pmszNames);
+        LocalFree((HLOCAL)moduleNameRef.OutParams.pmszNames);
     }
 
     return serviceNames;
@@ -1116,39 +1153,25 @@ PPH_STRING PhGetServiceNameForModuleReference(
 
 NTSTATUS PhGetThreadServiceTag(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE ProcessHandle,
     _Out_ PVOID *ServiceTag
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
-    BOOLEAN openedProcessHandle = FALSE;
 
-    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
-        return status;
+    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
 
-    if (!ProcessHandle)
+    if (NT_SUCCESS(status))
     {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &ProcessHandle,
-            PROCESS_VM_READ,
-            basicInfo.ClientId.UniqueProcess
-            )))
-            return status;
-
-        openedProcessHandle = TRUE;
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, FIELD_OFFSET(TEB, SubProcessTag)),
+            ServiceTag,
+            sizeof(PVOID),
+            NULL
+            );
     }
-
-    status = NtReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(basicInfo.TebBaseAddress, FIELD_OFFSET(TEB, SubProcessTag)),
-        ServiceTag,
-        sizeof(PVOID),
-        NULL
-        );
-
-    if (openedProcessHandle)
-        NtClose(ProcessHandle);
 
     return status;
 }
@@ -1174,7 +1197,7 @@ PPH_STRING PhGetServiceParametersKeyName(
 
 PPH_STRING PhGetServiceConfigFileName(
     _In_ ULONG ServiceType,
-    _In_ PWSTR ServicePathName,
+    _In_ PCWSTR ServicePathName,
     _In_ PPH_STRINGREF ServiceName
     )
 {

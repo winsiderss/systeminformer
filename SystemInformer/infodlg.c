@@ -16,7 +16,7 @@
 
 typedef struct _PH_INFORMATION_CONTEXT
 {
-    PWSTR String;
+    PCWSTR String;
     ULONG Flags;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT MinimumSize;
@@ -117,8 +117,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     }
                     else
                     {
-                        string.Buffer = context->String + selStart;
-                        string.Length = (selEnd - selStart) * 2;
+                        string.Buffer = PTR_ADD_OFFSET(context->String, selStart);
+                        string.Length = (selEnd - selStart) * sizeof(WCHAR);
                     }
 
                     PhSetClipboardString(hwndDlg, &string);
@@ -197,7 +197,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
 
 VOID PhShowInformationDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR String,
+    _In_ PCWSTR String,
     _Reserved_ ULONG Flags
     )
 {

@@ -13,7 +13,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Checks an image for coherency against the data backing the image.
@@ -43,7 +43,7 @@ NTSTATUS KphpCheckImageCoherency(
     PVOID dataEnd;
     PVOID imageEnd;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(&regions, sizeof(regions));
 
@@ -187,7 +187,7 @@ NTSTATUS KphCheckImageCoherency(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     __try
     {

@@ -997,11 +997,11 @@ PPH_STRINGREF PhGetModuleTypeName(
 {
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhModuleTypePairs,
         sizeof(PhModuleTypePairs),
         ModuleType,
-        (PWSTR*)&string
+        &string
         ))
     {
         return string;
@@ -1031,11 +1031,11 @@ PPH_STRINGREF PhGetModuleLoadReasonTypeName(
 {
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhModuleLoadReasonTypePairs,
         sizeof(PhModuleLoadReasonTypePairs),
         LoadReason,
-        (PWSTR*)&string
+        &string
         ))
     {
         return string;
@@ -1058,11 +1058,11 @@ PPH_STRINGREF PhGetModuleEnclaveTypeName(
 {
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhModuleEnclaveTypePairs,
         sizeof(PhModuleEnclaveTypePairs),
         EnclaveType,
-        (PWSTR*)&string
+        &string
         ))
     {
         return string;

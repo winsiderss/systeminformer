@@ -823,7 +823,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
             if (driverNameLow && driverNameUp)
             {
                 if (!PhEqualString(driverNameLow, driverNameUp, TRUE))
-                    PhMoveReference(&entry->Target, PhFormatString(L"%s -> %s", PhGetString(driverNameUp), PhGetString(driverNameLow)));
+                    PhMoveReference(&entry->Target, PhFormatString(L"%s → %s", PhGetString(driverNameUp), PhGetString(driverNameLow)));
                 else
                     PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
                 PhMoveReference(&entry->TargetDrvLow, driverNameLow);

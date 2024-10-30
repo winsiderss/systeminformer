@@ -542,7 +542,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                     if (context->GroupComboHandle)
                     {
-                         INT affinityGroupSelection = ComboBox_GetCurSel(context->GroupComboHandle);
+                         LONG affinityGroupSelection = ComboBox_GetCurSel(context->GroupComboHandle);
 
                          if (affinityGroupSelection == CB_ERR)
                              affinityGroup = context->AffinityGroup;
@@ -699,7 +699,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 break;
             case IDC_GROUPCPU:
                 {
-                    INT index;
+                    LONG index;
 
                     if (!context->GroupComboHandle)
                         break;
@@ -878,7 +878,7 @@ NTSTATUS PhSetProcessItemPriorityBoost(
 // Note: Workaround for UserNotes plugin dialog overrides (dmex)
 NTSTATUS PhSetProcessItemThrottlingState(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ BOOLEAN ThrottlingState
+    _In_ BOOLEAN ClearThrottlingState
     )
 {
     NTSTATUS status;
@@ -892,7 +892,7 @@ NTSTATUS PhSetProcessItemThrottlingState(
 
     if (NT_SUCCESS(status))
     {
-        if (ThrottlingState)
+        if (ClearThrottlingState)
         {
             PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
 

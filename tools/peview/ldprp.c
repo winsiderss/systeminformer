@@ -149,7 +149,7 @@ PPH_STRING PvpGetPeEnclaveImportsText(
 
         for (i = 0; i < enclaveConfig32->NumberOfImports; i++)
         {
-            PSTR importName;
+            PCSTR importName;
 
             if (!enclaveImports || enclaveImports->ImportName == USHRT_MAX)
                 break;
@@ -179,7 +179,7 @@ PPH_STRING PvpGetPeEnclaveImportsText(
 
         for (i = 0; i < enclaveConfig64->NumberOfImports; i++)
         {
-            PSTR importName;
+            PCSTR importName;
 
             if (!enclaveImports || enclaveImports->ImportName == USHRT_MAX)
                 break;

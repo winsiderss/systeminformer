@@ -363,6 +363,16 @@ NtSetEvent(
     _Out_opt_ PLONG PreviousState
     );
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetEventEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -414,7 +424,7 @@ NTAPI
 NtCreateEventPair(
     _Out_ PHANDLE EventPairHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -423,7 +433,7 @@ NTAPI
 NtOpenEventPair(
     _Out_ PHANDLE EventPairHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -502,7 +512,7 @@ NTAPI
 NtCreateMutant(
     _Out_ PHANDLE MutantHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ BOOLEAN InitialOwner
     );
 
@@ -512,7 +522,7 @@ NTAPI
 NtOpenMutant(
     _Out_ PHANDLE MutantHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -565,7 +575,7 @@ NTAPI
 NtCreateSemaphore(
     _Out_ PHANDLE SemaphoreHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ LONG InitialCount,
     _In_ LONG MaximumCount
     );
@@ -576,7 +586,7 @@ NTAPI
 NtOpenSemaphore(
     _Out_ PHANDLE SemaphoreHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -655,7 +665,7 @@ NTAPI
 NtCreateTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ TIMER_TYPE TimerType
     );
 
@@ -665,7 +675,7 @@ NTAPI
 NtOpenTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -741,7 +751,7 @@ NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
     _In_opt_ PVOID Reserved1,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes, // TIMER_TYPE
     _In_ ACCESS_MASK DesiredAccess
     );
@@ -860,7 +870,7 @@ NTAPI
 NtCreateKeyedEvent(
     _Out_ PHANDLE KeyedEventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Reserved_ ULONG Flags
     );
 
@@ -870,7 +880,7 @@ NTAPI
 NtOpenKeyedEvent(
     _Out_ PHANDLE KeyedEventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -1155,7 +1165,7 @@ NTAPI
 NtCreateWorkerFactory(
     _Out_ PHANDLE WorkerFactoryHandleReturn,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE CompletionPortHandle,
     _In_ HANDLE WorkerProcessHandle,
     _In_ PVOID StartRoutine,

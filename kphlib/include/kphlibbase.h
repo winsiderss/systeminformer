@@ -3,11 +3,14 @@
 #include <sistatus.h>
 
 #ifdef _KERNEL_MODE
+#pragma warning(push)
+#pragma warning(disable: 5103) // invalid preprocessing token (/Zc:preprocessor)
 #include <ntifs.h>
 #include <ntintsafe.h>
 #include <minwindef.h>
 #include <ntstrsafe.h>
 #include <fltKernel.h>
+#pragma warning(pop)
 #else
 #pragma warning(push)
 #pragma warning(disable : 4201)

@@ -153,7 +153,7 @@ typedef struct _UNICODE_STRING
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
-#define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), s }
+#define RTL_CONSTANT_STRING(s) { sizeof((s)) - sizeof((s)[0]), sizeof((s)), (PWCH)(s) }
 
 #define DECLARE_CONST_UNICODE_STRING(_var, _str) \
 const WCHAR _var ## _buffer[] = _str; \
@@ -240,7 +240,7 @@ typedef struct _OBJECT_ATTRIBUTES
 {
     ULONG Length;
     HANDLE RootDirectory;
-    PUNICODE_STRING ObjectName;
+    PCUNICODE_STRING ObjectName;
     ULONG Attributes;
     PVOID SecurityDescriptor; // PSECURITY_DESCRIPTOR;
     PVOID SecurityQualityOfService; // PSECURITY_QUALITY_OF_SERVICE

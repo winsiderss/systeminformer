@@ -391,7 +391,8 @@ VOID PhpUpdateHeapRegions(
 
     status = PhOpenProcess(
         &processHandle,
-        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE | PROCESS_SET_LIMITED_INFORMATION,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
         List->ProcessId
         );
 
@@ -404,8 +405,7 @@ VOID PhpUpdateHeapRegions(
         {
             status = PhCreateProcessReflection(
                 &reflectionInfo,
-                processHandle,
-                List->ProcessId
+                processHandle
                 );
 
             if (NT_SUCCESS(status))

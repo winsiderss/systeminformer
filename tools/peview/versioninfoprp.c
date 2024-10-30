@@ -24,8 +24,8 @@ VOID PvAddVersionInfoItem(
     _In_ HWND ListViewHandle,
     _Inout_ PULONG Count,
     _In_ INT GroupId,
-    _In_ PWSTR Name,
-    _In_ PWSTR Value
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Value
     )
 {
     INT lvItemIndex;
@@ -41,7 +41,7 @@ PVOID PvGetFileVersionInfoValue(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
     )
 {
-    PWSTR offset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
+    PCWSTR offset = VersionInfo->Key + PhCountStringZ(VersionInfo->Key) + 1;
 
     return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(offset, VersionInfo), ULONG));
 }

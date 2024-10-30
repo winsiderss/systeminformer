@@ -709,7 +709,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
  * \a AccessEntries.
  */
 BOOLEAN PhGetAccessEntries(
-    _In_ PWSTR Type,
+    _In_ PCWSTR Type,
     _Out_ PPH_ACCESS_ENTRY *AccessEntries,
     _Out_ PULONG NumberOfAccessEntries
     )

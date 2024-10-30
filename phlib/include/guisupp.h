@@ -40,15 +40,15 @@ typedef BOOL (WINAPI *_IsThemeActive)(
 
 typedef BOOL (WINAPI *_IsThemePartDefined)(
     _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId
+    _In_ LONG iPartId,
+    _In_ LONG iStateId
     );
 
 typedef HRESULT (WINAPI *_DrawThemeBackground)(
     _In_ HTHEME hTheme,
     _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
     _In_ const RECT *pRect,
     _In_opt_ const RECT *pClipRect
     );
@@ -56,10 +56,10 @@ typedef HRESULT (WINAPI *_DrawThemeBackground)(
 typedef HRESULT (WINAPI *_DrawThemeText)(
     _In_ HTHEME hTheme,
     _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
     _In_reads_(cchText) LPCWSTR pszText,
-    _In_ INT cchText,
+    _In_ LONG cchText,
     _In_ ULONG dwTextFlags,
     _Reserved_ ULONG dwTextFlags2,
     _In_ LPCRECT pRect
@@ -68,10 +68,10 @@ typedef HRESULT (WINAPI *_DrawThemeText)(
 typedef HRESULT(WINAPI* _DrawThemeTextEx)(
     _In_ HTHEME hTheme,
     _In_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
     _In_reads_(cchText) LPCWSTR pszText,
-    _In_ INT cchText,
+    _In_ LONG cchText,
     _In_ ULONG dwTextFlags,
     _Inout_ LPRECT pRect,
     _In_opt_ const PVOID pOptions // DTTOPTS*
@@ -85,25 +85,25 @@ typedef HRESULT (WINAPI* _GetThemeClass)(
 
 typedef HRESULT (WINAPI* _GetThemeColor)(
     _In_ HTHEME hTheme,
-    _In_ int iPartId,
-    _In_ int iStateId,
-    _In_ int iPropId,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
+    _In_ LONG iPropId,
     _Out_ COLORREF* pColor
     );
 
 typedef HRESULT (WINAPI *_GetThemeInt)(
     _In_ HTHEME hTheme,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
-    _In_ INT iPropId,
-    _Out_ INT *piVal
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
+    _In_ LONG iPropId,
+    _Out_ LONG*piVal
     );
 
 typedef HRESULT (WINAPI* _GetThemePartSize)(
     _In_ HTHEME hTheme,
     _In_opt_ HDC hdc,
-    _In_ INT iPartId,
-    _In_ INT iStateId,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
     _In_opt_ LPCRECT prc,
     _In_ enum THEMESIZE eSize,
     _Out_ SIZE* psz
@@ -116,35 +116,35 @@ typedef HRESULT (WINAPI* _GetDpiForMonitor)(
     _Out_ PUINT dpiY
     );
 
-typedef UINT (WINAPI* _GetDpiForWindow)(
+typedef LONG (WINAPI* _GetDpiForWindow)(
     _In_ HWND hwnd
     );
 
-typedef UINT (WINAPI* _GetDpiForSystem)(
+typedef LONG (WINAPI* _GetDpiForSystem)(
     VOID
     );
 
-typedef UINT (WINAPI* _GetDpiForSession)(
+typedef LONG (WINAPI* _GetDpiForSession)(
     VOID
     );
 
-typedef INT (WINAPI* _GetSystemMetricsForDpi)(
-    _In_ INT Index,
-    _In_ UINT dpi
+typedef LONG (WINAPI* _GetSystemMetricsForDpi)(
+    _In_ LONG Index,
+    _In_ LONG dpi
     );
 
 typedef BOOL (WINAPI* _SystemParametersInfoForDpi)(
-    _In_ UINT uiAction,
-    _In_ UINT uiParam,
+    _In_ ULONG uiAction,
+    _In_ ULONG uiParam,
     _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-    _In_ UINT fWinIni,
-    _In_ UINT dpi
+    _In_ ULONG fWinIni,
+    _In_ ULONG dpi
     );
 
 // Comctl32
 
-typedef INT32 (CALLBACK *MRUSTRINGCMPPROC)(PCWSTR String1, PCWSTR String2);
-typedef INT32 (CALLBACK *MRUINARYCMPPROC)(PVOID String1, PVOID String2, ULONG Length);
+typedef LONG (CALLBACK *MRUSTRINGCMPPROC)(PCWSTR String1, PCWSTR String2);
+typedef LONG (CALLBACK *MRUINARYCMPPROC)(PVOID String1, PVOID String2, ULONG Length);
 
 #define MRU_STRING 0x0000
 #define MRU_BINARY 0x0001
@@ -163,17 +163,17 @@ typedef struct _MRUINFO
 typedef HANDLE (WINAPI* _CreateMRUList)(
     _In_ PMRUINFO lpmi
     );
-typedef INT32 (WINAPI* _AddMRUString)(
+typedef LONG (WINAPI* _AddMRUString)(
     _In_ HANDLE hMRU,
     _In_ PCWSTR szString
     );
-typedef INT32 (WINAPI* _EnumMRUList)(
+typedef LONG (WINAPI* _EnumMRUList)(
     _In_ HANDLE hMRU,
     _In_ INT nItem,
     _Out_ PVOID lpData,
     _In_ UINT uLen
     );
-typedef INT32 (WINAPI* _FreeMRUList)(
+typedef LONG (WINAPI* _FreeMRUList)(
     _In_ HANDLE hMRU
     );
 
@@ -182,7 +182,7 @@ typedef INT32 (WINAPI* _FreeMRUList)(
 typedef struct _PHP_ICON_ENTRY
 {
     PVOID InstanceHandle;
-    PWSTR Name;
+    PCWSTR Name;
     ULONG Width;
     ULONG Height;
     HICON Icon;

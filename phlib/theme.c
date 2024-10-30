@@ -291,22 +291,6 @@ VOID PhInitializeWindowThemeEx(
     PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
 }
 
-VOID PhInitializeSysLinkTheme(
-    _In_ HWND WindowHandle
-    )
-{
-    WCHAR windowClassName[MAX_PATH];
-    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
-        windowClassName[0] = UNICODE_NULL;
-
-    if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
-    {
-        LITEM linkChanges = { LIF_ITEMINDEX | LIF_STATE, 0, LIS_DEFAULTCOLORS , LIS_DEFAULTCOLORS };
-        while (SendMessage(WindowHandle, LM_SETITEM, 0, (LPARAM)&linkChanges))
-            linkChanges.iLink++;
-    }
-}
-
 VOID PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     )
@@ -495,7 +479,7 @@ HBRUSH PhWindowThemeControlColor(
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ HWND ChildWindowHandle,
-    _In_ INT Type
+    _In_ LONG Type
     )
 {
     SetBkMode(Hdc, TRANSPARENT);
@@ -914,6 +898,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
+    }
+    else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+    {
+        // SysLink theme support (Dart Vanya)
+        AllowDarkModeForWindow_I(WindowHandle, TRUE);
     }
 
     return TRUE;
@@ -1346,7 +1335,7 @@ BOOLEAN PhThemeWindowMeasureItem(
 
             if (hdc = GetDC(WindowHandle))
             {
-                PWSTR text;
+                PCWSTR text;
                 SIZE_T textCount;
                 SIZE textSize;
                 //HFONT oldFont = NULL;
@@ -2313,6 +2302,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
         {
             HDC hdc = (HDC)wParam;
@@ -2322,26 +2312,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
         break;
-    case WM_CTLCOLORSTATIC:
-        {
-            HDC hdc = (HDC)wParam;
-            HWND hControl = (HWND)lParam;
-            BOOLEAN useColorLink = FALSE;
-            WCHAR windowClassName[MAX_PATH];
 
-            if (!GetClassName(hControl, windowClassName, RTL_NUMBER_OF(windowClassName)))
-                windowClassName[0] = UNICODE_NULL;
-            if (PhEqualStringZ(windowClassName, WC_LINK, FALSE)) {
-                LITEM litem = { LIF_ITEMINDEX | LIF_STATE, 0, 0, LIS_DEFAULTCOLORS };
-                if (SendMessage(hControl, LM_GETITEM, 0, (LPARAM)&litem))
-                    useColorLink = litem.state & LIS_DEFAULTCOLORS;
-            }
-
-            SetBkColor(hdc, PhThemeWindowBackgroundColor);
-            SetTextColor(hdc, !useColorLink ? PhThemeWindowTextColor : 0xE9BD5B); // To apply color for SysLink call PhInitializeSysLinkTheme() first
-            return (INT_PTR)PhThemeWindowBackgroundBrush;
-        }
-        break;
     case WM_MEASUREITEM:
         if (PhThemeWindowMeasureItem(hWnd, (LPMEASUREITEMSTRUCT)lParam))
             return TRUE;

@@ -9,7 +9,7 @@ typedef struct _PH_COLUMN_SET_ENTRY
 } PH_COLUMN_SET_ENTRY, *PPH_COLUMN_SET_ENTRY;
 
 PPH_LIST PhInitializeColumnSetList(
-    _In_ PWSTR SettingName
+    _In_ PCWSTR SettingName
     );
 
 VOID PhDeleteColumnSetList(
@@ -18,14 +18,14 @@ VOID PhDeleteColumnSetList(
 
 _Success_(return)
 BOOLEAN PhLoadSettingsColumnSet(
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,
     _Out_ PPH_STRING *TreeListSettings,
     _Out_ PPH_STRING *TreeSortSettings
     );
 
 VOID PhSaveSettingsColumnSet(
-    _In_ PWSTR SettingName,
+    _In_ PCWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,
     _In_ PPH_STRING TreeListSettings,
     _In_ PPH_STRING TreeSortSettings
@@ -35,7 +35,7 @@ VOID PhSaveSettingsColumnSet(
 
 VOID PhShowColumnSetEditorDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR SettingName
+    _In_ PCWSTR SettingName
     );
 
 #endif

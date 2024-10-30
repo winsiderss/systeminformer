@@ -18,15 +18,15 @@
 
 typedef struct _PH_CHOICE_DIALOG_CONTEXT
 {
-    PWSTR Title;
-    PWSTR Message;
-    PWSTR *Choices;
+    PCWSTR Title;
+    PCWSTR Message;
+    PCWSTR *Choices;
     ULONG NumberOfChoices;
-    PWSTR Option;
+    PCWSTR Option;
     ULONG Flags;
     PPH_STRING *SelectedChoice;
     PBOOLEAN SelectedOption;
-    PWSTR SavedChoicesSettingName;
+    PCWSTR SavedChoicesSettingName;
 
     HWND ComboBoxHandle;
 } PH_CHOICE_DIALOG_CONTEXT, *PPH_CHOICE_DIALOG_CONTEXT;
@@ -46,15 +46,15 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
  */
 BOOLEAN PhaChoiceDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR Title,
-    _In_ PWSTR Message,
-    _In_opt_ PWSTR *Choices,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Message,
+    _In_opt_ PCWSTR*Choices,
     _In_opt_ ULONG NumberOfChoices,
-    _In_opt_ PWSTR Option,
+    _In_opt_ PCWSTR Option,
     _In_ ULONG Flags,
     _Inout_ PPH_STRING *SelectedChoice,
     _Inout_opt_ PBOOLEAN SelectedOption,
-    _In_opt_ PWSTR SavedChoicesSettingName
+    _In_opt_ PCWSTR SavedChoicesSettingName
     )
 {
     PH_CHOICE_DIALOG_CONTEXT context;
@@ -621,15 +621,15 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
 BOOLEAN PhChoiceDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR Title,
-    _In_ PWSTR Message,
-    _In_opt_ PWSTR *Choices,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Message,
+    _In_opt_ PCWSTR*Choices,
     _In_opt_ ULONG NumberOfChoices,
-    _In_opt_ PWSTR Option,
+    _In_opt_ PCWSTR Option,
     _In_ ULONG Flags,
     _Inout_ PPH_STRING *SelectedChoice,
     _Inout_opt_ PBOOLEAN SelectedOption,
-    _In_opt_ PWSTR SavedChoicesSettingName
+    _In_opt_ PCWSTR SavedChoicesSettingName
     )
 {
     PH_CHOICE_DIALOG_CONTEXT context;

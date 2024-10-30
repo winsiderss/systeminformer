@@ -73,7 +73,7 @@ PKPH_DYN KphReferenceDynData(
     return KphAtomicReferenceObject(&KphpDynData.Atomic);
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Allocates a dynamic configuration object.
@@ -89,7 +89,7 @@ PVOID KSIAPI KphpAllocateDynData(
     _In_ SIZE_T Size
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     return KphAllocateNPaged(Size, KPH_TAG_DYNDATA);
 }
@@ -114,15 +114,15 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     PKPH_DYN dyn;
     PKPH_DYN_INIT init;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
     dyn = Object;
     init = Parameter;
 
-#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->##x = C_2sTo4(init->Kernel->##x)
-#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->##x = init->Lxcore ? C_2sTo4(init->Lxcore->##x) : ULONG_MAX;
+#define KPH_LOAD_DYNITEM_KERNEL(x) dyn->x = C_2sTo4(init->Kernel->x)
+#define KPH_LOAD_DYNITEM_LXCORE(x) dyn->x = init->Lxcore ? C_2sTo4(init->Lxcore->x) : ULONG_MAX;
 
     KPH_LOAD_DYNITEM_KERNEL(EgeGuid);
     KPH_LOAD_DYNITEM_KERNEL(EpObjectTable);
@@ -191,7 +191,7 @@ VOID KSIAPI KphpDeleteDynData(
 {
     PKPH_DYN dyn;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = Object;
 
@@ -212,7 +212,7 @@ VOID KSIAPI KphpFreeDynData(
     _In_freesMem_ PVOID Object
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphFree(Object, KPH_TAG_DYNDATA);
 }
@@ -242,7 +242,7 @@ NTSTATUS KphpActivateDynData(
     PKPH_DYN_KERNEL_FIELDS kernel;
     PKPH_DYN_LXCORE_FIELDS lxcore;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dyn = NULL;
     kernel = NULL;
@@ -399,7 +399,7 @@ NTSTATUS KphActivateDynData(
     PBYTE dynData;
     PBYTE signature;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     dynData = NULL;
     signature = NULL;
@@ -480,7 +480,7 @@ VOID KphpInitializeDynModules(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KeEnterCriticalRegion();
     if (!ExAcquireResourceSharedLite(PsLoadedModuleResource, TRUE))
@@ -565,7 +565,7 @@ VOID KphInitializeDynData(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphpInitializeDynModules();
 
@@ -606,7 +606,7 @@ VOID KphCleanupDynData(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphAtomicAssignObjectReference(&KphpDynData.Atomic, NULL);
 }

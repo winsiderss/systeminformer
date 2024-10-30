@@ -78,7 +78,7 @@ HRESULT PhCreateWindowsRuntimeStringReference(
 
     return WindowsCreateStringReference(
         SourceString,
-        (UINT32)PhCountStringZ((PWSTR)SourceString),
+        (UINT32)PhCountStringZ(SourceString),
         String,
         &stringHandle
         );
@@ -86,7 +86,7 @@ HRESULT PhCreateWindowsRuntimeStringReference(
     HSTRING_REFERENCE* string = (HSTRING_REFERENCE*)String;
 
     string->Flags = HSTRING_REFERENCE_FLAG;
-    string->Length = (UINT32)PhCountStringZ((PWSTR)SourceString);
+    string->Length = (UINT32)PhCountStringZ(SourceString);
     string->Buffer = SourceString;
 
     return S_OK;
@@ -114,7 +114,7 @@ HRESULT PhCreateWindowsRuntimeStringReferenceEx(
 
     return WindowsCreateStringReference(
         SourceString,
-        (UINT32)PhCountStringZ((PWSTR)SourceString),
+        (UINT32)PhCountStringZ(SourceString),
         String,
         &stringHandle
         );
@@ -146,7 +146,7 @@ HRESULT PhCreateWindowsRuntimeString(
 #if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
     return WindowsCreateString(
         SourceString,
-        (UINT32)PhCountStringZ((PWSTR)SourceString),
+        (UINT32)PhCountStringZ(SourceString),
         String
         );
 #else
@@ -154,7 +154,7 @@ HRESULT PhCreateWindowsRuntimeString(
     SIZE_T bufferLength;
     HSTRING_INSTANCE* string;
 
-    stringLength = PhCountStringZ((PWSTR)SourceString) * sizeof(WCHAR);
+    stringLength = PhCountStringZ(SourceString) * sizeof(WCHAR);
     bufferLength = sizeof(HSTRING_INSTANCE) + stringLength + sizeof(UNICODE_NULL);
 
     if (bufferLength > UINT_MAX)

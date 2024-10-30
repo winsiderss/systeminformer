@@ -1305,6 +1305,7 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Layout (Ctrl+K)",
                 PvpPeLayoutSearchControlCallback,

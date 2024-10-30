@@ -42,7 +42,7 @@ static const PH_FLAG_MAPPING PhpHttpSecurityFlagsMappings[] =
 _Success_(return)
 BOOLEAN PhHttpSocketCreate(
     _Out_ PPH_HTTP_CONTEXT *HttpContext,
-    _In_opt_ PWSTR HttpUserAgent
+    _In_opt_ PCWSTR HttpUserAgent
     )
 {
     PPH_HTTP_CONTEXT httpContext;
@@ -651,7 +651,7 @@ BOOLEAN PhHttpSocketReadDataToBuffer(
         if (allocatedLength < dataLength + returnLength)
         {
             allocatedLength *= 2;
-            data = (PSTR)PhReAllocate(data, allocatedLength);
+            data = PhReAllocate(data, allocatedLength);
         }
 
         memcpy(data + dataLength, buffer, returnLength);
@@ -662,7 +662,7 @@ BOOLEAN PhHttpSocketReadDataToBuffer(
     if (allocatedLength < dataLength + 1)
     {
         allocatedLength++;
-        data = (PSTR)PhReAllocate(data, allocatedLength);
+        data = PhReAllocate(data, allocatedLength);
     }
 
     data[dataLength] = ANSI_NULL;
@@ -964,7 +964,7 @@ BOOLEAN PhHttpSocketSetCredentials(
 }
 
 HINTERNET PhCreateDohConnectionHandle(
-    _In_opt_ PWSTR DnsServerAddress
+    _In_opt_ PCWSTR DnsServerAddress
     )
 {
     static HINTERNET httpSessionHandle = NULL;
@@ -1117,14 +1117,14 @@ HINTERNET PhCreateDohRequestHandle(
     return httpRequestHandle;
 }
 
-static _DnsQuery_W DnsQuery_W_I = NULL;
+static typeof(&DnsQuery_W) DnsQuery_W_I = nullptr;
 #if (PHNT_DNSQUERY_FUTURE)
-static _DnsQueryEx DnsQueryEx_I = NULL;
-static _DnsCancelQuery DnsCancelQuery_I = NULL;
+static typeof(&DnsQueryEx) DnsQueryEx_I = nullptr;
+static typeof(&DnsCancelQuery) DnsCancelQuery_I = nullptr;
 #endif
-static _DnsExtractRecordsFromMessage_W DnsExtractRecordsFromMessage_W_I = NULL;
-static _DnsWriteQuestionToBuffer_W DnsWriteQuestionToBuffer_W_I = NULL;
-static _DnsFree DnsFree_I = NULL;
+static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = nullptr;
+static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = nullptr;
+static typeof(&DnsFree) DnsFree_I = nullptr;
 
 static BOOLEAN PhDnsApiInitialized(
     VOID
@@ -1171,7 +1171,7 @@ static BOOLEAN PhDnsApiInitialized(
 
 _Success_(return)
 static BOOLEAN PhCreateDnsMessageBuffer(
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_ USHORT MessageType,
     _In_ USHORT MessageId,
     _Outptr_opt_result_maybenull_ PVOID* Buffer,
@@ -1292,8 +1292,8 @@ static BOOLEAN PhParseDnsMessageBuffer(
 // 2001:4860:4860::8844
 //
 PDNS_RECORD PhHttpDnsQuery(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     )
 {
@@ -1399,8 +1399,8 @@ CleanupExit:
 }
 
 PDNS_RECORD PhDnsQuery(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType
     )
 {
@@ -1456,8 +1456,8 @@ PDNS_RECORD PhDnsQuery(
 }
 
 PDNS_RECORD PhDnsQuery2(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType,
     _In_ USHORT DnsQueryMessageOptions
     )
@@ -1580,7 +1580,7 @@ NTSTATUS PhDnsAllocateQueryContext(
 }
 
 NTSTATUS PhDnsCreateDnsServerList(
-    _In_ PWSTR AddressString,
+    _In_ PCWSTR AddressString,
     _Inout_ PDNS_ADDR_ARRAY DnsQueryServerList)
 {
     NTSTATUS status;
@@ -1629,7 +1629,7 @@ NTSTATUS PhDnsCreateDnsServerList(
 }
 
 NTSTATUS PhDnsCreateCustomDnsServerList(
-    _In_ PWSTR AddressString,
+    _In_ PCWSTR AddressString,
     _Inout_ DNS_CUSTOM_SERVER* DnsCustomServerList
     )
 {
@@ -1702,8 +1702,8 @@ VOID WINAPI PhDnsQueryCompleteCallback(
 }
 
 PDNS_RECORD PhDnsQuery3(
-    _In_opt_ PWSTR DnsServerAddress,
-    _In_ PWSTR DnsQueryMessage,
+    _In_opt_ PCWSTR DnsServerAddress,
+    _In_ PCWSTR DnsQueryMessage,
     _In_ USHORT DnsQueryMessageType,
     _In_ USHORT DnsQueryMessageOptions
     )
