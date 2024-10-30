@@ -53,6 +53,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     };
 
     HWND ParentWindowHandle;
+    HWND PreviousFocusWindowHandle;
     LONG WindowDpi;
 
     PH_SEARCHCONTROL_BUTTON SearchButton;
@@ -631,6 +632,17 @@ BOOLEAN PhpSearchUpdateText(
     return TRUE;
 }
 
+void PhpSearchRestoreFocus(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
+
 LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -1024,6 +1036,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
@@ -1211,6 +1226,20 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     }
                 }
             }
+            // Clear search and restore focus for esc key
+            else if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PhpSearchUpdateText(hWnd, context, FALSE);
+                PhpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PhpSearchRestoreFocus(context);
+                return 1;
+            }
         }
         break;
     case WM_CHAR:
@@ -1218,6 +1247,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (dmex)
             if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
                 return 1;
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            // Intercept esc key (otherwise it would get sent to parent window)
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
         }
         break;
     case EM_SETCUEBANNER:
