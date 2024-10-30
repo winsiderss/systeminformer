@@ -2184,9 +2184,6 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             {
                 PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
             }
-
-            if (PhEnableThemeSupport)
-                PhInitializeSysLinkTheme(GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK));
         }
         break;
     case PVM_ENTROPY_DONE:
