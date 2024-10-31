@@ -76,6 +76,7 @@ typedef struct _PV_SEARCHCONTROL_CONTEXT
     PCRE2_SIZE SearchboxRegexErrorOffset;
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
+    HWND PreviousFocusWindowHandle;
 } PV_SEARCHCONTROL_CONTEXT, *PPV_SEARCHCONTROL_CONTEXT;
 
 VOID PvpSearchFreeTheme(
@@ -602,6 +603,16 @@ BOOLEAN PvpSearchUpdateText(
     return TRUE;
 }
 
+void PvpSearchRestoreFocus(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
 
 LRESULT CALLBACK PvpSearchWndSubclassProc(
     _In_ HWND hWnd,
@@ -1010,6 +1021,9 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
@@ -1205,6 +1219,20 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     PhFree(textBuffer);
                 }
             }
+            // Clear search and restore focus for esc key
+            else if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PvpSearchUpdateText(hWnd, context, FALSE);
+                PvpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PvpSearchRestoreFocus(context);
+                return 1;
+            }
         }
         break;
     case WM_CHAR:
@@ -1212,6 +1240,13 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (dmex)
             if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
                 return 1;
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            // Intercept esc key (otherwise it would get sent to parent window)
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
         }
         break;
     case EM_SETCUEBANNER:
