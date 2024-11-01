@@ -1739,7 +1739,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
                                 DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
-                            );
+                                );
                         }
                         else
                         {
@@ -1749,7 +1749,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
                                 DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
-                            );
+                                );
 
                             bufferRect.top = (DrawInfo->rc.bottom - DrawInfo->rc.top) / 2 - (bufferRect.bottom - bufferRect.top) / 2 - 1;
                             bufferRect.bottom = DrawInfo->rc.bottom, bufferRect.right = DrawInfo->rc.right;
@@ -1760,7 +1760,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
                                 DT_LEFT | DT_TOP | DT_HIDEPREFIX
-                            );
+                                );
                         }
 
                         if (isFocused && (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES)
@@ -1771,7 +1771,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
                                 DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
-                            );
+                                );
                             PhInflateRect(&bufferRect, 1, 0);
                             bufferRect.top += 1, bufferRect.bottom += 2;
                             if (bufferRect.bottom > DrawInfo->rc.bottom - 1) bufferRect.bottom = DrawInfo->rc.bottom - 1;
@@ -2631,7 +2631,7 @@ VOID ThemeWindowRenderTabControl(
                 (UINT)PhCountStringZ(tabItem.pszText),
                 &itemRect,
                 DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-            );
+                );
         }
 
         //if (itemHighlighted != INT_ERROR)
@@ -2647,7 +2647,7 @@ VOID ThemeWindowRenderTabControl(
         //            (UINT)PhCountStringZ(tabItem.pszText),
         //            &itemRectHighlighted,
         //            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-        //        );
+        //            );
         //    }
         //}
     }
@@ -3236,6 +3236,10 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
 
     switch (uMsg)
     {
+    case WM_VSCROLL:
+    case WM_MOUSEWHEEL:
+        InvalidateRect(WindowHandle, NULL, FALSE);
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR data = (LPNMHDR)lParam;
@@ -3245,7 +3249,7 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
                 LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
                 WCHAR className[MAX_PATH];
 
-                if (customDraw->dwDrawStage == CDDS_PREPAINT)
+                if (customDraw->dwDrawStage == CDDS_PREPAINT && !(customDraw->uItemState & CDIS_FOCUS))
                 {
                     if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
                         className[0] = UNICODE_NULL;

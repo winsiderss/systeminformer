@@ -114,11 +114,6 @@ VOID PvShowPePropertiesWindow(
         if (result == -1)
             break;
 
-        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
-        {
-            CallWindowProc(PvTabCurrentSection->DialogProc, PvTabCurrentSection->DialogHandle, message.message, message.wParam, message.lParam);
-        }
-
         if (!IsDialogMessage(PvPropertiesWindowHandle, &message))
         {
             TranslateMessage(&message);
@@ -950,6 +945,19 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
 
             switch (header->code)
             {
+            case TVN_KEYDOWN:
+                {
+                    LPNMTVKEYDOWN keydown = (LPNMTVKEYDOWN)lParam;
+
+                    if (keydown->wVKey == 'K' && GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPV_WINDOW_SECTION section;
+
+                        if (section = PvGetSelectedTabSection(NULL))
+                            SendMessage(section->DialogHandle, WM_KEYDOWN, keydown->wVKey, 0);
+                    }
+                }
+                break;
             case TVN_SELCHANGED:
                 {
                     LPNMTREEVIEW treeview = (LPNMTREEVIEW)lParam;

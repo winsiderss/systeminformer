@@ -1427,16 +1427,6 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
             }
         }
         break;
-    case WM_KEYDOWN:
-        if (LOWORD(wParam) == 'K')
-        {
-            if (GetKeyState(VK_CONTROL) < 0)
-            {
-                SetFocus(context->SearchHandle);
-                return TRUE;
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
@@ -1446,6 +1436,15 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K' && GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
         }
         break;
     }
