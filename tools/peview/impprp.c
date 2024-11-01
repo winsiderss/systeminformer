@@ -576,6 +576,15 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K' && GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
+        }
+        break;
     }
 
     return FALSE;
