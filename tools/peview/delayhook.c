@@ -224,34 +224,26 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
     _In_ LPARAM lParam
     )
 {
+    if (WindowMessage == WM_NCCREATE)
+    {
+        LONG_PTR style = PhGetWindowStyle(WindowHandle);
+
+        if ((style & SS_ICON) == SS_ICON)
+        {
+            PhSetWindowContext(WindowHandle, SCHAR_MAX, (PVOID)TRUE);
+        }
+    }
+
+    if (WindowMessage != WM_KILLFOCUS && !PhGetWindowContext(WindowHandle, SCHAR_MAX))
+        return CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+
     switch (WindowMessage)
     {
-    case WM_NCCREATE:
-        {
-            LONG_PTR style = PhGetWindowStyle(WindowHandle);
-
-            if ((style & SS_ICON) == SS_ICON)
-            {
-                PhSetWindowContext(WindowHandle, SCHAR_MAX, (PVOID)TRUE);
-            }
-        }
-        break;
     case WM_NCDESTROY:
-        {
-            if (!PhGetWindowContext(WindowHandle, SCHAR_MAX))
-                break;
-
-            PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
-        }
+        PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
         break;
     case WM_ERASEBKGND:
-        {
-            if (!PhGetWindowContext(WindowHandle, SCHAR_MAX))
-                break;
-
-            return TRUE;
-        }
-        break;
+        return TRUE;
     case WM_KILLFOCUS:
         {
             WCHAR windowClassName[MAX_PATH];
@@ -270,13 +262,10 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         break;
     case WM_PAINT:
         {
-            HDC hdc;
             HICON iconHandle;
+            PAINTSTRUCT ps;
             RECT clientRect;
             WCHAR windowClassName[MAX_PATH];
-
-            if (!PhGetWindowContext(WindowHandle, SCHAR_MAX))
-                break;
 
             if (!GetClassName(GetParent(WindowHandle), windowClassName, RTL_NUMBER_OF(windowClassName)))
                 windowClassName[0] = UNICODE_NULL;
@@ -287,13 +276,41 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     static HFONT hCheckFont = NULL;
 
-                    LRESULT retval = CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
-                    hdc = GetDC(WindowHandle);
+                    HDC hdc = BeginPaint(WindowHandle, &ps);
                     GetClientRect(WindowHandle, &clientRect);
-                    INT buttonCenterX = clientRect.left + (clientRect.right - clientRect.left) / 2 + 1;
-                    INT buttonCenterY = clientRect.top + (clientRect.bottom - clientRect.top) / 2;
-                    COLORREF checkCenter = GetPixel(hdc, buttonCenterX, buttonCenterY);
-                    if (checkCenter == RGB(0, 0, 0) || checkCenter == RGB(0xB4, 0xB4, 0xB4))   // right is checked or special permission checked
+
+                    HDC bufferDc = CreateCompatibleDC(hdc);
+                    HBITMAP bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
+                    HBITMAP oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
+                    enum { nocheck, check, graycheck } checkType = nocheck;
+                    INT startX = clientRect.left + (clientRect.right - clientRect.bottom) / 2 + 1;
+                    INT startY = clientRect.top + (clientRect.bottom - clientRect.top) / 2;
+
+                    DrawIconEx(bufferDc, clientRect.left, clientRect.top, iconHandle, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
+                        0, NULL, DI_NORMAL);
+
+                    for (INT x = startX, y = startY; x < clientRect.right; x++)
+                    {
+                        COLORREF pixel = GetPixel(bufferDc, x, y);
+                        if (pixel == RGB(0xB4, 0xB4, 0xB4))
+                        {
+                            checkType = graycheck;
+                            goto draw_acl_check;
+                        }
+                    }
+                    for (INT x = startX, y = startY; x < clientRect.right; x++)
+                    {
+                        COLORREF pixel = GetPixel(bufferDc, x, y);
+                        if (pixel == RGB(0, 0, 0) || pixel == PhThemeWindowTextColor)
+                        {
+                            checkType = check;
+                            goto draw_acl_check;
+                        }
+                    }
+
+                draw_acl_check:
+                    if (checkType == check || checkType == graycheck)   // right is checked or special permission checked
                     {
                         if (PhBeginInitOnce(&initOnce)) // cache font  
                         {
@@ -306,16 +323,21 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                                 VARIABLE_PITCH, L"Segoe UI");
                             PhEndInitOnce(&initOnce);
                         }
+
                         SetBkMode(hdc, TRANSPARENT);
-                        SetTextColor(hdc, checkCenter == RGB(0, 0, 0) ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
+                        SetTextColor(hdc, checkType == check ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
                         SelectFont(hdc, hCheckFont);
                         //HFONT hFontOriginal = SelectFont(hdc, hCheckFont);
                         FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
                         DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
                         //SelectFont(hdc, hFontOriginal);
                     }
-                    ReleaseDC(WindowHandle, hdc);
-                    return retval;
+
+                    SelectBitmap(bufferDc, oldBufferBitmap);
+                    DeleteBitmap(bufferBitmap);
+                    DeleteDC(bufferDc);
+                    EndPaint(WindowHandle, &ps);
+                    return 0;
                 }
             }
             //else if (iconHandle = (HICON)(UINT_PTR)CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, STM_GETICON, 0, 0)) // Static_GetIcon(WindowHandle, 0)
@@ -1411,19 +1433,19 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
-);
+    );
 
 LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-);
+    );
 
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND hwndDlg,
     _In_opt_ PVOID Context
-);
+    );
 
 HRESULT PhDrawThemeBackgroundHook(
     _In_ HTHEME Theme,
