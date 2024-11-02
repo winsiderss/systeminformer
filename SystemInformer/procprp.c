@@ -328,6 +328,24 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             }
         }
         break;
+    case PSM_ISDIALOGMESSAGE:
+        {
+            MSG* msg = (MSG*)lParam;
+            if (msg->message == WM_KEYDOWN)
+            {
+                switch (msg->wParam)
+                {
+                case VK_F5:
+                    SystemInformer_Refresh();
+                    break;
+                case VK_F6:
+                case VK_PAUSE:
+                    SystemInformer_SetUpdateAutomatically(!SystemInformer_GetUpdateAutomatically());
+                    break;
+                }
+            }
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
