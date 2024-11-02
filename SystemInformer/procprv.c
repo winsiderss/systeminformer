@@ -1204,10 +1204,10 @@ VOID PhpFillProcessItem(
                         ProcessItem->FileNameWin32 = fileName;
                     }
 
-                    //if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
-                    //{
-                    //    PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
-                    //}
+                    if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
+                    {
+                        PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
+                    }
                 }
             }
         }
