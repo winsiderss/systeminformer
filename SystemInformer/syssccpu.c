@@ -1951,7 +1951,7 @@ BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
     )
 {
-    static ULONG initialBufferSize = 0x1000;
+    static ULONG initialBufferSize = 0;
     NTSTATUS status;
     ULONG returnLength;
     BOOLEAN isParked;
@@ -1969,8 +1969,16 @@ BOOLEAN PhIsCoreParked(
     // Size offset and check it to minimize instructions (jxy-s).
     //
 
-    returnLength = initialBufferSize;
-    cpuSetInfo = PhAllocateZero(returnLength);
+    if (initialBufferSize)
+    {
+        returnLength = initialBufferSize;
+        cpuSetInfo = PhAllocateZero(returnLength);
+    }
+    else
+    {
+        returnLength = 0;
+        cpuSetInfo = NULL;
+    }
 
     status = NtQuerySystemInformationEx(
         SystemCpuSetInformation,
@@ -1994,40 +2002,26 @@ BOOLEAN PhIsCoreParked(
             sizeof(HANDLE),
             cpuSetInfo,
             returnLength,
-            &returnLength
+            NULL
             );
+
+        if (NT_SUCCESS(status) && initialBufferSize <= 0x100000)
+            initialBufferSize = returnLength;
     }
 
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status) || !cpuSetInfo)
         return FALSE;
-
-    returnLength += RTL_SIZEOF_THROUGH_FIELD(SYSTEM_CPU_SET_INFORMATION, Size);
-
-    if (initialBufferSize <= 0x100000)
-    {
-        initialBufferSize = returnLength;
-    }
 
     isParked = FALSE;
 
-    if (NT_SUCCESS(NtQuerySystemInformationEx(
-        SystemCpuSetInformation,
-        &(HANDLE){NULL},
-        sizeof(HANDLE),
-        cpuSetInfo,
-        returnLength,
-        NULL
-        )))
+    for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
+         RTL_CONTAINS_FIELD(info, info->Size, CpuSet);
+         info = PTR_ADD_OFFSET(info, info->Size))
     {
-        for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
-             RTL_CONTAINS_FIELD(info, info->Size, CpuSet);
-             info = PTR_ADD_OFFSET(info, info->Size))
+        if (info->CpuSet.LogicalProcessorIndex == ProcessorIndex)
         {
-            if (info->CpuSet.LogicalProcessorIndex == ProcessorIndex)
-            {
-                isParked = info->CpuSet.Parked;
-                break;
-            }
+            isParked = info->CpuSet.Parked;
+            break;
         }
     }
 
