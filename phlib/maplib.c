@@ -122,7 +122,7 @@ NTSTATUS PhInitializeMappedArchive(
 }
 
 NTSTATUS PhLoadMappedArchive(
-    _In_opt_ PWSTR FileName,
+    _In_opt_ PCWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_ARCHIVE MappedArchive
     )

@@ -109,7 +109,7 @@ PVOID WINAPI __delayLoadHelper2(
         );
 #else
     BOOLEAN importNeedsFree = FALSE;
-    PSTR importDllName;
+    PCSTR importDllName;
     PVOID procedureAddress;
     PVOID moduleHandle;
     PVOID* importHandle;

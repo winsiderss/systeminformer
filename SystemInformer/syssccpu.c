@@ -1353,7 +1353,7 @@ PPH_STRING PhSipGetCpuBrandString(
         __cpuid(&cpubrand[8], 0x80000004);
 
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhConvertUtf8ToUtf16Ex((PSTR)cpubrand, brandLength);
+        brand = PhConvertUtf8ToUtf16Ex((PCSTR)cpubrand, brandLength);
 #else
         static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
         HANDLE keyHandle;
@@ -1921,12 +1921,12 @@ PPH_STRINGREF PhGetHybridProcessorType(
     {
     case ARM_CORETYPE_LITTLE:
         {
-            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"LITTLE Core");
+            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
             return &hybridECoreTypeSr;
         }
     case ARM_CORETYPE_BIG:
         {
-            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"big Core");
+            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
             return &hybridPCoreTypeSr;
         }
     }
@@ -1951,7 +1951,7 @@ BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
     )
 {
-    static ULONG initialBufferSize = 0x1000;
+    static ULONG initialBufferSize = 0;
     NTSTATUS status;
     ULONG returnLength;
     BOOLEAN isParked;
@@ -1969,8 +1969,16 @@ BOOLEAN PhIsCoreParked(
     // Size offset and check it to minimize instructions (jxy-s).
     //
 
-    returnLength = initialBufferSize;
-    cpuSetInfo = PhAllocateZero(returnLength);
+    if (initialBufferSize)
+    {
+        returnLength = initialBufferSize;
+        cpuSetInfo = PhAllocateZero(returnLength);
+    }
+    else
+    {
+        returnLength = 0;
+        cpuSetInfo = NULL;
+    }
 
     status = NtQuerySystemInformationEx(
         SystemCpuSetInformation,
@@ -1994,30 +2002,19 @@ BOOLEAN PhIsCoreParked(
             sizeof(HANDLE),
             cpuSetInfo,
             returnLength,
-            &returnLength
+            NULL
             );
+
+        if (NT_SUCCESS(status) && initialBufferSize <= 0x100000)
+            initialBufferSize = returnLength;
     }
 
-    if (!NT_SUCCESS(status))
+    if (!cpuSetInfo)
         return FALSE;
-
-    returnLength += RTL_SIZEOF_THROUGH_FIELD(SYSTEM_CPU_SET_INFORMATION, Size);
-
-    if (initialBufferSize <= 0x100000)
-    {
-        initialBufferSize = returnLength;
-    }
 
     isParked = FALSE;
 
-    if (NT_SUCCESS(NtQuerySystemInformationEx(
-        SystemCpuSetInformation,
-        &(HANDLE){NULL},
-        sizeof(HANDLE),
-        cpuSetInfo,
-        returnLength,
-        NULL
-        )))
+    if (NT_SUCCESS(status))
     {
         for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
              RTL_CONTAINS_FIELD(info, info->Size, CpuSet);

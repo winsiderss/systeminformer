@@ -72,7 +72,7 @@ static PPH_EMENU SubMenuObjects[5];
 static ULONG SelectedUserSessionId = ULONG_MAX;
 
 BOOLEAN PhMainWndInitialization(
-    _In_ INT ShowCommand
+    _In_ LONG ShowCommand
     )
 {
     RTL_ATOM windowAtom;
@@ -637,7 +637,7 @@ VOID PhMwpOnEndSession(
 VOID PhMwpOnSettingChange(
     _In_ HWND WindowHandle,
     _In_opt_ ULONG Action,
-    _In_opt_ PWSTR Metric
+    _In_opt_ PCWSTR Metric
     )
 {
     PhInitializeFont(WindowHandle);
@@ -1140,6 +1140,9 @@ VOID PhMwpOnCommand(
             case ID_UPDATEINTERVAL_VERYSLOW:
                 interval = 10000;
                 break;
+            default:
+                interval = 1000;
+                break;
             }
 
             PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
@@ -1149,7 +1152,10 @@ VOID PhMwpOnCommand(
     case ID_VIEW_UPDATEAUTOMATICALLY:
         {
             PhMwpUpdateAutomatically = !PhMwpUpdateAutomatically;
-            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, (PVOID)PhMwpUpdateAutomatically, NULL);
+
+            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
         }
         break;
     case ID_TOOLS_THREADSTACKS:
@@ -1874,8 +1880,8 @@ VOID PhMwpOnCommand(
 
             if (
                 processItem &&
-                !PhIsNullOrEmptyString(processItem->FileName) &&
-                PhDoesFileExist(&processItem->FileName->sr)
+                !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
+                PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32))
                 )
             {
                 PhReferenceObject(processItem);
@@ -3620,7 +3626,7 @@ VOID PhMwpNotifyTabControl(
 #pragma warning(pop)
 
 VOID PhMwpSelectionChangedTabControl(
-    _In_ INT32 OldIndex
+    _In_ LONG OldIndex
     )
 {
     INT selectedIndex;
@@ -3745,7 +3751,7 @@ PPH_MAIN_TAB_PAGE PhMwpFindPage(
 }
 
 PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_ PPH_MAIN_TAB_PAGE_CALLBACK Callback
     )
@@ -4139,8 +4145,8 @@ VOID PhShowIconContextMenu(
 }
 
 VOID PhShowIconNotification(
-    _In_ PWSTR Title,
-    _In_ PWSTR Text
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text
     )
 {
     PhNfShowBalloonTip(Title, Text, 10);

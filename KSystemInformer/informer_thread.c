@@ -22,7 +22,7 @@ typedef enum _KPH_THREAD_NOTIFY_TYPE
     KphThreadNotifyExit
 } KPH_THREAD_NOTIFY_TYPE;
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Performing thread tracking.
@@ -46,7 +46,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (!Create)
     {
@@ -118,7 +118,7 @@ VOID KphpCreateThreadNotifyInformer(
     PKPH_MESSAGE msg;
     PKPH_PROCESS_CONTEXT actorProcess;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     msg = NULL;
     actorProcess = KphGetCurrentProcessContext();
@@ -245,7 +245,7 @@ VOID KphpExecuteThreadNotifyRoutine(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Create);
 
@@ -283,7 +283,7 @@ VOID KphpCreateThreadNotifyRoutine(
     PKPH_THREAD_CONTEXT thread;
     PETHREAD threadObject;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
     NT_ASSERT(threadObject);
@@ -342,7 +342,7 @@ NTSTATUS KphThreadInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
                                               (PVOID)KphpCreateThreadNotifyRoutine);
@@ -377,7 +377,7 @@ VOID KphThreadInformerStop(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
     PsRemoveCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);

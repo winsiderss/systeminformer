@@ -338,7 +338,7 @@ PPH_OBJECT_TYPE PhGetObjectType(
  * \remarks Do not reference or dereference the object type once it is created.
  */
 PPH_OBJECT_TYPE PhCreateObjectType(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
@@ -365,7 +365,7 @@ PPH_OBJECT_TYPE PhCreateObjectType(
  * \remarks Do not reference or dereference the object type once it is created.
  */
 PPH_OBJECT_TYPE PhCreateObjectTypeEx(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
     _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters
@@ -604,7 +604,7 @@ _May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
     {
         PPHP_BASE_THREAD_DBG dbg;
 
-        dbg = (PPHP_BASE_THREAD_DBG)TlsGetValue(PhDbgThreadDbgTlsIndex);
+        dbg = (PPHP_BASE_THREAD_DBG)PhTlsGetValue(PhDbgThreadDbgTlsIndex);
 
         if (dbg)
         {

@@ -268,7 +268,7 @@ PPH_STRING PhGetApplicationVersionString(
         PhInitFormatS(&format[10], L"\">");
         PhInitFormatMultiByteS(&format[11], PHAPP_VERSION_COMMIT);
         PhInitFormatS(&format[12], L"</a>) ");
-        PhInitFormatS(&format[13], (PWSTR)channelName);
+        PhInitFormatS(&format[13], channelName);
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
@@ -288,7 +288,7 @@ PPH_STRING PhGetApplicationVersionString(
         PhInitFormatS(&format[8], L" (");
         PhInitFormatMultiByteS(&format[9], PHAPP_VERSION_COMMIT);
         PhInitFormatS(&format[10], L") ");
-        PhInitFormatS(&format[11], (PWSTR)channelName);
+        PhInitFormatS(&format[11], channelName);
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);
     }

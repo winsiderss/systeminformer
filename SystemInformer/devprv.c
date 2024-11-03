@@ -3128,7 +3128,7 @@ PPH_STRINGREF PhpDevPowerStateString(
         PH_STRINGREF_INIT(L"Max"), // PowerDeviceMaximum
     };
 
-    if (PowerState < RTL_NUMBER_OF(states))
+    if (PowerState >= 0 && PowerState < RTL_NUMBER_OF(states))
         return (PPH_STRINGREF)&states[PowerState];
 
     return (PPH_STRINGREF)&UnknownString;
@@ -3150,7 +3150,7 @@ PPH_STRINGREF PhpDevSysPowerStateString(
         PH_STRINGREF_INIT(L"Max"), // PowerSystemMaximum
     };
 
-    if (PowerState < RTL_NUMBER_OF(states))
+    if (PowerState >= 0 && PowerState < RTL_NUMBER_OF(states))
         return (PPH_STRINGREF)&states[PowerState];
 
     return (PPH_STRINGREF)&UnknownString;
@@ -3970,7 +3970,7 @@ VOID PhpGetInterfaceClassList(
         GUID interfaceClassGuid;
         PH_STRINGREF interfaceClassGuidString;
 
-        PhInitializeStringRefLongHint(&interfaceClassGuidString, (PWSTR)objects[i].pszObjectId);
+        PhInitializeStringRefLongHint(&interfaceClassGuidString, objects[i].pszObjectId);
 
         if (!NT_SUCCESS(PhStringToGuid(&interfaceClassGuidString, &interfaceClassGuid)))
             continue;

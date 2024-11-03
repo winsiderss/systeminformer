@@ -52,11 +52,11 @@ static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
 static WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
 static WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
 
-PWSTR EspGetServiceSidTypeString(
+PCWSTR EspGetServiceSidTypeString(
     _In_ ULONG SidType
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (PhFindStringSiKeyValuePairs(
         EspServiceSidTypePairs,
@@ -70,7 +70,7 @@ PWSTR EspGetServiceSidTypeString(
 }
 
 ULONG EspGetServiceSidTypeInteger(
-    _In_ PWSTR SidType
+    _In_ PCWSTR SidType
     )
 {
     ULONG integer;
@@ -86,11 +86,11 @@ ULONG EspGetServiceSidTypeInteger(
         return ULONG_MAX;
 }
 
-PWSTR EspGetServiceLaunchProtectedString(
+PCWSTR EspGetServiceLaunchProtectedString(
     _In_ ULONG LaunchProtected
     )
 {
-    PWSTR string;
+    PCWSTR string;
 
     if (PhFindStringSiKeyValuePairs(
         EspServiceLaunchProtectedPairs,
@@ -104,7 +104,7 @@ PWSTR EspGetServiceLaunchProtectedString(
 }
 
 ULONG EspGetServiceLaunchProtectedInteger(
-    _In_ PWSTR LaunchProtected
+    _In_ PCWSTR LaunchProtected
     )
 {
     ULONG integer;
@@ -275,8 +275,8 @@ static int __cdecl EspPrivilegeNameCompareFunction(
     _In_ const void *elem2
     )
 {
-    PWSTR string1 = *(PWSTR *)elem1;
-    PWSTR string2 = *(PWSTR *)elem2;
+    PCWSTR string1 = *(PCWSTR *)elem1;
+    PCWSTR string2 = *(PCWSTR *)elem2;
 
     return PhCompareStringZ(string1, string2, TRUE);
 }
@@ -284,7 +284,7 @@ static int __cdecl EspPrivilegeNameCompareFunction(
 NTSTATUS NTAPI EspEnumeratePrivilegesCallback(
     _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
     _In_ ULONG NumberOfPrivileges,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     for (ULONG i = 0; i < NumberOfPrivileges; i++)

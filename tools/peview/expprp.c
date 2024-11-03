@@ -558,6 +558,15 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K' && GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -926,10 +935,6 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
                         PhDereferenceObject(text);
                     }
                 }
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             }
         }

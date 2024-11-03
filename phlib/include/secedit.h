@@ -32,8 +32,8 @@ PHLIBAPI
 PVOID
 NTAPI
 PhCreateSecurityPage(
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
@@ -44,8 +44,8 @@ VOID
 NTAPI
 PhEditSecurity(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
@@ -56,8 +56,8 @@ VOID
 NTAPI
 PhEditSecurityEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR ObjectName,
-    _In_ PWSTR ObjectType,
+    _In_ PCWSTR ObjectName,
+    _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -189,7 +189,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetAccessEntries(
-    _In_ PWSTR Type,
+    _In_ PCWSTR Type,
     _Out_ PPH_ACCESS_ENTRY *AccessEntries,
     _Out_ PULONG NumberOfAccessEntries
     );

@@ -279,7 +279,7 @@ VOID PhMapDisplayIndexTreeNew(
         {
             if (TreeNew_GetColumn(TreeNewHandle, displayToId[i], &column))
             {
-                displayToText[i] = column.Text;
+                displayToText[i] = (PWSTR)column.Text;
             }
         }
 
@@ -459,8 +459,8 @@ VOID PhaMapDisplayIndexListView(
 
 PPH_STRING PhGetListViewItemText(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT SubItemIndex
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
     )
 {
     PPH_STRING buffer;
@@ -478,15 +478,12 @@ PPH_STRING PhGetListViewItemText(
 
     while (count >= allocatedCount)
     {
-        if (buffer)
-            PhDereferenceObject(buffer);
-
         allocatedCount *= 2;
-        buffer = PhCreateStringEx(NULL, allocatedCount * sizeof(WCHAR));
-        buffer->Buffer[0] = UNICODE_NULL;
+        if (buffer) PhDereferenceObject(buffer);
+        buffer = PhCreateStringEx(NULL, (allocatedCount + 1) * sizeof(WCHAR));
 
         lvItem.iSubItem = SubItemIndex;
-        lvItem.cchTextMax = (INT)allocatedCount + 1;
+        lvItem.cchTextMax = (LONG)allocatedCount;
         lvItem.pszText = buffer->Buffer;
         count = SendMessage(ListViewHandle, LVM_GETITEMTEXT, Index, (LPARAM)&lvItem);
     }
@@ -523,7 +520,7 @@ PPH_STRING PhGetListViewSelectedItemText(
     _In_ HWND ListViewHandle
     )
 {
-    INT index;
+    LONG index;
 
     index = PhFindListViewItemByFlags(
         ListViewHandle,
@@ -541,8 +538,8 @@ PPH_STRING PhGetListViewSelectedItemText(
 
 PPH_STRING PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT SubItemIndex
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
     )
 {
     PPH_STRING value;

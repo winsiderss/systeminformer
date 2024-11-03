@@ -981,7 +981,7 @@ PH_STRINGREF PhVerifyResultToStringRef(
  * \return A VERIFY_RESULT value.
  */
 VERIFY_RESULT PhVerifyFile(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_opt_ PPH_STRING *SignerName
     )
 {
@@ -1551,7 +1551,7 @@ PPH_STRING PhGetProgramNameFromMessage(
 
             if (opusInfo->pwszProgramName)
             {
-                signerName = PhCreateString((PWSTR)opusInfo->pwszProgramName);
+                signerName = PhCreateString(opusInfo->pwszProgramName);
             }
 
             LocalFree(opusInfo);

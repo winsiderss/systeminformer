@@ -229,7 +229,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             {
                 SC_HANDLE serviceHandle;
                 PPH_SERVICE_ITEM serviceItem;
-                INT lvItemIndex;
+                LONG lvItemIndex;
 
                 serviceItem = context->Services[i];
                 lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
@@ -541,7 +541,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
 
                                         if (PhUiDeleteService(hwndDlg, serviceItem))
                                         {
-                                            INT lvItemIndex;
+                                            LONG lvItemIndex;
 
                                             lvItemIndex = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 

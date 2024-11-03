@@ -838,7 +838,7 @@ NTSYSAPI
 HANDLE
 NTAPI
 WinStationOpenServerW(
-    _In_opt_ PWSTR ServerName
+    _In_opt_ PCWSTR ServerName
     );
 
 // rev
@@ -965,7 +965,7 @@ BOOLEAN
 NTAPI
 LogonIdFromWinStationNameW(
     _In_opt_ HANDLE ServerHandle,
-    _In_ PWSTR pWinStationName,
+    _In_ PCWSTR pWinStationName,
     _Out_ PULONG SessionId
     );
 
@@ -976,9 +976,9 @@ NTAPI
 WinStationSendMessageW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ PWSTR Title,
+    _In_ PCWSTR Title,
     _In_ ULONG TitleLength,
-    _In_ PWSTR Message,
+    _In_ PCWSTR Message,
     _In_ ULONG MessageLength,
     _In_ ULONG Style,
     _In_ ULONG Timeout,
@@ -993,7 +993,7 @@ WinStationConnectW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ULONG TargetSessionId,
-    _In_opt_ PWSTR pPassword,
+    _In_opt_ PCWSTR pPassword,
     _In_ BOOLEAN bWait
     );
 
@@ -1022,7 +1022,7 @@ BOOLEAN
 NTAPI
 WinStationShadow(
     _In_opt_ HANDLE ServerHandle,
-    _In_ PWSTR TargetServerName,
+    _In_ PCWSTR TargetServerName,
     _In_ ULONG TargetSessionId,
     _In_ UCHAR HotKeyVk,
     _In_ USHORT HotkeyModifiers // KBD*
@@ -1228,5 +1228,44 @@ WinStationGetAllUserSessions(
     _Out_ PULONG NumberOfProcesses
     );
 
+// rev
+typedef struct _TS_SESSION_VIRTUAL_ADDRESS
+{
+  USHORT AddressFamily;
+  USHORT AddressLength;
+  BYTE Address[20];
+} TS_SESSION_VIRTUAL_ADDRESS, *PTS_SESSION_VIRTUAL_ADDRESS;
+typedef USHORT ADDRESS_FAMILY;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationQuerySessionVirtualIP(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ ADDRESS_FAMILY Family,
+    _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
+    );
+    
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetDeviceId(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
+    _In_ SIZE_T BufferLength
+    );
+        
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetLoggedOnCount(
+    _Out_ PULONG LoggedOnUserCount,
+    _Out_ PULONG LoggedOnDeviceCount
+    );
 
 #endif

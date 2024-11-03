@@ -597,13 +597,16 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+    ULONG runCount = PtrToUlong(Parameter);
     DOUBLE elapsedTime = 0; // total NPU node elapsed time in micro-seconds
     FLOAT tempNpuUsage = 0;
     ULONG i;
     PLIST_ENTRY listEntry;
     FLOAT maxNodeValue = 0;
     PET_PROCESS_BLOCK maxNodeBlock = NULL;
+
+    if (runCount < 2)
+        return;
 
     if (EtNpuD3DEnabled)
     {
@@ -892,8 +895,6 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
             PhAddItemCircularBuffer_FLOAT(&EtMaxNpuNodeUsageHistory, 0);
         }
     }
-
-    runCount++;
 }
 
 ULONG EtGetNpuAdapterCount(

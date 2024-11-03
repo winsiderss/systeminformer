@@ -72,7 +72,7 @@ VOID PhShowChooseColumnsDialog(
     PhDereferenceObject(context.Columns);
 }
 
-static int __cdecl PhpColumnsCompareDisplayIndexTn(
+static long __cdecl PhpColumnsCompareDisplayIndexTn(
     _In_ const void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -84,14 +84,14 @@ static int __cdecl PhpColumnsCompareDisplayIndexTn(
     return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
 }
 
-static int __cdecl PhpInactiveColumnsCompareNameTn(
+static long __cdecl PhpInactiveColumnsCompareNameTn(
     _In_ const void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
     )
 {
-    PWSTR column1 = *(PWSTR *)elem1;
-    PWSTR column2 = *(PWSTR *)elem2;
+    PCWSTR column1 = *(PCWSTR *)elem1;
+    PCWSTR column2 = *(PCWSTR *)elem2;
 
     return PhCompareStringZ(column1, column2, FALSE);
 }
@@ -99,7 +99,7 @@ static int __cdecl PhpInactiveColumnsCompareNameTn(
 _Success_(return != ULONG_MAX)
 static ULONG IndexOfStringInList(
     _In_ PPH_LIST List,
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     for (ULONG i = 0; i < List->Count; i++)
@@ -309,7 +309,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         }
                         else
                         {
-                            PhAddItemList(context->InactiveListArray, column.Text);
+                            PhAddItemList(context->InactiveListArray, (PWSTR)column.Text);
                         }
                     }
 
@@ -334,7 +334,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     {
                         PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
 
-                        PhAddItemList(context->ActiveListArray, copy->Text);
+                        PhAddItemList(context->ActiveListArray, (PWSTR)copy->Text);
                         ListBox_InsertString(context->ActiveWindowHandle, i, copy->Text);
                     }
                 }
@@ -391,8 +391,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     #define ORDER_LIMIT 210
                     ULONG i;
-                    INT orderArray[ORDER_LIMIT];
-                    INT maxOrder;
+                    LONG orderArray[ORDER_LIMIT];
+                    LONG maxOrder;
 #ifdef DEBUG
                     assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // bump ORDER_LIMIT macro (dmex)
 #endif
@@ -446,7 +446,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         break;
                     case LBN_SELCHANGE:
                         {
-                            INT sel = ListBox_GetCurSel(context->InactiveWindowHandle);
+                            LONG sel = ListBox_GetCurSel(context->InactiveWindowHandle);
 
                             EnableWindow(context->ShowWindowHandle, sel != LB_ERR);
                         }
@@ -465,8 +465,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         break;
                     case LBN_SELCHANGE:
                         {
-                            INT sel = ListBox_GetCurSel(context->ActiveWindowHandle);
-                            INT count = ListBox_GetCount(context->ActiveWindowHandle);
+                            LONG sel = ListBox_GetCurSel(context->ActiveWindowHandle);
+                            LONG count = ListBox_GetCount(context->ActiveWindowHandle);
 
                             if (sel != LB_ERR)
                             {
@@ -481,8 +481,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_SHOW:
                 {
-                    INT sel;
-                    INT count;
+                    LONG sel;
+                    LONG count;
                     PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->InactiveWindowHandle);
@@ -525,8 +525,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_HIDE:
                 {
-                    INT sel;
-                    INT count;
+                    LONG sel;
+                    LONG count;
                     PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
@@ -581,8 +581,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_MOVEUP:
                 {
-                    INT sel;
-                    INT count;
+                    LONG sel;
+                    LONG count;
                     PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
@@ -618,8 +618,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_MOVEDOWN:
                 {
-                    INT sel;
-                    INT count;
+                    LONG sel;
+                    LONG count;
                     PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);

@@ -365,7 +365,6 @@ EXPORTS
     PhCreateList                                                                  @1326     NONAME
     PhCreatePointerList                                                           @1327     NONAME
     PhCreateSimpleHashtable                                                       @1328     NONAME
-    PhCreateString                                                                @1329     NONAME
     PhCreateStringEx                                                              @1330     NONAME
     PhCreateString3                                                               @1331     NONAME
     PhCreateThread                                                                @1332     NONAME

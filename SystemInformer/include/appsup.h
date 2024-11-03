@@ -143,7 +143,7 @@ VOID
 NTAPI
 PhSearchOnlineString(
     _In_ HWND WindowHandle,
-    _In_ PWSTR String
+    _In_ PCWSTR String
     );
 
 PHAPPAPI
@@ -151,10 +151,10 @@ VOID
 NTAPI
 PhShellExecuteUserString(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Setting,
-    _In_ PWSTR String,
+    _In_ PCWSTR Setting,
+    _In_ PCWSTR String,
     _In_ BOOLEAN UseShellExecute,
-    _In_opt_ PWSTR ErrorMessage
+    _In_opt_ PCWSTR ErrorMessage
     );
 
 PHAPPAPI
@@ -279,7 +279,7 @@ NTSTATUS
 NTAPI
 PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Parameters,
+    _In_opt_ PCWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
@@ -290,8 +290,8 @@ PhShellProcessHacker(
 
 NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR Parameters,
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR Parameters,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
@@ -300,8 +300,8 @@ NTSTATUS PhShellProcessHackerEx(
     );
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR CommandLine
+    _In_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine
     );
 
 // begin_phapppub
@@ -489,7 +489,7 @@ PhShellOpenKey2(
 // end_phapppub
 
 PPH_STRING PhPcre2GetErrorMessage(
-    _In_ INT ErrorCode
+    _In_ LONG ErrorCode
     );
 
 // begin_phapppub
@@ -598,7 +598,7 @@ BOOLEAN
 NTAPI
 PhWordMatchStringZ(
     _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -613,7 +613,7 @@ BOOLEAN
 NTAPI
 PhWordMatchStringLongHintZ(
     _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;

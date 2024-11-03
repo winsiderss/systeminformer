@@ -61,7 +61,7 @@ typedef struct _PH_OBJECT_TYPE_PARAMETERS
 
 typedef struct _PH_OBJECT_TYPE_INFORMATION
 {
-    PWSTR Name;
+    PCWSTR Name;
     ULONG NumberOfObjects;
     USHORT Flags;
     UCHAR TypeIndex;
@@ -192,7 +192,7 @@ PHLIBAPI
 PPH_OBJECT_TYPE
 NTAPI
 PhCreateObjectType(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
@@ -201,7 +201,7 @@ PHLIBAPI
 PPH_OBJECT_TYPE
 NTAPI
 PhCreateObjectTypeEx(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
     _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters

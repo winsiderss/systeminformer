@@ -226,7 +226,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrLoadDll(
-    _In_opt_ PWSTR DllPath,
+    _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
@@ -243,7 +243,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllHandle(
-    _In_opt_ PWSTR DllPath,
+    _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
@@ -257,7 +257,7 @@ NTSTATUS
 NTAPI
 LdrGetDllHandleEx(
     _In_ ULONG Flags,
-    _In_opt_ PWSTR DllPath,
+    _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
@@ -665,6 +665,37 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
 
+// rev see also MEMORY_IMAGE_EXTENSION_INFORMATION
+typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
+{
+    PVOID ScpCfgHeader_Nop;
+    PVOID ScpCfgEnd_Nop;
+    PVOID ScpCfgHeader;
+    PVOID ScpCfgEnd;
+    PVOID ScpCfgHeader_ES;
+    PVOID ScpCfgEnd_ES;
+    PVOID ScpCfgHeader_Fptr;
+    PVOID ScpCfgEnd_Fptr;
+    PVOID LdrpGuardDispatchIcallNoESFptr;
+    PVOID __guard_dispatch_icall_fptr;
+    PVOID LdrpGuardCheckIcallNoESFptr;
+    PVOID __guard_check_icall_fptr;
+    PVOID LdrpHandleInvalidUserCallTarget;
+    struct
+    {
+        PVOID NtOpenFile;
+        PVOID NtCreateSection;
+        PVOID NtQueryAttributesFile;
+        PVOID NtOpenSection;
+        PVOID NtMapViewOfSection;
+    } LdrpCriticalLoaderFunctions;
+} RTL_SCPCFG_NTDLL_EXPORTS, *PRTL_SCPCFG_NTDLL_EXPORTS;
+
+// rev
+#if (PHNT_VERSION >= PHNT_WIN11_24H2)
+NTSYSAPI RTL_SCPCFG_NTDLL_EXPORTS RtlpScpCfgNtdllExports;
+#endif
+
 // Load as data table
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -675,7 +706,7 @@ NTSTATUS
 NTAPI
 LdrAddLoadAsDataTable(
     _In_ PVOID Module,
-    _In_ PWSTR FilePath,
+    _In_ PCWSTR FilePath,
     _In_ SIZE_T Size,
     _In_ HANDLE Handle,
     _In_opt_ PACTIVATION_CONTEXT ActCtx
@@ -820,6 +851,17 @@ LdrResFindResourceDirectory(
     _In_ ULONG Flags
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrpResGetResourceDirectory(
+    _In_ PVOID DllHandle,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags,
+    _Out_opt_ PIMAGE_RESOURCE_DIRECTORY* ResourceDirectory,
+    _Out_ PIMAGE_NT_HEADERS* OutHeaders
+    );
+
 /**
 * The LdrResSearchResource function searches for a resource in a DLL.
 *
@@ -862,7 +904,7 @@ NTSTATUS
 NTAPI
 LdrResGetRCConfig(
     _In_ PVOID DllHandle,
-    _In_ SIZE_T Length,
+    _In_opt_ SIZE_T Length,
     _Out_writes_bytes_opt_(Length) PVOID Config,
     _In_ ULONG Flags,
     _In_ BOOLEAN AlternateResource // LdrLoadAlternateResourceModule
@@ -1284,7 +1326,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrUpdatePackageSearchPath(
-    _In_ PWSTR SearchPath
+    _In_ PCWSTR SearchPath
     );
 #endif
 
@@ -1364,11 +1406,32 @@ NTSTATUS
 NTAPI
 LdrLoadEnclaveModule(
     _In_ PVOID BaseAddress,
-    _In_opt_ PWSTR DllPath,
+    _In_opt_ PCWSTR DllPath,
     _In_ PUNICODE_STRING DllName
     );
 
 #endif
+
+/**
+ * This function forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.
+ *
+ * @remarks This routine does not catch all potential deadlock cases; it is possible for a thread inside a loader callout
+ * to acquire a lock while some thread outside a loader callout holds the same lock and makes a call into the loader.
+ * In other words, there can be a lock order inversion between the loader lock and a client lock.
+ */
+NTSYSAPI
+VOID
+NTAPI
+LdrFastFailInLoaderCallout(
+    VOID
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+LdrFlushAlternateResourceModules(
+    VOID
+    );
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 

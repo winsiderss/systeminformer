@@ -264,11 +264,11 @@ VOID PhShowKsiStatus(
 
 VOID PhpShowKsiMessage(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Icon,
+    _In_opt_ PCWSTR Icon,
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
-    _In_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
     _In_ va_list ArgPtr
     )
 {
@@ -397,11 +397,11 @@ VOID PhpShowKsiMessage(
 
 VOID PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Icon,
+    _In_opt_ PCWSTR Icon,
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
-    _In_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     )
 {
@@ -414,9 +414,9 @@ VOID PhShowKsiMessageEx(
 
 VOID PhShowKsiMessage(
     _In_opt_ HWND WindowHandle,
-    _In_opt_ PWSTR Icon,
-    _In_ PWSTR Title,
-    _In_ PWSTR Format,
+    _In_opt_ PCWSTR Icon,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
     ...
     )
 {
@@ -1245,7 +1245,6 @@ NTSTATUS PhCleanupKsi(
     }
 
     KphCommsStop();
-    PhInformerStop();
 #ifdef DEBUG
     KsiDebugLogFinalize();
 #endif

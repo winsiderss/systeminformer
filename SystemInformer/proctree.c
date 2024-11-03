@@ -1035,7 +1035,7 @@ static VOID PhpUpdateProcessNodeWindow(
                     &ProcessNode->WindowText
                     );
 
-                ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
+                ProcessNode->WindowHung = !!PhIsHungAppWindow(ProcessNode->WindowHandle);
             }
         }
 
@@ -2768,7 +2768,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
                     cpuUsage *= 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -3290,6 +3290,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhRemoveEndStringBuilder(&sb, 2);
 
                     PhMoveReference(&node->DepStatusText, PhFinalStringBuilderString(&sb));
+                    getCellText->Text = node->DepStatusText->sr;
                 }
                 break;
             case PHPRTLC_VIRTUALIZED:
@@ -3730,9 +3731,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
 
                     cpuUsage *= 100;
-                    cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
+                    cpuUsage = cpuUsage * PhCountBitsUlongPtr(processItem->AffinityMask);
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3945,7 +3946,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuAverageUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3972,7 +3973,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuKernelUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -3999,7 +4000,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuUserUsage * 100;
 
-                    if (cpuUsage >= 0.01f)
+                    if (cpuUsage >= PhMaxPrecisionLimit)
                     {
                         PH_FORMAT format;
 
@@ -4548,10 +4549,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_COPY, 0);
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(ProcessTreeListHandle, 0, -1);
                 break;
             case VK_DELETE:
                 if (GetKeyState(VK_SHIFT) >= 0)

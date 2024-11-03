@@ -440,7 +440,7 @@ CommonInt64Format:
             \
             if (OK_BUFFER) \
             { \
-                PhZeroExtendToUtf16Buffer((PSTR)temp, length, buffer); \
+                PhZeroExtendToUtf16Buffer(temp, length, buffer); \
                 ADVANCE_BUFFER(length * sizeof(WCHAR)); \
             } \
         } \

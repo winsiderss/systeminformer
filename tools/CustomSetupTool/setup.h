@@ -57,10 +57,9 @@ DECLSPEC_SELECTANY GUID FOLDERID_PublicDesktop = { 0xC4AA340D, 0xF20F, 0x4863, {
 
 typedef enum _SETUP_COMMAND_TYPE
 {
-    SETUP_COMMAND_INSTALL,
-    SETUP_COMMAND_SILENTINSTALL,
-    SETUP_COMMAND_UNINSTALL,
-    SETUP_COMMAND_UPDATE,
+    SetupCommandInstall,
+    SetupCommandUninstall,
+    SetupCommandUpdate,
 } SETUP_COMMAND_TYPE;
 
 typedef struct _PH_SETUP_CONTEXT
@@ -77,7 +76,8 @@ typedef struct _PH_SETUP_CONTEXT
         {
             ULONG SetupRemoveAppData: 1;
             ULONG SetupIsLegacyUpdate : 1;
-            ULONG Spare : 30;
+            ULONG Silent : 1;
+            ULONG Spare : 29;
         };
     };
 
@@ -113,6 +113,7 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG CurrentRevisionVersion;
 
     BOOLEAN NeedsReboot;
+    HANDLE SubProcessHandle;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupParseCommandLine(
@@ -193,7 +194,7 @@ NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-NTSTATUS SetupDeleteUninstallKey(
+VOID SetupDeleteUninstallKey(
     VOID
     );
 
@@ -225,8 +226,6 @@ NTSTATUS SetupExecuteApplication(
 VOID SetupUpgradeSettingsFile(
     VOID
     );
-
-extern PH_STRINGREF UninstallKeyName;
 
 typedef struct _SETUP_EXTRACT_FILE
 {
@@ -306,11 +305,25 @@ BOOLEAN UpdateDownloadUpdateData(
 
 // extract.c
 
+BOOLEAN SetupExtractBuild(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+// install.c
+
 NTSTATUS SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupExtractBuild(
+// update.c
+
+NTSTATUS SetupUpdateBuild(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+// uninstall.c
+
+NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 

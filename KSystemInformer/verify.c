@@ -205,7 +205,7 @@ static ULONG KphpPublicKeyHandlesCount = 0;
 C_ASSERT(ARRAYSIZE(KphpPublicKeyHandles) == ARRAYSIZE(KphpPublicKeys));
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Verifies that the specified signature matches the specified hash by
@@ -230,7 +230,7 @@ NTSTATUS KphpVerifyHash(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = STATUS_UNSUCCESSFUL;
 
@@ -273,7 +273,7 @@ VOID KphVerifyCloseKey(
     _In_ BCRYPT_KEY_HANDLE KeyHandle
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     BCryptDestroyKey(KeyHandle);
 }
@@ -297,7 +297,7 @@ NTSTATUS KphVerifyCreateKey(
 {
     NTSTATUS status;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = BCryptImportKeyPair(KPH_KEY_ALG_HANDLE,
                                  NULL,
@@ -339,7 +339,7 @@ NTSTATUS KphVerifyBufferEx(
     NTSTATUS status;
     KPH_HASH_INFORMATION hashInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     status = KphHashBuffer(Buffer,
                            BufferLength,
@@ -388,7 +388,7 @@ NTSTATUS KphVerifyBuffer(
     _In_ ULONG SignatureLength
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     return KphVerifyBufferEx(NULL,
                              Buffer,
@@ -428,7 +428,7 @@ NTSTATUS KphVerifyFileObject(
     ULONG signatureLength;
     KPH_HASH_INFORMATION hashInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     localFileName = NULL;
     RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
@@ -658,7 +658,7 @@ NTSTATUS KphVerifyFile(
     HANDLE fileHandle;
     PFILE_OBJECT fileObject;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     fileObject = NULL;
     fileHandle = NULL;
@@ -773,7 +773,7 @@ NTSTATUS KphInitializeVerify(
 {
     BOOLEAN testSigning;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     testSigning = KphTestSigningEnabled();
 
@@ -817,7 +817,7 @@ VOID KphCleanupVerify(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
     {

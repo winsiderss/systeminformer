@@ -314,8 +314,8 @@ VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ HANDLE ProcessId,
-    _In_opt_ PVOID Context,
-    _In_opt_ PWSTR Title
+    _In_ PVOID Context,
+    _In_opt_ PCWSTR Title
     )
 {
     PhCreateTokenDialog(OpenObject, ProcessId, Context, NULL);
@@ -559,7 +559,7 @@ COLORREF PhGetDangerousFlagColor(
 }
 
 static COLORREF NTAPI PhpTokenGroupColorFunction(
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
     )
@@ -586,7 +586,7 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
     }
 }
 
-PWSTR PhGetPrivilegeAttributesString(
+PCWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     )
 {
@@ -620,11 +620,11 @@ BOOLEAN PhGetElevationTypeString(
 {
     PPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhElevationTypePairs,
         sizeof(PhElevationTypePairs),
         (IsElevated ? 4 : 0) + (ULONG)ElevationType,
-        (PWSTR*)&string
+        &string
         ))
     {
         *ElevationTypeString = string;
@@ -676,7 +676,7 @@ VOID PhpTokenPageFreeListViewEntries(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
 {
-    INT index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         TokenPageContext->ListViewHandle,
@@ -719,7 +719,7 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     PPHP_TOKEN_GROUP_RESOLVE_CONTEXT context = ThreadParameter;
     PPH_STRING sidString;
     SID_NAME_USE sidUse;
-    INT lvItemIndex;
+    LONG lvItemIndex;
 
     lvItemIndex = PhFindListViewItemByParam(
         context->ListViewHandle,
@@ -779,7 +779,7 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, L"[Unknown SID]");
         }
 
-        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, (PWSTR)PhGetSidAccountTypeString(context->TokenGroupSid));
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, PhGetSidAccountTypeString(context->TokenGroupSid));
     }
 
     if (NT_SUCCESS(PhLookupSid(context->TokenGroupSid, NULL, NULL, &sidUse)))
@@ -814,7 +814,7 @@ VOID PhpUpdateSidsFromTokenGroups(
 {
     for (ULONG i = 0; i < Groups->GroupCount; i++)
     {
-        INT lvItemIndex;
+        LONG lvItemIndex;
         PPH_STRING stringUserSid;
         PPH_STRING attributesString;
         PPH_STRING descriptionString;
@@ -907,7 +907,7 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
     )
 {
     PTOKEN_PAGE_CONTEXT tokenPageContext = Context;
-    INT lvItemIndex;
+    LONG lvItemIndex;
 
     if (!tokenPageContext->Privileges)
         return STATUS_UNSUCCESSFUL;
@@ -973,7 +973,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
 
     for (i = 0; i < privileges->PrivilegeCount; i++)
     {
-        INT lvItemIndex;
+        LONG lvItemIndex;
         PPH_STRING privilegeName;
         PPH_STRING privilegeDisplayName;
 
@@ -1196,7 +1196,7 @@ static VOID PhpTokenSetImageList(
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }
 
-INT PhpGetTokenPrivilegeSortingIndex(
+LONG PhpGetTokenPrivilegeSortingIndex(
     _In_ ULONG Attributes
     )
 {
@@ -1221,7 +1221,7 @@ INT PhpGetTokenPrivilegeSortingIndex(
     }
 }
 
-INT PhpGetTokenGroupSortingIndex(
+LONG PhpGetTokenGroupSortingIndex(
     _In_ ULONG Attributes
     )
 {
@@ -1247,7 +1247,7 @@ INT PhpGetTokenGroupSortingIndex(
     }
 }
 
-INT NTAPI PhpTokenStatusColumnCompareFunction(
+LONG NTAPI PhpTokenStatusColumnCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -1630,7 +1630,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 newAttributes
                                 ))
                             {
-                                INT lvItemIndex = PhFindListViewItemByParam(
+                                LONG lvItemIndex = PhFindListViewItemByParam(
                                     tokenPageContext->ListViewHandle,
                                     INT_ERROR,
                                     listViewItems[i]
@@ -1773,7 +1773,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 )))
                             {
                                 PPH_STRING attributesString;
-                                INT lvItemIndex;
+                                LONG lvItemIndex;
 
                                 attributesString = PhGetGroupAttributesString(newAttributes, FALSE);
                                 lvItemIndex = PhFindListViewItemByParam(
@@ -1889,7 +1889,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         if (NT_SUCCESS(status))
                         {
-                            INT lvItemIndex = PhFindListViewItemByParam(
+                            LONG lvItemIndex = PhFindListViewItemByParam(
                                 tokenPageContext->ListViewHandle,
                                 INT_ERROR,
                                 listViewItems[0]
@@ -2678,7 +2678,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     case WM_INITDIALOG:
         {
             HANDLE tokenHandle;
-            INT listViewGroupIndex = 0;
+            LONG listViewGroupIndex = 0;
             PWSTR tokenType = L"Unknown";
             PWSTR tokenImpersonationLevel = L"Unknown";
             WCHAR tokenLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
@@ -2760,9 +2760,9 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                     &tokenTrustLevelSidString
                     )))
                 {
-                    INT trustLevelGroupIndex;
-                    INT trustLevelSidIndex;
-                    INT trustLevelNameIndex;
+                    LONG trustLevelGroupIndex;
+                    LONG trustLevelSidIndex;
+                    LONG trustLevelNameIndex;
 
                     trustLevelGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"TrustLevel");
                     trustLevelSidIndex = PhAddListViewGroupItem(context->ListViewHandle, trustLevelGroupIndex, MAXINT, L"TrustLevel Sid", NULL);
@@ -2780,9 +2780,9 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 //{
                 //    PPH_STRING tokenLogonName = PhGetSidFullName(tokenLogonGroups->Groups[0].Sid, TRUE, NULL);
                 //    PPH_STRING tokenLogonSid = PhSidToStringSid(tokenLogonGroups->Groups[0].Sid);
-                //    INT tokenLogonGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Logon");
-                //    INT tokenLogonNameIndex = PhAddListViewGroupItem(context->ListViewHandle, tokenLogonGroupIndex, MAXINT, L"Token logon SID", NULL);
-                //    INT tokenLogonSidIndex = PhAddListViewGroupItem(context->ListViewHandle, tokenLogonGroupIndex, MAXINT, L"Token logon Name", NULL);
+                //    LONG tokenLogonGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Logon");
+                //    LONG tokenLogonNameIndex = PhAddListViewGroupItem(context->ListViewHandle, tokenLogonGroupIndex, MAXINT, L"Token logon SID", NULL);
+                //    LONG tokenLogonSidIndex = PhAddListViewGroupItem(context->ListViewHandle, tokenLogonGroupIndex, MAXINT, L"Token logon Name", NULL);
                 //    PhSetListViewSubItem(context->ListViewHandle, tokenLogonNameIndex, 1, PhGetStringOrDefault(tokenLogonName, L"Unknown"));
                 //    PhSetListViewSubItem(context->ListViewHandle, tokenLogonSidIndex, 1, PhGetStringOrDefault(tokenLogonSid, L"Unknown"));
                 //    PhFree(tokenLogonGroups);
@@ -2790,9 +2790,9 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                 if (tokenProfilePathString = PhpGetTokenFolderPath(tokenHandle))
                 {
-                    INT profileGroupIndex;
-                    INT profileFolderIndex;
-                    INT profileRegistryIndex;
+                    LONG profileGroupIndex;
+                    LONG profileFolderIndex;
+                    LONG profileRegistryIndex;
 
                     profileGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"Profile");
                     profileFolderIndex = PhAddListViewGroupItem(context->ListViewHandle, profileGroupIndex, MAXINT, L"Folder path", NULL);
@@ -2818,9 +2818,9 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 &tokenSystemIdForUser
                 )))
             {
-                INT systemIdGroupIndex;
-                INT systemIdPublisherIndex;
-                INT systemIdUserIndex;
+                LONG systemIdGroupIndex;
+                LONG systemIdPublisherIndex;
+                LONG systemIdUserIndex;
 
                 systemIdGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"System ID");
                 systemIdPublisherIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (Publisher)", NULL);
@@ -3134,7 +3134,7 @@ VOID PhpDeleteAttributeTreeContext(
 }
 
 //static COLORREF NTAPI PhpTokenCapabilitiesColorFunction(
-//    _In_ INT Index,
+//    _In_ LONG Index,
 //    _In_ PVOID Param,
 //    _In_opt_ PVOID Context
 //    )
@@ -5647,7 +5647,7 @@ VOID PhEnumTokenAppModelPolicy(
 { \
     PPH_TOKEN_ATTRIBUTE_NODE node1 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem1; \
     PPH_TOKEN_ATTRIBUTE_NODE node2 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem2; \
-    int sortResult = 0;
+    LONG sortResult = 0;
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \

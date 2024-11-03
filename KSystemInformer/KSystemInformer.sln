@@ -12,6 +12,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kphlib", "..\kphlib\kphlib_km.vcxproj", "{B1863396-A667-42DB-97AC-C5E033CEE321}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ksidll", "ksidll.vcxproj", "{B385D394-19CC-48BC-827E-AF9ADCE559E0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B1863396-A667-42DB-97AC-C5E033CEE321} = {B1863396-A667-42DB-97AC-C5E033CEE321}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -44,11 +44,11 @@ extern HICON PvImageSmallIcon;
 extern HICON PvImageLargeIcon;
 extern PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 
-FORCEINLINE PWSTR PvpGetStringOrNa(
+FORCEINLINE PCWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
     )
 {
-    return PhGetStringOrDefault(String, (PWSTR)L"N/A");
+    return PhGetStringOrDefault(String, L"N/A");
 }
 
 BOOLEAN PvpLoadDbgHelp(
@@ -193,7 +193,7 @@ typedef PV_SEARCHCONTROL_CALLBACK* PPV_SEARCHCONTROL_CALLBACK;
 
 VOID PvCreateSearchControl(
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText,
+    _In_opt_ PCWSTR BannerText,
     _In_ PPV_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
@@ -205,12 +205,12 @@ BOOLEAN PvSearchControlMatch(
 
 BOOLEAN PvSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     );
 
 BOOLEAN PvSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     );
 
 BOOLEAN PvSearchControlMatchPointer(

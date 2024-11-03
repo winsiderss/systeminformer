@@ -53,6 +53,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     };
 
     HWND ParentWindowHandle;
+    HWND PreviousFocusWindowHandle;
     LONG WindowDpi;
 
     PH_SEARCHCONTROL_BUTTON SearchButton;
@@ -60,9 +61,9 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PH_SEARCHCONTROL_BUTTON CaseButton;
 
     LONG ButtonWidth;
-    INT BorderSize;
-    INT ImageWidth;
-    INT ImageHeight;
+    LONG BorderSize;
+    LONG ImageWidth;
+    LONG ImageHeight;
     WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
@@ -81,7 +82,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
 
     PPH_STRING SearchboxText;
     ULONG64 SearchPointer;
-    INT SearchboxRegexError;
+    LONG SearchboxRegexError;
     PCRE2_SIZE SearchboxRegexErrorOffset;
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
@@ -631,6 +632,17 @@ BOOLEAN PhpSearchUpdateText(
     return TRUE;
 }
 
+void PhpSearchRestoreFocus(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
+
 LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -1024,6 +1036,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
@@ -1119,9 +1134,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
             }
 
-            HDC hdc = (HDC)wParam ? (HDC)wParam : GetDC(hWnd);
+            PAINTSTRUCT paintStruct;
+            HDC hdc;
 
-            if (hdc)
+            if (hdc = BeginPaint(hWnd, &paintStruct))
             {
                 HDC bufferDc;
                 RECT clientRect;
@@ -1166,25 +1182,20 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 DeleteBitmap(bufferBitmap);
                 DeleteDC(bufferDc);
 
-                if (!(HDC)wParam)
-                {
-                    ReleaseDC(hWnd, hdc);
-                }
+                EndPaint(hWnd, &paintStruct);
             }
-
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
-        break;
+        return 0;
     case WM_KEYDOWN:
         {
             // Delete previous word for ctrl+backspace (thanks to Katayama Hirofumi MZ) (modified) (dmex)
             if (wParam == VK_BACK && GetAsyncKeyState(VK_CONTROL) < 0)
             {
-                INT textStart = 0;
-                INT textEnd = 0;
-                INT textLength;
+                LONG textStart = 0;
+                LONG textEnd = 0;
+                LONG textLength;
 
-                textLength = (INT)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
+                textLength = (LONG)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
                 CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&textStart, (LPARAM)&textEnd);
 
                 if (textLength > 0 && textStart == textEnd)
@@ -1215,6 +1226,20 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     }
                 }
             }
+            // Clear search and restore focus for esc key
+            else if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PhpSearchUpdateText(hWnd, context, FALSE);
+                PhpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PhpSearchRestoreFocus(context);
+                return 1;
+            }
         }
         break;
     case WM_CHAR:
@@ -1222,6 +1247,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (dmex)
             if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
                 return 1;
+        }
+        break;
+    case WM_GETDLGCODE:
+        {
+            // Intercept esc key (otherwise it would get sent to parent window)
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
         }
         break;
     case EM_SETCUEBANNER:
@@ -1241,7 +1273,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 VOID PhCreateSearchControl(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText,
+    _In_opt_ PCWSTR BannerText,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -1313,7 +1345,7 @@ BOOLEAN PhSearchControlMatch(
 
 BOOLEAN PhSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -1325,7 +1357,7 @@ BOOLEAN PhSearchControlMatchZ(
 
 BOOLEAN PhSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;

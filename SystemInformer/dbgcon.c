@@ -501,7 +501,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
             for (m = 0; m < RW_READ_SPIN_ITERS; m++)
                 YieldProcessor();
 
-            if (RwWritersActive != 0)
+            if (ReadAcquire(&RwWritersActive) != 0)
             {
                 wprintf(L"[fail]: writers active in read zone!\n");
                 NtWaitForSingleObject(NtCurrentProcess(), FALSE, NULL);
@@ -527,7 +527,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
                     for (m = 0; m < RW_WRITE_SPIN_ITERS; m++)
                         YieldProcessor();
 
-                    if (RwReadersActive != 0)
+                    if (ReadAcquire(&RwReadersActive) != 0)
                     {
                         wprintf(L"[fail]: readers active in write zone!\n");
                         NtWaitForSingleObject(NtCurrentProcess(), FALSE, NULL);
@@ -599,6 +599,7 @@ static VOID PhpTestRwLock(
     wprintf(L"[strs] %s: %ums\n", Context->Name, PhGetMillisecondsStopwatch(&stopwatch));
 }
 
+_Acquires_exclusive_lock_(*CriticalSection)
 VOID FASTCALL PhfAcquireCriticalSection(
     _In_ PRTL_CRITICAL_SECTION CriticalSection
     )
@@ -606,6 +607,7 @@ VOID FASTCALL PhfAcquireCriticalSection(
     RtlEnterCriticalSection(CriticalSection);
 }
 
+_Releases_exclusive_lock_(*CriticalSection)
 VOID FASTCALL PhfReleaseCriticalSection(
     _In_ PRTL_CRITICAL_SECTION CriticalSection
     )
@@ -678,8 +680,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
     while (!exit)
     {
-        static PWSTR delims = L" \t";
-        static PWSTR commandDebugOnly = L"This command is not available on non-debug builds.\n";
+        static PCWSTR delims = L" \t";
+        static PCWSTR commandDebugOnly = L"This command is not available on non-debug builds.\n";
 
         WCHAR line[201];
         ULONG inputLength;

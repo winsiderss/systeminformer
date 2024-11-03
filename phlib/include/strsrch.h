@@ -52,7 +52,7 @@ NTSTATUS
 NTAPI
 PhSearchStrings(
     _In_ ULONG MinimumLength,
-    _In_ BOOLEAN ExtendedUnicode,
+    _In_ BOOLEAN ExtendedCharSet,
     _In_ PPH_STRING_SEARCH_NEXT_BUFFER NextBuffer,
     _In_ PPH_STRING_SEARCH_CALLBACK Callback,
     _In_opt_ PVOID Context

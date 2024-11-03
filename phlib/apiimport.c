@@ -41,14 +41,14 @@ PVOID PhpImportProcedure(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
+        module = PhGetLoaderEntryDllBaseZ(ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
 
         if (module)
         {
-            if (procedure = PhGetDllBaseProcedureAddress(module, (PSTR)ProcedureName, 0))
+            if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
             {
                 *Cookie = (ULONG_PTR)NtGetTickCount64();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
@@ -89,7 +89,7 @@ PVOID PhpImportProcedureNative(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBaseZ((PWSTR)ModuleName);
+        module = PhGetLoaderEntryDllBaseZ(ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
@@ -193,8 +193,6 @@ PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 
 #ifdef _WIN64
 
-EXTERN_C_START
-
 BOOL NTAPI CloseHandle_Stub(
     _In_ HANDLE Handle
     )
@@ -226,7 +224,7 @@ BOOL NTAPI IsDebuggerPresent_Stub(
 
 BOOL NTAPI TerminateProcess_Stub(
     _In_ HANDLE hProcess,
-    _In_ UINT uExitCode
+    _In_ ULONG uExitCode
     )
 {
     return NT_SUCCESS(NtTerminateProcess(hProcess, PhDosErrorToNtStatus(uExitCode)));
@@ -253,15 +251,54 @@ HANDLE NTAPI GetProcessHeap_Stub(
     return NtCurrentPeb()->ProcessHeap;
 }
 
-DECLSPEC_SELECTANY typeof(&CloseHandle) __imp_CloseHandle = CloseHandle_Stub;
-DECLSPEC_SELECTANY typeof(&GetFileSizeEx) __imp_GetFileSizeEx = GetFileSizeEx_Stub;
-DECLSPEC_SELECTANY typeof(&FlushFileBuffers) __imp_FlushFileBuffers = FlushFileBuffers_Stub;
-DECLSPEC_SELECTANY typeof(&IsDebuggerPresent) __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
-DECLSPEC_SELECTANY typeof(&TerminateProcess) __imp_TerminateProcess = TerminateProcess_Stub;
-DECLSPEC_SELECTANY typeof(&GetCurrentThreadId) __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
-DECLSPEC_SELECTANY typeof(&GetCurrentProcessId) __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
-DECLSPEC_SELECTANY typeof(&GetProcessHeap) __imp_GetProcessHeap = GetProcessHeap_Stub;
+LPSTR WINAPI GetCommandLineA_Stub(
+    VOID
+    )
+{
+    return NULL;
+}
 
-EXTERN_C_END
+LPWSTR WINAPI GetCommandLineW_Stub(
+    VOID
+    )
+{
+    return NULL;
+}
+
+VOID WINAPI InitializeSListHead_Stub(
+    _Out_ PSLIST_HEADER ListHead
+    )
+{
+    PhInitializeSListHead(ListHead);
+}
+
+PSLIST_ENTRY NTAPI InterlockedPushEntrySList_Stub(
+    _Inout_ PSLIST_HEADER ListHead,
+    _Inout_ __drv_aliasesMem PSLIST_ENTRY ListEntry
+    )
+{
+    return RtlInterlockedPushEntrySList(ListHead, ListEntry);
+}
+
+PSLIST_ENTRY NTAPI InterlockedFlushSList_Stub(
+    _Inout_ PSLIST_HEADER ListHead
+    )
+{
+    return RtlInterlockedFlushSList(ListHead);
+}
+
+DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;
 
 #endif

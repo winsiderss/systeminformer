@@ -76,6 +76,7 @@ typedef struct _PV_SEARCHCONTROL_CONTEXT
     PCRE2_SIZE SearchboxRegexErrorOffset;
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
+    HWND PreviousFocusWindowHandle;
 } PV_SEARCHCONTROL_CONTEXT, *PPV_SEARCHCONTROL_CONTEXT;
 
 VOID PvpSearchFreeTheme(
@@ -602,6 +603,16 @@ BOOLEAN PvpSearchUpdateText(
     return TRUE;
 }
 
+void PvpSearchRestoreFocus(
+    _In_ PPV_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    if (Context->PreviousFocusWindowHandle)
+    {
+        SetFocus(Context->PreviousFocusWindowHandle);
+        Context->PreviousFocusWindowHandle = NULL;
+    }
+}
 
 LRESULT CALLBACK PvpSearchWndSubclassProc(
     _In_ HWND hWnd,
@@ -770,7 +781,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     }
 
                     PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(bufferDc, &windowRect, (HBRUSH)(COLOR_WINDOW + 1));
+                    FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
                     PhInflateRect(&windowRect, 1, 1);
                 }
 
@@ -1010,6 +1021,9 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
+    case WM_SETFOCUS:
+        context->PreviousFocusWindowHandle = (HWND)wParam;
+        break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
@@ -1109,9 +1123,10 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
             }
 
-            HDC hdc = (HDC)wParam ? (HDC)wParam : GetDC(hWnd);
+            PAINTSTRUCT paintStruct;
+            HDC hdc;
 
-            if (hdc)
+            if (hdc = BeginPaint(hWnd, &paintStruct))
             {
                 HDC bufferDc;
                 RECT clientRect;
@@ -1131,12 +1146,12 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 {
                     SetTextColor(bufferDc, RGB(170, 170, 170));
                     SetDCBrushColor(bufferDc, RGB(60, 60, 60));
-                    FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+                    FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {
                     SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                    FillRect(bufferDc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+                    FillRect(bufferDc, &clientRect, (HBRUSH)(COLOR_WINDOW + 1));
                 }
 
                 oldFont = SelectFont(bufferDc, GetWindowFont(hWnd));
@@ -1156,13 +1171,10 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 DeleteBitmap(bufferBitmap);
                 DeleteDC(bufferDc);
 
-                if (!(HDC)wParam)
-                {
-                    ReleaseDC(hWnd, hdc);
-                }
+                EndPaint(hWnd, &paintStruct);
             }
 
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+            return 0;// DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
         break;
     case WM_KEYDOWN:
@@ -1170,11 +1182,11 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             // Delete previous word for ctrl+backspace (thanks to Katayama Hirofumi MZ) (modified) (dmex)
             if (wParam == VK_BACK && GetAsyncKeyState(VK_CONTROL) < 0)
             {
-                UINT textStart = 0;
-                UINT textEnd = 0;
-                UINT textLength;
+                ULONG textStart = 0;
+                ULONG textEnd = 0;
+                ULONG textLength;
 
-                textLength = (UINT)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
+                textLength = (ULONG)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
                 CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&textStart, (LPARAM)&textEnd);
 
                 if (textLength > 0 && textStart == textEnd)
@@ -1207,6 +1219,20 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     PhFree(textBuffer);
                 }
             }
+            // Clear search and restore focus for esc key
+            else if (wParam == VK_ESCAPE)
+            {
+                PhSetWindowText(hWnd, L"");
+                PvpSearchUpdateText(hWnd, context, FALSE);
+                PvpSearchRestoreFocus(context);
+                return 1;
+            }
+            // Up/down arrows will just restore previous focus without clearing search
+            else if (wParam == VK_DOWN || wParam == VK_UP)
+            {
+                PvpSearchRestoreFocus(context);
+                return 1;
+            }
         }
         break;
     case WM_CHAR:
@@ -1216,9 +1242,16 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 return 1;
         }
         break;
+    case WM_GETDLGCODE:
+        {
+            // Intercept esc key (otherwise it would get sent to parent window)
+            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
+                return DLGC_WANTMESSAGE;
+        }
+        break;
     case EM_SETCUEBANNER:
         {
-            PWSTR text = (PWSTR)lParam;
+            PCWSTR text = (PCWSTR)lParam;
 
             PhMoveReference(&context->CueBannerText, PhCreateString(text));
 
@@ -1232,7 +1265,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
 VOID PvCreateSearchControl(
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText,
+    _In_opt_ PCWSTR BannerText,
     _In_ PPV_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -1313,7 +1346,7 @@ BOOLEAN PvSearchControlMatch(
 
 BOOLEAN PvSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;
@@ -1325,7 +1358,7 @@ BOOLEAN PvSearchControlMatchZ(
 
 BOOLEAN PvSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PWSTR Text
+    _In_ PCWSTR Text
     )
 {
     PH_STRINGREF text;

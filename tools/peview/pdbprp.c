@@ -496,14 +496,6 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     }
                 }
                 break;
-            case 'A':
-                {
-                    if (GetKeyState(VK_CONTROL) < 0)
-                    {
-                        TreeNew_SelectRange(hwnd, 0, -1);
-                    }
-                }
-                break;
             }
         }
         return TRUE;
@@ -1073,6 +1065,15 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if (LOWORD(wParam) == 'K' && GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchHandle);
+                return TRUE;
+            }
         }
         break;
     }

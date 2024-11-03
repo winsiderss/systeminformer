@@ -54,7 +54,7 @@ static _locale_t PhpFormatUserLocale = NULL;
 VOID PhpFormatSingleToUtf8Locale(
     _In_ FLOAT Value,
     _In_ ULONG Type,
-    _In_ INT32 Precision,
+    _In_ LONG Precision,
     _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength
     )
@@ -100,7 +100,7 @@ VOID PhpFormatSingleToUtf8Locale(
 VOID PhpFormatDoubleToUtf8Locale(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
-    _In_ INT32 Precision,
+    _In_ LONG Precision,
     _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength
     )

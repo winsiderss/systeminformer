@@ -61,7 +61,7 @@ VOID KphpTryAddSentinelFrame(
     _In_ ULONG Flags
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (FlagOn(Flags, KPH_STACK_BACK_TRACE_NO_SENTINEL))
     {
@@ -102,7 +102,7 @@ ULONG KphpCaptureStackBackTrace(
     ULONG frames;
     ULONG skip;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     FramesToSkip += 1;
 
@@ -233,7 +233,7 @@ ULONG KphCaptureStackBackTrace(
     ULONG frames;
     PKPH_THREAD_CONTEXT thread;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (FlagOn(Flags, KPH_STACK_BACK_TRACE_USER_MODE) &&
         (KeGetCurrentIrql() < DISPATCH_LEVEL))
@@ -260,7 +260,7 @@ ULONG KphCaptureStackBackTrace(
     return frames;
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Captures the current stack back trace into a back trace object.
@@ -276,7 +276,7 @@ VOID KphpCaptureStackBackTraceIntoObject(
     PULONG backTraceHash;
     ULONG capturedFrames;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (BackTrace->DoHash)
     {
@@ -321,7 +321,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApc(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(NormalRoutine);
     UNREFERENCED_PARAMETER(NormalContext);
@@ -350,7 +350,7 @@ VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApcCleanup(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Apc);
     DBG_UNREFERENCED_PARAMETER(Reason);
@@ -373,7 +373,7 @@ PVOID KSIAPI KphpStackBackTraceAllocate(
     _In_ SIZE_T Size
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     return KphAllocateNPaged(Size, KPH_TAG_BACK_TRACE_OBJECT);
 }
@@ -388,7 +388,7 @@ VOID KSIAPI KphpStackBackTraceFree(
     _In_freesMem_ PVOID Object
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(Object, KPH_TAG_BACK_TRACE_OBJECT);
 }
@@ -411,7 +411,7 @@ NTSTATUS KSIAPI KphpStackBackTraceInitialize(
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
     PETHREAD thread;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Parameter);
 
@@ -447,7 +447,7 @@ VOID KSIAPI KphpStackBackTraceDelete(
 {
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     backTrace = Object;
 
@@ -488,7 +488,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     ULONG backTraceSize;
     PKPH_STACK_BACK_TRACE_OBJECT backTrace;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (Thread == PsGetCurrentThread())
     {
@@ -618,7 +618,7 @@ NTSTATUS KphInitializeStackBackTrace(
     KPH_OBJECT_TYPE_INFO typeInfo;
     SYSTEM_SINGLE_MODULE_INFORMATION info;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpStackBackTraceAllocate;
     typeInfo.Initialize = KphpStackBackTraceInitialize;

@@ -1156,12 +1156,12 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // Process flags
-    if (ProcessItem->QueryHandle)
+    // Process basic information
     {
         PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        if (ProcessItem->QueryHandle &&
+            NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
         {
             ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
@@ -1170,6 +1170,11 @@ VOID PhpFillProcessItem(
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
+            ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
+        }
+        else
+        {
+            ProcessItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
         }
     }
 
@@ -1199,10 +1204,10 @@ VOID PhpFillProcessItem(
                         ProcessItem->FileNameWin32 = fileName;
                     }
 
-                    //if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
-                    //{
-                    //    PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
-                    //}
+                    if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
+                    {
+                        PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
+                    }
                 }
             }
         }
@@ -1760,7 +1765,7 @@ VOID PhpUpdateCpuCycleUsageInformation(
 {
     ULONG i;
     FLOAT baseCpuUsage;
-    FLOAT totalTimeDelta;
+    ULONG64 totalTimeDelta;
     ULONG64 totalTime;
 
     // Cycle time is not only lacking for kernel/user components, but also for individual
@@ -1793,8 +1798,8 @@ VOID PhpUpdateCpuCycleUsageInformation(
     // i_n/t_n = I'_n/T'_n ~= I_n/T_n as above.
     // Not scaling at all is currently the best solution, since it's fast, simple and guarantees that i_n/t_n <= 1.
 
-    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / (FLOAT)TotalCycleTime;
-    totalTimeDelta = (FLOAT)(PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+    baseCpuUsage = 1 - (FLOAT)IdleCycleTime / TotalCycleTime;
+    totalTimeDelta = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta;
 
     if (totalTimeDelta != 0)
     {
@@ -1813,8 +1818,8 @@ VOID PhpUpdateCpuCycleUsageInformation(
 
         if (totalTime != 0)
         {
-            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / (FLOAT)totalTime;
-            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / (FLOAT)totalTime;
+            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / totalTime;
+            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / totalTime;
         }
         else
         {
@@ -2075,6 +2080,19 @@ VOID PhpEstimateIdleCyclesForARM(
 {
     // EXPERIMENTAL (jxy-s)
     //
+    // Update (2024-09-29) - 24H2 is now estimating the cycle counts for idle threads in the kernel
+    // making this routine obsolete. However, this means that the idle thread cycle counts returned
+    // from the kernel is not a reflection of the actual CPU effort of the idle threads. In other
+    // words the idle threads now represent the percentage of the CPU *not* being used by other
+    // processes, as it does on other architectures. The kernel has also broadly changed the cycle
+    // accounting across the entire system to no longer use PMCCNTR_EL0 and instead it uses
+    // KeQueryPerformanceCounter. This means it is currently impossible to represent the cycle
+    // accounting in a way best suited for the ARM architecture. The kernel appears to have opted
+    // for more consistency between architectures instead of accuracy for ARM.
+    //
+    assert(WindowsVersion < WINDOWS_11_24H2);
+
+    //
     // The kernel uses PMCCNTR_EL0 for CycleTime in threads and the processor control blocks.
     // Here is a snippet from ntoskrnl!KiIdleLoop:
     /*
@@ -2103,7 +2121,7 @@ ntoskrnl!HalProcessorIdle:
     // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs:
     /*
 All counters are subject to any changes in clock frequency, including clock stopping caused by
-the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE whether or not
+the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE regardless of whether
 PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instructions.
     */
     // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle
@@ -2279,7 +2297,7 @@ VOID PhProcessProviderUpdate(
         pidBuckets[bucketIndex] = process;
 
 #ifdef _ARM64_ // see: PhpEstimateIdleCyclesForARM (jxy-s)
-        if (PhEnableCycleCpuUsage && process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
+        if (PhEnableCycleCpuUsage && (WindowsVersion >= WINDOWS_11_24H2 || process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID))
 #else
         if (PhEnableCycleCpuUsage)
 #endif
@@ -2434,7 +2452,7 @@ VOID PhProcessProviderUpdate(
     }
 
 #ifdef _ARM64_
-    if (PhEnableCycleCpuUsage)
+    if (PhEnableCycleCpuUsage && WindowsVersion < WINDOWS_11_24H2)
         PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
 #endif
 
@@ -2575,16 +2593,16 @@ VOID PhProcessProviderUpdate(
 
             if (PhEnableCycleCpuUsage)
             {
-                FLOAT totalDelta;
+                ULONG64 totalDelta;
 
-                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / (FLOAT)sysTotalCycleTime;
+                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
 
                 // Calculate the kernel/user CPU usage based on the kernel/user time. If the kernel
                 // and user deltas are both zero, we'll just have to use an estimate. Currently, we
                 // split the CPU usage evenly across the kernel and user components, except when the
                 // total user time is zero, in which case we assign it all to the kernel component.
 
-                totalDelta = (FLOAT)(processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta);
+                totalDelta = processItem->CpuKernelDelta.Delta + processItem->CpuUserDelta.Delta;
 
                 if (totalDelta != 0)
                 {
@@ -2607,8 +2625,8 @@ VOID PhProcessProviderUpdate(
             }
             else
             {
-                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / (FLOAT)sysTotalTime;
-                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / (FLOAT)sysTotalTime;
+                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
                 newCpuUsage = kernelCpuUsage + userCpuUsage;
             }
 
@@ -2618,6 +2636,30 @@ VOID PhProcessProviderUpdate(
 
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
+
+            // Update the process affinity. Usually not frequently changed, do so lazily.
+            if (runCount % 5 == 0)
+            {
+                KAFFINITY oldAffinityMask;
+                KAFFINITY affinityMask;
+
+                oldAffinityMask = processItem->AffinityMask;
+
+                if (processItem->QueryHandle &&
+                    NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
+                {
+                    processItem->AffinityMask = affinityMask;
+                }
+                else
+                {
+                    processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+                }
+
+                if (processItem->AffinityMask != oldAffinityMask)
+                {
+                    modified = TRUE;
+                }
+            }
 
             // Average
             if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE))
@@ -3096,7 +3138,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
     runCount++;
 }
 
@@ -3962,11 +4004,12 @@ BOOLEAN PhDuplicateProcessInformation(
     if (!PhProcessInformation)
         return FALSE;
 
-    infoLength = RtlSizeHeap(PhHeapHandle, 0, PhProcessInformation);
+    infoLength = PhSizeHeap(PhProcessInformation);
 
     if (!infoLength)
         return FALSE;
 
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
+
     return TRUE;
 }

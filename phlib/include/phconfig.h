@@ -20,12 +20,12 @@ extern "C" {
 #define _User_set_
 
 extern _User_set_ PVOID PhInstanceHandle;
-extern _User_set_ PWSTR PhApplicationName;
+extern _User_set_ PCWSTR PhApplicationName;
 extern PVOID PhHeapHandle;
 extern RTL_OSVERSIONINFOEXW PhOsVersion;
 extern ULONG WindowsVersion;
-extern PWSTR WindowsVersionString;
-extern PWSTR WindowsVersionName;
+extern PCWSTR WindowsVersionString;
+extern PCWSTR WindowsVersionName;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
@@ -64,7 +64,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhInitializePhLib(
-    _In_ PWSTR ApplicationName,
+    _In_ PCWSTR ApplicationName,
     _In_ PVOID ImageBaseAddress
     );
 

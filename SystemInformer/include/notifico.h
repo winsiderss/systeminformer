@@ -122,7 +122,7 @@ typedef struct _PH_NF_ICON
 
     // Private
 
-    PWSTR Text;
+    PCWSTR Text;
     ULONG Flags;
     ULONG IconId;
     GUID IconGuid;
@@ -162,8 +162,8 @@ VOID PhNfSetVisibleIcon(
     );
 
 BOOLEAN PhNfShowBalloonTip(
-    _In_ PWSTR Title,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Text,
     _In_ ULONG Timeout
     );
 
@@ -176,7 +176,7 @@ PPH_NF_ICON PhNfRegisterIcon(
     _In_ ULONG Id,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ ULONG Flags,
     _In_opt_ PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
     _In_opt_ PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback

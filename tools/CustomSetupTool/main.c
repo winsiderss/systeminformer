@@ -11,6 +11,11 @@
 
 #include "setup.h"
 
+#define SETUP_CMD_INSTALL   1
+#define SETUP_CMD_UNINSTALL 2
+#define SETUP_CMD_UPDATE    3
+#define SETUP_CMD_SILENT    4
+
 LRESULT CALLBACK SetupTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -133,13 +138,13 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
             switch (context->SetupMode)
             {
             default:
-            case SETUP_COMMAND_INSTALL:
+            case SetupCommandInstall:
                 ShowWelcomePageDialog(context);
                 break;
-            case SETUP_COMMAND_UNINSTALL:
+            case SetupCommandUninstall:
                 ShowUninstallPageDialog(context);
                 break;
-            case SETUP_COMMAND_UPDATE:
+            case SetupCommandUpdate:
                 ShowUpdatePageDialog(context);
                 break;
             }
@@ -194,72 +199,108 @@ INT SetupShowMessagePromptForLegacyVersion(
     }
 }
 
-NTSTATUS SetupCommandQuietInstall(
+VOID SetupShowDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    PH_AUTO_POOL autoPool;
+    BOOL value = FALSE;
+    TASKDIALOGCONFIG config;
+
+    assert(!Context->Silent);
+
+    PhInitializeAutoPool(&autoPool);
+
+    if (Context->SetupIsLegacyUpdate)
+    {
+        SetupShowMessagePromptForLegacyVersion();
+    }
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.hInstance = PhInstanceHandle;
+    config.pszContent = L"Initializing...";
+    config.pfCallback = SetupTaskDialogBootstrapCallback;
+    config.lpCallbackData = (LONG_PTR)Context;
+
+    TaskDialogIndirect(&config, NULL, NULL, &value);
+
+    if (value)
+    {
+        SetupExecuteApplication(Context);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+}
+
+VOID SetupSilent(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
     NTSTATUS status;
 
-    status = SetupProgressThread(Context);
+    assert(Context->Silent);
 
-    return status;
-}
-
-VOID SetupShowDialog(
-    VOID
-    )
-{
-    PPH_SETUP_CONTEXT context;
-    PH_AUTO_POOL autoPool;
-    BOOL value = FALSE;
-
-    PhInitializeAutoPool(&autoPool);
-
-    context = PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
-    memset(context, 0, sizeof(PH_SETUP_CONTEXT));
-
-    SetupParseCommandLine(context);
-
-    if (PhIsNullOrEmptyString(context->SetupInstallPath))
+    if (PhGetOwnTokenAttributes().Elevated)
     {
-        context->SetupInstallPath = SetupFindInstallDirectory();
-    }
+        BOOLEAN start;
 
-    if (context->SetupMode == SETUP_COMMAND_SILENTINSTALL)
-    {
-        NTSTATUS status = SetupCommandQuietInstall(context);
-
-        if (NT_SUCCESS(status))
+        switch (Context->SetupMode)
         {
-            SetupExecuteApplication(context);
+        default:
+        case SetupCommandInstall:
+            status = SetupProgressThread(Context);
+            start = TRUE;
+            break;
+        case SetupCommandUninstall:
+            status = SetupUninstallBuild(Context);
+            start = FALSE;
+            break;
+        case SetupCommandUpdate:
+            status = SetupUpdateBuild(Context);
+            start = TRUE;
+            break;
         }
+
+        if (start && NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
+            SetupExecuteApplication(Context);
     }
     else
     {
-        TASKDIALOGCONFIG config;
+        PPH_STRING applicationFileName;
+        PH_STRINGREF applicationCommandLine;
 
-        if (context->SetupIsLegacyUpdate)
+        if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
         {
-            SetupShowMessagePromptForLegacyVersion();
+            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            return;
         }
 
-        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-        config.cbSize = sizeof(TASKDIALOGCONFIG);
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-        config.hInstance = PhInstanceHandle;
-        config.pszContent = L"Initializing...";
-        config.pfCallback = SetupTaskDialogBootstrapCallback;
-        config.lpCallbackData = (LONG_PTR)context;
-
-        TaskDialogIndirect(&config, NULL, NULL, &value);
-
-        if (value)
+        if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         {
-            SetupExecuteApplication(context);
+            Context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+            return;
+        }
+
+        if (!NT_SUCCESS(status = PhShellExecuteEx(
+            NULL,
+            PhGetString(applicationFileName),
+            PhGetStringRefZ(&applicationCommandLine),
+            NULL,
+            SW_SHOW,
+            PH_SHELL_EXECUTE_ADMIN,
+            INFINITE,
+            &Context->SubProcessHandle
+            )))
+        {
+            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            return;
         }
     }
 
-    PhDeleteAutoPool(&autoPool);
+    if (!NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
+        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
 }
 
 _Success_(return)
@@ -334,9 +375,23 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
 
     if (Option)
     {
-        context->SetupMode = Option->Id;
+        switch (Option->Id)
+        {
+        case SETUP_CMD_INSTALL:
+            context->SetupMode = SetupCommandInstall;
+            break;
+        case SETUP_CMD_UNINSTALL:
+            context->SetupMode = SetupCommandUninstall;
+            break;
+        case SETUP_CMD_UPDATE:
+            context->SetupMode = SetupCommandUpdate;
+            break;
+        case SETUP_CMD_SILENT:
+            context->Silent = TRUE;
+            break;
+        }
 
-        if (context->SetupMode == SETUP_COMMAND_UPDATE && Value)
+        if (Option->Id == SETUP_CMD_UPDATE && Value)
         {
             PPH_STRING directory;
             PPH_STRING serviceName;
@@ -361,24 +416,6 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             }
         }
     }
-    else
-    {
-        // HACK: PhParseCommandLine requires the - symbol for commandline parameters
-        // and we already support the -silent parameter however we need to maintain
-        // compatibility with the legacy Inno Setup. (dmex)
-        if (!PhIsNullOrEmptyString(Value))
-        {
-            if (Value && PhEqualString2(Value, L"/silent", TRUE))
-            {
-                //context->SetupMode = SETUP_COMMAND_SILENTINSTALL;
-            }
-        }
-    }
-
-    if (PhIsNullOrEmptyString(context->SetupInstallPath))
-    {
-        context->SetupInstallPath = SetupFindInstallDirectory();
-    }
 
     return TRUE;
 }
@@ -389,11 +426,10 @@ VOID SetupParseCommandLine(
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
-        { SETUP_COMMAND_INSTALL, L"install", NoArgumentType },
-        { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
-        { SETUP_COMMAND_UPDATE, L"update", OptionalArgumentType },
-        //{ SETUP_COMMAND_UPDATE, L"silent", NoArgumentType },
-        //{ SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
+        { SETUP_CMD_INSTALL,   L"install",   NoArgumentType },
+        { SETUP_CMD_UNINSTALL, L"uninstall", NoArgumentType },
+        { SETUP_CMD_UPDATE,    L"update",    OptionalArgumentType },
+        { SETUP_CMD_SILENT,    L"silent",    NoArgumentType },
     };
     PH_STRINGREF commandLine;
 
@@ -451,6 +487,8 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
+    PPH_SETUP_CONTEXT context;
+
     if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup", Instance)))
         return EXIT_FAILURE;
 
@@ -459,9 +497,37 @@ INT WINAPI wWinMain(
 
     SetupInitializeMutant();
 
-    PhGuiSupportInitialization();
+    context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
 
-    SetupShowDialog();
+    if (PhIsNullOrEmptyString(context->SetupInstallPath))
+    {
+        context->SetupInstallPath = SetupFindInstallDirectory();
+    }
 
-    return EXIT_SUCCESS;
+    SetupParseCommandLine(context);
+
+    if (context->Silent)
+    {
+        SetupSilent(context);
+    }
+    else
+    {
+        PhGuiSupportInitialization();
+
+        SetupShowDialog(context);
+    }
+
+    if (context->SubProcessHandle)
+    {
+        PROCESS_BASIC_INFORMATION processInfo;
+
+        PhWaitForSingleObject(context->SubProcessHandle, NULL);
+        PhGetProcessBasicInformation(context->SubProcessHandle, &processInfo);
+
+        context->ErrorCode = WIN32_FROM_NTSTATUS(processInfo.ExitStatus);
+
+        NtClose(context->SubProcessHandle);
+    }
+
+    return context->ErrorCode;
 }

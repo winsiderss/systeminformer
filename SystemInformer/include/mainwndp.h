@@ -102,7 +102,7 @@ VOID PhMwpOnEndSession(
 VOID PhMwpOnSettingChange(
     _In_ HWND WindowHandle,
     _In_opt_ ULONG Action,
-    _In_opt_ PWSTR Metric
+    _In_opt_ PCWSTR Metric
     );
 
 VOID PhMwpOnCommand(
@@ -268,7 +268,7 @@ VOID PhMwpNotifyTabControl(
     );
 
 VOID PhMwpSelectionChangedTabControl(
-    _In_ INT32 OldIndex
+    _In_ LONG OldIndex
     );
 
 PPH_MAIN_TAB_PAGE PhMwpCreatePage(
@@ -284,7 +284,7 @@ PPH_MAIN_TAB_PAGE PhMwpFindPage(
     );
 
 PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Flags,
     _In_ PPH_MAIN_TAB_PAGE_CALLBACK Callback
     );

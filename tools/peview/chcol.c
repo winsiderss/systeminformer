@@ -88,8 +88,8 @@ static int __cdecl PvInactiveColumnsCompareNameTn(
     _In_ const void* elem2
     )
 {
-    PWSTR column1 = *(PWSTR*)elem1;
-    PWSTR column2 = *(PWSTR*)elem2;
+    PCWSTR column1 = *(PCWSTR*)elem1;
+    PCWSTR column2 = *(PCWSTR*)elem2;
 
     return PhCompareStringZ(column1, column2, FALSE);
 }
@@ -97,7 +97,7 @@ static int __cdecl PvInactiveColumnsCompareNameTn(
 _Success_(return != ULONG_MAX)
 static ULONG IndexOfStringInList(
     _In_ PPH_LIST List,
-    _In_ PWSTR String
+    _In_ PCWSTR String
     )
 {
     for (ULONG i = 0; i < List->Count; i++)
@@ -196,7 +196,7 @@ VOID PvColumnsResetListBox(
 VOID PvSetListHeight(
     _In_ PCOLUMNS_DIALOG_CONTEXT context,
     _In_ HWND hwndDlg
-)
+    )
 {
     LONG dpiValue;
 
@@ -352,7 +352,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                         }
                         else
                         {
-                            PhAddItemList(context->InactiveListArray, column.Text);
+                            PhAddItemList(context->InactiveListArray, (PVOID)column.Text);
                         }
                     }
 
@@ -377,7 +377,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     {
                         PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
 
-                        PhAddItemList(context->ActiveListArray, copy->Text);
+                        PhAddItemList(context->ActiveListArray, (PVOID)copy->Text);
                         ListBox_InsertItemData(context->ActiveWindowHandle, i, copy->Text);
                     }
                 }
@@ -414,7 +414,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvSetListHeight (context, hwndDlg);
+            PvSetListHeight(context, hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -715,7 +715,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                 if (isSelected || isFocused)
                 {
                     FillRect(bufferDc, &bufferRect, context->BrushHot);
-                    //FrameRect(bufferDc, &bufferRect, GetStockBrush(BLACK_BRUSH));
+                    //FrameRect(bufferDc, &bufferRect, PhGetStockBrush(BLACK_BRUSH));
                     SetTextColor(bufferDc, context->TextColor);
                 }
                 else

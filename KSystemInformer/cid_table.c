@@ -46,7 +46,7 @@ VOID KphCidAssignObject(
     _In_opt_ PVOID Object
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphAtomicAssignObjectReference(&Entry->ObjectRef, Object);
 }
@@ -64,7 +64,7 @@ PVOID KphCidReferenceObject(
     _In_ PKPH_CID_TABLE_ENTRY Entry
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return KphAtomicReferenceObject(&Entry->ObjectRef);
 }
@@ -84,7 +84,7 @@ PVOID KphpCidAllocateTable(
     _In_ ULONG_PTR Level
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     switch (Level)
     {
@@ -126,7 +126,7 @@ NTSTATUS KphCidTableCreate(
     _Out_ PKPH_CID_TABLE Table
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     Table->Table = (ULONG_PTR)KphpCidAllocateTable(KPH_CID_TABLE_L0);
     if (!Table->Table)
@@ -154,7 +154,7 @@ VOID KphCidTableDelete(
     PKPH_CID_TABLE_ENTRY* tableL1;
     PKPH_CID_TABLE_ENTRY** tableL2;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     tableCode = ReadULongPtrAcquire(&Table->Table);
 
@@ -253,7 +253,7 @@ PKPH_CID_TABLE_ENTRY KphpCidLookupEntry(
     PKPH_CID_TABLE_ENTRY** tableL2;
     ULONG_PTR id;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     id = KphpCidToId(Cid);
 
@@ -344,7 +344,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
     ULONG_PTR id;
     KIRQL oldIrql;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     id = KphpCidToId(Cid);
 
@@ -503,7 +503,7 @@ PKPH_CID_TABLE_ENTRY KphCidGetEntry(
 {
     PKPH_CID_TABLE_ENTRY entry;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     entry = KphpCidLookupEntry(Cid, Table);
     if (entry)
@@ -536,7 +536,7 @@ BOOLEAN KphpCidEnumerateInvokeCallback(
     PVOID object;
     BOOLEAN res;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     res = FALSE;
 
@@ -585,11 +585,12 @@ VOID KphpCidEnumerate(
     )
 {
     ULONG_PTR table;
+    BOOLEAN leaveCriticalRegion;
     PKPH_CID_TABLE_ENTRY tableL0;
     PKPH_CID_TABLE_ENTRY* tableL1;
     PKPH_CID_TABLE_ENTRY** tableL2;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     table = ReadULongPtrAcquire(&Table->Table);
 
@@ -598,7 +599,15 @@ VOID KphpCidEnumerate(
         return;
     }
 
-    KeEnterCriticalRegion();
+    if (KeGetCurrentIrql() <= APC_LEVEL)
+    {
+        KeEnterCriticalRegion();
+        leaveCriticalRegion = TRUE;
+    }
+    else
+    {
+        leaveCriticalRegion = FALSE;
+    }
 
     switch (table & KPH_CID_TABLE_LEVEL_MASK)
     {
@@ -695,7 +704,10 @@ VOID KphpCidEnumerate(
 
 Exit:
 
-    KeLeaveCriticalRegion();
+    if (leaveCriticalRegion)
+    {
+        KeLeaveCriticalRegion();
+    }
 }
 
 /**
@@ -713,7 +725,7 @@ VOID KphCidEnumerate(
     _In_opt_ PVOID Parameter
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphpCidEnumerate(Table, Callback, NULL, Parameter);
 }
@@ -735,7 +747,7 @@ VOID KphCidRundown(
     _In_opt_ PVOID Parameter
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphpCidEnumerate(Table, NULL, Callback, Parameter);
 }

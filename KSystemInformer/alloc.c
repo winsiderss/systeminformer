@@ -44,7 +44,7 @@ PVOID KphAllocateNPaged(
     _In_ ULONG Tag
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -67,7 +67,7 @@ VOID KphFree(
     _In_ ULONG Tag
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Memory);
 
     if (KphpRandomPoolTag)
@@ -93,7 +93,7 @@ VOID KphInitializeNPagedLookaside(
     _In_ ULONG Tag
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -120,7 +120,7 @@ VOID KphDeleteNPagedLookaside(
     _Inout_ PNPAGED_LOOKASIDE_LIST Lookaside
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     ExDeleteNPagedLookasideList(Lookaside);
@@ -141,7 +141,7 @@ PVOID KphAllocateFromNPagedLookaside(
 {
     PVOID memory;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     memory = ExAllocateFromNPagedLookasideList(Lookaside);
@@ -165,7 +165,7 @@ VOID KphFreeToNPagedLookaside(
     _In_freesMem_ PVOID Memory
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Memory);
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
@@ -185,7 +185,7 @@ PVOID KSIAPI KphpAllocateNPagedLookasideObject(
     _In_ SIZE_T Size
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateNPaged(Size, KPH_TAG_NPAGED_LOOKASIDE_OBJECT);
 }
@@ -208,7 +208,7 @@ NTSTATUS KSIAPI KphpInitializeNPagedLookasideObject(
     PKPH_NPAGED_LOOKASIDE_OBJECT lookaside;
     PKPH_LOOKASIDE_INIT init;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     NT_ASSERT(Parameter);
 
@@ -234,7 +234,7 @@ VOID KSIAPI KphpDeleteNPagedLookasideObject(
 {
     PKPH_NPAGED_LOOKASIDE_OBJECT lookaside;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     lookaside = Object;
 
@@ -251,7 +251,7 @@ VOID KSIAPI KphpFreeNPagedLookasideObject(
     _In_freesMem_ PVOID Object
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphFree(Object, KPH_TAG_NPAGED_LOOKASIDE_OBJECT);
 }
@@ -275,7 +275,7 @@ NTSTATUS KphCreateNPagedLookasideObject(
     NTSTATUS status;
     KPH_LOOKASIDE_INIT init;
 
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -312,7 +312,7 @@ PVOID KphAllocateFromNPagedLookasideObject(
     _Inout_ PKPH_NPAGED_LOOKASIDE_OBJECT Lookaside
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateFromNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside);
 }
@@ -329,12 +329,12 @@ VOID KphFreeToNPagedLookasideObject(
     _In_freesMem_ PVOID Memory
     )
 {
-    NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     KphFreeToNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside, Memory);
 }
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Allocates page-able memory.
@@ -351,7 +351,7 @@ PVOID KphAllocatePaged(
     _In_ ULONG Tag
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (KphpRandomPoolTag)
     {
@@ -376,7 +376,7 @@ VOID KphInitializePagedLookaside(
     _In_ ULONG Tag
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (KphpRandomPoolTag)
     {
@@ -397,7 +397,7 @@ VOID KphDeletePagedLookaside(
     _Inout_ PPAGED_LOOKASIDE_LIST Lookaside
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     ExDeletePagedLookasideList(Lookaside);
@@ -418,7 +418,7 @@ PVOID KphAllocateFromPagedLookaside(
 {
     PVOID memory;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     memory = ExAllocateFromPagedLookasideList(Lookaside);
@@ -442,7 +442,7 @@ VOID KphFreeToPagedLookaside(
     _In_freesMem_ PVOID Memory
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Memory);
 
@@ -463,7 +463,7 @@ PVOID KSIAPI KphpAllocatePagedLookasideObject(
     _In_ SIZE_T Size
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     return KphAllocateNPaged(Size, KPH_TAG_PAGED_LOOKASIDE_OBJECT);
 }
@@ -486,7 +486,7 @@ NTSTATUS KSIAPI KphpInitializePagedLookasideObject(
     PKPH_PAGED_LOOKASIDE_OBJECT lookaside;
     PKPH_LOOKASIDE_INIT init;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     NT_ASSERT(Parameter);
 
@@ -512,7 +512,7 @@ VOID KSIAPI KphpDeletePagedLookasideObject(
 {
     PKPH_PAGED_LOOKASIDE_OBJECT lookaside;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     lookaside = Object;
 
@@ -529,7 +529,7 @@ VOID KSIAPI KphpFreePagedLookasideObject(
     _In_freesMem_ PVOID Object
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFree(Object, KPH_TAG_PAGED_LOOKASIDE_OBJECT);
 }
@@ -553,7 +553,7 @@ NTSTATUS KphCreatePagedLookasideObject(
     NTSTATUS status;
     KPH_LOOKASIDE_INIT init;
 
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     if (KphpRandomPoolTag)
     {
@@ -590,7 +590,7 @@ PVOID KphAllocateFromPagedLookasideObject(
     _Inout_ PKPH_PAGED_LOOKASIDE_OBJECT Lookaside
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     return KphAllocateFromPagedLookaside((PPAGED_LOOKASIDE_LIST)Lookaside);
 }
@@ -607,7 +607,7 @@ VOID KphFreeToPagedLookasideObject(
     _In_freesMem_ PVOID Memory
     )
 {
-    PAGED_CODE();
+    KPH_PAGED_CODE();
 
     KphFreeToPagedLookaside((PPAGED_LOOKASIDE_LIST)Lookaside, Memory);
 }
@@ -626,7 +626,7 @@ BYTE KphpMakePoolTagByte(
 {
     BYTE outByte;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     outByte = Byte % '~';
     if (outByte < ' ')
@@ -652,7 +652,7 @@ ULONG KphpGenerateRandomPoolTag(
     BYTE byte;
     ULONG poolTag;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     interruptTime = KeQueryInterruptTime();
     seed = (ULONG)(interruptTime >> 32);
@@ -690,7 +690,7 @@ NTSTATUS KphInitializeAlloc(
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     if (KphParameterFlags.RandomizedPoolTag)
     {

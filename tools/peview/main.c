@@ -365,7 +365,7 @@ BOOLEAN PvInitializeExceptionPolicy(
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 
-    RtlSetUnhandledExceptionFilter(PvUnhandledExceptionCallback);
+    SetUnhandledExceptionFilter(PvUnhandledExceptionCallback);
 #endif
     return TRUE;
 }

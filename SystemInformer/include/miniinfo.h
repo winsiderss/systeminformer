@@ -117,7 +117,7 @@ VOID PhPinMiniInformation(
     _In_ LONG PinCount,
     _In_opt_ ULONG PinDelayMs,
     _In_ ULONG Flags,
-    _In_opt_ PWSTR SectionName,
+    _In_opt_ PCWSTR SectionName,
     _In_opt_ PPOINT SourcePoint
     );
 

@@ -160,7 +160,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwAddAtom(
-    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_reads_bytes_opt_(Length) PCWSTR AtomName,
     _In_ ULONG Length,
     _Out_opt_ PRTL_ATOM Atom
     );
@@ -169,7 +169,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwAddAtomEx(
-    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_reads_bytes_opt_(Length) PCWSTR AtomName,
     _In_ ULONG Length,
     _Out_opt_ PRTL_ATOM Atom,
     _In_ ULONG Flags
@@ -1749,7 +1749,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwFindAtom(
-    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_reads_bytes_opt_(Length) PCWSTR AtomName,
     _In_ ULONG Length,
     _Out_opt_ PRTL_ATOM Atom
     );

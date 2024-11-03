@@ -527,7 +527,7 @@ VOID PhExpandAllMemoryNodes(
         TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-extern PWSTR PhGetProcessHeapClassText(
+extern PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     );
 
@@ -1126,10 +1126,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MEMORY_COPY, 0);
-                break;
-            case 'A':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             case VK_RETURN:
                 SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MEMORY_READWRITEMEMORY, 0);

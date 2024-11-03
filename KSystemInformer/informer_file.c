@@ -25,7 +25,7 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 PFLT_FILTER KphFltFilter = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Invoked when the mini-filter driver is asked to unload.
@@ -40,7 +40,7 @@ NTSTATUS FLTAPI KphpFltFilterUnloadCallback(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -64,7 +64,7 @@ NTSTATUS FLTAPI KphpFltInstanceQueryTeardownCallback(
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
@@ -186,7 +186,7 @@ NTSTATUS KphFltRegister(
     POBJECT_NAME_INFORMATION objectInfo;
     ULONG returnLength;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(!KphFltFilter);
 
     instancesKeyHandle = NULL;
@@ -437,7 +437,7 @@ VOID KphFltUnregister(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     KphCommsStop();
 
@@ -463,7 +463,7 @@ NTSTATUS KphFltInformerStart(
     VOID
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphFltFilter);
 

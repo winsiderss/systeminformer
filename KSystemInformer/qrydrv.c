@@ -14,7 +14,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
+KPH_PAGED_FILE();
 
 /**
  * \brief Opens a driver object.
@@ -35,7 +35,7 @@ NTSTATUS KphOpenDriver(
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     return KphOpenNamedObject(DriverHandle,
                               DesiredAccess,
@@ -72,7 +72,7 @@ NTSTATUS KphQueryInformationDriver(
     PDRIVER_OBJECT driverObject;
     ULONG returnLength;
 
-    PAGED_CODE_PASSIVE();
+    KPH_PAGED_CODE_PASSIVE();
 
     driverObject = NULL;
     returnLength = 0;
@@ -306,8 +306,7 @@ NTSTATUS KphQueryInformationDriver(
                 }
             }
 
-#pragma warning(suppress: 4995) // intentional use of ExFreePool
-            ExFreePool(fullDriverPath.Buffer);
+            KphFreePool(fullDriverPath.Buffer);
             break;
         }
         default:

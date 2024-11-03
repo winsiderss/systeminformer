@@ -49,15 +49,15 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetDllHandle(
-    _In_ PWSTR DllName
+    _In_ PCWSTR DllName
     );
 
 PHLIBAPI
 PVOID
 NTAPI
 PhGetModuleProcAddress(
-    _In_ PWSTR ModuleName,
-    _In_opt_ PSTR ProcedureName
+    _In_ PCWSTR ModuleName,
+    _In_opt_ PCSTR ProcedureName
     );
 
 PHLIBAPI
@@ -65,7 +65,7 @@ PVOID
 NTAPI
 PhGetProcedureAddress(
     _In_ PVOID DllHandle,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     );
 
@@ -75,7 +75,7 @@ NTAPI
 PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
@@ -86,8 +86,8 @@ NTSTATUS
 NTAPI
 PhGetProcedureAddressRemoteZ(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PSTR ProcedureName,
+    _In_ PCWSTR FileName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
@@ -162,7 +162,7 @@ FORCEINLINE
 BOOLEAN
 NTAPI
 PhGetLoaderEntryDataZ(
-    _In_ PWSTR BaseDllName,
+    _In_ PCWSTR BaseDllName,
     _Out_opt_ PVOID* DllBase,
     _Out_opt_ ULONG* SizeOfImage,
     _Out_opt_ PPH_STRING* FullName
@@ -199,7 +199,7 @@ FORCEINLINE
 PVOID
 NTAPI
 PhGetLoaderEntryDllBaseZ(
-    _In_ PWSTR DllName
+    _In_ PCWSTR DllName
     )
 {
     PH_STRINGREF baseDllName;
@@ -214,7 +214,7 @@ PVOID
 NTAPI
 PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
-    _In_opt_ PSTR ProcedureName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     );
 
@@ -223,7 +223,7 @@ PVOID
 NTAPI
 PhGetDllBaseProcedureAddressWithHint(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ProcedureName,
+    _In_ PCSTR ProcedureName,
     _In_ USHORT ProcedureHint
     );
 
@@ -231,8 +231,8 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetDllProcedureAddress(
-    _In_ PWSTR DllName,
-    _In_opt_ PSTR ProcedureName,
+    _In_ PCWSTR DllName,
+    _In_opt_ PCSTR ProcedureName,
     _In_opt_ USHORT ProcedureNumber
     );
 
@@ -300,7 +300,7 @@ PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
-    _In_opt_ PSTR ExportName,
+    _In_opt_ PCSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
     );
 
@@ -317,8 +317,8 @@ NTSTATUS
 NTAPI
 PhLoaderEntryDetourImportProcedure(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ImportName,
-    _In_ PSTR ProcedureName,
+    _In_ PCSTR ImportName,
+    _In_ PCSTR ProcedureName,
     _In_ PVOID FunctionAddress,
     _Out_opt_ PVOID* OriginalAddress
     );
@@ -336,15 +336,15 @@ NTSTATUS
 NTAPI
 PhLoaderEntryLoadAllImportsForDll(
     _In_ PVOID BaseAddress,
-    _In_ PSTR ImportDllName
+    _In_ PCSTR ImportDllName
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadAllImportsForDll(
-    _In_ PWSTR TargetDllName,
-    _In_ PSTR ImportDllName
+    _In_ PCWSTR TargetDllName,
+    _In_ PCSTR ImportDllName
     );
 
 PHLIBAPI
@@ -359,7 +359,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetFileBinaryTypeWin32(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PULONG BinaryType
     );
 
