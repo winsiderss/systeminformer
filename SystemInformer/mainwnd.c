@@ -1864,8 +1864,8 @@ VOID PhMwpOnCommand(
 
             if (
                 processItem &&
-                !PhIsNullOrEmptyString(processItem->FileName) &&
-                PhDoesFileExist(&processItem->FileName->sr)
+                !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
+                PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32))
                 )
             {
                 PhReferenceObject(processItem);
