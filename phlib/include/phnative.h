@@ -1531,6 +1531,18 @@ PhOpenObjectByTypeIndex(
     _In_ ULONG TypeIndex
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterConnectCommunicationPort(
+    _In_ PPH_STRINGREF PortName,
+    _In_ ULONG Options,
+    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
+    _In_ USHORT SizeOfContext,
+    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
+    _Outptr_ HANDLE* Port
+    );
+
 typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_VIRTUAL_IMAGES_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress,

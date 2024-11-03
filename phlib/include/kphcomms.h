@@ -63,17 +63,4 @@ NTSTATUS KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     );
 
-_Must_inspect_result_
-__declspec(dllexport)
-NTSTATUS
-NTAPI
-PhFilterConnectCommunicationPort(
-    _In_ PPH_STRINGREF PortName,
-    _In_ ULONG Options,
-    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
-    _In_ USHORT SizeOfContext,
-    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
-    _Outptr_ HANDLE* Port
-    );
-
 #endif

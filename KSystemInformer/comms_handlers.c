@@ -92,8 +92,6 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgSetInformationObject,          KphpCommsSetInformationObject,          KphpCommsRequireMaximum },
 { KphMsgOpenDriver,                    KphpCommsOpenDriver,                    KphpCommsRequireMaximum },
 { KphMsgQueryInformationDriver,        KphpCommsQueryInformationDriver,        KphpCommsRequireMaximum },
-{ KphMsgOpenDevice,                    KphpCommsOpenDevice,                    KphpCommsRequireMaximum },
-{ KphMsgOpenObjectByTypeIndex,         KphpCommsOpenObjectByTypeIndex,         KphpCommsRequireMaximum },
 { KphMsgQueryInformationProcess,       KphpCommsQueryInformationProcess,       KphpCommsQueryInformationProcessRequires },
 { KphMsgSetInformationProcess,         KphpCommsSetInformationProcess,         KphpCommsRequireMaximum },
 { KphMsgSetInformationThread,          KphpCommsSetInformationThread,          KphpCommsRequireMaximum },
@@ -121,6 +119,8 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgStripProtectedProcessMasks,    KphpCommsStripProtectedProcessMasks,    KphpCommsRequireMaximum },
 { KphMsgQueryVirtualMemory,            KphpCommsQueryVirtualMemory,            KphpCommsQueryVirtualMemoryRequires },
 { KphMsgQueryHashInformationFile,      KphpCommsQueryHashInformationFile,      KphpCommsRequireMaximum },
+{ KphMsgOpenDevice,                    KphpCommsOpenDevice,                    KphpCommsRequireMaximum },
+{ KphMsgOpenObjectByTypeIndex,         KphpCommsOpenObjectByTypeIndex,         KphpCommsRequireMaximum }
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);

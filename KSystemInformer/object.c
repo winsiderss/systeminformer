@@ -2400,6 +2400,27 @@ NTSTATUS KphOpenObjectByTypeIndex(
         return STATUS_NOINTERFACE;
     }
 
+    if (AccessMode != KernelMode)
+    {
+        OBJECT_TYPES_INFORMATION typesInfo = { 0 };
+
+        if (ZwQueryObject(NULL,
+            ObjectTypesInformation,
+            &typesInfo,
+            sizeof(typesInfo),
+            NULL) == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            if (TypeIndex < 2 || TypeIndex > typesInfo.NumberOfTypes)
+            {
+                return STATUS_INVALID_PARAMETER;
+            }
+        }
+        else
+        {
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
     return KphOpenNamedObject(ObjectHandle,
                               DesiredAccess,
                               ObjectAttributes,

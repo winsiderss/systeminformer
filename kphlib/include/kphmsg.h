@@ -39,8 +39,6 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgSetInformationObject,
     KphMsgOpenDriver,
     KphMsgQueryInformationDriver,
-    KphMsgOpenDevice,
-    KphMsgOpenObjectByTypeIndex,
     KphMsgQueryInformationProcess,
     KphMsgSetInformationProcess,
     KphMsgSetInformationThread,
@@ -68,6 +66,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgStripProtectedProcessMasks,
     KphMsgQueryVirtualMemory,
     KphMsgQueryHashInformationFile,
+    KphMsgOpenDevice,
+    KphMsgOpenObjectByTypeIndex,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,

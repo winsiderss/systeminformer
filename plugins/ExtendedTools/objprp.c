@@ -665,20 +665,25 @@ PPH_STRING EtGetWindowStationType(
     _In_ PPH_STRINGREF StationName
 )
 {
-#define WINSTA_LOGON_SESSION L"logon session"
-
     if (PhEqualStringRef2(StationName, T_WINSTA_INTERACTIVE, TRUE))
         return PhCreateString(L"Interactive Window Station");
-    if (PhFindStringInStringRefZ(StationName, T_WINSTA_SYSTEM, TRUE) != SIZE_MAX)
-        return PhFormatString(L"%s %s", L"System", WINSTA_LOGON_SESSION);
-    if (PhFindStringInStringRefZ(StationName, T_WINSTA_ANONYMOUS, TRUE) != SIZE_MAX)
-        return PhFormatString(L"%s %s", L"Anonymous", WINSTA_LOGON_SESSION);
-    if (PhFindStringInStringRefZ(StationName, T_WINSTA_LOCALSERVICE, TRUE) != SIZE_MAX)
-        return PhFormatString(L"%s %s", L"Local Service", WINSTA_LOGON_SESSION);
-    if (PhFindStringInStringRefZ(StationName, T_WINSTA_NETWORK_SERVICE, TRUE) != SIZE_MAX)
-        return PhFormatString(L"%s %s", L"Network Service", WINSTA_LOGON_SESSION);
 
-    return NULL;
+    PH_FORMAT format[3];
+
+    PhInitFormatC(&format[0], UNICODE_NULL);
+    PhInitFormatC(&format[1], L' ');
+    PhInitFormatS(&format[2], L"logon session");
+
+    if (PhFindStringInStringRefZ(StationName, T_WINSTA_SYSTEM, TRUE) != SIZE_MAX)
+        PhInitFormatS(&format[0], L"System");
+    if (PhFindStringInStringRefZ(StationName, T_WINSTA_ANONYMOUS, TRUE) != SIZE_MAX)
+        PhInitFormatS(&format[0], L"Anonymous");
+    if (PhFindStringInStringRefZ(StationName, T_WINSTA_LOCALSERVICE, TRUE) != SIZE_MAX)
+        PhInitFormatS(&format[0], L"Local Service");
+    if (PhFindStringInStringRefZ(StationName, T_WINSTA_NETWORK_SERVICE, TRUE) != SIZE_MAX)
+        PhInitFormatS(&format[0], L"Network Service");
+
+    return format[0].u.Char != UNICODE_NULL ? PhFormat(format, RTL_NUMBER_OF(format), 0) : NULL;
 }
 
 VOID EtHandlePropertiesWindowUninitializing(
