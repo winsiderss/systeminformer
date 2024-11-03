@@ -2009,19 +2009,22 @@ BOOLEAN PhIsCoreParked(
             initialBufferSize = returnLength;
     }
 
-    if (!NT_SUCCESS(status) || !cpuSetInfo)
+    if (!cpuSetInfo)
         return FALSE;
 
     isParked = FALSE;
 
-    for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
-         RTL_CONTAINS_FIELD(info, info->Size, CpuSet);
-         info = PTR_ADD_OFFSET(info, info->Size))
+    if (NT_SUCCESS(status))
     {
-        if (info->CpuSet.LogicalProcessorIndex == ProcessorIndex)
+        for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
+             RTL_CONTAINS_FIELD(info, info->Size, CpuSet);
+             info = PTR_ADD_OFFSET(info, info->Size))
         {
-            isParked = info->CpuSet.Parked;
-            break;
+            if (info->CpuSet.LogicalProcessorIndex == ProcessorIndex)
+            {
+                isParked = info->CpuSet.Parked;
+                break;
+            }
         }
     }
 
