@@ -844,7 +844,7 @@ NTSTATUS KphSetInformationProcess(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-// qrydrv
+// driver
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

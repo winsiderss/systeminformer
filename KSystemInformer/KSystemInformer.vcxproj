@@ -273,6 +273,7 @@
     <ClCompile Include="cid_tracking.c" />
     <ClCompile Include="comms.c" />
     <ClCompile Include="comms_handlers.c" />
+    <ClCompile Include="driver.c" />
     <ClCompile Include="dyndata.c" />
     <ClCompile Include="dynimp.c" />
     <ClCompile Include="file.c" />
@@ -296,7 +297,6 @@
     <ClCompile Include="parameters.c" />
     <ClCompile Include="process.c" />
     <ClCompile Include="protection.c" />
-    <ClCompile Include="qrydrv.c" />
     <ClCompile Include="session_token.c" />
     <ClCompile Include="system.c" />
     <ClCompile Include="thread.c" />
