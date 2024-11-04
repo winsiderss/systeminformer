@@ -107,21 +107,25 @@ VOID DiskDeviceAddListViewItems(
     }
 }
 
-VOID AddNvmeSmartEntry(HWND ListViewHandle, LPCWSTR Name, PPH_STRING Value)
+VOID AddNvmeSmartEntry(
+    _In_ HWND ListViewHandle, 
+    _In_ LPCWSTR Name, 
+    _In_ PPH_STRING Value
+    )
 {
     INT lvItemIndex = PhAddListViewItem(
         ListViewHandle,
         MAXINT,
         Name,
         0
-    );
+        );
 
     PhSetListViewSubItem(
         ListViewHandle,
         lvItemIndex,
         1,
         PhGetString(Value)
-    );
+        );
 }
 
 VOID DiskDeviceQuerySmart(

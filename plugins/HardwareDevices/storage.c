@@ -599,7 +599,7 @@ NTSTATUS DiskDriveQueryNvmeHealthInfo(
         buffer,
         sizeof(buffer),
         &returnedLength
-    );
+        );
 
     if (!NT_SUCCESS(status))
         return status;
