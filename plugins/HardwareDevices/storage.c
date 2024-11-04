@@ -563,6 +563,66 @@ NTSTATUS DiskDriveQueryImminentFailure(
     return status;
 }
 
+NTSTATUS DiskDriveQueryNvmeHealthInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNVME_HEALTH_INFO_LOG HealthInfo
+    )
+{
+    NTSTATUS status = 0;
+    ULONG returnedLength = 0;
+    PSTORAGE_PROPERTY_QUERY query = NULL;
+    PSTORAGE_PROTOCOL_SPECIFIC_DATA protocolData = NULL;
+    BYTE buffer[FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters) + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + sizeof(NVME_HEALTH_INFO_LOG)];
+
+    memset(buffer, 0, sizeof(buffer));
+
+    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+    query->PropertyId = StorageDeviceProtocolSpecificProperty;
+    query->QueryType = PropertyStandardQuery;
+
+    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+    protocolData->ProtocolType = ProtocolTypeNvme;
+    protocolData->DataType = NVMeDataTypeLogPage;
+    protocolData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
+    protocolData->ProtocolDataRequestSubValue = 0;  // This will be passed as the lower 32 bit of log page offset if controller supports extended data for the Get Log Page.
+    protocolData->ProtocolDataRequestSubValue2 = 0; // This will be passed as the higher 32 bit of log page offset if controller supports extended data for the Get Log Page.
+    protocolData->ProtocolDataRequestSubValue3 = 0; // This will be passed as Log Specific Identifier in CDW11.
+    protocolData->ProtocolDataRequestSubValue4 = 0; // This will map to STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE definition, then user can pass Retain Asynchronous Event, Log Specific Field.
+    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+    protocolData->ProtocolDataLength = sizeof(NVME_HEALTH_INFO_LOG);
+
+    status = PhDeviceIoControlFile(
+        DeviceHandle,
+        IOCTL_STORAGE_QUERY_PROPERTY,
+        buffer,
+        sizeof(buffer),
+        buffer,
+        sizeof(buffer),
+        &returnedLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnedLength < sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
+        return STATUS_UNSUCCESSFUL;
+
+    PSTORAGE_PROTOCOL_DATA_DESCRIPTOR protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+
+    if (protocolDataDescr->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR) ||
+        protocolDataDescr->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
+        return STATUS_UNSUCCESSFUL;
+
+    protocolData = &protocolDataDescr->ProtocolSpecificData;
+
+    if (protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
+        protocolData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
+        return STATUS_UNSUCCESSFUL;
+
+    *HealthInfo = *(PNVME_HEALTH_INFO_LOG)((PCHAR)protocolData + protocolData->ProtocolDataOffset);
+    return STATUS_SUCCESS;
+}
+
 _Success_(return)
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DosDeviceHandle,
