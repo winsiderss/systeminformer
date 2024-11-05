@@ -126,6 +126,9 @@
     <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
