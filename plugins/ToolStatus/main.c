@@ -1413,7 +1413,7 @@ LRESULT CALLBACK MainWindowProc(
                                 }
                                 else
                                 {
-                                    PhShowError2(WindowHandle, L"Error.", L"The process (PID %lu) does not exist.", processId);
+                                    PhShowError2(WindowHandle, L"System Informer", L"The process (PID %lu) does not exist.", processId);
                                 }
                             }
                             break;
@@ -1428,7 +1428,7 @@ LRESULT CALLBACK MainWindowProc(
                                 }
                                 else
                                 {
-                                    PhShowError2(WindowHandle, L"Error.", L"The process (PID %lu) does not exist.", processId);
+                                    PhShowError2(WindowHandle, L"System Informer", L"The process (PID %lu) does not exist.", processId);
                                 }
                             }
                             break;

@@ -64,6 +64,7 @@
 
 #include <math.h>
 #include <cfgmgr32.h>
+#include <nvme.h>
 
 #include <phnet.h>
 
@@ -836,6 +837,11 @@ PPH_STRING DiskDriveQueryGeometry(
 NTSTATUS DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle,
     _Out_ PPH_LIST* DiskSmartAttributes
+    );
+
+NTSTATUS DiskDriveQueryNvmeHealthInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNVME_HEALTH_INFO_LOG HealthInfo
     );
 
 typedef DECLSPEC_ALIGN(64) struct _NTFS_FILESYSTEM_STATISTICS

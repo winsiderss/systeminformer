@@ -133,10 +133,7 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
-    if (!PhStartupParameters.Debug)
-    {
-        PhpInitializeSettings();
-    }
+    PhpInitializeSettings();
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
@@ -1502,7 +1499,6 @@ VOID PhpProcessStartupParameters(
     if (PhStartupParameters.Debug)
     {
         // The symbol provider won't work if this is chosen.
-        PhpInitializeSettings();
         PhShowDebugConsole();
     }
 }

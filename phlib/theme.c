@@ -240,17 +240,17 @@ VOID PhInitializeWindowTheme(
 
         if (defaultWindowProc != PhpThemeWindowSubclassProc)
         {
-            WCHAR windowClassName[MAX_PATH];
             PhSetWindowContext(WindowHandle, LONG_MAX, defaultWindowProc);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowSubclassProc);
 
-            if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
-                windowClassName[0] = UNICODE_NULL;
-            if ((PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE)) &&
-                WindowsVersion >= WINDOWS_10_RS5)
+            if (WindowsVersion >= WINDOWS_10_RS5)
             {
-                AllowDarkModeForWindow_I(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
-            }  
+                WCHAR windowClassName[MAX_PATH];
+                if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                    windowClassName[0] = UNICODE_NULL;
+                if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
+                    AllowDarkModeForWindow_I(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
+            }
         }
 
         PhEnumChildWindows(
@@ -1589,6 +1589,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
     BOOLEAN isSelected = (DrawInfo->uItemState & CDIS_SELECTED) == CDIS_SELECTED;
     BOOLEAN isHighlighted = (DrawInfo->uItemState & CDIS_HOT) == CDIS_HOT;
     BOOLEAN isFocused = (DrawInfo->uItemState & CDIS_FOCUS) == CDIS_FOCUS;
+    BOOLEAN isKeyboardFocused = isFocused && (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES;
     RECT bufferRect =
     {
         0, 0,
@@ -1738,7 +1739,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                                DT_LEFT | DT_SINGLELINE | DT_VCENTER | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
                                 );
                         }
                         else
@@ -1748,7 +1749,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
+                                DT_LEFT | DT_TOP | DT_CALCRECT | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
                                 );
 
                             bufferRect.top = (DrawInfo->rc.bottom - DrawInfo->rc.top) / 2 - (bufferRect.bottom - bufferRect.top) / 2 - 1;
@@ -1759,18 +1760,18 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | DT_HIDEPREFIX
+                                DT_LEFT | DT_TOP | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
                                 );
                         }
 
-                        if (isFocused && (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES)
+                        if (isKeyboardFocused)
                         {
                             DrawText(
                                 DrawInfo->hdc,
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | DT_CALCRECT | DT_HIDEPREFIX
+                                DT_LEFT | DT_TOP | DT_CALCRECT
                                 );
                             PhInflateRect(&bufferRect, 1, 0);
                             bufferRect.top += 1, bufferRect.bottom += 2;
@@ -1831,7 +1832,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                             buttonText->Buffer,
                             (UINT)buttonText->Length / sizeof(WCHAR),
                             &bufferRect,
-                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
                             );
                     }
                 }
@@ -1884,7 +1885,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                         buttonText->Buffer,
                         (UINT)buttonText->Length / sizeof(WCHAR),
                         &bufferRect,
-                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
+                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
                         );
                 }
             }
@@ -2292,9 +2293,11 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             HDC hdc = (HDC)wParam;
 
-            //SetBkMode(hdc, TRANSPARENT);
-            // Fix typing in multiline edit (Dart Vanya)
-            SetBkColor(hdc, PhThemeWindowBackground2Color);
+             //Fix typing in multiline edit (Dart Vanya)
+            if (PhGetWindowStyle((HWND)lParam) & ES_MULTILINE)
+                SetBkColor(hdc, PhThemeWindowBackground2Color);
+            else
+                SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
@@ -2307,7 +2310,10 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             HDC hdc = (HDC)wParam;
 
-            SetBkColor(hdc, PhThemeWindowBackgroundColor);
+            if (uMsg == WM_CTLCOLORBTN)     // for correct drawing of system KEYBOARDCUES
+                SetBkColor(hdc, PhThemeWindowBackground2Color);
+            else
+                SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
@@ -2407,35 +2413,29 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
         }
         break;
-    case WM_ENABLE:
-        goto DefaultWndProc;
     case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clientRect;
+
+            GetClientRect(WindowHandle, &clientRect);
+            
+            ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
+        }
         return TRUE;
+    case WM_ENABLE:
+        if (!wParam)    // fix drawing when window visible and switches to disabled
+            return 0;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            HDC hdc;
-            RECT clientRect;
-
-            if (!BeginPaint(WindowHandle, &ps))
-                break;
-
-            // Fix artefacts when window moving back from off-screen (Dart Vanya)
-            hdc = GetDC(WindowHandle);
-            GetClientRect(WindowHandle, &clientRect);
-
-            ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
-
-            ReleaseDC(WindowHandle, hdc);
+            BeginPaint(WindowHandle, &ps);
             EndPaint(WindowHandle, &ps);
         }
-        goto DefaultWndProc;
+        return 0;
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
 }
 
 VOID ThemeWindowRenderTabControl(

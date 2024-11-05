@@ -456,7 +456,7 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             PhSetDialogFocus(WindowHandle, context->ComboBoxHandle);
 
             if (PhEnableThemeSupport)
-                DestroyWindow(GetDlgItem(WindowHandle, IDC_SIZE_));
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_HIDE);
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
         }
         break;

@@ -107,6 +107,27 @@ VOID DiskDeviceAddListViewItems(
     }
 }
 
+VOID AddNvmeSmartEntry(
+    _In_ HWND ListViewHandle, 
+    _In_ LPCWSTR Name, 
+    _In_ PPH_STRING Value
+    )
+{
+    INT lvItemIndex = PhAddListViewItem(
+        ListViewHandle,
+        MAXINT,
+        Name,
+        0
+        );
+
+    PhSetListViewSubItem(
+        ListViewHandle,
+        lvItemIndex,
+        1,
+        PhGetString(Value)
+        );
+}
+
 VOID DiskDeviceQuerySmart(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context
     )
@@ -184,6 +205,43 @@ VOID DiskDeviceQuerySmart(
             }
 
             PhDereferenceObject(attributes);
+        }
+        else
+        {
+            NVME_HEALTH_INFO_LOG healthInfo;
+
+            if (NT_SUCCESS(DiskDriveQueryNvmeHealthInfo(deviceHandle, &healthInfo)))
+            {
+                // https://en.wikipedia.org/wiki/Self-Monitoring,_Analysis_and_Reporting_Technology#Known_NVMe_S.M.A.R.T._attributes
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Available spare is below threshold", PhaFormatUInt64(healthInfo.CriticalWarning.AvailableSpaceLow, TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Temperature is over threshold", PhaFormatUInt64(healthInfo.CriticalWarning.TemperatureThreshold, TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Drive reliability is degraded", PhaFormatUInt64(healthInfo.CriticalWarning.ReliabilityDegraded, TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Drive is in read only mode", PhaFormatUInt64(healthInfo.CriticalWarning.ReadOnly, TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Volatile memory backup device failed", PhaFormatUInt64(healthInfo.CriticalWarning.VolatileMemoryBackupDeviceFailed, TRUE));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Temperature", PhaFormatString(L"%d\u00b0C", *(WORD*)(healthInfo.Temperature) - 273));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Available spare", PhaFormatString(L"%u%%", healthInfo.AvailableSpare));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Available spare threshold", PhaFormatString(L"%u%%", healthInfo.AvailableSpareThreshold));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Percentage used", PhaFormatString(L"%u%%", healthInfo.PercentageUsed));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Data read", PhaFormatSize(*(ULONG64*)(healthInfo.DataUnitRead) * 1000 * 512, ULONG_MAX));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Data written", PhaFormatSize(*(ULONG64*)(healthInfo.DataUnitWritten) * 1000 * 512, ULONG_MAX));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Host read commands", PhaFormatUInt64(*(ULONG64*)(healthInfo.HostReadCommands), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Host write commands", PhaFormatUInt64(*(ULONG64*)(healthInfo.HostWrittenCommands), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Controller busy time", PhaFormatUInt64(*(ULONG64*)(healthInfo.ControllerBusyTime), TRUE));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Power cycles", PhaFormatUInt64(*(ULONG64*)(healthInfo.PowerCycle), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Power on hours", PhaFormatUInt64(*(ULONG64*)(healthInfo.PowerOnHours), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Unsafe shutdowns", PhaFormatUInt64(*(ULONG64*)(healthInfo.UnsafeShutdowns), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Media and data integrity errors", PhaFormatUInt64(*(ULONG64*)(healthInfo.MediaErrors), TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Error information log entries", PhaFormatUInt64(*(ULONG64*)(healthInfo.ErrorInfoLogEntryCount), TRUE));
+
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Warning composite temperature time", PhaFormatUInt64(healthInfo.WarningCompositeTemperatureTime, TRUE));
+                AddNvmeSmartEntry(Context->ListViewHandle, L"Critical composite temperature time", PhaFormatUInt64(healthInfo.CriticalCompositeTemperatureTime, TRUE));
+            }
         }
 
         NtClose(deviceHandle);
