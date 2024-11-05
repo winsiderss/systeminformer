@@ -257,12 +257,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 BOOLEAN UseThemeTextColor = FALSE;
                                 if (PhEnableThemeSupport)
                                 {
-                                    LVITEM item;
-                                    item.iItem = (DWORD)customDraw->nmcd.dwItemSpec;
-                                    item.mask = LVIF_STATE;
-                                    item.stateMask = LVIS_SELECTED;
-                                    ListView_GetItem(context->Handle, &item);
-                                    UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT || item.state & LVIS_SELECTED;
+                                    UseThemeTextColor = customDraw->nmcd.uItemState & CDIS_HOT ||
+                                        ListView_GetItemState(hwnd, (INT)customDraw->nmcd.dwItemSpec, LVIS_SELECTED) & LVIS_SELECTED;
                                 }
 
                                 if (UseThemeTextColor)

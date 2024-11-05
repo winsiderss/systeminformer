@@ -1714,7 +1714,7 @@ VOID PhLoaderEntrySnapShowErrorMessage(
         {
             PhShowError2(
                 NULL,
-                L"Error.",
+                PhApplicationName,
                 L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
                 PhGetStringOrEmpty(fileName),
                 IMAGE_ORDINAL(OriginalThunk->u1.Ordinal),
