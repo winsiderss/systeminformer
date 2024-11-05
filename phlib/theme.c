@@ -2420,6 +2420,9 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
         }
         return TRUE;
+    case WM_ENABLE:
+        if (!wParam)    // fix drawing when window visible and switches to disabled
+            return 0;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
