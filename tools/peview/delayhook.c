@@ -1460,32 +1460,27 @@ HRESULT PhDrawThemeBackgroundHook(
     WCHAR className[MAX_PATH];
     BOOLEAN hasThemeClass = PhGetThemeClass(Theme, className, RTL_NUMBER_OF(className));
 
-    if (WindowsVersion >= WINDOWS_11)
+    if (WindowsVersion >= WINDOWS_11 && hasThemeClass)
     {
-        if (hasThemeClass)
+        if (PhEqualStringZ(className, VSCLASS_MENU, TRUE))
         {
-            if (PhEqualStringZ(className, VSCLASS_MENU, TRUE))
+            if (PartId == MENU_POPUPGUTTER || PartId == MENU_POPUPBORDERS)
             {
-                if (PartId == MENU_POPUPGUTTER || PartId == MENU_POPUPBORDERS)
-                {
-                    FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
-                    return S_OK;
-                }
+                FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
+                return S_OK;
             }
         }
     }
 
-    if (hasThemeClass)
+    if (hasThemeClass && PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE)
+        /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(Hdc) == NULL*/)
     {
-        if (PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE))
+        if (PartId == PP_TRANSPARENTBAR || PartId == PP_TRANSPARENTBARVERT) // Progress bar background
         {
-            if (PartId == PP_TRANSPARENTBAR) // Progress bar background.
-            {
-                FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
-                SetDCBrushColor(Hdc, RGB(0x60, 0x60, 0x60));
-                FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
-                return S_OK;
-            }
+            FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
+            SetDCBrushColor(Hdc, RGB(0x60, 0x60, 0x60));
+            FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            return S_OK;
         }
     }
 
@@ -1519,8 +1514,8 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
 
     // Micro optimization
     if ((iPartId == TDLG_PRIMARYPANEL || iPartId == TDLG_FOOTNOTEPANE || iPartId == TDLG_SECONDARYPANEL || iPartId == TDLG_FOOTNOTESEPARATOR || iPartId == TDLG_EXPANDOBUTTON) &&
-        PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-        PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE))
+        PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE)
+        /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
     {
         switch (iPartId)
         {
@@ -1753,8 +1748,8 @@ HRESULT WINAPI PhDrawThemeTextHook(
     if ((iPartId == BP_COMMANDLINK /*|| iPartId == BP_RADIOBUTTON*/) && iStateId != PBS_DISABLED)
     {
         WCHAR className[MAX_PATH];
-        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-            PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
+            /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
         {
             DTTOPTS options = { sizeof(DTTOPTS), DTT_TEXTCOLOR, PhThemeWindowTextColor };
             return DefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, (LPRECT)pRect, &options);
@@ -1779,8 +1774,8 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     if (iPartId == BP_COMMANDLINK)
     {
         WCHAR className[MAX_PATH];
-        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-            PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
+            /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
         {
             DTTOPTS options = { sizeof(DTTOPTS) };
             if (pOptions)
@@ -1809,19 +1804,6 @@ int PhDetoursComCtl32DrawTextW(
     static COLORREF colLinkPressed = RGB(0, 0, 0);
     HWND WindowHandle;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HTHEME hTextTheme = PhOpenThemeData(NULL, VSCLASS_TEXTSTYLE, 0);
-        if (hTextTheme)
-        {
-            PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_NORMAL, TMT_TEXTCOLOR, &colLinkNormal);
-            PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_HOT, TMT_TEXTCOLOR, &colLinkHot);
-            PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_PRESSED, TMT_TEXTCOLOR, &colLinkPressed);
-            PhCloseThemeData(hTextTheme);
-        }
-        PhEndInitOnce(&initOnce);
-    }
-
     if ((WindowHandle = WindowFromDC(hdc)) &&
         (PhIsDarkModeAllowedForWindow(WindowHandle) || PhGetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG)))    // HACK
     {
@@ -1829,9 +1811,26 @@ int PhDetoursComCtl32DrawTextW(
         GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
         if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
         {
+            if (PhBeginInitOnce(&initOnce))
+            {
+                HTHEME hTextTheme = PhOpenThemeData(WindowHandle, VSCLASS_TEXTSTYLE, PhGetWindowDpi(WindowHandle));
+                if (hTextTheme)
+                {
+                    PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_NORMAL, TMT_TEXTCOLOR, &colLinkNormal);
+                    PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_HOT, TMT_TEXTCOLOR, &colLinkHot);
+                    PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_PRESSED, TMT_TEXTCOLOR, &colLinkPressed);
+                    PhCloseThemeData(hTextTheme);
+                }
+                PhEndInitOnce(&initOnce);
+            }
+
             COLORREF color = GetTextColor(hdc);
-            if (color == colLinkNormal || color == colLinkHot || color == colLinkPressed)
+
+            if (color == colLinkNormal || color == colLinkHot || color == colLinkPressed ||
+                WindowsVersion < WINDOWS_11 && color == RGB(0x00, 0x66, 0xCC))  // on Windows 10 PhGetThemeColor returns 0xFFFFFF for any StateId
+            {
                 SetTextColor(hdc, PhMakeColorBrighter(color, 95));
+            }
         }
     }
     
@@ -1852,16 +1851,16 @@ HRESULT PhGetThemeColorHook(
 
     if (iPropId == TMT_TEXTCOLOR && iPartId == TDLG_MAININSTRUCTIONPANE)
     {
-        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-            PhEqualStringZ(className, VSCLASS_TASKDIALOGSTYLE, TRUE))
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOGSTYLE, TRUE)
+            /*|| WindowsVersion < WINDOWS_11*/)
         {
             *pColor = PhMakeColorBrighter(*pColor, 150); // Main header.
         }
     }
     else if (iPropId == TMT_TEXTCOLOR)
     {
-        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
-            PhEqualStringZ(className, VSCLASS_TASKDIALOGSTYLE, TRUE))
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOGSTYLE, TRUE)
+            /*|| WindowsVersion < WINDOWS_11*/)
         {
             *pColor = PhThemeWindowTextColor; // Text color for check boxes, expanded text, and expander button text.
         }  
@@ -2109,7 +2108,8 @@ VOID PhRegisterDetoursHooks(
 
     if (baseAddress = PhGetLoaderEntryDllBaseZ(L"Comctl32.dll"))
     {
-        DefaultTaskDialogIndirect = PhGetDllBaseProcedureAddress(baseAddress, "TaskDialogIndirect", 0);
+        if (WindowsVersion >= WINDOWS_11)   // TaskDialog theme on Windows 10 currently unsupported...
+            DefaultTaskDialogIndirect = PhGetDllBaseProcedureAddress(baseAddress, "TaskDialogIndirect", 0);
         PhLoaderEntryDetourImportProcedure(baseAddress, "User32.dll", "DrawTextW", PhDetoursComCtl32DrawTextW, (PVOID*)&DefaultComCtl32DrawTextW);
     }
 
@@ -2135,8 +2135,9 @@ VOID PhRegisterDetoursHooks(
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultOpenNcThemeData, (PVOID)PhOpenNcThemeDataHook)))
             goto CleanupExit;
-        if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultTaskDialogIndirect, (PVOID)PhTaskDialogIndirectHook)))
-            goto CleanupExit;
+        if (WindowsVersion >= WINDOWS_11)
+            if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultTaskDialogIndirect, (PVOID)PhTaskDialogIndirectHook)))
+                goto CleanupExit;
     }
 
     if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultCreateWindowEx, (PVOID)PhCreateWindowExHook)))
@@ -2177,7 +2178,7 @@ BOOLEAN PhIsThemeTransparencyEnabled(
 
 VOID PvInitializeSuperclassControls(
     VOID
-    )
+)
 {
     PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
 

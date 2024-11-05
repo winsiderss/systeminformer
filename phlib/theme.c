@@ -2310,7 +2310,10 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             HDC hdc = (HDC)wParam;
 
-            SetBkMode(hdc, TRANSPARENT);
+            if (uMsg == WM_CTLCOLORBTN)     // for correct drawing of system KEYBOARDCUES
+                SetBkColor(hdc, PhThemeWindowBackground2Color);
+            else
+                SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             return (INT_PTR)PhThemeWindowBackgroundBrush;
         }
