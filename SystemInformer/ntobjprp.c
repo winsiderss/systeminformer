@@ -623,6 +623,8 @@ VOID PhpEnumerateMappingsEntries(
 
         PhPrintPointer(value, info->EndVa);
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
+
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, PhaFormatSize((ULONG64)info->EndVa - (ULONG64)info->StartVa, ULONG_MAX)->Buffer);
     }
 }
 
@@ -675,6 +677,7 @@ INT_PTR CALLBACK PhpMappingsPageProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"View");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Start");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"End");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_RIGHT, 60, L"Size");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhpEnumerateMappingsEntries(context);
