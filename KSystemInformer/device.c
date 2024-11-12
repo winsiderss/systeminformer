@@ -82,7 +82,7 @@ NTSTATUS KphOpenDevice(
         InitializeObjectAttributes(&objectAttributes,
                                    capturedObjectName,
                                    capturedAttributes.Attributes,
-                                   NULL,
+                                   capturedAttributes.RootDirectory,
                                    NULL);
 
         objectAttributesPtr = &objectAttributes;
