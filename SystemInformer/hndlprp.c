@@ -683,7 +683,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             Context->ListViewHandle,
             PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
             PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
-            L"Link",
+            L"Link target",
             NULL
         );
     }
@@ -2166,29 +2166,13 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"SymbolicLink", TRUE))
     {
-        PPH_STRING link = NULL;
-        NTSTATUS status;
-        HANDLE dupHandle = NULL;
+        PPH_STRING linkTarget;
 
-        status = PhpDuplicateHandleFromProcess(&dupHandle, SYMBOLIC_LINK_QUERY, Context);
-
-        if (NT_SUCCESS(status) && dupHandle)
+        if (!PhIsNullOrEmptyString(Context->HandleItem->ObjectName) &&
+            NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &Context->HandleItem->ObjectName->sr)))
         {
-            UNICODE_STRING targetName;
-            WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
-
-            RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
-            status = NtQuerySymbolicLinkObject(dupHandle, &targetName, NULL);
-
-            if (NT_SUCCESS(status))
-                link = PhCreateStringFromUnicodeString(&targetName);
-            NtClose(dupHandle);
-        }
-
-        if (link)
-        {
-            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK], 1, PhGetStringOrEmpty(link));
-            PhDereferenceObject(link);
+            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK], 1, PhGetStringOrEmpty(linkTarget));
+            PhDereferenceObject(linkTarget);
         }
     }
 }

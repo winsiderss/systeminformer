@@ -5,7 +5,8 @@
  *
  * Authors:
  *
- *     wj32    2010-2011
+ *     wj32         2010-2011
+ *     Dart Vanya   2024
  *
  */
 
@@ -60,6 +61,16 @@ PPH_STRING EtGetAccessString(
     _In_ PPH_STRING TypeName,
     _In_ ACCESS_MASK access
     );
+
+PPH_STRING EtGetAccessString2(
+    _In_ PPH_STRINGREF TypeName,
+    _In_ ACCESS_MASK access
+    );
+
+PPH_STRING EtGetAccessStringZ(
+    _In_ PCWSTR TypeName,
+    _In_ ACCESS_MASK access
+);
 
 INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ HWND hwndDlg,
@@ -370,158 +381,144 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME], 1, PhGetString(devicePdoName2));
             }
         }
-        // Show Driver image information
-        else if (PhEqualString2(context->HandleItem->TypeName, L"Driver", TRUE))
-        {
-            PPH_STRING driverName;
-
-            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DRIVER, L"Driver information");
-
-            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE] = PhAddListViewGroupItem(
-                context->ListViewHandle,
-                OBJECT_GENERAL_CATEGORY_DRIVER,
-                OBJECT_GENERAL_INDEX_DRIVERIMAGE,
-                L"Driver Image",
-                NULL
-            );
-
-            if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
-            {
-                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE], 1, PhGetString(driverName));
-                PhDereferenceObject(driverName);
-            }
-        }
         else if (PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE))
         {
+            PH_STRINGREF firstPart;
+            PH_STRINGREF typeName;
             POBJECT_TYPES_INFORMATION objectTypes;
             POBJECT_TYPE_INFORMATION objectType;
             ULONG typeIndex;
             PPH_STRING accessString;
             PH_STRING_BUILDER stringBuilder;
 
-            if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+            if (PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
             {
-                typeIndex = PhGetObjectTypeNumber(&context->HandleItem->ObjectName->sr);
-                objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+                typeIndex = PhGetObjectTypeNumber(&typeName);
 
-                for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+                if (typeIndex != ULONG_MAX &&
+                    NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
                 {
-                    if (objectType->TypeIndex == typeIndex)
+                    objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+                    for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
                     {
-                        ListView_RemoveGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA);
+                        if (objectType->TypeIndex == typeIndex)
+                        {
+                            ListView_RemoveGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA);
 
-                        PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE, L"Type information");
+                            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE, L"Type information");
 
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEINDEX, L"Index", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEOBJECTS, L"Objects", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEHANDLES, L"Handles", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS, L"Peak Objects", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, L"Peak Handles", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, L"Pool Type", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPAGECHARGE, L"Default Paged Charge", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, L"Default NP Charge", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEINDEX, L"Index", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEOBJECTS, L"Objects", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEHANDLES, L"Handles", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS, L"Peak Objects", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, L"Peak Handles", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, L"Pool Type", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPAGECHARGE, L"Default Paged Charge", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, L"Default NP Charge", NULL);
 
-                        PhPrintUInt32(string, objectType->TypeIndex);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX], 1, string);
-                        PhPrintUInt32(string, objectType->TotalNumberOfObjects);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS], 1, string);
-                        PhPrintUInt32(string, objectType->TotalNumberOfHandles);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES], 1, string);
-                        PhPrintUInt32(string, objectType->HighWaterNumberOfObjects);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS], 1, string);
-                        PhPrintUInt32(string, objectType->HighWaterNumberOfHandles);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES], 1, string);
-                        PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
+                            PhPrintUInt32(string, objectType->TypeIndex);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX], 1, string);
+                            PhPrintUInt32(string, objectType->TotalNumberOfObjects);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS], 1, string);
+                            PhPrintUInt32(string, objectType->TotalNumberOfHandles);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES], 1, string);
+                            PhPrintUInt32(string, objectType->HighWaterNumberOfObjects);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS], 1, string);
+                            PhPrintUInt32(string, objectType->HighWaterNumberOfHandles);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES], 1, string);
+                            PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
 
-                        PWSTR PoolType = NULL;
-                        switch (objectType->PoolType) {
-                        case NonPagedPool:
-                            PoolType = L"Non Paged";
-                            break;
-                        case PagedPool:
-                            PoolType = L"Paged";
-                            break;
-                        case NonPagedPoolNx:
-                            PoolType = L"Non Paged NX";
-                            break;
-                        case PagedPoolSessionNx:
-                            PoolType = L"Paged Session NX";
+                            PWSTR PoolType = NULL;
+                            switch (objectType->PoolType) {
+                            case NonPagedPool:
+                                PoolType = L"Non Paged";
+                                break;
+                            case PagedPool:
+                                PoolType = L"Paged";
+                                break;
+                            case NonPagedPoolNx:
+                                PoolType = L"Non Paged NX";
+                                break;
+                            case PagedPoolSessionNx:
+                                PoolType = L"Paged Session NX";
+                                break;
+                            }
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE], 1, PoolType);
+
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE], 1, string);
+                            PhPrintUInt32(string, objectType->DefaultNonPagedPoolCharge);
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE], 1, string);
+
+                            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, L"Type access information");
+
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEVALIDMASK] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEVALIDMASK, L"Valid Access Mask", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICREAD] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICREAD, L"Generic Read", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICWRITE] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICWRITE, L"Generic Write", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE, L"Generic Execute", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICALL] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICALL, L"Generic All", NULL);
+                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES] = PhAddListViewGroupItem(context->ListViewHandle,
+                                OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES, L"Invalid Attributes", NULL);
+
+                            accessString = PH_AUTO(EtGetAccessString2(&typeName, objectType->ValidAccessMask));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEVALIDMASK], 1, PhGetString(accessString));
+                            accessString = PH_AUTO(EtGetAccessString2(&typeName, objectType->GenericMapping.GenericRead));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICREAD], 1, PhGetString(accessString));
+                            accessString = PH_AUTO(EtGetAccessString2(&typeName, objectType->GenericMapping.GenericWrite));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICWRITE], 1, PhGetString(accessString));
+                            accessString = PH_AUTO(EtGetAccessString2(&typeName, objectType->GenericMapping.GenericExecute));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE], 1, PhGetString(accessString));
+                            accessString = PH_AUTO(EtGetAccessString2(&typeName, objectType->GenericMapping.GenericAll));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICALL], 1, PhGetString(accessString));
+
+                            PhInitializeStringBuilder(&stringBuilder, 10);
+                            if (objectType->InvalidAttributes & OBJ_KERNEL_HANDLE)
+                                PhAppendStringBuilder2(&stringBuilder, L"KERNEL_HANDLE, ");
+                            if (objectType->InvalidAttributes & OBJ_OPENLINK)
+                                PhAppendStringBuilder2(&stringBuilder, L"OPEN_LINK, ");
+                            if (objectType->InvalidAttributes & OBJ_OPENIF)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_OPENIF, ");
+                            if (objectType->InvalidAttributes & OBJ_PERMANENT)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_PERMANENT, ");
+                            if (objectType->InvalidAttributes & OBJ_EXCLUSIVE)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_EXCLUSIVE, ");
+                            if (objectType->InvalidAttributes & OBJ_INHERIT)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_INHERIT, ");
+                            if (objectType->InvalidAttributes & OBJ_CASE_INSENSITIVE)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_CASE_INSENSITIVE, ");
+                            if (objectType->InvalidAttributes & OBJ_FORCE_ACCESS_CHECK)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_FORCE_ACCESS_CHECK, ");
+                            if (objectType->InvalidAttributes & OBJ_IGNORE_IMPERSONATED_DEVICEMAP)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_IGNORE_IMPERSONATED_DEVICEMAP, ");
+                            if (objectType->InvalidAttributes & OBJ_DONT_REPARSE)
+                                PhAppendStringBuilder2(&stringBuilder, L"OBJ_DONT_REPARSE, ");
+
+                            // Remove the trailing ", ".
+                            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                                PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                            accessString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES], 1, PhGetString(accessString));
+
                             break;
                         }
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE], 1, PoolType);
-
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE], 1, string);
-                        PhPrintUInt32(string, objectType->DefaultNonPagedPoolCharge);
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE], 1, string);
-
-                        PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, L"Type access information");
-
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEVALIDMASK] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEVALIDMASK, L"Valid Access Mask", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICREAD] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICREAD, L"Generic Read", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICWRITE] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICWRITE, L"Generic Write", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE, L"Generic Execute", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICALL] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEGENERICALL, L"Generic All", NULL);
-                        EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES] = PhAddListViewGroupItem(context->ListViewHandle,
-                            OBJECT_GENERAL_CATEGORY_TYPE_ACCESS, OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES, L"Invalid Attributes", NULL);
-
-                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->ValidAccessMask));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEVALIDMASK], 1, PhGetString(accessString));
-                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericRead));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICREAD], 1, PhGetString(accessString));
-                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericWrite));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICWRITE], 1, PhGetString(accessString));
-                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericExecute));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICEXECUTE], 1, PhGetString(accessString));
-                        accessString = PH_AUTO(EtGetAccessString(context->HandleItem->ObjectName, objectType->GenericMapping.GenericAll));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEGENERICALL], 1, PhGetString(accessString));
-
-                        PhInitializeStringBuilder(&stringBuilder, 10);
-                        if (objectType->InvalidAttributes & OBJ_KERNEL_HANDLE)
-                            PhAppendStringBuilder2(&stringBuilder, L"KERNEL_HANDLE, ");
-                        if (objectType->InvalidAttributes & OBJ_OPENLINK)
-                            PhAppendStringBuilder2(&stringBuilder, L"OPEN_LINK, ");
-                        if (objectType->InvalidAttributes & OBJ_OPENIF)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_OPENIF, ");
-                        if (objectType->InvalidAttributes & OBJ_PERMANENT)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_PERMANENT, ");
-                        if (objectType->InvalidAttributes & OBJ_EXCLUSIVE)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_EXCLUSIVE, ");
-                        if (objectType->InvalidAttributes & OBJ_INHERIT)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_INHERIT, ");
-                        if (objectType->InvalidAttributes & OBJ_CASE_INSENSITIVE)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_CASE_INSENSITIVE, ");
-                        if (objectType->InvalidAttributes & OBJ_FORCE_ACCESS_CHECK)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_FORCE_ACCESS_CHECK, ");
-                        if (objectType->InvalidAttributes & OBJ_IGNORE_IMPERSONATED_DEVICEMAP)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_IGNORE_IMPERSONATED_DEVICEMAP, ");
-                        if (objectType->InvalidAttributes & OBJ_DONT_REPARSE)
-                            PhAppendStringBuilder2(&stringBuilder, L"OBJ_DONT_REPARSE, ");
-
-                        // Remove the trailing ", ".
-                        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                            PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-                        accessString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINVALIDATTRIBUTES], 1, PhGetString(accessString));
-
-                        break;
+                        objectType = PH_NEXT_OBJECT_TYPE(objectType);
                     }
-                    objectType = PH_NEXT_OBJECT_TYPE(objectType);
+                    PhFree(objectTypes);
                 }
-                PhFree(objectTypes);
             }
         }
 
@@ -568,6 +565,27 @@ VOID EtHandlePropertiesWindowInitialized(
     }
 
     // General ET plugin extensions
+    // Show Driver image information
+    if (PhEqualString2(context->HandleItem->TypeName, L"Driver", TRUE))
+    {
+        PPH_STRING driverName;
+
+        PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DRIVER, L"Driver information");
+
+        EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE] = PhAddListViewGroupItem(
+            context->ListViewHandle,
+            OBJECT_GENERAL_CATEGORY_DRIVER,
+            OBJECT_GENERAL_INDEX_DRIVERIMAGE,
+            L"Driver Image",
+            NULL
+        );
+
+        if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
+        {
+            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE], 1, PhGetString(driverName));
+            PhDereferenceObject(driverName);
+        }
+    }
     if (!PhIsNullOrEmptyString(context->HandleItem->TypeName))
     {
         if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
@@ -587,9 +605,7 @@ VOID EtHandlePropertiesWindowInitialized(
 
             if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName))
             {
-                if (PhFindCharInString(context->HandleItem->ObjectName, 0, L'\\') != SIZE_MAX)
-                    PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &pathPart, &StationName);
-                else
+                if (!PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &pathPart, &StationName))
                     StationName = context->HandleItem->ObjectName->sr;
                 StationType = PH_AUTO(EtGetWindowStationType(&StationName));
                 PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE], 1, PhGetString(StationType));
@@ -906,6 +922,22 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
 PPH_STRING EtGetAccessString(
     _In_ PPH_STRING TypeName,
     _In_ ACCESS_MASK access
+)
+{
+    return EtGetAccessStringZ(PhGetStringOrEmpty(TypeName), access);
+}
+
+PPH_STRING EtGetAccessString2(
+    _In_ PPH_STRINGREF TypeName,
+    _In_ ACCESS_MASK access
+    )
+{
+    return EtGetAccessStringZ(PhGetStringRefZ(TypeName), access);
+}
+
+PPH_STRING EtGetAccessStringZ(
+    _In_ PCWSTR TypeName,
+    _In_ ACCESS_MASK access
     )
 {
     PPH_STRING AccessString = NULL;
@@ -913,7 +945,7 @@ PPH_STRING EtGetAccessString(
     ULONG numberOfAccessEntries;
 
     if (PhGetAccessEntries(
-        PhGetStringOrEmpty(TypeName),
+        TypeName,
         &accessEntries,
         &numberOfAccessEntries
     ))
@@ -1004,7 +1036,7 @@ INT EtpEnumObjectHandles(
     INT OwnHandlesIndex = 0;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG_PTR i;
-    ULONG SourceTypeIndex;
+    ULONG SourceTypeIndex = ULONG_MAX;
 
     BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
     BOOLEAN isAlpcPort = PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE);
@@ -1015,7 +1047,14 @@ INT EtpEnumObjectHandles(
     if (isDevice)
         SourceTypeIndex = FileTypeIndex;    // HACK
     else if (isTypeObject)
-        SourceTypeIndex = PhGetObjectTypeNumber(&context->HandleItem->ObjectName->sr);   // HACK
+    {
+        PH_STRINGREF firstPart;
+        PH_STRINGREF typeName;
+        if (PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
+            SourceTypeIndex = PhGetObjectTypeNumber(&typeName);   // HACK
+        if (SourceTypeIndex == ULONG_MAX)
+            return OwnHandlesIndex;
+    }
     else
         SourceTypeIndex = context->HandleItem->TypeIndex;
 

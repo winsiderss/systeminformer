@@ -5,7 +5,8 @@
  *
  * Authors:
  *
- *     dmex    2016-2024
+ *     dmex         2016-2024
+ *     Dart Vanya   2024
  *
  */
 
@@ -21,12 +22,18 @@ static PH_STRINGREF EtObjectManagerRootDirectoryObject = PH_STRINGREF_INIT(L"\\"
 static PH_STRINGREF EtObjectManagerUserDirectoryObject = PH_STRINGREF_INIT(L"??"); // RtlDosDevicesPrefix
 static PH_STRINGREF DirectoryObjectType = PH_STRINGREF_INIT(L"Directory");
 HWND EtObjectManagerDialogHandle = NULL;
-LARGE_INTEGER EtObjectManagerTimeCached = {0, 0};
+LARGE_INTEGER EtObjectManagerTimeCached = { 0 };
 PPH_LIST EtObjectManagerOwnHandles = NULL;
 PPH_HASHTABLE EtObjectManagerPropWnds = NULL;
 HICON EtObjectManagerPropWndIcon = NULL;
 static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
+
+// Columns
+
+#define ETOBLVC_NAME 0
+#define ETOBLVC_TYPE 1
+#define ETOBLVC_TARGET 2
 
 typedef enum _ET_OBJECT_TYPE
 {
@@ -146,7 +153,7 @@ VOID NTAPI EtpObjectManagerChangeSelection(
     _In_ POBJECT_CONTEXT context
     );
 
-VOID NTAPI EtObjectManagerSortAndSelectOld(
+VOID NTAPI EtpObjectManagerSortAndSelectOld(
     _In_ POBJECT_CONTEXT context,
     _In_opt_ PPH_STRING oldSelection
     );
@@ -474,7 +481,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
     _In_ PDIRECTORY_ENUM_CONTEXT Context
     )
 {
-    if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
+    if (PhEqualStringRef(TypeName, &DirectoryObjectType, TRUE))
     {
         PPH_STRING currentPath;
         HTREEITEM currentItem;
@@ -509,7 +516,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
     _In_ POBJECT_CONTEXT Context
     )
 {
-    if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
+    if (PhEqualStringRef(TypeName, &DirectoryObjectType, TRUE))
     {
         if (!EtTreeViewFindItem(Context->TreeViewHandle, Context->SelectedTreeItem, Name))
         {
@@ -543,7 +550,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
         {
             entry->EtObjectType = EtObjectDevice;
         }
-        else if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
+        else if (PhEqualStringRef(TypeName, &DirectoryObjectType, TRUE))
         {
             entry->EtObjectType = EtObjectDirectory;
         }
@@ -613,31 +620,16 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
 
         if (entry->EtObjectType == EtObjectSymLink)
         {
-            NTSTATUS status;
-            HANDLE objectHandle;
-            HANDLE_OPEN_CONTEXT objectContext;
+            PPH_STRING fullPath;
+            PPH_STRING linkTarget;
+            
+            fullPath = PH_AUTO(EtGetObjectFullPath(Context->CurrentPath, entry->Name));
 
-            objectContext.CurrentPath = EtGetSelectedTreeViewPath(Context);
-            objectContext.Object = entry;
-
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SYMBOLIC_LINK_QUERY, 0)))
+            if (!PhIsNullOrEmptyString(fullPath) &&
+                NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &fullPath->sr)))
             {
-                UNICODE_STRING targetName;
-                WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
-
-                RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
-                NTSTATUS status = NtQuerySymbolicLinkObject(objectHandle, &targetName, NULL);
-                NtClose(objectHandle);
-
-                if (NT_SUCCESS(status))
-                {
-                    entry->Target = PhCreateStringFromUnicodeString(&targetName);
-
-                    PhSetListViewSubItem(Context->ListViewHandle, index, 2, entry->Target->Buffer);
-                }
+                PhMoveReference(&entry->Target, linkTarget);
             }
-
-            PhDereferenceObject(objectContext.CurrentPath);
         }
         else if (entry->EtObjectType == EtObjectDevice ||       // allow resolving without driver for PhGetPnPDeviceName()
             entry->EtObjectType == EtObjectAlpcPort && useKsi ||
@@ -1002,8 +994,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
 }
 
 NTSTATUS EtEnumCurrentDirectoryObjects(
-    _In_ POBJECT_CONTEXT Context,
-    _In_ PH_STRINGREF DirectoryPath
+    _In_ POBJECT_CONTEXT Context
 )
 {
     NTSTATUS status;
@@ -1013,7 +1004,9 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     ULONG SortColumn;
     PH_SORT_ORDER SortOrder;
 
-    PhStringRefToUnicodeString(&DirectoryPath, &objectName);
+    Context->CurrentPath = EtGetSelectedTreeViewPath(Context);
+
+    PhStringRefToUnicodeString(&Context->CurrentPath->sr, &objectName);
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
@@ -1043,8 +1036,6 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     {
         PhShowStatus(Context->WindowHandle, L"Unable to query directory object.", status, 0);
     }
-
-    Context->CurrentPath = EtGetSelectedTreeViewPath(Context);
 
     WCHAR string[PH_INT32_STR_LEN_1];
     PhPrintUInt32(string, Context->CurrentDirectoryList->Count);
@@ -1164,7 +1155,7 @@ NTSTATUS EtDuplicateHandleFromProcessEx(
     return status;
 }
 
-NTSTATUS EtpGetObjectName(
+NTSTATUS EtGetObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* ObjectName
 )
@@ -1243,7 +1234,7 @@ NTSTATUS EtObjectManagerOpenHandle(
     if (PhIsNullOrEmptyString(Context->Object->TypeName))
         return STATUS_INVALID_PARAMETER;
 
-    if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Directory", TRUE))
+    if (PhEqualStringRef(&Context->Object->TypeName->sr, &DirectoryObjectType, TRUE))
     {
         PhStringRefToUnicodeString(&Context->CurrentPath->sr, &objectName);
         InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
@@ -1603,7 +1594,7 @@ NTSTATUS EtpObjectManagerOpenRealObject(
                 }
                 if (NT_SUCCESS(status))
                 {
-                    if (NT_SUCCESS(status = EtpGetObjectName(objectHandle, &ObjectName)))
+                    if (NT_SUCCESS(status = EtGetObjectName(objectHandle, &ObjectName)))
                     {
                         if (PhEqualString(ObjectName, fullName, TRUE))
                         {
@@ -1704,13 +1695,13 @@ INT NTAPI WinObjTriStateCompareFunction(
     return PhFindItemList(context->CurrentDirectoryList, Item1) - PhFindItemList(context->CurrentDirectoryList, Item2);
 }
 
-NTSTATUS EtpObjectManagerGetHandleInfoEx(
+NTSTATUS EtObjectManagerGetHandleInfoEx(
     _In_ HANDLE objectHandle,
     _Out_ PVOID* ObjectAddres,
     _Out_ PULONG TypeIndex
 )
 {
-    NTSTATUS status = STATUS_NOT_FOUND;
+    NTSTATUS status = STATUS_INVALID_HANDLE;
     PVOID buffer = NULL;
     ULONG i;
 
@@ -1774,7 +1765,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     objectContext.Object = entry;
 
     if (entry->EtObjectType == EtObjectDirectory)
-        objectContext.Object->TypeName = PhCreateString(L"Directory");
+        objectContext.Object->TypeName = PhCreateString2(&DirectoryObjectType);
 
     PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
@@ -1794,18 +1785,16 @@ VOID NTAPI EtpObjectManagerObjectProperties(
 
     handleItem = PhCreateHandleItem(&HandleInfo);
     handleItem->Handle = objectHandle;
-    handleItem->ObjectName = PhReferenceObject(entry->Name);
     EtObjectManagerTimeCached.QuadPart = 0;
 
     switch (entry->EtObjectType)
     {
-    case EtObjectDirectory:
-        entry->TypeName = objectContext.Object->TypeName;
-        handleItem->TypeName = entry->TypeName;
-        break;
-    default:
-        handleItem->TypeName = PhReferenceObject(entry->TypeName);
-        break;
+        case EtObjectDirectory:
+            handleItem->TypeName = entry->TypeName = objectContext.Object->TypeName;
+            break;
+        default:
+            handleItem->TypeName = PhReferenceObject(entry->TypeName);
+            break;
     }
 
     if (entry->EtObjectType == EtObjectDirectory)
@@ -1813,10 +1802,12 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     else
         handleItem->BestObjectName = EtGetObjectFullPath(context->CurrentPath, entry->Name);
 
+    handleItem->ObjectName = PhReferenceObject(handleItem->BestObjectName);
+
     if (objectHandle)
     {
         // Get object address and type index
-        EtpObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
+        EtObjectManagerGetHandleInfoEx(objectHandle, &handleItem->Object, &handleItem->TypeIndex);
 
         // Show only real source object address
         if (status == STATUS_NOT_ALL_ASSIGNED)
@@ -2058,7 +2049,7 @@ VOID NTAPI EtpObjectManagerRefresh(
     }
 
     // Reapply old selection
-    EtObjectManagerSortAndSelectOld(context, oldSelect);
+    EtpObjectManagerSortAndSelectOld(context, oldSelect);
 
     SendMessage(context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -2079,12 +2070,12 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
 
     switch (entry->EtObjectType)
     {
-    case EtObjectDirectory:
-        objectContext->Object->TypeName = PhCreateString(L"Directory");
-        break;
-    default:
-        objectContext->Object->TypeName = PhReferenceObject(entry->TypeName);
-        break;
+        case EtObjectDirectory:
+            objectContext->Object->TypeName = PhCreateString2(&DirectoryObjectType);
+            break;
+        default:
+            objectContext->Object->TypeName = PhReferenceObject(entry->TypeName);
+            break;
     }
 
     PhEditSecurity(
@@ -2138,7 +2129,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     }
 
     // Keep current sort and selection after apply new filter
-    EtObjectManagerSortAndSelectOld(context, oldSelect);
+    EtpObjectManagerSortAndSelectOld(context, oldSelect);
 
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
@@ -2147,7 +2138,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     PhSetWindowText(GetDlgItem(context->WindowHandle, IDC_OBJMGR_COUNT), string);
 }
 
-VOID NTAPI EtObjectManagerSortAndSelectOld(
+VOID NTAPI EtpObjectManagerSortAndSelectOld(
     _In_ POBJECT_CONTEXT context,
     _In_opt_ PPH_STRING oldSelection
     )
@@ -2188,21 +2179,7 @@ VOID NTAPI EtpObjectManagerChangeSelection(
     ListView_DeleteAllItems(context->ListViewHandle);
     EtObjectManagerFreeListViewItems(context);
 
-    if (context->SelectedTreeItem == context->RootTreeObject)
-    {
-        EtEnumCurrentDirectoryObjects(context, EtObjectManagerRootDirectoryObject);
-    }
-    else
-    {
-        PPH_STRING selectedPath = EtGetSelectedTreeViewPath(context);
-
-        EtEnumCurrentDirectoryObjects(
-            context,
-            PhGetStringRef(selectedPath)
-        );
-
-        PhDereferenceObject(selectedPath);
-    }
+    EtEnumCurrentDirectoryObjects(context);
 
     if (!context->DisableSelChanged)
         ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -2259,9 +2236,9 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhSetListViewStyle(context->ListViewHandle, TRUE, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
             ListView_SetImageList(context->ListViewHandle, context->ListImageList, LVSIL_SMALL);
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 445, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Type");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Target");
+            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_NAME, ETOBLVC_NAME, ETOBLVC_NAME, LVCFMT_LEFT, 445, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_TYPE, ETOBLVC_TYPE, ETOBLVC_TYPE, LVCFMT_LEFT, 150, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_TARGET, ETOBLVC_TARGET, ETOBLVC_TARGET, LVCFMT_LEFT, 200, L"Target");
             PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
 
             PH_INTEGER_PAIR sortSettings;
@@ -2380,12 +2357,12 @@ INT_PTR CALLBACK WinObjDlgProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDCANCEL:
-                DestroyWindow(hwndDlg);
-                break;
-            case IDC_REFRESH:
-                EtpObjectManagerRefresh(hwndDlg, context);
-                break;
+                case IDCANCEL:
+                    DestroyWindow(hwndDlg);
+                    break;
+                case IDC_REFRESH:
+                    EtpObjectManagerRefresh(hwndDlg, context);
+                    break;
             }
         }
         break;
@@ -2398,7 +2375,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             switch (header->code)
             {
             case TVN_SELCHANGED:
-                if (!context->DisableSelChanged && header->hwndFrom == context->TreeViewHandle)
+                if (!context->DisableSelChanged &&
+                    header->hwndFrom == context->TreeViewHandle)
                 {
                     EtpObjectManagerChangeSelection(context);
                 }
@@ -2407,10 +2385,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                 {
                     NMTVDISPINFO* dispInfo = (NMTVDISPINFO*)header;
 
-                    if (header->hwndFrom != context->TreeViewHandle)
-                        break;
-
-                    if (FlagOn(dispInfo->item.mask, TVIF_TEXT))
+                    if (header->hwndFrom == context->TreeViewHandle &&
+                        FlagOn(dispInfo->item.mask, TVIF_TEXT))
                     {
                         POBJECT_ITEM entry = (POBJECT_ITEM)dispInfo->item.lParam;
 
@@ -2419,53 +2395,46 @@ INT_PTR CALLBACK WinObjDlgProc(
                     }
                 }
                 break;
-
             case LVN_GETDISPINFO:
-            {
-                NMLVDISPINFO* dispInfo = (NMLVDISPINFO*)header;
-
-                if (header->hwndFrom != context->ListViewHandle)
-                    break;
-
-                if (FlagOn(dispInfo->item.mask, TVIF_TEXT))
                 {
-                    POBJECT_ENTRY entry = (POBJECT_ENTRY)dispInfo->item.lParam;
+                    NMLVDISPINFO* dispInfo = (NMLVDISPINFO*)header;
 
-                    switch (dispInfo->item.iSubItem)
+                    if (header->hwndFrom == context->ListViewHandle &&
+                        FlagOn(dispInfo->item.mask, TVIF_TEXT))
                     {
-                    case 0:
-                        dispInfo->item.pszText = PhGetString(entry->Name);
-                        break;
-                    case 1:
-                        dispInfo->item.pszText = PhGetString(entry->TypeName);
-                        break;
-                    case 2:
-                        dispInfo->item.pszText = !entry->TargetIsResolving ? PhGetString(entry->Target) : L"Resolving...";
-                        break;
+                        POBJECT_ENTRY entry = (POBJECT_ENTRY)dispInfo->item.lParam;
+
+                        switch (dispInfo->item.iSubItem)
+                        {
+                            case ETOBLVC_NAME:
+                                dispInfo->item.pszText = PhGetString(entry->Name);
+                                break;
+                            case ETOBLVC_TYPE:
+                                dispInfo->item.pszText = PhGetString(entry->TypeName);
+                                break;
+                            case ETOBLVC_TARGET:
+                                dispInfo->item.pszText = !entry->TargetIsResolving ? PhGetString(entry->Target) : L"Resolving...";
+                                break;
+                        }
                     }
                 }
-            }
-            break;
+                break;
             case LVN_ITEMCHANGED:
                 {
                     LPNMLISTVIEW info = (LPNMLISTVIEW)header;
 
-                    if (header->hwndFrom != context->ListViewHandle)
-                        break;
-
-                    if (info->uChanged & LVIF_STATE && info->uNewState & (LVIS_ACTIVATING | LVIS_FOCUSED))
+                    if (header->hwndFrom == context->ListViewHandle &&
+                        info->uChanged & LVIF_STATE && info->uNewState & (LVIS_ACTIVATING | LVIS_FOCUSED))
                     {
                         POBJECT_ENTRY entry = (POBJECT_ENTRY)info->lParam;
                         PPH_STRING fullPath;
 
-                        if (context->SelectedTreeItem != context->RootTreeObject)
-                            fullPath = PH_AUTO(PhConcatStringRef3(&context->CurrentPath->sr, &PhNtPathSeperatorString, &entry->Name->sr));
-                        else
-                            fullPath = PH_AUTO(PhConcatStringRef2(&context->CurrentPath->sr, &entry->Name->sr));
+                        fullPath = PH_AUTO(EtGetObjectFullPath(context->CurrentPath, entry->Name));
 
                         PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJMGR_PATH), PhGetString(fullPath));
                     }
                 }
+                break;
             case NM_SETCURSOR:
                 {
                     if (header->hwndFrom == context->TreeViewHandle)
@@ -2481,10 +2450,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                     LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
                     POBJECT_ENTRY entry;
 
-                    if (header->hwndFrom != context->ListViewHandle)
-                        break;
-
-                    if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                    if (header->hwndFrom == context->ListViewHandle &&
+                        (entry = PhGetSelectedListViewItemParam(context->ListViewHandle)))
                     {
                         if (GetKeyState(VK_CONTROL) < 0)
                         {

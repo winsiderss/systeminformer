@@ -1643,7 +1643,7 @@ VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     );
 
-NTSTATUS EtpGetObjectName(
+NTSTATUS EtGetObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* ObjectName
     );

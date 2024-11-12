@@ -1071,5 +1071,6 @@
 #define EXPORT_PHGETOBJECTTYPEINDEXNAME                                                       2049    
 #define EXPORT_PHGETPNPDEVICENAME                                                             2050    
 #define EXPORT_PHFILTERCONNECTCOMMUNICATIONPORT                                               2051    
+#define EXPORT_PHQUERYSYMBOLICLINKOBJECT                                                      2052    
 
 #endif _PH_EXPORT_DEF_H
