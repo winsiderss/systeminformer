@@ -30,8 +30,6 @@ KPHM_DEFINE_HANDLER(KphpCommsQueryInformationObject);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationObject);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDriver);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationDriver);
-KPHM_DEFINE_HANDLER(KphpCommsOpenDevice);
-KPHM_DEFINE_HANDLER(KphpCommsOpenObjectByTypeIndex);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
@@ -59,6 +57,9 @@ KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsStripProtectedProcessMasks);
 KPHM_DEFINE_HANDLER(KphpCommsQueryVirtualMemory);
 KPHM_DEFINE_HANDLER(KphpCommsQueryHashInformationFile);
+KPHM_DEFINE_HANDLER(KphpCommsOpenDevice);
+KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceDriver);
+KPHM_DEFINE_HANDLER(KphpCommsOpenDeviceBaseDevice);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -120,7 +121,8 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgQueryVirtualMemory,            KphpCommsQueryVirtualMemory,            KphpCommsQueryVirtualMemoryRequires },
 { KphMsgQueryHashInformationFile,      KphpCommsQueryHashInformationFile,      KphpCommsRequireMaximum },
 { KphMsgOpenDevice,                    KphpCommsOpenDevice,                    KphpCommsRequireMaximum },
-{ KphMsgOpenObjectByTypeIndex,         KphpCommsOpenObjectByTypeIndex,         KphpCommsRequireMaximum }
+{ KphMsgOpenDeviceDriver,              KphpCommsOpenDeviceDriver,              KphpCommsRequireMaximum },
+{ KphMsgOpenDeviceBaseDevice,          KphpCommsOpenDeviceBaseDevice,          KphpCommsRequireMaximum },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
@@ -705,61 +707,6 @@ NTSTATUS KSIAPI KphpCommsQueryInformationDriver(
                                             msg->DriverInformationLength,
                                             msg->ReturnLength,
                                             UserMode);
-
-    return STATUS_SUCCESS;
-}
-
-_Function_class_(KPHM_HANDLER)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsOpenDevice(
-    _In_ PKPH_CLIENT Client,
-    _Inout_ PKPH_MESSAGE Message
-)
-{
-    PKPHM_OPEN_DEVICE msg;
-
-    KPH_PAGED_CODE_PASSIVE();
-    NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgOpenDevice);
-
-    UNREFERENCED_PARAMETER(Client);
-
-    msg = &Message->User.OpenDevice;
-
-    msg->Status = KphOpenDevice(msg->DeviceHandle,
-        msg->DriverHandle,
-        msg->DesiredAccess,
-        msg->ObjectName,
-        msg->OpenLowest,
-        UserMode);
-
-    return STATUS_SUCCESS;
-}
-
-_Function_class_(KPHM_HANDLER)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsOpenObjectByTypeIndex(
-    _In_ PKPH_CLIENT Client,
-    _Inout_ PKPH_MESSAGE Message
-)
-{
-    PKPHM_OPEN_OBJECT msg;
-
-    KPH_PAGED_CODE_PASSIVE();
-    NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgOpenObjectByTypeIndex);
-
-    UNREFERENCED_PARAMETER(Client);
-
-    msg = &Message->User.OpenObject;
-
-    msg->Status = KphOpenObjectByTypeIndex(msg->ObjectHandle,
-        msg->DesiredAccess,
-        msg->ObjectAttributes,
-        msg->TypeIndex,
-        UserMode);
 
     return STATUS_SUCCESS;
 }
@@ -1631,6 +1578,84 @@ NTSTATUS KSIAPI KphpCommsQueryHashInformationFile(
                                               msg->HashingInformation,
                                               msg->HashingInformationLength,
                                               UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsOpenDevice(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_OPEN_DEVICE msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgOpenDevice);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.OpenDevice;
+
+    msg->Status = KphOpenDevice(msg->DeviceHandle,
+                                msg->DesiredAccess,
+                                msg->ObjectAttributes,
+                                UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsOpenDeviceDriver(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_OPEN_DEVICE_DRIVER msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgOpenDeviceDriver);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.OpenDeviceDriver;
+
+    msg->Status = KphOpenDeviceDriver(msg->DeviceHandle,
+                                      msg->DesiredAccess,
+                                      msg->DriverHandle,
+                                      UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsOpenDeviceBaseDevice(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_OPEN_DEVICE_BASE_DEVICE msg;
+
+    KPH_PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgOpenDeviceBaseDevice);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.OpenDeviceBaseDevice;
+
+    msg->Status = KphOpenDeviceBaseDevice(msg->DeviceHandle,
+                                          msg->DesiredAccess,
+                                          msg->BaseDeviceHandle,
+                                          UserMode);
 
     return STATUS_SUCCESS;
 }

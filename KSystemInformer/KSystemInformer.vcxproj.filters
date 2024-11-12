@@ -30,7 +30,7 @@
     <ClCompile Include="process.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="qrydrv.c">
+    <ClCompile Include="driver.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="thread.c">
@@ -124,6 +124,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="imgcoherency.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="device.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

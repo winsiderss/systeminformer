@@ -559,7 +559,6 @@ extern PSE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK KphSeUnregisterImageVerificati
 extern PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject;
 extern PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo;
 extern PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent;
-extern POBJECT_TYPE* KphDynObTypeIndexTable;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
@@ -787,16 +786,6 @@ NTSTATUS KphCompareObjects(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphOpenObjectByTypeIndex(
-    _Out_ PHANDLE ObjectHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG TypeIndex,
-    _In_ KPROCESSOR_MODE AccessMode
-);
-
 // process
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -855,7 +844,7 @@ NTSTATUS KphSetInformationProcess(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-// qrydrv
+// driver
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -877,14 +866,31 @@ NTSTATUS KphQueryInformationDriver(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+// device
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphOpenDevice(
     _Out_ PHANDLE DeviceHandle,
-    _Out_opt_ PHANDLE DriverHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PUNICODE_STRING ObjectName,
-    _In_ BOOLEAN OpenLowest,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenDeviceDriver(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE DriverHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphOpenDeviceBaseDevice(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE BaseDeviceHandle,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
@@ -1265,6 +1271,18 @@ NTSTATUS KphImageNtHeader(
     _In_ PVOID Base,
     _In_ ULONG64 Size,
     _Out_ PKPH_IMAGE_NT_HEADERS Headers
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureUnicodeString(
+    _In_ PUNICODE_STRING UnicodeString,
+    _Out_ PUNICODE_STRING* CapturedUnicodeString
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphReleaseUnicodeString(
+    _In_ PUNICODE_STRING UnicodeString
     );
 
 // lsa

@@ -631,6 +631,33 @@ KsiQueryHashInformationFile(
     _In_ ULONG HashInformationLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphOpenDeviceDriver(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE DriverHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphOpenDeviceBaseDevice(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE BaseDeviceHandle
+    );
+
 EXTERN_C_END
 
 #endif

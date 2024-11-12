@@ -1798,6 +1798,26 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
 #define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
 
+NTKERNELAPI
+NTSTATUS
+NTAPI
+SeCaptureSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR OriginalSecurityDescriptor,
+    _In_ KPROCESSOR_MODE CurrentMode,
+    _In_ POOL_TYPE PoolType,
+    _In_ BOOLEAN CaptureIfKernel,
+    _Out_ PSECURITY_DESCRIPTOR *CapturedSecurityDescriptor
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+SeReleaseSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR CapturedSecurityDescriptor,
+    _In_ KPROCESSOR_MODE CurrentMode,
+    _In_ BOOLEAN CaptureIfKernelMode
+    );
+
 #if (NTDDI_VERSION >= NTDDI_WINBLUE)
 NTKERNELAPI
 NTSTATUS
