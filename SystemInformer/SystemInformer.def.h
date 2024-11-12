@@ -1060,17 +1060,17 @@
 #define EXPORT_KSIQUERYHASHINFORMATIONFILE                                                    2038    
 #define EXPORT_KPHQUERYINFORMATIONOBJECT                                                      2040   
 #define EXPORT_KPHALPCQUERYINFORMATION                                                        2041 
-#define EXPORT_KPHDUPLICATEOBJECT                                                             2042 
-#define EXPORT_PHGETDRIVERNAME                                                                2043    
-#define EXPORT_PHGETDRIVERIMAGEFILENAME                                                       2044    
-#define EXPORT_PHENUMHANDLESEX                                                                2045    
-#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2046    
-#define EXPORT_PHOPENDEVICE                                                                   2047    
-#define EXPORT_PHOPENDEVICE                                                                   2047    
-#define EXPORT_PHOPENOBJECTBYTYPEINDEX                                                        2048    
-#define EXPORT_PHGETOBJECTTYPEINDEXNAME                                                       2049    
-#define EXPORT_PHGETPNPDEVICENAME                                                             2050    
-#define EXPORT_PHFILTERCONNECTCOMMUNICATIONPORT                                               2051    
-#define EXPORT_PHQUERYSYMBOLICLINKOBJECT                                                      2052    
+#define EXPORT_KPHDUPLICATEOBJECT                                                             2042   
+#define EXPORT_KPHOPENDEVICE                                                                  2043 
+#define EXPORT_KPHOPENDEVICEDRIVER                                                            2044 
+#define EXPORT_KPHOPENDEVICEBASEDEVICE                                                        2045 
+#define EXPORT_PHGETDRIVERNAME                                                                2046    
+#define EXPORT_PHGETDRIVERIMAGEFILENAME                                                       2047    
+#define EXPORT_PHENUMHANDLESEX                                                                2048    
+#define EXPORT_PHGETOBJECTTYPENUMBER                                                          2049     
+#define EXPORT_PHGETOBJECTTYPEINDEXNAME                                                       2050    
+#define EXPORT_PHGETPNPDEVICENAME                                                             2051    
+#define EXPORT_PHFILTERCONNECTCOMMUNICATIONPORT                                               2052    
+#define EXPORT_PHQUERYSYMBOLICLINKOBJECT                                                      2053    
 
 #endif _PH_EXPORT_DEF_H

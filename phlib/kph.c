@@ -1038,66 +1038,6 @@ NTSTATUS KphQueryInformationDriver(
     return status;
 }
 
-NTSTATUS KphOpenDevice(
-    _Out_ PHANDLE DeviceHandle,
-    _Out_opt_ PHANDLE DriverHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ PUNICODE_STRING ObjectName,
-    _In_ BOOLEAN OpenLowest
-)
-{
-    NTSTATUS status;
-    PKPH_MESSAGE msg;
-
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenDevice);
-    msg->User.OpenDevice.DeviceHandle = DeviceHandle;
-    msg->User.OpenDevice.DriverHandle = DriverHandle;
-    msg->User.OpenDevice.DesiredAccess = DesiredAccess;
-    msg->User.OpenDevice.ObjectName = ObjectName;
-    msg->User.OpenDevice.OpenLowest = OpenLowest;
-    status = KphCommsSendMessage(msg);
-
-    if (NT_SUCCESS(status))
-    {
-        status = msg->User.OpenDevice.Status;
-    }
-
-    PhFreeToFreeList(&KphMessageFreeList, msg);
-    return status;
-}
-
-NTSTATUS KphOpenObjectByTypeIndex(
-    _Out_ PHANDLE ObjectHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG TypeIndex
-)
-{
-    NTSTATUS status;
-    PKPH_MESSAGE msg;
-
-    KSI_COMMS_INIT_ASSERT();
-
-    msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgOpenObjectByTypeIndex);
-    msg->User.OpenObject.ObjectHandle = ObjectHandle;
-    msg->User.OpenObject.DesiredAccess = DesiredAccess;
-    msg->User.OpenObject.ObjectAttributes = ObjectAttributes;
-    msg->User.OpenObject.TypeIndex = TypeIndex;
-    status = KphCommsSendMessage(msg);
-
-    if (NT_SUCCESS(status))
-    {
-        status = msg->User.OpenObject.Status;
-    }
-
-    PhFreeToFreeList(&KphMessageFreeList, msg);
-    return status;
-}
-
 NTSTATUS KphQueryInformationProcess(
     _In_ HANDLE ProcessHandle,
     _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,

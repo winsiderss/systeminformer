@@ -2374,62 +2374,6 @@ Exit:
 }
 
 /**
- * \brief Opens a named object by its type index from nt!ObTypeIndexTable.
- *
- * \param[out] ObjectHandle Set to the opened handle.
- * \param[in] DesiredAccess Desires access to the object.
- * \param[in] ObjectAttributes Attributes to open the object.
- * \param[in] TypeIndex Type index of object to open.
- * \param[in] AccessMode The mode in which to perform access checks.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphOpenObjectByTypeIndex(
-    _Out_ PHANDLE ObjectHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG TypeIndex,
-    _In_ KPROCESSOR_MODE AccessMode
-)
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    if (!KphDynObTypeIndexTable)
-    {
-        return STATUS_NOINTERFACE;
-    }
-
-    if (AccessMode != KernelMode)
-    {
-        OBJECT_TYPES_INFORMATION typesInfo = { 0 };
-
-        if (ZwQueryObject(NULL,
-            ObjectTypesInformation,
-            &typesInfo,
-            sizeof(typesInfo),
-            NULL) == STATUS_INFO_LENGTH_MISMATCH)
-        {
-            if (TypeIndex < 2 || TypeIndex > typesInfo.NumberOfTypes)
-            {
-                return STATUS_INVALID_PARAMETER;
-            }
-        }
-        else
-        {
-            return STATUS_UNSUCCESSFUL;
-        }
-    }
-
-    return KphOpenNamedObject(ObjectHandle,
-                              DesiredAccess,
-                              ObjectAttributes,
-                              KphDynObTypeIndexTable[TypeIndex],
-                              AccessMode);
-}
-
-/**
  * \brief Duplicates an object.
  *
  * \param[in] ProcessHandle Handle to process where the source handle exists.

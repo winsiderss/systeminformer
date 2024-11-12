@@ -796,33 +796,39 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     {
     case EtObjectDevice:
         {
-            HANDLE DriverHandle;
+            HANDLE deviceObject;
+            HANDLE deviceBaseObject;
+            HANDLE driverObject;
             PPH_STRING deviceName;
             PPH_STRING driverNameLow = NULL;
             PPH_STRING driverNameUp = NULL;
+            OBJECT_ATTRIBUTES objectAttributes;
+            UNICODE_STRING objectName;
 
             deviceName = EtGetObjectFullPath(objectContext.CurrentPath, entry->Name);
 
-            if (NT_SUCCESS(status = PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &deviceName->sr, TRUE)))
+            PhStringRefToUnicodeString(&deviceName->sr, &objectName);
+            InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+            if (NT_SUCCESS(KphOpenDevice(&deviceObject, READ_CONTROL, &objectAttributes)))
             {
-                if (DriverHandle)
+                if (NT_SUCCESS(KphOpenDeviceDriver(deviceObject, READ_CONTROL, &driverObject)))
                 {
-                    PhGetDriverName(DriverHandle, &driverNameLow);
-
-                    NtClose(DriverHandle);
+                    PhGetDriverName(driverObject, &driverNameUp);
+                    NtClose(driverObject);
                 }
-                NtClose(objectHandle);
-            }
 
-            if (NT_SUCCESS(status) && NT_SUCCESS(status = PhOpenDevice(&objectHandle, &DriverHandle, READ_CONTROL, &deviceName->sr, FALSE)))
-            {
-                if (DriverHandle)
+                if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceObject, READ_CONTROL, &deviceBaseObject)))
                 {
-                    PhGetDriverName(DriverHandle, &driverNameUp);
-
-                    NtClose(DriverHandle);
+                    if (NT_SUCCESS(KphOpenDeviceDriver(deviceBaseObject, READ_CONTROL, &driverObject)))
+                    {
+                        PhGetDriverName(driverObject, &driverNameLow);
+                        NtClose(driverObject);
+                    }
+                    NtClose(deviceBaseObject);
                 }
-                NtClose(objectHandle);
+
+                NtClose(deviceObject);
             }
 
             if (driverNameLow && driverNameUp)
@@ -848,14 +854,17 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
             // The device might be a PDO... Query the PnP manager for the friendly name of the device.
             if (!entry->Target)
             {
-                PPH_STRING devicePdoName = PH_AUTO(PhGetPnPDeviceName(deviceName));
-                if (devicePdoName)
+                PPH_STRING devicePdoName;
+                PPH_STRING devicePdoName2;
+
+                if (devicePdoName = PhGetPnPDeviceName(deviceName))
                 {
                     ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
-                    PPH_STRING devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos+1);
+                    devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
                     devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
                     PhMoveReference(&entry->Target, devicePdoName2);
                     entry->PdoDevice = TRUE;
+                    PhDereferenceObject(devicePdoName);
                 }
             }
 
@@ -1013,7 +1022,7 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
-    );
+        );
 
     status = NtOpenDirectoryObject(
         &directoryHandle,
@@ -1346,12 +1355,26 @@ NTSTATUS EtObjectManagerOpenHandle(
     }
     else if (PhEqualString2(Context->Object->TypeName, L"Device", TRUE))
     {
-        PPH_STRING deviceName;
+        HANDLE deviceObject;
+        HANDLE deviceBaseObject;
 
-        deviceName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
-
-        if (!NT_SUCCESS(status = PhOpenDevice(Handle, NULL, DesiredAccess, &deviceName->sr, TRUE)))
+        if (NT_SUCCESS(status = KphOpenDevice(&deviceObject, DesiredAccess, &objectAttributes)))
         {
+            if (NT_SUCCESS(status = KphOpenDeviceBaseDevice(deviceObject, DesiredAccess, &deviceBaseObject)))
+            {
+                *Handle = deviceBaseObject;
+                NtClose(deviceObject);
+            }
+            else
+            {
+                *Handle = deviceObject;
+            }
+        }
+        else
+        {
+            PPH_STRING deviceName;
+            deviceName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+
             if (NT_SUCCESS(status = PhCreateFile(
                 Handle,
                 &deviceName->sr,
@@ -1364,8 +1387,8 @@ NTSTATUS EtObjectManagerOpenHandle(
             {
                 status = STATUS_NOT_ALL_ASSIGNED;
             }
+            PhDereferenceObject(deviceName);
         }
-        PhDereferenceObject(deviceName);
     }
     else if (PhEqualString2(Context->Object->TypeName, L"Driver", TRUE))
     {
@@ -1460,28 +1483,30 @@ NTSTATUS EtObjectManagerOpenHandle(
     {
         if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
         {
+#if 0 // TODO enable this on the next driver release
+            PPH_STRING clientName;
+            HANDLE portHandle;
+
+            clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+            PhStringRefToUnicodeString(&clientName->sr, &objectName);
+
+            if (NT_SUCCESS(status = PhFilterConnectCommunicationPort(
+                &clientName->sr,
+                0,
+                NULL,
+                0,
+                NULL,
+                &portHandle
+                )))
+            {
+                *Handle = portHandle;
+                status = STATUS_NOT_ALL_ASSIGNED;
+            }
+
+            PhDereferenceObject(clientName);
+#else
             return STATUS_NOINTERFACE;
-
-            //PPH_STRING clientName;
-            //HANDLE portHandle;
-
-            //clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
-            //PhStringRefToUnicodeString(&clientName->sr, &objectName);
-
-            //if (NT_SUCCESS(status = PhFilterConnectCommunicationPort(
-            //    &clientName->sr,
-            //    0,
-            //    NULL,
-            //    0,
-            //    NULL,
-            //    &portHandle
-            //    )))
-            //{
-            //    *Handle = portHandle;
-            //    status = STATUS_NOT_ALL_ASSIGNED;
-            //}
-
-            //PhDereferenceObject(clientName);
+#endif
         }
     }
     else if (PhEqualString2(Context->Object->TypeName, L"Partition", TRUE))
@@ -1524,11 +1549,13 @@ NTSTATUS EtObjectManagerOpenHandle(
             status = NtOpenCpuPartition_I(Handle, DesiredAccess, &objectAttributes);
         }
     }
+#if 0 // TODO enable this on the next driver release
     // Callback, Type (and almost any object type except ALPC Port and Device)
     else
     {
-        status = PhOpenObjectByTypeIndex(Handle, DesiredAccess, &objectAttributes, PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName)));
+        status = KphOpenObjectByTypeIndex(Handle, DesiredAccess, &objectAttributes, PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName)));
     }
+#endif
 
     NtClose(directoryHandle);
 

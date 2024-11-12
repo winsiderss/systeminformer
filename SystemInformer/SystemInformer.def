@@ -1128,15 +1128,16 @@ EXPORTS
     KphQueryInformationObject                                                     @2040     NONAME
     KphAlpcQueryInformation                                                       @2041     NONAME
     KphDuplicateObject                                                            @2042     NONAME
+    KphOpenDevice                                                                 @2043     NONAME
+    KphOpenDeviceDriver                                                           @2044     NONAME
+    KphOpenDeviceBaseDevice                                                       @2045     NONAME
 
 ; phnative
-    PhGetDriverName                                                               @2043     NONAME
-    PhGetDriverImageFileName                                                      @2044     NONAME
-    PhEnumHandlesEx                                                               @2045     NONAME
-    PhGetObjectTypeNumber                                                         @2046     NONAME
-    PhOpenDevice                                                                  @2047     NONAME
-    PhOpenObjectByTypeIndex                                                       @2048     NONAME
-    PhGetObjectTypeIndexName                                                      @2049     NONAME
-    PhGetPnPDeviceName                                                            @2050     NONAME
-    PhFilterConnectCommunicationPort                                              @2051     NONAME
-    PhQuerySymbolicLinkObject                                                     @2052     NONAME
+    PhGetDriverName                                                               @2046     NONAME
+    PhGetDriverImageFileName                                                      @2047     NONAME
+    PhEnumHandlesEx                                                               @2048     NONAME
+    PhGetObjectTypeNumber                                                         @2049     NONAME
+    PhGetObjectTypeIndexName                                                      @2050     NONAME
+    PhGetPnPDeviceName                                                            @2051     NONAME
+    PhFilterConnectCommunicationPort                                              @2052     NONAME
+    PhQuerySymbolicLinkObject                                                     @2053     NONAME

@@ -1513,27 +1513,6 @@ PhUnloadDriver(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhOpenDevice(
-    _Out_ PHANDLE DeviceHandle,
-    _Out_opt_ PHANDLE DriverHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ PPH_STRINGREF ObjectName,
-    _In_ BOOLEAN OpenLowest
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhOpenObjectByTypeIndex(
-    _Out_ PHANDLE ObjectHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG TypeIndex
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhFilterConnectCommunicationPort(
     _In_ PPH_STRINGREF PortName,
     _In_ ULONG Options,

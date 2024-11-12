@@ -130,6 +130,8 @@
 #define IDC_OBJ_HANDLESBYNAME           1131
 #define IDC_OBJ_HANDLESBYNAME_L         1132
 #define IDC_GOTODRIVER2                 1133
+#define IDC_HANDLE_PROTECTED            1134
+#define IDC_HANDLE_INHERIT              1135
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
