@@ -15,7 +15,6 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <mapldr.h>
-#include <fltuser.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
@@ -5894,118 +5893,6 @@ NTSTATUS PhUnloadDriver(
 
     status = PhpUnloadDriver(serviceKeyName);
     PhDereferenceObject(serviceKeyName);
-
-    return status;
-}
-
-/**
- * \brief Wrapper which is essentially FilterConnectCommunicationPort.
- *
- * \param[in] PortName Name of filter port to connect to.
- * \param[in] Options Filter port options.
- * \param[in] ConnectionContext Connection context.
- * \param[in] SizeOfContext Size of connection context.
- * \param[in] SecurityAttributes Security attributes for handle.
- * \param[out] Port Set to filter port handle on success, null on failure.
- *
- * \return Successful or errant status.
- */
-_Must_inspect_result_
-NTSTATUS PhFilterConnectCommunicationPort(
-    _In_ PPH_STRINGREF PortName,
-    _In_ ULONG Options,
-    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
-    _In_ USHORT SizeOfContext,
-    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
-    _Outptr_ HANDLE* Port
-    )
-{
-    NTSTATUS status;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
-    UNICODE_STRING portName;
-    UNICODE_STRING64 portName64;
-    ULONG eaLength;
-    PFILE_FULL_EA_INFORMATION ea;
-    PFLT_CONNECT_CONTEXT eaValue;
-    IO_STATUS_BLOCK isb;
-
-    *Port = NULL;
-
-    if ((SizeOfContext > 0 && !ConnectionContext) ||
-        (SizeOfContext == 0 && ConnectionContext))
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    if (SizeOfContext >= FLT_PORT_CONTEXT_MAX)
-        return STATUS_INTEGER_OVERFLOW;
-
-    if (!PhStringRefToUnicodeString(PortName, &portName))
-        return STATUS_NAME_TOO_LONG;
-
-    portName64.Buffer = (ULONGLONG)portName.Buffer;
-    portName64.Length = portName.Length;
-    portName64.MaximumLength = portName.MaximumLength;
-
-    //
-    // Build the filter EA, this contains the port name and the context.
-    //
-
-    eaLength = FLT_PORT_FULL_EA_SIZE
-        + FLT_PORT_FULL_EA_VALUE_SIZE
-        + SizeOfContext;
-
-    ea = PhAllocateZeroSafe(eaLength);
-    if (!ea)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    ea->Flags = 0;
-    ea->EaNameLength = sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
-    ea->EaValueLength = FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext;
-    RtlCopyMemory(ea->EaName, FLT_PORT_EA_NAME, sizeof(FLT_PORT_EA_NAME));
-    eaValue = PTR_ADD_OFFSET(ea->EaName, sizeof(FLT_PORT_EA_NAME));
-    eaValue->PortName = &portName;
-    eaValue->PortName64 = &portName64;
-    eaValue->SizeOfContext = SizeOfContext;
-
-    if (SizeOfContext > 0)
-    {
-        RtlCopyMemory(eaValue->Context,
-            ConnectionContext,
-            SizeOfContext);
-    }
-
-    RtlInitUnicodeString(&objectName, FLT_MSG_DEVICE_NAME);
-    InitializeObjectAttributes(&objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
-        NULL,
-        NULL);
-    if (SecurityAttributes)
-    {
-        if (SecurityAttributes->bInheritHandle)
-        {
-            objectAttributes.Attributes |= OBJ_INHERIT;
-        }
-        objectAttributes.SecurityDescriptor = SecurityAttributes->lpSecurityDescriptor;
-    }
-
-    status = NtCreateFile(Port,
-        FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-        &objectAttributes,
-        &isb,
-        NULL,
-        0,
-        0,
-        FILE_OPEN_IF,
-        Options & FLT_PORT_FLAG_SYNC_HANDLE ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
-        ea,
-        eaLength);
-
-    PhFree(ea);
 
     return status;
 }

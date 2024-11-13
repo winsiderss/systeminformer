@@ -163,7 +163,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     _In_opt_ PVOID Context
     );
 
-NTSTATUS EtpObjectManagerOpenRealObject(
+NTSTATUS EtObjectManagerOpenRealObject(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess,
@@ -527,7 +527,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
     {
         INT index;
         POBJECT_ENTRY entry;
-        BOOLEAN useKsi = KsiLevel() >= KphLevelMed;;
+        BOOLEAN useKsi = KsiLevel() >= KphLevelMed;
 
         entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
         entry->Name = PhCreateString2(Name);
@@ -794,200 +794,203 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
 
     switch (entry->EtObjectType)
     {
-    case EtObjectDevice:
-        {
-            HANDLE deviceObject;
-            HANDLE deviceBaseObject;
-            HANDLE driverObject;
-            PPH_STRING deviceName;
-            PPH_STRING driverNameLow = NULL;
-            PPH_STRING driverNameUp = NULL;
-            OBJECT_ATTRIBUTES objectAttributes;
-            UNICODE_STRING objectName;
-
-            deviceName = EtGetObjectFullPath(objectContext.CurrentPath, entry->Name);
-
-            PhStringRefToUnicodeString(&deviceName->sr, &objectName);
-            InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-            if (NT_SUCCESS(KphOpenDevice(&deviceObject, READ_CONTROL, &objectAttributes)))
+        case EtObjectDevice:
             {
-                if (NT_SUCCESS(KphOpenDeviceDriver(deviceObject, READ_CONTROL, &driverObject)))
-                {
-                    PhGetDriverName(driverObject, &driverNameUp);
-                    NtClose(driverObject);
-                }
+                HANDLE deviceObject;
+                HANDLE deviceBaseObject;
+                HANDLE driverObject;
+                PPH_STRING deviceName;
+                PPH_STRING driverNameLow = NULL;
+                PPH_STRING driverNameUp = NULL;
+                OBJECT_ATTRIBUTES objectAttributes;
+                UNICODE_STRING objectName;
 
-                if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceObject, READ_CONTROL, &deviceBaseObject)))
+                deviceName = EtGetObjectFullPath(objectContext.CurrentPath, entry->Name);
+
+                if (KsiLevel() == KphLevelMax)
                 {
-                    if (NT_SUCCESS(KphOpenDeviceDriver(deviceBaseObject, READ_CONTROL, &driverObject)))
+                    PhStringRefToUnicodeString(&deviceName->sr, &objectName);
+                    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+                    if (NT_SUCCESS(KphOpenDevice(&deviceObject, READ_CONTROL, &objectAttributes)))
                     {
-                        PhGetDriverName(driverObject, &driverNameLow);
-                        NtClose(driverObject);
-                    }
-                    NtClose(deviceBaseObject);
-                }
-
-                NtClose(deviceObject);
-            }
-
-            if (driverNameLow && driverNameUp)
-            {
-                if (!PhEqualString(driverNameLow, driverNameUp, TRUE))
-                    PhMoveReference(&entry->Target, PhFormatString(L"%s → %s", PhGetString(driverNameUp), PhGetString(driverNameLow)));
-                else
-                    PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
-                PhMoveReference(&entry->TargetDrvLow, driverNameLow);
-                PhMoveReference(&entry->TargetDrvUp, driverNameUp);
-            }
-            else if (driverNameLow)
-            {
-                PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
-                PhMoveReference(&entry->TargetDrvLow, driverNameLow);
-            }
-            else if (driverNameUp)
-            {
-                PhMoveReference(&entry->Target, PhReferenceObject(driverNameUp));
-                PhMoveReference(&entry->TargetDrvUp, driverNameUp);
-            }
-
-            // The device might be a PDO... Query the PnP manager for the friendly name of the device.
-            if (!entry->Target)
-            {
-                PPH_STRING devicePdoName;
-                PPH_STRING devicePdoName2;
-
-                if (devicePdoName = PhGetPnPDeviceName(deviceName))
-                {
-                    ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
-                    devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
-                    devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
-                    PhMoveReference(&entry->Target, devicePdoName2);
-                    entry->PdoDevice = TRUE;
-                    PhDereferenceObject(devicePdoName);
-                }
-            }
-
-            PhDereferenceObject(deviceName);
-        }
-        break;
-    case EtObjectAlpcPort:
-        {
-            // Using fast connect to port since we only need query connection OwnerProcessId
-            if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
-            {
-                // On failure try to open real (rare)
-                status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALPCPORT);
-            }
-            if (NT_SUCCESS(status))
-            {
-                KPH_ALPC_COMMUNICATION_INFORMATION connectionInfo;
-
-                if (NT_SUCCESS(status = KphAlpcQueryInformation(
-                    NtCurrentProcess(),
-                    objectHandle,
-                    KphAlpcCommunicationInformation,
-                    &connectionInfo,
-                    sizeof(connectionInfo),
-                    NULL
-                )))
-                {
-                    CLIENT_ID clientId;
-
-                    if (connectionInfo.ConnectionPort.OwnerProcessId)
-                    {
-                        clientId.UniqueProcess = connectionInfo.ConnectionPort.OwnerProcessId;
-                        clientId.UniqueThread = 0;
-
-                        PhMoveReference(&entry->Target, PhStdGetClientIdName(&clientId));
-
-                        entry->TargetClientId.UniqueProcess = clientId.UniqueProcess;
-                        entry->TargetClientId.UniqueThread = clientId.UniqueThread;
-                    }
-                }
-
-                NtClose(objectHandle);
-            }
-        }
-        break;
-    case EtObjectMutant:
-        {
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, 0)))
-            {
-                MUTANT_OWNER_INFORMATION ownerInfo;
-
-                if (NT_SUCCESS(status = PhGetMutantOwnerInformation(objectHandle, &ownerInfo)))
-                {
-                    if (ownerInfo.ClientId.UniqueProcess)
-                    {
-                        PhMoveReference(&entry->Target, PhGetClientIdName(&ownerInfo.ClientId));
-
-                        entry->TargetClientId.UniqueProcess = ownerInfo.ClientId.UniqueProcess;
-                        entry->TargetClientId.UniqueThread = ownerInfo.ClientId.UniqueThread;
-                    }
-                }
-
-                NtClose(objectHandle);
-            }
-        }
-        break;
-    case EtObjectJob:
-        {
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY, 0)))
-            {
-                PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
-
-                if (NT_SUCCESS(PhGetJobProcessIdList(objectHandle, &processIdList)))
-                {
-                    PH_STRING_BUILDER sb;
-                    ULONG i;
-                    CLIENT_ID clientId;
-                    PPH_STRING name;
-
-                    PhInitializeStringBuilder(&sb, 40);
-                    clientId.UniqueThread = NULL;
-
-                    for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
-                    {
-                        clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
-                        name = PhGetClientIdName(&clientId);
-
-                        if (name)
+                        if (NT_SUCCESS(KphOpenDeviceDriver(deviceObject, READ_CONTROL, &driverObject)))
                         {
-                            PhAppendStringBuilder(&sb, &name->sr);
-                            PhAppendStringBuilder2(&sb, L"; ");
-                            PhDereferenceObject(name);
+                            PhGetDriverName(driverObject, &driverNameUp);
+                            NtClose(driverObject);
+                        }
+
+                        if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceObject, READ_CONTROL, &deviceBaseObject)))
+                        {
+                            if (NT_SUCCESS(KphOpenDeviceDriver(deviceBaseObject, READ_CONTROL, &driverObject)))
+                            {
+                                PhGetDriverName(driverObject, &driverNameLow);
+                                NtClose(driverObject);
+                            }
+                            NtClose(deviceBaseObject);
+                        }
+
+                        NtClose(deviceObject);
+                    }
+
+                    if (driverNameLow && driverNameUp)
+                    {
+                        if (!PhEqualString(driverNameLow, driverNameUp, TRUE))
+                            PhMoveReference(&entry->Target, PhFormatString(L"%s → %s", PhGetString(driverNameUp), PhGetString(driverNameLow)));
+                        else
+                            PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
+                        PhMoveReference(&entry->TargetDrvLow, driverNameLow);
+                        PhMoveReference(&entry->TargetDrvUp, driverNameUp);
+                    }
+                    else if (driverNameLow)
+                    {
+                        PhMoveReference(&entry->Target, PhReferenceObject(driverNameLow));
+                        PhMoveReference(&entry->TargetDrvLow, driverNameLow);
+                    }
+                    else if (driverNameUp)
+                    {
+                        PhMoveReference(&entry->Target, PhReferenceObject(driverNameUp));
+                        PhMoveReference(&entry->TargetDrvUp, driverNameUp);
+                    }
+                }
+
+                // The device might be a PDO... Query the PnP manager for the friendly name of the device.
+                if (!entry->Target)
+                {
+                    PPH_STRING devicePdoName;
+                    PPH_STRING devicePdoName2;
+
+                    if (devicePdoName = PhGetPnPDeviceName(deviceName))
+                    {
+                        ULONG_PTR column_pos = PhFindLastCharInString(devicePdoName, 0, L':');
+                        devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
+                        devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
+                        PhMoveReference(&entry->Target, devicePdoName2);
+                        entry->PdoDevice = TRUE;
+                        PhDereferenceObject(devicePdoName);
+                    }
+                }
+
+                PhDereferenceObject(deviceName);
+            }
+            break;
+        case EtObjectAlpcPort:
+            {
+                // Using fast connect to port since we only need query connection OwnerProcessId
+                if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
+                {
+                    // On failure try to open real (rare)
+                    status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALPCPORT);
+                }
+                if (NT_SUCCESS(status))
+                {
+                    KPH_ALPC_COMMUNICATION_INFORMATION connectionInfo;
+
+                    if (NT_SUCCESS(status = KphAlpcQueryInformation(
+                        NtCurrentProcess(),
+                        objectHandle,
+                        KphAlpcCommunicationInformation,
+                        &connectionInfo,
+                        sizeof(connectionInfo),
+                        NULL
+                    )))
+                    {
+                        CLIENT_ID clientId;
+
+                        if (connectionInfo.ConnectionPort.OwnerProcessId)
+                        {
+                            clientId.UniqueProcess = connectionInfo.ConnectionPort.OwnerProcessId;
+                            clientId.UniqueThread = 0;
+
+                            PhMoveReference(&entry->Target, PhStdGetClientIdName(&clientId));
+
+                            entry->TargetClientId.UniqueProcess = clientId.UniqueProcess;
+                            entry->TargetClientId.UniqueThread = clientId.UniqueThread;
                         }
                     }
 
-                    PhFree(processIdList);
-
-                    if (sb.String->Length != 0)
-                        PhRemoveEndStringBuilder(&sb, 2);
-
-                    if (sb.String->Length == 0)
-                        PhAppendStringBuilder2(&sb, L"(No processes)");
-
-                    PhMoveReference(&entry->Target, PhFinalStringBuilderString(&sb));
+                    NtClose(objectHandle);
                 }
-                NtClose(objectHandle);
             }
-        }
-        break;
-    case EtObjectDriver:
-        {
-            PPH_STRING driverName;
-
-            if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
+            break;
+        case EtObjectMutant:
             {
-                if (NT_SUCCESS(status = PhGetDriverImageFileName(objectHandle, &driverName)))
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, 0)))
                 {
-                    PhMoveReference(&entry->Target, driverName);
+                    MUTANT_OWNER_INFORMATION ownerInfo;
+
+                    if (NT_SUCCESS(status = PhGetMutantOwnerInformation(objectHandle, &ownerInfo)))
+                    {
+                        if (ownerInfo.ClientId.UniqueProcess)
+                        {
+                            PhMoveReference(&entry->Target, PhGetClientIdName(&ownerInfo.ClientId));
+
+                            entry->TargetClientId.UniqueProcess = ownerInfo.ClientId.UniqueProcess;
+                            entry->TargetClientId.UniqueThread = ownerInfo.ClientId.UniqueThread;
+                        }
+                    }
+
+                    NtClose(objectHandle);
                 }
-                NtClose(objectHandle);
             }
-        }
-        break;
+            break;
+        case EtObjectJob:
+            {
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, JOB_OBJECT_QUERY, 0)))
+                {
+                    PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+
+                    if (NT_SUCCESS(PhGetJobProcessIdList(objectHandle, &processIdList)))
+                    {
+                        PH_STRING_BUILDER sb;
+                        ULONG i;
+                        CLIENT_ID clientId;
+                        PPH_STRING name;
+
+                        PhInitializeStringBuilder(&sb, 40);
+                        clientId.UniqueThread = NULL;
+
+                        for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+                        {
+                            clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+                            name = PhGetClientIdName(&clientId);
+
+                            if (name)
+                            {
+                                PhAppendStringBuilder(&sb, &name->sr);
+                                PhAppendStringBuilder2(&sb, L"; ");
+                                PhDereferenceObject(name);
+                            }
+                        }
+
+                        PhFree(processIdList);
+
+                        if (sb.String->Length != 0)
+                            PhRemoveEndStringBuilder(&sb, 2);
+
+                        if (sb.String->Length == 0)
+                            PhAppendStringBuilder2(&sb, L"(No processes)");
+
+                        PhMoveReference(&entry->Target, PhFinalStringBuilderString(&sb));
+                    }
+                    NtClose(objectHandle);
+                }
+            }
+            break;
+        case EtObjectDriver:
+            {
+                PPH_STRING driverName;
+
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, 0)))
+                {
+                    if (NT_SUCCESS(status = PhGetDriverImageFileName(objectHandle, &driverName)))
+                    {
+                        PhMoveReference(&entry->Target, driverName);
+                    }
+                    NtClose(objectHandle);
+                }
+            }
+            break;
     }
 
     // Target was successfully resolved, redraw list entry
@@ -1274,288 +1277,310 @@ NTSTATUS EtObjectManagerOpenHandle(
 
     status = STATUS_UNSUCCESSFUL;
 
-    if (PhEqualString2(Context->Object->TypeName, L"ALPC Port", TRUE))
+    switch (Context->Object->EtObjectType)
     {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static NTSTATUS (NTAPI* NtAlpcConnectPortEx_I)(
-            _Out_ PHANDLE PortHandle,
-            _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
-            _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
-            _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
-            _In_ ULONG Flags,
-            _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
-            _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-            _Inout_opt_ PSIZE_T BufferLength,
-            _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
-            _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
-            _In_opt_ PLARGE_INTEGER Timeout
-            ) = NULL;
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            NtAlpcConnectPortEx_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAlpcConnectPortEx");
-            PhEndInitOnce(&initOnce);
-        }
-
-        if (OpenFlags & OBJECT_OPENSOURCE_ALPCPORT)
-        {
-            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
+        case EtObjectAlpcPort:
             {
-                //return status;
+                static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                static NTSTATUS (NTAPI* NtAlpcConnectPortEx_I)(
+                    _Out_ PHANDLE PortHandle,
+                    _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
+                    _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
+                    _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
+                    _In_ ULONG Flags,
+                    _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
+                    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
+                    _Inout_opt_ PSIZE_T BufferLength,
+                    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
+                    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
+                    _In_opt_ PLARGE_INTEGER Timeout
+                    ) = NULL;
 
-                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, 0)))
+                if (PhBeginInitOnce(&initOnce))
                 {
-                    status = STATUS_NOT_ALL_ASSIGNED;
+                    NtAlpcConnectPortEx_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAlpcConnectPortEx");
+                    PhEndInitOnce(&initOnce);
+                }
+
+                if (OpenFlags & OBJECT_OPENSOURCE_ALPCPORT)
+                {
+                    if (!NT_SUCCESS(status = EtObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
+                    {
+                        //return status;
+
+                        if (NT_SUCCESS(status = EtObjectManagerOpenHandle(Handle, Context, DesiredAccess, 0)))
+                        {
+                            status = STATUS_NOT_ALL_ASSIGNED;
+                        }
+                    }
+                }
+                else
+                {
+                    //return STATUS_NOINTERFACE;
+
+                    if (NtAlpcConnectPortEx_I)
+                    {
+                        status = NtAlpcConnectPortEx_I(
+                            Handle,
+                            &objectAttributes,
+                            NULL,
+                            NULL,
+                            0,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            PhTimeoutFromMillisecondsEx(1000)
+                        );
+                    }
+                    else
+                    {
+                        PPH_STRING clientName;
+
+                        clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+                        PhStringRefToUnicodeString(&clientName->sr, &objectName);
+
+                        status = NtAlpcConnectPort(
+                            Handle,
+                            &objectName,
+                            NULL,
+                            NULL,
+                            0,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            PhTimeoutFromMillisecondsEx(1000)
+                        );
+                        PhDereferenceObject(clientName);
+                    }
                 }
             }
-        }
-        else
-        {
-            //return STATUS_NOINTERFACE;
+            break;
+        case EtObjectDevice:
+            {
+                HANDLE deviceObject;
+                HANDLE deviceBaseObject;
 
-            if (NtAlpcConnectPortEx_I)
-            {
-                status = NtAlpcConnectPortEx_I(
-                    Handle,
-                    &objectAttributes,
-                    NULL,
-                    NULL,
-                    0,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    PhTimeoutFromMillisecondsEx(1000)
-                );
-            }
-            else
-            {
-                PPH_STRING clientName;
-
-                clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
-                PhStringRefToUnicodeString(&clientName->sr, &objectName);
-
-                status = NtAlpcConnectPort(
-                    Handle,
-                    &objectName,
-                    NULL,
-                    NULL,
-                    0,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    PhTimeoutFromMillisecondsEx(1000)
-                );
-                PhDereferenceObject(clientName);
-            }
-        }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"Device", TRUE))
-    {
-        HANDLE deviceObject;
-        HANDLE deviceBaseObject;
-
-        if (NT_SUCCESS(status = KphOpenDevice(&deviceObject, DesiredAccess, &objectAttributes)))
-        {
-            if (NT_SUCCESS(status = KphOpenDeviceBaseDevice(deviceObject, DesiredAccess, &deviceBaseObject)))
-            {
-                *Handle = deviceBaseObject;
-                NtClose(deviceObject);
-            }
-            else
-            {
-                *Handle = deviceObject;
-            }
-        }
-        else
-        {
-            PPH_STRING deviceName;
-            deviceName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
-
-            if (NT_SUCCESS(status = PhCreateFile(
-                Handle,
-                &deviceName->sr,
-                DesiredAccess,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE
-            )))
-            {
-                status = STATUS_NOT_ALL_ASSIGNED;
-            }
-            PhDereferenceObject(deviceName);
-        }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"Driver", TRUE))
-    {
-        status = PhOpenDriver(Handle, DesiredAccess, directoryHandle, &Context->Object->Name->sr);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Event", TRUE))
-    {
-        status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"EventPair", TRUE))
-    {
-        status = NtOpenEventPair(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Timer", TRUE))
-    {
-        status = NtOpenTimer(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Job", TRUE))
-    {
-        status = NtOpenJobObject(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Key", TRUE))
-    {
-        if (OpenFlags & OBJECT_OPENSOURCE_KEY)
-        {
-            if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
-            {
-                if (NT_SUCCESS(status = NtOpenKey(Handle, DesiredAccess, &objectAttributes)))
+                if (NT_SUCCESS(status = KphOpenDevice(&deviceObject, DesiredAccess, &objectAttributes)))
                 {
-                    status = STATUS_NOT_ALL_ASSIGNED;
-                }   
-            } 
-        }
-        else
-        {
-            status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
-        }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"KeyedEvent", TRUE))
-    {
-        status = NtOpenKeyedEvent(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Mutant", TRUE))
-    {
-        status = NtOpenMutant(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Semaphore", TRUE))
-    {
-        status = NtOpenSemaphore(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Section", TRUE))
-    {
-        status = NtOpenSection(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Session", TRUE))
-    {
-        status = NtOpenSession(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"SymbolicLink", TRUE))
-    {
-        status = NtOpenSymbolicLinkObject(Handle, DesiredAccess, &objectAttributes);
-    }
-    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"WindowStation", TRUE))
-    {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static HWINSTA (NTAPI* NtUserOpenWindowStation_I)(
-            _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-            _In_ ACCESS_MASK DesiredAccess
-            );
-        HANDLE windowStationHandle;
+                    if (NT_SUCCESS(status = KphOpenDeviceBaseDevice(deviceObject, DesiredAccess, &deviceBaseObject)))
+                    {
+                        *Handle = deviceBaseObject;
+                        NtClose(deviceObject);
+                    }
+                    else
+                    {
+                        *Handle = deviceObject;
+                    }
+                }
+                else
+                {
+                    PPH_STRING deviceName;
+                    deviceName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
 
-        if (PhBeginInitOnce(&initOnce))
-        {
-            NtUserOpenWindowStation_I = PhGetModuleProcAddress(L"win32u.dll", "NtUserOpenWindowStation");
-            PhEndInitOnce(&initOnce);
-        }
-
-        if (NtUserOpenWindowStation_I)
-        {
-            if (windowStationHandle = NtUserOpenWindowStation_I(&objectAttributes, DesiredAccess))
-            {
-                *Handle = windowStationHandle;
-                status = STATUS_SUCCESS;
+                    if (NT_SUCCESS(status = PhCreateFile(
+                        Handle,
+                        &deviceName->sr,
+                        DesiredAccess,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                        FILE_OPEN,
+                        FILE_NON_DIRECTORY_FILE
+                    )))
+                    {
+                        status = STATUS_NOT_ALL_ASSIGNED;
+                    }
+                    PhDereferenceObject(deviceName);
+                }
             }
+            break;
+        case EtObjectDriver:
+            {
+                status = PhOpenDriver(Handle, DesiredAccess, directoryHandle, &Context->Object->Name->sr);
+            }
+            break;
+        case EtObjectEvent:
+            {
+                status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectTimer:
+            {
+                status = NtOpenTimer(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectJob:
+            {
+                status = NtOpenJobObject(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectKey:
+            {
+                if (OpenFlags & OBJECT_OPENSOURCE_KEY)
+                {
+                    if (!NT_SUCCESS(status = EtObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
+                    {
+                        if (NT_SUCCESS(status = NtOpenKey(Handle, DesiredAccess, &objectAttributes)))
+                        {
+                            status = STATUS_NOT_ALL_ASSIGNED;
+                        }   
+                    } 
+                }
+                else
+                {
+                    status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
+                }
+            }
+            break;
+        case EtObjectKeyedEvent:
+            {
+                status = NtOpenKeyedEvent(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectMutant:
+            {
+                status = NtOpenMutant(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectSemaphore:
+            {
+                status = NtOpenSemaphore(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectSection:
+            {
+                status = NtOpenSection(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectSession:
+            {
+                status = NtOpenSession(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectSymLink:
+            {
+                status = NtOpenSymbolicLinkObject(Handle, DesiredAccess, &objectAttributes);
+            }
+            break;
+        case EtObjectWindowStation:
+            {
+                static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                static HWINSTA (NTAPI* NtUserOpenWindowStation_I)(
+                    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+                    _In_ ACCESS_MASK DesiredAccess
+                    );
+                HANDLE windowStationHandle;
+
+                if (PhBeginInitOnce(&initOnce))
+                {
+                    NtUserOpenWindowStation_I = PhGetModuleProcAddress(L"win32u.dll", "NtUserOpenWindowStation");
+                    PhEndInitOnce(&initOnce);
+                }
+
+                if (NtUserOpenWindowStation_I)
+                {
+                    if (windowStationHandle = NtUserOpenWindowStation_I(&objectAttributes, DesiredAccess))
+                    {
+                        *Handle = windowStationHandle;
+                        status = STATUS_SUCCESS;
+                    }
+                    else
+                    {
+                        status = PhGetLastWin32ErrorAsNtStatus();
+                    }
+                }
+            }
+            break;
+        case EtObjectFilterPort:
+            {
+                if (!NT_SUCCESS(status = EtObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
+                {
+        #if 0 // TODO enable this on the next driver release
+                    PPH_STRING clientName;
+                    HANDLE portHandle;
+
+                    clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+                    PhStringRefToUnicodeString(&clientName->sr, &objectName);
+
+                    if (NT_SUCCESS(status = PhFilterConnectCommunicationPort(
+                        &clientName->sr,
+                        0,
+                        NULL,
+                        0,
+                        NULL,
+                        &portHandle
+                        )))
+                    {
+                        *Handle = portHandle;
+                        status = STATUS_NOT_ALL_ASSIGNED;
+                    }
+
+                    PhDereferenceObject(clientName);
+        #else
+                    return STATUS_NOINTERFACE;
+        #endif
+                }
+            }
+            break;
+        case EtObjectMemoryPartition:
+            {
+                static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                static NTSTATUS (NTAPI *NtOpenPartition_I)(
+                    _Out_ PHANDLE PartitionHandle,
+                    _In_ ACCESS_MASK DesiredAccess,
+                    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+                    );
+
+                if (PhBeginInitOnce(&initOnce))
+                {
+                    NtOpenPartition_I = PhGetModuleProcAddress(L"ntdll.dll", "NtOpenPartition");
+                    PhEndInitOnce(&initOnce);
+                }
+
+                if (NtOpenPartition_I)
+                {
+                    status = NtOpenPartition_I(Handle, DesiredAccess, &objectAttributes);
+                }
+            }
+            break;
+        case EtObjectCpuPartition:
+            {
+                static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                static NTSTATUS(NTAPI * NtOpenCpuPartition_I)(
+                    _Out_ PHANDLE CpuPartitionHandle,
+                    _In_ ACCESS_MASK DesiredAccess,
+                    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+                    );
+
+                if (PhBeginInitOnce(&initOnce))
+                {
+                    NtOpenCpuPartition_I = PhGetModuleProcAddress(L"ntdll.dll", "NtOpenCpuPartition");
+                    PhEndInitOnce(&initOnce);
+                }
+
+                if (NtOpenCpuPartition_I)
+                {
+                    status = NtOpenCpuPartition_I(Handle, DesiredAccess, &objectAttributes);
+                }
+            }
+            break;
+        default:
+            //if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"EventPair", TRUE))
+            //{
+            //    status = NtOpenEventPair(Handle, DesiredAccess, &objectAttributes);
+            //}
+#if 0 // TODO enable this on the next driver release
+            // Callback, Type (and almost any object type except ALPC Port and Device)
             else
             {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                status = KphOpenObjectByTypeIndex(Handle, DesiredAccess, &objectAttributes, PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName)));
             }
-        }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"FilterConnectionPort", TRUE))
-    {
-        if (!NT_SUCCESS(status = EtpObjectManagerOpenRealObject(Handle, Context, DesiredAccess, PhGetString(Context->Object->TypeName))))
-        {
-#if 0 // TODO enable this on the next driver release
-            PPH_STRING clientName;
-            HANDLE portHandle;
-
-            clientName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
-            PhStringRefToUnicodeString(&clientName->sr, &objectName);
-
-            if (NT_SUCCESS(status = PhFilterConnectCommunicationPort(
-                &clientName->sr,
-                0,
-                NULL,
-                0,
-                NULL,
-                &portHandle
-                )))
-            {
-                *Handle = portHandle;
-                status = STATUS_NOT_ALL_ASSIGNED;
-            }
-
-            PhDereferenceObject(clientName);
-#else
-            return STATUS_NOINTERFACE;
 #endif
-        }
+            break;
     }
-    else if (PhEqualString2(Context->Object->TypeName, L"Partition", TRUE))
-    {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static NTSTATUS (NTAPI *NtOpenPartition_I)(
-            _Out_ PHANDLE PartitionHandle,
-            _In_ ACCESS_MASK DesiredAccess,
-            _In_ POBJECT_ATTRIBUTES ObjectAttributes
-            );
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            NtOpenPartition_I = PhGetModuleProcAddress(L"ntdll.dll", "NtOpenPartition");
-            PhEndInitOnce(&initOnce);
-        }
-
-        if (NtOpenPartition_I)
-        {
-            status = NtOpenPartition_I(Handle, DesiredAccess, &objectAttributes);
-        }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"CpuPartition", TRUE))
-    {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static NTSTATUS(NTAPI * NtOpenCpuPartition_I)(
-            _Out_ PHANDLE CpuPartitionHandle,
-            _In_ ACCESS_MASK DesiredAccess,
-            _In_ POBJECT_ATTRIBUTES ObjectAttributes
-            );
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            NtOpenCpuPartition_I = PhGetModuleProcAddress(L"ntdll.dll", "NtOpenCpuPartition");
-            PhEndInitOnce(&initOnce);
-        }
-
-        if (NtOpenCpuPartition_I)
-        {
-            status = NtOpenCpuPartition_I(Handle, DesiredAccess, &objectAttributes);
-        }
-    }
-#if 0 // TODO enable this on the next driver release
-    // Callback, Type (and almost any object type except ALPC Port and Device)
-    else
-    {
-        status = KphOpenObjectByTypeIndex(Handle, DesiredAccess, &objectAttributes, PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName)));
-    }
-#endif
 
     NtClose(directoryHandle);
 
@@ -1566,7 +1591,7 @@ NTSTATUS EtObjectManagerOpenHandle(
 // https://github.com/zodiacon/ObjectExplorer/blob/master/ObjExp/ObjectManager.cpp#L191
 // Open real FilterConnectionPort
 // Open real \REGISTRY key
-NTSTATUS EtpObjectManagerOpenRealObject(
+NTSTATUS EtObjectManagerOpenRealObject(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess,
