@@ -440,14 +440,14 @@ NTSTATUS KsiLoadUnloadService(
         }
 
         if (Config->EnableFilterLoad)
-            status = KphFilterLoadUnload(Config->ServiceName, TRUE);
+            status = PhFilterLoadUnload(Config->ServiceName, TRUE);
         else
             status = NtLoadDriver(&driverServiceKeyName);
     }
     else
     {
         if (Config->EnableFilterLoad)
-            status = KphFilterLoadUnload(Config->ServiceName, FALSE);
+            status = PhFilterLoadUnload(Config->ServiceName, FALSE);
         else
             status = NtUnloadDriver(&driverServiceKeyName);
     }

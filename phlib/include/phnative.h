@@ -3787,6 +3787,57 @@ PhFlushProcessHeapsRemote(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterLoadUnload(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ BOOLEAN LoadDriver
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterSendMessage(
+    _In_ HANDLE Port,
+    _In_reads_bytes_(InBufferSize) PVOID InBuffer,
+    _In_ ULONG InBufferSize,
+    _Out_writes_bytes_to_opt_(OutputBufferSize, *BytesReturned) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferSize,
+    _Out_ PULONG BytesReturned
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterGetMessage(
+    _In_ HANDLE Port,
+    _Out_writes_bytes_(MessageBufferSize) PFILTER_MESSAGE_HEADER MessageBuffer,
+    _In_ ULONG MessageBufferSize,
+    _Inout_ LPOVERLAPPED Overlapped
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterReplyMessage(
+    _In_ HANDLE Port,
+    _In_reads_bytes_(ReplyBufferSize) PFILTER_REPLY_HEADER ReplyBuffer,
+    _In_ ULONG ReplyBufferSize
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFilterConnectCommunicationPort(
+    _In_ PPH_STRINGREF PortName,
+    _In_ ULONG Options,
+    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
+    _In_ USHORT SizeOfContext,
+    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
+    _Outptr_ PHANDLE Port
+    );
+
 EXTERN_C_END
 
 #endif
