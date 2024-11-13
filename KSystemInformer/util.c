@@ -2225,3 +2225,96 @@ NTSTATUS KphImageNtHeader(
 
     return STATUS_SUCCESS;
 }
+
+/**
+ * \brief Captures a Unicode string from user mode.
+ *
+ * \param[in] UnicodeString Unicode string to capture from user mode.
+ * \param[out] CapturedUnicodeString Receives the captured Unicode string, the
+ * captured buffer must be freed using KphReleaseUnicodeString.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureUnicodeString(
+    _In_ PUNICODE_STRING UnicodeString,
+    _Out_ PUNICODE_STRING* CapturedUnicodeString
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING inputString;
+    PUNICODE_STRING outputString;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    outputString = NULL;
+
+    __try
+    {
+        ProbeInputType(UnicodeString, UNICODE_STRING);
+        RtlCopyVolatileMemory(&inputString,
+                              UnicodeString,
+                              sizeof(UNICODE_STRING));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    outputString = KphAllocatePaged(sizeof(UNICODE_STRING) + inputString.Length,
+                                    KPH_TAG_CAPTURED_UNICODE_STRING);
+    if (!outputString)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    outputString->Buffer = Add2Ptr(outputString, sizeof(UNICODE_STRING));
+    outputString->Length = 0;
+    outputString->MaximumLength = inputString.Length;
+
+    __try
+    {
+        ProbeInputBytes(inputString.Buffer, inputString.Length);
+        RtlCopyVolatileMemory(outputString->Buffer,
+                              inputString.Buffer,
+                              inputString.Length);
+        outputString->Length = inputString.Length;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    *CapturedUnicodeString = outputString;
+    outputString = NULL;
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (outputString)
+    {
+        KphFree(outputString, KPH_TAG_CAPTURED_UNICODE_STRING);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Releases a previously captured Unicode string.
+ *
+ * \param[in] UnicodeString Unicode string to release.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphReleaseUnicodeString(
+    _In_ PUNICODE_STRING CaputredUnicodeString
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    KphFree(CaputredUnicodeString, KPH_TAG_CAPTURED_UNICODE_STRING);
+}

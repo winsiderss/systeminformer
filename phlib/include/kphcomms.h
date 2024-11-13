@@ -14,11 +14,6 @@
 
 #include <kphmsg.h>
 
-NTSTATUS KphFilterLoadUnload(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ BOOLEAN LoadDriver
-    );
-
 /**
  * \brief Callback for handling messages from the kernel.
  *

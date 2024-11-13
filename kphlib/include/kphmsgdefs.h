@@ -384,6 +384,30 @@ typedef struct _KPHM_QUERY_HASH_INFORMATION_FILE
     ULONG HashingInformationLength;
 } KPHM_QUERY_HASH_INFORMATION_FILE, *PKPHM_QUERY_HASH_INFORMATION_FILE;
 
+typedef struct _KPHM_OPEN_DEVICE
+{
+    NTSTATUS Status;
+    PHANDLE DeviceHandle;
+    ACCESS_MASK DesiredAccess;
+    POBJECT_ATTRIBUTES ObjectAttributes;
+} KPHM_OPEN_DEVICE, *PKPHM_OPEN_DEVICE;
+
+typedef struct _KPHM_OPEN_DEVICE_DRIVER
+{
+    NTSTATUS Status;
+    HANDLE DeviceHandle;
+    ACCESS_MASK DesiredAccess;
+    PHANDLE DriverHandle;
+} KPHM_OPEN_DEVICE_DRIVER, *PKPHM_OPEN_DEVICE_DRIVER;
+
+typedef struct _KPHM_OPEN_DEVICE_BASE_DEVICE
+{
+    NTSTATUS Status;
+    HANDLE DeviceHandle;
+    ACCESS_MASK DesiredAccess;
+    PHANDLE BaseDeviceHandle;
+} KPHM_OPEN_DEVICE_BASE_DEVICE, *PKPHM_OPEN_DEVICE_BASE_DEVICE;
+
 //
 // KPH -> PH
 //

@@ -66,6 +66,9 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgStripProtectedProcessMasks,
     KphMsgQueryVirtualMemory,
     KphMsgQueryHashInformationFile,
+    KphMsgOpenDevice,
+    KphMsgOpenDeviceDriver,
+    KphMsgOpenDeviceBaseDevice,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -352,6 +355,9 @@ typedef struct _KPH_MESSAGE
             KPHM_STRIP_PROTECTED_PROCESS_MASKS StripProtectedProcessMasks;
             KPHM_QUERY_VIRTUAL_MEMORY QueryVirtualMemory;
             KPHM_QUERY_HASH_INFORMATION_FILE QueryHashInformationFile;
+            KPHM_OPEN_DEVICE OpenDevice;
+            KPHM_OPEN_DEVICE_DRIVER OpenDeviceDriver;
+            KPHM_OPEN_DEVICE_BASE_DEVICE OpenDeviceBaseDevice;
         } User;
 
         //

@@ -2360,6 +2360,7 @@ NTSTATUS KphOpenNamedObject(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             status = GetExceptionCode();
+            ObCloseHandle(objectHandle, UserMode);
         }
     }
     else
