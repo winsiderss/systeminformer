@@ -94,6 +94,8 @@
 #include <ole2.h>
 #endif
 
+#include <fltUser.h>
+
 typedef DOUBLE *PDOUBLE;
 typedef GUID *PGUID;
 

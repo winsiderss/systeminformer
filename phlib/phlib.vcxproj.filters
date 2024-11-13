@@ -200,6 +200,9 @@
     <ClCompile Include="nativethread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativeflt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
