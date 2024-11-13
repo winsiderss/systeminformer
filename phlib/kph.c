@@ -440,14 +440,14 @@ NTSTATUS KsiLoadUnloadService(
         }
 
         if (Config->EnableFilterLoad)
-            status = KphFilterLoadUnload(Config->ServiceName, TRUE);
+            status = PhFilterLoadUnload(Config->ServiceName, TRUE);
         else
             status = NtLoadDriver(&driverServiceKeyName);
     }
     else
     {
         if (Config->EnableFilterLoad)
-            status = KphFilterLoadUnload(Config->ServiceName, FALSE);
+            status = PhFilterLoadUnload(Config->ServiceName, FALSE);
         else
             status = NtUnloadDriver(&driverServiceKeyName);
     }
@@ -2028,4 +2028,86 @@ NTSTATUS KsiQueryHashInformationFile(
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
+}
+
+NTSTATUS KphOpenDevice(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgOpenDevice);
+    msg->User.OpenDevice.DeviceHandle = DeviceHandle;
+    msg->User.OpenDevice.DesiredAccess = DesiredAccess;
+    msg->User.OpenDevice.ObjectAttributes = ObjectAttributes;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.OpenDevice.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphOpenDeviceDriver(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE DriverHandle
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgOpenDeviceDriver);
+    msg->User.OpenDeviceDriver.DeviceHandle = DeviceHandle;
+    msg->User.OpenDeviceDriver.DesiredAccess = DesiredAccess;
+    msg->User.OpenDeviceDriver.DriverHandle = DriverHandle;
+    status = KphCommsSendMessage(msg);
+
+    if (!NT_SUCCESS(status))
+    {
+        status = msg->User.OpenDeviceDriver.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphOpenDeviceBaseDevice(
+    _In_ HANDLE DeviceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE BaseDeviceHandle
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgOpenDeviceBaseDevice);
+    msg->User.OpenDeviceBaseDevice.DeviceHandle = DeviceHandle;
+    msg->User.OpenDeviceBaseDevice.DesiredAccess = DesiredAccess;
+    msg->User.OpenDeviceBaseDevice.BaseDeviceHandle = BaseDeviceHandle;
+    status = KphCommsSendMessage(msg);
+
+    if (!NT_SUCCESS(status))
+    {
+        status = msg->User.OpenDeviceDriver.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+
 }

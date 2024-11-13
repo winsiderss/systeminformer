@@ -563,6 +563,66 @@ NTSTATUS DiskDriveQueryImminentFailure(
     return status;
 }
 
+NTSTATUS DiskDriveQueryNvmeHealthInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNVME_HEALTH_INFO_LOG HealthInfo
+    )
+{
+    NTSTATUS status = 0;
+    ULONG returnedLength = 0;
+    PSTORAGE_PROPERTY_QUERY query = NULL;
+    PSTORAGE_PROTOCOL_SPECIFIC_DATA protocolData = NULL;
+    BYTE buffer[FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters) + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + sizeof(NVME_HEALTH_INFO_LOG)];
+
+    memset(buffer, 0, sizeof(buffer));
+
+    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+    query->PropertyId = StorageDeviceProtocolSpecificProperty;
+    query->QueryType = PropertyStandardQuery;
+
+    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+    protocolData->ProtocolType = ProtocolTypeNvme;
+    protocolData->DataType = NVMeDataTypeLogPage;
+    protocolData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
+    protocolData->ProtocolDataRequestSubValue = 0;  // This will be passed as the lower 32 bit of log page offset if controller supports extended data for the Get Log Page.
+    protocolData->ProtocolDataRequestSubValue2 = 0; // This will be passed as the higher 32 bit of log page offset if controller supports extended data for the Get Log Page.
+    protocolData->ProtocolDataRequestSubValue3 = 0; // This will be passed as Log Specific Identifier in CDW11.
+    protocolData->ProtocolDataRequestSubValue4 = 0; // This will map to STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE definition, then user can pass Retain Asynchronous Event, Log Specific Field.
+    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+    protocolData->ProtocolDataLength = sizeof(NVME_HEALTH_INFO_LOG);
+
+    status = PhDeviceIoControlFile(
+        DeviceHandle,
+        IOCTL_STORAGE_QUERY_PROPERTY,
+        buffer,
+        sizeof(buffer),
+        buffer,
+        sizeof(buffer),
+        &returnedLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnedLength < sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
+        return STATUS_UNSUCCESSFUL;
+
+    PSTORAGE_PROTOCOL_DATA_DESCRIPTOR protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+
+    if (protocolDataDescr->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR) ||
+        protocolDataDescr->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
+        return STATUS_UNSUCCESSFUL;
+
+    protocolData = &protocolDataDescr->ProtocolSpecificData;
+
+    if (protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
+        protocolData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
+        return STATUS_UNSUCCESSFUL;
+
+    *HealthInfo = *(PNVME_HEALTH_INFO_LOG)((PCHAR)protocolData + protocolData->ProtocolDataOffset);
+    return STATUS_SUCCESS;
+}
+
 _Success_(return)
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DosDeviceHandle,
@@ -868,78 +928,110 @@ PWSTR SmartAttributeGetText(
 {
     switch (AttributeId)
     {
-    case SMART_ATTRIBUTE_ID_READ_ERROR_RATE: // Critical
-        return L"Raw Read Error Rate";
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RATE:
+        return L"Read error rate";
     case SMART_ATTRIBUTE_ID_THROUGHPUT_PERFORMANCE:
-        return L"Throughput Performance";
+        return L"Throughput performance";
     case SMART_ATTRIBUTE_ID_SPIN_UP_TIME:
-        return L"Spin Up Time";
+        return L"Spin up time";
     case SMART_ATTRIBUTE_ID_START_STOP_COUNT:
-        return L"Start/Stop Count";
-    case SMART_ATTRIBUTE_ID_REALLOCATED_SECTORS_COUNT: // Critical
-        return L"Reallocated Sectors Count";
+        return L"Start stop count";
+    case SMART_ATTRIBUTE_ID_REALLOCATED_SECTORS_COUNT:
+        return L"Reallocated sensors count";
     case SMART_ATTRIBUTE_ID_READ_CHANNEL_MARGIN:
-        return L"Read Channel Margin";
+        return L"Read channel margin";
     case SMART_ATTRIBUTE_ID_SEEK_ERROR_RATE:
-        return L"Seek Error Rate";
+        return L"Seek error rate";
     case SMART_ATTRIBUTE_ID_SEEK_TIME_PERFORMANCE:
-        return L"Seek Time Performance";
+        return L"Seek time performance";
     case SMART_ATTRIBUTE_ID_POWER_ON_HOURS:
-        return L"Power-On Hours";
+        return L"Power on hours";
     case SMART_ATTRIBUTE_ID_SPIN_RETRY_COUNT:
-        return L"Spin Retry Count";
+        return L"Spin retry count";
     case SMART_ATTRIBUTE_ID_CALIBRATION_RETRY_COUNT:
-        return L"Recalibration Retries";
+        return L"Calibration retry count";
     case SMART_ATTRIBUTE_ID_POWER_CYCLE_COUNT:
-        return L"Device Power Cycle Count";
+        return L"Power cycle count";
     case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
-        return L"Soft Read Error Rate";
+        return L"Soft read error rate";
+    case SMART_ATTRIBUTE_ID_CURRENT_HELIUM_LEVEL:
+        return L"Current helium level";
+    case SMART_ATTRIBUTE_ID_HELIUM_CONDITION_LOWER:
+        return L"Helium condition lower";
+    case SMART_ATTRIBUTE_ID_HELIUM_CONDITION_UPPER:
+        return L"Helium condition upper";
+    case SMART_ATTRIBUTE_ID_AVAILABLE_RESERVED_SPACE:
+        return L"Available reserved space";
+    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT:
+        return L"SSD program fail count";
+    case SMART_ATTRIBUTE_ID_SSD_ERASE_FAIL_COUNT:
+        return L"SSD erase fail count";
+    case SMART_ATTRIBUTE_ID_SSD_WEAR_LEVELING_COUNT:
+        return L"SSD wear leveling count";
+    case SMART_ATTRIBUTE_ID_UNEXPECTED_POWER_LOSS:
+        return L"Unexpected power loss";
+    case SMART_ATTRIBUTE_ID_POWER_LOSS_PROTECTION_FAILURE:
+        return L"Power loss protection failure";
+    case SMART_ATTRIBUTE_ID_ERASE_FAIL_COUNT:
+        return L"Erase fail count";
+    case SMART_ATTRIBUTE_ID_WEAR_RANGE_DELTA:
+        return L"Wear range delta";
+    case SMART_ATTRIBUTE_ID_USED_RESERVED_BLOCK_COUNT:
+        return L"Used reserved block count";
+    case SMART_ATTRIBUTE_ID_USED_RESERVED_BLOCK_TOTAL:
+        return L"Used reserved block total";
+    case SMART_ATTRIBUTE_ID_UNUSED_RESERVED_BLOCK_TOTAL:
+        return L"Unused reserved block total";
+    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT_TOTAL:
+        return L"SSD program fail count total";
+    case SMART_ATTRIBUTE_ID_ERASE_FAIL_COUNT_SAMSUNG:
+        return L"Erase fail count (Samsung)";
     case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT:
-        return L"Sata Downshift Error Count";
+        return L"SATA downshift error count";
     case SMART_ATTRIBUTE_ID_END_TO_END_ERROR:
-        return L"End To End Error";
+        return L"End to end error";
     case SMART_ATTRIBUTE_ID_HEAD_STABILITY:
-        return L"Head Stability";
+        return L"Head stability";
     case SMART_ATTRIBUTE_ID_INDUCED_OP_VIBRATION_DETECTION:
-        return L"Induced Op Vibration Detection";
+        return L"Induced OP-vibration detection";
     case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS:
-        return L"Reported Uncorrectable Errors";
+        return L"Reported uncorrectable errors";
     case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT:
-        return L"Command Timeout";
+        return L"Command timeout";
     case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES:
-        return L"High Fly Writes";
+        return L"High fly writes";
     case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100:
-        return L"Airflow Temperature";
+        return L"Airflow temperature";
     case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE:
-        return L"GSense Error Rate";
+        return L"GSense error rate";
     case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT:
-        return L"Power-off Retract Count";
+        return L"Power off retract count";
     case SMART_ATTRIBUTE_ID_LOAD_CYCLE_COUNT:
-        return L"Load/Unload Cycle Count";
+        return L"Load cycle count";
     case SMART_ATTRIBUTE_ID_TEMPERATURE:
         return L"Temperature";
     case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED:
-        return L"Hardware ECC Recovered";
-    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT: // Critical
-        return L"Reallocation Event Count";
-    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT: // Critical
-        return L"Current Pending Sector Count";
-    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT: // Critical
-        return L"Uncorrectable Sector Count";
+        return L"Hardware ECC recovered";
+    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT:
+        return L"Reallocation event count";
+    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT:
+        return L"Current pending sector count";
+    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT:
+        return L"Uncorrectable sector count";
     case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT:
-        return L"UltraDMA CRC Error Count";
+        return L"UltraDMA CRC error count";
     case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE:
-        return L"Write Error Rate";
+        return L"Multi zone error rate";
     case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE:
-        return L"Soft read error rate";
+        return L"Offtrack soft read error rate";
     case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS:
-        return L"Data Address Mark errors";
+        return L"Data address mark errors";
     case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL:
         return L"Run out cancel";
     case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION:
         return L"Soft ECC correction";
     case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR:
-        return L"Thermal asperity rate (TAR)";
+        return L"Thermal asperity rate";
     case SMART_ATTRIBUTE_ID_FLYING_HEIGHT:
         return L"Flying height";
     case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT:
@@ -949,66 +1041,70 @@ PWSTR SmartAttributeGetText(
     case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE:
         return L"Offline seek performance";
     case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE:
-        return L"Vibration During Write";
+        return L"Vibration during write";
     case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE:
-        return L"Shock During Write";
-    case SMART_ATTRIBUTE_ID_DISK_SHIFT: // Critical
-        return L"Disk Shift";
+        return L"Shock during write";
+    case SMART_ATTRIBUTE_ID_DISK_SHIFT:
+        return L"Disk shift";
     case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT:
-        return L"G-Sense Error Rate (Alt)";
+        return L"GSense error rate";
     case SMART_ATTRIBUTE_ID_LOADED_HOURS:
-        return L"Loaded Hours";
+        return L"Loaded hours";
     case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT:
-        return L"Load/Unload Retry Count";
+        return L"Load/unload retry count";
     case SMART_ATTRIBUTE_ID_LOAD_FRICTION:
-        return L"Load Friction";
+        return L"Load friction count";
     case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT:
-        return L"Load Unload Cycle Count";
+        return L"Load/unload cycle count";
     case SMART_ATTRIBUTE_ID_LOAD_IN_TIME:
-        return L"Load-in Time";
+        return L"Load in time";
     case SMART_ATTRIBUTE_ID_TORQUE_AMPLIFICATION_COUNT:
-        return L"Torque Amplification Count";
-    case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE:
-        return L"Power-Off Retract Count";
+        return L"Torque amplification count";
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_CYCLE:
+        return L"Power off retract cycle";
     case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE:
-        return L"GMR Head Amplitude";
+        return L"GMR head amplitude";
     case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
-        return L"Temperature";
-    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS:
-        return L"Head Flying Hours";
-    case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN:
-        return L"Total LBAs Written";
-    case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ:
-        return L"Total LBAs Read";
-    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
-        return L"Read Error Retry Rate";
-    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
-        return L"Free Fall Protection";
-    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT:
-        return L"SSD Program Fail Count";
-    case SMART_ATTRIBUTE_ID_SSD_ERASE_FAIL_COUNT:
-        return L"SSD Erase Fail Count";
-    case SMART_ATTRIBUTE_ID_SSD_WEAR_LEVELING_COUNT:
-        return L"SSD Wear Leveling Count";
-    case SMART_ATTRIBUTE_ID_UNEXPECTED_POWER_LOSS:
-        return L"Unexpected power loss count";
-    case SMART_ATTRIBUTE_ID_WEAR_RANGE_DELTA:
-        return L"Wear Range Delta";
-    case SMART_ATTRIBUTE_ID_SSD_PROGRAM_FAIL_COUNT_TOTAL:
-        return L"Program Fail Count Total";
-    case SMART_ATTRIBUTE_ID_ERASE_FAIL_COUNT:
-        return L"Erase Fail Count";
-    case SMART_ATTRIBUTE_ID_SSD_MEDIA_WEAROUT_HOURS:
-        return L"Media Wearout Indicator";
+        return L"Drive temperature";
+    case SMART_ATTRIBUTE_ID_ENDURACE_REMAINING:
+        return L"Endurance remaining";
+    case SMART_ATTRIBUTE_ID_SSD_MEDIA_WEAROUT_INDICATOR:
+        return L"SSD media wearout indicator";
     case SMART_ATTRIBUTE_ID_SSD_ERASE_COUNT:
-        return L"Erase count";
+        return L"SSD erase count";
+    case SMART_ATTRIBUTE_ID_GOOD_BLOCK_COUNT_AND_SYSTEM_BLOCK_COUNT:
+        return L"Good block count and system(free) block count";
+    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS:
+        return L"Head flying hours";
+    case SMART_ATTRIBUTE_ID_TOTAL_HOST_WRITES:
+        return L"Total host writes";
+    case SMART_ATTRIBUTE_ID_TOTAL_HOST_READS:
+        return L"Total host reads";
+    case SMART_ATTRIBUTE_ID_TOTAL_HOST_WRITES_EXPANDED:
+        return L"Total host writes expanded";
+    case SMART_ATTRIBUTE_ID_TOTAL_HOST_READS_EXPANDED:
+        return L"Total host reads expanded";
+    case SMART_ATTRIBUTE_ID_REMAINING_RATED_WRITE_ENDURANCE:
+        return L"Remaining rated write endurance";
+    case SMART_ATTRIBUTE_ID_CUMULATIVE_HOST_SECTORS_WRITTEN:
+        return L"Cumulative host sectors written";
+    case SMART_ATTRIBUTE_ID_HOST_PROGRAM_PAGE_COUNT:
+        return L"Host program page count";
+    case SMART_ATTRIBUTE_ID_BACKGROUND_PROGRAM_PAGE_COUNT:
+        return L"Background program page count";
+    case SMART_ATTRIBUTE_ID_NAND_WRITES:
+        return L"NAND writes";
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
+        return L"Read error retry rate";
     case SMART_ATTRIBUTE_ID_MIN_SPARES_REMAINING:
-        return L"Minimum Spares Remaining";
+        return L"Minimum spares remaining";
     case SMART_ATTRIBUTE_ID_NEWLY_ADDED_BAD_FLASH_BLOCK:
-        return L"Newly Added Bad Flash Block";
+        return L"Newly added bad flash block";
+    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
+        return L"Free fall protection";
     }
 
-    return L"BUG BUG BUG";
+    return L"Unknown";
 }
 
 NTSTATUS DiskDriveQueryUniqueId(

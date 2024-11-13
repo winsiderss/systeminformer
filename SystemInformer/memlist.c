@@ -390,6 +390,9 @@ VOID PhReplaceMemoryList(
         PhGetMemoryProtectionString(memoryItem->AllocationProtect, memoryNode->OriginalProtectionText);
     }
 
+    PhApplyTreeNewFilters(&Context->AllocationTreeFilterSupport);
+    PhApplyTreeNewFilters(&Context->TreeFilterSupport);
+
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 

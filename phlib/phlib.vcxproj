@@ -345,6 +345,7 @@
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
+    <ClCompile Include="nativeflt.c" />
     <ClCompile Include="nativepipe.c" />
     <ClCompile Include="nativemodule.c" />
     <ClCompile Include="nativethread.c" />
