@@ -173,6 +173,8 @@ INT WINAPI wWinMain(
         }
     }
 
+    PhInitializeSuperclassControls();
+
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {
@@ -194,7 +196,6 @@ INT WINAPI wWinMain(
     PhGraphControlInitialization();
     PhHexEditInitialization();
     PhColorBoxInitialization();
-    PhInitializeSuperclassControls();
 
     PhInitializeAppSystem();
     PhInitializeCallbacks();
@@ -229,8 +230,9 @@ INT WINAPI wWinMain(
 #ifndef DEBUG
     if (PhIsExecutingInWow64())
     {
-        PhShowWarning(
-            NULL,
+        PhShowWarning2(
+            GetDesktopWindow(),
+            L"Warning.",
             L"%s",
             L"You are attempting to run the 32-bit version of System Informer on 64-bit Windows. "
             L"Most features will not work correctly.\n\n"
@@ -257,7 +259,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError(NULL, L"%s", L"Unable to initialize the main window.");
+        PhShowError2(GetDesktopWindow(), L"Unable to initialize the main window.", L"%s", L"");
         return 1;
     }
 
@@ -1198,6 +1200,8 @@ VOID PhpInitializeSettings(
     PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
     PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
@@ -1445,10 +1449,16 @@ VOID PhpProcessStartupParameters(
         NULL
         ) || PhStartupParameters.Help)
     {
-        PhShowInformation(
-            NULL,
+        if (PhStartupParameters.Help)
+        {
+            PhGuiSupportInitialization();
+            PhpInitializeSettings();
+            PhInitializeSuperclassControls();
+        }
+        PhShowInformation2(
+            GetDesktopWindow(),
+            L"Command line options:",
             L"%s",
-            L"Command line options:\n\n"
             L"-debug\n"
             L"-elevate\n"
             L"-help\n"
@@ -1465,7 +1475,7 @@ VOID PhpProcessStartupParameters(
             L"-settings filename\n"
             L"-sysinfo [section-name]\n"
             L"-channel [channel-name]\n"
-            L"-v\n"
+            L"-v"
             );
 
         if (PhStartupParameters.Help)

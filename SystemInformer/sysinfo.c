@@ -78,7 +78,7 @@ VOID PhShowSystemInformationDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PhSipThread, PhSipSysInfoThreadStart, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
+            PhShowError2(PhMainWndHandle, L"Unable to create the window.", L"%s", L"");
             return;
         }
 

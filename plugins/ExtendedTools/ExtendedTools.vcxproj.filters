@@ -311,5 +311,35 @@
     <Image Include="resources\dll.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\cpu.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\semaphore.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\filterport.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\job.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\memory.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\callback.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\keyedevent.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\type.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\timer.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\winsta.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

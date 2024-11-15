@@ -35,6 +35,7 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_MUTANT,
     PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
     PH_HANDLE_GENERAL_CATEGORY_ETW,
+    PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -84,6 +85,8 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
     PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
 
+    PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
+
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_HANDLE_GENERAL_INDEX;
 
@@ -95,7 +98,8 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
-} HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
+    PPH_PLUGIN OwnerPlugin;
+} HANDLE_PROPERTIES_CONTEXT, * PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
@@ -174,6 +178,8 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     HWND ParentWindowHandle;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
+    PPH_PLUGIN OwnerPlugin;
+    PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
 NTSTATUS PhpShowHandlePropertiesThread(
@@ -189,6 +195,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
 
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
+    context.OwnerPlugin = handleContext->OwnerPlugin;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -199,7 +206,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_PROPTITLE;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = handleContext->ParentWindowHandle;
-    propSheetHeader.pszCaption = L"Handle";
+    propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
@@ -285,8 +292,10 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
         PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
 
+        propertiesContext.ParentWindowHandle = handleContext->ParentWindowHandle;
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
+        propertiesContext.OwnerPlugin = handleContext->OwnerPlugin;
 
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
@@ -314,12 +323,25 @@ VOID PhShowHandleProperties(
     _In_ PPH_HANDLE_ITEM HandleItem
     )
 {
+    PhShowHandlePropertiesEx(ParentWindowHandle, ProcessId, HandleItem, NULL, NULL);
+}
+
+VOID PhShowHandlePropertiesEx(
+    _In_ HWND ParentWindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_HANDLE_ITEM HandleItem,
+    _In_opt_ PPH_PLUGIN OwnerPlugin,
+    _In_opt_ PWSTR Caption
+)
+{
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
     context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
     context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
+    context->OwnerPlugin = OwnerPlugin;
+    context->Caption = Caption;
     PhReferenceObject(HandleItem);
 
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
@@ -652,6 +674,18 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             L"Exit status",
             NULL
             );
+    }
+    else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"SymbolicLink", TRUE))
+    {
+        PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
+
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
+            PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
+            L"Link target",
+            NULL
+        );
     }
 }
 
@@ -2130,6 +2164,17 @@ VOID PhpUpdateHandleGeneral(
             }
         }
     }
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"SymbolicLink", TRUE))
+    {
+        PPH_STRING linkTarget;
+
+        if (!PhIsNullOrEmptyString(Context->HandleItem->ObjectName) &&
+            NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &Context->HandleItem->ObjectName->sr)))
+        {
+            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK], 1, PhGetStringOrEmpty(linkTarget));
+            PhDereferenceObject(linkTarget);
+        }
+    }
 }
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
@@ -2171,11 +2216,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
-            // HACK
-            if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
-            else
-                PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+            // Plugins can load window position in GeneralCallbackHandlePropertiesWindowInitialized, ex. Object Manager (Dart Vanya)
+            if (!PhPluginsEnabled || !context->OwnerPlugin)
+            {
+                // HACK
+                if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
+                    PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
+                else
+                    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+            }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -2184,6 +2233,14 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneral(context);
 
             PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+
+            if (PhPluginsEnabled)
+            {
+                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
+                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
+
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
+            }
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
@@ -2195,7 +2252,18 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhUnregisterWindowCallback(context->ParentWindow);
 
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
+            if (!PhPluginsEnabled || !context->OwnerPlugin)
+            {
+                PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
+            }
+            // Plugins perform uninitializing in GeneralCallbackHandlePropertiesWindowUninitializing, ex. Object Manager (Dart Vanya)
+            else if (PhPluginsEnabled)
+            {
+                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
+                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
+
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowUninitializing), Context);
+            }
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

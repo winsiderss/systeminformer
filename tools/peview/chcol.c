@@ -284,6 +284,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             context->ControlFont = PvColumnsGetCurrentFont(hwndDlg);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchInactiveHandle,
                 L"Inactive columns...",
                 PvpInactiveColumnsSearchControlCallback,
@@ -291,6 +292,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                 );
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchActiveHandle,
                 L"Active columns...",
                 PvpActiveColumnsSearchControlCallback,

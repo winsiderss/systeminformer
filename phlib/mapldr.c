@@ -1712,8 +1712,9 @@ VOID PhLoaderEntrySnapShowErrorMessage(
 
         if (IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal))
         {
-            PhShowError(
+            PhShowError2(
                 NULL,
+                PhApplicationName,
                 L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
                 PhGetStringOrEmpty(fileName),
                 IMAGE_ORDINAL(OriginalThunk->u1.Ordinal),
@@ -1726,8 +1727,9 @@ VOID PhLoaderEntrySnapShowErrorMessage(
 
             importByName = PTR_ADD_OFFSET(BaseAddress, OriginalThunk->u1.AddressOfData);
 
-            PhShowError(
+            PhShowError2(
                 NULL,
+                L"Error.",
                 L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
                 PhGetStringOrEmpty(fileName),
                 importByName->Name,

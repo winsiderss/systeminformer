@@ -115,7 +115,7 @@ BEGIN
     CONTROL         "Enable GPU monitoring",IDC_ENABLEGPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,88,10
     CONTROL         "Enable NPU monitoring",IDC_ENABLENPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,88,10
     CONTROL         "Enable GPU/NPU fahrenheit temperature",IDC_ENABLEFAHRENHEITTEMP,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,140,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,210,10
     CONTROL         "Enable FPS monitoring",IDC_ENABLEFPSMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,85,130,10
     LTEXT           "Note: FPS monitoring requires either administrative privileges or the current user a member of the ""Performance Log Users"" group.",IDC_STATIC,7,104,211,23
 END
@@ -406,8 +406,13 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS
 CAPTION "Object Manager"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_OBJMGR_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,153,2,544,360
-    CONTROL         "",IDC_OBJMGR_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_FULLROWSELECT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,2,2,148,360
+    CONTROL         "",IDC_OBJMGR_LIST,"SysListView32",LVS_REPORT | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,153,2,544,343
+    CONTROL         "",IDC_OBJMGR_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_FULLROWSELECT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,2,2,148,343
+    EDITTEXT        IDC_OBJMGR_SEARCH,2,347,169,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Refresh (F5)",IDC_REFRESH,643,347,50,14
+    LTEXT           "Static",IDC_OBJMGR_PATH,180,350,330,8
+    LTEXT           "Objects in current directory:",IDC_OBJMGR_COUNT_L,515,350,92,8
+    LTEXT           "Static",IDC_OBJMGR_COUNT,610,350,32,8
 END
 
 IDD_POOL DIALOGEX 0, 0, 641, 383
@@ -470,6 +475,28 @@ BEGIN
     RTEXT           "Static",IDC_ZSENDS_V,189,11,93,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSENDBYTES_V,205,22,77,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSENDBYTESDELTA_V,223,33,59,8,SS_ENDELLIPSIS
+END
+
+IDD_OBJHANDLES DIALOGEX 0, 0, 260, 269
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Handles"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
+    LTEXT           "Total handles found:",IDC_STATIC,10,257,67,8
+    LTEXT           "100000",IDC_OBJ_HANDLESTOTAL,78,257,32,8
+    LTEXT           "By address:",IDC_STATIC,117,257,39,8
+    LTEXT           "100000",IDC_OBJ_HANDLESBYOBJECT,157,257,27,8
+    LTEXT           "By name:", IDC_OBJ_HANDLESBYNAME_L,195,257,31,8
+    LTEXT           "100000",IDC_OBJ_HANDLESBYNAME,227,257,27,8
+END
+
+IDD_OBJWINSTA DIALOGEX 0, 0, 260, 200
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Desktops"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
 END
 
 
@@ -652,7 +679,7 @@ BEGIN
         LEFTMARGIN, 2
         RIGHTMARGIN, 697
         TOPMARGIN, 2
-        BOTTOMMARGIN, 362
+        BOTTOMMARGIN, 334
     END
 
     IDD_POOL, DIALOG
@@ -689,6 +716,14 @@ BEGIN
     IDD_PROCNET_PANEL, DIALOG
     BEGIN
     END
+
+    IDD_OBJHANDLES, DIALOG
+    BEGIN
+    END
+
+    IDD_OBJWINSTA, DIALOG
+    BEGIN
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -700,6 +735,8 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+IDI_CPU                 ICON                    "resources\\cpu.ico"
+
 IDI_FOLDER              ICON                    "resources\\folder.ico"
 
 IDI_MUTANT              ICON                    "resources\\mutant.ico"
@@ -722,9 +759,23 @@ IDI_DEVICE              ICON                    "resources\\device.ico"
 
 IDI_UNKNOWN             ICON                    "resources\\unknown.ico"
 
+IDI_SEMAPHORE           ICON                    "resources\\semaphore.ico"
 
+IDI_FILTERPORT          ICON                    "resources\\filterport.ico"
 
+IDI_JOB                 ICON                    "resources\\job.ico"
 
+IDI_MEMORY              ICON                    "resources\\memory.ico"
+
+IDI_CALLBACK            ICON                    "resources\\callback.ico"
+
+IDI_KEYEDEVENT          ICON                    "resources\\keyedevent.ico"
+
+IDI_TYPE                ICON                    "resources\\type.ico"
+
+IDI_TIMER               ICON                    "resources\\timer.ico"
+
+IDI_WINSTA              ICON                    "resources\\winsta.ico"
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

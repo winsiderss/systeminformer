@@ -452,6 +452,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Imports (Ctrl+K)",
                 PvpPeImportsSearchControlCallback,

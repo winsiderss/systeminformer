@@ -1,6 +1,4 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by ExtendedTools.rc
 //
 #define ID_PROCESS_UNLOADEDMODULES      101
 #define IDD_UNLOADEDDLLS                102
@@ -28,6 +26,17 @@
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
 #define IDD_PROCFRAMES                  142
+#define IDI_CPU                         159
+#define IDI_SEMAPHORE                   160
+#define IDI_FILTERPORT                  161
+#define IDI_JOB                         162
+#define IDI_MEMORY                      163
+#define IDD_OBJHANDLES                  164
+#define IDI_CALLBACK                    165
+#define IDI_KEYEDEVENT                  166
+#define IDI_TYPE                        167
+#define IDI_TIMER                       168
+#define IDI_WINSTA                      169
 #define IDD_SYSINFO_NPU                 200
 #define ID_VIEW_NPUINFORMATION          201
 #define IDD_SYSINFO_NPUPANEL            202
@@ -101,6 +110,28 @@
 #define IDC_NETSEND_L                   1111
 #define IDC_GROUPDISKREAD               1112
 #define IDC_GROUPDISKWRITE              1113
+#define IDC_OBJMGR_SEARCH               1114
+#define IDC_OBJMGR_COUNT_L              1115
+#define IDC_OBJMGR_COUNT                1116
+#define IDC_PROPERTIES                  1117
+#define IDC_SECURITY                    1118
+#define IDC_COPY                        1119
+#define IDC_OPENLINK                    1120
+#define IDC_GOTODRIVER                  1121
+#define IDC_GOTOPROCESS                 1122
+#define IDC_GOTOTHREAD                  1123
+#define IDC_OBJMGR_PATH                 1124
+#define IDC_COPYPATH                    1125
+#define IDC_RESETSORT                   1126
+#define IDC_OPENFILELOCATION            1127
+#define IDC_CLOSEHANDLE                 1128
+#define IDC_OBJ_HANDLESTOTAL            1129
+#define IDC_OBJ_HANDLESBYOBJECT         1130
+#define IDC_OBJ_HANDLESBYNAME           1131
+#define IDC_OBJ_HANDLESBYNAME_L         1132
+#define IDC_GOTODRIVER2                 1133
+#define IDC_HANDLE_PROTECTED            1134
+#define IDC_HANDLE_INHERIT              1135
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002
@@ -154,6 +185,7 @@
 #define IDD_PROCNET                     8003
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
+#define IDD_OBJWINSTA                   8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005
@@ -174,12 +206,12 @@
 
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1114
+#define _APS_NEXT_CONTROL_VALUE         1134
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

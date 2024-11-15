@@ -662,7 +662,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         if (!this->IsPage)
             PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
 
-        PhInitializeWindowTheme(hwnd, PhEnableThemeSupport);
+        PhInitializeWindowTheme(GetParent(hwnd), PhEnableThemeSupport);
     }
 
     return E_NOTIMPL;
@@ -1458,7 +1458,13 @@ NTSTATUS PhStdGetObjectSecurity(
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
+        // NtClose doesn't work for Desktop here. This was causing a huge leak of Desktop handles (Dart Vanya)
+        if (PhEqualString2(this->ObjectType, L"Desktop", TRUE))
+            CloseDesktop(handle);
+        else if (PhEqualString2(this->ObjectType, L"WindowStation", TRUE))
+            CloseWindowStation(handle);
+        else
+            NtClose(handle);
     }
 
     return status;
@@ -1610,7 +1616,10 @@ NTSTATUS PhStdSetObjectSecurity(
     else
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
+        if (!PhEqualString2(this->ObjectType, L"Desktop", TRUE))
+            NtClose(handle);
+        else
+            CloseDesktop(handle);
     }
 
     return status;

@@ -331,15 +331,9 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             }
         }
         break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_KEYDOWN:
         {
-            if (LOWORD(wParam) == 'K')
+        if (LOWORD(wParam) == 'K')
             {
                 if (GetKeyState(VK_CONTROL) < 0)
                 {
@@ -349,6 +343,12 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -378,7 +378,7 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(EtPoolTagDialogHandle, &message))
@@ -411,7 +411,7 @@ VOID EtShowPoolTableDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&EtPoolTagDialogThreadHandle, EtShowPoolMonDialogThread, ParentWindowHandle)))
         {
-            PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+            PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
             return;
         }
 

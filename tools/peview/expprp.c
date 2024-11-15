@@ -434,6 +434,7 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Exports (Ctrl+K)",
                 PvpPeExportsSearchControlCallback,

@@ -5371,9 +5371,6 @@ VOID PhTnpPaint(
             {
                 if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
                 {
-                    // Draw the outline of the selection rectangle.
-                    //FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-
                     // Fill in the selection rectangle.
                     oldBitmap = SelectBitmap(tempDc, bitmap);
                     tempRect.left = 0;
@@ -5412,6 +5409,13 @@ VOID PhTnpPaint(
                         1,
                         blendFunction
                         );
+
+                    // Draw the outline of the selection rectangle (Dart Vanya)
+                    if (Context->HasFocus && node->Selected)
+                    {
+                        //SetDCBrushColor(hdc, RGB(0xF0, 0xF0, 0xF0));
+                        FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+                    }
 
                     SelectBitmap(tempDc, oldBitmap);
                     DeleteBitmap(bitmap);

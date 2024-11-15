@@ -673,7 +673,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
 
                     if (!minimumLength || minimumLength > MAXULONG32)
                     {
-                        PhShowError(hwndDlg, L"%s", L"Invalid minimum length");
+                        PhShowError2(hwndDlg, L"Invalid minimum length", L"%s", L"");
                         break;
                     }
 
@@ -749,6 +749,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
         {
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Strings (Ctrl+K)",
                 PvpStringsSearchControlCallback,

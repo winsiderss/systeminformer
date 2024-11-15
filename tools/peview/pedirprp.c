@@ -415,6 +415,7 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Directories (Ctrl+K)",
                 PvpPeDirectorySearchControl,

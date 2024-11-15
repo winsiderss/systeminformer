@@ -146,6 +146,9 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_OBJMGR_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerWindowPosition")
 #define SETTING_NAME_OBJMGR_WINDOW_SIZE (PLUGIN_NAME L".ObjectManagerWindowSize")
 #define SETTING_NAME_OBJMGR_COLUMNS (PLUGIN_NAME L".ObjectManagerWindowColumns")
+#define SETTING_NAME_OBJMGR_LIST_SORT (PLUGIN_NAME L".ObjectManagerWindowListSort")
+#define SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerPropertiesWindowPosition")
+#define SETTING_NAME_OBJMGR_LAST_PATH (PLUGIN_NAME L".ObjectManagerLastPath")
 #define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
 #define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
@@ -1048,6 +1051,14 @@ VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
     );
 
+VOID EtHandlePropertiesWindowInitialized(
+    _In_ PVOID Parameter
+);
+
+VOID EtHandlePropertiesWindowUninitializing(
+    _In_ PVOID Parameter
+);
+
 // options
 
 INT_PTR CALLBACK OptionsDlgProc(
@@ -1628,8 +1639,27 @@ VOID EtShowFirmwareDialog(
 
 // objmgr
 
+#define PH_OBJ_KERNEL_ACCESS_ONLY                0x00010000L
+
+extern HWND EtObjectManagerDialogHandle;
+extern LARGE_INTEGER EtObjectManagerTimeCached;
+extern PPH_LIST EtObjectManagerOwnHandles;
+extern HICON EtObjectManagerPropIcon;
+extern PPH_HASHTABLE EtObjectManagerPropWindows;
+
 VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
+    );
+
+NTSTATUS EtDuplicateHandleFromProcessEx(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SourceHandle
+    );
+
+PPH_STRING EtGetWindowStationType(
+    _In_ PPH_STRINGREF StationName
     );
 
 // poolmon

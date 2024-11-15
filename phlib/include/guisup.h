@@ -211,6 +211,21 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhAllowDarkModeForWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Enabled
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsDarkModeAllowedForWindow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );
@@ -2075,6 +2090,8 @@ extern HFONT PhMonospaceFont;
 extern HBRUSH PhThemeWindowBackgroundBrush;
 extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
+extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
+extern BOOLEAN PhEnableThemeNativeButtons;
 extern BOOLEAN PhEnableThemeListviewBorder;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
@@ -2127,6 +2144,13 @@ NTAPI
 PhThemeWindowDrawItem(
     _In_ HWND WindowHandle,
     _In_ PDRAWITEMSTRUCT DrawInfo
+    );
+
+PHLIBAPI
+LRESULT
+NTAPI
+PhThemeWindowDrawButton(
+    _In_ LPNMCUSTOMDRAW DrawInfo
     );
 
 PHLIBAPI

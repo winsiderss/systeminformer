@@ -454,6 +454,10 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             }
 
             PhSetDialogFocus(WindowHandle, context->ComboBoxHandle);
+
+            if (PhEnableThemeSupport)
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_HIDE);
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -560,7 +564,22 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhGetDpi(50, dpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_3DFACE));
+
+            if (PhEnableThemeSupport)
+            {
+                SetDCBrushColor(hdc, RGB(50, 50, 50));
+                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+                clientRect.bottom = clientRect.top + 1;
+                SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
+                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+                PhOffsetRect(&clientRect, 0, 1);
+                SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+            }
+            else
+            {
+                FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+            }
 
             SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
         }

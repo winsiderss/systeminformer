@@ -192,6 +192,7 @@ PV_SEARCHCONTROL_CALLBACK(
 typedef PV_SEARCHCONTROL_CALLBACK* PPV_SEARCHCONTROL_CALLBACK;
 
 VOID PvCreateSearchControl(
+    _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
     _In_opt_ PCWSTR BannerText,
     _In_ PPV_SEARCHCONTROL_CALLBACK Callback,

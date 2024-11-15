@@ -74,6 +74,8 @@ static _GetThemeInt GetThemeInt_I = NULL;
 static _GetThemePartSize GetThemePartSize_I = NULL;
 static _DrawThemeBackground DrawThemeBackground_I = NULL;
 static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
+static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
+static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
 static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
 static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
 static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
@@ -120,6 +122,11 @@ VOID PhGuiSupportInitialization(
         if (WindowsVersion >= WINDOWS_11)
         {
             GetThemeClass_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 74);
+        }
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
+            IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
         }
     }
 
@@ -398,6 +405,27 @@ BOOLEAN PhDrawThemeTextEx(
         return FALSE;
 
     return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+}
+
+BOOLEAN PhAllowDarkModeForWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Enabled
+    )
+{
+    if (!AllowDarkModeForWindow_I)
+        return FALSE;
+
+    return !!AllowDarkModeForWindow_I(WindowHandle, Enabled);
+}
+
+BOOLEAN PhIsDarkModeAllowedForWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!IsDarkModeAllowedForWindow_I)
+        return FALSE;
+
+    return !!IsDarkModeAllowedForWindow_I(WindowHandle);
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
@@ -1882,6 +1910,95 @@ HMENU PhLoadMenu(
     return menuHandle;
 }
 
+LRESULT CALLBACK PhpGeneralPropSheetWndProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    WNDPROC oldWndProc;
+
+    oldWndProc = PhGetWindowContext(hwnd, 0xF);
+
+    if (!oldWndProc)
+        return 0;
+
+    switch (uMsg)
+    {
+        case WM_NCDESTROY:
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
+        break;
+    case WM_SYSCOMMAND:
+        {
+            switch (wParam & 0xFFF0)
+            {
+                case SC_CLOSE:
+                {
+                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDOK:
+                // Prevent the OK button from working (even though
+                // it's already hidden). This prevents the Enter
+                // key from closing the dialog box.
+                return 0;
+            }
+        }
+        break;
+    case WM_KEYDOWN: // forward key messages
+        {
+            HWND pageWindowHandle;
+
+            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
+            {
+                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
+                {
+                    return TRUE;
+                }
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+INT CALLBACK PhpGeneralPropSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+)
+{
+    switch (uMsg)
+    {
+        case PSCB_INITIALIZED:
+        {
+            PhSetWindowContext(hwndDlg, 0xF, (PVOID)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
+
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
+
+            // Hide the OK button.
+            ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
+            // Set the Cancel button's text to "Close".
+            PhSetDialogItemText(hwndDlg, IDCANCEL, L"Close");
+        }
+        break;
+    }
+
+    return 0;
+}
+
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )
@@ -1913,6 +2030,12 @@ BOOLEAN PhModalPropertySheet(
         topLevelOwner = NULL;
 
     Header->dwFlags |= PSH_MODELESS;
+    // Allow to close other modeless property sheets (ex. Handle properties) by clicking the X on the taskbar window thumbnail, also forward key messages (Dart Vanya)
+    if (!Header->pfnCallback)
+    {
+        Header->dwFlags |= PSH_USECALLBACK;
+        Header->pfnCallback = PhpGeneralPropSheetProc;
+    }
     hwnd = (HWND)PropertySheet(Header);
 
     if (!hwnd)
@@ -1930,7 +2053,8 @@ BOOLEAN PhModalPropertySheet(
 
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
         {
-            DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
+            //DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
+            CallWindowProc((WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC), hwnd, message.message, message.wParam, message.lParam);
         }
 
         if (!PropSheet_IsDialogMessage(hwnd, &message))

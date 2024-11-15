@@ -837,6 +837,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Symbols (Ctrl+K)",
                 PvpSymbolsSearchControlCallback,

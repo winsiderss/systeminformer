@@ -209,7 +209,7 @@ static HWND PvpCreateSecurityButton(
             WC_BUTTON,
             L"Security",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-            rect.right,
+            rect.right + 3,
             rect.top,
             rect.right - rect.left,
             rect.bottom - rect.top,

@@ -1467,6 +1467,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Certificates (Ctrl+K)",
                 PhpPeSecuritySearchControlCallback,

@@ -542,7 +542,10 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            if (PhEnableThemeSupport)
+            {
+                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            }
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
@@ -702,7 +705,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                     else
                     {
-                        PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                        PhShowError2(hwndDlg, L"The process does not exist.", L"%s", L"");
                     }
                 }
                 break;

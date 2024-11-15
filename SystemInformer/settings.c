@@ -80,6 +80,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
+    PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
     PhpAddIntegerSetting(L"EnableTokenRemovedPrivileges", L"0");

@@ -466,6 +466,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             context->SearchResults = PhCreateList(1);
 
             PvCreateSearchControl(
+                hwndDlg,
                 context->SearchHandle,
                 L"Search Sections (Ctrl+K)",
                 PvpPeSectionsSearchControlCallback,
