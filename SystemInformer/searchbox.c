@@ -389,7 +389,7 @@ VOID PhpSearchDrawWindow(
     {
         if (GetFocus() == WindowHandle)
         {
-            SetDCBrushColor(Hdc, RGB(65, 65, 65));
+            SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
@@ -405,7 +405,7 @@ VOID PhpSearchDrawWindow(
         }
         else
         {
-            SetDCBrushColor(Hdc, RGB(65, 65, 65));
+            SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
             SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
             PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
             PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
@@ -784,7 +784,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 {
                     if (PhEnableThemeSupport)
                     {
-                        SetDCBrushColor(context->BufferedDc, RGB(0x8f, 0x8f, 0x8f));
+                        SetDCBrushColor(context->BufferedDc, PhThemeWindowHighlight2Color);
                         FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else

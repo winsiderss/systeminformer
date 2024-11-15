@@ -784,7 +784,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 {
                     if (PhEnableThemeSupport)
                     {
-                        SetDCBrushColor(context->BufferedDc, RGB(0x8f, 0x8f, 0x8f));
+                        SetDCBrushColor(context->BufferedDc, PhThemeWindowHighlight2Color);
                         FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
                     }
                     else

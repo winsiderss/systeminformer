@@ -2097,6 +2097,7 @@ extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowBackground2Color;
 extern COLORREF PhThemeWindowHighlightColor;
+extern COLORREF PhThemeWindowHighlight2Color;
 extern COLORREF PhThemeWindowTextColor;
 
 PHLIBAPI

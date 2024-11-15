@@ -167,7 +167,7 @@ COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
 COLORREF PhThemeWindowBackground2Color = RGB(65, 65, 65);
 COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
-COLORREF PhThemeWindowTextColor = RGB(0xff, 0xff, 0xff); // RGB(255, 69, 0)
+COLORREF PhThemeWindowTextColor = RGB(255, 255, 255);
 
 VOID PhInitializeWindowTheme(
     _In_ HWND WindowHandle,
@@ -2408,7 +2408,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             RECT clientRect;
 
             GetClientRect(WindowHandle, &clientRect);
-            
+
             ThemeWindowRenderGroupBoxControl(WindowHandle, hdc, &clientRect, oldWndProc);
         }
         return TRUE;
@@ -2516,7 +2516,7 @@ VOID ThemeWindowRenderTabControl(
     tabItem.dwStateMask = TCIS_BUTTONPRESSED | TCIS_HIGHLIGHTED;
     tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
     tabItem.pszText = tabHeaderText;
-    
+
     for (INT i = 0; i < count; i++)
     {
         if (i == currentSelection)
@@ -2580,7 +2580,7 @@ VOID ThemeWindowRenderTabControl(
             //case 1: // Old colors
             {
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                SetDCBrushColor(bufferDc, RGB(49, 49, 49));
+                SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
                 SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
                 FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));

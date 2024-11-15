@@ -1059,7 +1059,7 @@ INT EtpEnumObjectHandles(
         PhEndInitOnce(&initOnce);
     }
 
-    COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
+    COLORREF ColorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
     COLORREF ColorOwnObject = PhGetIntegerSetting(L"ColorOwnProcesses");
     COLORREF ColorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
     COLORREF ColorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
@@ -1640,7 +1640,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                             break;
                                         default:
                                             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"");
-                                            listviewItems[0]->Color = !!PhGetIntegerSetting(L"EnableThemeSupport") ? RGB(43, 43, 43) : GetSysColor(COLOR_WINDOW);
+                                            listviewItems[0]->Color = !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
                                             break;
                                     }
 

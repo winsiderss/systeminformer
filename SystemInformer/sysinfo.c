@@ -1436,7 +1436,7 @@ VOID PhSipDrawRestoreSummaryPanel(
             break;
         case 1: // Old colors
             SetTextColor(bufferDc, PhThemeWindowTextColor);
-            SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);// RGB(43, 43, 43));
+            SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
             FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             break;
         }
@@ -1526,7 +1526,7 @@ VOID PhSipDrawSeparator(
             break;
         case 1: // Old colors
             {
-                SetDCBrushColor(bufferDc, RGB(43, 43, 43));
+                SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
                 FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             }
             break;

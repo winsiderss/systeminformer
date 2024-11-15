@@ -516,10 +516,10 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                context->BrushNormal = CreateSolidBrush(RGB(43, 43, 43));
-                context->BrushHot = CreateSolidBrush(RGB(128, 128, 128));
-                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-                context->TextColor = RGB(0xff, 0xff, 0xff);
+                context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
+                context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
+                context->BrushPushed = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
+                context->TextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
             }
             else
             {

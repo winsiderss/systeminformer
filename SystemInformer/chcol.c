@@ -263,10 +263,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
-                context->BrushNormal = CreateSolidBrush(RGB(43, 43, 43));
-                context->BrushHot = CreateSolidBrush(RGB(128, 128, 128));
-                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-                context->TextColor = RGB(0xff, 0xff, 0xff);
+                context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
+                context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);
+                context->BrushPushed = CreateSolidBrush(PhThemeWindowHighlight2Color);
+                context->TextColor = PhThemeWindowTextColor;
             }
             else
             {

@@ -463,7 +463,7 @@ VOID ThemeWindowStatusBarDrawPart(
 
     if (PhPtInRect(&blockRect, Context->CursorPos))
     {
-        SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
+        SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
         blockRect.left -= 3, blockRect.top -= 1;
         FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
