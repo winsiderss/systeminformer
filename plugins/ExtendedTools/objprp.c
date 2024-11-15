@@ -30,6 +30,8 @@
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
+    PH_LAYOUT_MANAGER LayoutManager;
+
     PPH_HANDLE_ITEM HandleItem;
     HANDLE ProcessId;
     HWND WindowHandle;
@@ -119,8 +121,11 @@ VOID EtHandlePropertiesInitializing(
             {
                 if (objectProperties->NumberOfPages > 1)
                 {
-                    memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
-                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
+                    memmove(
+                        &objectProperties->Pages[2],
+                        &objectProperties->Pages[1],
+                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE)
+                        );
                 }
 
                 objectProperties->Pages[1] = page;
@@ -142,8 +147,11 @@ VOID EtHandlePropertiesInitializing(
             {
                 if (objectProperties->NumberOfPages > 1)
                 {
-                    memmove(&objectProperties->Pages[2], &objectProperties->Pages[1],
-                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE));
+                    memmove(
+                        &objectProperties->Pages[2],
+                        &objectProperties->Pages[1],
+                        (objectProperties->NumberOfPages - 1) * sizeof(HPROPSHEETPAGE)
+                        );
                 }
 
                 objectProperties->Pages[1] = page;
@@ -1396,6 +1404,9 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
             PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
             INT OwnHandlesCount = EtpEnumObjectHandles(context);
@@ -1419,6 +1430,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYNAME_L), L"By type:");
         }
         break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
     case WM_DESTROY:
         {
             INT index = INT_ERROR;
@@ -1440,6 +1457,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         break;
     case WM_NCDESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
