@@ -630,7 +630,8 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
                  entry->EtObjectType == EtObjectAlpcPort && KsiLevel() >= KphLevelMed ||
                  entry->EtObjectType == EtObjectMutant ||
                  entry->EtObjectType == EtObjectJob ||
-                 entry->EtObjectType == EtObjectDriver && KsiLevel() == KphLevelMax)
+                 entry->EtObjectType == EtObjectDriver && KsiLevel() == KphLevelMax ||
+                 entry->EtObjectType == EtObjectSection)
         {
             entry->TargetIsResolving = TRUE;
         }
@@ -993,6 +994,21 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                     {
                         PhMoveReference(&entry->Target, driverName);
                     }
+                    NtClose(objectHandle);
+                }
+            }
+            break;
+        case EtObjectSection:
+            {
+                PPH_STRING fileName;
+
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SECTION_MAP_READ, 0)))
+                {
+                    if (NT_SUCCESS(status = PhGetSectionFileName(objectHandle, &fileName)))
+                    {
+                        PhMoveReference(&entry->Target, fileName);
+                    }
+
                     NtClose(objectHandle);
                 }
             }
@@ -1852,6 +1868,11 @@ VOID NTAPI EtpObjectManagerObjectProperties(
         status = EtObjectManagerOpenRealObject(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, &processId);
     }
 
+    if (!NT_SUCCESS(status))
+    {
+        status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL);
+    }
+
     PPH_HANDLE_ITEM handleItem;
     SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo = { 0 };
     OBJECT_BASIC_INFORMATION objectInfo;
@@ -2681,6 +2702,10 @@ INT_PTR CALLBACK WinObjDlgProc(
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOTHREAD, L"&Go to thread...", NULL, NULL), ULONG_MAX);
                     }
                     else if (entry->EtObjectType == EtObjectDriver)
+                    {
+                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
+                    }
+                    else if (entry->EtObjectType == EtObjectSection)
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
                     }
