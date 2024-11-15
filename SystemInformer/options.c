@@ -3244,11 +3244,11 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             NULL,
                             PhSystemDpi,
                             nodes[i]->Setting
-                        );
+                            );
                         PhMoveReference(
                             &nodes[i]->ValueString,
                             PhSettingToString(nodes[i]->Setting->Type, nodes[i]->Setting)
-                        );
+                            );
                     }
                     TreeNew_NodesStructured(context->TreeNewHandle);
                     PhApplyTreeNewFilters(&context->TreeFilterSupport);
@@ -3585,7 +3585,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         PH_STRINGREF UseSettingName;
                         PPH_SETTING Color;
                         PPH_SETTING UseColor;
-                         
+
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         PhInitializeStringRef(&UseSettingName, ColorItem->UseSettingName);
                         Color = PhGetSetting(&SettingName);
@@ -3624,7 +3624,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     PH_ALIGN_LEFT | PH_ALIGN_TOP,
                     point.x,
                     point.y
-                );
+                    );
 
                 if (item && item->Id == IDC_RESET)
                 {
@@ -3844,7 +3844,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                     {
                         PH_STRINGREF SettingName;
                         PPH_SETTING Color;
-                         
+
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         Color = PhGetSetting(&SettingName);
 

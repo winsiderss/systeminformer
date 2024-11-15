@@ -1479,10 +1479,14 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         )
                     {
                         // This trigger has data items, but the trigger type doesn't allow them.
-                        if (PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_WARNING_ICON,
+                        if (PhShowMessage2(
+                            WindowHandle,
+                            TD_OK_BUTTON | TD_CANCEL_BUTTON,
+                            TD_WARNING_ICON,
                             PhaFormatString(L"The trigger type \"%s\" does not allow data items to be configured.", typeString->Buffer)->Buffer,
                             L"%s",
-                            L"If you continue, they will be removed.") != IDOK)
+                            L"If you continue, they will be removed."
+                            ) != IDOK)
                         {
                             goto DoNotClose;
                         }

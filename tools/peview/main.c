@@ -128,7 +128,7 @@ INT WINAPI wWinMain(
             L"You are attempting to run the 32-bit version of PE Viewer on 64-bit Windows. "
             L"Most features will not work correctly.\n\n"
             L"Please run the 64-bit version of PE Viewer instead."
-        );
+            );
         PhExitApplication(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
 #endif
