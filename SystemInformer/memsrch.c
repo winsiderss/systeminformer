@@ -62,6 +62,7 @@ typedef struct _MEMORY_STRING_SEARCH_CONTEXT
     BOOLEAN DetectUnicode;
 
     MEMORY_BASIC_INFORMATION BasicInfo;
+    PVOID CurrentReadAddress;
     PVOID NextReadAddress;
     SIZE_T ReadRemaning;
     PBYTE Buffer;
@@ -368,11 +369,12 @@ NTSTATUS NTAPI PhpMemoryStringSearchNextBuffer(
         if (context->ReadRemaning)
         {
 ReadMemory:
+            context->CurrentReadAddress = context->NextReadAddress;
             length = min(context->ReadRemaning, context->BufferSize);
 
             if (NT_SUCCESS(status = NtReadVirtualMemory(
                 context->ProcessHandle,
-                context->NextReadAddress,
+                context->CurrentReadAddress,
                 context->Buffer,
                 length,
                 &length
@@ -407,7 +409,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
     if (!context->DetectUnicode && Result->Unicode)
         return context->Options->Cancel;
 
-    result = PhCreateMemoryResult(Result->Address, context->BasicInfo.BaseAddress, Result->Length);
+    result = PhCreateMemoryResult(PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer)), context->BasicInfo.BaseAddress, Result->Length);
 
     result->Display.Buffer = PhAllocateForMemorySearch(Result->String->Length + sizeof(WCHAR));
     memcpy(result->Display.Buffer, Result->String->Buffer, Result->String->Length);
