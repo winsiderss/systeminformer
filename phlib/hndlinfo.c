@@ -991,12 +991,15 @@ NTSTATUS PhpGetBestObjectName(
     _In_ HANDLE Handle,
     _In_ PPH_STRING ObjectName,
     _In_ PPH_STRING TypeName,
-    _Out_ PPH_STRING *BestObjectName
+    _Out_ PPH_STRING *BestObjectName,
+    _Out_ PPH_STRING *ResolvedObjectName
     )
 {
     NTSTATUS status;
     PPH_STRING bestObjectName = NULL;
     PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
+
+    PhSetReference(ResolvedObjectName, ObjectName);
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
@@ -1663,6 +1666,9 @@ NTSTATUS PhpGetBestObjectName(
         if (namesInfo && namesInfo->ConnectionPort.Length > 0)
         {
             PhInitFormatUCS(&format[formatCount++], &namesInfo->ConnectionPort);
+
+            if (PhIsNullOrEmptyString(*ResolvedObjectName))
+                PhMoveReference(ResolvedObjectName, PhCreateStringFromUnicodeString(&namesInfo->ConnectionPort));
         }
 
         if (formatCount > 0)
@@ -1788,6 +1794,7 @@ NTSTATUS PhGetHandleInformationEx(
     PPH_STRING typeName = NULL;
     PPH_STRING objectName = NULL;
     PPH_STRING bestObjectName = NULL;
+    PPH_STRING resolvedObjectName = NULL;
     BOOLEAN useKph;
 
     if (ProcessHandle == NULL || Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
@@ -1914,7 +1921,8 @@ NTSTATUS PhGetHandleInformationEx(
         Handle,
         objectName,
         typeName,
-        &bestObjectName
+        &bestObjectName,
+        &resolvedObjectName
         );
 
     if (!NT_SUCCESS(status))
@@ -1923,6 +1931,8 @@ NTSTATUS PhGetHandleInformationEx(
         status = STATUS_SUCCESS;
         goto CleanupExit;
     }
+
+    PhMoveReference(&objectName, resolvedObjectName);
 
 CleanupExit:
 
