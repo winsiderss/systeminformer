@@ -1131,13 +1131,15 @@ EXPORTS
     KphOpenDevice                                                                 @2043     NONAME
     KphOpenDeviceDriver                                                           @2044     NONAME
     KphOpenDeviceBaseDevice                                                       @2045     NONAME
+    KphQueryInformationDriver                                                     @2046     NONAME
 
 ; phnative
-    PhGetDriverName                                                               @2046     NONAME
-    PhGetDriverImageFileName                                                      @2047     NONAME
-    PhEnumHandlesEx                                                               @2048     NONAME
-    PhGetObjectTypeNumber                                                         @2049     NONAME
-    PhGetObjectTypeIndexName                                                      @2050     NONAME
-    PhGetPnPDeviceName                                                            @2051     NONAME
-    PhFilterConnectCommunicationPort                                              @2052     NONAME
-    PhQuerySymbolicLinkObject                                                     @2053     NONAME
+    PhGetDriverName                                                               @2047     NONAME
+    PhGetDriverImageFileName                                                      @2048     NONAME
+    PhEnumHandlesEx                                                               @2049     NONAME
+    PhGetObjectTypeNumber                                                         @2050     NONAME
+    PhGetObjectTypeIndexName                                                      @2051     NONAME
+    PhGetPnPDeviceName                                                            @2052     NONAME
+    PhFilterConnectCommunicationPort                                              @2053     NONAME
+    PhQuerySymbolicLinkObject                                                     @2054     NONAME
+    PhGetDriverServiceKeyName                                                     @2055     NONAME

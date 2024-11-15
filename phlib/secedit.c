@@ -1458,11 +1458,13 @@ NTSTATUS PhStdGetObjectSecurity(
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        // NtClose doesn't work for Desktop, this was causing a huge leak of Desktop handles (Dart Vanya)
-        if (!PhEqualString2(this->ObjectType, L"Desktop", TRUE))
-            NtClose(handle);
-        else
+        // NtClose doesn't work for Desktop here. This was causing a huge leak of Desktop handles (Dart Vanya)
+        if (PhEqualString2(this->ObjectType, L"Desktop", TRUE))
             CloseDesktop(handle);
+        else if (PhEqualString2(this->ObjectType, L"WindowStation", TRUE))
+            CloseWindowStation(handle);
+        else
+            NtClose(handle);
     }
 
     return status;

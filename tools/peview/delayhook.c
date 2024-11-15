@@ -32,34 +32,6 @@ static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
-BOOL(WINAPI* PhAllowDarkModeForWindow_I)(
-    _In_ HWND WindowHandle
-    ) = NULL;
-
-BOOL(WINAPI* PhIsDarkModeAllowedForWindow_I)(
-    _In_ HWND WindowHandle
-    ) = NULL;
-
-BOOLEAN PhAllowDarkModeForWindow(
-    _In_ HWND WindowHandle
-    )
-{
-    if (!PhAllowDarkModeForWindow_I)
-        return FALSE;
-
-    return !!PhAllowDarkModeForWindow_I(WindowHandle);
-}
-
-BOOLEAN PhIsDarkModeAllowedForWindow(
-    _In_ HWND WindowHandle
-)
-{
-    if (!PhIsDarkModeAllowedForWindow_I)
-        return FALSE;
-
-    return !!PhIsDarkModeAllowedForWindow_I(WindowHandle);
-}
-
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -2096,8 +2068,6 @@ VOID PhRegisterDetoursHooks(
 
     if (baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll"))
     {
-        PhAllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
-        PhIsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
         DefaultDrawThemeBackground = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
         DefaultDrawThemeBackgroundEx = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackgroundEx", 0);
         DefaultDrawThemeText = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeText", 0);

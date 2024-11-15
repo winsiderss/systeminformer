@@ -83,7 +83,7 @@ PPH_STRING EtGetAccessString2(
 PPH_STRING EtGetAccessStringZ(
     _In_ PCWSTR TypeName,
     _In_ ACCESS_MASK access
-);
+    );
 
 INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ HWND hwndDlg,
@@ -91,12 +91,6 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
-
-extern HWND EtObjectManagerDialogHandle;
-extern LARGE_INTEGER EtObjectManagerTimeCached;
-extern PPH_LIST EtObjectManagerOwnHandles;
-extern HICON EtObjectManagerPropWndIcon;
-extern PPH_HASHTABLE EtObjectManagerPropWnds;
 
 VOID EtHandlePropertiesInitializing(
     _In_ PVOID Parameter
@@ -118,7 +112,7 @@ VOID EtHandlePropertiesInitializing(
                 context,
                 MAKEINTRESOURCE(IDD_OBJWINSTA),
                 EtpWinStaPageDlgProc
-            );
+                );
 
             // Insert our page into the second slot.
             if (page)
@@ -141,7 +135,7 @@ VOID EtHandlePropertiesInitializing(
                 context,
                 MAKEINTRESOURCE(IDD_OBJHANDLES),
                 EtpObjHandlesPageDlgProc
-            );
+                );
 
             // Insert our page into the second slot.
             if (page)
@@ -164,7 +158,7 @@ VOID EtHandlePropertiesInitializing(
                 context,
                 MAKEINTRESOURCE(IDD_OBJTPWORKERFACTORY),
                 EtpTpWorkerFactoryPageDlgProc
-            );
+                );
 
             // Insert our page into the second slot.
             if (page)
@@ -203,6 +197,10 @@ typedef enum _ET_OBJECT_GENERAL_INDEX {
     OBJECT_GENERAL_INDEX_DEVICEPNPNAME,
 
     OBJECT_GENERAL_INDEX_DRIVERIMAGE,
+    OBJECT_GENERAL_INDEX_DRIVERSERVICE,
+    OBJECT_GENERAL_INDEX_DRIVERSIZE,
+    OBJECT_GENERAL_INDEX_DRIVERSTART,
+    OBJECT_GENERAL_INDEX_DRIVERFLAGS,
 
     OBJECT_GENERAL_INDEX_TYPEINDEX,
     OBJECT_GENERAL_INDEX_TYPEOBJECTS,
@@ -247,13 +245,14 @@ VOID EtHandlePropertiesWindowInitialized(
     static INT EtListViewRowCache[OBJECT_GENERAL_INDEX_MAXIMUM];
 
     PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT context = Parameter;
+    WCHAR string[PH_INT64_STR_LEN_1];
 
     if (EtObjectManagerDialogHandle && context->OwnerPlugin == PluginInstance)
     {
-        if (context->HandleItem->Handle)
+        if (context->HandleItem->Handle && context->ProcessId == NtCurrentProcessId())
         {
-            PhReferenceObject(EtObjectManagerPropWnds);
-            PhAddItemSimpleHashtable(EtObjectManagerPropWnds, context->ParentWindow, context->HandleItem);
+            PhReferenceObject(EtObjectManagerPropWindows);
+            PhAddItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow, context->HandleItem);
         }
 
         // HACK
@@ -262,10 +261,9 @@ VOID EtHandlePropertiesWindowInitialized(
         else
             PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
-        PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropWndIcon, NULL, 0);
+        PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropIcon, NULL, 0);
 
         // Show real handles count
-        WCHAR string[PH_INT64_STR_LEN_1];
         ULONG64 real_count;
         PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
        
@@ -274,7 +272,7 @@ VOID EtHandlePropertiesWindowInitialized(
             PPH_KEY_VALUE_PAIR entry;
             ULONG i = 0;
 
-            while (PhEnumHashtable(EtObjectManagerPropWnds, &entry, &i))
+            while (PhEnumHashtable(EtObjectManagerPropWindows, &entry, &i))
                 if (PhEqualString(context->HandleItem->ObjectName, ((PPH_HANDLE_ITEM)entry->Value)->ObjectName, TRUE))
                     own_count++;
 
@@ -290,23 +288,28 @@ VOID EtHandlePropertiesWindowInitialized(
             OBJECT_GENERAL_INDEX_ATTRIBUTES,
             L"Object attributes",
             NULL
-        );
+            );
 
         // Show object attributes
-        PWSTR Attributes = NULL;
-        switch (context->HandleItem->Attributes & (OBJ_PERMANENT | OBJ_EXCLUSIVE))
-        {
-            case OBJ_PERMANENT:
-                Attributes = L"Permanent";
-                break;
-            case OBJ_EXCLUSIVE:
-                Attributes = L"Exclusive";
-                break;
-            case OBJ_PERMANENT | OBJ_EXCLUSIVE:
-                Attributes = L"Permanent, Exclusive";
-                break;
-        }
-        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES], 1, Attributes);
+        PPH_STRING Attributes;
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 10);
+        if (context->HandleItem->Attributes & OBJ_PERMANENT)
+            PhAppendStringBuilder2(&stringBuilder, L"Permanent, ");
+        if (context->HandleItem->Attributes & OBJ_EXCLUSIVE)
+            PhAppendStringBuilder2(&stringBuilder, L"Exclusive, ");
+        if (context->HandleItem->Attributes & OBJ_KERNEL_HANDLE)
+            PhAppendStringBuilder2(&stringBuilder, L"Kernel object, ");
+        if (context->HandleItem->Attributes & PH_OBJ_KERNEL_ACCESS_ONLY)
+            PhAppendStringBuilder2(&stringBuilder, L"Kernel only access, ");
+
+        // Remove the trailing ", ".
+        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+        Attributes = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES], 1, PhGetString(Attributes));
 
         // Show creation time
         if (EtObjectManagerTimeCached.QuadPart != 0)
@@ -320,7 +323,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 OBJECT_GENERAL_INDEX_CREATIONTIME,
                 L"Creation time",
                 NULL
-            );
+                );
 
             PhLargeIntegerToLocalSystemTime(&startTimeFields, &EtObjectManagerTimeCached);
             startTimeString = PhaFormatDateTime(&startTimeFields);
@@ -378,21 +381,52 @@ VOID EtHandlePropertiesWindowInitialized(
         if (PhEqualString2(context->HandleItem->TypeName, L"Driver", TRUE))
         {
             PPH_STRING driverName;
+            KPH_DRIVER_BASIC_INFORMATION basicInfo;
 
             PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DRIVER, L"Driver information");
 
-            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE] = PhAddListViewGroupItem(
-                context->ListViewHandle,
-                OBJECT_GENERAL_CATEGORY_DRIVER,
-                OBJECT_GENERAL_INDEX_DRIVERIMAGE,
-                L"Driver Image",
-                NULL
-            );
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERIMAGE, L"Driver Image", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSERVICE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERSERVICE, L"Driver Service Name", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSIZE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERSIZE, L"Driver Size", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSTART] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERSTART, L"Driver Start Address", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERFLAGS] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERFLAGS, L"Driver Flags", NULL);
 
-            if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
+            if (KsiLevel() == KphLevelMax)
             {
-                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE], 1, PhGetString(driverName));
-                PhDereferenceObject(driverName);
+                if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE], 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                if (NT_SUCCESS(PhGetDriverServiceKeyName(context->HandleItem->Handle, &driverName)))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSERVICE], 1, PhGetString(driverName));
+                    PhDereferenceObject(driverName);
+                }
+
+                if (NT_SUCCESS(KphQueryInformationDriver(
+                    context->HandleItem->Handle,
+                    KphDriverBasicInformation,
+                    &basicInfo,
+                    sizeof(KPH_DRIVER_BASIC_INFORMATION),
+                    NULL
+                    )))
+                {
+                    PPH_STRING size = PH_AUTO(PhFormatSize(basicInfo.DriverSize, ULONG_MAX));
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSIZE], 1, PhGetString(size));
+
+                    PhPrintPointer(string, basicInfo.DriverStart);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSTART], 1, string);
+
+                    PhPrintPointer(string, ULongToPtr(basicInfo.Flags));
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERFLAGS], 1, string);
+                }
             }
         }
         // Show Device drivers information
@@ -420,50 +454,53 @@ VOID EtHandlePropertiesWindowInitialized(
             EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME] = PhAddListViewGroupItem(context->ListViewHandle,
                 OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEPNPNAME, L"PnP Device Name", NULL);
 
-            PhStringRefToUnicodeString(&context->HandleItem->ObjectName->sr, &objectName);
-            InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-            if (NT_SUCCESS(KphOpenDevice(&deviceObject, READ_CONTROL, &objectAttributes)))
+            if (KsiLevel() == KphLevelMax)
             {
-                if (NT_SUCCESS(KphOpenDeviceDriver(deviceObject, READ_CONTROL, &driverObject)))
+                PhStringRefToUnicodeString(&context->HandleItem->ObjectName->sr, &objectName);
+                InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+                if (NT_SUCCESS(KphOpenDevice(&deviceObject, READ_CONTROL, &objectAttributes)))
                 {
-                    if (NT_SUCCESS(PhGetDriverName(driverObject, &driverName)))
-                    {
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVHIGH], 1, PhGetString(driverName));
-                        PhDereferenceObject(driverName);
-                    }
-
-                    if (NT_SUCCESS(PhGetDriverImageFileName(driverObject, &driverName)))
-                    {
-                        PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH], 1, PhGetString(driverName));
-                        PhDereferenceObject(driverName);
-                    }
-
-                    NtClose(driverObject);
-                }
-
-                if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceObject, READ_CONTROL, &deviceBaseObject)))
-                {
-                    if (NT_SUCCESS(KphOpenDeviceDriver(deviceBaseObject, READ_CONTROL, &driverObject)))
+                    if (NT_SUCCESS(KphOpenDeviceDriver(deviceObject, READ_CONTROL, &driverObject)))
                     {
                         if (NT_SUCCESS(PhGetDriverName(driverObject, &driverName)))
                         {
-                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVLOW], 1, PhGetString(driverName));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVHIGH], 1, PhGetString(driverName));
                             PhDereferenceObject(driverName);
                         }
 
                         if (NT_SUCCESS(PhGetDriverImageFileName(driverObject, &driverName)))
                         {
-                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH], 1, PhGetString(driverName));
+                            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVHIGHPATH], 1, PhGetString(driverName));
                             PhDereferenceObject(driverName);
                         }
 
                         NtClose(driverObject);
                     }
-                    NtClose(deviceBaseObject);
-                }
 
-                NtClose(deviceObject);
+                    if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceObject, READ_CONTROL, &deviceBaseObject)))
+                    {
+                        if (NT_SUCCESS(KphOpenDeviceDriver(deviceBaseObject, READ_CONTROL, &driverObject)))
+                        {
+                            if (NT_SUCCESS(PhGetDriverName(driverObject, &driverName)))
+                            {
+                                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVLOW], 1, PhGetString(driverName));
+                                PhDereferenceObject(driverName);
+                            }
+
+                            if (NT_SUCCESS(PhGetDriverImageFileName(driverObject, &driverName)))
+                            {
+                                PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEDRVLOWPATH], 1, PhGetString(driverName));
+                                PhDereferenceObject(driverName);
+                            }
+
+                            NtClose(driverObject);
+                        }
+                        NtClose(deviceBaseObject);
+                    }
+
+                    NtClose(deviceObject);
+                }
             }
 
             if (driverName = PhGetPnPDeviceName(context->HandleItem->ObjectName))
@@ -476,7 +513,7 @@ VOID EtHandlePropertiesWindowInitialized(
         }
         else if (PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE))
         {
-            HANDLE hWinStation;
+            HWINSTA hWinStation;
             USEROBJECTFLAGS userFlags;
             PPH_STRING StationType;
             PH_STRINGREF StationName;
@@ -497,23 +534,25 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE], 1, PhGetString(StationType));
             }
 
-            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_READATTRIBUTES, context->ProcessId, context->HandleItem->Handle)))
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx((PHANDLE)&hWinStation, WINSTA_READATTRIBUTES, context->ProcessId, context->HandleItem->Handle)))
             {
-                if (GetUserObjectInformation((HWINSTA)hWinStation,
+                if (GetUserObjectInformation(
+                    hWinStation,
                     UOI_FLAGS,
                     &userFlags,
                     sizeof(USEROBJECTFLAGS),
-                    NULL))
+                    NULL
+                    ))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTAVISIBLE], 1,
                         userFlags.dwFlags & WSF_VISIBLE ? L"True" : L"False");
                 }
-                NtClose(hWinStation);
+                CloseWindowStation(hWinStation);
             }
         }
         else if (PhEqualString2(context->HandleItem->TypeName, L"Desktop", TRUE))
         {
-            HANDLE hDesktop;
+            HDESK hDesktop;
 
             PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_DESKTOP, L"Desktop information");
 
@@ -524,34 +563,34 @@ VOID EtHandlePropertiesWindowInitialized(
             EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP] = PhAddListViewGroupItem(context->ListViewHandle,
                 OBJECT_GENERAL_CATEGORY_DESKTOP, OBJECT_GENERAL_INDEX_DESKTOPHEAP, L"Heap size", NULL);
 
-            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hDesktop, DESKTOP_READOBJECTS, context->ProcessId, context->HandleItem->Handle)))
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx((PHANDLE)&hDesktop, DESKTOP_READOBJECTS, context->ProcessId, context->HandleItem->Handle)))
             {
                 DWORD nLengthNeeded = 0;
                 ULONG vInfo = 0;
                 PSID UserSid = NULL;
 
-                if (GetUserObjectInformation((HDESK)hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+                if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPIO], 1, !!vInfo ? L"True" : L"False");
                 }
 
-                GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
+                GetUserObjectInformation(hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
                 if (nLengthNeeded)
                     UserSid = PhAllocate(nLengthNeeded);
-                if (UserSid && GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+                if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
                 {
                     PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPSID], 1, PhGetString(sid));
                     PhFree(UserSid);
                 }
 
-                if (GetUserObjectInformation((HDESK)hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+                if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
                 {
-                    PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
+                    PPH_STRING size = PH_AUTO(PhFormatSize(vInfo * 1024, ULONG_MAX));
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP], 1, PhGetString(size));
                 }
 
-                NtClose(hDesktop);
+                CloseDesktop(hDesktop);
             }
         }
         else if (PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE))
@@ -561,7 +600,6 @@ VOID EtHandlePropertiesWindowInitialized(
             POBJECT_TYPES_INFORMATION objectTypes;
             POBJECT_TYPE_INFORMATION objectType;
             ULONG typeIndex;
-            WCHAR string[PH_INT64_STR_LEN_1];
             PPH_STRING accessString;
             PH_STRING_BUILDER stringBuilder;
 
@@ -613,18 +651,18 @@ VOID EtHandlePropertiesWindowInitialized(
 
                             PWSTR PoolType = NULL;
                             switch (objectType->PoolType) {
-                            case NonPagedPool:
-                                PoolType = L"Non Paged";
-                                break;
-                            case PagedPool:
-                                PoolType = L"Paged";
-                                break;
-                            case NonPagedPoolNx:
-                                PoolType = L"Non Paged NX";
-                                break;
-                            case PagedPoolSessionNx:
-                                PoolType = L"Paged Session NX";
-                                break;
+                                case NonPagedPool:
+                                    PoolType = L"Non Paged";
+                                    break;
+                                case PagedPool:
+                                    PoolType = L"Paged";
+                                    break;
+                                case NonPagedPoolNx:
+                                    PoolType = L"Non Paged NX";
+                                    break;
+                                case PagedPoolSessionNx:
+                                    PoolType = L"Paged Session NX";
+                                    break;
                             }
                             PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE], 1, PoolType);
 
@@ -706,7 +744,7 @@ VOID EtHandlePropertiesWindowInitialized(
 
 PPH_STRING EtGetWindowStationType(
     _In_ PPH_STRINGREF StationName
-)
+    )
 {
     if (PhEqualStringRef2(StationName, T_WINSTA_INTERACTIVE, TRUE))
         return PhCreateString(L"Interactive Window Station");
@@ -731,21 +769,21 @@ PPH_STRING EtGetWindowStationType(
 
 VOID EtHandlePropertiesWindowUninitializing(
     _In_ PVOID Parameter
-)
+    )
 {
     PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT context = Parameter;
 
     if (context->OwnerPlugin == PluginInstance)
     {
-        if (context->HandleItem->Handle)
+        if (context->HandleItem->Handle && context->ProcessId == NtCurrentProcessId())
         {
-            NtClose(context->HandleItem->Handle);
-
             PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
             PhDereferenceObject(EtObjectManagerOwnHandles);
 
-            PhRemoveItemSimpleHashtable(EtObjectManagerPropWnds, context->ParentWindow);
-            PhDereferenceObject(EtObjectManagerPropWnds);
+            PhRemoveItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow);
+            PhDereferenceObject(EtObjectManagerPropWindows);
+
+            NtClose(context->HandleItem->Handle);
         }
 
         PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
@@ -802,36 +840,6 @@ INT CALLBACK EtpCommonPropPageProc(
     return 1;
 }
 
-static NTSTATUS EtpDuplicateHandleFromProcess(
-    _Out_ PHANDLE Handle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ PCOMMON_PAGE_CONTEXT Context
-    )
-{
-    NTSTATUS status;
-    HANDLE processHandle;
-
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_DUP_HANDLE,
-        Context->ProcessId
-        )))
-        return status;
-
-    status = NtDuplicateObject(
-        processHandle,
-        Context->HandleItem->Handle,
-        NtCurrentProcess(),
-        Handle,
-        DesiredAccess,
-        0,
-        0
-        );
-    NtClose(processHandle);
-
-    return status;
-}
-
 static BOOLEAN NTAPI EnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context
@@ -868,7 +876,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
             PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)propSheetPage->lParam;
             HANDLE workerFactoryHandle;
 
-            if (NT_SUCCESS(EtpDuplicateHandleFromProcess(&workerFactoryHandle, WORKER_FACTORY_QUERY_INFORMATION, context)))
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&workerFactoryHandle, WORKER_FACTORY_QUERY_INFORMATION, context->ProcessId, context->HandleItem->Handle)))
             {
                 WORKER_FACTORY_BASIC_INFORMATION basicInfo;
 
@@ -949,7 +957,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
 PPH_STRING EtGetAccessString(
     _In_ PPH_STRING TypeName,
     _In_ ACCESS_MASK access
-)
+    )
 {
     return EtGetAccessStringZ(PhGetStringOrEmpty(TypeName), access);
 }
@@ -975,7 +983,7 @@ PPH_STRING EtGetAccessStringZ(
         TypeName,
         &accessEntries,
         &numberOfAccessEntries
-    ))
+        ))
     {
         PPH_STRING accessString;
 
@@ -983,7 +991,7 @@ PPH_STRING EtGetAccessStringZ(
             access,
             accessEntries,
             numberOfAccessEntries
-        ));
+            ));
 
         if (accessString->Length != 0)
         {
@@ -991,7 +999,7 @@ PPH_STRING EtGetAccessStringZ(
                 L"0x%x (%s)",
                 access,
                 accessString->Buffer
-            );
+                );
         }
         else
         {
@@ -1063,7 +1071,8 @@ INT EtpEnumObjectHandles(
     INT OwnHandlesIndex = 0;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG_PTR i;
-    ULONG SourceTypeIndex = ULONG_MAX;
+    ULONG SearchTypeIndex;
+    ULONG FindBySameTypeIndex = ULONG_MAX;
 
     BOOLEAN isDevice = PhEqualString2(context->HandleItem->TypeName, L"Device", TRUE);
     BOOLEAN isAlpcPort = PhEqualString2(context->HandleItem->TypeName, L"ALPC Port", TRUE);
@@ -1071,19 +1080,18 @@ INT EtpEnumObjectHandles(
     BOOLEAN isWinSta = PhEqualString2(context->HandleItem->TypeName, L"WindowStation", TRUE);
     BOOLEAN isTypeObject = PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE);
 
-    if (isDevice)
-        SourceTypeIndex = FileTypeIndex;    // HACK
-    else if (isTypeObject)
+    SearchTypeIndex = context->HandleItem->TypeIndex;
+
+    if (isTypeObject)
     {
         PH_STRINGREF firstPart;
         PH_STRINGREF typeName;
+        ULONG typeIndex;
+
         if (PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
-            SourceTypeIndex = PhGetObjectTypeNumber(&typeName);   // HACK
-        if (SourceTypeIndex == ULONG_MAX)
-            return OwnHandlesIndex;
+            if ((typeIndex = PhGetObjectTypeNumber(&typeName)) != ULONG_MAX)
+                FindBySameTypeIndex = typeIndex;
     }
-    else
-        SourceTypeIndex = context->HandleItem->TypeIndex;
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -1094,6 +1102,9 @@ INT EtpEnumObjectHandles(
         PPH_HASHTABLE processHandleHashtable = PhCreateSimpleHashtable(8);
         PVOID* processHandlePtr;
         HANDLE processHandle;
+        PPH_KEY_VALUE_PAIR procEntry;
+        ULONG j = 0;
+
         PPH_STRING ObjectName;
         BOOLEAN ObjectNameMath;
         BOOLEAN useWorkQueue = isDevice && KsiLevel() < KphLevelMed;
@@ -1106,81 +1117,87 @@ INT EtpEnumObjectHandles(
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
 
             // Skip other types
-            if (handleInfo->ObjectTypeIndex != SourceTypeIndex)
-                continue;
-
-            ObjectNameMath = isTypeObject;
-
-            // Lookup for matches in object name to find more handles for ALPC Port, File, Key
-            if (isAlpcPort || isDevice || isRegKey || isWinSta)
+            if (handleInfo->ObjectTypeIndex == SearchTypeIndex ||
+                (isDevice && handleInfo->ObjectTypeIndex == FileTypeIndex) ||
+                (isTypeObject && handleInfo->ObjectTypeIndex == FindBySameTypeIndex))
             {
-                // Open a handle to the process if we don't already have one.
-                processHandlePtr = PhFindItemSimpleHashtable(
-                    processHandleHashtable,
-                    (PVOID)handleInfo->UniqueProcessId
-                );
-
-                if (processHandlePtr)
-                    processHandle = (HANDLE)*processHandlePtr;
-                else
+                // Skip object name checking if we enumerate handles by type
+                if (!(ObjectNameMath = isTypeObject))
                 {
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
-                        (HANDLE)handleInfo->UniqueProcessId
-                    )))
+                    // Lookup for matches in object name to find more handles for ALPC Port, Device/File, Key, WindowStation
+                    if (isAlpcPort || isDevice || isRegKey || isWinSta)
                     {
-                        PhAddItemSimpleHashtable(
+                        // Open a handle to the process if we don't already have one.
+                        processHandlePtr = PhFindItemSimpleHashtable(
                             processHandleHashtable,
-                            (PVOID)handleInfo->UniqueProcessId,
-                            processHandle
-                        );
+                            (PVOID)handleInfo->UniqueProcessId
+                            );
+
+                        if (processHandlePtr)
+                        {
+                            processHandle = (HANDLE)*processHandlePtr;
+                        }
+                        else
+                        {
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+                                (HANDLE)handleInfo->UniqueProcessId
+                                )))
+                            {
+                                PhAddItemSimpleHashtable(
+                                    processHandleHashtable,
+                                    (PVOID)handleInfo->UniqueProcessId,
+                                    processHandle
+                                    );
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+
+                        if (isAlpcPort)
+                        {
+                            if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
+                                handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &ObjectName)))
+                            {
+                                ObjectNameMath = PhEndsWithString(ObjectName, context->HandleItem->ObjectName, TRUE);   // HACK
+                                PhDereferenceObject(ObjectName);
+                            }
+                        }
+                        else
+                        {
+                            // If we're dealing with a file handle we must take special precautions so we don't hang.
+                            if (useWorkQueue)
+                            {
+                                PSEARCH_HANDLE_CONTEXT searchContext = PhAllocate(sizeof(SEARCH_HANDLE_CONTEXT));
+                                searchContext->SearchObjectName = context->HandleItem->ObjectName;
+                                searchContext->ProcessHandle = processHandle;
+                                searchContext->HandleInfo = handleInfo;
+                                searchContext->SearchResults = SearchResults;
+                                searchContext->SearchResultsLock = &SearchResultsLock;
+
+                                PhQueueItemWorkQueue(&workQueue, EtpSearchHandleFunction, searchContext);
+                                continue;
+                            }
+
+                            if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
+                                handleInfo->ObjectTypeIndex, NULL, NULL, &ObjectName, NULL)))
+                            {
+                                ObjectNameMath = PhStartsWithString(ObjectName, context->HandleItem->ObjectName, TRUE);
+                                PhDereferenceObject(ObjectName);
+                            }
+                        }
                     }
-                    else
-                        continue;
                 }
 
-                if (isAlpcPort)
+                if (handleInfo->Object == context->HandleItem->Object || ObjectNameMath)
                 {
-                    if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
-                        handleInfo->ObjectTypeIndex, NULL, NULL, NULL, &ObjectName)))
-                    {
-                        if (PhEndsWithString(ObjectName, context->HandleItem->ObjectName, TRUE))    // HACK
-                            ObjectNameMath = TRUE;
-                        PhDereferenceObject(ObjectName);
-                    }
+                    PhAcquireQueuedLockExclusive(&SearchResultsLock);
+                    PhAddItemList(SearchResults, handleInfo);
+                    PhReleaseQueuedLockExclusive(&SearchResultsLock);
                 }
-                else
-                {
-                    // If we're dealing with a file handle we must take special precautions so we don't hang.
-                    if (useWorkQueue)
-                    {
-                        PSEARCH_HANDLE_CONTEXT searchContext = PhAllocate(sizeof(SEARCH_HANDLE_CONTEXT));
-                        searchContext->SearchObjectName = context->HandleItem->ObjectName;
-                        searchContext->ProcessHandle = processHandle;
-                        searchContext->HandleInfo = handleInfo;
-                        searchContext->SearchResults = SearchResults;
-                        searchContext->SearchResultsLock = &SearchResultsLock;
-
-                        PhQueueItemWorkQueue(&workQueue, EtpSearchHandleFunction, searchContext);
-                        continue;
-                    }
-
-                    if (NT_SUCCESS(PhGetHandleInformation(processHandle, (HANDLE)handleInfo->HandleValue,
-                        handleInfo->ObjectTypeIndex, NULL, NULL, &ObjectName, NULL)))
-                    {
-                        if (PhStartsWithString(ObjectName, context->HandleItem->ObjectName, TRUE))
-                            ObjectNameMath = TRUE;
-                        PhDereferenceObject(ObjectName);
-                    }
-                }
-            }
-
-            if (handleInfo->Object == context->HandleItem->Object || ObjectNameMath)
-            {
-                PhAcquireQueuedLockExclusive(&SearchResultsLock);
-                PhAddItemList(SearchResults, handleInfo);
-                PhReleaseQueuedLockExclusive(&SearchResultsLock);
             }
         }
 
@@ -1190,15 +1207,10 @@ INT EtpEnumObjectHandles(
             PhDeleteWorkQueue(&workQueue);
         }
 
-        {
-            PPH_KEY_VALUE_PAIR entry;
-            ULONG i = 0;
+        while (PhEnumHashtable(processHandleHashtable, &procEntry, &j))
+            NtClose((HANDLE)procEntry->Value);
 
-            while (PhEnumHashtable(processHandleHashtable, &entry, &i))
-                NtClose((HANDLE)entry->Value);
-
-            PhDereferenceObject(processHandleHashtable);
-        }
+        PhDereferenceObject(processHandleHashtable);
 
         INT lvItemIndex;
         WCHAR value[PH_INT64_STR_LEN_1];
@@ -1228,7 +1240,8 @@ INT EtpEnumObjectHandles(
             lvItemIndex = PhAddListViewItem(
                 context->ListViewHandle,
                 entry->OwnHandle ? OwnHandlesIndex++ : MAXINT,     // object own handles first
-                PhGetString(columnString), entry);
+                PhGetString(columnString), entry
+                );
 
             PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_HANDLE, value);
@@ -1275,7 +1288,7 @@ VOID EtpShowHandleProperties(
         &processHandle,
         (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
         entry->ProcessId
-    )))
+        )))
     {
         PhGetHandleInformation(
             processHandle,
@@ -1285,7 +1298,7 @@ VOID EtpShowHandleProperties(
             &entry->HandleItem->TypeName,
             &entry->HandleItem->ObjectName,
             &entry->HandleItem->BestObjectName
-        );
+            );
 
         NtClose(processHandle);
     }
@@ -1303,24 +1316,31 @@ VOID EtpCloseObjectHandles(
     )
 {
     HANDLE oldHandle;
+    NTSTATUS status;
 
     for (ULONG i = 0; i < numberOfItems; i++)
     {
         if (PhUiCloseHandles(context->WindowHandle, listviewItems[i]->ProcessId, &listviewItems[i]->HandleItem, 1, TRUE))
         {
-            oldHandle = NULL;
-            if (EtDuplicateHandleFromProcessEx(&oldHandle, 0, listviewItems[i]->ProcessId, listviewItems[i]->HandleItem->Handle)
-                == STATUS_INVALID_HANDLE)   // HACK for protected handles
+            if ((status = EtDuplicateHandleFromProcessEx(
+                &oldHandle,
+                0,
+                listviewItems[i]->ProcessId,
+                listviewItems[i]->HandleItem->Handle)) == STATUS_INVALID_HANDLE)
             {
                 PhRemoveListViewItem(context->ListViewHandle, PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItems[i]));
                 PhClearReference(&listviewItems[i]->HandleItem);
                 PhFree(listviewItems[i]);
             }
-            else if (oldHandle)
+            else if (NT_SUCCESS(status))
+            {
                 NtClose(oldHandle);
+            }  
         }
         else
+        {
             break;
+        }  
     }
 }
 
@@ -1410,7 +1430,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 context->ListViewHandle,
                 index,
                 LVNI_ALL
-            )) != INT_ERROR)
+                )) != INT_ERROR)
             {
                 PHANDLE_ENTRY entry;
                 if (PhGetListViewItemParam(context->ListViewHandle, index, &entry))
@@ -1575,7 +1595,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PH_ALIGN_LEFT | PH_ALIGN_TOP,
                     point.x,
                     point.y
-                );
+                    );
 
                 if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
                 {
@@ -1673,7 +1693,7 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
     )
 {
     PCOMMON_PAGE_CONTEXT context = (PCOMMON_PAGE_CONTEXT)lParam;
-    HANDLE hDesktop;
+    HDESK hDesktop;
     UINT lvItemIndex;
 
     lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, lpszDesktop, PhCreateString(lpszDesktop));
@@ -1684,23 +1704,23 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
         ULONG vInfo = 0;
         PSID UserSid = NULL;
         
-        GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
+        GetUserObjectInformation(hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
         if (nLengthNeeded)
             UserSid = PhAllocate(nLengthNeeded);
-        if (UserSid && GetUserObjectInformation((HDESK)hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+        if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
             PhFree(UserSid);
         }
 
-        if (GetUserObjectInformation((HDESK)hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
+        if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
         {
             PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_HEAP, PhGetString(size));
         }
 
-        if (GetUserObjectInformation((HDESK)hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
+        if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
         {
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_IO, !!vInfo ? L"True" : L"False");
         }
@@ -1714,8 +1734,8 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
 typedef struct _OPEN_DESKTOP_CONTEXT
 {
     PPH_STRING DesktopName;
-    HANDLE DesktopWinStation;
-    HANDLE CurrentWinStation;
+    HWINSTA DesktopWinStation;
+    HWINSTA CurrentWinStation;
 } OPEN_DESKTOP_CONTEXT, * POPEN_DESKTOP_CONTEXT;
 
 static NTSTATUS EtpOpenSecurityDesktopHandle(
@@ -1734,9 +1754,9 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
         0,
         FALSE,
         MAXIMUM_ALLOWED
-    ))
+        ))
     {
-        *Handle = desktopHandle;
+        *Handle = (HANDLE)desktopHandle;
         status = STATUS_SUCCESS;
     }
     if (context->DesktopWinStation) SetProcessWindowStation(context->CurrentWinStation);
@@ -1751,27 +1771,27 @@ static NTSTATUS EtpCloseSecurityDesktop(
     POPEN_DESKTOP_CONTEXT context = Context;
 
     PhClearReference(&context->DesktopName);
-    if (context->DesktopWinStation) NtClose(context->DesktopWinStation);
+    if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
     PhFree(context);
     return STATUS_SUCCESS;
 }
 
-VOID EtOpenDesktopSecurity(
+VOID EtpOpenDesktopSecurity(
     PCOMMON_PAGE_CONTEXT context,
     PPH_STRING deskName
     )
 {
     POPEN_DESKTOP_CONTEXT OpenContext = PhAllocateZero(sizeof(OPEN_DESKTOP_CONTEXT));
-    HANDLE hWinStation;
+    HWINSTA hWinStation;
 
     OpenContext->DesktopName = PhReferenceObject(deskName);
     OpenContext->CurrentWinStation = GetProcessWindowStation();
-    if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
+    if (NT_SUCCESS(EtDuplicateHandleFromProcessEx((PHANDLE)&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
     {
-        if (NtCompareObjects(OpenContext->CurrentWinStation, hWinStation) == STATUS_NOT_SAME_OBJECT)
+        if (NtCompareObjects((HANDLE)OpenContext->CurrentWinStation, (HANDLE)hWinStation) == STATUS_NOT_SAME_OBJECT)
             OpenContext->DesktopWinStation = hWinStation;
         else
-            NtClose(hWinStation);
+            CloseWindowStation(hWinStation);
     }
 
     PhEditSecurity(
@@ -1781,7 +1801,7 @@ VOID EtOpenDesktopSecurity(
         EtpOpenSecurityDesktopHandle,
         EtpCloseSecurityDesktop,
         OpenContext
-    );
+        );
 }
 
 INT_PTR CALLBACK EtpWinStaPageDlgProc(
@@ -1812,7 +1832,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE hWinStation;
+            HWINSTA hWinStation;
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -1827,16 +1847,16 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
-            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx(&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
+            if (NT_SUCCESS(EtDuplicateHandleFromProcessEx((PHANDLE)&hWinStation, WINSTA_ENUMDESKTOPS, context->ProcessId, context->HandleItem->Handle)))
             {
-                HANDLE currentStation = GetProcessWindowStation();
-                NTSTATUS status = NtCompareObjects(currentStation, hWinStation);
+                HWINSTA currentStation = GetProcessWindowStation();
+                NTSTATUS status = NtCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
                 if (status == STATUS_NOT_SAME_OBJECT)
                     SetProcessWindowStation(hWinStation);
                 EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);
                 if (status == STATUS_NOT_SAME_OBJECT)
                     SetProcessWindowStation(currentStation);
-                NtClose(hWinStation);
+                CloseWindowStation(hWinStation);
             }
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -1852,7 +1872,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                 context->ListViewHandle,
                 index,
                 LVNI_ALL
-            )) != INT_ERROR)
+                )) != INT_ERROR)
             {
                 PPH_STRING deskName;
                 if (PhGetListViewItemParam(context->ListViewHandle, index, &deskName))
@@ -1885,7 +1905,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
                 if (deskName = PhGetSelectedListViewItemParam(context->ListViewHandle))
                 {
-                    EtOpenDesktopSecurity(context, deskName);
+                    EtpOpenDesktopSecurity(context, deskName);
                 }
             }
         }
@@ -1927,7 +1947,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                     PH_ALIGN_LEFT | PH_ALIGN_TOP,
                     point.x,
                     point.y
-                );
+                    );
 
                 if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
                 {
@@ -1937,7 +1957,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                         PhCopyListView(ListViewHandle);
                         break;
                     case IDC_SECURITY:
-                        EtOpenDesktopSecurity(context, listviewItems[0]);
+                        EtpOpenDesktopSecurity(context, listviewItems[0]);
                         break;
                     }
                 }
@@ -1959,7 +1979,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                     PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
                     if (numberOfItems == 1)
                     {
-                        EtOpenDesktopSecurity(context, listviewItems[0]);
+                        EtpOpenDesktopSecurity(context, listviewItems[0]);
                         return TRUE;
                     }
                 }

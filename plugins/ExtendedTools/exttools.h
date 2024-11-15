@@ -1639,13 +1639,16 @@ VOID EtShowFirmwareDialog(
 
 // objmgr
 
+#define PH_OBJ_KERNEL_ACCESS_ONLY                0x00010000L
+
+extern HWND EtObjectManagerDialogHandle;
+extern LARGE_INTEGER EtObjectManagerTimeCached;
+extern PPH_LIST EtObjectManagerOwnHandles;
+extern HICON EtObjectManagerPropIcon;
+extern PPH_HASHTABLE EtObjectManagerPropWindows;
+
 VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
-    );
-
-NTSTATUS EtGetObjectName(
-    _In_ HANDLE Handle,
-    _Out_ PPH_STRING* ObjectName
     );
 
 NTSTATUS EtDuplicateHandleFromProcessEx(

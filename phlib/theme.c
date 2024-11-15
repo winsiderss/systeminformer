@@ -116,11 +116,6 @@ BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
 BOOL (WINAPI *ShouldSystemUseDarkMode_I)(
     VOID
     ) = NULL;
-// Win10-RS5 (uxtheme.dll ordinal 133)
-BOOL (WINAPI *AllowDarkModeForWindow_I)(
-    _In_ HWND WindowHandle,
-    _In_ BOOL Enabled
-    ) = NULL;
 // Win10-RS5 (uxtheme.dll ordinal 136)
 BOOL (WINAPI* FlushMenuThemes_I)(
     VOID
@@ -138,11 +133,6 @@ typedef enum _PreferredAppMode
 // Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
 BOOL (WINAPI* SetPreferredAppMode_I)(
     _In_ PreferredAppMode AppMode
-    ) = NULL;
-
-// Win10-RS5 (uxtheme.dll ordinal 137)
-BOOL (WINAPI *IsDarkModeAllowedForWindow_I)(
-    _In_ HWND WindowHandle
     ) = NULL;
 
 // Win10-RS5 (uxtheme.dll ordinal 139)
@@ -199,7 +189,6 @@ VOID PhInitializeWindowTheme(
 
                 if (baseAddress)
                 {
-                    AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
                     SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
                     //FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
                 }
@@ -249,7 +238,7 @@ VOID PhInitializeWindowTheme(
                 if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
                     windowClassName[0] = UNICODE_NULL;
                 if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
-                    AllowDarkModeForWindow_I(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
+                    PhAllowDarkModeForWindow(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
             }
         }
 
@@ -736,7 +725,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    break;
             //case 1: // Old colors
             //PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-            AllowDarkModeForWindow_I(WindowHandle, TRUE);
+            PhAllowDarkModeForWindow(WindowHandle, TRUE);
             PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
             PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
@@ -816,7 +805,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //case 1: // Old colors
             PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-            AllowDarkModeForWindow_I(WindowHandle, TRUE);
+            PhAllowDarkModeForWindow(WindowHandle, TRUE);
         }
 
         if (PhEnableThemeListviewBorder)
@@ -902,7 +891,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
     {
         // SysLink theme support (Dart Vanya)
-        AllowDarkModeForWindow_I(WindowHandle, TRUE);
+        PhAllowDarkModeForWindow(WindowHandle, TRUE);
     }
 
     return TRUE;

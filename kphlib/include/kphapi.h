@@ -204,8 +204,28 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectSectionOriginalBaseInformation,  // q: PVOID BaseAddress
     KphObjectSectionInternalImageInformation, // q: SECTION_INTERNAL_IMAGE_INFORMATION
     KphObjectSectionMappingsInformation,      // q: KPH_SECTION_MAPPINGS_INFORMATION
+    KphObjectAttributesInformation,           // q: KPH_OBJECT_ATTRIBUTES_INFORMATION
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
+
+typedef struct _KPH_OBJECT_ATTRIBUTES_INFORMATION
+{
+    union
+    {
+        UCHAR Flags;
+        struct
+        {
+            UCHAR NewObject : 1;
+            UCHAR KernelObject : 1;
+            UCHAR KernelOnlyAccess : 1;
+            UCHAR ExclusiveObject : 1;
+            UCHAR PermanentObject : 1;
+            UCHAR DefaultSecurityQuota : 1;
+            UCHAR SingleHandleEntry : 1;
+            UCHAR DeletedInline : 1;
+        };
+    };
+} KPH_OBJECT_ATTRIBUTES_INFORMATION, *PKPH_OBJECT_ATTRIBUTES_INFORMATION;
 
 typedef struct _KPH_VPB
 {

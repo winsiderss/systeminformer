@@ -74,6 +74,8 @@ static _GetThemeInt GetThemeInt_I = NULL;
 static _GetThemePartSize GetThemePartSize_I = NULL;
 static _DrawThemeBackground DrawThemeBackground_I = NULL;
 static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
+static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
+static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
 static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
 static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
 static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
@@ -120,6 +122,11 @@ VOID PhGuiSupportInitialization(
         if (WindowsVersion >= WINDOWS_11)
         {
             GetThemeClass_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 74);
+        }
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
+            IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
         }
     }
 
@@ -398,6 +405,27 @@ BOOLEAN PhDrawThemeTextEx(
         return FALSE;
 
     return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+}
+
+BOOLEAN PhAllowDarkModeForWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Enabled
+    )
+{
+    if (!AllowDarkModeForWindow_I)
+        return FALSE;
+
+    return !!AllowDarkModeForWindow_I(WindowHandle, Enabled);
+}
+
+BOOLEAN PhIsDarkModeAllowedForWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!IsDarkModeAllowedForWindow_I)
+        return FALSE;
+
+    return !!IsDarkModeAllowedForWindow_I(WindowHandle);
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)

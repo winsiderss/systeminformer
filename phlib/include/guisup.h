@@ -211,6 +211,21 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhAllowDarkModeForWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Enabled
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsDarkModeAllowedForWindow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );
