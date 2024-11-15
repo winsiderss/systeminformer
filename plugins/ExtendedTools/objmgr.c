@@ -1658,10 +1658,12 @@ NTSTATUS EtObjectManagerOpenRealObject(
                             *Handle = (HANDLE)handleInfo->HandleValue;
                             status = STATUS_SUCCESS;
                         }
+
+                        PhDereferenceObject(objectName);
+                        break;
                     }
 
                     PhDereferenceObject(objectName);
-                    break;
                 }
             }
         }
