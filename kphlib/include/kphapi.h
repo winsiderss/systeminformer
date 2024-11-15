@@ -208,25 +208,6 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
-typedef struct _KPH_OBJECT_ATTRIBUTES_INFORMATION
-{
-    union
-    {
-        UCHAR Flags;
-        struct
-        {
-            UCHAR NewObject : 1;
-            UCHAR KernelObject : 1;
-            UCHAR KernelOnlyAccess : 1;
-            UCHAR ExclusiveObject : 1;
-            UCHAR PermanentObject : 1;
-            UCHAR DefaultSecurityQuota : 1;
-            UCHAR SingleHandleEntry : 1;
-            UCHAR DeletedInline : 1;
-        };
-    };
-} KPH_OBJECT_ATTRIBUTES_INFORMATION, *PKPH_OBJECT_ATTRIBUTES_INFORMATION;
-
 typedef struct _KPH_VPB
 {
     CSHORT Type;
@@ -273,6 +254,25 @@ typedef struct _KPH_FILE_OBJECT_DRIVER
 {
     HANDLE DriverHandle;
 } KPH_FILE_OBJECT_DRIVER, *PKPH_FILE_OBJECT_DRIVER;
+
+typedef struct _KPH_OBJECT_ATTRIBUTES_INFORMATION
+{
+    union
+    {
+        UCHAR Flags;
+        struct
+        {
+            UCHAR NewObject : 1;
+            UCHAR KernelObject : 1;
+            UCHAR KernelOnlyAccess : 1;
+            UCHAR ExclusiveObject : 1;
+            UCHAR PermanentObject : 1;
+            UCHAR DefaultSecurityQuota : 1;
+            UCHAR SingleHandleEntry : 1;
+            UCHAR DeletedInline : 1;
+        };
+    };
+} KPH_OBJECT_ATTRIBUTES_INFORMATION, *PKPH_OBJECT_ATTRIBUTES_INFORMATION;
 
 // Driver information
 

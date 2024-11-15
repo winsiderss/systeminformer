@@ -1243,57 +1243,6 @@ NTSTATUS KphQueryInformationObject(
 
             break;
         }
-        case KphObjectAttributesInformation:
-        {
-            KPH_OBJECT_ATTRIBUTES_INFORMATION attribInfo;
-            POBJECT_HEADER objectHeader;
-
-            if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(attribInfo)))
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(attribInfo);
-                goto Exit;
-            }
-
-            KeStackAttachProcess(process, &apcState);
-            status = ObReferenceObjectByHandle(Handle,
-                0,
-                NULL,
-                accessMode,
-                &object,
-                NULL);
-            KeUnstackDetachProcess(&apcState);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                    GENERAL,
-                    "ObReferenceObjectByHandle failed: %!STATUS!",
-                    status);
-
-                object = NULL;
-                goto Exit;
-            }
-            else
-            {
-                objectHeader = OBJECT_TO_OBJECT_HEADER(object);
-                attribInfo.Flags = objectHeader->Flags;
-
-                __try
-                {
-                    RtlCopyMemory(ObjectInformation,
-                        &attribInfo,
-                        sizeof(attribInfo));
-                    returnLength = sizeof(attribInfo);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
-
-            break;
-        }
         case KphObjectProcessBasicInformation:
         {
             PROCESS_BASIC_INFORMATION basicInfo;
@@ -2133,6 +2082,50 @@ NTSTATUS KphQueryInformationObject(
                 {
                     status = GetExceptionCode();
                 }
+            }
+
+            break;
+        }
+        case KphObjectAttributesInformation:
+        {
+            if (!ObjectInformation ||
+                (ObjectInformationLength < sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
+                goto Exit;
+            }
+
+            KeStackAttachProcess(process, &apcState);
+            status = ObReferenceObjectByHandle(Handle,
+                                               0,
+                                               NULL,
+                                               accessMode,
+                                               &object,
+                                               NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "ObReferenceObjectByHandle failed: %!STATUS!",
+                              status);
+
+                object = NULL;
+                goto Exit;
+            }
+
+            __try
+            {
+                PKPH_OBJECT_ATTRIBUTES_INFORMATION attributesInfo;
+
+                attributesInfo = ObjectInformation;
+                attributesInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
+                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
             }
 
             break;
