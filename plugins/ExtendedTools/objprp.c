@@ -990,8 +990,6 @@ PPH_STRING EtGetAccessStringZ(
         &numberOfAccessEntries
         ))
     {
-        PPH_STRING accessString;
-
         accessString = PH_AUTO(PhGetAccessString(
             Access,
             accessEntries,
@@ -1147,7 +1145,7 @@ INT EtpEnumObjectHandles(
 
                         if (processHandlePtr)
                         {
-                            processHandle = (HANDLE)*processHandlePtr;
+                            processHandle = *processHandlePtr;
                         }
                         else
                         {
