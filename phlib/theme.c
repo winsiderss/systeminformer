@@ -2582,8 +2582,8 @@ VOID ThemeWindowRenderTabControl(
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
                 SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
-                SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
-                FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+                //SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+                //FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
             }
         }
 
