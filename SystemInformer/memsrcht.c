@@ -71,6 +71,9 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     ULONG StringsCount;
     PPH_LIST NodeList;
+    BOOLEAN BackOffActive;
+    ULONG BackOffSearchMatchRequests;
+    ULONG BackOffSearchMatchChecked;
 
     ULONG State;
     BOOLEAN StopSearch;
@@ -298,9 +301,33 @@ NTSTATUS PhpMemorySearchStringsThread(
     if (context.Buffer)
         PhFree(context.Buffer);
 
-    PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, 0, 0);
+    if (!Context->StopSearch)
+        PostMessage(Context->WindowHandle, WM_PH_MEMSEARCH_FINISHED, 0, 0);
 
     return STATUS_SUCCESS;
+}
+
+VOID PhpMemoryStringsCheckBackOff(
+    _In_ PPH_MEMSTRINGS_CONTEXT Context
+    )
+{
+    // Once we reach a very large number of strings back off the updates to the
+    // list and searching else the user input and interface can lag.
+    //
+    // N.B. The updated timer effectively induces a (timer value * 2) on search
+    // filtering updates. Logic elsewhere will check on the delay for the user
+    // to stop typing. Then the next timer trigger the search will be updated
+    // based on the current user input.
+    if (Context->NodeList->Count >= 150000)
+    {
+        Context->BackOffActive = TRUE;
+        PhSetTimer(Context->WindowHandle, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
+    }
+    else if (Context->NodeList->Count >= 500000)
+    {
+        Context->BackOffActive = TRUE;
+        PhSetTimer(Context->WindowHandle, PH_WINDOW_TIMER_DEFAULT, 400, NULL);
+    }
 }
 
 VOID PhpMemoryStringsAddTreeNode(
@@ -341,6 +368,8 @@ VOID PhpAddPendingMemoryStringsNodes(
     Context->SearchResultsAddIndex = i;
 
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+
+    PhpMemoryStringsCheckBackOff(Context);
 
     if (needsFullUpdate)
         TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -497,7 +526,10 @@ VOID NTAPI PvpStringsSearchControlCallback(
 
     context->SearchMatchHandle = MatchHandle;
 
-    PhApplyTreeNewFilters(&context->FilterSupport);
+    if (context->BackOffActive)
+        context->BackOffSearchMatchRequests++;
+    else
+        PhApplyTreeNewFilters(&context->FilterSupport);
 }
 
 VOID PhpDeleteMemoryStringsNodeList(
@@ -536,7 +568,6 @@ VOID PhpDeleteMemoryStringsTree(
     PhClearReference(&Context->SearchResults);
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
-
 }
 
 VOID PhpSearchMemoryStrings(
@@ -1037,6 +1068,8 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 context->StringsCount = context->PrevNodeList->Count;
                 context->State = PH_MEMSEARCH_STATE_FINISHED;
                 EnableWindow(context->FilterHandle, FALSE);
+
+                PhpMemoryStringsCheckBackOff(context);
             }
             else
             {
@@ -1099,31 +1132,47 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
         break;
     case WM_TIMER:
         {
-            PPH_STRING message;
-            PH_FORMAT format[3];
-            ULONG count = 0;
-
-            if (context->State == PH_MEMSEARCH_STATE_STOPPED)
-                break;
-
-            PhpAddPendingMemoryStringsNodes(context);
-
-            if (context->State == PH_MEMSEARCH_STATE_SEARCHING)
-                PhInitFormatS(&format[count++], L"Searching... ");
-
-            PhInitFormatU(&format[count++], context->StringsCount);
-            PhInitFormatS(&format[count++], L" strings");
-
-            message = PhFormat(format, count, 80);
-
-            SetWindowText(context->MessageHandle, message->Buffer);
-
-            PhDereferenceObject(message);
-
-            if (context->State == PH_MEMSEARCH_STATE_FINISHED)
+            if (context->State != PH_MEMSEARCH_STATE_STOPPED)
             {
-                context->State = PH_MEMSEARCH_STATE_STOPPED;
-                EnableWindow(context->FilterHandle, TRUE);
+                PPH_STRING message;
+                PH_FORMAT format[3];
+                ULONG count = 0;
+
+                PhpAddPendingMemoryStringsNodes(context);
+
+                if (context->State == PH_MEMSEARCH_STATE_SEARCHING)
+                    PhInitFormatS(&format[count++], L"Searching... ");
+
+                PhInitFormatU(&format[count++], context->StringsCount);
+                PhInitFormatS(&format[count++], L" strings");
+
+                message = PhFormat(format, count, 80);
+
+                SetWindowText(context->MessageHandle, message->Buffer);
+
+                PhDereferenceObject(message);
+
+                if (context->State == PH_MEMSEARCH_STATE_FINISHED)
+                {
+                    context->State = PH_MEMSEARCH_STATE_STOPPED;
+                    EnableWindow(context->FilterHandle, TRUE);
+                }
+            }
+
+            if (context->BackOffActive && context->BackOffSearchMatchRequests)
+            {
+                if (context->BackOffSearchMatchChecked == context->BackOffSearchMatchRequests)
+                {
+                    context->BackOffSearchMatchRequests = 0;
+                    context->BackOffSearchMatchChecked = 0;
+                    PhApplyTreeNewFilters(&context->FilterSupport);
+                    TreeNew_NodesStructured(context->TreeNewHandle);
+                }
+                else
+                {
+                    // User still typing...
+                    context->BackOffSearchMatchChecked = context->BackOffSearchMatchRequests;
+                }
             }
         }
         break;
