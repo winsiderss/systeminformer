@@ -1053,11 +1053,11 @@ VOID EtHandlePropertiesInitializing(
 
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
-);
+    );
 
 VOID EtHandlePropertiesWindowUninitializing(
     _In_ PVOID Parameter
-);
+    );
 
 // options
 

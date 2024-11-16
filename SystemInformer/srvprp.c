@@ -133,7 +133,7 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     WNDPROC oldWndProc;
 
@@ -184,7 +184,7 @@ INT CALLBACK PhpPropSheetSrvProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
-)
+    )
 {
     switch (uMsg)
     {

@@ -607,6 +607,13 @@ VOID PhShowMemoryStringDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+// msmsrcht
+
+VOID PhShowMemoryStringTreeDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // memmod
 
 VOID PhShowImagePageModifiedDialog(

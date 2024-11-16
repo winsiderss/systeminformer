@@ -1398,6 +1398,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
     PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING,
     PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW,
+    PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE,
     PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN,
@@ -1449,6 +1450,7 @@ static VOID PhpAdvancedPageLoad(
 #endif
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"Enable fixed graph scaling (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"Enable new memory strings dialog", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
@@ -1471,6 +1473,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"EnableMemStringsTreeDialog");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowTabRestoreEnabled");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
@@ -1661,6 +1664,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"StartHidden");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"EnableMemStringsTreeDialog");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowTabRestoreEnabled");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"KsiEnable");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
@@ -3244,11 +3248,11 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             NULL,
                             PhSystemDpi,
                             nodes[i]->Setting
-                        );
+                            );
                         PhMoveReference(
                             &nodes[i]->ValueString,
                             PhSettingToString(nodes[i]->Setting->Type, nodes[i]->Setting)
-                        );
+                            );
                     }
                     TreeNew_NodesStructured(context->TreeNewHandle);
                     PhApplyTreeNewFilters(&context->TreeFilterSupport);
@@ -3585,7 +3589,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         PH_STRINGREF UseSettingName;
                         PPH_SETTING Color;
                         PPH_SETTING UseColor;
-                         
+
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         PhInitializeStringRef(&UseSettingName, ColorItem->UseSettingName);
                         Color = PhGetSetting(&SettingName);
@@ -3624,7 +3628,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     PH_ALIGN_LEFT | PH_ALIGN_TOP,
                     point.x,
                     point.y
-                );
+                    );
 
                 if (item && item->Id == IDC_RESET)
                 {
@@ -3844,7 +3848,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                     {
                         PH_STRINGREF SettingName;
                         PPH_SETTING Color;
-                         
+
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         Color = PhGetSetting(&SettingName);
 

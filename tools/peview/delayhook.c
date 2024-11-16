@@ -284,7 +284,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                 draw_acl_check:
                     if (checkType == check || checkType == graycheck)   // right is checked or special permission checked
                     {
-                        if (PhBeginInitOnce(&initOnce)) // cache font  
+                        if (PhBeginInitOnce(&initOnce)) // cache font
                         {
                             hCheckFont = CreateFont(
                                 clientRect.bottom - clientRect.top - 1,
@@ -463,7 +463,7 @@ VOID ThemeWindowStatusBarDrawPart(
 
     if (PhPtInRect(&blockRect, Context->CursorPos))
     {
-        SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
+        SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
         blockRect.left -= 3, blockRect.top -= 1;
         FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
@@ -967,7 +967,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 }
             }
         }
-			
+
 		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
 		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
 		context->CursorPos.x = LONG_MIN;
@@ -976,7 +976,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
 		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
-		InvalidateRect(WindowHandle, NULL, FALSE);
+        InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else
     {
@@ -1070,7 +1070,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     PhFree(context);
                     PhSetControlTheme(WindowHandle, L"Explorer");
                     break;
-                }        
+                }
 
                 //PAINTSTRUCT ps;
                 //HDC BufferedHDC;
@@ -1466,7 +1466,7 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     _In_ int            iStateId,
     _In_ LPCRECT        pRect,
     _In_ const DTBGOPTS* pOptions
-)
+    )
 {
     WCHAR className[MAX_PATH];
 
@@ -1486,8 +1486,8 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
 
     // Micro optimization
     if ((iPartId == TDLG_PRIMARYPANEL || iPartId == TDLG_FOOTNOTEPANE || iPartId == TDLG_SECONDARYPANEL || iPartId == TDLG_FOOTNOTESEPARATOR || iPartId == TDLG_EXPANDOBUTTON) &&
-        PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE)
-        /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
+         PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOG, TRUE)
+         /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
     {
         switch (iPartId)
         {
@@ -1805,7 +1805,7 @@ int PhDetoursComCtl32DrawTextW(
             }
         }
     }
-    
+
     return DefaultComCtl32DrawTextW(hdc, lpchText, cchText, lprc, format);
 }
 
@@ -1835,7 +1835,7 @@ HRESULT PhGetThemeColorHook(
             /*|| WindowsVersion < WINDOWS_11*/)
         {
             *pColor = PhThemeWindowTextColor; // Text color for check boxes, expanded text, and expander button text.
-        }  
+        }
     }
 
     return retVal;
@@ -1858,7 +1858,7 @@ HTHEME PhOpenNcThemeDataHook(
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID CallbackData
-)
+    )
 {
     WCHAR windowClassName[MAX_PATH];
     PTASKDIALOG_COMMON_CONTEXT context;
@@ -1886,7 +1886,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
         0x1000,
         PhInitializeTaskDialogTheme,
         NULL
-    );
+        );
 
     if (windowHasContext)    // HACK
         return TRUE;
@@ -2148,7 +2148,7 @@ BOOLEAN PhIsThemeTransparencyEnabled(
 
 VOID PvInitializeSuperclassControls(
     VOID
-)
+    )
 {
     PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
 

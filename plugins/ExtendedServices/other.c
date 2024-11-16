@@ -452,10 +452,14 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                         if (found)
                         {
-                            if (PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON,
-                                    L"The selected privilege has already been added.",
-                                    L"%s",
-                                    L"") == IDOK)
+                            if (PhShowMessage2(
+                                WindowHandle,
+                                TD_OK_BUTTON | TD_CANCEL_BUTTON,
+                                TD_ERROR_ICON,
+                                 L"The selected privilege has already been added.",
+                                 L"%s",
+                                 L""
+                                 ) == IDOK)
                             {
                                 continue;
                             }

@@ -1199,6 +1199,12 @@ VOID PhpInitializeSettings(
         PhMaxPrecisionLimit /= 10;
     PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
+    PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
+    PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
+    PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
+    PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
+    PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
     PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
     PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");

@@ -1599,19 +1599,28 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         if (handleObjectNode->ResultType == HandleSearchResult)
                         {
                             PPH_HANDLE_ITEM handleItem;
+                            BOOLEAN isAlpcPort = FALSE;
 
                             handleItem = PhCreateHandleItem(&handleObjectNode->HandleInfo);
 
-                            if (!PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
-                            {
-                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
-                                PhReferenceObjectEx(handleObjectNode->BestObjectName, 2);
-                            }
-
                             if (!PhIsNullOrEmptyString(handleObjectNode->TypeNameString))
                             {
+                                isAlpcPort = PhEqualString2(handleObjectNode->TypeNameString, L"ALPC Port", TRUE);
                                 handleItem->TypeName = handleObjectNode->TypeNameString;
                                 PhReferenceObject(handleObjectNode->TypeNameString);
+                            }
+
+                            // Best object name for the ALPC port contains information about the connection
+                            // between the client and server, use the original object name string instead.
+                            if (isAlpcPort && !PhIsNullOrEmptyString(handleObjectNode->ObjectNameString))
+                            {
+                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->ObjectNameString;
+                                PhReferenceObjectEx(handleItem->BestObjectName, 2);
+                            }
+                            else if (!isAlpcPort && !PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
+                            {
+                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
+                                PhReferenceObjectEx(handleItem->BestObjectName, 2);
                             }
 
                             PhShowHandleProperties(

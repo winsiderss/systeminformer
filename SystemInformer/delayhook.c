@@ -284,7 +284,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                 draw_acl_check:
                     if (checkType == check || checkType == graycheck)   // right is checked or special permission checked
                     {
-                        if (PhBeginInitOnce(&initOnce)) // cache font  
+                        if (PhBeginInitOnce(&initOnce)) // cache font
                         {
                             hCheckFont = CreateFont(
                                 clientRect.bottom - clientRect.top - 1,
@@ -463,7 +463,7 @@ VOID ThemeWindowStatusBarDrawPart(
 
     if (PhPtInRect(&blockRect, Context->CursorPos))
     {
-        SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
+        SetTextColor(bufferDc, PhThemeWindowTextColor);
         SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
         blockRect.left -= 3, blockRect.top -= 1;
         FillRect(bufferDc, &blockRect, PhGetStockBrush(DC_BRUSH));
@@ -967,7 +967,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 }
             }
         }
-			
+
 		context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
 		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
 		context->CursorPos.x = LONG_MIN;
@@ -1070,7 +1070,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     PhFree(context);
                     PhSetControlTheme(WindowHandle, L"Explorer");
                     break;
-                }        
+                }
 
                 //PAINTSTRUCT ps;
                 //HDC BufferedHDC;
@@ -1597,7 +1597,7 @@ HWND PhCreateWindowExHook(
             PhInitializeTaskDialogTheme(windowHandle, 0);
         }
         else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
-            PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
+                 PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
         {
             PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
         }
@@ -1806,7 +1806,7 @@ int PhDetoursComCtl32DrawTextW(
             }
         }
     }
-    
+
     return DefaultComCtl32DrawTextW(hdc, lpchText, cchText, lprc, format);
 }
 
@@ -1836,7 +1836,7 @@ HRESULT PhGetThemeColorHook(
             /*|| WindowsVersion < WINDOWS_11*/)
         {
             *pColor = PhThemeWindowTextColor; // Text color for check boxes, expanded text, and expander button text.
-        }  
+        }
     }
 
     return retVal;
@@ -1859,7 +1859,7 @@ HTHEME PhOpenNcThemeDataHook(
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID CallbackData
-)
+    )
 {
     WCHAR windowClassName[MAX_PATH];
     PTASKDIALOG_COMMON_CONTEXT context;
@@ -1887,7 +1887,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
         0x1000,
         PhInitializeTaskDialogTheme,
         NULL
-    );
+        );
 
     if (windowHasContext)    // HACK
         return TRUE;

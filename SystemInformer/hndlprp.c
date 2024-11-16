@@ -279,13 +279,29 @@ NTSTATUS PhpShowHandlePropertiesThread(
     }
 
     // Security page
-    pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-        PhGetStringOrEmpty(handleContext->HandleItem->BestObjectName),
-        PhGetStringOrEmpty(handleContext->HandleItem->TypeName),
-        PhpDuplicateHandleFromProcess,
-        NULL,
-        &context
-        );
+    {
+        PCWSTR objectName;
+
+        // Best object name for the ALPC port contains information about the connection
+        // between the client and server, use the original object name string instead.
+        if (!PhIsNullOrEmptyString(handleContext->HandleItem->TypeName) &&
+            PhEqualString2(handleContext->HandleItem->TypeName, L"ALPC Port", TRUE))
+        {
+            objectName = PhGetStringOrEmpty(handleContext->HandleItem->ObjectName);
+        }
+        else
+        {
+            objectName = PhGetStringOrEmpty(handleContext->HandleItem->BestObjectName);
+        }
+
+        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
+            objectName,
+            PhGetStringOrEmpty(handleContext->HandleItem->TypeName),
+            PhpDuplicateHandleFromProcess,
+            NULL,
+            &context
+            );
+    }
 
     if (PhPluginsEnabled)
     {
@@ -332,7 +348,7 @@ VOID PhShowHandlePropertiesEx(
     _In_ PPH_HANDLE_ITEM HandleItem,
     _In_opt_ PPH_PLUGIN OwnerPlugin,
     _In_opt_ PWSTR Caption
-)
+    )
 {
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
@@ -685,7 +701,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
             L"Link target",
             NULL
-        );
+            );
     }
 }
 

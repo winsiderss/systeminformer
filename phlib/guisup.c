@@ -216,7 +216,7 @@ HDC PhGetScreenDC(
         hdc = GetDC(NULL);
     }
 
-    return hdc;    
+    return hdc;
 }
 
 /**
@@ -1915,7 +1915,7 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     WNDPROC oldWndProc;
 
@@ -1978,7 +1978,7 @@ INT CALLBACK PhpGeneralPropSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
-)
+    )
 {
     switch (uMsg)
     {
@@ -2030,7 +2030,8 @@ BOOLEAN PhModalPropertySheet(
         topLevelOwner = NULL;
 
     Header->dwFlags |= PSH_MODELESS;
-    // Allow to close other modeless property sheets (ex. Handle properties) by clicking the X on the taskbar window thumbnail, also forward key messages (Dart Vanya)
+    // Allow to close other modeless property sheets (ex. Handle properties) by clicking the X on
+    // the taskbar window thumbnail, also forward key messages (Dart Vanya)
     if (!Header->pfnCallback)
     {
         Header->dwFlags |= PSH_USECALLBACK;

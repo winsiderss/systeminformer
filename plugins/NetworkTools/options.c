@@ -120,7 +120,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                             PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, GeoLiteDatabaseType);
                         }
                         break;
-                    }    
+                    }
                 }
                 break;
             case IDC_GEOCONF:
@@ -194,7 +194,7 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_KEY_EDIT));
 
             PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-    }
+        }
         break;
     case WM_DESTROY:
         {
