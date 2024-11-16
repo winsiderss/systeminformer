@@ -353,6 +353,7 @@
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
+    <ClCompile Include="searchbox.c" />
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="secwmi.c" />
@@ -374,6 +375,7 @@
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
+    <ClInclude Include="include\searchbox.h" />
     <ClInclude Include="include\user.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />

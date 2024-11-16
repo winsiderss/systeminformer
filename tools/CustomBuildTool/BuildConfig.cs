@@ -127,6 +127,7 @@ namespace CustomBuildTool
             "provider.h",
             "queuedlock.h",
             "ref.h",
+            "searchbox.h",
             "secedit.h",
             "settings.h",
             "svcsup.h",

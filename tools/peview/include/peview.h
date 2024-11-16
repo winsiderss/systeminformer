@@ -29,6 +29,7 @@
 #include <kphcomms.h>
 #include <kphuser.h>
 #include <hndlinfo.h>
+#include <searchbox.h>
 
 #include <shlobj.h>
 
@@ -182,49 +183,64 @@ VOID PvShowOptionsWindow(
 
 // searchbox
 
-typedef
-VOID
-NTAPI
-PV_SEARCHCONTROL_CALLBACK(
-    _In_ ULONG_PTR MatchHandle,
-    _In_opt_ PVOID Context
-    );
-typedef PV_SEARCHCONTROL_CALLBACK* PPV_SEARCHCONTROL_CALLBACK;
-
 VOID PvCreateSearchControl(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
     _In_opt_ PCWSTR BannerText,
-    _In_ PPV_SEARCHCONTROL_CALLBACK Callback,
+    _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
-BOOLEAN PvSearchControlMatch(
+FORCEINLINE
+BOOLEAN
+PvSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
     _In_ PPH_STRINGREF Text
-    );
+    )
+{
+    return PhSearchControlMatch(MatchHandle, Text);
+}
 
-BOOLEAN PvSearchControlMatchZ(
+FORCEINLINE
+BOOLEAN
+PvSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCWSTR Text
-    );
+    )
+{
+    return PhSearchControlMatchZ(MatchHandle, Text);
+}
 
-BOOLEAN PvSearchControlMatchLongHintZ(
+FORCEINLINE
+BOOLEAN
+PvSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCWSTR Text
-    );
+    )
+{
+    return PhSearchControlMatchLongHintZ(MatchHandle, Text);
+}
 
-BOOLEAN PvSearchControlMatchPointer(
+FORCEINLINE
+BOOLEAN
+PvSearchControlMatchPointer(
     _In_ ULONG_PTR MatchHandle,
     _In_ PVOID Pointer
-    );
+    )
+{
+    return PhSearchControlMatchPointer(MatchHandle, Pointer);
+}
 
-BOOLEAN PvSearchControlMatchPointerRange(
+FORCEINLINE
+BOOLEAN
+PvSearchControlMatchPointerRange(
     _In_ ULONG_PTR MatchHandle,
     _In_ PVOID Pointer,
     _In_ SIZE_T Size
-    );
-
+    )
+{
+    return PhSearchControlMatchPointerRange(MatchHandle, Pointer, Size);
+}
 
 // symbols
 

@@ -775,14 +775,7 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
-typedef
-VOID
-NTAPI
-PH_SEARCHCONTROL_CALLBACK(
-    _In_ ULONG_PTR MatchHandle,
-    _In_opt_ PVOID Context
-    );
-typedef PH_SEARCHCONTROL_CALLBACK* PPH_SEARCHCONTROL_CALLBACK;
+#include <searchbox.h>
 
 PHAPPAPI
 VOID
@@ -793,47 +786,6 @@ PhCreateSearchControl(
     _In_opt_ PCWSTR BannerText,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhSearchControlMatch(
-    _In_ ULONG_PTR MatchHandle,
-    _In_ PPH_STRINGREF Text
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhSearchControlMatchZ(
-    _In_ ULONG_PTR MatchHandle,
-    _In_ PCWSTR Text
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhSearchControlMatchLongHintZ(
-    _In_ ULONG_PTR MatchHandle,
-    _In_ PCWSTR Text
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhSearchControlMatchPointer(
-    _In_ ULONG_PTR MatchHandle,
-    _In_ PVOID Pointer
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
-PhSearchControlMatchPointerRange(
-    _In_ ULONG_PTR MatchHandle,
-    _In_ PVOID Pointer,
-    _In_ SIZE_T Size
     );
 // end_phapppub
 

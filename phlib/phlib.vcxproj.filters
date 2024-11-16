@@ -203,6 +203,9 @@
     <ClCompile Include="nativeflt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="searchbox.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -413,6 +416,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\user.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\searchbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
