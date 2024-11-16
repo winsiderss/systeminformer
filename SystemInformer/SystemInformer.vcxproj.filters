@@ -342,6 +342,9 @@
     <ClCompile Include="informer.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="memsrcht.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

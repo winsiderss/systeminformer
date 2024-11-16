@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
+#include <settings.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -959,7 +960,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
                         {
-                            PhShowMemoryStringDialog(hwndDlg, processItem);
+                            if (PhGetIntegerSetting(L"EnableMemStringsTreeDialog"))
+                                PhShowMemoryStringTreeDialog(hwndDlg, processItem);
+                            else
+                                PhShowMemoryStringDialog(hwndDlg, processItem);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_SAVE)
                         {

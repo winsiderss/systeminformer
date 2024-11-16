@@ -56,6 +56,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
+    PhpAddIntegerSetting(L"EnableMemStringsTreeDialog", L"0");
     PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
     PhpAddIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
@@ -180,6 +181,12 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"MemoryModifiedWindowSize", L"@96|450,500");
     PhpAddStringSetting(L"MemoryModifiedListViewColumns", L"");
     PhpAddStringSetting(L"MemoryModifiedListViewSort", L"0,0"); // 0, NoSortOrder
+    PhpAddStringSetting(L"MemStringsTreeListColumns", L"");
+    PhpAddStringSetting(L"MemStringsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(L"MemStringsTreeListFlags", L"b"); // ANSI, Unicode, Private
+    PhpAddIntegerSetting(L"MemStringsMinimumLength", L"a"); // 10
+    PhpAddIntegerPairSetting(L"MemStringsWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"MemStringsWindowSize", L"@96|550,420");
     PhpAddStringSetting(L"MiniInfoContainerClassName", L"MiniInfoContainerClassName");
     PhpAddStringSetting(L"MiniInfoWindowClassName", L"MiniInfoWindowClassName");
     PhpAddIntegerSetting(L"MiniInfoWindowEnabled", L"1");
