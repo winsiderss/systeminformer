@@ -631,7 +631,9 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
                  entry->EtObjectType == EtObjectMutant ||
                  entry->EtObjectType == EtObjectJob ||
                  entry->EtObjectType == EtObjectDriver && KsiLevel() == KphLevelMax ||
-                 entry->EtObjectType == EtObjectSection)
+                 entry->EtObjectType == EtObjectSection ||
+                 entry->EtObjectType == EtObjectEvent ||
+                 entry->EtObjectType == EtObjectTimer)
         {
             entry->TargetIsResolving = TRUE;
         }
@@ -1001,12 +1003,61 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
         case EtObjectSection:
             {
                 PPH_STRING fileName;
+                PPH_STRING newFileName;
 
                 if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SECTION_MAP_READ, 0)))
                 {
                     if (NT_SUCCESS(status = PhGetSectionFileName(objectHandle, &fileName)))
                     {
+                        if (newFileName = PhResolveDevicePrefix(&fileName->sr))
+                            PhMoveReference(&fileName, newFileName);
+
                         PhMoveReference(&entry->Target, fileName);
+                    }
+
+                    NtClose(objectHandle);
+                }
+            }
+            break;
+        case EtObjectEvent:
+            {
+                EVENT_BASIC_INFORMATION basicInfo;
+                PWSTR eventType = NULL;
+
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, EVENT_QUERY_STATE, 0)))
+                {
+                    if (NT_SUCCESS(PhGetEventBasicInformation(objectHandle, &basicInfo)))
+                    {
+                        switch (basicInfo.EventType)
+                        {
+                        case NotificationEvent:
+                            eventType = basicInfo.EventState > 0 ? L"Signaled, Notification" : L"Notification";
+                            break;
+                        case SynchronizationEvent:
+                            eventType = basicInfo.EventState > 0 ? L"Signaled, Synchronization" : L"Synchronization";
+                            break;
+                        default:
+                            if (basicInfo.EventState > 0) eventType = L"Signaled";
+                        }
+                    }
+
+                    if (eventType)
+                        PhMoveReference(&entry->Target, PhCreateString(eventType));
+
+                    NtClose(objectHandle);
+                }
+            }
+            break;
+        case EtObjectTimer:
+            {
+                TIMER_BASIC_INFORMATION basicInfo;
+
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, TIMER_QUERY_STATE, 0)))
+                {
+                    if (NT_SUCCESS(PhGetTimerBasicInformation(objectHandle, &basicInfo)))
+                    {
+                        if (basicInfo.TimerState)
+                            PhMoveReference(&entry->Target, PhCreateString(L"Signaled"));
                     }
 
                     NtClose(objectHandle);
@@ -1590,7 +1641,10 @@ NTSTATUS EtObjectManagerOpenRealObject(
             targetIndex = PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName));
     }
 
-    fullName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+    if (Context->Object->EtObjectType == EtObjectDirectory)
+        fullName = PhReferenceObject(Context->CurrentPath);
+    else
+        fullName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -1864,13 +1918,11 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Try to open with WRITE_DAC to allow change security from "Security" page
     if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, OBJECT_OPENSOURCE_ALL)))
     {
-        // Can open KernelOnlyAccess object if any opened handles for this object exists (ex. \PowerPort, \Win32kCrossSessionGlobals)
-        status = EtObjectManagerOpenRealObject(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, &processId);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL);
+        if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL)))
+        {
+            // Can open KernelOnlyAccess object if any opened handles for this object exists (ex. \PowerPort, \Win32kCrossSessionGlobals)
+            status = EtObjectManagerOpenRealObject(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, &processId);
+        }
     }
 
     PPH_HANDLE_ITEM handleItem;
