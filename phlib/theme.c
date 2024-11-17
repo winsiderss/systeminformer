@@ -2502,8 +2502,8 @@ VOID ThemeWindowRenderTabControl(
     TabCtrl_GetItemRect(WindowHandle, 0, &itemRect);
     clientRect->top += (itemRect.bottom - itemRect.top) * TabCtrl_GetRowCount(WindowHandle) + 2;
 
-    SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
-    FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
+    //SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+    //FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
     headerBottom = clientRect->top;
     clientRect->top = oldTop;
 
