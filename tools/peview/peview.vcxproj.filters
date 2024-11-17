@@ -171,9 +171,6 @@
     <ClCompile Include="pedynrelocprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="delayhook.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="mappings.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>

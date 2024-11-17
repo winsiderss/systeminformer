@@ -5,11 +5,14 @@
  *
  * Authors:
  *
- *     dmex    2022-2023
+ *     dmex         2022-2023
+ *     Dart Vanya   2024
  *
  */
 
-#include <phapp.h>
+#include <ph.h>
+#include <guisup.h>
+#include <treenew.h>
 #include <apiimport.h>
 #include <mapldr.h>
 #include <thirdparty.h>
@@ -28,9 +31,6 @@ static WNDPROC PhDefaultStaticWindowProcedure = NULL;
 static WNDPROC PhDefaultStatusbarWindowProcedure = NULL;
 static WNDPROC PhDefaultEditWindowProcedure = NULL;
 static WNDPROC PhDefaultHeaderWindowProcedure = NULL;
-static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
-static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
-static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
@@ -62,7 +62,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         {
             //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
 
-            if (PhDefaultEnableStreamerMode)
+            if (PhEnableStreamerMode)
             {
                 if (SetWindowDisplayAffinity_Import())
                     SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
@@ -115,13 +115,13 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
 
             if (WindowHandle == GetAncestor(WindowHandle, GA_ROOT))
             {
-                if (PhDefaultEnableStreamerMode)
+                if (PhEnableStreamerMode)
                 {
                     if (SetWindowDisplayAffinity_Import())
                         SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
-                if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+                if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
                 {
                     // Note: DWM crashes if called from WM_NCCREATE (dmex)
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
@@ -176,7 +176,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
 
             if (SendMessage(WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
             {
-                if (PhDefaultEnableStreamerMode)
+                if (PhEnableStreamerMode)
                 {
                     if (SetWindowDisplayAffinity_Import())
                         SetWindowDisplayAffinity_Import()(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
@@ -1578,13 +1578,13 @@ HWND PhCreateWindowExHook(
 
     if (Parent == NULL)
     {
-        if (PhDefaultEnableStreamerMode)
+        if (PhEnableStreamerMode)
         {
             if (SetWindowDisplayAffinity_Import())
                 SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+        if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
@@ -1867,7 +1867,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     if (CallbackData && !windowHasContext)
     {
-        if (PhDefaultEnableStreamerMode)
+        if (PhEnableStreamerMode)
         {
             if (SetWindowDisplayAffinity_Import())
                 SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
@@ -2093,7 +2093,7 @@ VOID PhRegisterDetoursHooks(
             goto CleanupExit;
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultDrawThemeBackgroundEx, (PVOID)PhDrawThemeBackgroundExHook)))
             goto CleanupExit;
-        if (!PhDefaultEnableThemeAnimation)
+        if (!PhEnableThemeAnimation)
         {
             if (!NT_SUCCESS(status = DetourAttach((PVOID)&DefaultSystemParametersInfo, (PVOID)PhSystemParametersInfoHook)))
                 goto CleanupExit;
@@ -2151,21 +2151,23 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
 
     if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
         PhEnableThemeAcrylicSupport = FALSE;
     if (PhEnableThemeAcrylicSupport)
         PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
 
-    if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
+    if (PhEnableThemeSupport || PhEnableStreamerMode)
     {
         if (WindowsVersion >= WINDOWS_11)
         {
-            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+            PhEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
         }
 
-        PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
+        PhEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
+        PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+        PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
 
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();

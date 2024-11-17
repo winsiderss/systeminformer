@@ -1198,7 +1198,7 @@ VOID PhpInitializeSettings(
     for (ULONG i = 0; i < PhMaxPrecisionUnit; i++)
         PhMaxPrecisionLimit /= 10;
     PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhEnableThemeSupport = PhIsThemeSupportEnabled();
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
     PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");

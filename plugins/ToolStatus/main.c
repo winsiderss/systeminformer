@@ -1760,7 +1760,7 @@ VOID NTAPI LoadCallback(
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
     RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
-    EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    EnableThemeSupport = PhIsThemeSupportEnabled();
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
 

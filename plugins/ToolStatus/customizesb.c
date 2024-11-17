@@ -290,7 +290,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhIsThemeSupportEnabled())
             {
                 context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
                 context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
@@ -311,7 +311,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeLoadStatusBarItems(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }

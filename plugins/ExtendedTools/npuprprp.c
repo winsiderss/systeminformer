@@ -375,7 +375,7 @@ INT_PTR CALLBACK EtpNpuPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

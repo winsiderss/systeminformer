@@ -20,7 +20,7 @@ VOID RichEditSetText(
     _In_ PWSTR Text
     )
 {
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
+    if (PhIsThemeSupportEnabled())
     {
         CHARFORMAT cf;
 
@@ -907,7 +907,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);

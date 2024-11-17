@@ -514,7 +514,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhIsThemeSupportEnabled())
             {
                 context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
                 context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
@@ -535,7 +535,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             CustomizeLoadToolbarItems(context);
             CustomizeLoadToolbarSettings(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }

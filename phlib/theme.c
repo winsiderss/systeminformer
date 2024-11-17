@@ -5,7 +5,8 @@
  *
  * Authors:
  *
- *     dmex    2018-2023
+ *     dmex         2022-2023
+ *     Dart Vanya   2024
  *
  */
 
@@ -108,10 +109,6 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
     _In_ LPARAM lParam
     );
 
-// Win10-RS5 (uxtheme.dll ordinal 132)
-BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
-    VOID
-    ) = NULL;
 // Win10-RS5 (uxtheme.dll ordinal 138)
 BOOL (WINAPI *ShouldSystemUseDarkMode_I)(
     VOID
@@ -119,20 +116,6 @@ BOOL (WINAPI *ShouldSystemUseDarkMode_I)(
 // Win10-RS5 (uxtheme.dll ordinal 136)
 BOOL (WINAPI* FlushMenuThemes_I)(
     VOID
-    ) = NULL;
-
-typedef enum _PreferredAppMode
-{
-    PreferredAppModeDisabled,
-    PreferredAppModeDarkOnDark,
-    PreferredAppModeDarkAlways
-} PreferredAppMode;
-
-// Win10-RS5 (uxtheme.dll ordinal 135)
-// Win10 build 17763: AllowDarkModeForApp(BOOL)
-// Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
-BOOL (WINAPI* SetPreferredAppMode_I)(
-    _In_ PreferredAppMode AppMode
     ) = NULL;
 
 // Win10-RS5 (uxtheme.dll ordinal 139)
@@ -160,6 +143,9 @@ BOOLEAN PhEnableThemeSupport = FALSE;
 BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
 BOOLEAN PhEnableThemeAcrylicWindowSupport = FALSE;
 BOOLEAN PhEnableThemeNativeButtons = FALSE;
+BOOLEAN PhEnableThemeTabBorders = FALSE;
+BOOLEAN PhEnableThemeAnimation = FALSE;
+BOOLEAN PhEnableStreamerMode = FALSE;
 BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
@@ -180,33 +166,10 @@ VOID PhInitializeWindowTheme(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            if (WindowsVersion >= WINDOWS_10_19H2)
-            {
-                PVOID baseAddress;
+            PhSetPreferredAppMode(PreferredAppModeDarkAlways);
 
-                if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll")))
-                    baseAddress = PhLoadLibrary(L"uxtheme.dll");
-
-                if (baseAddress)
-                {
-                    SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
-                    //FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
-                }
-
-                if (SetPreferredAppMode_I)
-                {
-                    //switch (PhpThemeColorMode)
-                    //{
-                    //case 0: // New colors
-                    //    SetPreferredAppMode_I(PreferredAppModeDisabled);
-                    //    break;
-                    //case 1: // Old colors
-                    SetPreferredAppMode_I(PreferredAppModeDarkAlways);
-                }
-
-                //if (FlushMenuThemes_I)
-                //    FlushMenuThemes_I();
-            }
+            //if (FlushMenuThemes_I)
+            //    FlushMenuThemes_I();
 
             PhEndInitOnce(&initOnce);
         }
@@ -1265,8 +1228,8 @@ BOOLEAN PhThemeWindowDrawItem(
         }
     case ODT_COMBOBOX:
         {
-            SetTextColor(DrawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-            SetDCBrushColor(DrawInfo->hDC, PhThemeWindowForegroundColor);
+            SetTextColor(DrawInfo->hDC, PhThemeWindowTextColor);
+            SetDCBrushColor(DrawInfo->hDC, isSelected ? RGB(0x50, 0x50, 0x50) : PhThemeWindowForegroundColor);
             FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhGetStockBrush(DC_BRUSH));
 
             INT length = ComboBox_GetLBTextLen(DrawInfo->hwndItem, DrawInfo->itemID);
@@ -1281,12 +1244,15 @@ BOOLEAN PhThemeWindowDrawItem(
                 if (ComboBox_GetLBText(DrawInfo->hwndItem, DrawInfo->itemID, comboText) == CB_ERR)
                     break;
 
+                RECT rect = DrawInfo->rcItem;
+                rect.left += 2;
+
                 DrawText(
                     DrawInfo->hDC,
                     comboText,
                     (UINT)PhCountStringZ(comboText),
-                    &DrawInfo->rcItem,
-                    DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE
+                    &rect,
+                    DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE | DT_VCENTER
                     );
             }
 
@@ -2502,8 +2468,12 @@ VOID ThemeWindowRenderTabControl(
     TabCtrl_GetItemRect(WindowHandle, 0, &itemRect);
     clientRect->top += (itemRect.bottom - itemRect.top) * TabCtrl_GetRowCount(WindowHandle) + 2;
 
-    SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
-    FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
+    if (PhEnableThemeTabBorders)
+    {
+        SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+        FrameRect(bufferDc, clientRect, PhGetStockBrush(DC_BRUSH));
+    }
+
     headerBottom = clientRect->top;
     clientRect->top = oldTop;
 
@@ -2582,8 +2552,11 @@ VOID ThemeWindowRenderTabControl(
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
                 SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
-                //SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
-                //FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+                if (PhEnableThemeTabBorders)
+                {
+                    SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
+                    FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+                }
             }
         }
 

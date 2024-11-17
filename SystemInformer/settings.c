@@ -78,11 +78,13 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
     PhpAddIntegerSetting(L"EnableShutdownBootMenu", L"1");
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
-    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeSupport", L"1");
+    PhpAddIntegerSetting(L"EnableThemeUseWindowsTheme", L"1");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
     PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
+    PhpAddIntegerSetting(L"EnableThemeTabBorders", L"0");
     PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
     PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
     PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)

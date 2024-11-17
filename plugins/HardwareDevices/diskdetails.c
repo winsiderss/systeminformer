@@ -662,8 +662,8 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
             // Note: Load settings after querying devices. (dmex)
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
-            if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            if (PhIsThemeSupportEnabled()) // TODO: Required for compat (dmex)
+                PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
 
@@ -837,7 +837,7 @@ INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
 
             DiskDeviceQuerySmart(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

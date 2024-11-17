@@ -102,7 +102,7 @@ BOOLEAN EtpDiskPageCallback(
             if (!hwnd)
                 return FALSE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhIsThemeSupportEnabled())
             {
                 PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
@@ -262,7 +262,7 @@ VOID EtInitializeDiskTreeList(
 {
     DiskTreeNewHandle = WindowHandle;
 
-    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(DiskTreeNewHandle, !PhIsThemeSupportEnabled() ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(WindowHandle, FALSE);
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);
@@ -1346,7 +1346,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 //        }
 //        break;
 //    case WM_COMMAND:

@@ -1351,7 +1351,7 @@ VOID DevicesTreeInitialize(
         TreeNew_SetRowHeight(DeviceTreeHandle, treelistCustomRowSize);
     }
 
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
+    if (PhIsThemeSupportEnabled())
     {
         PhInitializeWindowTheme(DeviceTreeHandle, TRUE);
         PhSetControlTheme(DeviceTreeHandle, L"DarkMode_Explorer");
@@ -1384,7 +1384,7 @@ BOOLEAN DevicesTabPageCallback(
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
+            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhIsThemeSupportEnabled()) ? WS_BORDER : 0;
             treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
 
             if (treelistCustomColors)

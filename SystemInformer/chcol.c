@@ -261,7 +261,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             Button_Enable(context->MoveUpHandle, FALSE);
             Button_Enable(context->MoveDownHandle, FALSE);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhEnableThemeSupport)
             {
                 context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
                 context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);

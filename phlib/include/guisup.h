@@ -226,6 +226,34 @@ PhIsDarkModeAllowedForWindow(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhShouldAppsUseDarkMode(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeSupportEnabled(
+    VOID
+    );
+
+typedef enum _PreferredAppMode
+{
+    PreferredAppModeDisabled,
+    PreferredAppModeDarkOnDark,
+    PreferredAppModeDarkAlways
+} PreferredAppMode;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetPreferredAppMode(
+    _In_ PreferredAppMode AppMode
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );
@@ -2092,6 +2120,9 @@ extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
 extern BOOLEAN PhEnableThemeNativeButtons;
+extern BOOLEAN PhEnableThemeTabBorders;
+extern BOOLEAN PhEnableThemeAnimation;
+extern BOOLEAN PhEnableStreamerMode;
 extern BOOLEAN PhEnableThemeListviewBorder;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
@@ -2181,6 +2212,13 @@ LRESULT
 CALLBACK
 PhThemeWindowDrawToolbar(
     _In_ LPNMTBCUSTOMDRAW DrawInfo
+    );
+
+PHLIBAPI
+VOID
+CALLBACK
+PhInitializeSuperclassControls(
+    VOID
     );
 
 // Font support

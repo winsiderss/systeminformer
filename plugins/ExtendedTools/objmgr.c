@@ -145,7 +145,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
     _Out_ PHANDLE Handle,
     _In_ PHANDLE_OPEN_CONTEXT Context,
     _In_ ACCESS_MASK DesiredAccess,
-    _Out_opt_ PHANDLE OwnerProcessId
+    _Inout_opt_ PHANDLE OwnerProcessId
     );
 
 NTSTATUS EtObjectManagerHandleCloseCallback(
@@ -2493,7 +2493,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 EtObjectManagerRootDirectoryObject
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
             PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
 

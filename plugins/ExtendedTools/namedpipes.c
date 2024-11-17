@@ -517,7 +517,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                 PhSetExtendedListView(context->ListViewWndHandle);
                 PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI, context->ListViewWndHandle);
 
-                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+                PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
                 EtEnumerateNamedPipeHandles(context);
             }
@@ -539,7 +539,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
                 PhSetExtendedListView(context->ListViewWndHandle);
                 PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
 
-                PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+                PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
                 EtEnumerateNamedPipeDirectory(context);
             }

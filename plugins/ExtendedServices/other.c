@@ -381,7 +381,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

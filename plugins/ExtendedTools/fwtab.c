@@ -54,7 +54,7 @@ BOOLEAN FwTabPageCallback(
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
+            treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhIsThemeSupportEnabled()) ? WS_BORDER : 0;
             treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
 
             if (treelistCustomColors)
@@ -83,7 +83,7 @@ BOOLEAN FwTabPageCallback(
 
             FwTreeNewCreated = TRUE;
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhIsThemeSupportEnabled())
             {
                 PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
@@ -253,7 +253,7 @@ VOID InitializeFwTreeList(
 
     InitializeFwTreeListDpi(FwTreeNewHandle);
 
-    PhSetControlTheme(FwTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(FwTreeNewHandle, !PhIsThemeSupportEnabled() ? L"explorer" : L"DarkMode_Explorer");
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
 

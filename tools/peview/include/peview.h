@@ -56,10 +56,6 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER* SymbolProvider
     );
 
-VOID PvInitializeSuperclassControls(
-    VOID
-    );
-
 // peprp
 
 VOID PvPeProperties(
@@ -174,7 +170,7 @@ VOID PvSaveSettings(
     );
 
 VOID PvUpdateCachedSettings(
-    VOID
+    _In_ BOOLEAN ApplyTheme
     );
 
 VOID PvShowOptionsWindow(

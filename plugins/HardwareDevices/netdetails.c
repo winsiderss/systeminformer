@@ -678,7 +678,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 &context->NotifyHandle
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport")); // HACK
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled()); // HACK
         }
         break;
     case WM_DESTROY:

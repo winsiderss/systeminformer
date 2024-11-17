@@ -894,7 +894,7 @@ INT_PTR CALLBACK TracertDlgProc(
             PhReferenceObject(context);
             PhCreateThread2(NetworkTracertThreadStart, context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

@@ -135,7 +135,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                 PhClearReference(&errorMessage);
             }
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:
@@ -260,7 +260,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
                 PhClearReference(&errorMessage);
             }
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

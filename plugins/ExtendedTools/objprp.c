@@ -951,7 +951,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 NtClose(workerFactoryHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
     }
@@ -1072,7 +1072,7 @@ INT EtpEnumObjectHandles(
         PhEndInitOnce(&initOnce);
     }
 
-    COLORREF colorNormal = !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
+    COLORREF colorNormal = PhIsThemeSupportEnabled() ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
     COLORREF colorOwnObject = PhGetIntegerSetting(L"ColorOwnProcesses");
     COLORREF colorInherit = PhGetIntegerSetting(L"ColorInheritHandles");
     COLORREF colorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
@@ -1437,7 +1437,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
@@ -1680,7 +1680,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                             break;
                                         default:
                                             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"");
-                                            listviewItems[0]->Color = !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
+                                            listviewItems[0]->Color = PhIsThemeSupportEnabled() ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
                                             break;
                                     }
 
@@ -1906,7 +1906,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

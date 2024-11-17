@@ -76,6 +76,11 @@ static _DrawThemeBackground DrawThemeBackground_I = NULL;
 static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
+static _ShouldAppsUseDarkMode ShouldAppsUseDarkMode_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 132)
+// Win10-RS5 (uxtheme.dll ordinal 135)
+// Win10 build 17763: AllowDarkModeForApp(BOOL)
+// Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
+static _SetPreferredAppMode SetPreferredAppMode_I = NULL;
 static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
 static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
 static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
@@ -127,6 +132,8 @@ VOID PhGuiSupportInitialization(
         {
             AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
             IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
+            ShouldAppsUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 132);
+            SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
         }
     }
 
@@ -426,6 +433,43 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
         return FALSE;
 
     return !!IsDarkModeAllowedForWindow_I(WindowHandle);
+}
+
+BOOLEAN PhShouldAppsUseDarkMode(
+    VOID
+    )
+{
+    if (!ShouldAppsUseDarkMode_I)
+        return FALSE;
+
+    return !!ShouldAppsUseDarkMode_I();
+}
+
+BOOLEAN PhIsThemeSupportEnabled(
+    VOID
+    )
+{
+    if (PhGetIntegerSetting(L"EnableThemeSupport"))
+    {
+        if (PhGetIntegerSetting(L"EnableThemeUseWindowsTheme"))
+            return PhShouldAppsUseDarkMode();
+        else
+            return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+BOOLEAN PhSetPreferredAppMode(
+    _In_ PreferredAppMode AppMode
+    )
+{
+    if (!SetPreferredAppMode_I)
+        return FALSE;
+
+    return !!SetPreferredAppMode_I(AppMode);
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
