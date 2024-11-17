@@ -122,7 +122,7 @@ INT WINAPI wWinMain(
         PvInitializeSettings();
         PvInitializeSuperclassControls();
         PhShowWarning2(
-            GetDesktopWindow(),
+            NULL,
             L"Warning.",
             L"%s",
             L"You are attempting to run the 32-bit version of PE Viewer on 64-bit Windows. "
@@ -311,9 +311,9 @@ INT WINAPI wWinMain(
         if (!NT_SUCCESS(status))
         {
             if (status == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT)
-                PhShowError2(GetDesktopWindow(), L"Unable to load the file.", L"%s", L"PE Viewer does not support this image type.");
+                PhShowError2(NULL, L"Unable to load the file.", L"%s", L"PE Viewer does not support this image type.");
             else
-                PhShowStatus(GetDesktopWindow(), L"Unable to load the file.", status, 0);
+                PhShowStatus(NULL, L"Unable to load the file.", status, 0);
         }
     }
 

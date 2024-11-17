@@ -579,7 +579,7 @@ VOID EtShowNpuDetailsDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&EtNpuDetailsDialogThreadHandle, EtNpuDetailsDialogThreadStart, ParentWindowHandle)))
         {
-            PhShowError2(GetDesktopWindow(), L"Unable to create the window.", L"%s", L"");
+            PhShowError2(NULL, L"Unable to create the window.", L"%s", L"");
             return;
         }
 
