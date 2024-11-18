@@ -231,7 +231,7 @@ INT WINAPI wWinMain(
     if (PhIsExecutingInWow64())
     {
         PhShowWarning2(
-            GetDesktopWindow(),
+            NULL,
             L"Warning.",
             L"%s",
             L"You are attempting to run the 32-bit version of System Informer on 64-bit Windows. "
@@ -259,7 +259,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError2(GetDesktopWindow(), L"Unable to initialize the main window.", L"%s", L"");
+        PhShowError2(NULL, L"Unable to initialize the main window.", L"%s", L"");
         return 1;
     }
 
@@ -1462,7 +1462,7 @@ VOID PhpProcessStartupParameters(
             PhInitializeSuperclassControls();
         }
         PhShowInformation2(
-            GetDesktopWindow(),
+            NULL,
             L"Command line options:",
             L"%s",
             L"-debug\n"
