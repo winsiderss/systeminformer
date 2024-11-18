@@ -1369,6 +1369,8 @@ VOID EtpCloseObjectHandles(
 {
     HANDLE oldHandle;
     NTSTATUS status;
+    ULONG64 count;
+    WCHAR string[PH_INT64_STR_LEN_1];
 
     for (ULONG i = 0; i < NumberOfItems; i++)
     {
@@ -1380,6 +1382,13 @@ VOID EtpCloseObjectHandles(
                 ListviewItems[i]->ProcessId,
                 ListviewItems[i]->HandleItem->Handle)) == STATUS_INVALID_HANDLE)
             {
+                PhStringToUInt64(&PhaGetDlgItemText(Context->WindowHandle, IDC_OBJ_HANDLESTOTAL)->sr, 0, &count);
+                PhPrintUInt32(string, (ULONG)count - 1);
+                PhSetDialogItemText(Context->WindowHandle, IDC_OBJ_HANDLESTOTAL, string);
+                PhStringToUInt64(&PhaGetDlgItemText(Context->WindowHandle, ListviewItems[i]->OwnHandle ? IDC_OBJ_HANDLESBYOBJECT : IDC_OBJ_HANDLESBYNAME)->sr, 0, &count);
+                PhPrintUInt32(string, (ULONG)count - 1);
+                PhSetDialogItemText(Context->WindowHandle, ListviewItems[i]->OwnHandle ? IDC_OBJ_HANDLESBYOBJECT : IDC_OBJ_HANDLESBYNAME, string);
+
                 PhRemoveListViewItem(Context->ListViewHandle, PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, ListviewItems[i]));
                 PhClearReference(&ListviewItems[i]->HandleItem);
                 PhFree(ListviewItems[i]);
