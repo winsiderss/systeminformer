@@ -1647,6 +1647,14 @@ extern PPH_LIST EtObjectManagerOwnHandles;
 extern HICON EtObjectManagerPropIcon;
 extern PPH_HASHTABLE EtObjectManagerPropWindows;
 
+extern ULONG EtAlpcPortTypeIndex;
+extern ULONG EtDeviceTypeIndex;
+extern ULONG EtFilterPortTypeIndex;
+extern ULONG EtFileTypeIndex;
+extern ULONG EtKeyTypeIndex;
+extern ULONG EtSectionTypeIndex;
+extern ULONG EtWinStaTypeIndex;
+
 VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     );

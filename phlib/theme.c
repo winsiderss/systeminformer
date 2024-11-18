@@ -2550,7 +2550,7 @@ VOID ThemeWindowRenderTabControl(
             //case 1: // Old colors
             {
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
-                SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
+                SetDCBrushColor(bufferDc, PhEnableThemeTabBorders ? PhMakeColorBrighter(PhThemeWindowBackgroundColor, 6) : PhThemeWindowBackgroundColor);
                 FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
                 if (PhEnableThemeTabBorders)
                 {

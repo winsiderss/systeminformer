@@ -30,6 +30,15 @@ PPH_LIST EtObjectManagerOwnHandles = NULL;
 PPH_HASHTABLE EtObjectManagerPropWindows = NULL;
 HICON EtObjectManagerPropIcon = NULL;
 
+// Cached type indexes
+ULONG EtAlpcPortTypeIndex;
+ULONG EtDeviceTypeIndex;
+ULONG EtFilterPortTypeIndex;
+ULONG EtFileTypeIndex;
+ULONG EtKeyTypeIndex;
+ULONG EtSectionTypeIndex;
+ULONG EtWinStaTypeIndex;
+
 // Columns
 
 #define ETOBLVC_NAME 0
@@ -73,7 +82,7 @@ typedef struct _ET_OBJECT_ENTRY
     ET_OBJECT_TYPE EtObjectType;
     BOOL TargetIsResolving;
     CLIENT_ID TargetClientId;
-    BOOLEAN PdoDevice;
+    BOOLEAN TargetIsInfoOnly;
 } ET_OBJECT_ENTRY, *POBJECT_ENTRY;
 
 typedef struct _ET_OBJECT_CONTEXT
@@ -861,7 +870,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         devicePdoName2 = PhSubstring(devicePdoName, 0, column_pos + 1);
                         devicePdoName2->Buffer[column_pos - 4] = L'[', devicePdoName2->Buffer[column_pos] = L']';
                         PhMoveReference(&entry->Target, devicePdoName2);
-                        entry->PdoDevice = TRUE;
+                        entry->TargetIsInfoOnly = TRUE;
                         PhDereferenceObject(devicePdoName);
                     }
                 }
@@ -1005,8 +1014,9 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
             {
                 PPH_STRING fileName;
                 PPH_STRING newFileName;
+                SECTION_BASIC_INFORMATION basicInfo;
 
-                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SECTION_MAP_READ, 0)))
+                if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, SECTION_QUERY | SECTION_MAP_READ, 0)))
                 {
                     if (NT_SUCCESS(status = PhGetSectionFileName(objectHandle, &fileName)))
                     {
@@ -1014,6 +1024,31 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                             PhMoveReference(&fileName, newFileName);
 
                         PhMoveReference(&entry->Target, fileName);
+                    }
+                    else
+                    {
+                        if (NT_SUCCESS(status = PhGetSectionBasicInformation(objectHandle, &basicInfo)))
+                        {
+                            PH_FORMAT format[4];
+                            PWSTR sectionType = L"Unknown";
+
+                            if (basicInfo.AllocationAttributes & SEC_COMMIT)
+                                sectionType = L"Commit";
+                            else if (basicInfo.AllocationAttributes & SEC_FILE)
+                                sectionType = L"File";
+                            else if (basicInfo.AllocationAttributes & SEC_IMAGE)
+                                sectionType = L"Image";
+                            else if (basicInfo.AllocationAttributes & SEC_RESERVE)
+                                sectionType = L"Reserve";
+
+                            PhInitFormatS(&format[0], sectionType);
+                            PhInitFormatS(&format[1], L" (");
+                            PhInitFormatSize(&format[2], basicInfo.MaximumSize.QuadPart);
+                            PhInitFormatC(&format[3], ')');
+
+                            entry->TargetIsInfoOnly = TRUE;
+                            entry->Target = PhFormat(format, 4, 0);
+                        }
                     }
 
                     NtClose(objectHandle);
@@ -1204,6 +1239,39 @@ VOID EtObjectManagerFreeListViewItems(
     PhClearList(Context->CurrentDirectoryList);
 }
 
+NTSTATUS EtDuplicateHandleFromProcess(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SourceHandle
+    )
+{
+    NTSTATUS status;
+
+    if (KsiLevel() == KphLevelMax)
+    {
+        status = KphDuplicateObject(
+            ProcessHandle,
+            SourceHandle,
+            DesiredAccess,
+            Handle
+            );
+    }
+    else
+    {
+        status = NtDuplicateObject(
+            ProcessHandle,
+            SourceHandle,
+            NtCurrentProcess(),
+            Handle,
+            DesiredAccess,
+            0,
+            0
+            );
+    }
+
+    return status;
+}
 
 NTSTATUS EtDuplicateHandleFromProcessEx(
     _Out_ PHANDLE Handle,
@@ -1606,25 +1674,6 @@ NTSTATUS EtObjectManagerOpenRealObject(
     _Inout_opt_ PHANDLE OwnerProcessId
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static ULONG alpcPortTypeIndex;
-    static ULONG filterPortIndex;
-    static ULONG keyTypeIndex;
-    static ULONG sectionIndex;
-    static ULONG winStaIndex;
-
-    *Handle = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        alpcPortTypeIndex = PhGetObjectTypeNumberZ(L"ALPC Port");
-        filterPortIndex = PhGetObjectTypeNumberZ(L"FilterConnectionPort");
-        keyTypeIndex = PhGetObjectTypeNumberZ(L"Key");
-        sectionIndex = PhGetObjectTypeNumberZ(L"Section");
-        winStaIndex = PhGetObjectTypeNumberZ(L"WindowStation");
-        PhEndInitOnce(&initOnce);
-    }
-
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING fullName;
     ULONG targetIndex;
@@ -1635,23 +1684,28 @@ NTSTATUS EtObjectManagerOpenRealObject(
     HANDLE processHandle;
     PPH_KEY_VALUE_PAIR procEntry;
 
+    *Handle = NULL;
+
     // Use cached index for most common types for better performance
     switch (Context->Object->EtObjectType)
     {
         case EtObjectAlpcPort:
-            targetIndex = alpcPortTypeIndex;
+            targetIndex = EtAlpcPortTypeIndex;
+            break;
+        case EtObjectDevice:
+            targetIndex = EtDeviceTypeIndex;
             break;
         case EtObjectFilterPort:
-            targetIndex = filterPortIndex;
+            targetIndex = EtFilterPortTypeIndex;
             break;
         case EtObjectKey:
-            targetIndex = keyTypeIndex;
+            targetIndex = EtKeyTypeIndex;
             break;
         case EtObjectSection:
-            targetIndex = sectionIndex;
+            targetIndex = EtSectionTypeIndex;
             break;
         case EtObjectWindowStation:
-            targetIndex = winStaIndex;
+            targetIndex = EtWinStaTypeIndex;
             break;
         default:
             targetIndex = PhGetObjectTypeNumberZ(PhGetString(Context->Object->TypeName));
@@ -1716,27 +1770,24 @@ NTSTATUS EtObjectManagerOpenRealObject(
                 {
                     if (PhEqualString(objectName, fullName, TRUE))
                     {
-                        NTSTATUS subStatus;
-
-                        if (!NT_SUCCESS(subStatus = EtDuplicateHandleFromProcessEx(
+                        if (!NT_SUCCESS(status = EtDuplicateHandleFromProcess(
                             &objectHandle,
                             DesiredAccess,
-                            (HANDLE)handleInfo->UniqueProcessId,
+                            processHandle,
                             (HANDLE)handleInfo->HandleValue
                             )))
                         {
-                            subStatus = EtDuplicateHandleFromProcessEx(
+                            status = EtDuplicateHandleFromProcess(
                                 &objectHandle,
                                 0,
-                                (HANDLE)handleInfo->UniqueProcessId,
+                                processHandle,
                                 (HANDLE)handleInfo->HandleValue
                                 );
                         }
 
-                        if (NT_SUCCESS(subStatus))
+                        if (NT_SUCCESS(status))
                         {
                             *Handle = objectHandle;
-                            status = STATUS_SUCCESS;
                         }
                         else if (OwnerProcessId)
                         {
@@ -1855,8 +1906,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
     _In_ HANDLE ProcessId,
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ObjectHandle,
-    _Out_ PVOID* ObjectAddres,
-    _Out_ PULONG TypeIndex
+    _Inout_ PPH_HANDLE_ITEM HandleItem
     )
 {
     NTSTATUS status = STATUS_INVALID_HANDLE;
@@ -1865,25 +1915,32 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
 
     if (KsiLevel() >= KphLevelMed)
     {
-        PKPH_PROCESS_HANDLE_INFORMATION handles;
+        KPH_OBJECT_EXTENDED_INFORMATION extendedInfo;
 
-        if (NT_SUCCESS(KsiEnumerateProcessHandles(ProcessHandle, &handles)))
+        if (NT_SUCCESS(status = KphQueryInformationObject(
+            ProcessHandle,
+            ObjectHandle,
+            KphObjectExtendedInformation,
+            &extendedInfo,
+            sizeof(extendedInfo),
+            NULL
+            )))
         {
-            buffer = handles;
+            HandleItem->Object = extendedInfo.Object;
+            HandleItem->TypeIndex = extendedInfo.ObjectTypeIndex;
 
-            for (i = 0; i < handles->HandleCount; i++)
-            {
-                if (handles->Handles[i].Handle == ObjectHandle)
-                {
-                    *ObjectAddres = handles->Handles[i].Object;
-                    *TypeIndex = handles->Handles[i].ObjectTypeIndex;
-                    status = STATUS_SUCCESS;
-                    break;
-                }
-            }
+            if (extendedInfo.ExclusiveObject)
+                HandleItem->Attributes |= OBJ_EXCLUSIVE;
+            if (extendedInfo.PermanentObject)
+                HandleItem->Attributes |= OBJ_PERMANENT;
+            if (extendedInfo.KernelObject)
+                HandleItem->Attributes |= OBJ_KERNEL_HANDLE;
+            if (extendedInfo.KernelOnlyAccess)
+                HandleItem->Attributes |= PH_OBJ_KERNEL_ACCESS_ONLY;
         }
     }
-    else
+
+    if (!NT_SUCCESS(status))
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
 
@@ -1896,8 +1953,9 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
                 if ((HANDLE)handles->Handles[i].UniqueProcessId == ProcessId &&
                     (HANDLE)handles->Handles[i].HandleValue == ObjectHandle)
                 {
-                    *ObjectAddres = handles->Handles[i].Object;
-                    *TypeIndex = handles->Handles[i].ObjectTypeIndex;
+                    HandleItem->Object = handles->Handles[i].Object;
+                    HandleItem->TypeIndex = handles->Handles[i].ObjectTypeIndex;
+                    HandleItem->Attributes = handles->Handles[i].HandleAttributes;
                     status = STATUS_SUCCESS;
                     break;
                 }
@@ -1920,6 +1978,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     NTSTATUS subStatus = STATUS_UNSUCCESSFUL;
     HANDLE objectHandle = NULL;
     HANDLE_OPEN_CONTEXT objectContext;
+    PPH_HANDLE_ITEM handleItem;
     HANDLE processId = NtCurrentProcessId();
     HANDLE processHandle = NtCurrentProcess();
 
@@ -1934,18 +1993,15 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Try to open with WRITE_DAC to allow change security from "Security" page
     if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, OBJECT_OPENSOURCE_ALL)))
     {
-        if (!NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL)))
+        if (status == STATUS_NOT_SUPPORTED ||
+            !NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MAXIMUM_ALLOWED, OBJECT_OPENSOURCE_ALL)))
         {
             // Can open KernelOnlyAccess object if any opened handles for this object exists (ex. \PowerPort, \Win32kCrossSessionGlobals)
             status = EtObjectManagerOpenRealObject(&objectHandle, &objectContext, READ_CONTROL | WRITE_DAC, &processId);
         }
     }
 
-    PPH_HANDLE_ITEM handleItem;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo = { 0 };
-    OBJECT_BASIC_INFORMATION objectInfo;
-
-    handleItem = PhCreateHandleItem(&HandleInfo);
+    handleItem = PhCreateHandleItem(NULL);
     handleItem->Handle = objectHandle;
     EtObjectManagerTimeCached.QuadPart = 0;
 
@@ -1972,64 +2028,46 @@ VOID NTAPI EtpObjectManagerObjectProperties(
         {
             status = PhOpenProcess(
                 &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
+                (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
                 processId
                 );
         }
 
         if (NT_SUCCESS(status))
         {
-            // Get object address and type index
-            if (!NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &handleItem->Object, &handleItem->TypeIndex)))
+            OBJECT_BASIC_INFORMATION basicInfo;
+
+            // Get object address, type index and attributes
+            if (!NT_SUCCESS(subStatus = EtObjectManagerGetHandleInfoEx(
+                processId,
+                processHandle,
+                objectHandle,
+                handleItem
+                )))
+            {
                 handleItem->TypeIndex = PhGetObjectTypeNumber(&Entry->TypeName->sr);
+            }
 
             // Show only real source object address
             if (status == STATUS_NOT_ALL_ASSIGNED)
             {
                 handleItem->Object = 0;
-                if (Entry->EtObjectType == EtObjectDevice)
-                    handleItem->TypeIndex = PhGetObjectTypeNumber(&Entry->TypeName->sr);
-            }
-
-            if (KsiLevel() >= KphLevelMed)
-            {
-                KPH_OBJECT_ATTRIBUTES_INFORMATION attribInformation;
-
-                if (NT_SUCCESS(subStatus = KphQueryInformationObject(
-                    processHandle,
-                    objectHandle,
-                    KphObjectAttributesInformation,
-                    &attribInformation,
-                    sizeof(attribInformation),
-                    NULL
-                    )))
-                {
-                    if (attribInformation.ExclusiveObject)
-                        handleItem->Attributes |= OBJ_EXCLUSIVE;
-                    if (attribInformation.PermanentObject)
-                        handleItem->Attributes |= OBJ_PERMANENT;
-                    if (attribInformation.KernelObject)
-                        handleItem->Attributes |= OBJ_KERNEL_HANDLE;
-                    if (attribInformation.KernelOnlyAccess)
-                        handleItem->Attributes |= PH_OBJ_KERNEL_ACCESS_ONLY;
-                }
             }
 
             if (NT_SUCCESS(status = PhGetHandleInformation(
                 processHandle,
                 objectHandle,
-                ULONG_MAX,
-                &objectInfo,
+                handleItem->TypeIndex,
+                &basicInfo,
                 NULL,
                 NULL,
                 NULL
                 )))
             {
                 // We will remove access row in EtHandlePropertiesWindowInitialized callback
-                //handleItem->GrantedAccess = objectInfo.GrantedAccess;
-                if (!NT_SUCCESS(subStatus))
-                    handleItem->Attributes = objectInfo.Attributes;
-                EtObjectManagerTimeCached = objectInfo.CreationTime;
+                if (!NT_SUCCESS(subStatus) || KsiLevel() < KphLevelMed)
+                    handleItem->Attributes = basicInfo.Attributes;
+                EtObjectManagerTimeCached = basicInfo.CreationTime;
             }
 
             if (processHandle != NtCurrentProcess())
@@ -2736,7 +2774,7 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     menu = PhCreateEMenu();
 
-                    BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target) && !entry->PdoDevice;
+                    BOOLEAN hasTarget = !PhIsNullOrEmptyString(entry->Target) && !entry->TargetIsInfoOnly;
                     BOOLEAN isSymlink = entry->EtObjectType == EtObjectSymLink;
                     PPH_EMENU_ITEM propMenuItem;
                     PPH_EMENU_ITEM secMenuItem;
@@ -2769,11 +2807,10 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOTHREAD, L"&Go to thread...", NULL, NULL), ULONG_MAX);
                     }
-                    else if (entry->EtObjectType == EtObjectDriver)
-                    {
-                        PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
-                    }
-                    else if (entry->EtObjectType == EtObjectSection)
+                    else if (
+                        entry->EtObjectType == EtObjectDriver ||
+                        entry->EtObjectType == EtObjectSection
+                        )
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
                     }
@@ -3161,6 +3198,20 @@ VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        EtAlpcPortTypeIndex = PhGetObjectTypeNumberZ(L"ALPC Port");
+        EtDeviceTypeIndex = PhGetObjectTypeNumberZ(L"Device");
+        EtFilterPortTypeIndex = PhGetObjectTypeNumberZ(L"FilterConnectionPort");
+        EtFileTypeIndex = PhGetObjectTypeNumberZ(L"File");
+        EtKeyTypeIndex = PhGetObjectTypeNumberZ(L"Key");
+        EtSectionTypeIndex = PhGetObjectTypeNumberZ(L"Section");
+        EtWinStaTypeIndex = PhGetObjectTypeNumberZ(L"WindowStation");
+        PhEndInitOnce(&initOnce);
+    }
+
     if (!EtObjectManagerDialogThreadHandle)
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&EtObjectManagerDialogThreadHandle, EtShowObjectManagerDialogThread, ParentWindowHandle)))
