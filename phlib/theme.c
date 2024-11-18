@@ -443,7 +443,7 @@ HBRUSH PhWindowThemeControlColor(
             if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
-                SetDCBrushColor(Hdc, RGB(60, 60, 60));
+                SetDCBrushColor(Hdc, PhMakeColorBrighter(PhThemeWindowBackgroundColor, 17));   // RGB(60, 60, 60)
                 return PhGetStockBrush(DC_BRUSH);
             }
             else
@@ -749,7 +749,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         //    SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, RGB(0xff, 0xff, 0xff));
         //    break;
         //case 1: // Old colors
-        SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, RGB(30, 30, 30));
+        SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, PhMakeColorBrighter(PhThemeWindowForegroundColor, 2));   // RGB(30, 30, 30)
         PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         //InvalidateRect(WindowHandle, NULL, FALSE);
     }
@@ -1229,7 +1229,7 @@ BOOLEAN PhThemeWindowDrawItem(
     case ODT_COMBOBOX:
         {
             SetTextColor(DrawInfo->hDC, PhThemeWindowTextColor);
-            SetDCBrushColor(DrawInfo->hDC, isSelected ? RGB(0x50, 0x50, 0x50) : PhThemeWindowForegroundColor);
+            SetDCBrushColor(DrawInfo->hDC, isSelected ? PhMakeColorBrighter(PhThemeWindowBackground2Color, 15) : PhThemeWindowForegroundColor); // RGB(80, 80, 80)
             FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhGetStockBrush(DC_BRUSH));
 
             INT length = ComboBox_GetLBTextLen(DrawInfo->hwndItem, DrawInfo->itemID);
@@ -1616,7 +1616,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                         //    break;
                         //case 1: // Old colors
                         SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                        SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
+                        SetDCBrushColor(DrawInfo->hdc, PhMakeColorBrighter(PhThemeWindowBackground2Color, 13)); // RGB(78, 78, 78)
                         FillRect(DrawInfo->hdc, &DrawInfo->rc, PhGetStockBrush(DC_BRUSH));
                     }
                     else if (isHighlighted)
@@ -1804,7 +1804,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                     //    break;
                     //case 1: // Old colors
                     SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
+                    SetDCBrushColor(DrawInfo->hdc, PhMakeColorBrighter(PhThemeWindowBackground2Color, 13)); // RGB(78, 78, 78)
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, PhGetStockBrush(DC_BRUSH));
                 }
                 else if (isHighlighted)
@@ -2013,8 +2013,9 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 //SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackgroundColor); // GetSysColor(COLOR_3DFACE));// RGB(0xff, 0xff, 0xff));
                 if (!isPressed)
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
-                else {
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0x60, 0x60, 0x60));
+                else
+                {
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, PhMakeColorBrighter(PhThemeWindowBackground2Color, 31)); // RGB(96, 96, 96)
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
                 }
             }
@@ -2582,7 +2583,8 @@ VOID ThemeWindowRenderTabControl(
         itemRect.right += itemRect.right + 1 < clientRect->right;
         PhInflateRect(&itemRect, 1, 1);     // draw selected tab slightly bigger
         itemRect.bottom -= 1;
-        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
+        SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, Context->CursorPos) ? PhThemeWindowHighlightColor :
+            PhMakeColorBrighter(PhThemeWindowBackground2Color, 15)); // RGB(80, 80, 80)
         FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
 
         if (TabCtrl_GetItem(WindowHandle, currentSelection, &tabItem))
