@@ -38,6 +38,10 @@ typedef struct _COMMON_PAGE_CONTEXT
     HANDLE ProcessId;
     HWND WindowHandle;
     HWND ListViewHandle;
+
+    // Handles tab
+    ULONG TotalHandlesCount;
+    ULONG OwnHandlesCount;
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 typedef struct _ET_HANDLE_ENTRY
@@ -252,6 +256,22 @@ typedef enum _ET_OBJECT_POOLTYPE {
 } ET_OBJECT_POOLTYPE;
 
 #define OBJECT_CHILD_HANDLEPROP_WINDOW 1
+#define OBJECT_CORRECT_HANDLES_COUNT(real_count, name) ((ULONG)(real_count) - EtpObjectManagerGetOwnHandlesCount(name))
+
+ULONG EtpObjectManagerGetOwnHandlesCount(
+    _In_ PPH_STRING ObjectName
+    )
+{
+    ULONG own_count = 0;
+    PPH_KEY_VALUE_PAIR entry;
+    ULONG i = 0;
+
+    while (PhEnumHashtable(EtObjectManagerPropWindows, &entry, &i))
+        if (PhEqualString(ObjectName, ((PPH_HANDLE_ITEM)entry->Value)->ObjectName, TRUE))
+            own_count++;
+
+    return own_count;
+}
 
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
@@ -283,15 +303,7 @@ VOID EtHandlePropertiesWindowInitialized(
         PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
 
         if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count) && real_count > 0) {
-            ULONG own_count = 0;
-            PPH_KEY_VALUE_PAIR entry;
-            ULONG i = 0;
-
-            while (PhEnumHashtable(EtObjectManagerPropWindows, &entry, &i))
-                if (PhEqualString(context->HandleItem->ObjectName, ((PPH_HANDLE_ITEM)entry->Value)->ObjectName, TRUE))
-                    own_count++;
-
-            PhPrintUInt32(string, (ULONG)real_count - own_count);
+            PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(real_count, context->HandleItem->ObjectName));
             PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
         }
 
@@ -1066,7 +1078,7 @@ static NTSTATUS NTAPI EtpSearchHandleFunction(
     return STATUS_SUCCESS;
 }
 
-INT EtpEnumObjectHandles(
+VOID EtpEnumObjectHandles(
     _In_ PCOMMON_PAGE_CONTEXT Context
     )
 {
@@ -1076,7 +1088,6 @@ INT EtpEnumObjectHandles(
     COLORREF colorProtected = PhGetIntegerSetting(L"ColorProtectedHandles");
     COLORREF colorProtectedInherit = PhGetIntegerSetting(L"ColorPartiallySuspended");
 
-    INT ownHandlesIndex = 0;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     ULONG_PTR i;
     ULONG searchTypeIndex;
@@ -1215,9 +1226,9 @@ INT EtpEnumObjectHandles(
 
                 if (handleInfo->Object == Context->HandleItem->Object || objectNameMatched)
                 {
-                    PhAcquireQueuedLockExclusive(&searchResultsLock);
+                    if (useWorkQueue) PhAcquireQueuedLockExclusive(&searchResultsLock);
                     PhAddItemList(searchResults, handleInfo);
-                    PhReleaseQueuedLockExclusive(&searchResultsLock);
+                    if (useWorkQueue) PhReleaseQueuedLockExclusive(&searchResultsLock);
                 }
             }
         }
@@ -1233,6 +1244,7 @@ INT EtpEnumObjectHandles(
 
         PhDereferenceObject(processHandleHashtable);
 
+        ULONG ownHandlesIndex = 0;
         INT lvItemIndex;
         WCHAR value[PH_INT64_STR_LEN_1];
         PHANDLE_ENTRY entry;
@@ -1316,9 +1328,10 @@ INT EtpEnumObjectHandles(
 
         PhDereferenceObject(searchResults);
         PhFree(handles);
-    }
 
-    return ownHandlesIndex;
+        Context->TotalHandlesCount = ListView_GetItemCount(Context->ListViewHandle);
+        Context->OwnHandlesCount = ownHandlesIndex;
+    }
 }
 
 VOID EtUpdateHandleItem(
@@ -1367,40 +1380,60 @@ VOID EtpCloseObjectHandles(
     _In_ ULONG NumberOfItems
     )
 {
-    HANDLE oldHandle;
-    NTSTATUS status;
-    ULONG64 count;
     WCHAR string[PH_INT64_STR_LEN_1];
+    HWND generalPageList;
+    HANDLE processHandle = NtCurrentProcess();
+    BOOLEAN ownHandle;
 
     for (ULONG i = 0; i < NumberOfItems; i++)
     {
         if (PhUiCloseHandles(Context->WindowHandle, ListviewItems[i]->ProcessId, &ListviewItems[i]->HandleItem, 1, TRUE))
         {
-            if ((status = EtDuplicateHandleFromProcessEx(
-                &oldHandle,
-                0,
-                ListviewItems[i]->ProcessId,
-                ListviewItems[i]->HandleItem->Handle)) == STATUS_INVALID_HANDLE)
-            {
-                PhStringToUInt64(&PhaGetDlgItemText(Context->WindowHandle, IDC_OBJ_HANDLESTOTAL)->sr, 0, &count);
-                PhPrintUInt32(string, (ULONG)count - 1);
-                PhSetDialogItemText(Context->WindowHandle, IDC_OBJ_HANDLESTOTAL, string);
-                PhStringToUInt64(&PhaGetDlgItemText(Context->WindowHandle, ListviewItems[i]->OwnHandle ? IDC_OBJ_HANDLESBYOBJECT : IDC_OBJ_HANDLESBYNAME)->sr, 0, &count);
-                PhPrintUInt32(string, (ULONG)count - 1);
-                PhSetDialogItemText(Context->WindowHandle, ListviewItems[i]->OwnHandle ? IDC_OBJ_HANDLESBYOBJECT : IDC_OBJ_HANDLESBYNAME, string);
+            ownHandle = !!ListviewItems[i]->OwnHandle;
+            PhRemoveListViewItem(Context->ListViewHandle, PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, ListviewItems[i]));
+            PhClearReference(&ListviewItems[i]->HandleItem);
+            PhFree(ListviewItems[i]);
 
-                PhRemoveListViewItem(Context->ListViewHandle, PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, ListviewItems[i]));
-                PhClearReference(&ListviewItems[i]->HandleItem);
-                PhFree(ListviewItems[i]);
-            }
-            else if (NT_SUCCESS(status))
-            {
-                NtClose(oldHandle);
-            }
+            PhPrintUInt32(string, --Context->TotalHandlesCount);
+            PhSetDialogItemText(Context->WindowHandle, IDC_OBJ_HANDLESTOTAL, string);
+
+            Context->OwnHandlesCount -= ownHandle;
+            PhPrintUInt32(string, ownHandle ? Context->OwnHandlesCount : Context->TotalHandlesCount - Context->OwnHandlesCount);
+            PhSetDialogItemText(Context->WindowHandle, ownHandle ? IDC_OBJ_HANDLESBYOBJECT : IDC_OBJ_HANDLESBYNAME, string);
         }
-        else
+    }
+
+    // Update General page references and handles count
+    if (generalPageList = FindWindowEx(PropSheet_IndexToHwnd(GetParent(Context->WindowHandle), 0), NULL, WC_LISTVIEW, NULL))  // HACK
+    {
+        if (Context->ProcessId == NtCurrentProcessId() ||
+            NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+            Context->ProcessId
+            )))
         {
-            break;
+            OBJECT_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhGetHandleInformation(
+                processHandle,
+                Context->HandleItem->Handle,
+                Context->HandleItem->TypeIndex,
+                &basicInfo,
+                NULL,
+                NULL,
+                NULL
+                )))
+            {
+                PhPrintUInt32(string, basicInfo.PointerCount);
+                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+
+                PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount, Context->HandleItem->ObjectName));
+                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
+            }
+
+            if (processHandle != NtCurrentProcess())
+                NtClose(processHandle);
         }
     }
 }
@@ -1476,8 +1509,6 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            INT ownHandlesCount;
-            INT totalHandlesCount;
             WCHAR string[PH_INT64_STR_LEN_1];
 
             context->WindowHandle = hwndDlg;
@@ -1500,8 +1531,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
-            ownHandlesCount = EtpEnumObjectHandles(context);
-            totalHandlesCount = ListView_GetItemCount(context->ListViewHandle);
+            EtpEnumObjectHandles(context);
 
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
@@ -1509,15 +1539,15 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-            PhPrintUInt32(string, totalHandlesCount);
+            PhPrintUInt32(string, context->TotalHandlesCount);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESTOTAL), string);
-            PhPrintUInt32(string, ownHandlesCount);
+            PhPrintUInt32(string, context->OwnHandlesCount);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYOBJECT), string);
-            PhPrintUInt32(string, totalHandlesCount - ownHandlesCount);
+            PhPrintUInt32(string, context->TotalHandlesCount - context->OwnHandlesCount);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYNAME), string);
 
             if (PhEqualString2(context->HandleItem->TypeName, L"Type", TRUE))
-                PhSetWindowText(GetDlgItem(hwndDlg, IDC_OBJ_HANDLESBYNAME_L), L"By type:");
+                PhSetDialogItemText(hwndDlg, IDC_OBJ_HANDLESBYNAME_L, L"By type:");
         }
         break;
     case WM_SIZE:
