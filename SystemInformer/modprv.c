@@ -1199,7 +1199,7 @@ NTSTATUS PhModuleEnclaveListInitialize(
     ULONG sizeOfImage;
     PPH_STRING fileName;
 
-    symbolProvider = PhCreateSymbolProvider(NULL);
+    symbolProvider = PhCreateSymbolProvider(NtCurrentProcessId()); // HACK
     PhLoadSymbolProviderOptions(symbolProvider);
 
     if (PhGetLoaderEntryDataZ(L"ntdll.dll", &baseAddress, &sizeOfImage, &fileName))
