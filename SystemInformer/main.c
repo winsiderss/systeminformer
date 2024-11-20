@@ -40,10 +40,6 @@ VOID PhInitializeCommonControls(
     VOID
     );
 
-VOID PhInitializeSuperclassControls( // delayhook.c
-    VOID
-    );
-
 BOOLEAN PhInitializeAppSystem(
     VOID
     );

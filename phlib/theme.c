@@ -160,21 +160,6 @@ VOID PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     )
 {
-    if (EnableThemeSupport && WindowsVersion >= WINDOWS_10_RS5)
-    {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            PhSetPreferredAppMode(PreferredAppModeDarkAlways);
-
-            //if (FlushMenuThemes_I)
-            //    FlushMenuThemes_I();
-
-            PhEndInitOnce(&initOnce);
-        }
-    }
-
     PhInitializeThemeWindowFrame(WindowHandle);
 
     if (!PhThemeWindowBackgroundBrush)

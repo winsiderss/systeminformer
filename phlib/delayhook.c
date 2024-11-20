@@ -2158,6 +2158,16 @@ VOID PhInitializeSuperclassControls(
     if (PhEnableThemeAcrylicSupport)
         PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
 
+    // If PreferredAppMode is not set, PhShouldAppsUseDarkMode returns current Windows app color mode.
+    // When app mode set to always dark/light all subsequent calls to PhShouldAppsUseDarkMode always ignore
+    // the current Windows app color mode and return:
+    // AppMode = PreferredAppModeDarkAlways         always return TRUE
+    // AppMode = PreferredAppModeLightAlways        always return FALSE
+    //
+    // It's very convenient because all new opened windows (especially plugin windows) will always have same theme
+    // even if the system theme was changed while SI is running. To update theme in this case SI restart is required.
+    PhSetPreferredAppMode(PhEnableThemeSupport ? PreferredAppModeDarkAlways : PreferredAppModeLightAlways);
+
     if (PhEnableThemeSupport || PhEnableStreamerMode)
     {
         if (WindowsVersion >= WINDOWS_11)

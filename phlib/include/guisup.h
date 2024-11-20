@@ -241,7 +241,8 @@ typedef enum _PreferredAppMode
 {
     PreferredAppModeDisabled,
     PreferredAppModeDarkOnDark,
-    PreferredAppModeDarkAlways
+    PreferredAppModeDarkAlways,
+    PreferredAppModeLightAlways
 } PreferredAppMode;
 
 PHLIBAPI

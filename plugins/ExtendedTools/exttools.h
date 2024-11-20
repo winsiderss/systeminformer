@@ -1662,7 +1662,8 @@ VOID EtShowObjectManagerDialog(
 NTSTATUS EtDuplicateHandleFromProcessEx(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE SourceHandle
     );
 
