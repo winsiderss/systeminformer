@@ -249,7 +249,7 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 
 #define ProbeOutputType(pointer, type)                                        \
 _Pragma("warning(suppress : 6001)")                                           \
-ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
+ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
 #define ProbeInputType(pointer, type)                                         \
 _Pragma("warning(suppress : 6001)")                                           \
@@ -257,7 +257,7 @@ ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
 #define ProbeOutputBytes(pointer, size)                                       \
 _Pragma("warning(suppress : 6001)")                                           \
-ProbeForWrite(pointer, size, TYPE_ALIGNMENT(BYTE))
+ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
 #define ProbeInputBytes(pointer, size)                                        \
 _Pragma("warning(suppress : 6001)")                                           \
