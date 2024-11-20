@@ -768,6 +768,7 @@ typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
     HTHEME ThemeHandle;
     BOOLEAN MouseActive;
     POINT CursorPos;
+    HWND ParentWindow;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
 VOID ThemeWindowRenderHeaderControl(
@@ -955,7 +956,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             if (!GetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName)))
                 windowClassName[0] = UNICODE_NULL;
 
-            if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+            if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE))
             {
                 LONG_PTR windowStyle = PhGetWindowStyle(createStruct->hwndParent);
 
@@ -972,6 +973,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 		context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
 		context->CursorPos.x = LONG_MIN;
 		context->CursorPos.y = LONG_MIN;
+		context->ParentWindow = createStruct->hwndParent;
 		PhSetWindowContext(WindowHandle, LONG_MAX, context);
 
 		PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
@@ -1062,7 +1064,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         case WM_PAINT:
             {
                 // Don't apply header theme for unsupported dialogs: Advanced Security, Digital Signature Details, etc. (Dart Vanya)
-                if (!PhIsDarkModeAllowedForWindow(GetParent(WindowHandle)))
+                if (!PhIsDarkModeAllowedForWindow(context->ParentWindow))
                 {
                     PhRemoveWindowContext(WindowHandle, LONG_MAX);
                     if (context->ThemeHandle)
@@ -2055,12 +2057,6 @@ VOID PhRegisterDetoursHooks(
     NTSTATUS status;
     PVOID baseAddress;
 
-    // For early TaskDialog with PhStartupParameters.ShowOptions
-    if (!PhThemeWindowBackgroundBrush)
-    {
-        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
-    }
-
     if (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll"))
     {
         DefaultCreateWindowEx = PhGetDllBaseProcedureAddress(baseAddress, "CreateWindowExW", 0);
@@ -2140,7 +2136,8 @@ BOOLEAN PhIsThemeTransparencyEnabled(
         0
         )))
     {
-        themesEnableTransparency = !!PhQueryRegistryUlongZ(keyHandle, L"EnableTransparency");
+        ULONG enableTransparency = PhQueryRegistryUlongZ(keyHandle, L"EnableTransparency");
+        themesEnableTransparency = enableTransparency != ULONG_MAX ? !!enableTransparency : FALSE;
         NtClose(keyHandle);
     }
 
@@ -2157,6 +2154,10 @@ VOID PhInitializeSuperclassControls(
         PhEnableThemeAcrylicSupport = FALSE;
     if (PhEnableThemeAcrylicSupport)
         PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
+
+    // For early TaskDialog with PhStartupParameters.ShowOptions
+    if (!PhThemeWindowBackgroundBrush)
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
 
     // If PreferredAppMode is not set, PhShouldAppsUseDarkMode returns current Windows app color mode.
     // When app mode set to always dark/light all subsequent calls to PhShouldAppsUseDarkMode always ignore

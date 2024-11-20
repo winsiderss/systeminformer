@@ -185,7 +185,7 @@ VOID PhInitializeWindowTheme(
                 WCHAR windowClassName[MAX_PATH];
                 if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
                     windowClassName[0] = UNICODE_NULL;
-                if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
+                if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
                     PhAllowDarkModeForWindow(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
             }
         }
@@ -384,7 +384,7 @@ VOID PhWindowThemeSetDarkMode(
     _In_ BOOLEAN EnableDarkMode
     )
 {
-    if (EnableDarkMode && PhEnableThemeSupport) // ShouldAppsUseDarkMode_I()
+    if (EnableDarkMode && PhEnableThemeSupport) // PhShouldAppsUseDarkMode()
     {
         PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
         //PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
@@ -738,7 +738,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         //InvalidateRect(WindowHandle, NULL, FALSE);
     }
-    else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+    else if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE))
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
@@ -900,7 +900,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
-    else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
+    else if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE))
     {
         //switch (PhpThemeColorMode)
         //{
