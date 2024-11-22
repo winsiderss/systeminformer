@@ -696,7 +696,6 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
     if (NT_SUCCESS(status))
     {
         DIRECTORY_ENUM_CONTEXT enumContext;
-
         enumContext.TreeViewHandle = TreeViewHandle;
         enumContext.RootTreeItem = RootTreeItem;
         enumContext.DirectoryPath = DirectoryPath;
@@ -708,9 +707,21 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
             );
 
         NtClose(directoryHandle);
-    }
 
-    TreeView_SortChildren(TreeViewHandle, RootTreeItem, TRUE);
+        TreeView_SortChildren(TreeViewHandle, RootTreeItem, TRUE); // add ?? item last
+
+        if (PhEqualStringRef(&DirectoryPath, &EtObjectManagerRootDirectoryObject, FALSE))
+        {
+            enumContext.DirectoryPath = EtObjectManagerRootDirectoryObject;
+
+            // enumerate \??
+            EtEnumDirectoryObjectsCallback(    
+                &EtObjectManagerUserDirectoryObject,
+                &DirectoryObjectType,
+                &enumContext
+                );
+        }
+    }
 
     return status;
 }

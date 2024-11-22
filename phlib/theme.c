@@ -927,6 +927,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0); // searchbox.c
         }
+
+        PhAllowDarkModeForWindow(WindowHandle, enableThemeSupport); // fix for unsupported system dialogs (ex. Advanced Security)
     }
     else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
     {
@@ -3182,6 +3184,7 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
         goto DefaultWndProc;
     }
 
+    // BUG BUG BUG fix 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
 DefaultWndProc:

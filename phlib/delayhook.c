@@ -714,8 +714,9 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
             RECT windowRect;
             HRGN updateRegion;
 
-            // The searchbox control does its own theme drawing.
-            if (!PhEnableThemeSupport || PhGetWindowContext(WindowHandle, SHRT_MAX))
+            if (!PhEnableThemeSupport ||
+                PhGetWindowContext(WindowHandle, SHRT_MAX) ||   // The searchbox control does its own theme drawing.
+                !PhIsDarkModeAllowedForWindow(WindowHandle))    // Unsupported system dialogs does its own drawing
                 break;
 
             updateRegion = (HRGN)wParam;
@@ -969,7 +970,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
         PhSetControlTheme(WindowHandle, PhEnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
     }
-    else if (PhEnableThemeSupport)
+    else if (PhEnableThemeSupport || WindowMessage == WM_NCDESTROY)
     {
         context = PhGetWindowContext(WindowHandle, LONG_MAX);
     }
@@ -1058,6 +1059,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     PhRemoveWindowContext(WindowHandle, LONG_MAX);
                     if (context->ThemeHandle)
                         PhCloseThemeData(context->ThemeHandle);
+                    PhSetControlTheme(WindowHandle, L"Explorer");
                     PhFree(context);
                     break;
                 }
