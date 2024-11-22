@@ -83,15 +83,11 @@ BOOLEAN FwTabPageCallback(
 
             FwTreeNewCreated = TRUE;
 
-            if (PhIsThemeSupportEnabled())
-            {
-                PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
-                TreeNew_ThemeSupport(hwnd, TRUE);
-            }
-
             PhInitializeProviderEventQueue(&FwNetworkEventQueue, 100);
 
             InitializeFwTreeList(hwnd);
+
+            PhInitializeWindowTheme(hwnd, PhIsThemeSupportEnabled());
 
             if (PhGetOwnTokenAttributes().Elevated)
             {
@@ -253,7 +249,7 @@ VOID InitializeFwTreeList(
 
     InitializeFwTreeListDpi(FwTreeNewHandle);
 
-    PhSetControlTheme(FwTreeNewHandle, !PhIsThemeSupportEnabled() ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(FwTreeNewHandle, L"explorer");
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
 

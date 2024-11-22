@@ -1351,12 +1351,7 @@ VOID DevicesTreeInitialize(
         TreeNew_SetRowHeight(DeviceTreeHandle, treelistCustomRowSize);
     }
 
-    if (PhIsThemeSupportEnabled())
-    {
-        PhInitializeWindowTheme(DeviceTreeHandle, TRUE);
-        PhSetControlTheme(DeviceTreeHandle, L"DarkMode_Explorer");
-        TreeNew_ThemeSupport(DeviceTreeHandle, TRUE);
-    }
+    PhInitializeWindowTheme(DeviceTreeHandle, PhIsThemeSupportEnabled());
 
     TreeNew_SetTriState(DeviceTreeHandle, TRUE);
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);

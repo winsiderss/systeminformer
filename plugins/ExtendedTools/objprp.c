@@ -2139,6 +2139,8 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             PhAddListViewColumn(context->ListViewHandle, ETDTLVC_IO, ETDTLVC_IO, ETDTLVC_IO, LVCFMT_LEFT, 45, L"Input");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
@@ -2165,6 +2167,12 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
         }
         break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
     case WM_DESTROY:
         {
             INT index = INT_ERROR;
@@ -2185,6 +2193,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
         break;
     case WM_NCDESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }

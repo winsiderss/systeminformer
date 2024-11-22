@@ -120,7 +120,7 @@ INT WINAPI wWinMain(
         PhGuiSupportInitialization();
         PhSettingsInitialization();
         PvInitializeSettings();
-        PvInitializeSuperclassControls();
+        PhInitializeSuperclassControls();
         PhShowWarning2(
             NULL,
             L"Warning.",

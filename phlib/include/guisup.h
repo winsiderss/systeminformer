@@ -255,6 +255,27 @@ PhSetPreferredAppMode(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhFlushMenuThemes(
+    VOID
+    );
+
+#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!GetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName))) ClassName[0] = UNICODE_NULL
+
+#define PH_THEME_SET_PREFFEREDAPPMODE(GeneralThemeSetting, UseWindowsThemeSetting)     PhSetPreferredAppMode( \
+    PhGetIntegerSetting(GeneralThemeSetting) ? \
+    PhGetIntegerSetting(UseWindowsThemeSetting) ? PreferredAppModeDarkOnDark : PreferredAppModeDarkAlways : \
+    PreferredAppModeLightAlways)
+
+#define PH_THEME_GET_GENERAL_SWITCH(GeneralThemeSetting) PhGetIntegerSetting(GeneralThemeSetting) && PhShouldAppsUseDarkMode()
+
+#define HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, GeneralThemeSetting, UseWindowsThemeSetting) \
+    ((ULONG)wParam == 0 && PhEqualStringZ((PWSTR)lParam, L"ImmersiveColorSet", TRUE) && \
+    PhGetIntegerSetting(GeneralThemeSetting) && \
+    PhGetIntegerSetting(UseWindowsThemeSetting))
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );
@@ -2024,7 +2045,8 @@ BOOLEAN
 NTAPI
 PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
-    _In_ ULONG GradientColor
+    _In_ ULONG GradientColor,
+    _In_ BOOLEAN Enable
     );
 
 PHLIBAPI
@@ -2144,14 +2166,22 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeWindowThemeEx(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
     );
 
 PHLIBAPI
 VOID
 NTAPI
-PhReInitializeWindowTheme(
-    _In_ HWND WindowHandle
+PhReInitializeTheme(
+    BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhReInitializeStreamerMode(
+    BOOLEAN Enable
     );
 
 PHLIBAPI
@@ -2159,6 +2189,37 @@ VOID
 NTAPI
 PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowFrameEx(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWindowThemeSetDarkMode(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableDarkMode
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeMenu(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetAppsUseLightTheme(
+    VOID
     );
 
 PHLIBAPI
@@ -2192,13 +2253,6 @@ NTAPI
 PhThemeWindowMeasureItem(
     _In_ HWND WindowHandle,
     _In_ PMEASUREITEMSTRUCT DrawInfo
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeWindowThemeMainMenu(
-    _In_ HMENU MenuHandle
     );
 
 PHLIBAPI

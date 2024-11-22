@@ -118,20 +118,38 @@ VOID PvAddDefaultSettings(
 }
 
 VOID PvUpdateCachedSettings(
-    _In_ BOOLEAN ApplyTheme
+    VOID
     )
 {
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
-    if (ApplyTheme)
-        PhEnableThemeSupport = PhIsThemeSupportEnabled();
+    PhEnableThemeSupport = PhIsThemeSupportEnabled();
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
+    COLORREF oldPhThemeWindowBackgroundColor = PhThemeWindowBackgroundColor;
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
     PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
     PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
     PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
     PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+    PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+
+    PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
+
+    PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+
+    if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
+    {
+        DeleteBrush(PhThemeWindowBackgroundBrush);
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+    }
+
+    if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
+        PhEnableThemeAcrylicWindowSupport = FALSE;
 }
 
 VOID PvInitializeSettings(
@@ -219,7 +237,7 @@ VOID PvInitializeSettings(
         }
     }
 
-    PvUpdateCachedSettings(TRUE);
+    PvUpdateCachedSettings();
 }
 
 VOID PvSaveSettings(

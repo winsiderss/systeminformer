@@ -662,11 +662,8 @@ INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
             // Note: Load settings after querying devices. (dmex)
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
-            if (PhIsThemeSupportEnabled()) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
-
+            PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
+ 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 DiskDeviceProcessesUpdatedHandler,

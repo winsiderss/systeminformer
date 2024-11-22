@@ -983,9 +983,39 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             }
         }
         break;
+    case WM_SETTINGCHANGE:
+        if (HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, L"EnableThemeSupport", L"EnableThemeUseWindowsTheme"))
+        {
+            PhCreateThread2(PvReInitializeThemeThread, NULL);
+        }
+        break;
     }
 
     return FALSE;
+}
+
+NTSTATUS NTAPI PvReInitializeThemeThread(
+    _In_ PVOID Context
+    )
+{
+    BOOLEAN currentTheme;
+
+    //currentTheme = PhShouldAppsUseDarkMode();
+    currentTheme = PhGetAppsUseLightTheme();
+
+    dprintf("PvReInitializeThemeThread: currentTheme = %d, PhEnableThemeSupport = %d\r\n", currentTheme, PhEnableThemeSupport);
+
+    if (PhEnableThemeSupport != currentTheme)
+    {
+        PhEnableThemeSupport = currentTheme;
+
+        if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
+            PhEnableThemeAcrylicWindowSupport = FALSE;
+
+        PhReInitializeTheme(PhEnableThemeSupport);
+    };
+
+    return STATUS_SUCCESS;
 }
 
 VOID PvTabWindowOnSize(

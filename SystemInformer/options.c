@@ -1519,7 +1519,49 @@ static VOID PhpOptionsNotifyChangeCallback(
     PhReloadSettingsProcessTreeList();
     PhSiNotifyChangeSettings();
 
-    //PhReInitializeWindowTheme(PhMainWndHandle);
+    PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
+    COLORREF oldPhThemeWindowBackgroundColor = PhThemeWindowBackgroundColor;
+    PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
+    PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
+    PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
+    PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
+    PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+    PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    BOOLEAN oldAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport;
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    BOOLEAN oldStreamerMode = PhEnableStreamerMode;
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+
+    PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
+
+    BOOLEAN oldTheme = PhEnableThemeSupport;
+    PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+
+    if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
+    {
+        DeleteBrush(PhThemeWindowBackgroundBrush);
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+        if (PhEnableThemeSupport) // replace old destroyed menu brush with the new one
+        {
+            PhInitializeWindowThemeMenu(PhMainWndHandle, TRUE);
+        }
+    }
+
+    if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
+        PhEnableThemeAcrylicWindowSupport = FALSE;
+
+    if (PhEnableThemeSupport != oldTheme || PhEnableThemeAcrylicWindowSupport != oldAcrylicWindowSupport)
+    {
+        PhReInitializeTheme(PhEnableThemeSupport);
+    }
+
+    if (PhEnableStreamerMode != oldStreamerMode)
+    {
+        PhReInitializeStreamerMode(PhEnableStreamerMode);
+    }
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
 
@@ -1677,10 +1719,10 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");

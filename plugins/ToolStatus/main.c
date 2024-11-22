@@ -1741,6 +1741,10 @@ VOID UpdateCachedSettings(
     IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
     EnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
+    BOOLEAN oldTheme = EnableThemeSupport;
+    EnableThemeSupport = PhIsThemeSupportEnabled();
+    if (EnableThemeSupport != oldTheme)
+        InvalidateRect(RebarHandle, NULL, TRUE);
 
     //
 

@@ -65,6 +65,10 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PCWSTR SearchButtonActiveResource;
     PCWSTR RegexButtonResource;
     PCWSTR CaseButtonResource;
+    PCWSTR SearchButtonResourceDark;
+    PCWSTR SearchButtonActiveResourceDark;
+    PCWSTR RegexButtonResourceDark;
+    PCWSTR CaseButtonResourceDark;
 
     PH_SEARCHCONTROL_BUTTON SearchButton;
     PH_SEARCHCONTROL_BUTTON RegexButton;
@@ -225,7 +229,8 @@ VOID PhpSearchControlInitializeImages(
     Context->SearchButton.ImageIndex = ULONG_MAX;
     Context->SearchButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->SearchButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, PhEnableThemeSupport ? Context->SearchButtonResource : Context->SearchButtonResourceDark,
+        L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->SearchButton.ImageIndex = 0;
@@ -233,7 +238,8 @@ VOID PhpSearchControlInitializeImages(
         DeleteBitmap(bitmap);
     }
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->SearchButtonActiveResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, PhEnableThemeSupport ? Context->SearchButtonActiveResource : Context->SearchButtonActiveResourceDark,
+        L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->SearchButton.ActiveImageIndex = 1;
@@ -245,7 +251,8 @@ VOID PhpSearchControlInitializeImages(
     Context->RegexButton.ImageIndex = ULONG_MAX;
     Context->RegexButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->RegexButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, PhEnableThemeSupport ? Context->RegexButtonResource : Context->RegexButtonResourceDark,
+        L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->RegexButton.ImageIndex = 2;
@@ -257,7 +264,8 @@ VOID PhpSearchControlInitializeImages(
     Context->CaseButton.ImageIndex = ULONG_MAX;
     Context->CaseButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->CaseButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, PhEnableThemeSupport ? Context->CaseButtonResource : Context->CaseButtonResourceDark,
+        L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->CaseButton.ImageIndex = 3;
@@ -1204,6 +1212,10 @@ VOID PhCreateSearchControlEx(
     _In_ PCWSTR SearchButtonActiveResource,
     _In_ PCWSTR RegexButtonResource,
     _In_ PCWSTR CaseButtonResource,
+    _In_ PCWSTR SearchButtonResourceDark,
+    _In_ PCWSTR SearchButtonActiveResourceDark,
+    _In_ PCWSTR RegexButtonResourceDark,
+    _In_ PCWSTR CaseButtonResourceDark,
     _In_ PCWSTR RegexSetting,
     _In_ PCWSTR CaseSetting,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
@@ -1224,6 +1236,10 @@ VOID PhCreateSearchControlEx(
     context->SearchButtonActiveResource = SearchButtonActiveResource;
     context->RegexButtonResource = RegexButtonResource;
     context->CaseButtonResource = CaseButtonResource;
+    context->SearchButtonResourceDark = SearchButtonResourceDark;
+    context->SearchButtonActiveResourceDark = SearchButtonActiveResourceDark;
+    context->RegexButtonResourceDark = RegexButtonResourceDark;
+    context->CaseButtonResourceDark = CaseButtonResourceDark;
 
     context->Callback = Callback;
     context->CallbackContext = Context;

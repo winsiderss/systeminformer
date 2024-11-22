@@ -460,6 +460,14 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
         }
         break;
+    case WM_THEMECHANGED:
+        {
+            if (PhEnableThemeSupport)
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_HIDE);
+            else
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_SHOW);
+        }
+        break;
     case WM_DESTROY:
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);

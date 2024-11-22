@@ -245,10 +245,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
 
-            if (PhIsThemeSupportEnabled()) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
         }
         break;
     case WM_DESTROY:

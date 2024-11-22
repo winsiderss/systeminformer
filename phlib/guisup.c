@@ -81,6 +81,7 @@ static _ShouldAppsUseDarkMode ShouldAppsUseDarkMode_I = NULL; // Win10-RS5 (uxth
 // Win10 build 17763: AllowDarkModeForApp(BOOL)
 // Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
 static _SetPreferredAppMode SetPreferredAppMode_I = NULL;
+static _FlushMenuThemes FlushMenuThemes_I = NULL;
 static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
 static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
 static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
@@ -134,6 +135,7 @@ VOID PhGuiSupportInitialization(
             IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
             ShouldAppsUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 132);
             SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
+            FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
         }
     }
 
@@ -449,17 +451,7 @@ BOOLEAN PhIsThemeSupportEnabled(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
-    {
-        if (PhGetIntegerSetting(L"EnableThemeUseWindowsTheme"))
-            return PhShouldAppsUseDarkMode();
-        else
-            return TRUE;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return PhEnableThemeSupport;
 }
 
 BOOLEAN PhSetPreferredAppMode(
@@ -469,7 +461,19 @@ BOOLEAN PhSetPreferredAppMode(
     if (!SetPreferredAppMode_I)
         return FALSE;
 
-    return !!SetPreferredAppMode_I(AppMode);
+    BOOLEAN retval = !!SetPreferredAppMode_I(AppMode);
+    PhFlushMenuThemes();
+    return retval;
+}
+
+BOOLEAN PhFlushMenuThemes(
+    VOID
+    )
+{
+    if (!PhFlushMenuThemes)
+        return FALSE;
+
+    return !!FlushMenuThemes_I();
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
@@ -4553,14 +4557,15 @@ BOOLEAN PhSetWindowCompositionAttribute(
 
 BOOLEAN PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
-    _In_ ULONG GradientColor
+    _In_ ULONG GradientColor,
+    _In_ BOOLEAN Enable
     )
 {
     ACCENT_POLICY policy =
     {
-        ACCENT_ENABLE_ACRYLICBLURBEHIND,
-        ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,
-        GradientColor,
+        Enable ? ACCENT_ENABLE_ACRYLICBLURBEHIND : 0,
+        Enable ? ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL : 0,
+        Enable ? GradientColor : 0,
         0
     };
     WINDOWCOMPOSITIONATTRIBUTEDATA attribute =

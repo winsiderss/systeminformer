@@ -1194,7 +1194,7 @@ VOID PhpInitializeSettings(
     for (ULONG i = 0; i < PhMaxPrecisionUnit; i++)
         PhMaxPrecisionLimit /= 10;
     PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
-    PhEnableThemeSupport = PhIsThemeSupportEnabled();
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
     PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
@@ -1203,7 +1203,9 @@ VOID PhpInitializeSettings(
     PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
     PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    PhEnableThemeAnimation = !!PhGetIntegerSetting(L"EnableThemeAnimation");
     PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+    PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
     PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
@@ -1211,6 +1213,27 @@ VOID PhpInitializeSettings(
     PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
     PhEnableKsiSupport = !!PhGetIntegerSetting(L"KsiEnable") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
     PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
+
+    if (!PhThemeWindowBackgroundBrush)
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+    // If AppMode is set to PreferredAppModeDarkOnDark, PhShouldAppsUseDarkMode should return current Windows app color mode.
+    // It's weird that sometimes it can return incorrect inverted value (idk why).
+    // In this case use PhGetAppsUseLightTheme() to retrieve raw value from registry.
+    // 
+    // When app mode set to always dark/light all subsequent calls to PhShouldAppsUseDarkMode always ignore
+    // the current Windows app color mode. Possible return values are:
+    // 
+    // ---PreferredAppMode---         |  ---PhShouldAppsUseDarkMode()---
+    // -------------------------------|----------------------------------
+    // PreferredAppModeDisabled       |      Windows app color mode ?
+    // PreferredAppModeDarkOnDark     |      Windows app color mode
+    // PreferredAppModeDarkAlways     |       always return TRUE
+    // PreferredAppModeLightAlways    |       always return FALSE
+
+    PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
+
+    PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {

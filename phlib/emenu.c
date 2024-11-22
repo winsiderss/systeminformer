@@ -612,23 +612,24 @@ VOID PhEMenuToHMenu2(
         }
 
         // Themes
-        if (WindowsVersion < WINDOWS_10_19H2)
-        {
-            if (PhEnableThemeSupport)
-            {
-                menuItemInfo.fType |= MFT_OWNERDRAW;
-            }
-        }
-        else
-        {
-            if (item->Flags & PH_EMENU_MAINMENU)
-            {
-                if (PhEnableThemeSupport)
-                {
-                    menuItemInfo.fType |= MFT_OWNERDRAW;
-                }
-            }
-        }
+        // Moved to theme.c PhInitializeWindowThemeMenu. Supports dynamic menu theme switching w/o program restart. (Dart Vanya)
+        //if (WindowsVersion < WINDOWS_10_19H2)
+        //{
+        //    if (PhEnableThemeSupport)
+        //    {
+        //        menuItemInfo.fType |= MFT_OWNERDRAW;
+        //    }
+        //}
+        //else
+        //{
+        //    if (item->Flags & PH_EMENU_MAINMENU)
+        //    {
+        //        if (PhEnableThemeSupport)
+        //        {
+        //            menuItemInfo.fType |= MFT_OWNERDRAW;
+        //        }
+        //    }
+        //}
 
         InsertMenuItem(MenuHandle, MAXUINT, TRUE, &menuItemInfo);
     }

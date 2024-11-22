@@ -2249,6 +2249,12 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
+    case WM_SETTINGCHANGE:
+        if (HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, L"EnableThemeSupport", L"EnableThemeUseWindowsTheme"))
+        {
+            PhCreateThread2(PvReInitializeThemeThread, NULL);
+        }
+        break;
     }
 
     return FALSE;

@@ -18,6 +18,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS,
     PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER,
     PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT,
+    PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE
 } PHP_OPTIONS_GENERAL_INDEX;
 
 typedef struct _PVP_PE_OPTIONS_CONTEXT
@@ -142,6 +143,7 @@ VOID PvLoadGeneralPage(
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"Enable legacy properties window", NULL);
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"Enable view borders", NULL);
     PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
+    PhAddListViewItem(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"Enable streamer mode (disable window capture)", NULL);
 
     //SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     //SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
@@ -152,6 +154,7 @@ VOID PvLoadGeneralPage(
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"EnableLegacyPropertiesDialog");
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"EnableTreeListBorder");
     SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowPageRestoreEnabled");
+    SetLvItemCheckForSetting(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
 }
 
 VOID PvGeneralPageSave(
@@ -175,15 +178,29 @@ VOID PvGeneralPageSave(
     //SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
     //SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
     //SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
-    SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
-    SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
+    SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     //SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"MainWindowPageRestoreEnabled");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"EnableLegacyPropertiesDialog");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"EnableTreeListBorder");
+    SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
 
-    PvUpdateCachedSettings(FALSE);
+    BOOLEAN oldTheme = PhEnableThemeSupport;
+    BOOLEAN oldStreamerMode = PhEnableStreamerMode;
+
+    PvUpdateCachedSettings();
     PvSaveSettings();
+
+    if (PhEnableThemeSupport != oldTheme)
+    {
+        PhReInitializeTheme(PhEnableThemeSupport);
+    }
+
+    if (PhEnableStreamerMode != oldStreamerMode)
+    {
+        PhReInitializeStreamerMode(PhEnableStreamerMode);
+    }
 
     if (RestartRequired)
     {

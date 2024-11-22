@@ -126,6 +126,10 @@ typedef BOOL(WINAPI* _SetPreferredAppMode)(
     _In_ PreferredAppMode AppMode
     );
 
+typedef BOOL(WINAPI* _FlushMenuThemes)(
+    VOID
+    );
+
 typedef HRESULT (WINAPI* _GetDpiForMonitor)(
     _In_ HMONITOR hmonitor,
     _In_ enum MONITOR_DPI_TYPE dpiType,

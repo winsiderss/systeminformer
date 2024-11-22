@@ -888,7 +888,7 @@ EXPORTS
     PhRegisterWindowCallback                                                      @1831     NONAME
     PhUnregisterWindowCallback                                                    @1832     NONAME
     PhInitializeWindowTheme                                                       @1833     NONAME
-    PhReInitializeWindowTheme                                                     @1834     NONAME
+    PhReInitializeTheme                                                           @1834     NONAME
     PhImageListCreate                                                             @1835     NONAME
     PhImageListDestroy                                                            @1836     NONAME
     PhImageListSetIconSize                                                        @1837     NONAME
@@ -904,6 +904,7 @@ EXPORTS
     PhThemeWindowDrawRebar                                                        @1847     NONAME
     PhThemeWindowDrawToolbar                                                      @1848     NONAME
     PhWindowThemeControlColor                                                     @1849     NONAME
+    PhReInitializeStreamerMode                                                    @2062     NONAME
 
 ; hndlinfo
     PhEnumObjectTypes                                                             @1850     NONAME

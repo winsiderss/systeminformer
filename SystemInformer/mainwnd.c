@@ -130,11 +130,11 @@ BOOLEAN PhMainWndInitialization(
     // Initialize window settings.
     PhMwpLoadSettings(PhMainWndHandle);
 
-    // Initialize window theme.
-    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
-
     // Initialize window menu.
     PhMwpInitializeMainMenu(PhMainWndHandle);
+
+    // Initialize window theme.
+    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
 
     // Initialize providers.
     PhMwpInitializeProviders();
@@ -634,6 +634,32 @@ VOID PhMwpOnEndSession(
     PhExitApplication(STATUS_SUCCESS);
 }
 
+static NTSTATUS PhMwpReInitializeThemeThread(
+    _In_ PVOID Context
+    )
+{
+    BOOLEAN currentTheme;
+
+    //currentTheme = PhShouldAppsUseDarkMode();
+    currentTheme = PhGetAppsUseLightTheme();
+
+    dprintf("PhMwpPhReInitializeThemeThread: currentTheme = %d, PhEnableThemeSupport = %d\r\n", currentTheme, PhEnableThemeSupport);
+
+    if (PhEnableThemeSupport != currentTheme)
+    {
+        PhEnableThemeSupport = currentTheme;
+
+        if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
+            PhEnableThemeAcrylicWindowSupport = FALSE;
+
+        PhReInitializeTheme(PhEnableThemeSupport);
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
+    };
+
+    return STATUS_SUCCESS;
+}
+
 VOID PhMwpOnSettingChange(
     _In_ HWND WindowHandle,
     _In_opt_ ULONG Action,
@@ -661,10 +687,11 @@ VOID PhMwpOnSettingChange(
 
         // Reload dark theme metrics
 
-        //if (PhEqualStringZ(Metric, L"ImmersiveColorSet", TRUE))
-        //{
-        //    NOTHING;
-        //}
+        // Implemented (Dart Vanya)
+        if (HANDLE_COLORSCHEMECHANGE_MESSAGE(Action, Metric, L"EnableThemeSupport", L"EnableThemeUseWindowsTheme"))
+        {
+            PhCreateThread2(PhMwpReInitializeThemeThread, NULL);
+        }
     }
 
     //if (Action == SPI_SETNONCLIENTMETRICS && Metric && PhEqualStringZ(Metric, L"WindowMetrics", TRUE))
@@ -2986,7 +3013,6 @@ VOID PhMwpInitializeMainMenu(
         return;
 
     PhEMenuToHMenu2(menuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
-    PhInitializeWindowThemeMainMenu(menuHandle);
     PhSetHMenuNotify(menuHandle);
     SetMenu(WindowHandle, menuHandle);
 
