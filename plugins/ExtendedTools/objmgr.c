@@ -790,13 +790,14 @@ NTSTATUS EtpTargetResolverThreadStart(
         if (curentFilter)
             PhDereferenceObject(curentFilter);
 
-        //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
-
         context->BreakResolverThread = NULL;
         status = STATUS_SUCCESS;
     }
     else
+    {
+        if (status == STATUS_NOT_ALL_ASSIGNED)
         status = STATUS_ABANDONED;
+    }
 
     PhFree(threadContext);
     return status;
@@ -1047,7 +1048,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                     PPH_STRING newFileName;
                     SECTION_BASIC_INFORMATION basicInfo;
 
-                    if (NT_SUCCESS(PhGetSectionFileName(objectHandle, &fileName)))
+                    if (NT_SUCCESS(status = PhGetSectionFileName(objectHandle, &fileName)))
                     {
                         if (newFileName = PhResolveDevicePrefix(&fileName->sr))
                             PhMoveReference(&fileName, newFileName);
@@ -2506,7 +2507,10 @@ VOID EtpObjectManagerCopyObjectAddress(
         PPH_HANDLE_ITEM handleItem;
 
         if (status == STATUS_NOT_ALL_ASSIGNED)
+        {
+            NtClose(objectHandle);
             return;
+        }
 
         if (processId != NtCurrentProcessId())
         {

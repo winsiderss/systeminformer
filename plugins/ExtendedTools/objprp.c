@@ -416,33 +416,37 @@ VOID EtHandlePropertiesWindowInitialized(
             }
         }
     }
-    else if (((ULONG_PTR)context->OwnerPlugin == ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW)) &&
-             !PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
-             !PhEqualString(context->HandleItem->ObjectName, context->HandleItem->BestObjectName, TRUE))
+    else if (((ULONG_PTR)context->OwnerPlugin == ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW)))
     {
-        // I don't know why new row always appending in the back. This stupid full rebuild of section only one workaround
-        PPH_STRING accessString = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1));
-        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
-        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT]);
-        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE]);
-        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME]);
+        PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES);
 
-        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME] = PhAddListViewGroupItem(context->ListViewHandle,
-            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 0, L"Name", NULL);
-        INT origNameIndex = PhAddListViewGroupItem(context->ListViewHandle,
-            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 1, L"Original name", NULL);
-        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE] = PhAddListViewGroupItem(context->ListViewHandle,
-            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 2, L"Type", NULL);
-        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT] = PhAddListViewGroupItem(context->ListViewHandle,
-            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 3, L"Object address", NULL);
-        context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddListViewGroupItem(context->ListViewHandle,
-            PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 4, L"Granted access", NULL);
+        if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
+            !PhEqualString(context->HandleItem->ObjectName, context->HandleItem->BestObjectName, TRUE))
+        {
+            // I don't know why new row always appending in the back. This stupid full rebuild of section only one workaround
+            PPH_STRING accessString = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1));
+            PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
+            PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT]);
+            PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE]);
+            PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME]);
 
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
-        PhSetListViewSubItem(context->ListViewHandle, origNameIndex, 1, PhGetString(context->HandleItem->ObjectName));
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
+            context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME] = PhAddListViewGroupItem(context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 0, L"Name", NULL);
+            INT origNameIndex = PhAddListViewGroupItem(context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 1, L"Original name", NULL);
+            context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE] = PhAddListViewGroupItem(context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 2, L"Type", NULL);
+            context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT] = PhAddListViewGroupItem(context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 3, L"Object address", NULL);
+            context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddListViewGroupItem(context->ListViewHandle,
+                PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 4, L"Granted access", NULL);
+
+            PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
+            PhSetListViewSubItem(context->ListViewHandle, origNameIndex, 1, PhGetString(context->HandleItem->ObjectName));
+            PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
+            PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
+            PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
+        }
     }
 
     // General ET plugin extensions
@@ -1459,8 +1463,6 @@ VOID EtUpdateHandleItem(
 
     if (PhIsNullOrEmptyString(HandleItem->TypeName))
         HandleItem->TypeName = PhGetObjectTypeIndexName(HandleItem->TypeIndex);
-
-    HandleItem->RefCnt = ULONG_MAX;
 }
 
 VOID EtpShowHandleProperties(
@@ -1579,8 +1581,6 @@ static NTSTATUS EtpProcessHandleOpenCallback(
 )
 {
     PHANDLE_OPEN_CONTEXT context = Context;
-
-    *Handle = NULL;
 
     return EtDuplicateHandleFromProcessEx(Handle, DesiredAccess, context->ProcessId, NULL, context->HandleItem->Handle);
 }
