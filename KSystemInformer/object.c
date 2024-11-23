@@ -2086,16 +2086,13 @@ NTSTATUS KphQueryInformationObject(
 
             break;
         }
-        case KphObjectExtendedInformation:
+        case KphObjectAttributesInformation:
         {
-            POBJECT_TYPE objectType;
-            USHORT objectTypeIndex;
-
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(KPH_OBJECT_EXTENDED_INFORMATION)))
+                (ObjectInformationLength < sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(KPH_OBJECT_EXTENDED_INFORMATION);
+                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
                 goto Exit;
             }
 
@@ -2118,30 +2115,13 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            objectTypeIndex = USHORT_MAX;
-
-            objectType = ObGetObjectType(object);
-            if (objectType)
-            {
-                dyn = KphReferenceDynData();
-                if (dyn && (dyn->OtIndex != ULONG_MAX)) {
-                    UCHAR typeIndex;
-
-                    typeIndex = *(PUCHAR)Add2Ptr(objectType, dyn->OtIndex);
-
-                    objectTypeIndex = (USHORT)typeIndex;
-                }
-            }
-
             __try
             {
-                PKPH_OBJECT_EXTENDED_INFORMATION extendedInfo;
+                PKPH_OBJECT_ATTRIBUTES_INFORMATION attributesInfo;
 
-                extendedInfo = ObjectInformation;
-                extendedInfo->Object = object;
-                extendedInfo->ObjectTypeIndex = objectTypeIndex;
-                extendedInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
-                returnLength = sizeof(KPH_OBJECT_EXTENDED_INFORMATION);
+                attributesInfo = ObjectInformation;
+                attributesInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
+                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
