@@ -49,6 +49,7 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
 
     PH_HANDLE_GENERAL_INDEX_REFERENCES,
     PH_HANDLE_GENERAL_INDEX_HANDLES,
+    PH_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES,
 
     PH_HANDLE_GENERAL_INDEX_PAGED,
     PH_HANDLE_GENERAL_INDEX_NONPAGED,
@@ -99,6 +100,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
     PPH_PLUGIN OwnerPlugin;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 } HANDLE_PROPERTIES_CONTEXT, * PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
@@ -412,6 +414,13 @@ VOID PhpUpdateHandleGeneralListViewGroups(
         PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
         PH_HANDLE_GENERAL_INDEX_HANDLES,
         L"Handles",
+        NULL
+        );
+    Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES] = PhAddListViewGroupItem(
+        Context->ListViewHandle,
+        PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
+        PH_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES,
+        L"Handle pointer count",
         NULL
         );
     Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PAGED] = PhAddListViewGroupItem(
@@ -794,6 +803,12 @@ VOID PhpUpdateHandleGeneral(
         }
 
         NtClose(processHandle);
+    }
+
+    if (Context->HandleItem->RefCnt != ULONG_MAX)
+    {
+        PhPrintUInt32(string, Context->HandleItem->RefCnt);
+        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES], 1, string);
     }
 
     if (PhIsNullOrEmptyString(Context->HandleItem->TypeName))
@@ -2193,6 +2208,19 @@ VOID PhpUpdateHandleGeneral(
     }
 }
 
+VOID NTAPI PhpHandleProcessesUpdatedCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+)
+{
+    PHANDLE_PROPERTIES_CONTEXT context = Context;
+
+    if (!context->OwnerPlugin && context->HandleItem->RefCnt != ULONG_MAX)
+    {
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES], 1, context->HandleItem->PointerCountString);
+    }
+}
+
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2250,6 +2278,13 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+                PhpHandleProcessesUpdatedCallback,
+                context,
+                &context->ProcessesUpdatedCallbackRegistration
+            );
+
             if (PhPluginsEnabled)
             {
                 PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
@@ -2258,15 +2293,14 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
             }
 
-            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
             PhUnregisterWindowCallback(context->ParentWindow);
+
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
             if (!PhPluginsEnabled || !context->OwnerPlugin)
             {

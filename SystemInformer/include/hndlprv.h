@@ -32,6 +32,7 @@ typedef struct _PH_HANDLE_ITEM
     ACCESS_MASK GrantedAccess;
     ULONG TypeIndex;
     ULONG FileFlags;
+    ULONG RefCnt;
 
     PPH_STRING TypeName;
     PPH_STRING ObjectName;
@@ -40,6 +41,7 @@ typedef struct _PH_HANDLE_ITEM
     WCHAR HandleString[PH_PTR_STR_LEN_1];
     WCHAR GrantedAccessString[PH_PTR_STR_LEN_1];
     WCHAR ObjectString[PH_PTR_STR_LEN_1];
+    WCHAR PointerCountString[PH_PTR_STR_LEN_1];
 } PH_HANDLE_ITEM, *PPH_HANDLE_ITEM;
 
 typedef struct _PH_HANDLE_PROVIDER

@@ -141,12 +141,15 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         handleItem->Attributes = Handle->HandleAttributes;
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
         handleItem->TypeIndex = Handle->ObjectTypeIndex;
+        handleItem->RefCnt = Handle->Reserved;
 
         PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
         PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
 
         if (handleItem->Object)
             PhPrintPointer(handleItem->ObjectString, handleItem->Object);
+        if (handleItem->RefCnt != ULONG_MAX)
+            PhPrintUInt32(handleItem->PointerCountString, handleItem->RefCnt);
     }
 
     PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);
@@ -393,6 +396,7 @@ VOID PhHandleProviderUpdate(
                     (PVOID)handle->HandleValue,
                     handle
                     );
+                handle->Reserved = ULONG_MAX;
             }
         }
     }
@@ -592,6 +596,12 @@ VOID PhHandleProviderUpdate(
             if (handleItem->Attributes != handle->HandleAttributes)
             {
                 handleItem->Attributes = handle->HandleAttributes;
+                modified = TRUE;
+            }
+
+            if (handleItem->RefCnt != handle->Reserved && handleItem->RefCnt != ULONG_MAX) {
+                handleItem->RefCnt = handle->Reserved;
+                PhPrintUInt32(handleItem->PointerCountString, handleItem->RefCnt);
                 modified = TRUE;
             }
 

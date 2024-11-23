@@ -81,6 +81,30 @@ ULONG KphObpGetHandleAttributes(
 #endif
 }
 
+#define KPH_CHAR_BITS 8
+#define KPH_HANDLE_REFCNT_MASK(ObAttributesShift) (ULONG_PTR_MAX >> (sizeof(LONG_PTR)*KPH_CHAR_BITS - ObAttributesShift))
+#define KPH_DECODE_HANDLE_REFCNT(HandleTableEntry, ObAttributesShift) (USHORT)(((HandleTableEntry->Value) & KPH_HANDLE_REFCNT_MASK(ObAttributesShift)) >> 1)
+
+_Must_inspect_result_
+USHORT KphGetHandleRefCnt(
+    _In_ PKPH_DYN Dyn,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
+    )
+{
+#if (defined _M_X64) || (defined _M_ARM64)
+    if (Dyn->ObAttributesShift != ULONG_MAX)
+    {
+        return KPH_DECODE_HANDLE_REFCNT(HandleTableEntry, Dyn->ObAttributesShift);
+    }
+    else
+    {
+        return USHORT_MAX;
+    }
+#else
+    return USHORT_MAX;
+#endif
+}
+
 KPH_PAGED_FILE();
 
 /**
@@ -345,7 +369,7 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     handleInfo.Object = objectHeader ? &objectHeader->Body : NULL;
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);
     handleInfo.ObjectTypeIndex = USHORT_MAX;
-    handleInfo.Reserved1 = 0;
+    handleInfo.HandleRefCnt = KphGetHandleRefCnt(context->Dyn, HandleTableEntry);
     handleInfo.HandleAttributes = KphObpGetHandleAttributes(context->Dyn,
                                                             HandleTableEntry);
     handleInfo.Reserved2 = 0;
@@ -2086,13 +2110,16 @@ NTSTATUS KphQueryInformationObject(
 
             break;
         }
-        case KphObjectAttributesInformation:
+        case KphObjectExtendedInformation:
         {
+            POBJECT_TYPE objectType;
+            USHORT objectTypeIndex;
+
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION)))
+                (ObjectInformationLength < sizeof(KPH_OBJECT_EXTENDED_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
+                returnLength = sizeof(KPH_OBJECT_EXTENDED_INFORMATION);
                 goto Exit;
             }
 
@@ -2115,13 +2142,30 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
+            objectTypeIndex = USHORT_MAX;
+
+            objectType = ObGetObjectType(object);
+            if (objectType)
+            {
+                dyn = KphReferenceDynData();
+                if (dyn && (dyn->OtIndex != ULONG_MAX)) {
+                    UCHAR typeIndex;
+
+                    typeIndex = *(PUCHAR)Add2Ptr(objectType, dyn->OtIndex);
+
+                    objectTypeIndex = (USHORT)typeIndex;
+                }
+            }
+
             __try
             {
-                PKPH_OBJECT_ATTRIBUTES_INFORMATION attributesInfo;
+                PKPH_OBJECT_EXTENDED_INFORMATION extendedInfo;
 
-                attributesInfo = ObjectInformation;
-                attributesInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
-                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
+                extendedInfo = ObjectInformation;
+                extendedInfo->Object = object;
+                extendedInfo->ObjectTypeIndex = objectTypeIndex;
+                extendedInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
+                returnLength = sizeof(KPH_OBJECT_EXTENDED_INFORMATION);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {

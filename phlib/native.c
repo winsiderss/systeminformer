@@ -6914,6 +6914,7 @@ NTSTATUS PhEnumHandlesGeneric(
                 convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
                 convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
                 convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+                convertedHandles->Handles[i].Reserved = handles->Handles[i].HandleRefCnt;
             }
 
             PhFree(handles);
@@ -6943,6 +6944,7 @@ NTSTATUS PhEnumHandlesGeneric(
                 convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
                 convertedHandles->Handles[i].ObjectTypeIndex = (USHORT)handles->Handles[i].ObjectTypeIndex;
                 convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+                convertedHandles->Handles[i].Reserved = ULONG_MAX;
             }
 
             PhFree(handles);

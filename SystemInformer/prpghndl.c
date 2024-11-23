@@ -298,6 +298,12 @@ BOOLEAN PhpHandleTreeFilterCallback(
             return TRUE;
     }
 
+    if (handleItem->PointerCountString[0])
+    {
+        if (PhSearchControlMatchLongHintZ(handlesContext->SearchMatchHandle, handleItem->PointerCountString))
+            return TRUE;
+    }
+
     return FALSE;
 }
 
