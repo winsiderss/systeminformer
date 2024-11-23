@@ -1128,6 +1128,7 @@ VOID PhpFillProcessItem(
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
+    ProcessItem->IntegrityLevel.Level = MAXUSHORT;
 
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
@@ -1238,8 +1239,8 @@ VOID PhpFillProcessItem(
             TOKEN_ELEVATION_TYPE elevationType;
             BOOLEAN isElevated;
             BOOLEAN tokenIsUIAccessEnabled;
-            MANDATORY_LEVEL integrityLevel;
-            PWSTR integrityString;
+            PH_INTEGRITY_LEVEL integrityLevel;
+            PH_STRINGREF integrityString;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1260,7 +1261,7 @@ VOID PhpFillProcessItem(
             }
 
             // Integrity
-            if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+            if (NT_SUCCESS(PhGetTokenIntegrityLevelEx(tokenHandle, &integrityLevel, &integrityString)))
             {
                 ProcessItem->IntegrityLevel = integrityLevel;
                 ProcessItem->IntegrityString = integrityString;
@@ -2713,8 +2714,8 @@ VOID PhProcessProviderUpdate(
                     PH_TOKEN_USER tokenUser;
                     //BOOLEAN isElevated;
                     //TOKEN_ELEVATION_TYPE elevationType;
-                    MANDATORY_LEVEL integrityLevel;
-                    PWSTR integrityString;
+                    PH_INTEGRITY_LEVEL integrityLevel;
+                    PH_STRINGREF integrityString;
 
                     if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
                     {
@@ -2761,9 +2762,9 @@ VOID PhProcessProviderUpdate(
                     //}
 
                     // Integrity
-                    if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+                    if (NT_SUCCESS(PhGetTokenIntegrityLevelEx(tokenHandle, &integrityLevel, &integrityString)))
                     {
-                        if (processItem->IntegrityLevel != integrityLevel)
+                        if (processItem->IntegrityLevel.Level != integrityLevel.Level)
                         {
                             processItem->IntegrityLevel = integrityLevel;
                             processItem->IntegrityString = integrityString;

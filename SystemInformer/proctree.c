@@ -1970,7 +1970,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Integrity)
 {
-    sortResult = uintcmp(processItem1->IntegrityLevel, processItem2->IntegrityLevel);
+    sortResult = uintcmp(processItem1->IntegrityLevel.Level, processItem2->IntegrityLevel.Level);
 }
 END_SORT_FUNCTION
 
@@ -3036,10 +3036,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_INTEGRITY:
-                {
-                    if (processItem->IntegrityString)
-                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->IntegrityString);
-                }
+                getCellText->Text = processItem->IntegrityString;
                 break;
             case PHPRTLC_IOPRIORITY:
                 {

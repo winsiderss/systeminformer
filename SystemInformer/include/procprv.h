@@ -171,8 +171,8 @@ typedef struct _PH_PROCESS_ITEM
 
     PSID Sid;
     TOKEN_ELEVATION_TYPE ElevationType;
-    MANDATORY_LEVEL IntegrityLevel;
-    PWSTR IntegrityString;
+    PH_INTEGRITY_LEVEL IntegrityLevel;
+    PH_STRINGREF IntegrityString;
 
     // Other
 

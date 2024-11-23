@@ -84,11 +84,8 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->IntegrityString)
-    {
-        if (PhSearchControlMatchLongHintZ(SearchMatchHandle, processNode->ProcessItem->IntegrityString))
-            return TRUE;
-    }
+    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->IntegrityString))
+        return TRUE;
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
     {
