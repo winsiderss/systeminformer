@@ -564,7 +564,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
     }
-    else if (PhEnableThemeSupport)
+    else if (PhEnableThemeSupport && WindowMessage != WM_NCDESTROY)
     {
         context = PhGetWindowContext(WindowHandle, LONG_MAX);
     }
@@ -1598,7 +1598,7 @@ HWND PhCreateWindowExHook(
             if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
                 PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
             {
-                PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
+                PhWindowThemeSetDarkMode(windowHandle, TRUE);
             }
         }
     }
@@ -1924,7 +1924,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
         if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
             PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
         {
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
         else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
         {
@@ -1934,7 +1934,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
         {
             //WINDOWPLACEMENT pos = { 0 };
             //GetWindowPlacement(GetParent(WindowHandle), &pos);
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
             //SetWindowPlacement(GetParent(WindowHandle), &pos);
         }
     }

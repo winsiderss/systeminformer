@@ -1307,7 +1307,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 
                 if (PhEnableThemeSupport)
                 {
-                    PhSetControlTheme(context->TooltipHandle, L"DarkMode_Explorer");
+                    PhWindowThemeSetDarkMode(context->TooltipHandle, TRUE);
                     //SendMessage(context->TooltipHandle, TTM_SETWINDOWTHEME, 0, (LPARAM)L"DarkMode_Explorer");
                 }
             }
