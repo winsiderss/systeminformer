@@ -734,6 +734,7 @@ VOID PhpFindObjectAddResultEntries(
         objectNode->BestObjectName = searchResult->BestObjectName;
         objectNode->HandleInfo = searchResult->Info;
         PhPrintPointer(objectNode->HandleString, searchResult->Handle);
+        objectNode->HandleInfo.Reserved = ULONG_MAX;
 
         if (searchResult->Object)
         {

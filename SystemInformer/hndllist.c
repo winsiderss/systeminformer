@@ -625,6 +625,9 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 
             if (!handleItem)
                 ; // Dummy
+            else if (PhCsUseColorProtectedHandles && PhCsUseColorInheritHandles &&
+                (handleItem->Attributes & OBJ_PROTECT_CLOSE) && (handleItem->Attributes & OBJ_INHERIT))
+                getNodeColor->BackColor = PhCsColorPartiallySuspended;
             else if (PhCsUseColorProtectedHandles && (handleItem->Attributes & OBJ_PROTECT_CLOSE))
                 getNodeColor->BackColor = PhCsColorProtectedHandles;
             else if (PhCsUseColorInheritHandles && (handleItem->Attributes & OBJ_INHERIT))

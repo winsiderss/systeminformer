@@ -16,6 +16,7 @@
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <settings.h>
+#include <phsettings.h>
 #include <workqueue.h>
 
 #include <extmgri.h>
@@ -344,7 +345,6 @@ VOID PhHandleProviderUpdate(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static ULONG fileObjectTypeIndex = ULONG_MAX;
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
-    BOOLEAN enableHandleSnapshot = !!PhGetIntegerSetting(L"EnableHandleSnapshot");
     PSYSTEM_HANDLE_INFORMATION_EX handleInfo;
     BOOLEAN filterNeeded;
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handles;
@@ -359,7 +359,7 @@ VOID PhHandleProviderUpdate(
     if (!NT_SUCCESS(handleProvider->RunStatus = PhEnumHandlesGeneric(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
-        enableHandleSnapshot,
+        PhCsEnableHandleSnapshot,
         &handleInfo,
         &filterNeeded
         )))
@@ -367,7 +367,7 @@ VOID PhHandleProviderUpdate(
 
     level = KsiLevel();
 
-    if ((level >= KphLevelMed))
+    if (level < KphLevelMed)
     {
         useWorkQueue = TRUE;
         PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
@@ -553,7 +553,7 @@ VOID PhHandleProviderUpdate(
                 }
             }
 
-            if (handleItem->TypeName && PhEqualString2(handleItem->TypeName, L"File", TRUE) && (level >= KphLevelMed))
+            if (handleItem->TypeName && PhEqualString2(handleItem->TypeName, L"File", TRUE) && level >= KphLevelMed)
             {
                 KPH_FILE_OBJECT_INFORMATION objectInfo;
 
