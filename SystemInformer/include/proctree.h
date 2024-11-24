@@ -283,7 +283,6 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING FileSizeText;
     PPH_STRING SubprocessCountText;
     PPH_STRING JobObjectIdText;
-    PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
     PPH_STRING CpuCoreUsageText;
     PPH_STRING ImageCoherencyText;

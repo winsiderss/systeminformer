@@ -672,7 +672,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->JobObjectIdText);
-    PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
@@ -2357,11 +2356,11 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Protection)
 {
-    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
-    // are placed below processes we are able to query (e.g. 0 and above).
-    sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+    sortResult = ucharcmp((BOOLEAN)processItem1->IsSecureProcess, (BOOLEAN)processItem2->IsSecureProcess);
     if (sortResult == 0)
-        sortResult = charcmp((CHAR)processItem1->IsSecureProcess, (CHAR)processItem2->IsSecureProcess);
+        sortResult = ucharcmp((BOOLEAN)processItem1->IsProtectedProcess, (BOOLEAN)processItem2->IsProtectedProcess);
+        if (sortResult == 0)
+            sortResult = ucharcmp(processItem1->Protection.Level, processItem2->Protection.Level);
 }
 END_SORT_FUNCTION
 
@@ -3692,10 +3691,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PROTECTION:
                 {
-                    if ((processItem->Protection.Level != 0 || processItem->IsSecureProcess) && processItem->Protection.Level != UCHAR_MAX)
+                    if (processItem->Protection.Level ||
+                        processItem->IsSecureProcess ||
+                        processItem->IsProtectedProcess)
                     {
-                        PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
-                        getCellText->Text = node->ProtectionText->sr;
+                        getCellText->Text = processItem->ProtectionString->sr;
                     }
                 }
                 break;
