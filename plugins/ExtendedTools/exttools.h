@@ -1671,6 +1671,15 @@ PPH_STRING EtGetWindowStationType(
     _In_ PPH_STRINGREF StationName
     );
 
+NTSTATUS EtObjectManagerGetHandleInfoEx(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ObjectHandle,
+    _Out_opt_ PVOID* Object,
+    _Out_opt_ PULONG TypeIndex,
+    _Out_opt_ PULONG Attributes
+    );
+
 // poolmon
 
 VOID EtShowPoolTableDialog(
