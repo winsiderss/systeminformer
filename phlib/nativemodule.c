@@ -236,6 +236,32 @@ NTSTATUS PhGetKernelFileNameEx(
     return STATUS_SUCCESS;
 }
 
+PPH_STRING PhGetSecureKernelFileName(
+    VOID
+    )
+{
+    static PH_STRINGREF secureKernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\securekernel.exe");
+    static PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
+
+    PPH_STRING fileName = NULL;
+    PPH_STRING kernelFileName;
+
+    if (kernelFileName = PhGetKernelFileName())
+    {
+        PH_STRINGREF baseName;
+
+        if (PhGetBasePath(&kernelFileName->sr, &baseName, NULL))
+            fileName = PhConcatStringRef2(&baseName, &secureKernelPathPart);
+
+        PhDereferenceObject(kernelFileName);
+    }
+
+    if (!fileName)
+        fileName = PhCreateString2(&secureKernelFileName);
+
+    return fileName;
+}
+
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
     _In_ PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,

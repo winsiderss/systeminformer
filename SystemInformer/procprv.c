@@ -1280,6 +1280,17 @@ VOID PhpFillProcessItem(
                         PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
                     }
                 }
+
+                if (!ProcessItem->FileName &&
+                    ProcessItem->IsSecureProcess &&
+                    PhEqualString2(ProcessItem->ProcessName, L"Secure System", FALSE))
+                {
+                    if (fileName = PhGetSecureKernelFileName())
+                    {
+                        ProcessItem->FileName = fileName;
+                        ProcessItem->FileNameWin32 = PhGetFileName(fileName);
+                    }
+                }
             }
         }
         else
