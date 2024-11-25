@@ -1572,11 +1572,11 @@ static COLORREF NTAPI EtpColorItemColorFunction(
     return color;
 }
 
-typedef struct _HANDLE_OPEN_CONTEXT
+typedef struct _ET_HANDLE_OPEN_CONTEXT
 {
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
-} HANDLE_OPEN_CONTEXT, * PHANDLE_OPEN_CONTEXT;
+} ET_HANDLE_OPEN_CONTEXT, * PET_HANDLE_OPEN_CONTEXT;
 
 static NTSTATUS EtpProcessHandleOpenCallback(
     _Out_ PHANDLE Handle,
@@ -1584,7 +1584,7 @@ static NTSTATUS EtpProcessHandleOpenCallback(
     _In_ PVOID Context
 )
 {
-    PHANDLE_OPEN_CONTEXT context = Context;
+    PET_HANDLE_OPEN_CONTEXT context = Context;
 
     return EtDuplicateHandleFromProcessEx(Handle, DesiredAccess, context->ProcessId, NULL, context->HandleItem->Handle);
 }
@@ -1593,7 +1593,7 @@ static NTSTATUS EtpProcessHandleCloseCallback(
     _In_ PVOID Context
 )
 {
-    PHANDLE_OPEN_CONTEXT context = Context;
+    PET_HANDLE_OPEN_CONTEXT context = Context;
 
     PhDereferenceObject(context->HandleItem);
     PhFree(context);
@@ -1818,7 +1818,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PPH_EMENU_ITEM gotoMenuItem;
                 PPH_EMENU_ITEM secMenuItem;
                 ULONG attributes = 0;
-                PH_HANDLE_ITEM_INFO info;
+                PH_HANDLE_ITEM_INFO info = { 0 };
 
                 point.x = GET_X_LPARAM(lParam);
                 point.y = GET_Y_LPARAM(lParam);
@@ -1885,6 +1885,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     switch (item->Id)
                     {
                         case IDC_CLOSEHANDLE:
+                            if (numberOfItems != 0)
                             {
                                 EtpCloseObjectHandles(context, listviewItems, numberOfItems);
                             }
@@ -1965,9 +1966,9 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                             break;
                         case IDC_SECURITY:
                             {
-                                PHANDLE_OPEN_CONTEXT context;
+                                PET_HANDLE_OPEN_CONTEXT context;
 
-                                context = PhAllocateZero(sizeof(HANDLE_OPEN_CONTEXT));
+                                context = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
                                 context->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
                                 context->ProcessId = listviewItems[0]->ProcessId;
                                 EtUpdateHandleItem(context->ProcessId, context->HandleItem);
