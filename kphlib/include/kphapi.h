@@ -168,7 +168,7 @@ typedef struct _KPH_PROCESS_HANDLE
     PVOID Object;
     ACCESS_MASK GrantedAccess;
     USHORT ObjectTypeIndex;
-    USHORT HandleRefCnt;
+    USHORT Reserved1;
     ULONG HandleAttributes;
     ULONG Reserved2;
 } KPH_PROCESS_HANDLE, *PKPH_PROCESS_HANDLE;
@@ -204,7 +204,7 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectSectionOriginalBaseInformation,  // q: PVOID BaseAddress
     KphObjectSectionInternalImageInformation, // q: SECTION_INTERNAL_IMAGE_INFORMATION
     KphObjectSectionMappingsInformation,      // q: KPH_SECTION_MAPPINGS_INFORMATION
-    KphObjectExtendedInformation,             // q: KPH_OBJECT_EXTENDED_INFORMATION
+    KphObjectAttributesInformation,           // q: KPH_OBJECT_ATTRIBUTES_INFORMATION
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
@@ -255,10 +255,8 @@ typedef struct _KPH_FILE_OBJECT_DRIVER
     HANDLE DriverHandle;
 } KPH_FILE_OBJECT_DRIVER, *PKPH_FILE_OBJECT_DRIVER;
 
-typedef struct _KPH_OBJECT_EXTENDED_INFORMATION
+typedef struct _KPH_OBJECT_ATTRIBUTES_INFORMATION
 {
-    PVOID Object;
-    USHORT ObjectTypeIndex;
     union
     {
         UCHAR Flags;
@@ -274,7 +272,7 @@ typedef struct _KPH_OBJECT_EXTENDED_INFORMATION
             UCHAR DeletedInline : 1;
         };
     };
-} KPH_OBJECT_EXTENDED_INFORMATION, *PKPH_OBJECT_EXTENDED_INFORMATION;
+} KPH_OBJECT_ATTRIBUTES_INFORMATION, *PKPH_OBJECT_ATTRIBUTES_INFORMATION;
 
 // Driver information
 

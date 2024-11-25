@@ -2018,6 +2018,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
 
     if (KsiLevel() >= KphLevelMed)
     {
+#if 0 // enable this then new driver API will available
         KPH_OBJECT_EXTENDED_INFORMATION extendedInfo;
 
         if (NT_SUCCESS(status = KphQueryInformationObject(
@@ -2027,7 +2028,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
             &extendedInfo,
             sizeof(extendedInfo),
             NULL
-            )))
+        )))
         {
             if (Object) *Object = extendedInfo.Object;
             if (TypeIndex) *TypeIndex = extendedInfo.ObjectTypeIndex;
@@ -2044,6 +2045,9 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
                     *Attributes |= PH_OBJ_KERNEL_ACCESS_ONLY;
             }
         }
+#else
+        return STATUS_NOINTERFACE;
+#endif
     }
 
     if (!NT_SUCCESS(status))
@@ -2734,7 +2738,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 EtObjectManagerRootDirectoryObject
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport")); // PhIsThemeSupportEnabled()
 
             PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
 

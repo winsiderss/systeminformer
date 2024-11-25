@@ -6914,7 +6914,11 @@ NTSTATUS PhEnumHandlesGeneric(
                 convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
                 convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
                 convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+#if 0 // enable this then new driver API will available
                 convertedHandles->Handles[i].Reserved = handles->Handles[i].HandleRefCnt;
+#else
+                convertedHandles->Handles[i].Reserved = ULONG_MAX;
+#endif
             }
 
             PhFree(handles);

@@ -266,8 +266,9 @@ NTSTATUS EtObjectManagerTrueRef(
     )
 {
     NTSTATUS status = STATUS_INVALID_HANDLE;
-    PKPH_PROCESS_HANDLE_INFORMATION handles;
 
+#if 0 // enable this then new driver API will available
+    PKPH_PROCESS_HANDLE_INFORMATION handles;
     if (KsiLevel() >= KphLevelMed &&
         NT_SUCCESS(status = KsiEnumerateProcessHandles(NtCurrentProcess(), &handles)))
     {
@@ -282,6 +283,9 @@ NTSTATUS EtObjectManagerTrueRef(
         }
         PhFree(handles);
     }
+#else
+    return STATUS_NOINTERFACE;
+#endif
 
     return status;
 }
