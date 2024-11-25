@@ -265,27 +265,7 @@ NTSTATUS EtObjectManagerTrueRef(
     _Inout_ PULONG PointerCount
     )
 {
-    NTSTATUS status = STATUS_INVALID_HANDLE;
-
-#if 0 // enable this then new driver API will available
-    PKPH_PROCESS_HANDLE_INFORMATION handles;
-    if (KsiLevel() >= KphLevelMed &&
-        NT_SUCCESS(status = KsiEnumerateProcessHandles(NtCurrentProcess(), &handles)))
-    {
-        for (ULONG i = 0; i < handles->HandleCount; i++)
-        {
-            if (handles->Handles[i].Handle == OwnHandle)
-            {
-                *PointerCount = *PointerCount - handles->Handles[i].HandleRefCnt - 1;
-                status = STATUS_SUCCESS;
-                break;
-            }
-        }
-        PhFree(handles);
-    }
-#else
-    return STATUS_NOINTERFACE;
-#endif
+    NTSTATUS status = STATUS_NOINTERFACE;
 
     return status;
 }
@@ -315,7 +295,7 @@ VOID EtHandlePropertiesWindowInitialized(
         // Show real handles count
         if (context->ProcessId == NtCurrentProcessId())
         {
-            ULONG64 real_count;
+            ULONG64 real_count = ULONG64_MAX;
             PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
             if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count) && real_count > 0)
             {
@@ -323,14 +303,17 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
 
-            count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1));
-            if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count))
+            if (real_count == 0)
             {
-                ULONG trueref_count = (ULONG)real_count;
-                if (NT_SUCCESS(EtObjectManagerTrueRef(context->HandleItem->Handle, &trueref_count)))
+                count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1));
+                if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count))
                 {
-                    PhPrintUInt32(string, trueref_count);
-                    PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                    ULONG trueref_count = (ULONG)real_count;
+                    if (NT_SUCCESS(EtObjectManagerTrueRef(context->HandleItem->Handle, &trueref_count)))
+                    {
+                        PhPrintUInt32(string, trueref_count);
+                        PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                    }
                 }
             }
 

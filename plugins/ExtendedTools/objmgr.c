@@ -830,6 +830,9 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     HANDLE processHandle = NtCurrentProcess();
     BOOLEAN alpcSourceOpened = FALSE;
 
+    if (entry->ItemIndex == ULONG_MAX)
+        goto cleanup_exit;
+
     objectContext.CurrentPath = entry->BaseDirectory;
     objectContext.Object = entry;
     objectContext.FullName = NULL;
@@ -1225,13 +1228,11 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
         NtClose(processHandle);
     }
 
-    if (entry->ItemIndex != ULONG_MAX)  // check if entry still valid
-    {
-        // Target was successfully resolved, redraw list entry
-        entry->TargetIsResolving = FALSE;
-        ListView_RedrawItems(entry->Context->ListViewHandle, entry->ItemIndex, entry->ItemIndex);
-    }
+    // Target was successfully resolved, redraw list entry
+    entry->TargetIsResolving = FALSE;
+    ListView_RedrawItems(entry->Context->ListViewHandle, entry->ItemIndex, entry->ItemIndex);
 
+cleanup_exit:
     PhDereferenceObject(entry);
 
     return STATUS_SUCCESS;
@@ -1321,31 +1322,20 @@ VOID EtObjectManagerFreeListViewItems(
 
     PhClearReference(&Context->CurrentPath);
 
-    for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
+    while ((index = PhFindListViewItemByFlags(
+        Context->ListViewHandle,
+        index,
+        LVNI_ALL
+        )) != INT_ERROR)
     {
-        PET_OBJECT_ENTRY entry = Context->CurrentDirectoryList->Items[i];
+        PET_OBJECT_ENTRY entry;
 
-        if (entry->ItemIndex != ULONG_MAX)
+        if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
         {
-            entry->ItemIndex = ULONG_MAX;   // mark entry as invalid
+            entry->ItemIndex = ULONG_MAX;
             PhDereferenceObject(entry);
         }
     }
-
-    //while ((index = PhFindListViewItemByFlags(
-    //    Context->ListViewHandle,
-    //    index,
-    //    LVNI_ALL
-    //    )) != INT_ERROR)
-    //{
-    //    PET_OBJECT_ENTRY entry;
-
-    //    if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
-    //    {
-    //        entry->ItemIndex = ULONG_MAX;
-    //        PhDereferenceObject(entry);
-    //    }
-    //}
 
     // entry will be removed from list in EtpObjectEntryDeleteProcedure
 }
@@ -1807,7 +1797,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
     if (Context->Object->EtObjectType == EtObjectDirectory)
         fullName = PhReferenceObject(Context->CurrentPath);
     else
-        fullName = EtGetObjectFullPath(Context->CurrentPath, Context->Object->Name);
+        fullName = EtGetObjectFullPath(Context->Object->BaseDirectory, Context->Object->Name);
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -2023,23 +2013,22 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
 
     if (KsiLevel() >= KphLevelMed)
     {
-#if 0 // enable this then new driver API will available
-        KPH_OBJECT_EXTENDED_INFORMATION extendedInfo;
-
-        if (NT_SUCCESS(status = KphQueryInformationObject(
-            ProcessHandle,
-            ObjectHandle,
-            KphObjectExtendedInformation,
-            &extendedInfo,
-            sizeof(extendedInfo),
-            NULL
-        )))
+        if (Attributes)
         {
-            if (Object) *Object = extendedInfo.Object;
-            if (TypeIndex) *TypeIndex = extendedInfo.ObjectTypeIndex;
-
-            if (Attributes)
+            KPH_OBJECT_ATTRIBUTES_INFORMATION extendedInfo;
+            if (NT_SUCCESS(status = KphQueryInformationObject(
+                ProcessHandle,
+                ObjectHandle,
+                KphObjectAttributesInformation,
+                &extendedInfo,
+                sizeof(extendedInfo),
+                NULL
+                )))
             {
+                // not implemented
+                //if (Object) *Object = extendedInfo.Object;
+                //if (TypeIndex) *TypeIndex = extendedInfo.ObjectTypeIndex;
+
                 if (extendedInfo.ExclusiveObject)
                     *Attributes |= OBJ_EXCLUSIVE;
                 if (extendedInfo.PermanentObject)
@@ -2050,9 +2039,23 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
                     *Attributes |= PH_OBJ_KERNEL_ACCESS_ONLY;
             }
         }
-#else
-        return STATUS_NOINTERFACE;
-#endif
+
+        if (Object)
+        {
+            PKPH_PROCESS_HANDLE_INFORMATION handles;
+            if (NT_SUCCESS(status = KsiEnumerateProcessHandles(ProcessHandle, &handles)))
+            {
+                for (ULONG i = 0; i < handles->HandleCount; i++)
+                {
+                    if (handles->Handles[i].Handle == ObjectHandle)
+                    {
+                        *Object = handles->Handles[i].Object;
+                        break;
+                    }
+                }
+                PhFree(handles);
+            }
+        }
     }
 
     if (!NT_SUCCESS(status))
@@ -2100,7 +2103,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     if (Entry->EtObjectType == EtObjectDirectory)
         objectName = PhReferenceObject(context->CurrentPath);
     else
-        objectName = EtGetObjectFullPath(context->CurrentPath, Entry->Name);
+        objectName = EtGetObjectFullPath(Entry->BaseDirectory, Entry->Name);
 
     if (!!PhGetIntegerSetting(L"ForceNoParent"))
     {
@@ -2144,6 +2147,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
 
     handleItem = PhCreateHandleItem(NULL);
     handleItem->Handle = objectHandle;
+    handleItem->TypeIndex = ULONG_MAX;
     EtObjectManagerTimeCached.QuadPart = 0;
 
     switch (Entry->EtObjectType)
@@ -2175,17 +2179,14 @@ VOID NTAPI EtpObjectManagerObjectProperties(
             OBJECT_BASIC_INFORMATION basicInfo;
 
             // Get object address, type index and attributes
-            if (!NT_SUCCESS(subStatus = EtObjectManagerGetHandleInfoEx(
+            subStatus = EtObjectManagerGetHandleInfoEx(
                 processId,
                 processHandle,
                 objectHandle,
                 &handleItem->Object,
                 &handleItem->TypeIndex,
                 &handleItem->Attributes
-                )))
-            {
-                handleItem->TypeIndex = PhGetObjectTypeNumber(&Entry->TypeName->sr);
-            }
+                );
 
             // Show only real source object address
             if (status == STATUS_NOT_ALL_ASSIGNED)
@@ -2219,7 +2220,8 @@ VOID NTAPI EtpObjectManagerObjectProperties(
             PhAddItemList(EtObjectManagerOwnHandles, objectHandle);
         }
     }
-    else
+
+    if (handleItem->TypeIndex == ULONG_MAX)
     {
         handleItem->TypeIndex = PhGetObjectTypeNumber(&Entry->TypeName->sr);
     }
