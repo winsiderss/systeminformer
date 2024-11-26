@@ -1528,7 +1528,10 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                     DUPLICATE_CLOSE_SOURCE
                                     )))
                                 {
-                                    PhpRemoveHandleObjectNode(context, handleObjectNodes[i]);
+                                    if (handleObjectNodes[i]->HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE)
+                                        status = STATUS_HANDLE_NOT_CLOSABLE;
+                                    else
+                                        PhpRemoveHandleObjectNode(context, handleObjectNodes[i]);
                                 }
 
                                 NtClose(processHandle);
