@@ -52,7 +52,7 @@ typedef struct _ET_HANDLE_ENTRY
     COLORREF Color;
     BOOLEAN OwnHandle;
     BOOLEAN UseCustomColor;
-} HANDLE_ENTRY, * PHANDLE_ENTRY;
+} ET_HANDLE_ENTRY, *PET_HANDLE_ENTRY;
 
 HPROPSHEETPAGE EtpCommonCreatePage(
     _In_ PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT Context,
@@ -442,6 +442,7 @@ VOID EtHandlePropertiesWindowInitialized(
         // Show Driver image information
         if (PhEqualString2(context->HandleItem->TypeName, L"Driver", TRUE))
         {
+            HANDLE driverObject;
             PPH_STRING driverName;
             KPH_DRIVER_BASIC_INFORMATION basicInfo;
 
@@ -458,22 +459,29 @@ VOID EtHandlePropertiesWindowInitialized(
             EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERFLAGS] = PhAddListViewGroupItem(context->ListViewHandle,
                 OBJECT_GENERAL_CATEGORY_DRIVER, OBJECT_GENERAL_INDEX_DRIVERFLAGS, L"Driver Flags", NULL);
 
-            if (KsiLevel() == KphLevelMax)
+            if (KsiLevel() == KphLevelMax &&
+                NT_SUCCESS(EtDuplicateHandleFromProcessEx(
+                &driverObject,
+                READ_CONTROL,
+                context->ProcessId,
+                NULL,
+                context->HandleItem->Handle
+                )))
             {
-                if (NT_SUCCESS(PhGetDriverImageFileName(context->HandleItem->Handle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverImageFileName(driverObject, &driverName)))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERIMAGE], 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
-                if (NT_SUCCESS(PhGetDriverServiceKeyName(context->HandleItem->Handle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverServiceKeyName(driverObject, &driverName)))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERSERVICE], 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
                 if (NT_SUCCESS(KphQueryInformationDriver(
-                    context->HandleItem->Handle,
+                    driverObject,
                     KphDriverBasicInformation,
                     &basicInfo,
                     sizeof(KPH_DRIVER_BASIC_INFORMATION),
@@ -489,6 +497,8 @@ VOID EtHandlePropertiesWindowInitialized(
                     PhPrintPointer(string, ULongToPtr(basicInfo.Flags));
                     PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DRIVERFLAGS], 1, string);
                 }
+
+                NtClose(driverObject);
             }
         }
         // Show Device drivers information
@@ -1135,7 +1145,7 @@ static NTSTATUS NTAPI EtpUpdateHandleFunction(
     _In_ PVOID Parameter
     )
 {
-    PHANDLE_ENTRY entry = Parameter;
+    PET_HANDLE_ENTRY entry = Parameter;
 
     EtUpdateHandleItem(entry->ProcessId, entry->HandleItem);
 
@@ -1312,7 +1322,7 @@ VOID EtpEnumObjectHandles(
         ULONG ownHandlesIndex = 0;
         INT lvItemIndex;
         WCHAR value[PH_INT64_STR_LEN_1];
-        PHANDLE_ENTRY entry;
+        PET_HANDLE_ENTRY entry;
         PPH_STRING columnString;
         CLIENT_ID ClientId = { 0 };
 
@@ -1329,7 +1339,7 @@ VOID EtpEnumObjectHandles(
                 continue;
             }
 
-            entry = PhAllocateZero(sizeof(HANDLE_ENTRY));
+            entry = PhAllocateZero(sizeof(ET_HANDLE_ENTRY));
             entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
             entry->HandleItem = PhCreateHandleItem(handleInfo);
             entry->OwnHandle = handleInfo->Object == Context->HandleItem->Object;
@@ -1454,7 +1464,7 @@ VOID EtUpdateHandleItem(
 
 VOID EtpShowHandleProperties(
     _In_ HWND WindowHandle,
-    _In_ PHANDLE_ENTRY Entry
+    _In_ PET_HANDLE_ENTRY Entry
     )
 {
     EtUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
@@ -1512,7 +1522,7 @@ VOID EtpUpdateGeneralTab(
 
 VOID EtpCloseObjectHandles(
     _In_ PCOMMON_PAGE_CONTEXT Context,
-    _In_ PHANDLE_ENTRY* ListviewItems,
+    _In_ PET_HANDLE_ENTRY* ListviewItems,
     _In_ ULONG NumberOfItems
     )
 {
@@ -1547,7 +1557,7 @@ static COLORREF NTAPI EtpColorItemColorFunction(
     _In_opt_ PVOID Context
     )
 {
-    PHANDLE_ENTRY entry = Param;
+    PET_HANDLE_ENTRY entry = Param;
     COLORREF color = entry->UseCustomColor ?
         entry->Color :
         !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
@@ -1596,7 +1606,7 @@ VOID EtpHandlesFreeListViewItems(
         LVNI_ALL
         )) != INT_ERROR)
     {
-        PHANDLE_ENTRY entry;
+        PET_HANDLE_ENTRY entry;
         if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
         {
             PhClearReference(&entry->HandleItem);
@@ -1674,7 +1684,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         break;
     case WM_KEYDOWN:
         {
-            PHANDLE_ENTRY* listviewItems;
+            PET_HANDLE_ENTRY* listviewItems;
             ULONG numberOfItems;
 
             switch (LOWORD(wParam))
@@ -1733,7 +1743,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 header->hwndFrom == context->ListViewHandle)
             {
                 LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
-                PHANDLE_ENTRY entry;
+                PET_HANDLE_ENTRY entry;
 
                 if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                 {
@@ -1758,10 +1768,9 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             {
                 NMLVDISPINFOA* dispInfo = (NMLVDISPINFOA*)header;
 
-                if (header->hwndFrom == context->ListViewHandle &&
-                    FlagOn(dispInfo->item.mask, TVIF_TEXT))
+                if (FlagOn(dispInfo->item.mask, TVIF_TEXT))
                 {
-                    PHANDLE_ENTRY entry = (PHANDLE_ENTRY)dispInfo->item.lParam;
+                    PET_HANDLE_ENTRY entry = (PET_HANDLE_ENTRY)dispInfo->item.lParam;
 
                     switch (dispInfo->item.iSubItem)
                     {
@@ -1786,7 +1795,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         break;
     case WM_CONTEXTMENU:
         {
-            PHANDLE_ENTRY* listviewItems;
+            PET_HANDLE_ENTRY* listviewItems;
             ULONG numberOfItems;
 
             PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
