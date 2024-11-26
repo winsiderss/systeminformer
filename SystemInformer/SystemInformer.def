@@ -904,7 +904,8 @@ EXPORTS
     PhThemeWindowDrawRebar                                                        @1847     NONAME
     PhThemeWindowDrawToolbar                                                      @1848     NONAME
     PhWindowThemeControlColor                                                     @1849     NONAME
-    PhReInitializeStreamerMode                                                    @2062     NONAME
+    PhIsThemeSupportEnabled                                                       @2058     NONAME
+    PhReInitializeStreamerMode                                                    @2059     NONAME
 
 ; hndlinfo
     PhEnumObjectTypes                                                             @1850     NONAME
@@ -979,7 +980,6 @@ EXPORTS
     PhSetStringRefSetting                                                         @1909     NONAME
     PhSaveSettings                                                                @1910     NONAME
     PhUpdateCachedSettings                                                        @1911     NONAME
-    PhIsThemeSupportEnabled                                                       @2058     NONAME
 
 ; secedit
     PhCreateSecurityPage                                                          @1912     NONAME
@@ -1148,8 +1148,3 @@ EXPORTS
     PhFilterConnectCommunicationPort                                              @2053     NONAME
     PhQuerySymbolicLinkObject                                                     @2054     NONAME
     PhGetDriverServiceKeyName                                                     @2055     NONAME
-
-; hndlmenu
-    PhInsertHandleObjectPropertiesEMenuItems                                      @2059     NONAME
-    PhShowHandleObjectProperties1                                                 @2060     NONAME
-    PhShowHandleObjectProperties2                                                 @2061     NONAME
