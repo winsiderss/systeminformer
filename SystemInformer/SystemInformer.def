@@ -1146,6 +1146,6 @@ EXPORTS
     PhGetDriverServiceKeyName                                                     @2055     NONAME
 
  ; hndlmenu
-    PhInsertHandleObjectPropertiesEMenuItems                                      @2059     NONAME
-    PhShowHandleObjectProperties1                                                 @2060     NONAME
-    PhShowHandleObjectProperties2                                                 @2061     NONAME
+    PhInsertHandleObjectPropertiesEMenuItems                                      @2060     NONAME
+    PhShowHandleObjectProperties1                                                 @2061     NONAME
+    PhShowHandleObjectProperties2                                                 @2062     NONAME
