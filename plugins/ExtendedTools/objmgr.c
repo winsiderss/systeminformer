@@ -139,6 +139,7 @@ typedef struct _RESOLVER_THREAD_CONTEXT
 {
     PET_OBJECT_CONTEXT Context;
     volatile BOOLEAN Break;
+    PPH_LIST EntryToResolve;
 } RESOLVER_THREAD_CONTEXT, *PRESOLVER_THREAD_CONTEXT;
 
 //typedef struct _RESOLVER_WORK_THREAD_CONTEXT
@@ -762,24 +763,23 @@ NTSTATUS EtpTargetResolverThreadStart(
 
     PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
 
-    for (ULONG i = 0, resolveLimit = context->CurrentDirectoryList->Count;
-        i < resolveLimit;
-        i++
-        )
+    for (ULONG i = 0; i < threadContext->EntryToResolve->Count; i++)
     {
         // Thread was interrupted externally
-        if (ReadAcquire8(&threadContext->Break))
+        if (status != STATUS_ABANDONED && ReadAcquire8(&threadContext->Break))
         {
             status = STATUS_ABANDONED;
-            break;
         }
 
-        entry = context->CurrentDirectoryList->Items[i];
+        entry = threadContext->EntryToResolve->Items[i];
 
-        if (entry->TargetIsResolving && entry->ItemIndex != ULONG_MAX)
+        if (status != STATUS_ABANDONED)
         {
-            entry->ItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);    // need to update index
-            PhQueueItemWorkQueue(&workQueue, EtpTargetResolverWorkThreadStart, PhReferenceObject(entry));
+            PhQueueItemWorkQueue(&workQueue, EtpTargetResolverWorkThreadStart, entry);
+        }
+        else
+        {
+            PhDereferenceObject(entry);
         }
     }
 
@@ -813,6 +813,7 @@ NTSTATUS EtpTargetResolverThreadStart(
         context->BreakResolverThread = NULL;
     }
 
+    PhDereferenceObject(threadContext->EntryToResolve);
     PhFree(threadContext);
     return status;
 }
@@ -829,9 +830,6 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     HANDLE processId = NtCurrentProcessId();
     HANDLE processHandle = NtCurrentProcess();
     BOOLEAN alpcSourceOpened = FALSE;
-
-    if (entry->ItemIndex == ULONG_MAX)
-        goto cleanup_exit;
 
     objectContext.CurrentPath = entry->BaseDirectory;
     objectContext.Object = entry;
@@ -1232,7 +1230,6 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     entry->TargetIsResolving = FALSE;
     ListView_RedrawItems(entry->Context->ListViewHandle, entry->ItemIndex, entry->ItemIndex);
 
-cleanup_exit:
     PhDereferenceObject(entry);
 
     return STATUS_SUCCESS;
@@ -1302,6 +1299,17 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     PRESOLVER_THREAD_CONTEXT threadContext = PhAllocateZero(sizeof(RESOLVER_THREAD_CONTEXT));
     threadContext->Context = Context;
     Context->BreakResolverThread = (PBOOLEAN)&threadContext->Break;
+    threadContext->EntryToResolve = PhCreateList(Context->CurrentDirectoryList->Count);
+
+    for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
+    {
+        PET_OBJECT_ENTRY entry = Context->CurrentDirectoryList->Items[i];
+        if (entry->TargetIsResolving)
+        {
+            entry->ItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, entry);    // need to update index
+            PhAddItemList(threadContext->EntryToResolve, PhReferenceObject(entry));
+        }
+    }
 
     PhCreateThread2(EtpTargetResolverThreadStart, threadContext);
 
@@ -1332,12 +1340,11 @@ VOID EtObjectManagerFreeListViewItems(
 
         if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
         {
-            entry->ItemIndex = ULONG_MAX;
             PhDereferenceObject(entry);
         }
     }
 
-    // entry will be removed from list in EtpObjectEntryDeleteProcedure
+    PhClearList(Context->CurrentDirectoryList);
 }
 
 NTSTATUS EtDuplicateHandleFromProcessEx(
@@ -1928,10 +1935,7 @@ NTSTATUS EtObjectManagerHandleCloseCallback(
     PhClearReference(&context->CurrentPath);
     PhClearReference(&context->FullName);
 
-    if (context->Object)
-    {
-        PhClearReference(&context->Object);
-    }
+    PhClearReference(&context->Object);
 
     PhFree(context);
     return STATUS_SUCCESS;
@@ -2500,7 +2504,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
         INT index;
         PET_OBJECT_ENTRY entry = Array->Items[i];
 
-        if (entry->Name != NULL && entry->ItemIndex != ULONG_MAX)
+        if (entry->Name != NULL)
         {
             if (!MatchHandle ||
                 PhSearchControlMatch(MatchHandle, &entry->Name->sr) ||
@@ -2640,7 +2644,6 @@ VOID EtpObjectEntryDeleteProcedure(
     )
 {
     PET_OBJECT_ENTRY entry = Object;
-    ULONG index;
 
     PhClearReference(&entry->Name);
     PhClearReference(&entry->TypeName);
@@ -2648,9 +2651,6 @@ VOID EtpObjectEntryDeleteProcedure(
     PhClearReference(&entry->TargetDrvLow);
     PhClearReference(&entry->TargetDrvUp);
     PhClearReference(&entry->BaseDirectory);
-
-    if ((index = PhFindItemList(entry->Context->CurrentDirectoryList, entry)) != ULONG_MAX)
-        PhRemoveItemList(entry->Context->CurrentDirectoryList, index);
 }
 
 INT_PTR CALLBACK WinObjDlgProc(
