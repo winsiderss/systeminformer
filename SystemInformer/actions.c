@@ -5853,7 +5853,6 @@ BOOLEAN PhUiFreeMemory(
 static BOOLEAN PhpShowErrorHandle(
     _In_ HWND WindowHandle,
     _In_ PCWSTR Verb,
-    _In_opt_ PCWSTR Verb2,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -5868,11 +5867,10 @@ static BOOLEAN PhpShowErrorHandle(
         return PhShowContinueStatus(
             WindowHandle,
             PhaFormatString(
-            L"Unable to %s handle \"%s\" (%s)%s",
+            L"Unable to %s handle \"%s\" (%s)",
             Verb,
             Handle->BestObjectName->Buffer,
-            value,
-            Verb2
+            value
             )->Buffer,
             Status,
             Win32Result
@@ -5883,10 +5881,9 @@ static BOOLEAN PhpShowErrorHandle(
         return PhShowContinueStatus(
             WindowHandle,
             PhaFormatString(
-            L"Unable to %s handle %s%s",
+            L"Unable to %s handle %s",
             Verb,
-            value,
-            Verb2
+            value
             )->Buffer,
             Status,
             Win32Result
@@ -5999,25 +5996,8 @@ BOOLEAN PhUiCloseHandles(
                 if (!PhpShowErrorHandle(
                     WindowHandle,
                     L"close",
-                    NULL,
                     Handles[i],
                     status,
-                    0
-                    ))
-                    break;
-            }
-            // If handle is protected from closing NtDuplicateObject doesn't close handle but returns STATUS_SUCCESS.
-            // Show error to notify user that "Protected" attribute should be removed first (Dart Vanya)
-            else if (Handles[i]->Attributes & OBJ_PROTECT_CLOSE)
-            {
-                success = FALSE;
-
-                if (!PhpShowErrorHandle(
-                    WindowHandle,
-                    L"close",
-                    L".\nRemove \"Protected\" attribute from menu and try again.",
-                    Handles[i],
-                    STATUS_HANDLE_NOT_CLOSABLE,
                     0
                     ))
                     break;
@@ -6078,7 +6058,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorHandle(WindowHandle, L"set attributes of", NULL, Handle, status, 0);
+        PhpShowErrorHandle(WindowHandle, L"set attributes of", Handle, status, 0);
         return FALSE;
     }
 

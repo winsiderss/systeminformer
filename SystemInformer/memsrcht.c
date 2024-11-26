@@ -138,11 +138,6 @@ BOOLEAN PhpShowMemoryStringTreeDialog(
     _In_opt_ PPH_LIST PrevNodeList
     );
 
-VOID PhpShowMemoryEditor(
-    PPH_MEMSTRINGS_CONTEXT context,
-    PPH_MEMSTRINGS_NODE node
-    );
-
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
 _Must_inspect_result_
 NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBuffer(
@@ -814,14 +809,7 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
         }
         return TRUE;
     case TreeNewNodeExpanding:
-        return TRUE;
     case TreeNewLeftDoubleClick:
-        {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
-            node = (PPH_MEMSTRINGS_NODE)mouseEvent->Node;
-
-            PhpShowMemoryEditor(context, node);
-        }
         return TRUE;
     case TreeNewContextMenu:
         {
@@ -945,7 +933,7 @@ INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
 
                     if (!minimumLength || minimumLength > MAXULONG32)
                     {
-                        PhShowError2(hwndDlg, L"Invalid minimum length.", L"%s", L"");
+                        PhShowError(hwndDlg, L"%s", L"Invalid minimum length");
                         break;
                     }
 
@@ -1006,47 +994,6 @@ VOID PhpMemoryStringsSetWindowTitle(
     clientId.UniqueThread = NULL;
     title = PhaConcatStrings2(PhGetStringOrEmpty(PH_AUTO(PhGetClientIdName(&clientId))), L" Strings");
     SetWindowTextW(Context->WindowHandle, title->Buffer);
-}
-
-VOID PhpShowMemoryEditor(
-    PPH_MEMSTRINGS_CONTEXT context,
-    PPH_MEMSTRINGS_NODE node
-    )
-{
-    NTSTATUS status;
-    MEMORY_BASIC_INFORMATION basicInfo;
-    PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
-    PVOID address;
-    SIZE_T length;
-
-    address = node->Address;
-    if (node->Unicode)
-        length = node->String->Length;
-    else
-        length = node->String->Length / 2;
-
-    if (NT_SUCCESS(status = NtQueryVirtualMemory(
-        context->ProcessHandle,
-        address,
-        MemoryBasicInformation,
-        &basicInfo,
-        sizeof(basicInfo),
-        NULL
-        )))
-    {
-        showMemoryEditor = PhAllocateZero(sizeof(PH_SHOW_MEMORY_EDITOR));
-        showMemoryEditor->ProcessId = context->ProcessItem->ProcessId;
-        showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
-        showMemoryEditor->RegionSize = basicInfo.RegionSize;
-        showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)basicInfo.BaseAddress);
-        showMemoryEditor->SelectLength = (ULONG)length;
-
-        SystemInformer_ShowMemoryEditor(showMemoryEditor);
-    }
-    else
-    {
-        PhShowStatus(context->WindowHandle, L"Unable to edit memory", status, 0);
-    }
 }
 
 INT_PTR CALLBACK PhpMemoryStringsDlgProc(
@@ -1246,12 +1193,12 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
                 menu = PhCreateEMenu();
 
-                readWrite = PhCreateEMenuItem(0, IDC_SHOW, L"Read/Write memory", NULL, NULL);
-                readWrite->Flags |= PH_EMENU_DEFAULT;
+                readWrite = PhCreateEMenuItem(0, 1, L"Read/Write memory", NULL, NULL);
+
                 PhInsertEMenuItem(menu, readWrite, ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
-                PhInsertCopyCellEMenuItem(menu, IDC_COPY, context->TreeNewHandle, contextMenuEvent->Column);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, 100, context->TreeNewHandle, contextMenuEvent->Column);
 
                 if (numberOfNodes != 1)
                     readWrite->Flags |= PH_EMENU_DISABLED;
@@ -1267,24 +1214,52 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
                 if (selectedItem && selectedItem->Id != ULONG_MAX && !PhHandleCopyCellEMenuItem(selectedItem))
                 {
-                    switch (selectedItem->Id)
+                    if (selectedItem->Id == 1)
                     {
-                    case IDC_SHOW:
-                        {
-                            assert(numberOfNodes == 1);
+                        NTSTATUS status;
+                        MEMORY_BASIC_INFORMATION basicInfo;
+                        PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
+                        PVOID address;
+                        SIZE_T length;
 
-                            PhpShowMemoryEditor(context, stringsNodes[0]);
-                        }
-                        break;
-                    case IDC_COPY:
-                        {
-                            PPH_STRING text;
+                        assert(numberOfNodes == 1);
 
-                            text = PhGetTreeNewText(context->TreeNewHandle, 0);
-                            PhSetClipboardString(context->TreeNewHandle, &text->sr);
-                            PhDereferenceObject(text);
+                        address = stringsNodes[0]->Address;
+                        if (stringsNodes[0]->Unicode)
+                            length = stringsNodes[0]->String->Length;
+                        else
+                            length = stringsNodes[0]->String->Length / 2;
+
+                        if (NT_SUCCESS(status = NtQueryVirtualMemory(
+                            context->ProcessHandle,
+                            address,
+                            MemoryBasicInformation,
+                            &basicInfo,
+                            sizeof(basicInfo),
+                            NULL
+                            )))
+                        {
+                            showMemoryEditor = PhAllocateZero(sizeof(PH_SHOW_MEMORY_EDITOR));
+                            showMemoryEditor->ProcessId = context->ProcessItem->ProcessId;
+                            showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
+                            showMemoryEditor->RegionSize = basicInfo.RegionSize;
+                            showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)basicInfo.BaseAddress);
+                            showMemoryEditor->SelectLength = (ULONG)length;
+
+                            SystemInformer_ShowMemoryEditor(showMemoryEditor);
                         }
-                        break;
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to edit memory", status, 0);
+                        }
+                    }
+                    else if (selectedItem->Id == 100)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                        PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                        PhDereferenceObject(text);
                     }
                 }
 
@@ -1325,7 +1300,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                     mapped = PhCreateEMenuItem(0, 6, L"Mapped", NULL, NULL);
                     minimumLength = PhCreateEMenuItem(0, 7, L"Minimum length...", NULL, NULL);
                     zeroPad = PhCreateEMenuItem(0, 8, L"Zero pad addresses", NULL, NULL);
-                    refresh = PhCreateEMenuItem(0, 9, L"Refresh\bF5", NULL, NULL);
+                    refresh = PhCreateEMenuItem(0, 9, L"Refresh", NULL, NULL);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
@@ -1443,16 +1418,6 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 break;
             }
         }
-    case WM_KEYDOWN:
-        {
-            switch (wParam)
-            {
-            case VK_F5:
-                PhpSearchMemoryStrings(context);
-                return TRUE;
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
@@ -1496,11 +1461,6 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
         if (result == INT_ERROR)
             break;
 
-        if (message.message == WM_KEYDOWN)
-        {
-            CallWindowProc(PhpMemoryStringsDlgProc, windowHandle, message.message, message.wParam, message.lParam);
-        }
-
         if (!IsDialogMessage(windowHandle, &message))
         {
             TranslateMessage(&message);
@@ -1542,7 +1502,7 @@ BOOLEAN PhpShowMemoryStringTreeDialog(
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
     {
-        PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
+        PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
         PhDereferenceObject(context->ProcessItem);
         NtClose(context->ProcessHandle);
         PhFree(context);
