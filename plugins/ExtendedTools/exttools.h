@@ -1646,6 +1646,7 @@ extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
 extern HICON EtObjectManagerPropIcon;
 extern PPH_HASHTABLE EtObjectManagerPropWindows;
+extern BOOLEAN EtObjectManagerShowHandlesPage;
 
 extern ULONG EtAlpcPortTypeIndex;
 extern ULONG EtDeviceTypeIndex;

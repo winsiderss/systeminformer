@@ -133,6 +133,7 @@
 #define IDC_HANDLE_PROTECTED            1134
 #define IDC_HANDLE_INHERIT              1135
 #define IDC_COPYOBJECTADDRESS           1136
+#define IDC_OPENHANDLES                 1137
 #define IDC_ENABLENPUMONITOR            2000
 #define IDC_GROUPNPU                    2001
 #define IDC_NPUNAME                     2002

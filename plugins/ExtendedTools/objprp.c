@@ -270,6 +270,45 @@ NTSTATUS EtObjectManagerTrueRef(
     return status;
 }
 
+typedef struct _ET_GENERAL_PAGE_CONTEXT
+{
+    WNDPROC OldWndProc;
+    HWND ParentWindow;
+    BOOLEAN PageSwitched;
+} ET_GENERAL_PAGE_CONTEXT, *PET_GENERAL_PAGE_CONTEXT;
+
+LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PET_GENERAL_PAGE_CONTEXT context;
+
+    if (!(context = PhGetWindowContext(hWnd, 'OBJH')))
+        return FALSE;
+
+    WNDPROC oldWndProc = context->OldWndProc;
+
+    if (uMsg == WM_NOTIFY && ((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
+    {
+        if (!context->PageSwitched)
+        {
+            PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
+            context->PageSwitched = TRUE;
+        }
+    }
+    else if (uMsg == WM_NCDESTROY)
+    {
+        PhSetWindowProcedure(hWnd, oldWndProc);
+        PhRemoveWindowContext(hWnd, 'OBJH');
+        PhFree(context);
+    }
+
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+}
+
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
     )
@@ -291,6 +330,19 @@ VOID EtHandlePropertiesWindowInitialized(
             PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
         PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropIcon, NULL, 0);
+
+        // Open Handles page if needed
+        if (EtObjectManagerShowHandlesPage)
+        {
+            HWND generalPage = GetParent(context->ListViewHandle);  // HACK
+            PET_GENERAL_PAGE_CONTEXT pageContext = PhAllocateZero(sizeof(ET_GENERAL_PAGE_CONTEXT));
+            pageContext->OldWndProc = PhGetWindowProcedure(generalPage);
+            pageContext->ParentWindow = context->ParentWindow;
+            PhSetWindowContext(generalPage, 'OBJH', pageContext);
+            PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
+
+            EtObjectManagerShowHandlesPage = FALSE;
+        }
 
         // Show real handles count
         if (context->ProcessId == NtCurrentProcessId())

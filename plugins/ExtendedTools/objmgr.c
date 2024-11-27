@@ -29,6 +29,7 @@ LARGE_INTEGER EtObjectManagerTimeCached = { 0 };
 PPH_LIST EtObjectManagerOwnHandles = NULL;
 PPH_HASHTABLE EtObjectManagerPropWindows = NULL;
 HICON EtObjectManagerPropIcon = NULL;
+BOOLEAN EtObjectManagerShowHandlesPage = FALSE;
 
 // Cached type indexes
 ULONG EtAlpcPortTypeIndex = ULONG_MAX;
@@ -2244,6 +2245,15 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     PhDereferenceObject(context->CurrentPath);
 }
 
+VOID NTAPI EtpObjectManagerObjectHandles(
+    _In_ PET_OBJECT_ENTRY Entry
+    )
+{
+    EtObjectManagerShowHandlesPage = TRUE;
+
+    EtpObjectManagerObjectProperties(Entry);
+}
+
 VOID NTAPI EtpObjectManagerOpenTarget(
     _In_ PET_OBJECT_CONTEXT Context,
     _In_ PPH_STRING Target
@@ -2460,6 +2470,7 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
     objectContext->Object = PhCreateObjectZero(sizeof(ET_OBJECT_ENTRY), EtObjectEntryType);
     objectContext->Object->EtObjectType = Entry->EtObjectType;
     objectContext->Object->Name = PhReferenceObject(Entry->Name);
+    objectContext->Object->Context = Entry->Context;
 
     switch (Entry->EtObjectType)
     {
@@ -2469,6 +2480,7 @@ VOID NTAPI EtpObjectManagerOpenSecurity(
             break;
         default:
             objectContext->Object->TypeName = PhReferenceObject(Entry->TypeName);
+            objectContext->Object->BaseDirectory = PhReferenceObject(Entry->BaseDirectory);
             objectContext->FullName = EtGetObjectFullPath(Entry->BaseDirectory, Entry->Name);
             break;
     }
@@ -2968,20 +2980,27 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PET_OBJECT_ENTRY* listviewItems;
                     ULONG numberOfItems;
 
-                    if (keyDown->wVKey == 'C' && GetKeyState(VK_CONTROL))
+                    if ((keyDown->wVKey == 'C' || keyDown->wVKey == 'H') && GetKeyState(VK_CONTROL))
                     {
                         PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
                         if (numberOfItems == 1)
                         {
-                            if (GetKeyState(VK_MENU) < 0)
+                            if (keyDown->wVKey == 'C')
                             {
-                                PhSetClipboardString(hwndDlg, &PH_AUTO_T(PH_STRING, EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name))->sr);
-                                break;
+                                if (GetKeyState(VK_MENU) < 0)
+                                {
+                                    PhSetClipboardString(hwndDlg, &PH_AUTO_T(PH_STRING, EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name))->sr);
+                                    break;
+                                }
+                                else if (GetKeyState(VK_SHIFT) < 0)
+                                {
+                                    EtpObjectManagerCopyObjectAddress(listviewItems[0]);
+                                    break;
+                                }
                             }
-                            else if (GetKeyState(VK_SHIFT) < 0)
+                            else
                             {
-                                EtpObjectManagerCopyObjectAddress(listviewItems[0]);
-                                break;
+                                EtpObjectManagerObjectHandles(listviewItems[0]);
                             }
                         }
                     }
@@ -2995,20 +3014,28 @@ INT_PTR CALLBACK WinObjDlgProc(
                     LPNMTVKEYDOWN keyDown = (LPNMTVKEYDOWN)lParam;
                     PPH_STRING directory;
 
-                    if (keyDown->wVKey == 'C' && GetKeyState(VK_CONTROL))
+                    if ((keyDown->wVKey == 'C' || keyDown->wVKey == 'H') && GetKeyState(VK_CONTROL))
                     {
                         if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
                         {
                             ET_OBJECT_ENTRY entry = { 0 };
                             entry.Name = directory;
                             entry.EtObjectType = EtObjectDirectory;
+                            entry.Context = context;
 
-                            if (GetKeyState(VK_SHIFT) < 0)
-                                EtpObjectManagerCopyObjectAddress(&entry);
-                            else if (GetKeyState(VK_MENU) < 0)
-                                PhSetClipboardString(hwndDlg, &context->CurrentPath->sr);
+                            if (keyDown->wVKey == 'C')
+                            {
+                                if (GetKeyState(VK_SHIFT) < 0)
+                                    EtpObjectManagerCopyObjectAddress(&entry);
+                                else if (GetKeyState(VK_MENU) < 0)
+                                    PhSetClipboardString(hwndDlg, &context->CurrentPath->sr);
+                                else
+                                    PhSetClipboardString(hwndDlg, &directory->sr);
+                            }
                             else
-                                PhSetClipboardString(hwndDlg, &directory->sr);
+                            {
+                                EtpObjectManagerObjectHandles(&entry);
+                            }
                         }
                     }
                 }
@@ -3079,12 +3106,18 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PPH_EMENU_ITEM gotoMenuItem2 = NULL;
                     PPH_EMENU_ITEM copyPathMenuItem;
                     PPH_EMENU_ITEM copyAddressMenuItem;
+                    PPH_EMENU_ITEM handlesMenuItem;
 
                     PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES,
                         !isSymlink ? L"Prope&rties\bEnter" : L"Prope&rties\bShift+Enter", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                    PhInsertEMenuItem(menu, handlesMenuItem = PhCreateEMenuItem(0, IDC_OPENHANDLES, L"&Handles\bCtrl+H", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
 
                     if (isSymlink)
                     {
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), 0);
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENLINK, L"&Open link\bEnter", NULL, NULL), 0);
                     }
                     else if (entry->EtObjectType == EtObjectDevice)
@@ -3095,15 +3128,20 @@ INT_PTR CALLBACK WinObjDlgProc(
                             PhInsertEMenuItem(menu, gotoMenuItem2 = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to lower device driver", NULL, NULL), ULONG_MAX);
                         }
                         else
+                        {
                             PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTODRIVER, L"&Go to device driver", NULL, NULL), ULONG_MAX);
+                        }
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     }
                     else if (entry->EtObjectType == EtObjectAlpcPort)
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOPROCESS, L"&Go to process...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     }
                     else if (entry->EtObjectType == EtObjectMutant)
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_GOTOTHREAD, L"&Go to thread...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     }
                     else if (
                         entry->EtObjectType == EtObjectDriver ||
@@ -3111,14 +3149,16 @@ INT_PTR CALLBACK WinObjDlgProc(
                         )
                     {
                         PhInsertEMenuItem(menu, gotoMenuItem = PhCreateEMenuItem(0, IDC_OPENFILELOCATION, L"&Open file location", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     }
 
                     PhInsertEMenuItem(menu, secMenuItem = PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, copyPathMenuItem = PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, copyAddressMenuItem = PhCreateEMenuItem(0, IDC_COPYOBJECTADDRESS, L"Copy Object &Address\bCtrl+Shift+C", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPYOBJECTADDRESS, context->ListViewHandle);
+                    PhInsertEMenuItem(menu, copyPathMenuItem = PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
                     PhSetFlagsEMenuItem(menu, isSymlink ? IDC_OPENLINK : IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                     if (numberOfItems > 1)
@@ -3129,6 +3169,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                         PhSetDisabledEMenuItem(secMenuItem);
                         PhSetDisabledEMenuItem(copyPathMenuItem);
                         PhSetDisabledEMenuItem(copyAddressMenuItem);
+                        PhSetDisabledEMenuItem(handlesMenuItem);
                     }
                     else if (!hasTarget)
                     {
@@ -3237,6 +3278,11 @@ INT_PTR CALLBACK WinObjDlgProc(
                                     EtpObjectManagerCopyObjectAddress(entry);
                                 }
                                 break;
+                            case IDC_OPENHANDLES:
+                                {
+                                    EtpObjectManagerObjectHandles(entry);
+                                }
+                                break;
                             }
                         }
                     }
@@ -3265,11 +3311,15 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties\bShift+Enter", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_OPENHANDLES, L"&Handles\bCtrl+H", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYOBJECTADDRESS, L"Copy Object &Address\bCtrl+Shift+C", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
 
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPYOBJECTADDRESS, context->ListViewHandle);
 
@@ -3318,6 +3368,11 @@ INT_PTR CALLBACK WinObjDlgProc(
                             case IDC_COPYOBJECTADDRESS:
                                 {
                                     EtpObjectManagerCopyObjectAddress(&entry);
+                                }
+                                break;
+                            case IDC_OPENHANDLES:
+                                {
+                                    EtpObjectManagerObjectHandles(&entry);
                                 }
                                 break;
                             }
