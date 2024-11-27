@@ -260,16 +260,6 @@ typedef enum _ET_OBJECT_POOLTYPE {
 #define OBJECT_CHILD_HANDLEPROP_WINDOW 1
 #define OBJECT_CORRECT_HANDLES_COUNT(real_count) ((ULONG)(real_count) - 1)
 
-NTSTATUS EtObjectManagerTrueRef(
-    _In_ HANDLE OwnHandle,
-    _Inout_ PULONG PointerCount
-    )
-{
-    NTSTATUS status = STATUS_NOINTERFACE;
-
-    return status;
-}
-
 typedef struct _ET_GENERAL_PAGE_CONTEXT
 {
     WNDPROC OldWndProc;
@@ -355,19 +345,21 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
 
-            if (real_count == 0)
-            {
-                count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1));
-                if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count))
-                {
-                    ULONG trueref_count = (ULONG)real_count;
-                    if (NT_SUCCESS(EtObjectManagerTrueRef(context->HandleItem->Handle, &trueref_count)))
-                    {
-                        PhPrintUInt32(string, trueref_count);
-                        PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
-                    }
-                }
-            }
+            PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES);
+
+            //if (real_count == 0)
+            //{
+            //    count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1));
+            //    if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count))
+            //    {
+            //        ULONG trueref_count = (ULONG)real_count;
+            //        if (NT_SUCCESS(EtObjectManagerTrueRef(context->HandleItem->Handle, &trueref_count)))
+            //        {
+            //            PhPrintUInt32(string, trueref_count);
+            //            PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+            //        }
+            //    }
+            //}
 
             // HACK for \REGISTRY permissions
             if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
@@ -389,7 +381,6 @@ VOID EtHandlePropertiesWindowInitialized(
             }
         }
 
-        PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES);
         PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK);
 
         EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES] = PhAddListViewGroupItem(
@@ -457,8 +448,6 @@ VOID EtHandlePropertiesWindowInitialized(
     }
     else if (((ULONG_PTR)context->OwnerPlugin == ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW)))
     {
-        PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLE_REFERENCES);
-
         if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
             !PhEqualString(context->HandleItem->ObjectName, context->HandleItem->BestObjectName, TRUE))
         {
@@ -1553,17 +1542,17 @@ VOID EtpUpdateGeneralTab(
                 NULL
                 )))
             {
-                PhPrintUInt32(string, basicInfo.PointerCount);
-                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                //PhPrintUInt32(string, basicInfo.PointerCount);
+                //PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
 
                 PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount));
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
 
-                if (NT_SUCCESS(EtObjectManagerTrueRef(Context->HandleItem->Handle, &basicInfo.PointerCount)))
-                {
-                    PhPrintUInt32(string, basicInfo.PointerCount);
-                    PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
-                }
+                //if (NT_SUCCESS(EtObjectManagerTrueRef(Context->HandleItem->Handle, &basicInfo.PointerCount)))
+                //{
+                //    PhPrintUInt32(string, basicInfo.PointerCount);
+                //    PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                //}
             }
 
             if (processHandle != NtCurrentProcess())

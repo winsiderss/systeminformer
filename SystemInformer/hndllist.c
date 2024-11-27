@@ -93,7 +93,6 @@ VOID PhInitializeHandleList(
     PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESS, FALSE, L"Granted access", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(hwnd, PHHNTLC_FILESHAREACCESS, FALSE, L"File share access", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, PHHNTLC_POINTERCNT, FALSE, L"Handle pointer count", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -445,12 +444,6 @@ BEGIN_SORT_FUNCTION(FileShareAccess)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(PointerCount)
-{
-    sortResult = uintcmp((ULONG_PTR)handleItem1->RefCnt, (ULONG_PTR)handleItem2->RefCnt);
-}
-END_SORT_FUNCTION
-
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -483,8 +476,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     SORT_FUNCTION(GrantedAccess),
                     SORT_FUNCTION(GrantedAccess), // Granted Access (Symbolic)
                     SORT_FUNCTION(OriginalName),
-                    SORT_FUNCTION(FileShareAccess),
-                    SORT_FUNCTION(PointerCount)
+                    SORT_FUNCTION(FileShareAccess)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -603,10 +595,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 
                     PhInitializeStringRefLongHint(&getCellText->Text, node->FileShareAccessText);
                 }
-                break;
-            case PHHNTLC_POINTERCNT:
-                if (handleItem->RefCnt != ULONG_MAX)
-                    PhInitializeStringRefLongHint(&getCellText->Text, handleItem->PointerCountString);
                 break;
             default:
                 return FALSE;
