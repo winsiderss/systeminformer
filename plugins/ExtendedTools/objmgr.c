@@ -2283,6 +2283,26 @@ VOID NTAPI EtpObjectManagerObjectHandles(
     EtpObjectManagerObjectProperties(Entry);
 }
 
+BOOLEAN EtListViewFindAndSelectItem(
+    _In_ PET_OBJECT_CONTEXT Context,
+    _In_ PPH_STRINGREF Name
+    )
+{
+    LVFINDINFO findinfo;
+    findinfo.psz = PH_AUTO_T(PH_STRING, PhCreateString2(Name))->Buffer;
+    findinfo.flags = LVFI_STRING;
+
+    INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
+
+    // Navigate to target object
+    if (item != INT_ERROR)
+    {
+        ListView_SetItemState(Context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+        ListView_EnsureVisible(Context->ListViewHandle, item, TRUE);
+    }
+    return item != INT_ERROR;
+}
+
 VOID NTAPI EtpObjectManagerOpenTarget(
     _In_ PET_OBJECT_CONTEXT Context,
     _In_ PPH_STRING Target
@@ -2347,25 +2367,20 @@ start_scan:
         }
 
         // If we did jump to new tree target, then focus to listview target item
-        if ((Context->SelectedTreeItem != oldSelect || remainingPart.Length == 0) && directoryPart.Length > 0)    // HACK
+        if (directoryPart.Length > 0)   // HACK
         {
-            if (remainingPart.Length == 0)
+            PhSetWindowText(Context->SearchBoxHandle, L"");
+            EtpObjectManagerSearchControlCallback(0, Context);
+
+            if (!EtListViewFindAndSelectItem(Context, &directoryPart))  // try to find and select target in listview
             {
-                PhSetWindowText(Context->SearchBoxHandle, L"");
-                EtpObjectManagerSearchControlCallback(0, Context);
-            }
-
-            LVFINDINFO findinfo;
-            findinfo.psz = directoryPart.Buffer;
-            findinfo.flags = LVFI_STRING;
-
-            INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
-
-            // Navigate to target object
-            if (item != INT_ERROR)
-            {
-                ListView_SetItemState(Context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-                ListView_EnsureVisible(Context->ListViewHandle, item, TRUE);
+                remainingPart = PhGetStringRef(targetPath);
+                while (remainingPart.Length != 0)
+                {
+                    PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &namePart, &remainingPart);
+                    if (EtListViewFindAndSelectItem(Context, &namePart))
+                        break;
+                }
             }
         }
         else    // browse to target in explorer
@@ -2392,17 +2407,7 @@ start_scan:
         PhSetWindowText(Context->SearchBoxHandle, L"");
         EtpObjectManagerSearchControlCallback(0, Context);
 
-        LVFINDINFO findinfo;
-        findinfo.psz = namePart.Buffer;
-        findinfo.flags = LVFI_STRING;
-
-        INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
-
-        if (item != INT_ERROR)
-        {
-            ListView_SetItemState(Context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-            ListView_EnsureVisible(Context->ListViewHandle, item, TRUE);
-        }
+        EtListViewFindAndSelectItem(Context, &namePart);
     }
 
 cleanup_exit:
