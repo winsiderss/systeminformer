@@ -1507,7 +1507,7 @@ HICON PhLoadIcon(
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
             width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYSMICON, SystemDpi);
         }
         else
         {
@@ -1527,7 +1527,7 @@ HICON PhLoadIcon(
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
             width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
-            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYSMICON, SystemDpi);
         }
         else
         {
