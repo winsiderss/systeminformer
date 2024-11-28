@@ -1001,14 +1001,19 @@ namespace CustomBuildTool
                 httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
                 httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
                 {
-                    if (
-                        sslPolicyErrors == SslPolicyErrors.None &&
-                        cert.Subject.Equals("CN=sourceforge.io, O=\"Cloudflare, Inc.\", L=San Francisco, S=California, C=US", StringComparison.OrdinalIgnoreCase)
-                        )
+                    string[] trustedSubjects =
                     {
-                        return true;
-                    }
+                        "CN=sourceforge.io",
+                        "CN=sourceforge.io, O=\"Cloudflare, Inc.\", L=San Francisco, S=California, C=US"
+                    };
 
+                    if (sslPolicyErrors != SslPolicyErrors.None)
+                        return false;
+
+                    if (trustedSubjects.Contains(cert.Subject))
+                        return true;
+
+                    Program.PrintColorMessage($"[CertValidationCallback] {cert.Subject}", ConsoleColor.Red);
                     return false;
                 };
 
