@@ -128,6 +128,7 @@ EXT ULONG PhCsImageCoherencyScanLevel;
 EXT BOOLEAN PhCsEnableGraphMaxScale;
 EXT BOOLEAN PhCsEnableGraphMaxText;
 EXT BOOLEAN PhCsEnableAvxSupport;
+EXT BOOLEAN PhCsEnableHandleSnapshot;
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 

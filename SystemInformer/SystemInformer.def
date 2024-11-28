@@ -1144,3 +1144,8 @@ EXPORTS
     PhFilterConnectCommunicationPort                                              @2053     NONAME
     PhQuerySymbolicLinkObject                                                     @2054     NONAME
     PhGetDriverServiceKeyName                                                     @2055     NONAME
+
+ ; hndlmenu
+    PhInsertHandleObjectPropertiesEMenuItems                                      @2060     NONAME
+    PhShowHandleObjectProperties1                                                 @2061     NONAME
+    PhShowHandleObjectProperties2                                                 @2062     NONAME

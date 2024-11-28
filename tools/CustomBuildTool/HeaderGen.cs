@@ -53,7 +53,8 @@ namespace CustomBuildTool
             "phsvccl.h",
             "sysinfo.h",
             "procgrp.h",
-            "miniinfo.h"
+            "miniinfo.h",
+            "hndlmenu.h"
         ];
 
         private static List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
