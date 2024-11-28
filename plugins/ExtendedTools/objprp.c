@@ -379,9 +379,10 @@ VOID EtHandlePropertiesWindowInitialized(
             }
         }
 
-        PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES);
-        PhRemoveListViewItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK);
+        // Removing of row breaks cached indexes, so hide reference value instead
+        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
 
+        PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
         EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES] = PhAddListViewGroupItem(
             context->ListViewHandle,
             PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO,
@@ -618,8 +619,17 @@ VOID EtHandlePropertiesWindowInitialized(
             if (driverName = PhGetPnPDeviceName(context->HandleItem->ObjectName))
             {
                 ULONG_PTR columnPos = PhFindLastCharInString(driverName, 0, L':');
-                PPH_STRING devicePdoName = PH_AUTO(PhSubstring(driverName, 0, columnPos - 5));
+                PPH_STRING devicePdoName = PhSubstring(driverName, 0, columnPos - 5);
+                PPH_STRING driveLetter;
+
+                if (PhStartsWithString2(context->HandleItem->ObjectName, L"\\Device\\HarddiskVolume", TRUE) &&
+                    (driveLetter = PhResolveDevicePrefix(&context->HandleItem->ObjectName->sr)))
+                {
+                    PhMoveReference(&devicePdoName, PhFormatString(L"%s (%s)", PhGetString(devicePdoName), PhGetString(driveLetter)));
+                    PhDereferenceObject(driveLetter);
+                }
                 PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME], 1, PhGetString(devicePdoName));
+                PhDereferenceObject(devicePdoName);
                 PhDereferenceObject(driverName);
             }
         }
