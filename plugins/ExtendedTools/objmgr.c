@@ -692,7 +692,7 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
                     entry->TargetDrvLow = PhReferenceObject(entry->Target); // HACK
                     PhMoveReference(&entry->Target, PhFormatString(L"%s (%s)", PhGetString(entry->Target), PhGetString(driveLetter)));
                     PhDereferenceObject(driveLetter);
-                } 
+                }
             }
         }
         else if (entry->EtObjectType == EtObjectWindowStation)
@@ -757,7 +757,7 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
             enumContext.DirectoryPath = EtObjectManagerRootDirectoryObject;
 
             // enumerate \??
-            EtEnumDirectoryObjectsCallback(    
+            EtEnumDirectoryObjectsCallback(
                 &EtObjectManagerUserDirectoryObject,
                 &DirectoryObjectType,
                 &enumContext
@@ -1171,7 +1171,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                     {
                         entry->TargetIsInfoOnly = TRUE;
                         entry->Target = PhCreateString(eventType);
-                    } 
+                    }
                 }
             }
             break;
@@ -1187,7 +1187,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         {
                             entry->TargetIsInfoOnly = TRUE;
                             entry->Target = PhCreateString(L"Signaled");
-                        } 
+                        }
                     }
                 }
             }
@@ -2852,7 +2852,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context->CurrentPath
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport")); // PhIsThemeSupportEnabled()
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
             if (PhIsNullOrEmptyString(Target))  // HACK
