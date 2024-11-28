@@ -1075,5 +1075,8 @@
 #define EXPORT_PHFILTERCONNECTCOMMUNICATIONPORT                                               2053
 #define EXPORT_PHQUERYSYMBOLICLINKOBJECT                                                      2054
 #define EXPORT_PHGETDRIVERSERVICEKEYNAME                                                      2055
+#define EXPORT_PHINSERTHANDLEOBJECTPROPERTIESEMENUITEMS                                       2056
+#define EXPORT_PHSHOWHANDLEOBJECTPROPERTIES1                                                  2057
+#define EXPORT_PHSHOWHANDLEOBJECTPROPERTIES2                                                  2058
 
 #endif _PH_EXPORT_DEF_H
