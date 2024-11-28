@@ -912,7 +912,7 @@ RtlEndStrongEnumerationHashTable(
 // These flags define possible values stored in the Flags field of a critsec debuginfo.
 #define RTL_CRITICAL_SECTION_DEBUG_FLAG_STATIC_INIT 0x00000001
 
-// typedef struct _RTL_CRITICAL_SECTION_DEBUG 
+// typedef struct _RTL_CRITICAL_SECTION_DEBUG
 // {
 //     USHORT Type;
 //     USHORT CreatorBackTraceIndex;
@@ -926,7 +926,7 @@ RtlEndStrongEnumerationHashTable(
 // } RTL_CRITICAL_SECTION_DEBUG, *PRTL_CRITICAL_SECTION_DEBUG, RTL_RESOURCE_DEBUG, *PRTL_RESOURCE_DEBUG;
 //
 // #pragma pack(push, 8)
-// typedef struct _RTL_CRITICAL_SECTION 
+// typedef struct _RTL_CRITICAL_SECTION
 // {
 //     PRTL_CRITICAL_SECTION_DEBUG DebugInfo;
 //     LONG LockCount;
@@ -1828,7 +1828,7 @@ RtlAnsiStringToUnicodeString(
     _In_ BOOLEAN AllocateDestinationString
     );
 
-NTSYSAPI 
+NTSYSAPI
 ULONG
 NTAPI
 RtlxAnsiStringToUnicodeSize(
@@ -3109,7 +3109,7 @@ NTAPI
 RtlPrepareForProcessCloning(
     VOID
     );
-    
+
 // rev
 NTSYSAPI
 NTSTATUS
@@ -9741,24 +9741,25 @@ RtlAppxIsFileOwnedByTrustedInstaller(
 #endif
 
 // Windows Internals book
-#define PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION 0x1
-#define PSM_ACTIVATION_TOKEN_SHARED_ENTITY 0x2
-#define PSM_ACTIVATION_TOKEN_FULL_TRUST 0x4
-#define PSM_ACTIVATION_TOKEN_NATIVE_SERVICE 0x8
-#define PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP 0x10
-#define PSM_ACTIVATION_TOKEN_BREAKAWAY_INHIBITED 0x20
-#define PSM_ACTIVATION_TOKEN_RUNTIME_BROKER 0x40 // rev
-#define PSM_ACTIVATION_TOKEN_UNIVERSAL_CONSOLE 0x200 // rev
-#define PSM_ACTIVATION_TOKEN_WIN32ALACARTE_PROCESS 0x10000 // rev
+#define PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION       0x00000001UL // AppX package format
+#define PSM_ACTIVATION_TOKEN_SHARED_ENTITY              0x00000002UL // Shared token, multiple binaries in the same package
+#define PSM_ACTIVATION_TOKEN_FULL_TRUST                 0x00000004UL // Trusted (Centennial), converted Win32 application
+#define PSM_ACTIVATION_TOKEN_NATIVE_SERVICE             0x00000008UL // Packaged service created by SCM
+//#define PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP          0x00000010UL
+#define PSM_ACTIVATION_TOKEN_MULTIPLE_INSTANCES_ALLOWED 0x00000010UL
+#define PSM_ACTIVATION_TOKEN_BREAKAWAY_INHIBITED        0x00000020UL // Cannot create non-packaged child processes
+#define PSM_ACTIVATION_TOKEN_RUNTIME_BROKER             0x00000040UL // rev
+#define PSM_ACTIVATION_TOKEN_UNIVERSAL_CONSOLE          0x00000200UL // rev
+#define PSM_ACTIVATION_TOKEN_WIN32ALACARTE_PROCESS      0x00010000UL // rev
 
 // PackageOrigin appmodel.h
-//#define PackageOrigin_Unknown 0
-//#define PackageOrigin_Unsigned 1
-//#define PackageOrigin_Inbox 2
-//#define PackageOrigin_Store 3
+//#define PackageOrigin_Unknown           0
+//#define PackageOrigin_Unsigned          1
+//#define PackageOrigin_Inbox             2
+//#define PackageOrigin_Store             3
 //#define PackageOrigin_DeveloperUnsigned 4
-//#define PackageOrigin_DeveloperSigned 5
-//#define PackageOrigin_LineOfBusiness 6
+//#define PackageOrigin_DeveloperSigned   5
+//#define PackageOrigin_LineOfBusiness    6
 
 #define PSMP_MINIMUM_SYSAPP_CLAIM_VALUES 2
 #define PSMP_MAXIMUM_SYSAPP_CLAIM_VALUES 4

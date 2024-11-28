@@ -24,6 +24,8 @@
 #include <workqueue.h>
 #include <phsettings.h>
 
+#include <appmodel.h>
+
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
     PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS,
@@ -3481,12 +3483,94 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
 }
 
 PPH_STRING PhFormatTokenSecurityAttributeValue(
+    _In_ PPH_STRINGREF Name,
     _In_ PTOKEN_SECURITY_ATTRIBUTE_V1 Attribute,
     _In_ ULONG ValueIndex
     )
 {
-    PH_FORMAT format[4];
+    static PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
+    PH_FORMAT format[6];
+    ULONG count = 0;
 
+    // Special cases for known attributes
+    if (ValueIndex == 0 &&
+        Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 &&
+        PhEqualStringRef(Name, &winPkg, TRUE))
+    {
+        ULONG upper = (ULONG)(Attribute->Values.pUint64[0] >> 32);
+        ULONG lower = (ULONG)Attribute->Values.pUint64[0];
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        switch (upper)
+        {
+        case PackageOrigin_Unknown:
+            PhInitFormatS(&format[count++], L"Unknown");
+            break;
+        case PackageOrigin_Unsigned:
+            PhInitFormatS(&format[count++], L"Unsigned");
+            break;
+        case PackageOrigin_Inbox:
+            PhInitFormatS(&format[count++], L"Inbox");
+            break;
+        case PackageOrigin_Store:
+            PhInitFormatS(&format[count++], L"Store");
+            break;
+        case PackageOrigin_DeveloperUnsigned:
+            PhInitFormatS(&format[count++], L"Developer unsigned");
+            break;
+        case PackageOrigin_DeveloperSigned:
+            PhInitFormatS(&format[count++], L"Developer signed");
+            break;
+        case PackageOrigin_LineOfBusiness:
+            PhInitFormatS(&format[count++], L"Line of business");
+            break;
+        default:
+            PhInitFormatS(&format[count++], L"Undefined");
+            break;
+        }
+
+        PhInitializeStringBuilder(&sb, 10);
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION))
+            PhAppendStringBuilder2(&sb, L"AppX, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_SHARED_ENTITY))
+            PhAppendStringBuilder2(&sb, L"Shared token, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_FULL_TRUST))
+            PhAppendStringBuilder2(&sb, L"Trusted, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_NATIVE_SERVICE))
+            PhAppendStringBuilder2(&sb, L"Service, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_MULTIPLE_INSTANCES_ALLOWED))
+            PhAppendStringBuilder2(&sb, L"Multiple instances allowed, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_BREAKAWAY_INHIBITED))
+            PhAppendStringBuilder2(&sb, L"Breakaway inhibited, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_RUNTIME_BROKER))
+            PhAppendStringBuilder2(&sb, L"Runtime broker, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_UNIVERSAL_CONSOLE))
+            PhAppendStringBuilder2(&sb, L"Universal console, ");
+        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_WIN32ALACARTE_PROCESS))
+            PhAppendStringBuilder2(&sb, L"Win32 process, ");
+
+        if (sb.String->Length != 0)
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        if (string->Length != 0)
+        {
+            PhInitFormatS(&format[count++], L" : ");
+            PhInitFormatSR(&format[count++], string->sr);
+        }
+
+        PhInitFormatS(&format[count++], L" (0x");
+        PhInitFormatI64X(&format[count++], Attribute->Values.pUint64[0]);
+        PhInitFormatS(&format[count++], L")");
+
+        PhMoveReference(&string, PhFormat(format, count, 0));
+
+        return string;
+    }
+
+    // Default handling
     switch (Attribute->ValueType)
     {
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
@@ -3733,12 +3817,14 @@ BOOLEAN PhpAddTokenAttributes(
         for (i = 0; i < info->AttributeCount; i++)
         {
             PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            PPH_STRING name;
             PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
 
+            name = PhCreateStringFromUnicodeString(&attribute->Name);
+
             // Attribute
-            node = PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, NULL,
-                PhCreateStringFromUnicodeString(&attribute->Name));
+            node = PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, NULL, PhReferenceObject(name));
             // Type
             PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
                 PhFormatString(L"Type: %s", PhGetSecurityAttributeTypeString(attribute->ValueType)));
@@ -3751,7 +3837,7 @@ BOOLEAN PhpAddTokenAttributes(
             // Values
             for (j = 0; j < attribute->ValueCount; j++)
             {
-                temp = PhFormatTokenSecurityAttributeValue(attribute, j);
+                temp = PhFormatTokenSecurityAttributeValue(&name->sr, attribute, j);
                 PhpAddAttributeNode(&TokenPageContext->AuthzTreeContext, node,
                     PhFormatString(L"Value %u: %s", j, temp->Buffer));
                 PhDereferenceObject(temp);
