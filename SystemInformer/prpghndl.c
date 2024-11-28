@@ -282,7 +282,14 @@ BOOLEAN PhpHandleTreeFilterCallback(
             return TRUE;
     }
 
-    // TODO: Add search for handleItem->Attributes
+    if (handleNode->HandleItem->Attributes & OBJ_PROTECT_CLOSE && PhSearchControlMatchZ(handlesContext->SearchMatchHandle, L"Protected"))
+    {
+        return TRUE;
+    }
+    if (handleNode->HandleItem->Attributes & OBJ_INHERIT && PhSearchControlMatchZ(handlesContext->SearchMatchHandle, L"Inherit"))
+    {
+        return TRUE;
+    }
 
     // node properties
 
