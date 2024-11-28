@@ -1373,20 +1373,20 @@ typedef struct _TASKDIALOG_CALLBACK_WRAP
 {
     PFTASKDIALOGCALLBACK pfCallback;
     LONG_PTR lpCallbackData;
-} TASKDIALOG_CALLBACK_WRAP, * PTASKDIALOG_CALLBACK_WRAP;
+} TASKDIALOG_CALLBACK_WRAP, *PTASKDIALOG_CALLBACK_WRAP;
 
 typedef struct _TASKDIALOG_COMMON_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
-} TASKDIALOG_COMMON_CONTEXT, * PTASKDIALOG_COMMON_CONTEXT;
+} TASKDIALOG_COMMON_CONTEXT, *PTASKDIALOG_COMMON_CONTEXT;
 
 typedef struct _TASKDIALOG_WINDOW_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
     PTASKDIALOG_CALLBACK_WRAP CallbackData;
-} TASKDIALOG_WINDOW_CONTEXT, * PTASKDIALOG_WINDOW_CONTEXT;
+} TASKDIALOG_WINDOW_CONTEXT, *PTASKDIALOG_WINDOW_CONTEXT;
 
 #define TASKDIALOG_CONTEXT_TAG (ULONG)'TDLG'
 
@@ -1420,11 +1420,11 @@ HRESULT PhDrawThemeBackgroundHook(
     )
 {
     WCHAR className[MAX_PATH];
-    BOOLEAN hasThemeClass = PhGetThemeClass(Theme, className, RTL_NUMBER_OF(className));
 
-    if (PhEnableThemeSupport)
+    if (PhEnableThemeSupport &&
+        PhGetThemeClass(Theme, className, RTL_NUMBER_OF(className)))
     {
-        if (WindowsVersion >= WINDOWS_11 && hasThemeClass)
+        if (WindowsVersion >= WINDOWS_11)
         {
             if (PhEqualStringZ(className, VSCLASS_MENU, TRUE))
             {
@@ -1436,7 +1436,7 @@ HRESULT PhDrawThemeBackgroundHook(
             }
         }
 
-        if (hasThemeClass && PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE)
+        if (PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE)
             /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(Hdc) == NULL*/)
         {
             if (PartId == PP_TRANSPARENTBAR || PartId == PP_TRANSPARENTBARVERT) // Progress bar background
@@ -1589,7 +1589,7 @@ HWND PhCreateWindowExHook(
     else
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
-        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE))
+        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE) && WindowsVersion >= WINDOWS_11)
         {
             PhInitializeTaskDialogTheme(windowHandle, 0);
         }
@@ -1721,11 +1721,12 @@ HRESULT WINAPI PhDrawThemeTextHook(
     _In_ LPCRECT pRect
     )
 {
+    WCHAR className[MAX_PATH];
+
     if (PhEnableThemeSupport)
     {
         if ((iPartId == BP_COMMANDLINK /*|| iPartId == BP_RADIOBUTTON*/) && iStateId != PBS_DISABLED)
         {
-            WCHAR className[MAX_PATH];
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
                 /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
             {
@@ -1750,11 +1751,12 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     _In_      const DTTOPTS* pOptions
     )
 {
+    WCHAR className[MAX_PATH];
+
     if (PhEnableThemeSupport)
     {
         if (iPartId == BP_COMMANDLINK)
         {
-            WCHAR className[MAX_PATH];
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
                 /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(hdc) == NULL*/)
             {
@@ -1784,12 +1786,11 @@ int PhDetoursComCtl32DrawTextW(
     static COLORREF colLinkNormal = RGB(0, 0 ,0);
     static COLORREF colLinkHot = RGB(0, 0, 0);
     static COLORREF colLinkPressed = RGB(0, 0, 0);
+    HWND WindowHandle;
+    WCHAR windowClassName[MAX_PATH];
 
     if (PhEnableThemeSupport)
     {
-        HWND WindowHandle;
-        WCHAR windowClassName[MAX_PATH];
-
         if ((WindowHandle = WindowFromDC(hdc)) && PhIsDarkModeAllowedForWindow(WindowHandle))    // HACK
         {
             GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
