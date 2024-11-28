@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <hndlinfo.h>
 #include <settings.h>
+#include <phsettings.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {
@@ -42,7 +43,6 @@ VOID PhShowHandleStatisticsDialog(
     _In_ HANDLE ProcessId
     )
 {
-    BOOLEAN enableHandleSnapshot;
     NTSTATUS status;
     HANDLE_STATISTICS_CONTEXT context;
     BOOLEAN filterNeeded;
@@ -61,12 +61,10 @@ VOID PhShowHandleStatisticsDialog(
         return;
     }
 
-    enableHandleSnapshot = !!PhGetIntegerSetting(L"EnableHandleSnapshot");
-
     status = PhEnumHandlesGeneric(
         context.ProcessId,
         context.ProcessHandle,
-        enableHandleSnapshot,
+        PhCsEnableHandleSnapshot,
         &context.Handles,
         &filterNeeded
         );

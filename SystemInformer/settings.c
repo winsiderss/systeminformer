@@ -475,4 +475,5 @@ VOID PhUpdateCachedSettings(
     PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
+    PhCsEnableHandleSnapshot = !!PhGetIntegerSetting(L"EnableHandleSnapshot");
 }
