@@ -229,6 +229,70 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 static PPH_HASHTABLE PhpSidFullNameCacheHashtable = NULL;
 
+static PPH_STRING PhpProtectionUnknownString = NULL;
+static PPH_STRING PhpProtectionYesString = NULL;
+static PPH_STRING PhpProtectionNoneString = NULL;
+static PPH_STRING PhpProtectionSecureIUMString = NULL;
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+{
+    SIP(L"None", PsProtectedTypeNone),
+    SIP(L"Light", PsProtectedTypeProtectedLight),
+    SIP(L"Full", PsProtectedTypeProtected),
+};
+
+static CONST PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+{
+    SIP(L"Authenticode", PsProtectedSignerAuthenticode),
+    SIP(L"CodeGen", PsProtectedSignerCodeGen),
+    SIP(L"Antimalware", PsProtectedSignerAntimalware),
+    SIP(L"Lsa", PsProtectedSignerLsa),
+    SIP(L"Windows", PsProtectedSignerWindows),
+    SIP(L"WinTcb", PsProtectedSignerWinTcb),
+    SIP(L"WinSystem", PsProtectedSignerWinSystem),
+    SIP(L"StoreApp", PsProtectedSignerApp),
+};
+
+PPH_STRING PhpGetProtectionString(
+    _In_ PS_PROTECTION Protection,
+    _In_ BOOLEAN IsSecureProcess
+    )
+{
+    PH_FORMAT format[5];
+    ULONG count = 0;
+    PWSTR type = L"Unknown";
+    PWSTR signer = L"";
+
+    if (Protection.Level == 0)
+    {
+        if (IsSecureProcess)
+            return PhReferenceObject(PhpProtectionSecureIUMString);
+        else
+            return PhReferenceObject(PhpProtectionNoneString);
+    }
+
+    PhFindStringSiKeyValuePairs(PhProtectedTypeStrings, sizeof(PhProtectedTypeStrings), Protection.Type, &type);
+    PhFindStringSiKeyValuePairs(PhProtectedSignerStrings, sizeof(PhProtectedSignerStrings), Protection.Signer, &signer);
+
+    if (IsSecureProcess)
+        PhInitFormatS(&format[count++], L"Secure ");
+
+    PhInitFormatS(&format[count++], type);
+
+    if (signer[0] != UNICODE_NULL)
+    {
+        PhInitFormatS(&format[count++], L" (");
+        PhInitFormatS(&format[count++], signer);
+        PhInitFormatS(&format[count++], Protection.Audit ? L", Audit)" : L")");
+    }
+    else if (Protection.Audit)
+    {
+        PhInitFormatS(&format[count++], L" (Audit)");
+    }
+
+    return PhFormat(format, count, 10);
+}
+
 BOOLEAN PhProcessProviderInitialization(
     VOID
     )
@@ -292,6 +356,11 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + PhSystemProcessorInformation.NumberOfProcessors;
+
+    PhpProtectionUnknownString = PhCreateString(L"Unknown");
+    PhpProtectionYesString = PhCreateString(L"Yes");
+    PhpProtectionNoneString = PhCreateString(L"None");
+    PhpProtectionSecureIUMString = PhCreateString(L"Secure (IUM)");
 
     return TRUE;
 }
@@ -405,6 +474,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
+    if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
@@ -1128,6 +1198,7 @@ VOID PhpFillProcessItem(
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
+    ProcessItem->IntegrityLevel.Level = MAXUSHORT;
 
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
@@ -1209,6 +1280,17 @@ VOID PhpFillProcessItem(
                         PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
                     }
                 }
+
+                if (!ProcessItem->FileName &&
+                    ProcessItem->IsSecureProcess &&
+                    PhEqualString2(ProcessItem->ProcessName, L"Secure System", FALSE))
+                {
+                    if (fileName = PhGetSecureKernelFileName())
+                    {
+                        ProcessItem->FileName = fileName;
+                        ProcessItem->FileNameWin32 = PhGetFileName(fileName);
+                    }
+                }
             }
         }
         else
@@ -1238,8 +1320,8 @@ VOID PhpFillProcessItem(
             TOKEN_ELEVATION_TYPE elevationType;
             BOOLEAN isElevated;
             BOOLEAN tokenIsUIAccessEnabled;
-            MANDATORY_LEVEL integrityLevel;
-            PWSTR integrityString;
+            PH_INTEGRITY_LEVEL integrityLevel;
+            PH_STRINGREF integrityString;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1260,7 +1342,7 @@ VOID PhpFillProcessItem(
             }
 
             // Integrity
-            if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+            if (NT_SUCCESS(PhGetTokenIntegrityLevelEx(tokenHandle, &integrityLevel, &integrityString)))
             {
                 ProcessItem->IntegrityLevel = integrityLevel;
                 ProcessItem->IntegrityString = integrityString;
@@ -1305,29 +1387,37 @@ VOID PhpFillProcessItem(
     }
 
     // Protection
-    if (ProcessItem->QueryHandle)
     {
+        BOOLEAN haveProtection = FALSE;
+
+        if (ProcessItem->QueryHandle)
+        {
+            if (WindowsVersion >= WINDOWS_8_1)
+            {
+                PS_PROTECTION protection;
+
+                if (NT_SUCCESS(PhGetProcessProtection(ProcessItem->QueryHandle, &protection)))
+                {
+                    ProcessItem->Protection.Level = protection.Level;
+                    haveProtection = TRUE;
+                }
+            }
+        }
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            PS_PROTECTION protection;
-
-            if (NT_SUCCESS(PhGetProcessProtection(ProcessItem->QueryHandle, &protection)))
-            {
-                ProcessItem->Protection.Level = protection.Level;
-            }
+            if (haveProtection)
+                ProcessItem->ProtectionString = PhpGetProtectionString(ProcessItem->Protection, (BOOLEAN)ProcessItem->IsSecureProcess);
+            else
+                ProcessItem->ProtectionString = PhReferenceObject(PhpProtectionUnknownString);
+        }
+        else if (ProcessItem->IsProtectedProcess)
+        {
+            ProcessItem->ProtectionString = PhReferenceObject(PhpProtectionYesString);
         }
         else
         {
-            // HACK: 'emulate' the PS_PROTECTION info for older OSes. (ge0rdi)
-            if (ProcessItem->IsProtectedProcess)
-                ProcessItem->Protection.Type = PsProtectedTypeProtected;
+            ProcessItem->ProtectionString = PhReferenceEmptyString();
         }
-    }
-    else
-    {
-        // Signalize that we weren't able to get protection info with a special value.
-        // Note: We use this value to determine if we should show protection information. (ge0rdi)
-        ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
     // Control Flow Guard
@@ -2713,8 +2803,8 @@ VOID PhProcessProviderUpdate(
                     PH_TOKEN_USER tokenUser;
                     //BOOLEAN isElevated;
                     //TOKEN_ELEVATION_TYPE elevationType;
-                    MANDATORY_LEVEL integrityLevel;
-                    PWSTR integrityString;
+                    PH_INTEGRITY_LEVEL integrityLevel;
+                    PH_STRINGREF integrityString;
 
                     if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
                     {
@@ -2761,9 +2851,9 @@ VOID PhProcessProviderUpdate(
                     //}
 
                     // Integrity
-                    if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))
+                    if (NT_SUCCESS(PhGetTokenIntegrityLevelEx(tokenHandle, &integrityLevel, &integrityString)))
                     {
-                        if (processItem->IntegrityLevel != integrityLevel)
+                        if (processItem->IntegrityLevel.Level != integrityLevel.Level)
                         {
                             processItem->IntegrityLevel = integrityLevel;
                             processItem->IntegrityString = integrityString;

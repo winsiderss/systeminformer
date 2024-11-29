@@ -345,20 +345,6 @@ VOID EtHandlePropertiesWindowInitialized(
                 PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
 
-            //if (real_count == 0)
-            //{
-            //    count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1));
-            //    if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count))
-            //    {
-            //        ULONG trueref_count = (ULONG)real_count;
-            //        if (NT_SUCCESS(EtObjectManagerTrueRef(context->HandleItem->Handle, &trueref_count)))
-            //        {
-            //            PhPrintUInt32(string, trueref_count);
-            //            PhSetListViewSubItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
-            //        }
-            //    }
-            //}
-
             // HACK for \REGISTRY permissions
             if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE) &&
                 PhEqualString2(context->HandleItem->ObjectName, L"\\REGISTRY", TRUE))
@@ -1551,17 +1537,11 @@ VOID EtpUpdateGeneralTab(
                 NULL
                 )))
             {
-                //PhPrintUInt32(string, basicInfo.PointerCount);
-                //PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+                PhPrintUInt32(string, basicInfo.PointerCount);
+                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
 
                 PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount));
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
-
-                //if (NT_SUCCESS(EtObjectManagerTrueRef(Context->HandleItem->Handle, &basicInfo.PointerCount)))
-                //{
-                //    PhPrintUInt32(string, basicInfo.PointerCount);
-                //    PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
-                //}
             }
 
             if (processHandle != NtCurrentProcess())
@@ -1836,7 +1816,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                         {
                             dispInfo->item.mask |= LVIF_DI_SETITEM;
                             dispInfo->item.pszText = PH_AUTO_T(PH_BYTES, PhConvertUtf16ToMultiByte(PhGetString(entry->HandleItem->ObjectName)))->Buffer;
-                        }   
+                        }
                         break;
                     }
                 }

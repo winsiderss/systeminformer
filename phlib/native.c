@@ -4030,7 +4030,6 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     ULONG subAuthoritiesCount;
     ULONG subAuthority;
     PWSTR integrityString;
-    BOOLEAN tokenIsAppContainer;
 
     status = NtQueryInformationToken(
         TokenHandle,
@@ -4056,39 +4055,32 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
 
     if (IntegrityString)
     {
-        if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)) && tokenIsAppContainer)
+        switch (subAuthority)
         {
-            integrityString = L"AppContainer";
-        }
-        else
-        {
-            switch (subAuthority)
-            {
-            case SECURITY_MANDATORY_UNTRUSTED_RID:
-                integrityString = L"Untrusted";
-                break;
-            case SECURITY_MANDATORY_LOW_RID:
-                integrityString = L"Low";
-                break;
-            case SECURITY_MANDATORY_MEDIUM_RID:
-                integrityString = L"Medium";
-                break;
-            case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
-                integrityString = L"Medium +";
-                break;
-            case SECURITY_MANDATORY_HIGH_RID:
-                integrityString = L"High";
-                break;
-            case SECURITY_MANDATORY_SYSTEM_RID:
-                integrityString = L"System";
-                break;
-            case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-                integrityString = L"Protected";
-                break;
-            default:
-                integrityString = L"Other";
-                break;
-            }
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityString = L"Untrusted";
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityString = L"Low";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityString = L"Medium";
+            break;
+        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+            integrityString = L"Medium+";
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityString = L"High";
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityString = L"System";
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityString = L"Protected";
+            break;
+        default:
+            integrityString = L"Other";
+            break;
         }
 
         *IntegrityString = integrityString;
@@ -4157,6 +4149,109 @@ NTSTATUS PhGetTokenIntegrityLevel(
     }
 
     return status;
+}
+
+typedef struct _PH_INTEGRITY_LEVEL_STRING_ENTRY
+{
+    PH_STRINGREF String;
+    PH_INTEGRITY_LEVEL IntegrityLevel;
+} PH_INTEGRITY_LEVEL_STRING_ENTRY, *PPH_INTEGRITY_LEVEL_STRING_ENTRY;
+
+/**
+ * Gets a token's integrity level with extended information.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IntegrityLevel A variable which receives the integrity level of the token.
+ * \param IntegrityString A variable which receives a pointer to a string containing a string
+ * representation of the integrity level with any extended information.
+ */
+NTSTATUS PhGetTokenIntegrityLevelEx(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PPH_INTEGRITY_LEVEL IntegrityLevel,
+    _Out_opt_ PPH_STRINGREF IntegrityString
+    )
+{
+    static PH_STRINGREF integrityLevelDefaultString = PH_STRINGREF_INIT(L"Other");
+    static PH_INTEGRITY_LEVEL_STRING_ENTRY integrityLevelStringTable[] =
+    {
+        { PH_STRINGREF_INIT(L"Untrusted"), { .Mandatory = MandatoryLevelUntrusted } },
+        { PH_STRINGREF_INIT(L"Low"), {.Mandatory = MandatoryLevelLow }},
+        { PH_STRINGREF_INIT(L"Medium"), { .Mandatory = MandatoryLevelMedium } },
+        { PH_STRINGREF_INIT(L"Medium+"), { .Mandatory = MandatoryLevelMedium, .Plus = TRUE } },
+        { PH_STRINGREF_INIT(L"High"), { .Mandatory = MandatoryLevelHigh, } },
+        { PH_STRINGREF_INIT(L"System"), { .Mandatory = MandatoryLevelSystem, } },
+        { PH_STRINGREF_INIT(L"Secure"), { .Mandatory = MandatoryLevelSecureProcess, } },
+        { PH_STRINGREF_INIT(L"Untrusted (AppContainer)"), { .Mandatory = MandatoryLevelUntrusted, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"Low (AppContainer)"), {.Mandatory = MandatoryLevelLow, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"Medium (AppContainer)"), { .Mandatory = MandatoryLevelMedium, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"Medium+ (AppContainer)"), { .Mandatory = MandatoryLevelMedium, .AppContainer = TRUE, .Plus = TRUE, } },
+        { PH_STRINGREF_INIT(L"High (AppContainer)"), { .Mandatory = MandatoryLevelHigh, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"System (AppContainer)"), { .Mandatory = MandatoryLevelSystem, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"Secure (AppContainer)"), { .Mandatory = MandatoryLevelSecureProcess, .AppContainer = TRUE, } },
+    };
+
+    NTSTATUS status;
+    PH_INTEGRITY_LEVEL integrityLevel;
+    MANDATORY_LEVEL_RID integrityLevelRID;
+    BOOLEAN tokenIsAppContainer;
+
+    integrityLevel.Level = 0;
+
+    if (!NT_SUCCESS(status = PhGetTokenIntegrityLevelRID(TokenHandle, &integrityLevelRID, NULL)))
+        return status;
+
+    if (IntegrityLevel)
+    {
+        switch (integrityLevelRID)
+        {
+        case SECURITY_MANDATORY_UNTRUSTED_RID:
+            integrityLevel.Mandatory = MandatoryLevelUntrusted;
+            break;
+        case SECURITY_MANDATORY_LOW_RID:
+            integrityLevel.Mandatory = MandatoryLevelLow;
+            break;
+        case SECURITY_MANDATORY_MEDIUM_RID:
+            integrityLevel.Mandatory = MandatoryLevelMedium;
+            break;
+        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+            integrityLevel.Mandatory = MandatoryLevelMedium;
+            integrityLevel.Plus = TRUE;
+            break;
+        case SECURITY_MANDATORY_HIGH_RID:
+            integrityLevel.Mandatory = MandatoryLevelHigh;
+            break;
+        case SECURITY_MANDATORY_SYSTEM_RID:
+            integrityLevel.Mandatory = MandatoryLevelSystem;
+            break;
+        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+            integrityLevel.Mandatory = MandatoryLevelSecureProcess;
+            break;
+        default:
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)) && tokenIsAppContainer)
+        integrityLevel.AppContainer = TRUE;
+
+    if (IntegrityLevel)
+        IntegrityLevel->Level = integrityLevel.Level;
+
+    if (!IntegrityString)
+        return STATUS_SUCCESS;
+
+    *IntegrityString = integrityLevelDefaultString;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(integrityLevelStringTable); i++)
+    {
+        if (integrityLevelStringTable[i].IntegrityLevel.Level == integrityLevel.Level)
+        {
+            *IntegrityString = integrityLevelStringTable[i].String;
+            break;
+        }
+    }
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhGetProcessMandatoryPolicy(

@@ -2241,7 +2241,7 @@ BOOLEAN PhUiThawTreeProcess(
     )
 {
     NTSTATUS status;
-    
+
     status = PhThawProcess(
         Process->FreezeHandle,
         Process->ProcessId

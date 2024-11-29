@@ -171,8 +171,10 @@ typedef struct _PH_PROCESS_ITEM
 
     PSID Sid;
     TOKEN_ELEVATION_TYPE ElevationType;
-    MANDATORY_LEVEL IntegrityLevel;
-    PWSTR IntegrityString;
+    PH_INTEGRITY_LEVEL IntegrityLevel;
+    PH_STRINGREF IntegrityString;
+    PS_PROTECTION Protection;
+    PPH_STRING ProtectionString;
 
     // Other
 
@@ -296,7 +298,6 @@ typedef struct _PH_PROCESS_ITEM
 
     ULONGLONG ProcessSequenceNumber;
     PH_KNOWN_PROCESS_TYPE KnownProcessType;
-    PS_PROTECTION Protection;
     ULONG JobObjectId;
     SIZE_T SharedCommitCharge;
 

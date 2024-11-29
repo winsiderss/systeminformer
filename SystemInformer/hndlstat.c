@@ -157,7 +157,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            
+
             if (PhGetScalableIntegerPairSetting(L"HandleStatisticsWindowSize", TRUE, dpiValue).X)
                 PhLoadWindowPlacementFromSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));

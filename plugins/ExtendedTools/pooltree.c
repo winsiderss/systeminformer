@@ -104,6 +104,14 @@ VOID EtDestroyPoolTagNode(
         PhDereferenceObject(PoolTagNode->NonPagedCurrentValueString);
     if (PoolTagNode->NonPagedTotalSizeValueString)
         PhDereferenceObject(PoolTagNode->NonPagedTotalSizeValueString);
+    if (PoolTagNode->AllocsValueString)
+        PhDereferenceObject(PoolTagNode->AllocsValueString);
+    if (PoolTagNode->FreesValueString)
+        PhDereferenceObject(PoolTagNode->FreesValueString);
+    if (PoolTagNode->CurrentValueString)
+        PhDereferenceObject(PoolTagNode->CurrentValueString);
+    if (PoolTagNode->TotalSizeValueString)
+        PhDereferenceObject(PoolTagNode->TotalSizeValueString);
     if (PoolTagNode->PagedAllocsDeltaString)
         PhDereferenceObject(PoolTagNode->PagedAllocsDeltaString);
     if (PoolTagNode->PagedFreesDeltaString)
@@ -120,6 +128,14 @@ VOID EtDestroyPoolTagNode(
         PhDereferenceObject(PoolTagNode->NonPagedCurrentDeltaString);
     if (PoolTagNode->NonPagedTotalSizeDeltaString)
         PhDereferenceObject(PoolTagNode->NonPagedTotalSizeDeltaString);
+    if (PoolTagNode->AllocsDeltaString)
+        PhDereferenceObject(PoolTagNode->AllocsDeltaString);
+    if (PoolTagNode->FreesDeltaString)
+        PhDereferenceObject(PoolTagNode->FreesDeltaString);
+    if (PoolTagNode->CurrentDeltaString)
+        PhDereferenceObject(PoolTagNode->CurrentDeltaString);
+    if (PoolTagNode->TotalSizeDeltaString)
+        PhDereferenceObject(PoolTagNode->TotalSizeDeltaString);
 
     PhFree(PoolTagNode);
 }
@@ -267,6 +283,30 @@ BEGIN_SORT_FUNCTION(NonPagedTotal)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Alloc)
+{
+    sortResult = uint64cmp(poolItem1->AllocsDelta.Value, poolItem2->AllocsDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Free)
+{
+    sortResult = uint64cmp(poolItem1->FreesDelta.Value, poolItem2->FreesDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Current)
+{
+    sortResult = uint64cmp(poolItem1->CurrentDelta.Value, poolItem2->CurrentDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Total)
+{
+    sortResult = uint64cmp(poolItem1->TotalSizeDelta.Value, poolItem2->TotalSizeDelta.Value);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(PagedAllocDelta)
 {
     sortResult = uint64cmp(poolItem1->PagedAllocsDelta.Delta, poolItem2->PagedAllocsDelta.Delta);
@@ -312,6 +352,30 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(NonPagedTotalDelta)
 {
     sortResult = uint64cmp(poolItem1->NonPagedTotalSizeDelta.Delta, poolItem2->NonPagedTotalSizeDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(AllocDelta)
+{
+    sortResult = uint64cmp(poolItem1->AllocsDelta.Delta, poolItem2->AllocsDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FreeDelta)
+{
+    sortResult = uint64cmp(poolItem1->FreesDelta.Delta, poolItem2->FreesDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CurrentDelta)
+{
+    sortResult = uint64cmp(poolItem1->CurrentDelta.Delta, poolItem2->CurrentDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(TotalDelta)
+{
+    sortResult = uint64cmp(poolItem1->TotalSizeDelta.Delta, poolItem2->TotalSizeDelta.Delta);
 }
 END_SORT_FUNCTION
 
@@ -405,6 +469,10 @@ BOOLEAN NTAPI EtPoolTagTreeNewCallback(
                     SORT_FUNCTION(NonPagedFree),
                     SORT_FUNCTION(NonPagedCurrent),
                     SORT_FUNCTION(NonPagedTotal),
+                    SORT_FUNCTION(Alloc),
+                    SORT_FUNCTION(Free),
+                    SORT_FUNCTION(Current),
+                    SORT_FUNCTION(Total),
                     SORT_FUNCTION(PagedAllocDelta),
                     SORT_FUNCTION(PagedFreeDelta),
                     SORT_FUNCTION(PagedCurrentDelta),
@@ -413,6 +481,10 @@ BOOLEAN NTAPI EtPoolTagTreeNewCallback(
                     SORT_FUNCTION(NonPagedFreeDelta),
                     SORT_FUNCTION(NonPagedCurrentDelta),
                     SORT_FUNCTION(NonPagedTotalDelta),
+                    SORT_FUNCTION(AllocDelta),
+                    SORT_FUNCTION(FreeDelta),
+                    SORT_FUNCTION(CurrentDelta),
+                    SORT_FUNCTION(TotalDelta),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -532,6 +604,42 @@ BOOLEAN NTAPI EtPoolTagTreeNewCallback(
                     }
                 }
                 break;
+            case TREE_COLUMN_ITEM_ALLOC:
+                {
+                    if (poolItem->AllocsDelta.Value != 0)
+                    {
+                        PhMoveReference(&node->AllocsValueString, PhFormatUInt64(poolItem->AllocsDelta.Value, TRUE));
+                        getCellText->Text = node->AllocsValueString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_FREE:
+                {
+                    if (poolItem->FreesDelta.Value != 0)
+                    {
+                        PhMoveReference(&node->FreesValueString, PhFormatUInt64(poolItem->FreesDelta.Value, TRUE));
+                        getCellText->Text = node->FreesValueString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_CURRENT:
+                {
+                    if (poolItem->CurrentDelta.Value != 0)
+                    {
+                        PhMoveReference(&node->CurrentValueString, PhFormatUInt64(poolItem->CurrentDelta.Value, TRUE));
+                        getCellText->Text = node->CurrentValueString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_TOTAL:
+                {
+                    if (poolItem->TotalSizeDelta.Value != 0)
+                    {
+                        PhMoveReference(&node->TotalSizeValueString, PhFormatSize(poolItem->TotalSizeDelta.Value, ULONG_MAX));
+                        getCellText->Text = node->TotalSizeValueString->sr;
+                    }
+                }
+                break;
             case TREE_COLUMN_ITEM_PAGEDALLOCDELTA:
                 {
                     if (!poolItem->HaveFirstSample)
@@ -625,6 +733,54 @@ BOOLEAN NTAPI EtPoolTagTreeNewCallback(
                     {
                         PhMoveReference(&node->NonPagedTotalSizeDeltaString, EtPoolFormatDeltaSize(poolItem->NonPagedTotalSizeDelta.Delta));
                         getCellText->Text = node->NonPagedTotalSizeDeltaString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_ALLOCDELTA:
+                {
+                    if (!poolItem->HaveFirstSample)
+                        break;
+
+                    if (poolItem->AllocsDelta.Delta != 0)
+                    {
+                        PhMoveReference(&node->AllocsDeltaString, PhFormatUInt64(poolItem->AllocsDelta.Delta, TRUE));
+                        getCellText->Text = node->AllocsDeltaString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_FREEDELTA:
+                {
+                    if (!poolItem->HaveFirstSample)
+                        break;
+
+                    if (poolItem->FreesDelta.Delta != 0)
+                    {
+                        PhMoveReference(&node->FreesDeltaString, PhFormatUInt64(poolItem->FreesDelta.Delta, TRUE));
+                        getCellText->Text = node->FreesDeltaString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_CURRENTDELTA:
+                {
+                    if (!poolItem->HaveFirstSample)
+                        break;
+
+                    if (poolItem->CurrentDelta.Delta != 0)
+                    {
+                        PhMoveReference(&node->CurrentDeltaString, EtPoolFormatDeltaValue(poolItem->CurrentDelta.Delta));
+                        getCellText->Text = node->CurrentDeltaString->sr;
+                    }
+                }
+                break;
+            case TREE_COLUMN_ITEM_TOTALDELTA:
+                {
+                    if (!poolItem->HaveFirstSample)
+                        break;
+
+                    if (poolItem->TotalSizeDelta.Delta != 0)
+                    {
+                        PhMoveReference(&node->TotalSizeDeltaString, EtPoolFormatDeltaSize(poolItem->TotalSizeDelta.Delta));
+                        getCellText->Text = node->TotalSizeDeltaString->sr;
                     }
                 }
                 break;
@@ -800,6 +956,10 @@ VOID EtInitializePoolTagTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDFREE, TRUE, L"Non-paged frees (total)", 80, PH_ALIGN_RIGHT, 7, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDCURRENT, TRUE, L"Non-paged current (total)", 80, PH_ALIGN_RIGHT, 8, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDTOTAL, TRUE, L"Non-paged bytes (total)", 80, PH_ALIGN_LEFT, 9, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_ALLOC, FALSE, L"Allocations (total)", 80, PH_ALIGN_RIGHT, 2, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_FREE, FALSE, L"Frees (total)", 80, PH_ALIGN_RIGHT, 3, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_CURRENT, FALSE, L"Current (total)", 80, PH_ALIGN_RIGHT, 4, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TOTAL, FALSE, L"Bytes (total)", 80, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PAGEDALLOCDELTA, FALSE, L"Paged allocations (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PAGEDFREEDELTA, FALSE, L"Paged frees (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PAGEDCURRENTDELTA, FALSE, L"Paged current (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -808,6 +968,10 @@ VOID EtInitializePoolTagTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDFREEDELTA, FALSE, L"Non-paged frees (delta)", 80, PH_ALIGN_RIGHT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDCURRENTDELTA, FALSE, L"Non-paged current (delta)", 80, PH_ALIGN_RIGHT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDTOTALDELTA, FALSE, L"Non-paged bytes (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_ALLOCDELTA, FALSE, L"Allocations (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_FREEDELTA, FALSE, L"Frees (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_CURRENTDELTA, FALSE, L"Current (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TOTALDELTA, FALSE, L"Bytes (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
 

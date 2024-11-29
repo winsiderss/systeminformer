@@ -42,6 +42,10 @@ VOID EtUpdatePoolTagTable(
             PhUpdateDelta(&node->PoolItem->NonPagedFreesDelta, poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedCurrentDelta, poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedTotalSizeDelta, poolTagInfo.NonPagedUsed);
+            PhUpdateDelta(&node->PoolItem->AllocsDelta, poolTagInfo.PagedAllocs + poolTagInfo.NonPagedAllocs);
+            PhUpdateDelta(&node->PoolItem->FreesDelta, poolTagInfo.PagedFrees + poolTagInfo.NonPagedFrees);
+            PhUpdateDelta(&node->PoolItem->CurrentDelta, (poolTagInfo.PagedAllocs - poolTagInfo.PagedFrees) + (poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees));
+            PhUpdateDelta(&node->PoolItem->TotalSizeDelta, poolTagInfo.PagedUsed + poolTagInfo.NonPagedUsed);
             node->PoolItem->HaveFirstSample = TRUE;
 
             EtUpdatePoolTagNode(Context, node);
@@ -62,6 +66,10 @@ VOID EtUpdatePoolTagTable(
             PhUpdateDelta(&entry->NonPagedFreesDelta, poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&entry->NonPagedCurrentDelta, poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&entry->NonPagedTotalSizeDelta, poolTagInfo.NonPagedUsed);
+            PhUpdateDelta(&entry->AllocsDelta, poolTagInfo.PagedAllocs + poolTagInfo.NonPagedAllocs);
+            PhUpdateDelta(&entry->FreesDelta, poolTagInfo.PagedFrees + poolTagInfo.NonPagedFrees);
+            PhUpdateDelta(&entry->CurrentDelta, (poolTagInfo.PagedAllocs - poolTagInfo.PagedFrees) + (poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees));
+            PhUpdateDelta(&entry->TotalSizeDelta, poolTagInfo.PagedUsed + poolTagInfo.NonPagedUsed);
 
             EtUpdatePoolTagBinaryName(Context, entry, poolTagInfo.TagUlong);
 

@@ -1206,6 +1206,34 @@ PhGetTokenIntegrityLevel(
     _Out_opt_ PWSTR *IntegrityString
     );
 
+typedef union _PH_INTEGRITY_LEVEL
+{
+    struct
+    {
+        //
+        // Lower bits describe amendments to the MANDATOR_LEVEL which are a
+        // combination of additional features closely related to integrity on
+        // the system.
+        //
+        USHORT Plus : 1;
+        USHORT AppContainer : 1;
+        USHORT Spare : 10;
+
+        USHORT Mandatory : 4; // MANDATORY_LEVEL
+    };
+
+    USHORT Level;
+} PH_INTEGRITY_LEVEL, *PPH_INTEGRITY_LEVEL;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIntegrityLevelEx(
+    _In_ HANDLE TokenHandle,
+    _Out_opt_ PPH_INTEGRITY_LEVEL IntegrityLevel,
+    _Out_opt_ PPH_STRINGREF IntegrityString
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -1737,6 +1765,13 @@ PhGetKernelFileNameEx(
     _Out_opt_ PPH_STRING* FileName,
     _Out_ PVOID* ImageBase,
     _Out_ ULONG* ImageSize
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSecureKernelFileName(
+    VOID
     );
 
 /**

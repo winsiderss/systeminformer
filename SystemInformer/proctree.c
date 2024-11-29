@@ -37,6 +37,7 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <procmtgn.h>
 
 #include <math.h>
 
@@ -238,6 +239,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_REFERENCEDELTA, FALSE, L"References", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_LXSSPID, FALSE, L"PID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -672,7 +674,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
     PhClearReference(&ProcessNode->JobObjectIdText);
-    PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
@@ -690,6 +691,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ReferenceCountText);
     PhClearReference(&ProcessNode->LxssProcessIdText);
     PhClearReference(&ProcessNode->ProcessStartKeyText);
+    PhClearReference(&ProcessNode->MitigationPoliciesText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1719,6 +1721,77 @@ static VOID PhpUpdateProcessNodeStartKey(
     }
 }
 
+static VOID PhpUpdateProcessNodeMitigationPolicies(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_MITIGATIONPOLICIES))
+    {
+        NTSTATUS status;
+        PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
+
+        if (ProcessNode->ProcessItem->QueryHandle &&
+            NT_SUCCESS(status = PhGetProcessMitigationPolicy(ProcessNode->ProcessItem->QueryHandle, &information)))
+        {
+            PH_STRING_BUILDER sb;
+            PROCESS_MITIGATION_POLICY policy;
+            PPH_STRING shortDescription;
+
+            PhInitializeStringBuilder(&sb, 100);
+
+            for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
+            {
+                if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy(
+                    policy,
+                    information.Pointers[policy],
+                    &shortDescription,
+                    NULL
+                    ))
+                {
+                    PhAppendStringBuilder(&sb, &shortDescription->sr);
+                    PhAppendStringBuilder2(&sb, L"; ");
+                    PhDereferenceObject(shortDescription);
+                }
+            }
+
+            // HACK: Show System process CET mitigation (dmex)
+            if (ProcessNode->ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+            {
+                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                {
+                    PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY policyData;
+
+                    memset(&policyData, 0, sizeof(PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY));
+                    policyData.EnableUserShadowStack = shadowStackInformation.KernelCetEnabled;
+                    policyData.EnableUserShadowStackStrictMode = shadowStackInformation.KernelCetEnabled;
+                    policyData.AuditUserShadowStack = shadowStackInformation.KernelCetAuditModeEnabled;
+
+                    if (PhDescribeProcessMitigationPolicy(
+                        ProcessUserShadowStackPolicy,
+                        &policyData,
+                        &shortDescription,
+                        NULL
+                        ))
+                    {
+                        PhAppendStringBuilder(&sb, &shortDescription->sr);
+                        PhAppendStringBuilder2(&sb, L"; ");
+                        PhDereferenceObject(shortDescription);
+                    }
+                }
+            }
+
+            if (sb.String->Length != 0)
+                PhRemoveEndStringBuilder(&sb, 2);
+
+            ProcessNode->MitigationPoliciesText = PhFinalStringBuilderString(&sb);
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_MITIGATIONPOLICIES);
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     _In_ const void *_elem1, \
@@ -1970,7 +2043,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Integrity)
 {
-    sortResult = uintcmp(processItem1->IntegrityLevel, processItem2->IntegrityLevel);
+    sortResult = uintcmp(processItem1->IntegrityLevel.Level, processItem2->IntegrityLevel.Level);
 }
 END_SORT_FUNCTION
 
@@ -2357,11 +2430,11 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Protection)
 {
-    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
-    // are placed below processes we are able to query (e.g. 0 and above).
-    sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+    sortResult = ucharcmp((BOOLEAN)processItem1->IsSecureProcess, (BOOLEAN)processItem2->IsSecureProcess);
     if (sortResult == 0)
-        sortResult = charcmp((CHAR)processItem1->IsSecureProcess, (CHAR)processItem2->IsSecureProcess);
+        sortResult = ucharcmp((BOOLEAN)processItem1->IsProtectedProcess, (BOOLEAN)processItem2->IsProtectedProcess);
+        if (sortResult == 0)
+            sortResult = ucharcmp(processItem1->Protection.Level, processItem2->Protection.Level);
 }
 END_SORT_FUNCTION
 
@@ -2553,6 +2626,19 @@ BEGIN_SORT_FUNCTION(StartKey)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(MitigationPolicies)
+{
+    PhpUpdateProcessNodeMitigationPolicies(node1);
+    PhpUpdateProcessNodeMitigationPolicies(node2);
+    sortResult = PhCompareStringWithNullSortOrder(
+        node1->MitigationPoliciesText,
+        node2->MitigationPoliciesText,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2698,6 +2784,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ReferenceDelta),
                         SORT_FUNCTION(LxssPid),
                         SORT_FUNCTION(StartKey),
+                        SORT_FUNCTION(MitigationPolicies),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3036,10 +3123,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_INTEGRITY:
-                {
-                    if (processItem->IntegrityString)
-                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->IntegrityString);
-                }
+                getCellText->Text = processItem->IntegrityString;
                 break;
             case PHPRTLC_IOPRIORITY:
                 {
@@ -3695,10 +3779,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PROTECTION:
                 {
-                    if ((processItem->Protection.Level != 0 || processItem->IsSecureProcess) && processItem->Protection.Level != UCHAR_MAX)
+                    if (processItem->Protection.Level ||
+                        processItem->IsSecureProcess ||
+                        processItem->IsProtectedProcess)
                     {
-                        PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
-                        getCellText->Text = node->ProtectionText->sr;
+                        getCellText->Text = processItem->ProtectionString->sr;
                     }
                 }
                 break;
@@ -4105,6 +4190,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ProcessStartKey != 0)
                     {
                         getCellText->Text = PhGetStringRef(node->ProcessStartKeyText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PHPRTLC_MITIGATION_POLICIES:
+                {
+                    PhpUpdateProcessNodeMitigationPolicies(node);
+
+                    if (node->MitigationPoliciesText)
+                    {
+                        getCellText->Text = PhGetStringRef(node->MitigationPoliciesText);
                     }
                     else
                     {
