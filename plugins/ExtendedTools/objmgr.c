@@ -151,12 +151,6 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ PPH_STRING DirectoryPath
     );
 
-NTSTATUS EtTreeViewEnumDirectoryObjects2(
-    _In_ HWND TreeViewHandle,
-    _In_ HTREEITEM RootTreeItem,
-    _In_ PPH_STRINGREF DirectoryPath
-    );
-
 #define OBJECT_OPENSOURCE_ALPCPORT  1
 #define OBJECT_OPENSOURCE_KEY       2
 #define OBJECT_OPENSOURCE_ALL   OBJECT_OPENSOURCE_ALPCPORT|OBJECT_OPENSOURCE_KEY
@@ -712,7 +706,8 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
             entry->EtObjectType == EtObjectEvent ||
             entry->EtObjectType == EtObjectTimer ||
             entry->EtObjectType == EtObjectSemaphore ||
-            entry->EtObjectType == EtObjectType
+            entry->EtObjectType == EtObjectType ||
+            entry->EtObjectType == EtObjectSession
             )
         {
             entry->TargetIsResolving = TRUE;
@@ -1000,6 +995,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                 if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, MUTANT_QUERY_STATE, 0)))
                 {
                     MUTANT_OWNER_INFORMATION ownerInfo;
+                    MUTANT_BASIC_INFORMATION basicInfo;
 
                     if (NT_SUCCESS(status = PhGetMutantOwnerInformation(objectHandle, &ownerInfo)))
                     {
@@ -1009,6 +1005,18 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
 
                             entry->TargetClientId.UniqueProcess = ownerInfo.ClientId.UniqueProcess;
                             entry->TargetClientId.UniqueThread = ownerInfo.ClientId.UniqueThread;
+                        }
+                    }
+
+                    if (!entry->TargetClientId.UniqueThread)    // HACK
+                    {
+                        if (NT_SUCCESS(status = PhGetMutantBasicInformation(objectHandle, &basicInfo)))
+                        {
+                            if (basicInfo.AbandonedState)
+                            {
+                                entry->TargetIsInfoOnly = TRUE;
+                                entry->Target = PhCreateString(L"Abandoned");
+                            }
                         }
                     }
                 }
@@ -1232,6 +1240,43 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         objectType = PH_NEXT_OBJECT_TYPE(objectType);
                     }
                     PhFree(objectTypes);
+                }
+            }
+            break;
+        case EtObjectSession:
+            {
+                WINSTATIONINFORMATION winStationInfo;
+                ULONG returnLength;
+                ULONG sessionId;
+
+                if ((sessionId = EtSessionIdFromObjectName(&entry->Name->sr)) != ULONG_MAX)
+                {
+                    if (WinStationQueryInformationW(
+                        WINSTATION_CURRENT_SERVER,
+                        sessionId,
+                        WinStationInformation,
+                        &winStationInfo,
+                        sizeof(WINSTATIONINFORMATION),
+                        &returnLength
+                        ))
+                    {
+                        entry->TargetIsInfoOnly = TRUE;
+
+                        if (winStationInfo.Domain[0] == UNICODE_NULL || winStationInfo.UserName[0] == UNICODE_NULL)
+                        {
+                            entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
+                        }
+                            
+                        else
+                        {
+                            entry->Target = PhFormatString(
+                                L"%s%c%s (%s)",
+                                winStationInfo.Domain,
+                                winStationInfo.Domain[0] != UNICODE_NULL ? OBJ_NAME_PATH_SEPARATOR : UNICODE_NULL,
+                                winStationInfo.UserName,
+                                EtMapSessionConnectState(winStationInfo.ConnectState));
+                        }
+                    }
                 }
             }
             break;

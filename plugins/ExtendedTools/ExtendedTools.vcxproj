@@ -83,7 +83,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>

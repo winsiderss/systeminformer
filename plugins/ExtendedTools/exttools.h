@@ -1656,6 +1656,16 @@ extern ULONG EtKeyTypeIndex;
 extern ULONG EtSectionTypeIndex;
 extern ULONG EtWinStaTypeIndex;
 
+#include <winsta.h>
+
+ULONG EtSessionIdFromObjectName(
+    _In_ PPH_STRINGREF Name
+    );
+
+PWSTR EtMapSessionConnectState(
+    _In_ WINSTATIONSTATECLASS State
+    );
+
 VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     );
