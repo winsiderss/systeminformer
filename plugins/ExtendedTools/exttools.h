@@ -1656,16 +1656,6 @@ extern ULONG EtKeyTypeIndex;
 extern ULONG EtSectionTypeIndex;
 extern ULONG EtWinStaTypeIndex;
 
-#include <winsta.h>
-
-ULONG EtSessionIdFromObjectName(
-    _In_ PPH_STRINGREF Name
-    );
-
-PWSTR EtMapSessionConnectState(
-    _In_ WINSTATIONSTATECLASS State
-    );
-
 VOID EtShowObjectManagerDialog(
     _In_ HWND ParentWindowHandle
     );
@@ -1689,6 +1679,16 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
     _Out_opt_ PVOID* Object,
     _Out_opt_ PULONG TypeIndex,
     _Out_opt_ PULONG Attributes
+    );
+
+#include <winsta.h>
+
+ULONG EtSessionIdFromObjectName(
+    _In_ PPH_STRINGREF Name
+    );
+
+PWSTR EtMapSessionConnectState(
+    _In_ WINSTATIONSTATECLASS State
     );
 
 // poolmon

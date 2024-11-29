@@ -120,6 +120,7 @@ typedef struct _ET_OBJECT_ENTRY
     ULONG TypeTypeIndex;
 
     PVOID Object;
+    ULONG TypeIndex;
     ULONG Attributes;
     WCHAR ObjectString[PH_PTR_STR_LEN_1];
 } ET_OBJECT_ENTRY, *PET_OBJECT_ENTRY;
@@ -1285,13 +1286,15 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     if (KsiLevel() >= KphLevelMed && (entry->EtObjectType != EtObjectAlpcPort || alpcSourceOpened)) // show port address if source object was already opened
     {
         PVOID objectAddress = NULL;
+        ULONG typeIndex = ULONG_MAX;
         ULONG attributes = 0;
 
         if (objectHandle)
         {
-            if (NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, NULL, &attributes)))
+            if (NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, &typeIndex, &attributes)))
             {
                 entry->Object = objectAddress;
+                entry->TypeIndex = typeIndex;
                 entry->Attributes = attributes;     // TODO: add attributes column
                 PhPrintPointer(entry->ObjectString, objectAddress);
             }
@@ -1313,9 +1316,10 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                 //}
 
                 if (/*NT_SUCCESS(status) &&*/
-                    NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, NULL, &attributes)))
+                    NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, &typeIndex, &attributes)))
                 {
                     entry->Object = objectAddress;
+                    entry->TypeIndex = typeIndex;
                     entry->Attributes = attributes;
                     PhPrintPointer(entry->ObjectString, objectAddress);
                 }
@@ -2162,7 +2166,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
             }
         }
 
-        if (Object)
+        if (Object || TypeIndex)
         {
             PKPH_PROCESS_HANDLE_INFORMATION handles;
             if (NT_SUCCESS(status = KsiEnumerateProcessHandles(ProcessHandle, &handles)))
@@ -2171,7 +2175,8 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
                 {
                     if (handles->Handles[i].Handle == ObjectHandle)
                     {
-                        *Object = handles->Handles[i].Object;
+                        if (Object) *Object = handles->Handles[i].Object;
+                        if (TypeIndex) *TypeIndex = handles->Handles[i].ObjectTypeIndex;
                         break;
                     }
                 }
@@ -2245,7 +2250,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     }
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = Entry;
+    objectContext.Object = PhReferenceObject(Entry);
     objectContext.FullName = NULL;
 
     if (Entry->EtObjectType == EtObjectDirectory)
@@ -2350,7 +2355,8 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Object Manager plugin window
     PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
-    PhDereferenceObject(context->CurrentPath);
+    PhDereferenceObject(Entry);
+    PhDereferenceObject(objectContext.CurrentPath);
 }
 
 VOID NTAPI EtpObjectManagerObjectHandles(
@@ -2724,7 +2730,7 @@ VOID EtpObjectManagerCopyObjectAddress(
     }
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = Entry;
+    objectContext.Object = PhReferenceObject(Entry);
     objectContext.FullName = NULL;
 
     if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)) ||
@@ -2751,6 +2757,8 @@ VOID EtpObjectManagerCopyObjectAddress(
         {
             if (NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, NULL, NULL)))
             {
+                Entry->Object = objectAddress;
+                ListView_RedrawItems(Entry->Context->ListViewHandle, Entry->ItemIndex, Entry->ItemIndex);
                 PhPrintPointer(string, objectAddress);
                 PhInitializeStringRef(&pointer, string);
             }
@@ -2762,7 +2770,8 @@ VOID EtpObjectManagerCopyObjectAddress(
 cleanup_exit:
     PhSetClipboardString(context->WindowHandle, &pointer);
 
-    PhDereferenceObject(context->CurrentPath);
+    PhDereferenceObject(Entry);
+    PhDereferenceObject(objectContext.CurrentPath);
 }
 
 VOID EtpObjectEntryDeleteProcedure(
