@@ -193,6 +193,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     HANDLE_PROPERTIES_CONTEXT context;
     PH_AUTO_POOL autoPool;
 
+    memset(&context, 0, sizeof(HANDLE_PROPERTIES_CONTEXT));
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
     context.OwnerPlugin = handleContext->OwnerPlugin;
@@ -308,11 +309,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
         PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
 
+        memset(&propertiesContext, 0, sizeof(PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT));
         propertiesContext.ParentWindowHandle = handleContext->ParentWindowHandle;
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
         propertiesContext.OwnerPlugin = handleContext->OwnerPlugin;
 
+        memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
         objectProperties.MaximumNumberOfPages = RTL_NUMBER_OF(pages);
@@ -352,7 +355,7 @@ VOID PhShowHandlePropertiesEx(
 {
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
-    context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
+    context = PhAllocateZero(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
     context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;

@@ -216,7 +216,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
 
             // Position the control.
             GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
-            MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
+            MapWindowRect(NULL, hwndDlg, &rect);
             MoveWindow(context->ServiceListHandle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, FALSE);
             ShowWindow(context->ServiceListHandle, SW_SHOW);
 

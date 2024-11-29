@@ -2223,7 +2223,7 @@ VOID PhGetSelectedThreadItems(
             PhAddItemArray(&array, &node->ThreadItem);
     }
 
-    *NumberOfThreads = (ULONG)array.Count;
+    *NumberOfThreads = (ULONG)PhFinalArrayCount(&array);
     *Threads = PhFinalArrayItems(&array);
 }
 

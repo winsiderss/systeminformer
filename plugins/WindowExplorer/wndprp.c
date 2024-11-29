@@ -16,6 +16,7 @@
 #include <symprv.h>
 #include <mapldr.h>
 
+#include <d3dkmthk.h>
 #include <shellapi.h>
 #include <propsys.h>
 #include <propvarutil.h>
@@ -152,6 +153,15 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
 
 #define DEFINE_PAIR(Symbol) { TEXT(#Symbol), Symbol }
 
+#define WS_EX_DRAGDETECT 0x00000002
+#define WS_EX_VISIBLEWHENOTGHOSTED 0x00000800
+#define WS_EX_FORCELEGACYRESIZENC 0x00800000
+#define WS_EX_UISTATEACTIVE 0x04000000
+#define WS_EX_REDIRECTED 0x20000000
+#define WS_EX_UISTATEACCELHIDDEN 0x40000000
+#define WS_EX_UISTATEFOCUSHIDDEN 0x80000000
+#define WS_EX_SETANSICREATOR 0x80000000
+
 static STRING_INTEGER_PAIR WepStylePairs[] =
 {
     DEFINE_PAIR(WS_POPUP),
@@ -177,6 +187,7 @@ static STRING_INTEGER_PAIR WepStylePairs[] =
 static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
 {
     DEFINE_PAIR(WS_EX_DLGMODALFRAME),       // 0x1
+    DEFINE_PAIR(WS_EX_DRAGDETECT),          // 0x2
     DEFINE_PAIR(WS_EX_NOPARENTNOTIFY),      // 0x4
     DEFINE_PAIR(WS_EX_TOPMOST),             // 0x8
     DEFINE_PAIR(WS_EX_ACCEPTFILES),         // 0x10
@@ -188,6 +199,7 @@ static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
     DEFINE_PAIR(WS_EX_CLIENTEDGE),          // 0x200
     DEFINE_PAIR(WS_EX_OVERLAPPEDWINDOW),    // 0x300
     DEFINE_PAIR(WS_EX_CONTEXTHELP),         // 0x400
+    DEFINE_PAIR(WS_EX_VISIBLEWHENOTGHOSTED),// 0x800
     DEFINE_PAIR(WS_EX_RIGHT),               // 0x1000
     DEFINE_PAIR(WS_EX_RTLREADING),          // 0x2000
     DEFINE_PAIR(WS_EX_LEFTSCROLLBAR),       // 0x4000
@@ -198,8 +210,13 @@ static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
     DEFINE_PAIR(WS_EX_NOINHERITLAYOUT),     // 0x100000
     DEFINE_PAIR(WS_EX_NOREDIRECTIONBITMAP), // 0x200000
     DEFINE_PAIR(WS_EX_LAYOUTRTL),           // 0x400000
+    DEFINE_PAIR(WS_EX_FORCELEGACYRESIZENC), // 0x800000
     DEFINE_PAIR(WS_EX_COMPOSITED),          // 0x2000000
+    DEFINE_PAIR(WS_EX_UISTATEACTIVE),       // 0x4000000
     DEFINE_PAIR(WS_EX_NOACTIVATE),          // 0x8000000
+    DEFINE_PAIR(WS_EX_REDIRECTED),          // 0x20000000
+    DEFINE_PAIR(WS_EX_UISTATEACCELHIDDEN),  // 0x40000000
+    DEFINE_PAIR(WS_EX_UISTATEFOCUSHIDDEN),  // 0x80000000
 };
 
 static STRING_INTEGER_PAIR WepClassStylePairs[] =
@@ -260,29 +277,43 @@ BOOLEAN WeShowWindowProperties(
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
-    ULONG threadId;
-    ULONG processId;
+    NTSTATUS status;
+    CLIENT_ID clientId;
 
     if (!WeWindowItemType)
+    {
         WeWindowItemType = PhCreateObjectType(L"WindowItemType", 0, WeWindowItemDeleteProcedure);
+    }
 
     if (!IsWindow(WindowHandle))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to display window properties.", STATUS_GRAPHICS_PRESENT_INVALID_WINDOW, 0);
         return FALSE;
+    }
 
-    processId = 0;
-    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
+    status = PhGetWindowClientId(WindowHandle, &clientId);
 
-    if (ClientId->UniqueProcess != UlongToHandle(processId))
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to display window properties.", status, 0);
         return FALSE;
-    if (ClientId->UniqueThread != UlongToHandle(threadId))
+    }
+
+    if (
+        ClientId->UniqueThread != clientId.UniqueThread ||
+        ClientId->UniqueProcess != clientId.UniqueProcess
+        )
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to display window properties.", STATUS_GRAPHICS_PRESENT_INVALID_WINDOW, 0);
         return FALSE;
+    }
 
     context = PhCreateObjectZero(sizeof(WINDOW_PROPERTIES_CONTEXT), WeWindowItemType);
     context->WindowHandle = WindowHandle;
     context->ParentWindowHandle = ParentWindowHandle;
     context->MessageOnlyWindow = MessageOnlyWindow;
-    context->ClientId.UniqueProcess = UlongToHandle(processId);
-    context->ClientId.UniqueThread = UlongToHandle(threadId);
+    context->ClientId.UniqueProcess = clientId.UniqueProcess;
+    context->ClientId.UniqueThread = clientId.UniqueThread;
 
     PhInitializeInitOnce(&context->SymbolProviderInitOnce);
     InitializeListHead(&context->ResolveListHead);
@@ -385,7 +416,7 @@ NTSTATUS WepResolveSymbolFunction(
     PostMessage(context->NotifyWindow, WEM_RESOLVE_DONE, 0, (LPARAM)context);
 
     PhDereferenceObject(context->Context);
-
+    PhFree(context);
     return STATUS_SUCCESS;
 }
 
@@ -992,7 +1023,7 @@ VOID WepRefreshWindowStyles(
 
         for (i = 0; i < RTL_NUMBER_OF(WepExtendedStylePairs); i++)
         {
-            if (FlagOn(windowInfo.dwExStyle, WepExtendedStylePairs[i].Integer))
+            if (FlagOn(windowInfo.dwExStyle, WepExtendedStylePairs[i].Integer) == WepExtendedStylePairs[i].Integer)
             {
                 PhAppendStringBuilder2(&styleExStringBuilder, WepExtendedStylePairs[i].String);
                 PhAppendStringBuilder2(&styleExStringBuilder, L", ");
@@ -1613,6 +1644,11 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     case WM_PH_UPDATE_DIALOG:
         {
             WepWindowRefreshGeneralPage(hwndDlg, context);
+        }
+        break;
+    case WM_SIZE:
+        {
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_CTLCOLORBTN:

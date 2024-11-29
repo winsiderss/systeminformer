@@ -796,12 +796,10 @@ HICON PhNfBitmapToIcon(
 {
     ICONINFO iconInfo;
 
-    PhNfpGetBlackIcon();
-
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = PhNfpBlackBitmap;
+    iconInfo.hbmMask = Bitmap;
     iconInfo.hbmColor = Bitmap;
 
     return CreateIconIndirect(&iconInfo);

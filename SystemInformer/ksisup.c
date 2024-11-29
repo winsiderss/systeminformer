@@ -447,6 +447,7 @@ NTSTATUS PhRestartSelf(
      // PROCESS_CREATION_MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON
 #endif
     NTSTATUS status;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline;
     STARTUPINFOEX startupInfo;
@@ -461,11 +462,8 @@ NTSTATUS PhRestartSelf(
         AdditionalCommandLine
         );
 
-    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-
 #ifndef DEBUG
-    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
+    status = PhInitializeProcThreadAttributeList(&attributeList, 1);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -473,7 +471,7 @@ NTSTATUS PhRestartSelf(
     if (WindowsVersion >= WINDOWS_10_22H2)
     {
         status = PhUpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
+            attributeList,
             PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
             &(ULONG64[2]){ DEFAULT_MITIGATION_POLICY_FLAGS, DEFAULT_MITIGATION_POLICY_FLAGS2 },
             sizeof(ULONG64[2])
@@ -482,7 +480,7 @@ NTSTATUS PhRestartSelf(
     else
     {
         status = PhUpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
+            attributeList,
             PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
             &(ULONG64[1]) { DEFAULT_MITIGATION_POLICY_FLAGS },
             sizeof(ULONG64[1])
@@ -493,12 +491,16 @@ NTSTATUS PhRestartSelf(
     if (!NT_SUCCESS(status))
         return status;
 
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.lpAttributeList = attributeList;
+
     status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandline),
         NULL,
         NULL,
-        &startupInfo.StartupInfo,
+        &startupInfo,
         PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
         NULL,
         NULL,
@@ -511,8 +513,8 @@ NTSTATUS PhRestartSelf(
         PhExitApplication(STATUS_SUCCESS);
     }
 
-    if (startupInfo.lpAttributeList)
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+    if (attributeList)
+        PhDeleteProcThreadAttributeList(attributeList);
 
     PhDereferenceObject(commandline);
 
@@ -1333,18 +1335,16 @@ PVOID PhCreateKsiSettingsBlob(
 #else
     directory = PhGetApplicationDirectoryWin32();
 #endif
-    value = PhConvertUtf16ToUtf8Ex(directory->Buffer, directory->Length);
-    PhDereferenceObject(directory);
-
+    value = PhConvertStringToUtf8(directory);
     PhAddJsonObject2(object, "KsiDirectory", value->Buffer, value->Length);
     PhDereferenceObject(value);
+    PhDereferenceObject(directory);
 
     serviceName = PhGetKsiServiceName();
-    value = PhConvertUtf16ToUtf8Ex(serviceName->Buffer, serviceName->Length);
-    PhDereferenceObject(serviceName);
-
+    value = PhConvertStringToUtf8(serviceName);
     PhAddJsonObject2(object, "KsiServiceName", value->Buffer, value->Length);
     PhDereferenceObject(value);
+    PhDereferenceObject(serviceName);
 
     value = PhGetJsonArrayString(object, FALSE);
     string = PhBufferToHexString((PUCHAR)value->Buffer, (ULONG)value->Length);

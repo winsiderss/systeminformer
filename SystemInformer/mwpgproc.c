@@ -891,7 +891,7 @@ PPH_EMENU PhpCreateProcessMenu(
         else if (WindowsVersion < WINDOWS_11)
         {
             // Minimal only captures thread stacks, not supported before Windows 11
-            kernelMinimal->Flags |= PH_EMENU_DISABLED;
+            PhSetDisabledEMenuItem(kernelMinimal);
         }
     }
     else

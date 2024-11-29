@@ -589,13 +589,13 @@ VOID EtpGpuUpdateSystemNodeInformation(
 }
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-    FLOAT elapsedTime = 0; // total GPU node elapsed time in micro-seconds
-    FLOAT tempGpuUsage = 0;
+    ULONG runCount = PtrToUlong(Parameter);
+    DOUBLE elapsedTime = 0; // total GPU node elapsed time in micro-seconds
+    DOUBLE tempGpuUsage = 0;
     ULONG i;
     PLIST_ENTRY listEntry;
     FLOAT maxNodeValue = 0;
@@ -611,13 +611,14 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         dedicatedTotal = EtLookupTotalGpuDedicated();
         sharedTotal = EtLookupTotalGpuShared();
 
-        if (gpuTotal > 1)
-            gpuTotal = 1;
-
+        if (gpuTotal > 100.0)
+            gpuTotal = 100.0;
+        if (gpuTotal < 0.0)
+            gpuTotal = 0.0;
         if (gpuTotal > tempGpuUsage)
             tempGpuUsage = gpuTotal;
 
-        EtGpuNodeUsage = tempGpuUsage;
+        EtGpuNodeUsage = (FLOAT)tempGpuUsage;
         EtGpuDedicatedUsage = dedicatedTotal;
         EtGpuSharedUsage = sharedTotal;
     }
@@ -626,23 +627,25 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         EtpGpuUpdateSystemSegmentInformation();
         EtpGpuUpdateSystemNodeInformation();
 
-        elapsedTime = (FLOAT)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / (FLOAT)EtGpuClockTotalRunningTimeFrequency.QuadPart;
+        elapsedTime = (DOUBLE)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / EtGpuClockTotalRunningTimeFrequency.QuadPart;
 
         if (elapsedTime != 0)
         {
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                FLOAT usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / (FLOAT)elapsedTime);
+                DOUBLE usage = (EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime) * 100.0;
 
-                if (usage > 1)
-                    usage = 1;
+                if (usage > 100.0)
+                    usage = 100.0;
+                if (usage < 0.0)
+                    usage = 0.0;
 
                 if (usage > tempGpuUsage)
                     tempGpuUsage = usage;
             }
         }
 
-        EtGpuNodeUsage = tempGpuUsage;
+        EtGpuNodeUsage = (FLOAT)tempGpuUsage;
     }
 
     if (EtGpuSupported && EtpGpuAdapterList->Count)
@@ -859,14 +862,14 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             {
                 for (i = 0; i < EtGpuTotalNodeCount; i++)
                 {
-                    FLOAT usage;
+                    DOUBLE usage;
 
-                    usage = (FLOAT)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime);
+                    usage = (DOUBLE)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime) * 100;
 
-                    if (usage > 1)
-                        usage = 1;
+                    if (usage > 100)
+                        usage = 100;
 
-                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
+                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], (FLOAT)usage);
                 }
             }
             else
@@ -888,8 +891,6 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, 0);
         }
     }
-
-    runCount++;
 }
 
 ULONG EtGetGpuAdapterCount(

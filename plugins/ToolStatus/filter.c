@@ -36,11 +36,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileNameWin32))
-    {
-        if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->FileNameWin32->sr))
-            return TRUE;
-    }
+    //if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileNameWin32))
+    //{
+    //    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->FileNameWin32->sr))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
     {

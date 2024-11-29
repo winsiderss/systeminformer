@@ -231,12 +231,12 @@ PWE_WINDOW_NODE WeAddWindowNode(
         }
         else
         {
-            ULONG processId = 0;
+            CLIENT_ID clientId;
             PPH_PROCESS_ITEM processItem;
 
-            GetWindowThreadProcessId(WindowHandle, &processId);
+            PhGetWindowClientId(WindowHandle, &clientId);
 
-            if (processId && (processItem = PhReferenceProcessItem(UlongToHandle(processId))))
+            if (clientId.UniqueProcess && (processItem = PhReferenceProcessItem(clientId.UniqueProcess)))
             {
                 windowNode->ProcessItem = processItem;
 

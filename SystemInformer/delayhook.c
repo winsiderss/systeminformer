@@ -1592,11 +1592,11 @@ HWND PhCreateWindowExHook(
     else if (PhEnableThemeSupport)
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
-        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE))
+        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ(ClassName, WC_LINK, TRUE))
         {
             PhInitializeTaskDialogTheme(windowHandle, 0);
         }
-        else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
+        else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ(ClassName, WC_BUTTON, TRUE) &&
                  PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
         {
             PhSetControlTheme(windowHandle, L"DarkMode_Explorer");

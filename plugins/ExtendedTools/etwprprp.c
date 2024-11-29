@@ -260,7 +260,7 @@ VOID EtwDiskLayoutGraphs(
 
     // Limit the rectangle bottom to the top of the panel.
     GetWindowRect(Context->PanelHandle, &panelRect);
-    MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
+    MapWindowRect(NULL, Context->WindowHandle, &panelRect);
     clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
     graphWidth = clientRect.right - margin.left - margin.right;
@@ -326,7 +326,7 @@ VOID EtwNetworkLayoutGraphs(
 
     // Limit the rectangle bottom to the top of the panel.
     GetWindowRect(Context->PanelHandle, &panelRect);
-    MapWindowPoints(NULL, Context->WindowHandle, (PPOINT)&panelRect, 2);
+    MapWindowRect(NULL, Context->WindowHandle, &panelRect);
     clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
     graphWidth = clientRect.right - margin.left - margin.right;

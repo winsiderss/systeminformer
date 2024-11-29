@@ -1235,7 +1235,7 @@ BOOLEAN PhUiConnectSession(
     PPH_STRING oldSelectedChoice = NULL;
 
     // Try once with no password.
-    if (WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, L"", TRUE))
+    if (WinStationConnectW(WINSTATION_CURRENT_SERVER, SessionId, LOGONID_CURRENT, L"", TRUE))
         return TRUE;
 
     while (PhaChoiceDialog(
@@ -1259,7 +1259,7 @@ BOOLEAN PhUiConnectSession(
 
         oldSelectedChoice = selectedChoice;
 
-        if (WinStationConnectW(NULL, SessionId, LOGONID_CURRENT, selectedChoice->Buffer, TRUE))
+        if (WinStationConnectW(WINSTATION_CURRENT_SERVER, SessionId, LOGONID_CURRENT, selectedChoice->Buffer, TRUE))
         {
             success = TRUE;
             break;
@@ -1285,7 +1285,7 @@ BOOLEAN PhUiDisconnectSession(
     _In_ ULONG SessionId
     )
 {
-    if (WinStationDisconnect(NULL, SessionId, FALSE))
+    if (WinStationDisconnect(WINSTATION_CURRENT_SERVER, SessionId, FALSE))
         return TRUE;
     else
         PhShowStatus(WindowHandle, L"Unable to disconnect the session", 0, GetLastError());
@@ -1306,7 +1306,7 @@ BOOLEAN PhUiLogoffSession(
         FALSE
         ))
     {
-        if (WinStationReset(NULL, SessionId, FALSE))
+        if (WinStationReset(WINSTATION_CURRENT_SERVER, SessionId, FALSE))
             return TRUE;
         else
             PhShowStatus(WindowHandle, L"Unable to logoff the session", 0, GetLastError());
@@ -2280,7 +2280,7 @@ BOOLEAN PhUiRestartProcess(
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
-        cont = PhShowConfirmMessage(
+        result = PhShowConfirmMessage(
             WindowHandle,
             L"restart",
             Process->ProcessName->Buffer,
@@ -2291,10 +2291,10 @@ BOOLEAN PhUiRestartProcess(
     }
     else
     {
-        cont = TRUE;
+        result = TRUE;
     }
 
-    if (!cont)
+    if (!result)
         return FALSE;
 
     // Fail when restarting the current process otherwise

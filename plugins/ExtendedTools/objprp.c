@@ -1976,12 +1976,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                 }
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES1:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES1:
                             {
                                 PhShowHandleObjectProperties1(hwndDlg, &info);
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES2:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES2:
                             {
                                 PhShowHandleObjectProperties2(hwndDlg, &info);
                             }

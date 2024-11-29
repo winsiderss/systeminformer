@@ -39,6 +39,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
+    PhpAddIntegerSetting(L"EnableCommandLineTooltips", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableDeferredLayout", L"1");
     PhpAddIntegerSetting(L"EnableDeviceSupport", L"1");
@@ -68,7 +69,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableServiceProgressDialog", L"1");
     PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
-    PhpAddIntegerSetting(L"EnableStage2", L"1");
+    PhpAddIntegerSetting(L"EnableStage2", L"0");
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdminAlwaysOnTop", L"0");
@@ -139,7 +140,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
     PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
-    PhpAddStringSetting(L"IconSettings", L"2|1");
+    PhpAddStringSetting(L"IconSettings", L"");
     PhpAddIntegerSetting(L"IconNotifyMask", L"18c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_DEVICE_ARRIVED | PH_NOTIFY_DEVICE_REMOVED
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
@@ -331,6 +332,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorRelocatedModules", L"80c0ff");
     PhpAddIntegerSetting(L"UseColorProtectedHandles", L"1");
     PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
+    PhpAddIntegerSetting(L"UseColorProtectedInheritHandles", L"1");
+    PhpAddIntegerSetting(L"ColorProtectedInheritHandles", L"c0c0c0");
     PhpAddIntegerSetting(L"UseColorProtectedProcess", L"0");
     PhpAddIntegerSetting(L"ColorProtectedProcess", L"ff8080");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
@@ -440,12 +443,14 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorRelocatedModules);
     PH_UPDATE_SETTING(UseColorProtectedHandles);
     PH_UPDATE_SETTING(ColorProtectedHandles);
+    PH_UPDATE_SETTING(UseColorProtectedInheritHandles);
+    PH_UPDATE_SETTING(ColorProtectedInheritHandles);
     PH_UPDATE_SETTING(UseColorInheritHandles);
+    PH_UPDATE_SETTING(ColorInheritHandles);
     PH_UPDATE_SETTING(ColorProtectedProcess);
     PH_UPDATE_SETTING(UseColorProtectedProcess);
     PH_UPDATE_SETTING(ColorEfficiencyMode);
     PH_UPDATE_SETTING(UseColorEfficiencyMode);
-    PH_UPDATE_SETTING(ColorInheritHandles);
     PH_UPDATE_SETTING(UseColorServiceDisabled);
     PH_UPDATE_SETTING(ColorServiceDisabled);
     PH_UPDATE_SETTING(UseColorServiceStop);

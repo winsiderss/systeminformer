@@ -225,7 +225,7 @@ BOOLEAN ToolbarAddGraph(
             PhAddItemSimpleHashtable(PhpToolbarGraphHashtable, Graph->GraphHandle, Graph);
 
             if (!RebarBandExists(Graph->GraphId))
-                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, 145, RebarHeight); // height: 85
+                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, PhGetDpi(145, SystemInformer_GetWindowDpi()), RebarHeight); // height: 85
 
             if (!IsWindowVisible(Graph->GraphHandle))
                 ShowWindow(Graph->GraphHandle, SW_SHOW);

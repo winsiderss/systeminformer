@@ -340,7 +340,6 @@ NTSTATUS PhGetProcessKnownType(
     NTSTATUS status;
     PROCESS_BASIC_INFORMATION basicInfo;
     PPH_STRING fileName;
-    PPH_STRING newFileName;
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -362,15 +361,12 @@ NTSTATUS PhGetProcessKnownType(
         return status;
     }
 
-    newFileName = PhGetFileName(fileName);
-    PhDereferenceObject(fileName);
-
     *KnownProcessType = PhGetProcessKnownTypeEx(
         basicInfo.UniqueProcessId,
-        newFileName
+        fileName
         );
 
-    PhDereferenceObject(newFileName);
+    PhDereferenceObject(fileName);
 
     return status;
 }
@@ -394,7 +390,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
     if (PhIsNullOrEmptyString(FileName))
         return UnknownProcessType;
 
-    PhGetSystemRoot(&systemRootPrefix);
+    PhGetNtSystemRoot(&systemRootPrefix);
 
     fileName = PhReferenceObject(FileName);
     name = fileName->sr;

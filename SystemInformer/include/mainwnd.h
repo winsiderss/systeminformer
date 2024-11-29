@@ -61,6 +61,8 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_VERSION,
     PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE,
     PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX,
+    PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI,
+    PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -133,6 +135,10 @@ PhPluginInvokeWindowCallback(
     ((BOOLEAN)PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0)))
 #define SystemInformer_GetTabIndex(Value) \
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PAGEINDEX, (PVOID)(ULONG_PTR)(Value), 0)))
+#define SystemInformer_GetWindowDpi() \
+    (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI, 0, 0)))
+#define SystemInformer_GetWindowName() \
+    (PWSTR)(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME, 0, 0))
 
 #define PhWindowsVersion SystemInformer_GetWindowsVersion() // Temporary backwards compat (dmex)
 // end_phapppub

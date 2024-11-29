@@ -1886,7 +1886,7 @@ BOOLEAN DotNetAsmTreeFilterCallback(
 VOID NTAPI DotNetAsmSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
-)
+    )
 {
     PASMPAGE_CONTEXT context = Context;
 

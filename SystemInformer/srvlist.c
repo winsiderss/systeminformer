@@ -1039,7 +1039,7 @@ VOID PhGetSelectedServiceItems(
             PhAddItemArray(&array, &node->ServiceItem);
     }
 
-    *NumberOfServices = (ULONG)array.Count;
+    *NumberOfServices = (ULONG)PhFinalArrayCount(&array);
     *Services = PhFinalArrayItems(&array);
 }
 

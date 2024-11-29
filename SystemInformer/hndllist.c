@@ -613,12 +613,11 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
 
             if (!handleItem)
                 ; // Dummy
-            else if (PhCsUseColorProtectedHandles && PhCsUseColorInheritHandles &&
-                (handleItem->Attributes & OBJ_PROTECT_CLOSE) && (handleItem->Attributes & OBJ_INHERIT))
-                getNodeColor->BackColor = PhCsColorPartiallySuspended;
-            else if (PhCsUseColorProtectedHandles && (handleItem->Attributes & OBJ_PROTECT_CLOSE))
+            else if (PhCsUseColorProtectedInheritHandles && FlagOn(handleItem->Attributes, OBJ_PROTECT_CLOSE) && FlagOn(handleItem->Attributes, OBJ_INHERIT))
+                getNodeColor->BackColor = PhCsColorProtectedInheritHandles;
+            else if (PhCsUseColorProtectedHandles && FlagOn(handleItem->Attributes, OBJ_PROTECT_CLOSE))
                 getNodeColor->BackColor = PhCsColorProtectedHandles;
-            else if (PhCsUseColorInheritHandles && (handleItem->Attributes & OBJ_INHERIT))
+            else if (PhCsUseColorInheritHandles && FlagOn(handleItem->Attributes, OBJ_INHERIT))
                 getNodeColor->BackColor = PhCsColorInheritHandles;
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
@@ -739,7 +738,7 @@ VOID PhGetSelectedHandleItems(
             PhAddItemArray(&array, &node->HandleItem);
     }
 
-    *NumberOfHandles = (ULONG)array.Count;
+    *NumberOfHandles = (ULONG)PhFinalArrayCount(&array);
     *Handles = PhFinalArrayItems(&array);
 }
 

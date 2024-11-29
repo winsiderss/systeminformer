@@ -647,17 +647,17 @@ LONG PhGetWindowDpi(
     _In_ HWND WindowHandle
     )
 {
-    LONG dpi = 0;
+    LONG dpi;
     RECT windowRect;
 
-    if (PhGetWindowRect(WindowHandle, &windowRect))
-    {
-        dpi = PhGetDpiValue(NULL, &windowRect);
-    }
+    dpi = PhGetDpiValue(WindowHandle, NULL);
 
     if (dpi == 0)
     {
-        dpi = PhGetDpiValue(WindowHandle, NULL);
+        if (PhGetWindowRect(WindowHandle, &windowRect))
+        {
+            dpi = PhGetDpiValue(NULL, &windowRect);
+        }
     }
 
     if (dpi == 0)
@@ -2194,7 +2194,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     item->LayoutParentItem->NumberOfChildren++;
 
     GetWindowRect(Handle, &item->Rect);
-    MapWindowPoints(HWND_DESKTOP, item->LayoutParentItem->Handle, (PPOINT)&item->Rect, 2);
+    MapWindowRect(HWND_DESKTOP, item->LayoutParentItem->Handle, &item->Rect);
 
     if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
     {
@@ -2245,7 +2245,7 @@ VOID PhpLayoutItemLayout(
     }
 
     GetWindowRect(Item->Handle, &Item->Rect);
-    MapWindowPoints(HWND_DESKTOP, Item->LayoutParentItem->Handle, (PPOINT)&Item->Rect, 2);
+    MapWindowRect(HWND_DESKTOP, Item->LayoutParentItem->Handle, &Item->Rect);
 
     if (Item->Anchor & PH_LAYOUT_TAB_CONTROL)
     {
@@ -4033,26 +4033,6 @@ HBITMAP PhCreateBitmapHandle(
     return bitmapHandle;
 }
 
-static PVOID PhpGetWicImagingFactoryInterface(
-    VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID wicImagingFactory = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        if (WindowsVersion >= WINDOWS_8)
-            PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory2, &IID_IWICImagingFactory, &wicImagingFactory);
-        else
-            PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory);
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return wicImagingFactory;
-}
-
 static PGUID PhpGetImageFormatDecoderType(
     _In_ PH_IMAGE_FORMAT_TYPE Format
     )
@@ -4086,7 +4066,7 @@ HBITMAP PhLoadImageFormatFromResource(
     ULONG resourceLength = 0;
     WICInProcPointer resourceBuffer = NULL;
     PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicImageFactory = NULL;
+    IWICImagingFactory* wicImagingFactory = NULL;
     IWICStream* wicBitmapStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicBitmapDecoder = NULL;
@@ -4098,13 +4078,13 @@ HBITMAP PhLoadImageFormatFromResource(
     if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
         goto CleanupExit;
 
-    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory)))
         goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+    if (FAILED(IWICImagingFactory_CreateStream(wicImagingFactory, &wicBitmapStream)))
         goto CleanupExit;
     if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, resourceBuffer, resourceLength)))
         goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateDecoder(wicImageFactory, PhpGetImageFormatDecoderType(Format), &GUID_VendorMicrosoft, &wicBitmapDecoder)))
+    if (FAILED(IWICImagingFactory_CreateDecoder(wicImagingFactory, PhpGetImageFormatDecoderType(Format), &GUID_VendorMicrosoft, &wicBitmapDecoder)))
         goto CleanupExit;
     if (FAILED(IWICBitmapDecoder_Initialize(wicBitmapDecoder, (IStream*)wicBitmapStream, WICDecodeMetadataCacheOnDemand)))
         goto CleanupExit;
@@ -4122,7 +4102,7 @@ HBITMAP PhLoadImageFormatFromResource(
     {
         IWICFormatConverter* wicFormatConverter = NULL;
 
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImagingFactory, &wicFormatConverter)))
             goto CleanupExit;
 
         if (FAILED(IWICFormatConverter_Initialize(
@@ -4165,7 +4145,7 @@ HBITMAP PhLoadImageFormatFromResource(
     {
         IWICBitmapScaler* wicBitmapScaler = NULL;
 
-        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImagingFactory, &wicBitmapScaler)))
         {
             if (SUCCEEDED(IWICBitmapScaler_Initialize(
                 wicBitmapScaler,
@@ -4201,6 +4181,8 @@ CleanupExit:
         IWICBitmapFrameDecode_Release(wicBitmapFrame);
     if (wicBitmapStream)
         IWICStream_Release(wicBitmapStream);
+    if (wicImagingFactory)
+        IWICImagingFactory_Release(wicImagingFactory);
 
     if (!success)
     {
@@ -4221,7 +4203,7 @@ HBITMAP PhLoadImageFromAddress(
     BOOLEAN success = FALSE;
     HBITMAP bitmapHandle = NULL;
     PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicImageFactory;
+    IWICImagingFactory* wicImagingFactory;
     IWICStream* wicBitmapStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicBitmapDecoder = NULL;
@@ -4230,13 +4212,13 @@ HBITMAP PhLoadImageFromAddress(
     UINT sourceWidth = 0;
     UINT sourceHeight = 0;
 
-    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory)))
         goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+    if (FAILED(IWICImagingFactory_CreateStream(wicImagingFactory, &wicBitmapStream)))
         goto CleanupExit;
     if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, Buffer, BufferLength)))
         goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImagingFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
         goto CleanupExit;
     if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
         goto CleanupExit;
@@ -4252,7 +4234,7 @@ HBITMAP PhLoadImageFromAddress(
     {
         IWICFormatConverter* wicFormatConverter = NULL;
 
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImagingFactory, &wicFormatConverter)))
             goto CleanupExit;
 
         if (FAILED(IWICFormatConverter_Initialize(
@@ -4295,7 +4277,7 @@ HBITMAP PhLoadImageFromAddress(
     {
         IWICBitmapScaler* wicBitmapScaler = NULL;
 
-        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImagingFactory, &wicBitmapScaler)))
         {
             if (SUCCEEDED(IWICBitmapScaler_Initialize(
                 wicBitmapScaler,
@@ -4331,6 +4313,8 @@ CleanupExit:
         IWICBitmapFrameDecode_Release(wicBitmapFrame);
     if (wicBitmapStream)
         IWICStream_Release(wicBitmapStream);
+    if (wicImagingFactory)
+        IWICImagingFactory_Release(wicImagingFactory);
 
     if (!success)
     {
@@ -4369,7 +4353,7 @@ HBITMAP PhLoadImageFromFile(
     BOOLEAN success = FALSE;
     HBITMAP bitmapHandle = NULL;
     PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicFactory = NULL;
+    IWICImagingFactory* wicImagingFactory = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicBitmapDecoder = NULL;
     IWICBitmapFrameDecode* wicBitmapFrame = NULL;
@@ -4377,9 +4361,9 @@ HBITMAP PhLoadImageFromFile(
     UINT sourceWidth = 0;
     UINT sourceHeight = 0;
 
-    if (!(wicFactory = PhpGetWicImagingFactoryInterface()))
+    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory)))
         goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateDecoderFromFilename(wicFactory, FileName, &GUID_VendorMicrosoft, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+    if (FAILED(IWICImagingFactory_CreateDecoderFromFilename(wicImagingFactory, FileName, &GUID_VendorMicrosoft, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
         goto CleanupExit;
     if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
         goto CleanupExit;
@@ -4395,7 +4379,7 @@ HBITMAP PhLoadImageFromFile(
     {
         IWICFormatConverter* wicFormatConverter = NULL;
 
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImagingFactory, &wicFormatConverter)))
             goto CleanupExit;
 
         if (FAILED(IWICFormatConverter_Initialize(
@@ -4438,7 +4422,7 @@ HBITMAP PhLoadImageFromFile(
     {
         IWICBitmapScaler* wicBitmapScaler = NULL;
 
-        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicBitmapScaler)))
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImagingFactory, &wicBitmapScaler)))
         {
             if (SUCCEEDED(IWICBitmapScaler_Initialize(
                 wicBitmapScaler,
@@ -4472,6 +4456,8 @@ CleanupExit:
         IWICBitmapDecoder_Release(wicBitmapDecoder);
     if (wicBitmapFrame)
         IWICBitmapFrameDecode_Release(wicBitmapFrame);
+    if (wicImagingFactory)
+        IWICImagingFactory_Release(wicImagingFactory);
 
     if (!success)
     {

@@ -386,14 +386,11 @@ VOID NTAPI TabPageUpdatedCallback(
 }
 
 VOID NTAPI LayoutPaddingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_LAYOUT_PADDING_DATA layoutPadding = Parameter;
-
-    if (!layoutPadding)
-        return;
 
     if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {

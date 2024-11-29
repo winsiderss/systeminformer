@@ -1510,7 +1510,7 @@ VOID PhGetSelectedModuleItems(
             PhAddItemArray(&array, &node->ModuleItem);
     }
 
-    *NumberOfModules = (ULONG)array.Count;
+    *NumberOfModules = (ULONG)PhFinalArrayCount(&array);
     *Modules = PhFinalArrayItems(&array);
 }
 
