@@ -37,13 +37,13 @@
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <io.h>
 #include <windows.h>
-#endif /* defined(WIN32) */
+#endif /* defined(_WIN32) */
 
-#if !defined(HAVE_OPEN) && defined(WIN32)
+#if !defined(HAVE_OPEN) && defined(_WIN32)
 #define open _open
 #endif
 
@@ -209,7 +209,7 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
     wpos = 0;
     while (wpos < wsize)
     {
-        if ((ret = _write(fd, json_str + wpos, (unsigned)(wsize - wpos))) < 0)
+        if ((ret = _write(fd, json_str + wpos, (unsigned int)(wsize - wpos))) < 0)
         {
             _json_c_set_last_err("json_object_to_fd: error writing file %s: %s\n",
                                  filename, strerror(errno));
@@ -283,8 +283,8 @@ void *rpl_realloc(void *p, size_t n)
     if (n == 0)
         n = 1;
     if (p == 0)
-        return PhAllocateSafe(n);
-    return PhReAllocateSafe(p, n);
+        return malloc(n);
+    return realloc(p, n);
 }
 #endif
 

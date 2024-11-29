@@ -229,6 +229,7 @@ static int get_dev_random_seed(int *seed)
     if ((buf.st_mode & S_IFCHR) == 0)
         return -1;
 
+    /* coverity[toctou] */
     int fd = open(dev_random_file, O_RDONLY);
     if (fd < 0)
     {
@@ -253,7 +254,7 @@ static int get_dev_random_seed(int *seed)
 
 /* get_cryptgenrandom_seed */
 
-//#ifdef WIN32
+//#ifdef _WIN32
 //
 //#define HAVE_CRYPTGENRANDOM 1
 //
@@ -271,32 +272,32 @@ static int get_dev_random_seed(int *seed)
 //
 //static int get_cryptgenrandom_seed(int *seed)
 //{
-//	HCRYPTPROV hProvider = 0;
-//	DWORD dwFlags = CRYPT_VERIFYCONTEXT;
+//    HCRYPTPROV hProvider = 0;
+//    DWORD dwFlags = CRYPT_VERIFYCONTEXT;
 //
-//	DEBUG_SEED("get_cryptgenrandom_seed");
+//    DEBUG_SEED("get_cryptgenrandom_seed");
 //
-//	/* WinNT 4 and Win98 do no support CRYPT_SILENT */
-//	if (LOBYTE(LOWORD(GetVersion())) > 4)
-//		dwFlags |= CRYPT_SILENT;
+//    /* WinNT 4 and Win98 do no support CRYPT_SILENT */
+//    if (LOBYTE(LOWORD(GetVersion())) > 4)
+//        dwFlags |= CRYPT_SILENT;
 //
-//	if (!CryptAcquireContextA(&hProvider, 0, 0, PROV_RSA_FULL, dwFlags))
-//	{
-//		fprintf(stderr, "error CryptAcquireContextA 0x%08lx", GetLastError());
-//		return -1;
-//	}
-//	else
-//	{
-//		BOOL ret = CryptGenRandom(hProvider, sizeof(*seed), (BYTE *)seed);
-//		CryptReleaseContext(hProvider, 0);
-//		if (!ret)
-//		{
-//			fprintf(stderr, "error CryptGenRandom 0x%08lx", GetLastError());
-//			return -1;
-//		}
-//	}
+//    if (!CryptAcquireContextA(&hProvider, 0, 0, PROV_RSA_FULL, dwFlags))
+//    {
+//        fprintf(stderr, "error CryptAcquireContextA 0x%08lx", GetLastError());
+//        return -1;
+//    }
+//    else
+//    {
+//        BOOL ret = CryptGenRandom(hProvider, sizeof(*seed), (BYTE *)seed);
+//        CryptReleaseContext(hProvider, 0);
+//        if (!ret)
+//        {
+//            fprintf(stderr, "error CryptGenRandom 0x%08lx", GetLastError());
+//            return -1;
+//        }
+//    }
 //
-//	return 0;
+//    return 0;
 //}
 //
 //#endif
@@ -317,7 +318,7 @@ static int get_dev_random_seed(int *seed)
 
 /* json_c_get_random_seed */
 
-long json_c_get_random_seed(void)
+int json_c_get_random_seed(void)
 {
 #ifdef OVERRIDE_GET_RANDOM_SEED
     OVERRIDE_GET_RANDOM_SEED;
@@ -351,7 +352,7 @@ long json_c_get_random_seed(void)
             return seed;
     }
 #endif
-    //return get_time_seed();
+   //return get_time_seed();
     extern unsigned long long __stdcall PhGenerateRandomNumber64(void);
     return (long)PhGenerateRandomNumber64();
 #endif /* !HAVE_ARC4RANDOM */

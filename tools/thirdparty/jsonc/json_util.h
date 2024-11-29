@@ -108,7 +108,7 @@ JSON_EXPORT const char *json_util_get_last_err(void);
  */
 JSON_EXPORT int json_parse_int64(const char *buf, int64_t *retval);
 /**
- * A parsing help for integer values, providing one extra bit of
+ * A parsing help for integer values, providing one extra bit of 
  * magnitude beyond json_parse_int64().
  */
 JSON_EXPORT int json_parse_uint64(const char *buf, uint64_t *retval);

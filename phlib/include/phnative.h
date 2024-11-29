@@ -1071,7 +1071,7 @@ PhCreateSecurityDescriptor(
     _In_ BYTE Revision
     )
 {
-    memset(SecurityDescriptor, 0, sizeof(PISECURITY_DESCRIPTOR));
+    memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
     ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision = Revision;
     return STATUS_SUCCESS;
 }

@@ -17,11 +17,11 @@ extern "C" {
 #endif
 
 #define JSON_C_MAJOR_VERSION 0
-#define JSON_C_MINOR_VERSION 17
+#define JSON_C_MINOR_VERSION 18
 #define JSON_C_MICRO_VERSION 0
 #define JSON_C_VERSION_NUM \
     ((JSON_C_MAJOR_VERSION << 16) | (JSON_C_MINOR_VERSION << 8) | JSON_C_MICRO_VERSION)
-#define JSON_C_VERSION "0.17"
+#define JSON_C_VERSION "0.18"
 
 #ifndef JSON_EXPORT
 #if defined(_MSC_VER) && defined(JSON_C_DLL)

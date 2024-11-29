@@ -2783,7 +2783,7 @@ NTSTATUS PhGetMappedImageResources(
     Resources->MappedImage = MappedImage;
     Resources->DataDirectory = dataDirectory;
     Resources->ResourceDirectory = resourceDirectory;
-    Resources->NumberOfEntries = (ULONG)resourceArray.Count; // resourceCount;
+    Resources->NumberOfEntries = (ULONG)PhFinalArrayCount(&resourceArray); // resourceCount;
     Resources->ResourceEntries = PhFinalArrayItems(&resourceArray);
 
     return status;
@@ -4159,7 +4159,7 @@ NTSTATUS PhGetMappedImageRelocations(
         relocationIndex++;
     }
 
-    Relocations->NumberOfEntries = (ULONG)relocationArray.Count;
+    Relocations->NumberOfEntries = (ULONG)PhFinalArrayCount(&relocationArray);
     Relocations->RelocationEntries = PhFinalArrayItems(&relocationArray);
 
     return status;
@@ -4188,7 +4188,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     PIMAGE_BASE_RELOCATION relocationDirectory;
     PVOID relocationDirectoryBegin;
     PVOID relocationDirectoryEnd;
-    ULONG relocationTotal = 0;
     ULONG relocationIndex = 0;
 
     status = PhGetMappedImageDataDirectory(
@@ -4218,41 +4217,8 @@ NTSTATUS PhMappedImageEnumerateRelocations(
         return GetExceptionCode();
     }
 
-    //
-    // Do a scan to determine how many entries there are. And validate the
-    // blocks are within the mapping.
-    //
-
     relocationDirectoryBegin = relocationDirectory;
     relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
-
-    while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
-    {
-        __try
-        {
-            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-
-        if (relocationDirectory->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
-        {
-            //
-            // Prevent runaway.
-            //
-            return STATUS_INVALID_IMAGE_FORMAT;
-        }
-
-        relocationTotal += (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
-        relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
-    }
-
-    // Add the relocation entries into our buffer.
-
-    relocationDirectory = relocationDirectoryBegin;
 
     while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {

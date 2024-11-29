@@ -13,22 +13,25 @@ namespace CustomBuildTool
 {
     public static class Verify
     {
-        public static readonly SortedDictionary<string, string> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "kph",       "KPH_BUILD_KEY" },
-            { "release",   "RELEASE_BUILD_KEY" },
-            { "preview",   "PREVIEW_BUILD_KEY" },
-            { "canary",    "CANARY_BUILD_KEY" },
-            { "developer", "DEVELOPER_BUILD_KEY" },
+            { "canary",    new("CANARY_BUILD_KEY", "CANARY_BUILD_S") },
+            { "developer", new("DEVELOPER_BUILD_KEY", "DEVELOPER_BUILD_S") },
+            { "kph",       new("KPH_BUILD_KEY", "KPH_BUILD_S")},
+            { "preview",   new("PREVIEW_BUILD_KEY", "PREVIEW_BUILD_S")  },
+            { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_S")},
         };
 
-        public static bool EncryptFile(string FileName, string OutFileName, string Secret)
+        public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
             try
             {
-                var fileBytes = Utils.ReadAllBytes(FileName);
-                var encryptedBytes = Encrypt(fileBytes, Secret);
-                Utils.WriteAllBytes(OutFileName, encryptedBytes);
+                using (var fileStream = File.OpenRead(FileName))
+                {
+                    var encryptedBytes = Encrypt(fileStream, Secret, GetSalt(Salt));
+
+                    Utils.WriteAllBytes(OutFileName, encryptedBytes);
+                }
             }
             catch (Exception e)
             {
@@ -39,13 +42,16 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool DecryptFile(string FileName, string OutFileName, string Secret)
+        public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
             try
             {
-                var fileBytes = Utils.ReadAllBytes(FileName);
-                var decryptedBytes = Decrypt(fileBytes, Secret);
-                Utils.WriteAllBytes(OutFileName, decryptedBytes);
+                using (var fileStream = File.OpenRead(FileName))
+                {
+                    var decryptedBytes = Decrypt(fileStream, Secret, GetSalt(Salt));
+
+                    Utils.WriteAllBytes(OutFileName, decryptedBytes);
+                }
             }
             catch (Exception e)
             {
@@ -56,17 +62,39 @@ namespace CustomBuildTool
             return true;
         }
 
+        //private static void DecryptFile(string FileName, string OutFileName, string Secret)
+        //{
+        //    try
+        //    {
+        //        using (FileStream fileReadStream = new FileStream(FileName, FileMode.Open))
+        //        using (FileStream fileWriteStream = new FileStream(OutFileName, FileMode.Create))
+        //        {
+        //            using (var rijndael = GetRijndael(Secret))
+        //            using (var cryptoDecrypt = rijndael.CreateDecryptor())
+        //            using (var cryptoStream = new CryptoStream(fileWriteStream, cryptoDecrypt, CryptoStreamMode.Write))
+        //            {
+        //                fileReadStream.CopyTo(cryptoStream);
+        //                cryptoStream.FlushFinalBlock();
+        //            }
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Program.PrintColorMessage($"[DecryptFileStream-Exception]: {e.Message}", ConsoleColor.Red);
+        //    }
+        //}
+
         public static string HashFile(string FileName)
         {
             try
             {
-                using (FileStream fileInStream = File.OpenRead(FileName))
-                using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
-                using (SHA256 sha = SHA256.Create())
+                using (var filetream = File.OpenRead(FileName))
+                using (var bufferedStream = new BufferedStream(filetream, 0x1000))
+                using (var sha = SHA256.Create())
                 {
                     byte[] checksum = sha.ComputeHash(bufferedStream);
 
-                    return BitConverter.ToString(checksum).Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase);
+                    return Convert.ToHexString(checksum);
                 }
             }
             catch (Exception e)
@@ -103,11 +131,12 @@ namespace CustomBuildTool
 
                 if (File.Exists(FileName))
                 {
-                    using (var fileStream = File.OpenRead(FileName))
-                    {
-                        var signature = Sign(keyMaterial, fileStream);
-                        Utils.WriteAllBytes(sigFileName, signature);
-                    }
+                    var signature = Sign(keyMaterial, FileName);
+                    Utils.WriteAllBytes(sigFileName, signature);
+                }
+                else
+                {
+                    Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
                 }
             }
             catch (Exception e)
@@ -129,11 +158,12 @@ namespace CustomBuildTool
                 {
                     if (File.Exists(FileName))
                     {
-                        using (var fileStream = File.OpenRead(FileName))
-                        {
-                            var signature = Sign(keyMaterial, fileStream);
-                            Signature = Convert.ToHexString(signature);
-                        }
+                        var signature = Sign(keyMaterial, FileName);
+                        Signature = Convert.ToHexString(signature);
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage($"[Skipped] {FileName}", ConsoleColor.Yellow);
                     }
                 }
             }
@@ -145,25 +175,23 @@ namespace CustomBuildTool
             return !string.IsNullOrWhiteSpace(Signature);
         }
 
-        private static byte[] Encrypt(byte[] Bytes, string Secret)
+        private static byte[] Encrypt(Stream Stream, string Secret, string Salt)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x1000);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
 
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x1000, true, true))
+                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
                 {
-                    using (var rijndael = GetRijndael(Secret))
+                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                    using (MemoryStream blobStream = new MemoryStream(Bytes))
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write))
                     {
-                        blobStream.CopyTo(cryptoStream);
+                        Stream.CopyTo(cryptoStream);
+                        cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] copy = GC.AllocateUninitializedArray<byte>((int)memoryStream.Position);
-                    buffer.AsSpan(0, (int)memoryStream.Position).CopyTo(copy);
-                    return copy;
+                    return memoryStream.ToArray();
                 }
             }
             catch (Exception e)
@@ -172,31 +200,31 @@ namespace CustomBuildTool
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer, true);
+                // Zero the buffer (copied from System.Security.Cryptography)
+                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return null;
         }
 
-        private static byte[] Decrypt(byte[] Bytes, string Secret)
+        private static byte[] Decrypt(Stream Stream, string Secret, string Salt)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x1000);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(0x4000);
 
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x1000, true, true))
+                using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x4000, true, true))
                 {
-                    using (var rijndael = GetRijndael(Secret))
+                    using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (MemoryStream blobStream = new MemoryStream(Bytes))
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write))
                     {
-                        blobStream.CopyTo(cryptoStream);
+                        Stream.CopyTo(cryptoStream);
+                        cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] copy = GC.AllocateUninitializedArray<byte>((int)memoryStream.Position);
-                    buffer.AsSpan(0, (int)memoryStream.Position).CopyTo(copy);
-                    return copy;
+                    return memoryStream.ToArray();
                 }
             }
             catch (Exception e)
@@ -205,17 +233,35 @@ namespace CustomBuildTool
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(buffer, true);
+                // Zero the buffer (copied from System.Security.Cryptography)
+                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, 0x4000));
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return null;
         }
+        
+        private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
+        {
+            using (var blobStream = new MemoryStream(Bytes))
+            {
+                return Decrypt(blobStream, Secret, GetSalt(Salt));
+            }
+        }
 
-        private static Aes GetRijndael(string Secret)
+        private static byte[] Encrypt(byte[] Bytes, string Secret, string Salt)
+        {
+            using (var blobStream = new MemoryStream(Bytes))
+            {
+                return Encrypt(blobStream, Secret, GetSalt(Salt));
+            }
+        }
+
+        private static Aes GetRijndael(string Secret, string Salt)
         {
             using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
                 Secret,
-                Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
+                Convert.FromBase64String(GetSalt(Salt)),
                 10000,
                 HashAlgorithmName.SHA512
                 ))
@@ -258,24 +304,25 @@ namespace CustomBuildTool
             return buffer;
         }
 
-        private static byte[] Sign(byte[] KeyMaterial, Stream Stream)
+        private static byte[] Sign(byte[] KeyMaterial, string FileName)
         {
             byte[] buffer;
 
+            using (FileStream fileStream = File.OpenRead(FileName))
             using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
             {
                 if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
                 {
                     using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
                     {
-                        buffer = ecdsa.SignData(Stream, HashAlgorithmName.SHA256);
+                        buffer = ecdsa.SignData(fileStream, HashAlgorithmName.SHA256);
                     }
                 }
                 else if (cngkey.Algorithm == CngAlgorithm.Rsa)
                 {
                     using (RSACng rsa = new RSACng(cngkey))
                     {
-                        buffer = rsa.SignData(Stream, HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
+                        buffer = rsa.SignData(fileStream, HashAlgorithmName.SHA512, RSASignaturePadding.Pss);
                     }
                 }
                 else
@@ -292,12 +339,51 @@ namespace CustomBuildTool
             return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
         }
 
+        private static string GetSalt(string Salt)
+        {
+            if (string.IsNullOrWhiteSpace(Salt))
+                return "e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0=";
+            return Salt;
+        }
+
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
-            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName], out string secret))
+            if (
+                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string key) &&
+                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string value) &&
+                Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt)
+                )
             {
-                byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                KeyMaterial = Decrypt(bytes, secret);
+                if (Uri.TryCreate(value, UriKind.Absolute, out Uri result) && result.IsFile)
+                {
+                    using (var fileStream = File.OpenRead(value))
+                    {
+                        KeyMaterial = Decrypt(fileStream, key, salt);
+                    }
+                }
+                else
+                {
+                    byte[] bytes = Utils.ReadAllBytes(value);
+                    KeyMaterial = Decrypt(bytes, key, salt);
+                }
+
+                return true;
+            }
+            else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
+            {
+                if (Uri.TryCreate(secret, UriKind.Absolute, out Uri result) && result.IsFile)
+                {
+                    using (var fileStream = File.OpenRead(secret))
+                    {
+                        KeyMaterial = Decrypt(fileStream, secret, GetSalt(null));
+                    }
+                }
+                else
+                {
+                    byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+                    KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
+                }
+
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))

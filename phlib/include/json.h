@@ -380,7 +380,7 @@ PhSetXmlNodeAttributeText(
     );
 
 PHLIBAPI
-LONG
+SIZE_T
 NTAPI
 PhGetXmlNodeAttributeCount(
     _In_ PVOID XmlNodeObject
@@ -491,7 +491,7 @@ typedef VOID (NTAPI* PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT)(
     _In_ PCSTR Value
     );
 
-typedef LONG (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
+typedef SIZE_T (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
     _In_ PVOID XmlNodeObject
     );
 

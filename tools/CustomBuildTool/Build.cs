@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class Build
+    public static unsafe class Build
     {
         private static DateTime TimeStart;
         public static bool BuildCanary = false;
@@ -171,6 +171,11 @@ namespace CustomBuildTool
             get { return new DateTime(TimeStart.Year, TimeStart.Month, TimeStart.Day, TimeStart.Hour, 0, 0).ToString("o"); }
         }
 
+        public static DateTime BuildDateTime
+        {
+            get { return new DateTime(TimeStart.Year, TimeStart.Month, TimeStart.Day, TimeStart.Hour, 0, 0); }
+        }
+
         public static void ShowBuildStats()
         {
             TimeSpan buildTime = (DateTime.UtcNow - Build.TimeStart);
@@ -254,21 +259,21 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\{file.Value}", Flags);
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\{file.Value}");
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\{file.Value}", Flags);
                 }
             }
 
@@ -473,39 +478,51 @@ namespace CustomBuildTool
             if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
                 if (Flags.HasFlag(BuildFlags.Build32bit))
-                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib", Flags);
                 if (Flags.HasFlag(BuildFlags.Build64bit))
-                    Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib", Flags);
                 if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    Win32.CopyIfNewer("bin\\DebugARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\DebugARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib", Flags);
             }
 
             if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
                 if (Flags.HasFlag(BuildFlags.Build32bit))
-                    Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib", Flags);
                 if (Flags.HasFlag(BuildFlags.Build64bit))
-                    Win32.CopyIfNewer("bin\\Release64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\Release64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib", Flags);
                 if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
+                    Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib", Flags);
             }
 
             // Build the SDK
             HeaderGen.Execute();
 
             // Copy the SDK headers
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
-            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h");
+            Win32.CopyIfNewer("SystemInformer\\include\\phappres.h", "sdk\\include\\phappres.h", Flags);
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", Flags);
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h", Flags);
             //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h");
 
             // Copy the resource header and prefix types with PHAPP
             {
-                NativeMethods.GetFileAttributesEx("SystemInformer\\resource.h", 0, out var sourceFile);
-                NativeMethods.GetFileAttributesEx("sdk\\include\\phappresource.h", 0, out var destinationFile);
+                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
+                WIN32_FILE_ATTRIBUTE_DATA destinationFile;
+
+                PInvoke.GetFileAttributesEx(
+                    "SystemInformer\\resource.h",
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
+                    &sourceFile);
+
+                PInvoke.GetFileAttributesEx(
+                    "sdk\\include\\phappresource.h",
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
+                    &destinationFile
+                    );
 
                 if (
-                    sourceFile.CreationTime.FileTime != destinationFile.CreationTime.FileTime ||
-                    sourceFile.LastWriteTime.FileTime != destinationFile.LastWriteTime.FileTime
+                    sourceFile.ftCreationTime.FileTimeToDateTime() != destinationFile.ftCreationTime.FileTimeToDateTime() ||
+                    sourceFile.ftLastWriteTime.FileTimeToDateTime() != destinationFile.ftLastWriteTime.FileTimeToDateTime()
                     )
                 {
                     string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
@@ -520,11 +537,15 @@ namespace CustomBuildTool
                             sdkContent
                             );
 
-                        Win32.SetFileTime(
-                            "sdk\\include\\phappresource.h",
-                            sourceFile.CreationTime.FileTime,
-                            sourceFile.LastWriteTime.FileTime
-                            );
+                        using (var fs = File.OpenWrite("sdk\\include\\phappresource.h"))
+                        {
+                            PInvoke.SetFileTime(
+                                fs.SafeFileHandle,
+                                sourceFile.ftCreationTime,
+                                sourceFile.ftLastAccessTime,
+                                sourceFile.ftLastWriteTime
+                                );
+                        }
                     }
                 }
             }
@@ -673,7 +694,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
                     );
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green, false);
             }
             catch (Exception ex)
             {
@@ -786,7 +807,7 @@ namespace CustomBuildTool
             if (Flags.HasFlag(BuildFlags.BuildMsix))
                 compilerOptions.Append("PH_BUILD_MSIX;");
             if (!string.IsNullOrWhiteSpace(Channel))
-                compilerOptions.Append($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]};");
+                compilerOptions.Append($"PH_RELEASE_CHANNEL_ID=\"{BuildConfig.Build_Channels[Channel]}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommitHash.AsSpan(0, 8)}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
@@ -798,7 +819,7 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision))
                 compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildVersionRevision}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
-                linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
+                linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
@@ -865,12 +886,12 @@ namespace CustomBuildTool
             public string BinFilename;
             public string BinHash;
             public string BinSig;
-            public long BinFileLength;
+            public ulong BinFileLength;
 
             public string SetupFilename;
             public string SetupHash;
             public string SetupSig;
-            public long SetupFileLength;
+            public ulong SetupFileLength;
         }
 
         private static bool GetBuildDeployInfo(string Channel, out BuildDeployInfo Info)
@@ -996,42 +1017,23 @@ namespace CustomBuildTool
                 if (buildPostString.LongLength == 0)
                     return false;
 
-                using HttpClientHandler httpClientHandler = new HttpClientHandler();
-                httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, buildPostSfUrl))
                 {
-                    string[] trustedSubjects =
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Add("X-ApiKey", buildPostSfApiKey);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                    requestMessage.Version = HttpVersion.Version20;
+
+                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var httpResult = HttpClient.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(httpResult))
                     {
-                        "CN=sourceforge.io",
-                        "CN=sourceforge.io, O=\"Cloudflare, Inc.\", L=San Francisco, S=California, C=US"
-                    };
-
-                    if (sslPolicyErrors != SslPolicyErrors.None)
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF]", ConsoleColor.Red);
                         return false;
-
-                    if (trustedSubjects.Contains(cert.Subject))
-                        return true;
-
-                    Program.PrintColorMessage($"[CertValidationCallback] {cert.Subject}", ConsoleColor.Red);
-                    return false;
-                };
-
-                using HttpClient httpClient = new HttpClient(httpClientHandler);
-                httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
-                httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                httpClient.DefaultRequestVersion = HttpVersion.Version20;
-
-                using ByteArrayContent httpContent = new ByteArrayContent(buildPostString);
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
-                httpTask.Wait();
-
-                if (!httpTask.Result.IsSuccessStatusCode)
-                {
-                    Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpTask.Result}", ConsoleColor.Red);
-                    return false;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1045,16 +1047,16 @@ namespace CustomBuildTool
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {
-            if (!Github.DeleteRelease(Build.BuildShortVersion))
+            if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
                 return null;
 
-            var mirror = new GithubRelease();
+            GithubRelease mirror = null;
 
             try
             {
                 // Create a new github release.
 
-                var response = Github.CreateRelease(Build.BuildShortVersion);
+                var response = GithubReleases.CreateRelease(Build.BuildShortVersion);
 
                 if (response == null)
                 {
@@ -1073,7 +1075,7 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        var result = Github.UploadAssets(Build.BuildShortVersion, sourceFile, response.UploadUrl);
+                        var result = GithubReleases.UploadAssets(Build.BuildShortVersion, sourceFile, response.UploadUrl);
 
                         if (result == null)
                         {
@@ -1087,13 +1089,15 @@ namespace CustomBuildTool
 
                 // Update the release and make it public.
 
-                var update = Github.UpdateRelease(response.ReleaseId);
+                var update = GithubReleases.UpdateRelease(response.ReleaseId);
 
                 if (update == null)
                 {
                     Program.PrintColorMessage("[Github.UpdateRelease]", ConsoleColor.Red);
                     return null;
                 }
+
+                mirror = new GithubRelease(update.ReleaseId);
 
                 // Grab the download urls.
 
@@ -1106,8 +1110,6 @@ namespace CustomBuildTool
 
                     mirror.Files.Add(new GithubReleaseAsset(file.Name, file.DownloadUrl));
                 }
-
-                mirror.ReleaseId = update.ReleaseId;
             }
             catch (Exception ex)
             {
@@ -1199,7 +1201,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.Substring("bin\\Release32\\".Length)}\"");
+                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release32\\".Length)}\"");
                 }
 
                 Utils.WriteAllText("tools\\msix\\MsixPackage32.map", packageMap32.ToString());
@@ -1232,7 +1234,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    packageMap64.AppendLine($"\"{filePath}\" \"{filePath.Substring("bin\\Release64\\".Length)}\"");
+                    packageMap64.AppendLine($"\"{filePath}\" \"{filePath.AsSpan("bin\\Release64\\".Length)}\"");
                 }
 
                 Utils.WriteAllText("tools\\msix\\MsixPackage64.map", packageMap64.ToString());
@@ -1451,5 +1453,150 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[Cleanup] {ex}", ConsoleColor.Red);
             }
         }
+
+        public static void ReflowExportDefinitions(bool ReleaseBuild)
+        {
+            StringBuilder output = new StringBuilder();
+            int total = 0; // ushort.MaxValue
+
+            {
+                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
+
+                File.Copy(
+                    "SystemInformer\\SystemInformer.def",
+                    "SystemInformer\\SystemInformer.bak",
+                    true
+                    );
+
+                if (PInvoke.GetFileAttributesEx(
+                    "SystemInformer\\SystemInformer.def",
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
+                    &sourceFile))
+                {
+                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.bak"))
+                    {
+                        PInvoke.SetFileTime(
+                            fs.SafeFileHandle,
+                            sourceFile.ftCreationTime,
+                            sourceFile.ftLastAccessTime,
+                            sourceFile.ftLastWriteTime
+                            );
+                    }
+                }
+            }
+
+            var content = File.ReadAllText("SystemInformer\\SystemInformer.def");
+            var lines = content.Split("\r\n");
+
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
+                {
+                    total++;
+                }
+            }
+
+            //using (var reader = File.OpenText("SystemInformer\\SystemInformer.def"))
+            //{
+            //    while (reader.ReadLine() is { } line)
+            //    {
+            //        if (line.Contains('@', StringComparison.OrdinalIgnoreCase))
+            //        {
+            //            total++;
+            //        }
+            //    }
+            //}
+
+            List<int> ordinals = new List<int>();
+
+            if (ReleaseBuild)
+            {
+                while (ordinals.Count < total)
+                {
+                    var value = Random.Shared.Next(1000, 1000 + total);
+
+                    if (!ordinals.Contains(value))
+                    {
+                        ordinals.Add(value);
+                    }
+                }
+            }
+            else
+            {
+                while (ordinals.Count < total)
+                {
+                    ordinals.Add(1000 + ordinals.Count + 1);
+                }
+            }
+            foreach (string line in lines)
+            {
+                var span = line.AsSpan();
+
+                if (span.IsEmpty || span.IsWhiteSpace())
+                {
+                    output.Append(span);
+                    output.Append(Environment.NewLine);
+                }
+                else
+                {
+                    if (line.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var ordinal = ordinals[0]; ordinals.RemoveAt(0);
+
+                        output.Append(line);
+                        output.Append(" @");
+                        output.Append(ordinal);
+                        output.Append(" NONAME");
+
+                        if (span.EndsWith("DATA", StringComparison.OrdinalIgnoreCase))
+                        {
+                            output.Append(" DATA");
+                        }
+
+                        output.Append(Environment.NewLine);
+                    }
+                    else
+                    {
+                        output.Append(span);
+                        output.Append(Environment.NewLine);
+                    }
+                }
+            }
+
+            string export_content = output.ToString().TrimEnd();
+
+            Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
+        }
+
+        public static void RestoreExportDefinitions()
+        {
+            if (File.Exists("SystemInformer\\SystemInformer.bak"))
+            {
+                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
+
+                File.Copy(
+                    "SystemInformer\\SystemInformer.bak",
+                    "SystemInformer\\SystemInformer.def",
+                    true
+                    );
+
+                if (PInvoke.GetFileAttributesEx(
+                    "SystemInformer\\SystemInformer.bak", 
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, 
+                    &sourceFile))
+                {
+                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.def"))
+                    {
+                        PInvoke.SetFileTime(
+                            fs.SafeFileHandle,
+                            sourceFile.ftCreationTime,
+                            sourceFile.ftLastAccessTime,
+                            sourceFile.ftLastWriteTime
+                            );
+                    }
+                }
+            }
+        }
+
     }
 }

@@ -11,7 +11,7 @@
 
 namespace CustomBuildTool
 {
-    public static class Win32
+    public static unsafe class Win32
     {
         private static readonly char[] PathSeparator = [';'];
 
@@ -168,8 +168,10 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static void CopyIfNewer(string SourceFile, string DestinationFile)
+        public static void CopyIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
         {
+            bool updated = false;
+
             if (!File.Exists(SourceFile))
             {
                 Program.PrintColorMessage($"[CopyIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
@@ -202,16 +204,39 @@ namespace CustomBuildTool
                     )
                 {
                     File.Copy(SourceFile, DestinationFile, true);
+
+                    SetFileTime(
+                        DestinationFile, 
+                        sourceFile.CreationTimeUtc.ToFileTimeUtc(),
+                        sourceFile.LastWriteTimeUtc.ToFileTimeUtc()
+                        );
+                    updated = true;
                 }
             }
             else
             {
+                FileInfo sourceFile = new FileInfo(SourceFile);
+
                 File.Copy(SourceFile, DestinationFile, true);
+
+                SetFileTime(
+                    DestinationFile,
+                    sourceFile.CreationTimeUtc.ToFileTimeUtc(),
+                    sourceFile.LastWriteTimeUtc.ToFileTimeUtc()
+                    );
+                updated = true;
             }
+
+            if (updated)
+                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.White, true, Flags);
+            else
+                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.Yellow, true, Flags);
         }
 
-        public static void CopyVersionIfNewer(string SourceFile, string DestinationFile)
+        public static void CopyVersionIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
         {
+            bool updated = false;
+
             if (!File.Exists(SourceFile))
             {
                 Program.PrintColorMessage($"[CopyVersionIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
@@ -241,12 +266,19 @@ namespace CustomBuildTool
                     )
                 {
                     File.Copy(SourceFile, DestinationFile, true);
+                    updated = true;
                 }
             }
             else
             {
                 File.Copy(SourceFile, DestinationFile, true);
+                updated = true;
             }
+
+            if (updated)
+                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.White, true, Flags);
+            else
+                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.Yellow, true, Flags);
         }
 
         /// <summary>
@@ -324,62 +356,77 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static unsafe string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
+        public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
             string value = string.Empty;
-            void* valueBuffer;
-            IntPtr keyHandle;
+            byte* valueBuffer;
+            HKEY keyHandle;
 
-            if (NativeMethods.RegOpenKeyEx(
-                LocalMachine ? NativeMethods.HKEY_LOCAL_MACHINE : NativeMethods.HKEY_CURRENT_USER,
-                KeyName,
-                0,
-                NativeMethods.KEY_READ,
-                &keyHandle
-                ) == 0)
+            fixed (char* p = KeyName)
             {
-                int valueLength = 0;
-                int valueType = 0;
-
-                NativeMethods.RegQueryValueEx(
-                    keyHandle,
-                    ValueName,
-                    IntPtr.Zero,
-                    &valueType,
-                    null,
-                    &valueLength
-                    );
-
-                if (valueType == 1 || valueLength > 4)
+                if (PInvoke.RegOpenKeyEx(
+                    LocalMachine ? HKEY.HKEY_LOCAL_MACHINE : HKEY.HKEY_CURRENT_USER,
+                    p,
+                    0,
+                    REG_SAM_FLAGS.KEY_READ,
+                    &keyHandle
+                    ) == WIN32_ERROR.ERROR_SUCCESS)
                 {
-                    valueBuffer = NativeMemory.Alloc((nuint)valueLength);
+                    uint valueLength = 0;
+                    REG_VALUE_TYPE valueType = 0;
 
-                    if (NativeMethods.RegQueryValueEx(
+                    PInvoke.RegQueryValueEx(
                         keyHandle,
-                        ValueName,
-                        IntPtr.Zero,
+                        p,
                         null,
-                        valueBuffer,
+                        &valueType,
+                        null,
                         &valueLength
-                        ) == 0)
+                        );
+
+                    if (valueType == REG_VALUE_TYPE.REG_SZ || valueLength > 4)
                     {
-                        value = Marshal.PtrToStringUni((nint)valueBuffer, valueLength / 2 - 1);
+                        valueBuffer = (byte*)NativeMemory.Alloc(valueLength);
+
+                        if (PInvoke.RegQueryValueEx(
+                            keyHandle,
+                            p,
+                            null,
+                            null,
+                            valueBuffer,
+                            &valueLength
+                            ) == WIN32_ERROR.ERROR_SUCCESS)
+                        {
+                            value = new string((char*)valueBuffer, 0, (int)valueLength / 2 - 1);
+                        }
+
+                        NativeMemory.Free(valueBuffer);
                     }
 
-                    NativeMemory.Free(valueBuffer);
+                    _ = PInvoke.RegCloseKey(keyHandle);
                 }
-
-                _ = NativeMethods.RegCloseKey(keyHandle);
             }
 
             return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
         }
 
-        public static long GetFileSize(string FileName)
+        public static ulong GetFileSize(string FileName)
         {
-            if (NativeMethods.GetFileAttributesEx(FileName, 0, out var fileAttributeData))
+            WIN32_FILE_ATTRIBUTE_DATA sourceFile = new WIN32_FILE_ATTRIBUTE_DATA();
+
+            if (PInvoke.GetFileAttributesEx(
+                FileName,
+                GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
+                &sourceFile
+                ))
             {
-                return ((long)fileAttributeData.FileSizeHigh) << 32 | fileAttributeData.FileSizeLow & 0xFFFFFFFFL;
+                NativeMethods.LARGE_INTEGER fileSize;
+
+                fileSize.QuadPart = 0;
+                fileSize.LowPart = sourceFile.nFileSizeLow;
+                fileSize.HighPart = sourceFile.nFileSizeHigh;
+
+                return fileSize.QuadPart;
             }
 
             return 0;
@@ -399,27 +446,36 @@ namespace CustomBuildTool
 
         public static void SetErrorMode()
         {
-            NativeMethods.SetErrorMode(NativeMethods.SEM_NOGPFAULTERRORBOX | NativeMethods.SEM_NOOPENFILEERRORBOX);
+            PInvoke.SetPriorityClass(
+                PInvoke.GetCurrentProcess(),
+                PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
+                );
         }
 
         public static void SetBasePriority()
         {
             //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
-            NativeMethods.SetPriorityClass(NativeMethods.CURRENT_PROCESS, NativeMethods.HIGH_PRIORITY_CLASS);
+            PInvoke.SetPriorityClass(
+                PInvoke.GetCurrentProcess(),
+                PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
+                );
         }
 
-        public static unsafe void SetFileTime(
+        public static void SetFileTime(
             string FileName,
             long CreationDateTime,
             long LastWriteDateTime
             )
         {
-            NativeMethods.FILE_BASIC_INFO basicInfo;
+            FILE_BASIC_INFO basicInfo;
+
             basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
             basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
 
-            using var fs = File.OpenWrite(FileName);
-            NativeMethods.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(NativeMethods.FILE_BASIC_INFO));
+            using (var fs = File.OpenWrite(FileName))
+            {
+                PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
+            }
         }        
     }
 }
