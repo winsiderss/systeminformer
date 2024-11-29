@@ -401,6 +401,7 @@ BOOLEAN PhCreateProcessLxss(
     HANDLE processHandle;
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
     PH_FORMAT format[4];
@@ -447,19 +448,11 @@ BOOLEAN PhCreateProcessLxss(
         goto CleanupExit;
     }
 
-    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
-    startupInfo.StartupInfo.wShowWindow = SW_HIDE;
-    startupInfo.StartupInfo.hStdInput = inputReadHandle;
-    startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
-    startupInfo.StartupInfo.hStdError = outputWriteHandle;
-
-    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1)))
+    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&attributeList, 1)))
         goto CleanupExit;
 
     if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-        startupInfo.lpAttributeList,
+        attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
         &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
         sizeof(HANDLE[2])
@@ -468,12 +461,21 @@ BOOLEAN PhCreateProcessLxss(
         goto CleanupExit;
     }
 
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
+    startupInfo.StartupInfo.wShowWindow = SW_HIDE;
+    startupInfo.StartupInfo.hStdInput = inputReadHandle;
+    startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
+    startupInfo.StartupInfo.hStdError = outputWriteHandle;
+    startupInfo.lpAttributeList = attributeList;
+
     if (!NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
         PhGetString(lxssCommandLine),
         NULL,
         NULL,
-        &startupInfo.StartupInfo,
+        &startupInfo,
         PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE |
         PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
         NULL,
@@ -520,8 +522,8 @@ CleanupExit:
     if (inputWriteHandle)
         NtClose(inputWriteHandle);
 
-    if (startupInfo.lpAttributeList)
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+    if (attributeList)
+        PhDeleteProcThreadAttributeList(attributeList);
 
     return result;
 }

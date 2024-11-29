@@ -15,7 +15,7 @@
 
 EXTERN_C_START
 
-extern WCHAR *PhSizeUnitNames[7];
+extern CONST WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
 extern USHORT PhMaxPrecisionUnit;
 extern FLOAT PhMaxPrecisionLimit;
@@ -37,7 +37,7 @@ typedef struct _PH_SCALABLE_INTEGER_PAIR
             LONG Y;
         };
     };
-    ULONG Scale;
+    LONG Scale;
 } PH_SCALABLE_INTEGER_PAIR, *PPH_SCALABLE_INTEGER_PAIR;
 
 typedef struct _PH_RECTANGLE
@@ -262,9 +262,9 @@ PhShowMessage(
     ...
     );
 
-#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format, ##__VA_ARGS__)
-#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format, ##__VA_ARGS__)
-#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format, ##__VA_ARGS__)
+#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format __VA_OPT__(,) __VA_ARGS__)
 
 PHLIBAPI
 LONG
@@ -298,9 +298,9 @@ PhShowMessage2(
 #define TD_SHIELD_ICON          MAKEINTRESOURCEW(-4)
 #endif
 
-#define PhShowError2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format, ##__VA_ARGS__)
-#define PhShowWarning2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format, ##__VA_ARGS__)
-#define PhShowInformation2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, ##__VA_ARGS__)
+#define PhShowError2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowWarning2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowInformation2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
 
 PHLIBAPI
 BOOLEAN
@@ -2095,7 +2095,7 @@ PhGetMillisecondsStopwatch(
 
     elapsedMilliseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
     elapsedMilliseconds.QuadPart *= 1000;
-    elapsedMilliseconds.QuadPart /= Stopwatch->Frequency.QuadPart ? Stopwatch->Frequency.QuadPart  : 1;
+    elapsedMilliseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
 
     return (ULONG)elapsedMilliseconds.QuadPart;
 }
@@ -2111,7 +2111,7 @@ PhGetMicrosecondsStopwatch(
     // Convert to microseconds before dividing by ticks-per-second.
     elapsedMicroseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
     elapsedMicroseconds.QuadPart *= 1000000;
-    if (Stopwatch->Frequency.QuadPart)elapsedMicroseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
+    elapsedMicroseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
 
     return elapsedMicroseconds.QuadPart;
 }
@@ -2203,6 +2203,9 @@ PhGetActiveComputerName(
     VOID
     );
 
+#include <devpropdef.h>
+#include <devquery.h>
+
 typedef enum _DEV_OBJECT_TYPE DEV_OBJECT_TYPE, *PDEV_OBJECT_TYPE;
 typedef enum _DEV_QUERY_FLAGS DEV_QUERY_FLAGS, *PDEV_QUERY_FLAGS;
 typedef struct _DEVPROPCOMPKEY DEVPROPCOMPKEY, *PDEVPROPCOMPKEY;
@@ -2230,6 +2233,58 @@ NTAPI
 PhDevFreeObjects(
     _In_ ULONG ObjectCount,
     _In_reads_(ObjectCount) const DEV_OBJECT* Objects
+    );
+
+typedef GUID  DEVPROPGUID, *PDEVPROPGUID;
+typedef ULONG DEVPROPID,   *PDEVPROPID;
+typedef struct _DEVPROPKEY DEVPROPKEY, *PDEVPROPKEY;
+typedef enum _DEVPROPSTORE DEVPROPSTORE, *PDEVPROPSTORE;
+typedef ULONG DEVPROPTYPE, *PDEVPROPTYPE;
+typedef struct _DEVPROPCOMPKEY DEVPROPCOMPKEY, *PDEVPROPCOMPKEY;
+
+_Check_return_
+PHLIBAPI
+HRESULT
+NTAPI
+PhDevGetObjectProperties(
+    _In_ DEV_OBJECT_TYPE ObjectType,
+    _In_ PCWSTR ObjectId,
+    _In_ DEV_QUERY_FLAGS QueryFlags,
+    _In_ ULONG RequestedPropertiesCount,
+    _In_reads_(RequestedPropertiesCount) const DEVPROPCOMPKEY* RequestedProperties,
+    _Out_ PULONG PropertiesCount,
+    _Outptr_result_buffer_(*PropertiesCount) const DEVPROPERTY** Properties
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDevFreeObjectProperties(
+    _In_ ULONG PropertiesCount,
+    _In_reads_(PropertiesCount) const DEVPROPERTY* Properties
+    );
+
+_Check_return_
+PHLIBAPI
+HRESULT
+NTAPI
+PhDevCreateObjectQuery(
+    _In_ DEV_OBJECT_TYPE ObjectType,
+    _In_ DEV_QUERY_FLAGS QueryFlags,
+    _In_ ULONG RequestedPropertiesCount,
+    _In_reads_opt_(RequestedPropertiesCount) const DEVPROPCOMPKEY* RequestedProperties,
+    _In_ ULONG FilterExpressionCount,
+    _In_reads_opt_(FilterExpressionCount) const DEVPROP_FILTER_EXPRESSION* Filter,
+    _In_ PDEV_QUERY_RESULT_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _Out_ PHDEVQUERY DevQuery
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDevCloseObjectQuery(
+    _In_ HDEVQUERY QueryHandle
     );
 
 PHLIBAPI
@@ -2318,6 +2373,22 @@ PhPtrAdvance(
     *Pointer = pointer;
     return TRUE;
 }
+
+typedef UINT D3DDDI_VIDEO_PRESENT_SOURCE_ID;
+typedef enum _D3DKMT_VIDPNSOURCEOWNER_TYPE D3DKMT_VIDPNSOURCEOWNER_TYPE;
+typedef struct _D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP, *PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP;
+
+BOOLEAN PhIsDirectXRunningFullScreen(
+    VOID
+    );
+
+NTSTATUS PhRestoreFromDirectXRunningFullScreen(
+    _In_ HANDLE ProcessHandle
+    );
+
+NTSTATUS PhQueryDirectXExclusiveOwnership(
+    _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
+    );
 
 EXTERN_C_END
 

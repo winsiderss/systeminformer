@@ -396,7 +396,7 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
     )
 {
     PPH_SETTING setting;
-    PPH_STRING value;
+    PPH_STRING value = NULL;
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -908,12 +908,13 @@ VOID PhLoadWindowPlacementFromSetting(
     {
         PH_RECTANGLE windowRectangle = { 0 };
         LONG dpi;
-        RECT rect;
+        //RECT rect;
         RECT rectForAdjust;
 
         windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-        rect = PhRectangleToRect(windowRectangle);
-        dpi = PhGetMonitorDpi(&rect);
+        //rect = PhRectangleToRect(windowRectangle);
+        //dpi = PhGetMonitorDpi(&rect);
+        dpi = PhGetWindowDpi(WindowHandle);
 
         windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
@@ -928,7 +929,7 @@ VOID PhLoadWindowPlacementFromSetting(
     }
     else
     {
-        PH_RECTANGLE windowRectangle;
+        PH_RECTANGLE windowRectangle = { 0 };
         PH_INTEGER_PAIR position;
         PH_INTEGER_PAIR size;
         ULONG flags;
@@ -949,7 +950,13 @@ VOID PhLoadWindowPlacementFromSetting(
 
         if (SizeSettingName)
         {
+            //RECT rect;
+            //
+            //windowRectangle.Position = position;
+            //rect = PhRectangleToRect(windowRectangle);
+            //dpi = PhGetMonitorDpi(&rect);
             dpi = PhGetWindowDpi(WindowHandle);
+
             size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
             flags &= ~SWP_NOSIZE;
         }
