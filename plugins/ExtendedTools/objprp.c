@@ -970,13 +970,16 @@ ULONG EtSessionIdFromObjectName(
     _In_ PPH_STRINGREF Name
     )
 {
-    ULONG sessionId = ULONG_MAX;
+    static PH_STRINGREF session = PH_STRINGREF_INIT(L"Session");
 
-    if (PhCountStringZ(Name->Buffer) > RTL_NUMBER_OF(L"Session") - 1)
+    ULONG sessionId = ULONG_MAX;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF idString;
+
+    if (PhSplitStringRefAtString(Name, &session, TRUE, &firstPart, &idString) &&
+        idString.Length > 0)
     {
-        PH_STRINGREF idString;
         LONG64 id;
-        PhInitializeStringRef(&idString, &Name->Buffer[RTL_NUMBER_OF(L"Session") - 1]);
         if (PhStringToInteger64(&idString, 0, &id))
             sessionId = (ULONG)id;
     }
@@ -1664,7 +1667,7 @@ VOID EtpUpdateGeneralTab(
                 NULL
                 )))
             {
-                PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount));
+                PhPrintUInt32(string, Context->ProcessId == NtCurrentProcessId() ? OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount) : basicInfo.HandleCount);
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
 

@@ -42,6 +42,13 @@ ULONG EtWinStaTypeIndex = ULONG_MAX;
 
 PPH_OBJECT_TYPE EtObjectEntryType = NULL;
 
+static PPH_STRING ObjectSignaledString = NULL;
+static PPH_STRING ObjectNotificationString = NULL;
+static PPH_STRING ObjectSignaledNotificationString = NULL;
+static PPH_STRING ObjectSyncronizationString = NULL;
+static PPH_STRING ObjectSignaledSyncronizationString = NULL;
+static PPH_STRING ObjectAbandonedString = NULL;
+
 // Columns
 
 #define ETOBLVC_NAME 0
@@ -1016,7 +1023,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                             if (basicInfo.AbandonedState)
                             {
                                 entry->TargetIsInfoOnly = TRUE;
-                                entry->Target = PhCreateString(L"Abandoned");
+                                entry->Target = PhReferenceObject(ObjectAbandonedString);
                             }
                         }
                     }
@@ -1159,27 +1166,22 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                 if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, EVENT_QUERY_STATE, 0)))
                 {
                     EVENT_BASIC_INFORMATION basicInfo;
-                    PWSTR eventType = NULL;
 
                     if (NT_SUCCESS(PhGetEventBasicInformation(objectHandle, &basicInfo)))
                     {
+                        entry->TargetIsInfoOnly = TRUE;
+
                         switch (basicInfo.EventType)
                         {
                         case NotificationEvent:
-                            eventType = basicInfo.EventState > 0 ? L"Signaled, Notification" : L"Notification";
+                            entry->Target = PhReferenceObject(basicInfo.EventState > 0 ? ObjectSignaledNotificationString : ObjectNotificationString);
                             break;
                         case SynchronizationEvent:
-                            eventType = basicInfo.EventState > 0 ? L"Signaled, Synchronization" : L"Synchronization";
+                            entry->Target = PhReferenceObject(basicInfo.EventState > 0 ? ObjectSignaledSyncronizationString : ObjectSyncronizationString);
                             break;
                         default:
-                            if (basicInfo.EventState > 0) eventType = L"Signaled";
+                            if (basicInfo.EventState > 0) entry->Target = PhReferenceObject(ObjectSignaledString);
                         }
-                    }
-
-                    if (eventType)
-                    {
-                        entry->TargetIsInfoOnly = TRUE;
-                        entry->Target = PhCreateString(eventType);
                     }
                 }
             }
@@ -1195,7 +1197,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         if (basicInfo.TimerState)
                         {
                             entry->TargetIsInfoOnly = TRUE;
-                            entry->Target = PhCreateString(L"Signaled");
+                            entry->Target = PhReferenceObject(ObjectSignaledString);
                         }
                     }
                 }
@@ -1234,7 +1236,11 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         {
                             entry->TypeTypeIndex = typeIndex;
                             entry->TargetIsInfoOnly = TRUE;
-                            entry->Target = PhFormatString(L"Index: %d, Objects: %d, Handles: %d", objectType->TypeIndex, objectType->TotalNumberOfObjects, objectType->TotalNumberOfHandles);
+                            entry->Target = PhFormatString(
+                                L"Index: %d, Objects: %d, Handles: %d",
+                                objectType->TypeIndex,
+                                objectType->TotalNumberOfObjects,
+                                objectType->TotalNumberOfHandles);
 
                             break;
                         }
@@ -2758,9 +2764,9 @@ VOID EtpObjectManagerCopyObjectAddress(
             if (NT_SUCCESS(EtObjectManagerGetHandleInfoEx(processId, processHandle, objectHandle, &objectAddress, NULL, NULL)))
             {
                 Entry->Object = objectAddress;
+                PhPrintPointer(Entry->ObjectString, objectAddress);
                 ListView_RedrawItems(Entry->Context->ListViewHandle, Entry->ItemIndex, Entry->ItemIndex);
-                PhPrintPointer(string, objectAddress);
-                PhInitializeStringRef(&pointer, string);
+                PhInitializeStringRef(&pointer, Entry->ObjectString);
             }
         }
 
@@ -2815,6 +2821,13 @@ INT_PTR CALLBACK WinObjDlgProc(
             EtKeyTypeIndex = PhGetObjectTypeNumberZ(L"Key");
             EtSectionTypeIndex = PhGetObjectTypeNumberZ(L"Section");
             EtWinStaTypeIndex = PhGetObjectTypeNumberZ(L"WindowStation");
+
+            ObjectSignaledString = PhCreateString(L"Signaled");
+            ObjectNotificationString = PhCreateString(L"Notification");
+            ObjectSignaledNotificationString = PhCreateString(L"Signaled, Notification");
+            ObjectSyncronizationString = PhCreateString(L"Syncronization");
+            ObjectSignaledSyncronizationString = PhCreateString(L"Signaled, Syncronization");
+            ObjectAbandonedString = PhCreateString(L"Abandoned");
             PhEndInitOnce(&initOnce);
         }
     }
