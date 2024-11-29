@@ -84,7 +84,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
