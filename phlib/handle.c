@@ -622,7 +622,7 @@ BOOLEAN PhpAllocateMoreHandleTableEntries(
 {
     ULONG_PTR tableValue;
     ULONG tableLevel;
-    PPH_HANDLE_TABLE_ENTRY table0;
+    PPH_HANDLE_TABLE_ENTRY table0 = nullptr;
     PPH_HANDLE_TABLE_ENTRY *table1;
     PPH_HANDLE_TABLE_ENTRY **table2;
     ULONG i;
@@ -838,7 +838,7 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
     PPH_HANDLE_TABLE_ENTRY table0;
     PPH_HANDLE_TABLE_ENTRY *table1;
     PPH_HANDLE_TABLE_ENTRY **table2;
-    PPH_HANDLE_TABLE_ENTRY entry;
+    PPH_HANDLE_TABLE_ENTRY entry = nullptr;
 
     if (HandleValue >= HandleTable->NextValue)
         return NULL;
@@ -892,7 +892,7 @@ ULONG PhpMoveFreeHandleTableEntries(
     ULONG nextIndex;
     ULONG lastIndex;
     PPH_HANDLE_TABLE_ENTRY entry;
-    PPH_HANDLE_TABLE_ENTRY firstEntry;
+    PPH_HANDLE_TABLE_ENTRY firstEntry = nullptr;
     ULONG count;
     ULONG freeValue;
 
