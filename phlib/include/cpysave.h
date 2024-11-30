@@ -66,10 +66,30 @@ VOID PhaMapDisplayIndexListView(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhaMapDisplayIndexIListView(
+    _In_ struct IListView* ListView,
+    _Out_writes_(Count) PULONG DisplayToId,
+    _Out_writes_opt_(Count) PPH_STRING* DisplayToText,
+    _In_ ULONG Count,
+    _Out_ PULONG NumberOfColumns
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetListViewItemText(
     _In_ HWND ListViewHandle,
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetIListViewItemText(
+    _In_ struct IListView* ListView,
     _In_ LONG Index,
     _In_ LONG SubItemIndex
     );
@@ -84,6 +104,13 @@ PhGetListViewSelectedItemText(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetIListViewSelectedItemText(
+    _In_ struct IListView* ListView
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ LONG Index,
@@ -91,8 +118,26 @@ PhaGetListViewItemText(
     );
 
 PHLIBAPI
-PPH_STRING PhGetListViewText(
+PPH_STRING
+NTAPI
+PhaGetIListViewItemText(
+    _In_ struct IListView* ListView,
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetListViewText(
     _In_ HWND ListViewHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetIListViewText(
+    _In_ struct IListView* ListView
     );
 
 PHLIBAPI
