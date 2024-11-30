@@ -22,7 +22,7 @@
     <PublishAot>True</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <Version>2.0.0.0</Version>
