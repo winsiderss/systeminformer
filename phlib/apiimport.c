@@ -11,10 +11,14 @@
  */
 
 #include <ph.h>
-#include <apiimport.h>
-#include <ntuser.h>
+
 #include <mapldr.h>
 #include <sddl.h>
+#include <shlwapi.h>
+#include <userenv.h>
+#include <ntuser.h>
+
+#include <apiimport.h>
 
 /**
  * Imports a procedure from a specified module.
@@ -128,13 +132,13 @@ PVOID PhpImportProcedureNative(
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
-_##Name Name##_Import(VOID) \
+typeof(&Name) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (_##Name)PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&Name))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 /**
@@ -144,13 +148,13 @@ _##Name Name##_Import(VOID) \
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
-_##Name Name##_Import(VOID) \
+typeof(&Name) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (_##Name)PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&Name))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
@@ -160,8 +164,11 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
-PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppression);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtAllocateVirtualMemoryEx);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
+
+PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppression);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);

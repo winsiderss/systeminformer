@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <hndlinfo.h>
 #include <json.h>
 #include <kphuser.h>
@@ -414,6 +415,28 @@ NTSTATUS PhQueryObjectBasicInformation(
         return STATUS_INVALID_HANDLE;
 
     return PhGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
+}
+
+NTSTATUS PhCompareObjects(
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    )
+{
+    NTSTATUS status;
+
+    if (NtCompareObjects_Import())
+    {
+        status = NtCompareObjects_Import()(
+            FirstObjectHandle,
+            SecondObjectHandle
+            );
+    }
+    else
+    {
+        status = STATUS_NOT_SUPPORTED;
+    }
+
+    return status;
 }
 
 NTSTATUS PhGetEtwObjectName(
@@ -1192,7 +1215,7 @@ NTSTATUS PhpGetBestObjectName(
     else if (PhEqualString2(TypeName, L"Section", TRUE))
     {
         HANDLE dupHandle = NULL;
-        PPH_STRING fileName;
+        PPH_STRING fileName = NULL;
 
         if (!PhIsNullOrEmptyString(ObjectName))
             goto CleanupExit;
