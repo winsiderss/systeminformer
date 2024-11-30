@@ -182,6 +182,14 @@ PhCopyListView(
 PHAPPAPI
 VOID
 NTAPI
+PhCopyIListView(
+    _In_ HWND ListViewHandle,
+    _In_ IListView* ListView
+    );
+
+PHAPPAPI
+VOID
+NTAPI
 PhHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
@@ -207,6 +215,15 @@ PhGetListViewContextMenuPoint(
     _In_ HWND ListViewHandle,
     _Out_ PPOINT Point
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhGetIListViewContextMenuPoint(
+    _In_ IListView* ListView,
+    _Out_ PPOINT Point
+    );
+
 // end_phapppub
 
 VOID PhSetWindowOpacity(
@@ -450,6 +467,7 @@ PhHandleCopyCellEMenuItem(
 typedef struct _PH_COPY_ITEM_CONTEXT
 {
     HWND ListViewHandle;
+    IListView* ListViewClass;
     ULONG Id;
     ULONG SubId;
     PPH_STRING MenuItemText;
@@ -462,6 +480,16 @@ PhInsertCopyListViewEMenuItem(
     _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhInsertCopyIListViewEMenuItem(
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND ListViewHandle,
+    _In_ IListView* ListView
     );
 
 PHAPPAPI

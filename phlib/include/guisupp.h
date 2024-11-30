@@ -121,8 +121,8 @@ typedef BOOL(WINAPI* _IsDarkModeAllowedForWindow)(
 typedef HRESULT (WINAPI* _GetDpiForMonitor)(
     _In_ HMONITOR hmonitor,
     _In_ enum MONITOR_DPI_TYPE dpiType,
-    _Out_ PUINT dpiX,
-    _Out_ PUINT dpiY
+    _Out_ PLONG dpiX,
+    _Out_ PLONG dpiY
     );
 
 typedef LONG (WINAPI* _GetDpiForWindow)(

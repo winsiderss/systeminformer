@@ -1654,13 +1654,6 @@ NTSTATUS PhEnumGenericModules(
         100
         );
 
-    baseAddressHashtable = PhCreateHashtable(
-        sizeof(PVOID),
-        PhpBaseAddressHashtableEqualFunction,
-        PhpBaseAddressHashtableHashFunction,
-        100
-        );
-
     if (ProcessId == SYSTEM_PROCESS_ID)
     {
         // Kernel modules
