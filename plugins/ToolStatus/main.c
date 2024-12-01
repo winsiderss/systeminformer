@@ -1140,7 +1140,7 @@ LRESULT CALLBACK MainWindowProc(
 
                             if (toolbarDisplayInfo->iImage == I_IMAGECALLBACK)
                             {
-                                LONG dpiValue = PhGetWindowDpi(WindowHandle);
+                                LONG dpiValue = SystemInformer_GetWindowDpi();
 
                                 // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.
@@ -1209,7 +1209,7 @@ LRESULT CALLBACK MainWindowProc(
                                 PhDestroyEMenuItem(menuItemRemove);
                         }
 
-                        MapWindowPoints(ToolBarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
+                        MapWindowRect(ToolBarHandle, NULL, &toolbar->rcButton);
 
                         selectedItem = PhShowEMenu(
                             menu,
@@ -1605,7 +1605,7 @@ LRESULT CALLBACK MainWindowProc(
             {
             case WM_LBUTTONDOWN:
                 {
-                    if (IconSingleClick)
+                    if (SearchboxHandle && IconSingleClick)
                     {
                         if (IsWindowVisible(WindowHandle))
                         {
@@ -1616,7 +1616,7 @@ LRESULT CALLBACK MainWindowProc(
                 break;
             case WM_LBUTTONDBLCLK:
                 {
-                    if (!IconSingleClick)
+                    if (SearchboxHandle && !IconSingleClick)
                     {
                         if (IsWindowVisible(WindowHandle))
                         {
@@ -1641,7 +1641,7 @@ LRESULT CALLBACK MainWindowProc(
 
             // Re-focus the searchbox when we're already running and we're moved
             // into the foreground by the new instance. Fixes GH #178 (dmex)
-            if (result == PH_ACTIVATE_REPLY)
+            if (SearchboxHandle && result == PH_ACTIVATE_REPLY)
             {
                 if (IsWindowVisible(WindowHandle))
                 {
@@ -1738,8 +1738,6 @@ VOID UpdateCachedSettings(
     IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
     EnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
-
-    //
 
     if (ToolbarInitialized)
     {

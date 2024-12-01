@@ -119,6 +119,12 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _In_opt_ PVOID Context
     );
 
+NTSTATUS NTAPI PhpCloseProcessTokenForPage(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    );
+
 INT_PTR CALLBACK PhpProcessTokenHookProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

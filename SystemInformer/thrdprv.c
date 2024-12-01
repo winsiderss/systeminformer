@@ -365,7 +365,7 @@ NTSTATUS PhpThreadQueryWorker(
 
     data->StartAddressString = PhGetSymbolFromAddress(
         data->ThreadProvider->SymbolProvider,
-        data->ThreadItem->StartAddress,
+        data->ThreadItem->StartAddressWin32,
         &data->StartAddressResolveLevel,
         &data->StartAddressFileName,
         NULL,
@@ -382,7 +382,7 @@ NTSTATUS PhpThreadQueryWorker(
         PhClearReference(&data->StartAddressFileName);
         data->StartAddressString = PhGetSymbolFromAddress(
             data->ThreadProvider->SymbolProvider,
-            data->ThreadItem->StartAddress,
+            data->ThreadItem->StartAddressWin32,
             &data->StartAddressResolveLevel,
             &data->StartAddressFileName,
             NULL,
@@ -500,13 +500,15 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
-static NTSTATUS PhpGetThreadHandle(
+static NTSTATUS PhThreadProviderOpenThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ PPH_THREAD_PROVIDER ThreadProvider,
     _In_ PPH_THREAD_ITEM ThreadItem
     )
 {
     NTSTATUS status;
+    HANDLE threadHandle;
+    CLIENT_ID clientId;
 
     if (ThreadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
@@ -514,19 +516,41 @@ static NTSTATUS PhpGetThreadHandle(
             return STATUS_UNSUCCESSFUL;
     }
 
-    status = PhOpenThread(
-        ThreadHandle,
+    clientId.UniqueProcess = ThreadProvider->ProcessId;
+    clientId.UniqueThread = ThreadItem->ThreadId;
+
+    status = PhOpenThreadClientId(
+        &threadHandle,
         THREAD_QUERY_INFORMATION,
-        ThreadItem->ThreadId
+        &clientId
         );
 
     if (!NT_SUCCESS(status))
     {
-        status = PhOpenThread(
-            ThreadHandle,
+        status = PhOpenThreadClientId(
+            &threadHandle,
             THREAD_QUERY_LIMITED_INFORMATION,
-            ThreadItem->ThreadId
+            &clientId
             );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        THREAD_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
+        {
+            if (basicInfo.ClientId.UniqueProcess == ThreadProvider->ProcessId &&
+                basicInfo.ClientId.UniqueThread == ThreadItem->ThreadId)
+            {
+                *ThreadHandle = threadHandle;
+            }
+            else
+            {
+                status = STATUS_UNSUCCESSFUL;
+                NtClose(threadHandle);
+            }
+        }
     }
 
     return status;
@@ -759,53 +783,70 @@ VOID PhpThreadProviderUpdate(
 
         if (!threadItem)
         {
-            ULONG_PTR startAddress = 0;
-
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
-            threadItem->CreateTime = thread->CreateTime;
             threadItem->KernelTime = thread->KernelTime;
+            PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
             threadItem->UserTime = thread->UserTime;
-            PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
+            PhUpdateDelta(&threadItem->CpuUserDelta, threadItem->UserTime.QuadPart);
+            threadItem->CreateTime = thread->CreateTime;
+            threadItem->StartAddressNative = thread->StartAddress;
             threadItem->Priority = thread->Priority;
             threadItem->BasePriority = thread->BasePriority;
-            threadItem->State = (KTHREAD_STATE)thread->ThreadState;
+            PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
+            threadItem->State = thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
 
-            PhpGetThreadHandle(
-                &threadItem->ThreadHandle,
-                threadProvider,
-                threadItem
-                );
+            {
+                NTSTATUS status;
+                HANDLE threadHandle;
+
+                status = PhThreadProviderOpenThread(
+                    &threadHandle,
+                    threadProvider,
+                    threadItem
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    threadItem->ThreadHandle = threadHandle;
+                }
+
+                threadItem->ThreadHandleStatus = status;
+            }
 
             // Get the cycle count.
+            if (threadItem->ThreadHandle)
             {
-                ULONG64 cycles;
+                ULONG64 cycleTime;
 
-                if (NT_SUCCESS(PhpGetThreadCycleTime(
-                    threadProvider,
-                    threadItem,
-                    &cycles
+                if (NT_SUCCESS(PhGetThreadCycleTime(
+                    threadItem->ThreadHandle,
+                    &cycleTime
                     )))
                 {
-                    PhUpdateDelta(&threadItem->CyclesDelta, cycles);
+                    PhUpdateDelta(&threadItem->CyclesDelta, cycleTime);
                 }
             }
 
-            // Initialize the CPU time deltas.
-            PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
-            PhUpdateDelta(&threadItem->CpuUserDelta, threadItem->UserTime.QuadPart);
-
-            // Try to get the start address.
+            // Get the start address.
 
             if (threadItem->ThreadHandle)
             {
-                PhGetThreadStartAddress(threadItem->ThreadHandle, &startAddress);
+                NTSTATUS status;
+                ULONG_PTR startAddress;
+
+                status = PhGetThreadStartAddress(
+                    threadItem->ThreadHandle,
+                    &startAddress
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    threadItem->StartAddressWin32 = (PVOID)startAddress;
+                }
+
+                threadItem->StartAddressStatus = status;
             }
-
-            if (!startAddress)
-                startAddress = thread->StartAddress;
-
-            threadItem->StartAddress = (ULONG64)startAddress;
 
             // Get the base priority increment (relative to the process priority).
             // Get the thread affinity.
@@ -827,7 +868,7 @@ VOID PhpThreadProviderUpdate(
             {
                 threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
                     threadProvider,
-                    threadItem->StartAddress,
+                    threadItem->StartAddressWin32,
                     &threadItem->StartAddressResolveLevel
                     );
             }
@@ -838,7 +879,7 @@ VOID PhpThreadProviderUpdate(
                 threadItem->StartAddressString = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
                 PhPrintPointer(
                     threadItem->StartAddressString->Buffer,
-                    (PVOID)threadItem->StartAddress
+                    threadItem->StartAddressWin32
                     );
                 PhTrimToNullTerminatorString(threadItem->StartAddressString);
             }
@@ -923,7 +964,7 @@ VOID PhpThreadProviderUpdate(
 
                     newStartAddressString = PhpGetThreadBasicStartAddress(
                         threadProvider,
-                        threadItem->StartAddress,
+                        threadItem->StartAddressWin32,
                         &threadItem->StartAddressResolveLevel
                         );
 
@@ -942,9 +983,9 @@ VOID PhpThreadProviderUpdate(
             if (threadItem->JustResolved &&
                 threadItem->StartAddressResolveLevel == PhsrlAddress)
             {
-                if (threadItem->StartAddress != (ULONG64)thread->StartAddress)
+                if (threadItem->StartAddressNative != thread->StartAddress)
                 {
-                    threadItem->StartAddress = (ULONG64)thread->StartAddress;
+                    threadItem->StartAddressNative = thread->StartAddress;
                     PhpQueueThreadQuery(threadProvider, threadItem);
                 }
             }
@@ -1005,6 +1046,7 @@ VOID PhpThreadProviderUpdate(
                 FLOAT newCpuUsage;
                 FLOAT kernelCpuUsage;
                 FLOAT userCpuUsage;
+                ULONG64 totalTime;
 
                 if (PhEnableCycleCpuUsage)
                 {

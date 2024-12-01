@@ -155,25 +155,30 @@ VOID PhpColumnsResetListBox(
 
 VOID NTAPI PhpInactiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PCOLUMNS_DIALOG_CONTEXT Context
+    _In_opt_ PVOID Context
     )
 {
+    PCOLUMNS_DIALOG_CONTEXT context = Context;
+
     PhpColumnsResetListBox(
-        Context->InactiveWindowHandle,
+        context->InactiveWindowHandle,
         MatchHandle,
-        Context->InactiveListArray,
+        context->InactiveListArray,
         PhpInactiveColumnsCompareNameTn
         );
 }
 
 VOID NTAPI PhpActiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
     )
 {
+    PCOLUMNS_DIALOG_CONTEXT context = Context;
+
     PhpColumnsResetListBox(
-        Context->ActiveWindowHandle,
+        context->ActiveWindowHandle,
         MatchHandle,
-        Context->ActiveListArray,
+        context->ActiveListArray,
         NULL
         );
 }
