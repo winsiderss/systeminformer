@@ -3867,7 +3867,7 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
                 PhShowServiceProgressDialogStatusPage(context);
             }
 
-            PhSetWindowTheme(WindowHandle);
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }
@@ -3987,6 +3987,7 @@ static BOOLEAN PhpShowContinueMessageServices(
             object = L"the selected services";
         }
 
+        return PhShowConfirmMessage(
             WindowHandle,
             Verb,
             object,
