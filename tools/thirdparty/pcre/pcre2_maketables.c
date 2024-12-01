@@ -73,7 +73,7 @@ Returns:     pointer to the contiguous block of data
 #ifdef PCRE2_DFTABLES  /* Included in freestanding pcre2_dftables program */
 static const uint8_t *maketables(void)
 {
-uint8_t *yield = (uint8_t *)PhAllocateSafe(TABLES_LENGTH);
+uint8_t *yield = (uint8_t *)malloc(TABLES_LENGTH);
 
 #else  /* Not PCRE2_DFTABLES, that is, compiling the library */
 PCRE2_EXP_DEFN const uint8_t * PCRE2_CALL_CONVENTION
@@ -81,7 +81,7 @@ pcre2_maketables(pcre2_general_context *gcontext)
 {
 uint8_t *yield = (uint8_t *)((gcontext != NULL)?
   gcontext->memctl.malloc(TABLES_LENGTH, gcontext->memctl.memory_data) :
-  PhAllocateSafe(TABLES_LENGTH));
+    malloc(TABLES_LENGTH));
 #endif  /* PCRE2_DFTABLES */
 
 int i;
@@ -154,7 +154,7 @@ pcre2_maketables_free(pcre2_general_context *gcontext, const uint8_t *tables)
   if (gcontext)
     gcontext->memctl.free((void *)tables, gcontext->memctl.memory_data);
   else
-    PhFree((void *)tables);
+      free((void *)tables);
 }
 #endif
 

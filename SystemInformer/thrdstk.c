@@ -624,7 +624,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
 
                 if (PhGetLineFromAddress(
                     context->SymbolProvider,
-                    (ULONG64)node->StackFrame.PcAddress,
+                    node->StackFrame.PcAddress,
                     &fileName,
                     NULL,
                     &lineInfo
@@ -1302,7 +1302,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PPH_STRING fileName = NULL;
     PPH_STRING lineText = NULL;
     PTHREAD_STACK_ITEM item;
-    ULONG64 baseAddress = 0;
+    PVOID baseAddress = NULL;
     BOOLEAN enableStackFrameInlineInfo;
     BOOLEAN enableStackFrameLineInfo;
 
@@ -1400,7 +1400,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     {
         symbol = PhGetSymbolFromAddress(
             threadStackContext->SymbolProvider,
-            (ULONG64)StackFrame->PcAddress,
+            StackFrame->PcAddress,
             NULL,
             &fileName,
             NULL,
@@ -1437,7 +1437,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
 
             if (PhGetLineFromAddress(
                 threadStackContext->SymbolProvider,
-                (ULONG64)StackFrame->PcAddress,
+                StackFrame->PcAddress,
                 &lineFileName,
                 NULL,
                 &lineInfo
@@ -1578,7 +1578,7 @@ LRESULT CALLBACK PhpThreadStackTaskDialogSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;
@@ -1652,11 +1652,11 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
 
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-            context->SymbolProgressMarquee = TRUE;
+            InterlockedExchange8(&context->SymbolProgressMarquee, TRUE);
 
-            context->ThreadStackStatusDefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->ThreadStackStatusDefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, 0xF, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpThreadStackTaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, PhpThreadStackTaskDialogSubclassProc);
 
             PhRegisterCallback(
                 &PhSymbolEventCallback,
@@ -1692,29 +1692,22 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             PPH_STRING content;
             ULONG progress = 0;
 
-            PhAcquireQueuedLockExclusive(&context->StatusLock);
-
-            message = context->StatusMessage;
-            content = context->StatusContent;
-            progress = context->SymbolProgress;
-
-            if (message) PhReferenceObject(message);
-            if (content) PhReferenceObject(content);
-
-            PhReleaseQueuedLockExclusive(&context->StatusLock);
+            PhSetReference(&message, InterlockedExchangePointer(&context->StatusMessage, NULL));
+            PhSetReference(&content, InterlockedExchangePointer(&context->StatusContent, NULL));
+            progress = InterlockedExchange(&context->SymbolProgress, 0);
 
             SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetStringOrDefault(message, L" "));
             SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)PhGetStringOrDefault(content, L" "));
 
-            if (message) PhDereferenceObject(message);
-            if (content) PhDereferenceObject(content);
+            PhClearReference(&message);
+            PhClearReference(&content);
 
             if (context->SymbolProgressReset)
             {
                 SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
                 SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-                context->SymbolProgressMarquee = TRUE;
-                context->SymbolProgressReset = FALSE;
+                InterlockedExchange8(&context->SymbolProgressMarquee, TRUE);
+                InterlockedExchange8(&context->SymbolProgressReset, FALSE);
             }
 
             if (progress)
@@ -1723,7 +1716,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
                 {
                     SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
                     SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 0);
-                    context->SymbolProgressMarquee = FALSE;
+                    InterlockedExchange8(&context->SymbolProgressMarquee, FALSE);
                 }
 
                 SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, (WPARAM)progress, 0);
@@ -1734,7 +1727,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
                 {
                     SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
                     SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-                    context->SymbolProgressMarquee = TRUE;
+                    InterlockedExchange8(&context->SymbolProgressMarquee, TRUE);
                 }
             }
         }

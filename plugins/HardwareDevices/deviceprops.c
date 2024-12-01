@@ -66,7 +66,7 @@ typedef struct _DEVICE_PROPERTIES_CONTEXT
     HWND InterfacesListViewHandle;
     HICON DeviceIcon;
     PH_INTEGER_PAIR DeviceIconSize;
-
+    HIMAGELIST ListViewImageList;
     union
     {
         struct
@@ -174,6 +174,36 @@ VOID DeviceInitializeGenealPageItems(
     DEVICE_ADD_PAGE_ITEM(DEVICE_PROPERTIES_INDEX_CLASS_PROPERTY_PAGE_PROVIDER, PhDevicePropertyClassPropPageProvider);
 }
 
+VOID DeviceSetImageList(
+    _In_ HWND WindowHandle,
+    _In_ PDEVICE_PROPERTIES_CONTEXT Context
+    )
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+
+    if (Context->ListViewImageList)
+    {
+        PhImageListSetIconSize(
+            Context->ListViewImageList,
+            2,
+            PhGetDpi(20, dpiValue)
+            );
+    }
+    else
+    {
+        Context->ListViewImageList = PhImageListCreate(
+            2,
+            PhGetDpi(20, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1, 1
+            );
+    }
+
+    ListView_SetImageList(WindowHandle, Context->ListViewImageList, LVSIL_SMALL);
+}
+
 VOID DeviceInitializeGeneralPage(
     _In_ HWND hwndDlg,
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
@@ -237,6 +267,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             PhAddListViewColumn(context->GeneralListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->GeneralListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_GENERAL_COLUMNS, context->GeneralListViewHandle);
+            DeviceSetImageList(context->GeneralListViewHandle, context);
 
             DeviceInitializeGeneralPage(hwndDlg, context);
 
@@ -548,19 +579,6 @@ VOID DeviceInitializePropsPage(
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT(WINAPI * DevGetObjectProperties_I)(
-    _In_ DEV_OBJECT_TYPE ObjectType,
-    _In_ PCWSTR pszObjectId,
-    _In_ ULONG QueryFlags,
-    _In_ ULONG cRequestedProperties,
-    _In_reads_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
-    _Out_ PULONG pcPropertyCount,
-    _Outptr_result_buffer_(*pcPropertyCount) const DEVPROPERTY **ppProperties) = NULL;
-    static VOID(WINAPI * DevFreeObjectProperties_I)(
-        _In_ ULONG cPropertyCount,
-        _In_reads_(cPropertyCount) const DEVPROPERTY *pProperties) = NULL;
-
     // Use DevGetObjectProperties to get all properties of the device. This enables us to display
     // information for items that we might not be aware of in our table. Device manager maintains a
     // similar table with all the DEVPROPKEYs that it knows about. It maintains a MUI resource
@@ -569,23 +587,10 @@ VOID DeviceInitializePropsPage(
     const DEVPROPERTY* properties;
     ULONG propertyCount;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjectProperties_I = PhGetProcedureAddress(cfgmgr32, "DevGetObjectProperties", 0);
-            DevFreeObjectProperties_I = PhGetProcedureAddress(cfgmgr32, "DevFreeObjectProperties", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
     ExtendedListView_SetRedraw(Context->PropsListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->PropsListViewHandle);
 
-    if (SUCCEEDED(DevGetObjectProperties_I(
+    if (SUCCEEDED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(Context->DeviceItem->InstanceId),
         DevQueryFlagAllProperties,
@@ -612,9 +617,17 @@ VOID DeviceInitializePropsPage(
             }
             else
             {
+                PH_FORMAT format[4];
+
                 // use the property key format ID as the column name
                 nameString = PhFormatGuid((PGUID)&prop->CompKey.Key.fmtid);
+                PhInitFormatSR(&format[0], nameString->sr);
+                PhInitFormatS(&format[1], L" [");
+                PhInitFormatU(&format[2], prop->CompKey.Key.pid);
+                PhInitFormatC(&format[3], L']');
+                PhMoveReference(&nameString, PhFormat(format, 4, 0));
                 name = PhGetString(nameString);
+
                 valueString = DevicePropertyToString(prop);
                 value = PhGetString(valueString);
             }
@@ -626,7 +639,7 @@ VOID DeviceInitializePropsPage(
             PhClearReference(&valueString);
         }
 
-        DevFreeObjectProperties_I(propertyCount, properties);
+        PhDevFreeObjectProperties(propertyCount, properties);
     }
 
     ExtendedListView_SetRedraw(Context->PropsListViewHandle, TRUE);
@@ -663,6 +676,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
+            DeviceSetImageList(context->PropsListViewHandle, context);
 
             DeviceInitializePropsPage(hwndDlg, context);
 
@@ -836,6 +850,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
             PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->InterfacesListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
+            DeviceSetImageList(context->InterfacesListViewHandle, context);
 
             DeviceInitializeInterfacesPage(hwndDlg, context);
 

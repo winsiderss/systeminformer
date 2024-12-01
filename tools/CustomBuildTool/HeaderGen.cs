@@ -14,6 +14,7 @@ namespace CustomBuildTool
 {
     public static class HeaderGen
     {
+        private static readonly string Notice = "/*\r\n * Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved.\r\n *\r\n * This file is part of System Informer.\r\n *\r\n */\r\n\r\n";
         private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
         private const string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
 
@@ -149,11 +150,11 @@ namespace CustomBuildTool
 
                 foreach (string line in h.Lines)
                 {
-                    string trimmed = line.Trim();
+                    var trimmed = line.AsSpan().Trim();
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
-                        string dependencyName = trimmed.AsSpan().Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
+                        string dependencyName = trimmed.Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
 
                         if (headerFiles.TryGetValue(dependencyName, out HeaderFile dependency))
                         {
@@ -198,29 +199,47 @@ namespace CustomBuildTool
             }
 
             // Write out the result.
-            using (StreamWriter sw = new StreamWriter(Path.Join([BaseDirectory, OutputFile]), false, Utils.UTF8NoBOM))
+
+            StringBuilder sw = new StringBuilder();
             {
+                // Copyright
+                sw.Append(Notice);
+
                 // Header
-                sw.Write(Header);
+                sw.Append(Header);
 
                 // Header files
                 foreach (HeaderFile h in orderedHeaderFiles)
                 {
                     //Console.WriteLine("Header file: " + h.Name);
-                    sw.WriteLine();
-                    sw.WriteLine("//");
-                    sw.WriteLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
-                    sw.WriteLine("//");
-                    sw.WriteLine();
+                    sw.AppendLine();
+                    sw.AppendLine("//");
+                    sw.AppendLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
+                    sw.AppendLine("//");
+                    sw.AppendLine();
 
                     foreach (string line in h.Lines)
                     {
-                        sw.WriteLine(line);
+                        sw.AppendLine(line);
                     }
                 }
 
                 // Footer
-                sw.Write(Footer);
+                sw.Append(Footer);
+            }
+
+            // Check for new or modified content. We don't want to touch the file if it's not needed.
+            {
+                string headerFileName = Path.Join([BaseDirectory, OutputFile]);
+                string headerUpdateText = sw.ToString();
+                string headerCurrentText = Utils.ReadAllText(headerFileName);
+
+                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                {
+                    Utils.WriteAllText(headerFileName, headerUpdateText);
+                }
+
+                Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
             }
         }
     }
@@ -249,9 +268,6 @@ namespace CustomBuildTool
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
-
             if (obj is not HeaderFile file)
                 return false;
 

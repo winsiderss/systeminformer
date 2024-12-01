@@ -537,6 +537,15 @@ PhUiFreeMemory(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiEmptyProcessMemoryWorkingSet(
+    _In_ HWND WindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_ITEM MemoryItem
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiCloseHandles(
     _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,

@@ -330,10 +330,11 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case PSM_ISDIALOGMESSAGE:
         {
-            MSG* msg = (MSG*)lParam;
-            if (msg->message == WM_KEYDOWN)
+            PMSG dialog = (PMSG)lParam;
+
+            if (dialog->message == WM_KEYDOWN)
             {
-                switch (msg->wParam)
+                switch (dialog->wParam)
                 {
                 case VK_F5:
                     SystemInformer_Refresh();
@@ -363,21 +364,16 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         PPH_LAYOUT_ITEM tabPageItem;
 
         tabControlHandle = PropSheet_GetTabControl(hwnd);
-        tabControlItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle,
-            NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
-        tabPageItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle,
-            NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
-
-        Context->TabPageItem = tabPageItem;
-
-        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
-            NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+        tabControlItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
+        tabPageItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
+        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(hwnd, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
         // Set the Cancel button's text to "Close".
         PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
+        Context->TabPageItem = tabPageItem;
         Context->LayoutInitialized = TRUE;
 
         return TRUE;
@@ -555,13 +551,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
     PPH_PROCESS_WAITPROPCONTEXT waitContext;
     HANDLE processHandle;
 
-    if (!processItem->QueryHandle)
-        return;
-    if (processItem->ProcessId == NtCurrentProcessId())
-        return;
-    // On Windows 8.1 and above, processes without threads are reflected processes
-    // which will not terminate if we have a handle open. (wj32)
-    if (processItem->UserTime.QuadPart + processItem->KernelTime.QuadPart == 0 && processItem->NumberOfThreads == 0)
+    if (!processItem->QueryHandle || processItem->ProcessId == NtCurrentProcessId())
         return;
 
     if (!NT_SUCCESS(PhOpenProcess(
@@ -882,7 +872,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Token
     PhAddProcessPropPage2(
         PropContext,
-        PhCreateTokenPage(PhpOpenProcessTokenForPage, PropContext->ProcessItem->ProcessId, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
+        PhCreateTokenPage(PhpOpenProcessTokenForPage, PhpCloseProcessTokenForPage, PropContext->ProcessItem->ProcessId, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
         );
 
     // Modules

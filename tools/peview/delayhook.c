@@ -64,8 +64,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
 
             if (PhDefaultEnableStreamerMode)
             {
-                if (SetWindowDisplayAffinity_Import())
-                    SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
             if (PhEnableThemeSupport)
@@ -117,8 +116,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
             {
                 if (PhDefaultEnableStreamerMode)
                 {
-                    if (SetWindowDisplayAffinity_Import())
-                        SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                    SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
                 if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
@@ -178,8 +176,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
             {
                 if (PhDefaultEnableStreamerMode)
                 {
-                    if (SetWindowDisplayAffinity_Import())
-                        SetWindowDisplayAffinity_Import()(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
+                    SetWindowDisplayAffinity(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
                 }
             }
         }
@@ -1381,20 +1378,20 @@ typedef struct _TASKDIALOG_CALLBACK_WRAP
 {
     PFTASKDIALOGCALLBACK pfCallback;
     LONG_PTR lpCallbackData;
-} TASKDIALOG_CALLBACK_WRAP, * PTASKDIALOG_CALLBACK_WRAP;
+} TASKDIALOG_CALLBACK_WRAP, *PTASKDIALOG_CALLBACK_WRAP;
 
 typedef struct _TASKDIALOG_COMMON_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
-} TASKDIALOG_COMMON_CONTEXT, * PTASKDIALOG_COMMON_CONTEXT;
+} TASKDIALOG_COMMON_CONTEXT, *PTASKDIALOG_COMMON_CONTEXT;
 
 typedef struct _TASKDIALOG_WINDOW_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
     PTASKDIALOG_CALLBACK_WRAP CallbackData;
-} TASKDIALOG_WINDOW_CONTEXT, * PTASKDIALOG_WINDOW_CONTEXT;
+} TASKDIALOG_WINDOW_CONTEXT, *PTASKDIALOG_WINDOW_CONTEXT;
 
 #define TASKDIALOG_CONTEXT_TAG (ULONG)'TDLG'
 
@@ -1579,8 +1576,7 @@ HWND PhCreateWindowExHook(
     {
         if (PhDefaultEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
@@ -1868,8 +1864,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     {
         if (PhDefaultEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         PhInitializeThemeWindowFrame(WindowHandle);

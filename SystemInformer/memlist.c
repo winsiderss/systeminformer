@@ -1247,7 +1247,7 @@ VOID PhGetSelectedMemoryNodes(
             PhAddItemArray(&array, &node);
     }
 
-    *NumberOfMemoryNodes = (ULONG)array.Count;
+    *NumberOfMemoryNodes = (ULONG)PhFinalArrayCount(&array);
     *MemoryNodes = PhFinalArrayItems(&array);
 }
 

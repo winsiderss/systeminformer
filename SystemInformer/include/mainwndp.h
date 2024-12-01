@@ -67,7 +67,8 @@ VOID PhMwpApplyUpdateInterval(
     );
 
 VOID PhMwpInitializeMetrics(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 VOID PhMwpInitializeControls(
@@ -165,7 +166,8 @@ VOID PhMwpOnDeviceChanged(
     );
 
 VOID PhMwpOnDpiChanged(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 LRESULT PhMwpOnUserMessage(

@@ -45,7 +45,12 @@ typedef struct _PH_THREAD_ITEM
 
     PPH_STRING ServiceName;
 
-    ULONG64 StartAddress;
+    PVOID StartAddressWin32;
+    PVOID StartAddressNative;
+
+    ULONG ThreadHandleStatus;
+    ULONG StartAddressStatus;
+
     PPH_STRING StartAddressString;
     PPH_STRING StartAddressFileName;
     enum _PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;

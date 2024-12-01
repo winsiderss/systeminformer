@@ -420,12 +420,7 @@ VOID PhLoadPlugins(
         if (PhIsPluginDisabled(&PhpDefaultPluginName[i]))
             continue;
 
-        if (PhPluginsLoadNative)
-            fileName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &pluginsDirectory->sr, &PhpDefaultPluginName[i]);
-        else
-            fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]);
-
-        if (fileName)
+        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
         {
             status = PhLoadPlugin(&fileName->sr);
 

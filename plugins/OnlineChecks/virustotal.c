@@ -111,7 +111,7 @@ VOID VirusTotalBuildJsonArray(
             PVOID entry;
 
             Entry->FileHash = hashString;
-            Entry->FileHashAnsi = PhConvertUtf16ToMultiByte(hashString->Buffer);
+            Entry->FileHashAnsi = PhConvertUtf16ToUtf8(hashString->Buffer);
 
             entry = PhCreateJsonObject();
             PhAddJsonObject(entry, "autostart_location", "");

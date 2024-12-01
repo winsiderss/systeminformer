@@ -306,7 +306,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEUP), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEDOWN), FALSE);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhEnableThemeSupport)
             {
                 context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
                 context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);

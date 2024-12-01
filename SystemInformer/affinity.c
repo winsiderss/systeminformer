@@ -844,7 +844,7 @@ NTSTATUS PhSetProcessItemPriority(
 
     if (NT_SUCCESS(status))
     {
-        status = PhSetProcessPriority(processHandle, PriorityClass);
+        status = PhSetProcessPriorityClass(processHandle, PriorityClass);
         NtClose(processHandle);
     }
 
@@ -894,14 +894,14 @@ NTSTATUS PhSetProcessItemThrottlingState(
     {
         if (ClearThrottlingState)
         {
-            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
+            PhSetProcessPriorityClass(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
 
             status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
         }
         else
         {
             // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
-            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
+            PhSetProcessPriorityClass(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
 
             status = PhSetProcessPowerThrottlingState(
                 processHandle,

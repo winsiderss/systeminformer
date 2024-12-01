@@ -12,11 +12,11 @@
 
 #include "devices.h"
 #include <hndlinfo.h>
-#include <secedit.h>
 
 PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
 ULONG NetWindowsVersion = WINDOWS_ANCIENT;
+ULONG NetUpdateInterval = 0;
 
 PPH_OBJECT_TYPE NetworkDeviceEntryType = NULL;
 PPH_LIST NetworkDevicesList = NULL;
@@ -48,6 +48,7 @@ VOID NTAPI LoadSettings(
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetWindowsVersion = PhWindowsVersion;
+    NetUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
 }
 
 VOID NTAPI LoadCallback(
@@ -128,14 +129,16 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    GraphicsDevicesUpdate();
-    DiskDevicesUpdate();
-    NetworkDevicesUpdate();
-    RaplDevicesUpdate();
+    ULONG runCount = PtrToUlong(Parameter);
+
+    GraphicsDevicesUpdate(runCount);
+    DiskDevicesUpdate(runCount);
+    NetworkDevicesUpdate(runCount);
+    RaplDevicesUpdate(runCount);
 }
 
 VOID NTAPI SystemInformationInitializingCallback(
@@ -649,6 +652,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_SMART_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_RAPL_LIST, L"" },
                 { StringSettingType, SETTING_NAME_GRAPHICS_LIST, L"" },
+                { IntegerPairSettingType, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerSettingType, SETTING_NAME_GRAPHICS_UNIQUE_INDICES, L"1" },

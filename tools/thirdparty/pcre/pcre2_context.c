@@ -58,14 +58,14 @@ POSSIBILITY OF SUCH DAMAGE.
 static void *default_malloc(size_t size, void *data)
 {
 (void)data;
-return PhAllocateSafe(size);
+return malloc(size);
 }
 
 
 static void default_free(void *block, void *data)
 {
 (void)data;
-PhFree(block);
+free(block);
 }
 
 
@@ -88,7 +88,7 @@ extern void *
 PRIV(memctl_malloc)(size_t size, pcre2_memctl *memctl)
 {
 pcre2_memctl *newmemctl;
-void *yield = (memctl == NULL)? PhAllocateSafe(size) :
+void *yield = (memctl == NULL)? malloc(size) :
   memctl->malloc(size, memctl->memory_data);
 if (yield == NULL) return NULL;
 newmemctl = (pcre2_memctl *)yield;

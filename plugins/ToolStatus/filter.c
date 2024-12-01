@@ -36,11 +36,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileNameWin32))
-    {
-        if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->FileNameWin32->sr))
-            return TRUE;
-    }
+    //if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileNameWin32))
+    //{
+    //    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->FileNameWin32->sr))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
     {
@@ -84,9 +84,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->IntegrityString))
-        return TRUE;
-
+    if (processNode->ProcessItem->IntegrityString)
+    {
+        if (PhSearchControlMatch(SearchMatchHandle, processNode->ProcessItem->IntegrityString))
+            return TRUE;
+    }
 
     if (processNode->ProcessItem->Protection.Level ||
         processNode->ProcessItem->IsSecureProcess ||

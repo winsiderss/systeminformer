@@ -328,7 +328,6 @@ typedef struct _FILE_STANDARD_INFORMATION
     BOOLEAN Directory;
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
-//#if (PHNT_VERSION >= PHNT_THRESHOLD)
 typedef struct _FILE_STANDARD_INFORMATION_EX
 {
     LARGE_INTEGER AllocationSize;
@@ -339,17 +338,16 @@ typedef struct _FILE_STANDARD_INFORMATION_EX
     BOOLEAN AlternateStream;
     BOOLEAN MetadataAttribute;
 } FILE_STANDARD_INFORMATION_EX, *PFILE_STANDARD_INFORMATION_EX;
-//#endif
 
 typedef struct _FILE_INTERNAL_INFORMATION
 {
     union
     {
-        LARGE_INTEGER IndexNumber;
+        ULARGE_INTEGER IndexNumber;
         struct
         {
-            LONGLONG MftRecordIndex : 48; // rev
-            LONGLONG SequenceNumber : 16; // rev
+            ULONGLONG MftRecordIndex : 48; // rev
+            ULONGLONG SequenceNumber : 16; // rev
         };
     };
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
@@ -1287,7 +1285,7 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
 
 typedef struct _FILE_OBJECTID_INFORMATION
 {
-    LONGLONG FileReference;
+    ULONGLONG FileReference;
     UCHAR ObjectId[16]; // GUID
     union
     {
@@ -1544,7 +1542,7 @@ NTSTATUS
 NTAPI
 NtCreateNamedPipeFile(
     _Out_ PHANDLE FileHandle,
-    _In_ ULONG DesiredAccess,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG ShareAccess,
@@ -1564,7 +1562,7 @@ NTSTATUS
 NTAPI
 NtCreateMailslotFile(
     _Out_ PHANDLE FileHandle,
-    _In_ ULONG DesiredAccess,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG CreateOptions,
@@ -2110,6 +2108,21 @@ NtNotifyChangeDirectoryFileEx(
     );
 #endif
 
+/**
+ * @brief Loads a driver.
+ *
+ * This function loads a driver specified by the DriverServiceName parameter.
+ *
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ *
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * - STATUS_SUCCESS: The driver was successfully loaded.
+ * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
+ * - STATUS_INSUFFICIENT_RESOURCES: There are insufficient resources to load the driver.
+ * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
+ * - STATUS_OBJECT_PATH_NOT_FOUND: The path to the driver service was not found.
+ * - STATUS_OBJECT_NAME_COLLISION: A driver with the same name already exists.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2117,6 +2130,20 @@ NtLoadDriver(
     _In_ PUNICODE_STRING DriverServiceName
     );
 
+/**
+ * @brief Unloads a driver.
+ *
+ * This function unloads a driver specified by the DriverServiceName parameter.
+ *
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ *
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * - STATUS_SUCCESS: The driver was successfully unloaded.
+ * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
+ * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
+ * - STATUS_OBJECT_PATH_NOT_FOUND: The path to the driver service was not found.
+ * - STATUS_OBJECT_NAME_COLLISION: A driver with the same name already exists.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

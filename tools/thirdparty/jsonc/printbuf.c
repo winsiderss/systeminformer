@@ -15,8 +15,6 @@
 
 #include "config.h"
 
-#include <ph.h>
-
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -34,22 +32,20 @@
 #include "snprintf_compat.h"
 #include "vasprintf_compat.h"
 
-static int printbuf_extend(struct printbuf *p, size_t min_size);
+static size_t printbuf_extend(struct printbuf *p, size_t min_size);
 
 struct printbuf *printbuf_new(void)
 {
     struct printbuf *p;
 
-    p = (struct printbuf *)PhAllocateSafe(sizeof(struct printbuf));
+    p = (struct printbuf *)calloc(1, sizeof(struct printbuf));
     if (!p)
         return NULL;
-    memset(p, 0, sizeof(struct printbuf));
-
     p->size = 32;
     p->bpos = 0;
-    if (!(p->buf = (char *)PhAllocateSafe(p->size)))
+    if (!(p->buf = (char *)malloc(p->size)))
     {
-        PhFree(p);
+        free(p);
         return NULL;
     }
     p->buf[0] = '\0';
@@ -66,7 +62,7 @@ struct printbuf *printbuf_new(void)
  * Note: this does not check the available space!  The caller
  *  is responsible for performing those calculations.
  */
-static int printbuf_extend(struct printbuf *p, size_t min_size)
+static size_t printbuf_extend(struct printbuf *p, size_t min_size)
 {
     char *t;
     size_t new_size;
@@ -91,7 +87,7 @@ static int printbuf_extend(struct printbuf *p, size_t min_size)
              "bpos=%d min_size=%d old_size=%d new_size=%d\n",
              p->bpos, min_size, p->size, new_size);
 #endif /* PRINTBUF_DEBUG */
-    if (!(t = (char *)PhReAllocateSafe(p->buf, new_size)))
+    if (!(t = (char *)realloc(p->buf, new_size)))
         return -1;
     p->size = new_size;
     p->buf = t;
@@ -171,7 +167,7 @@ size_t sprintbuf(struct printbuf *p, const char *msg, ...)
         }
         va_end(ap);
         size = printbuf_memappend(p, t, size);
-        PhFree(t);
+        free(t);
     }
     else
     {
@@ -190,7 +186,7 @@ void printbuf_free(struct printbuf *p)
 {
     if (p)
     {
-        PhFree(p->buf);
-        PhFree(p);
+        free(p->buf);
+        free(p);
     }
 }

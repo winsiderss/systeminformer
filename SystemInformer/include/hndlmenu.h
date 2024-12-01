@@ -25,8 +25,6 @@ typedef struct _PH_HANDLE_ITEM_INFO
     PPH_STRING BestObjectName;
 } PH_HANDLE_ITEM_INFO, *PPH_HANDLE_ITEM_INFO;
 
-#define ID_HANDLE_OBJECTPROPERTIES1     40282
-#define ID_HANDLE_OBJECTPROPERTIES2     40283
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ struct _PH_EMENU_ITEM *Menu,

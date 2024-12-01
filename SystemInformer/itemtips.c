@@ -105,13 +105,13 @@ PPH_STRING PhGetProcessTooltipText(
     PH_STRING_BUILDER stringBuilder;
     ULONG validForMs = 60 * 60 * 1000; // 1 hour
     PPH_STRING tempString;
-    PPH_STRING fileNameWin32;
+    PPH_STRING fileName;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
     // Command line
 
-    if (Process->CommandLine)
+    if (PhGetIntegerSetting(L"EnableCommandLineTooltips") && Process->CommandLine)
     {
         tempString = PhEllipsisString(Process->CommandLine, 100 * 10);
 
@@ -125,12 +125,12 @@ PPH_STRING PhGetProcessTooltipText(
 
     // File information
 
-    fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
+    fileName = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
-    if (fileNameWin32)
+    if (fileName)
     {
         tempString = PhFormatImageVersionInfo(
-            fileNameWin32,
+            fileName,
             &Process->VersionInfo,
             &StandardIndent,
             0
@@ -145,7 +145,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         if (tempString)
             PhDereferenceObject(tempString);
-        PhDereferenceObject(fileNameWin32);
+        PhDereferenceObject(fileName);
     }
 
     // Known command line information

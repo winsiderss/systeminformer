@@ -16,6 +16,9 @@
 #include <lsasup.h>
 #include <mapldr.h>
 
+#define PHNT_NATIVE_METHODS 0
+#define PH_NATIVE_WINDOWS_RUNTIME_STRING 1
+
 /**
  * Opens a thread.
  *
@@ -73,7 +76,7 @@ NTSTATUS PhOpenThread(
 NTSTATUS PhOpenThreadClientId(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ CLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     )
 {
     NTSTATUS status;
@@ -87,7 +90,7 @@ NTSTATUS PhOpenThreadClientId(
         status = KphOpenThread(
             ThreadHandle,
             DesiredAccess,
-            &ClientId
+            ClientId
             );
     }
     else
@@ -97,7 +100,7 @@ NTSTATUS PhOpenThreadClientId(
             ThreadHandle,
             DesiredAccess,
             &objectAttributes,
-            &ClientId
+            ClientId
             );
 
         if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
@@ -105,7 +108,7 @@ NTSTATUS PhOpenThreadClientId(
             status = KphOpenThread(
                 ThreadHandle,
                 DesiredAccess,
-                &ClientId
+                ClientId
                 );
         }
     }
@@ -617,7 +620,7 @@ NTSTATUS PhImpersonateToken(
         InitializeObjectAttributes(
             &objectAttributes,
             NULL,
-            0,
+            OBJ_EXCLUSIVE,
             NULL,
             NULL
             );

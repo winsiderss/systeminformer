@@ -77,7 +77,7 @@ PhPopulationCount32(
 
 #ifdef _WIN64
 FORCEINLINE
-ULONG
+ULONG64
 PhPopulationCount64(
     _In_ ULONG64 Value
     )
@@ -96,9 +96,9 @@ PhPopulationCount64(
     count32x2_val = vpaddl_u16(count16x4_val);
     count64x1_val = vpaddl_u32(count32x2_val);
     vst1_u64(&count, count64x1_val);
-    return (ULONG)count;
+    return (ULONG64)count;
 #else
-    return (ULONG)_mm_popcnt_u64(Value);
+    return (ULONG64)_mm_popcnt_u64(Value);
 #endif
 }
 #endif
@@ -243,7 +243,7 @@ PhSetINT128by16(
 FORCEINLINE
 PH_INT128
 PhSetINT128by32(
-    _In_ INT32 Value
+    _In_ LONG Value
     )
 {
 #ifdef _ARM64_

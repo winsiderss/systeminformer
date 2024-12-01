@@ -101,7 +101,7 @@ VOID RebarCreateOrUpdateWindow(
     {
         if (!ToolBarImageList || DpiChanged)
         {
-            LONG windowDpi = PhGetWindowDpi(MainWindowHandle);
+            LONG windowDpi = SystemInformer_GetWindowDpi();
 
             if (ToolStatusConfig.ToolBarLargeIcons)
             {
@@ -295,9 +295,7 @@ VOID RebarCreateOrUpdateWindow(
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
         {
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(RebarHandle);
+            LONG dpiValue = SystemInformer_GetWindowDpi();
 
             RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(215, dpiValue), height);
         }
@@ -699,7 +697,7 @@ VOID ToolbarLoadDefaultButtonSettings(
     VOID
     )
 {
-    LONG dpiValue = PhGetWindowDpi(MainWindowHandle);
+    LONG dpiValue = SystemInformer_GetWindowDpi();
 
     // Pre-cache the images in the Toolbar array.
 
@@ -767,7 +765,7 @@ VOID ToolbarLoadButtonSettings(
     }
 
     count = (INT)countInteger;
-    dpiValue = PhGetWindowDpi(MainWindowHandle);
+    dpiValue = SystemInformer_GetWindowDpi();
 
     // Allocate the button array
     buttonArray = _malloca(count * sizeof(TBBUTTON));

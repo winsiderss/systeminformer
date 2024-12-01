@@ -366,13 +366,23 @@ NTSTATUS PhpProcessHandleOpenCallback(
 }
 
 NTSTATUS PhpProcessHandleCloseCallback(
-    _In_ PVOID Context
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
     PHANDLE_OPEN_CONTEXT context = Context;
 
-    PhDereferenceObject(context->HandleItem);
-    PhFree(context);
+    if (Handle)
+    {
+        NtClose(Handle);
+    }
+
+    if (Release && context)
+    {
+        PhDereferenceObject(context->HandleItem);
+        PhFree(context);
+    }
 
     return STATUS_SUCCESS;
 }

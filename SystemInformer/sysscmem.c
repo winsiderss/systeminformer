@@ -1045,7 +1045,7 @@ NTSTATUS PhSipLoadMmAddresses(
         PhLoadModuleSymbolProvider(
             symbolProvider,
             kernelFileName,
-            (ULONG64)kernelImageBase,
+            kernelImageBase,
             kernelImageSize
             );
 

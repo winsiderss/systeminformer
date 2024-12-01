@@ -21,6 +21,7 @@
 #include <phappres.h>
 #include <phsvccl.h>
 #include <thirdparty.h>
+#include <phconsole.h>
 
 /**
  * Determines whether a process is suspended.
@@ -340,7 +341,6 @@ NTSTATUS PhGetProcessKnownType(
     NTSTATUS status;
     PROCESS_BASIC_INFORMATION basicInfo;
     PPH_STRING fileName;
-    PPH_STRING newFileName;
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -362,15 +362,12 @@ NTSTATUS PhGetProcessKnownType(
         return status;
     }
 
-    newFileName = PhGetFileName(fileName);
-    PhDereferenceObject(fileName);
-
     *KnownProcessType = PhGetProcessKnownTypeEx(
         basicInfo.UniqueProcessId,
-        newFileName
+        fileName
         );
 
-    PhDereferenceObject(newFileName);
+    PhDereferenceObject(fileName);
 
     return status;
 }
@@ -394,7 +391,7 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
     if (PhIsNullOrEmptyString(FileName))
         return UnknownProcessType;
 
-    PhGetSystemRoot(&systemRootPrefix);
+    PhGetNtSystemRoot(&systemRootPrefix);
 
     fileName = PhReferenceObject(FileName);
     name = fileName->sr;
@@ -912,10 +909,25 @@ VOID PhShellExecuteUserString(
     else
     {
         NTSTATUS status;
+        HANDLE processHandle;
 
-        status = PhCreateProcessWin32(NULL, executeString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
+        status = PhCreateProcessWin32(
+            NULL,
+            executeString->Buffer,
+            NULL,
+            NULL,
+            0,
+            NULL,
+            &processHandle,
+            NULL
+            );
 
-        if (!NT_SUCCESS(status))
+        if (NT_SUCCESS(status))
+        {
+            PhConsoleSetForeground(processHandle, TRUE);
+            NtClose(processHandle);
+        }
+        else
         {
             if (ErrorMessage)
             {
@@ -1015,6 +1027,18 @@ VOID PhCopyListView(
     PhDereferenceObject(text);
 }
 
+VOID PhCopyIListView(
+    _In_ HWND ListViewHandle,
+    _In_ IListView* ListView
+    )
+{
+    PPH_STRING text;
+
+    text = PhGetIListViewText(ListView);
+    PhSetClipboardString(ListViewHandle, &text->sr);
+    PhDereferenceObject(text);
+}
+
 VOID PhHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
@@ -1095,6 +1119,49 @@ BOOLEAN PhGetListViewContextMenuPoint(
     Point->x = 0;
     Point->y = 0;
     ClientToScreen(ListViewHandle, Point);
+
+    return FALSE;
+}
+
+BOOLEAN PhGetIListViewContextMenuPoint(
+    _In_ IListView* ListView,
+    _Out_ PPOINT Point
+    )
+{
+    LONG selectedIndex;
+    RECT bounds;
+    RECT clientRect;
+
+    // The user pressed a key to display the context menu.
+    // Suggest where the context menu should display.
+
+    if ((selectedIndex = PhFindIListViewItemByFlags(ListView, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
+    {
+        if (PhGetIListViewItemRect(ListView, selectedIndex, LVIR_BOUNDS, &bounds))
+        {
+            //LONG dpiValue = PhGetWindowDpi(ListViewHandle);
+
+            //Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
+            //Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
+
+            PhGetIListViewClientRect(ListView, &clientRect);
+
+            if (Point->x < 0 || Point->y < 0 || Point->x >= clientRect.right || Point->y >= clientRect.bottom)
+            {
+                // The menu is going to be outside of the control. Just put it at the top-left.
+                Point->x = 0;
+                Point->y = 0;
+            }
+
+            //ClientToScreen(ListViewHandle, Point);
+
+            return TRUE;
+        }
+    }
+
+    Point->x = 0;
+    Point->y = 0;
+    //ClientToScreen(ListViewHandle, Point);
 
     return FALSE;
 }
@@ -1448,6 +1515,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
         // Ignore the debug object status.
         result = TRUE;
 
+        PhConsoleSetForeground(processHandle, TRUE);
         NtClose(processHandle);
     }
 
@@ -1832,10 +1900,6 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 
     indexInParent++;
 
-    context = PhAllocate(sizeof(PH_COPY_CELL_CONTEXT));
-    context->TreeNewHandle = TreeNewHandle;
-    context->Id = Column->Id;
-
     PhInitializeStringRefLongHint(&columnText, Column->Text);
     escapedText = PhEscapeStringForMenuPrefix(&columnText);
     PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
@@ -1844,9 +1908,13 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
 
+    context = PhAllocate(sizeof(PH_COPY_CELL_CONTEXT));
+    context->TreeNewHandle = TreeNewHandle;
+    context->Id = Column->Id;
+    context->MenuItemText = menuItemText;
+
     copyCellItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
     copyCellItem->DeleteFunction = PhpCopyCellEMenuItemDeleteFunction;
-    context->MenuItemText = menuItemText;
 
     if (Column->CustomDraw)
         copyCellItem->Flags |= PH_EMENU_DISABLED;
@@ -1927,7 +1995,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     PPH_EMENU_ITEM parentItem = NULL;
     ULONG indexInParent = 0;
     PPH_COPY_ITEM_CONTEXT context;
-    PPH_STRING columnText;
+    PH_STRINGREF columnText;
     PPH_STRING escapedText;
     PPH_STRING menuItemText;
     PPH_EMENU_ITEM copyMenuItem;
@@ -1958,9 +2026,9 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     if (!Header_GetItem(headerHandle, lvHitInfo.iSubItem, &headerItem))
         return FALSE;
 
-    columnText = PhaCreateString(headerText);
+    PhInitializeStringRefLongHint(&columnText, headerText);
 
-    if (PhIsNullOrEmptyString(columnText))
+    if (PhIsNullOrEmptyString(&columnText))
         return FALSE;
 
     if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
@@ -1968,21 +2036,96 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     indexInParent++;
 
-    context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
-    context->ListViewHandle = ListViewHandle;
-    context->Id = lvHitInfo.iItem;
-    context->SubId = lvHitInfo.iSubItem;
-
-    escapedText = PhEscapeStringForMenuPrefix(&columnText->sr);
+    escapedText = PhEscapeStringForMenuPrefix(&columnText);
     PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
     PhInitFormatSR(&format[1], escapedText->sr);
     PhInitFormatS(&format[2], L"\"");
     menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
 
+    context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
+    context->ListViewHandle = ListViewHandle;
+    context->ListViewClass = nullptr;
+    context->Id = lvHitInfo.iItem;
+    context->SubId = lvHitInfo.iSubItem;
+    context->MenuItemText = menuItemText;
+
     copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
     copyMenuItem->DeleteFunction = PhpCopyListViewEMenuItemDeleteFunction;
+
+    PhInsertEMenuItem(parentItem, copyMenuItem, indexInParent);
+
+    return TRUE;
+}
+
+BOOLEAN PhInsertCopyIListViewEMenuItem(
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ ULONG InsertAfterId,
+    _In_ HWND ListViewHandle,
+    _In_ IListView* ListView
+    )
+{
+    PPH_EMENU_ITEM parentItem = NULL;
+    ULONG indexInParent = 0;
+    PPH_COPY_ITEM_CONTEXT context;
+    PH_STRINGREF columnText;
+    PPH_STRING escapedText;
+    PPH_STRING menuItemText;
+    PPH_EMENU_ITEM copyMenuItem;
+    POINT location;
+    LVHITTESTINFO lvHitInfo;
+    HDITEM headerItem;
+    HWND headerHandle;
+    PH_FORMAT format[3];
+    WCHAR headerText[MAX_PATH] = L"";
+
+    if (!GetCursorPos(&location))
+        return FALSE;
+    if (!ScreenToClient(ListViewHandle, &location))
+        return FALSE;
+
+    memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
+    lvHitInfo.pt = location;
+
+    if (IListView_HitTestSubItem(ListView, &lvHitInfo) != S_OK)
+        return FALSE;
+    if (IListView_GetHeaderControl(ListView, &headerHandle) != S_OK)
+        return FALSE;
+
+    memset(&headerItem, 0, sizeof(HDITEM));
+    headerItem.mask = HDI_TEXT;
+    headerItem.cchTextMax = RTL_NUMBER_OF(headerText);
+    headerItem.pszText = headerText;
+
+    if (!Header_GetItem(headerHandle, lvHitInfo.iSubItem, &headerItem))
+        return FALSE;
+
+    PhInitializeStringRefLongHint(&columnText, headerText);
+
+    if (PhIsNullOrEmptyString(&columnText))
+        return FALSE;
+
+    if (!PhFindEMenuItemEx(Menu, 0, NULL, InsertAfterId, &parentItem, &indexInParent))
+        return FALSE;
+
+    indexInParent++;
+
+    escapedText = PhEscapeStringForMenuPrefix(&columnText);
+    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
+    PhInitFormatSR(&format[1], escapedText->sr);
+    PhInitFormatS(&format[2], L"\"");
+    menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    PhDereferenceObject(escapedText);
+
+    context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
+    context->ListViewHandle = ListViewHandle;
+    context->ListViewClass = ListView;
+    context->Id = lvHitInfo.iItem;
+    context->SubId = lvHitInfo.iSubItem;
     context->MenuItemText = menuItemText;
+
+    copyMenuItem = PhCreateEMenuItem(0, ID_COPY_CELL, menuItemText->Buffer, NULL, context);
+    copyMenuItem->DeleteFunction = PhpCopyListViewEMenuItemDeleteFunction;
 
     PhInsertEMenuItem(parentItem, copyMenuItem, indexInParent);
 
@@ -1995,7 +2138,8 @@ BOOLEAN PhHandleCopyListViewEMenuItem(
 {
     PPH_COPY_ITEM_CONTEXT context;
     PH_STRING_BUILDER stringBuilder;
-    ULONG count;
+    ULONG state = 0;
+    ULONG count = 0;
     ULONG selectedCount;
     ULONG i;
     PPH_STRING getItemText;
@@ -2008,15 +2152,28 @@ BOOLEAN PhHandleCopyListViewEMenuItem(
     context = SelectedItem->Context;
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
-    count = ListView_GetItemCount(context->ListViewHandle);
+
+    if (context->ListViewClass)
+        IListView_GetItemCount(context->ListViewClass, &count);
+    else
+        count = ListView_GetItemCount(context->ListViewHandle);
+
     selectedCount = 0;
 
     for (i = 0; i < count; i++)
     {
-        if (!(ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED) & LVIS_SELECTED))
+        if (context->ListViewClass)
+            IListView_GetItemState(context->ListViewClass, i, 0, LVIS_SELECTED, &state);
+        else
+            state = ListView_GetItemState(context->ListViewHandle, i, LVIS_SELECTED);
+
+        if (!FlagOn(state, LVIS_SELECTED))
             continue;
 
-        getItemText = PhaGetListViewItemText(context->ListViewHandle, i, context->SubId);
+        if (context->ListViewClass)
+            getItemText = PhGetIListViewItemText(context->ListViewClass, i, context->SubId);
+        else
+            getItemText = PhaGetListViewItemText(context->ListViewHandle, i, context->SubId);
 
         PhAppendStringBuilder(&stringBuilder, &getItemText->sr);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
@@ -2312,58 +2469,38 @@ HBITMAP PhGetShieldBitmap(
     _In_opt_ LONG Height
     )
 {
-    static HBITMAP shieldBitmap = NULL;
-    static LONG systemDpi = 0;
-    static LONG width = 0;
-    static LONG height = 0;
+    HICON shieldIcon;
+    HBITMAP shieldBitmap = NULL;
 
-    if (systemDpi != WindowDpi || width != Width || height != Height)
+    shieldIcon = PhLoadIcon(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDI_UACSHIELD),
+        0,
+        Width,
+        Height,
+        WindowDpi
+        );
+
+    if (!shieldIcon)
     {
-        if (shieldBitmap)
-        {
-            DeleteBitmap(shieldBitmap);
-            shieldBitmap = NULL;
-        }
-
-        systemDpi = WindowDpi;
-        width = Width ? Width : PhGetSystemMetrics(SM_CXSMICON, systemDpi);
-        height = Height ? Height : PhGetSystemMetrics(SM_CYSMICON, systemDpi);
+        shieldIcon = PhLoadIcon(
+            NULL,
+            IDI_SHIELD,
+            0,
+            Width,
+            Height,
+            WindowDpi
+            );
     }
 
-    if (!shieldBitmap)
+    if (shieldIcon)
     {
-        HICON shieldIcon;
-
-        shieldIcon = PhLoadIcon(
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDI_UACSHIELD),
-            PH_LOAD_ICON_SIZE_SMALL,
-            0,
-            0,
-            systemDpi
+        shieldBitmap = PhIconToBitmap(
+            shieldIcon,
+            Width,
+            Height
             );
-
-        if (!shieldIcon)
-        {
-            shieldIcon = PhLoadIcon(
-                NULL,
-                IDI_SHIELD,
-                PH_LOAD_ICON_SIZE_SMALL,
-                0,
-                0,
-                systemDpi
-                );
-        }
-
-        if (shieldIcon)
-        {
-            shieldBitmap = PhIconToBitmap(
-                shieldIcon,
-                width,
-                height
-                );
-            DestroyIcon(shieldIcon);
-        }
+        DestroyIcon(shieldIcon);
     }
 
     return shieldBitmap;

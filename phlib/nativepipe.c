@@ -24,14 +24,14 @@ NTSTATUS PhCreatePipe(
     _Out_ PHANDLE PipeWriteHandle
     )
 {
-    return PhCreatePipeEx(PipeReadHandle, PipeWriteHandle, FALSE, NULL);
+    return PhCreatePipeEx(PipeReadHandle, PipeWriteHandle, NULL, NULL);
 }
 
 NTSTATUS PhCreatePipeEx(
     _Out_ PHANDLE PipeReadHandle,
     _Out_ PHANDLE PipeWriteHandle,
-    _In_ BOOLEAN InheritHandles,
-    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    _In_opt_ PSECURITY_ATTRIBUTES PipeReadAttributes,
+    _In_opt_ PSECURITY_ATTRIBUTES PipeWriteAttributes
     )
 {
     NTSTATUS status;
@@ -43,6 +43,13 @@ NTSTATUS PhCreatePipeEx(
     SECURITY_DESCRIPTOR securityDescriptor;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityAnonymous,
+        SECURITY_STATIC_TRACKING,
+        FALSE
+    };
 
     RtlInitUnicodeString(&pipeName, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
@@ -69,18 +76,28 @@ NTSTATUS PhCreatePipeEx(
     InitializeObjectAttributes(
         &objectAttributes,
         &pipeName,
-        OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
+        OBJ_CASE_INSENSITIVE,
         pipeDirectoryHandle,
         NULL
         );
+    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
-    if (SecurityDescriptor)
+    if (PipeReadAttributes)
     {
-        objectAttributes.SecurityDescriptor = SecurityDescriptor;
+        if (PipeReadAttributes->bInheritHandle)
+        {
+            SetFlag(objectAttributes.Attributes, OBJ_INHERIT);
+        }
+
+        if (PipeReadAttributes->lpSecurityDescriptor)
+        {
+            objectAttributes.SecurityDescriptor = PipeReadAttributes->lpSecurityDescriptor;
+        }
     }
-    else
+
+    if (!objectAttributes.SecurityDescriptor)
     {
-        if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+        if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
         {
             RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
             RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
@@ -113,10 +130,24 @@ NTSTATUS PhCreatePipeEx(
     InitializeObjectAttributes(
         &objectAttributes,
         &pipeName,
-        OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
+        OBJ_CASE_INSENSITIVE,
         pipeReadHandle,
         nullptr
         );
+    objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
+
+    if (PipeWriteAttributes)
+    {
+        if (PipeWriteAttributes->bInheritHandle)
+        {
+            SetFlag(objectAttributes.Attributes, OBJ_INHERIT);
+        }
+
+        if (PipeWriteAttributes->lpSecurityDescriptor)
+        {
+            objectAttributes.SecurityDescriptor = PipeWriteAttributes->lpSecurityDescriptor;
+        }
+    }
 
     status = NtOpenFile(
         &pipeWriteHandle,
@@ -182,7 +213,7 @@ NTSTATUS PhCreateNamedPipe(
         );
     objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
-    if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+    if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
     {
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
@@ -214,7 +245,7 @@ NTSTATUS PhCreateNamedPipe(
 
     if (pipeAcl)
     {
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+        PhFree(pipeAcl);
     }
 
     PhDereferenceObject(pipeName);
@@ -818,34 +849,105 @@ NTSTATUS PhEnumDirectoryNamedPipe(
     _In_opt_ PVOID Context
     )
 {
-    static CONST UNICODE_STRING objectName = RTL_CONSTANT_STRING(DEVICE_NAMED_PIPE);
-    static CONST OBJECT_ATTRIBUTES objectAttributes = RTL_CONSTANT_OBJECT_ATTRIBUTES(&objectName, OBJ_CASE_INSENSITIVE);
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HANDLE directoryHandle = NULL;
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    IO_STATUS_BLOCK isb;
+    static PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    HANDLE objectHandle;
+    NTSTATUS status;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-       NtOpenFile(
-            &directoryHandle,
-            FILE_LIST_DIRECTORY | SYNCHRONIZE,
-            (POBJECT_ATTRIBUTES)&objectAttributes,
-            &isb,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            );
-        PhEndInitOnce(&initOnce);
-    }
+    status = PhOpenFile(
+        &objectHandle,
+        &objectName,
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        NULL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
 
-    if (directoryHandle)
+    if (NT_SUCCESS(status))
     {
         status = PhEnumDirectoryFile(
-            directoryHandle,
+            objectHandle,
             SearchPattern,
             Callback,
             Context
             );
+
+        NtClose(objectHandle);
+    }
+
+    return status;
+}
+
+// rev from RtlDefaultNpAcl
+NTSTATUS PhDefaultNpAcl(
+    _Out_ PACL* DefaultNpAc
+    )
+{
+    NTSTATUS status;
+    PACL pipeAcl;
+    PH_TOKEN_OWNER tokenQuery;
+
+    status = PhGetTokenOwner(
+        NtCurrentThreadEffectiveToken(),
+        &tokenQuery
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        APPCONTAINER_SID_TYPE appContainerSidType = InvalidAppContainerSidType;
+        PH_TOKEN_APPCONTAINER tokenAppContainer = { 0 };
+        PSID appContainerSidParent = NULL;
+
+        ULONG defaultAclSize =
+            (ULONG)sizeof(ACL) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            PhLengthSid((PSID)&PhSeLocalSystemSid) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            PhLengthSid(PhSeAdministratorsSid()) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            PhLengthSid(tokenQuery.TokenOwner.Owner) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            PhLengthSid((PSID)&PhSeEveryoneSid) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            PhLengthSid((PSID)&PhSeAnonymousLogonSid);
+
+        if (NT_SUCCESS(PhGetTokenAppContainerSid(NtCurrentThreadEffectiveToken(), &tokenAppContainer)))
+        {
+            if (RtlGetAppContainerSidType_Import())
+                RtlGetAppContainerSidType_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidType);
+
+            if (appContainerSidType == ChildAppContainerSidType)
+            {
+                if (RtlGetAppContainerParent_Import())
+                    RtlGetAppContainerParent_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidParent);
+            }
+        }
+
+        if (tokenAppContainer.AppContainer.Sid)
+            defaultAclSize += (ULONG)sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(tokenAppContainer.AppContainer.Sid);
+        if (appContainerSidParent)
+            defaultAclSize += (ULONG)sizeof(ACCESS_ALLOWED_ACE) + PhLengthSid(appContainerSidParent);
+
+        pipeAcl = PhAllocateZero(defaultAclSize);
+        PhCreateAcl(pipeAcl, defaultAclSize, ACL_REVISION);
+        RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeLocalSystemSid);
+        RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, (PSID)PhSeAdministratorsSid());
+
+        if (tokenAppContainer.AppContainer.Sid)
+            RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenAppContainer.AppContainer.Sid);
+        if (appContainerSidParent)
+            RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, appContainerSidParent);
+
+        RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_ALL, tokenQuery.TokenOwner.Owner);
+        RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeEveryoneSid);
+        RtlAddAccessAllowedAce(pipeAcl, ACL_REVISION, GENERIC_READ, (PSID)&PhSeAnonymousLogonSid);
+
+        *DefaultNpAc = pipeAcl;
+
+        if (appContainerSidParent)
+        {
+            PhFreeSid(appContainerSidParent);
+        }
     }
 
     return status;

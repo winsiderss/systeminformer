@@ -15,8 +15,6 @@
 
 #include "config.h"
 
-#include <ph.h>
-
 #include "math_compat.h"
 #include <assert.h>
 #include <errno.h>
@@ -147,8 +145,8 @@ enum json_tokener_error json_tokener_get_error(struct json_tokener *tok)
 }
 
 /* Stuff for decoding unicode sequences */
-//#define IS_HIGH_SURROGATE(uc) (((uc)&0xFC00) == 0xD800)
-//#define IS_LOW_SURROGATE(uc) (((uc)&0xFC00) == 0xDC00)
+#define IS_HIGH_SURROGATE(uc) (((uc)&0xFC00) == 0xD800)
+#define IS_LOW_SURROGATE(uc) (((uc)&0xFC00) == 0xDC00)
 #define DECODE_SURROGATE_PAIR(hi, lo) ((((hi)&0x3FF) << 10) + ((lo)&0x3FF) + 0x10000)
 static unsigned char utf8_replacement_char[3] = {0xEF, 0xBF, 0xBD};
 
@@ -156,24 +154,20 @@ struct json_tokener *json_tokener_new_ex(int depth)
 {
     struct json_tokener *tok;
 
-    tok = (struct json_tokener *)PhAllocateSafe(sizeof(struct json_tokener));
+    tok = (struct json_tokener *)calloc(1, sizeof(struct json_tokener));
     if (!tok)
         return NULL;
-    memset(tok, 0, sizeof(struct json_tokener));
-
-    tok->stack = (struct json_tokener_srec *)PhAllocateSafe(depth * sizeof(struct json_tokener_srec));
+    tok->stack = (struct json_tokener_srec *)calloc(depth, sizeof(struct json_tokener_srec));
     if (!tok->stack)
     {
-        PhFree(tok);
+        free(tok);
         return NULL;
     }
-    memset(tok->stack, 0, depth * sizeof(struct json_tokener_srec));
-
     tok->pb = printbuf_new();
     if (!tok->pb)
     {
-        PhFree(tok->stack);
-        PhFree(tok);
+        free(tok->stack);
+        free(tok);
         return NULL;
     }
     tok->max_depth = depth;
@@ -191,8 +185,8 @@ void json_tokener_free(struct json_tokener *tok)
     json_tokener_reset(tok);
     if (tok->pb)
         printbuf_free(tok->pb);
-    PhFree(tok->stack);
-    PhFree(tok);
+    free(tok->stack);
+    free(tok);
 }
 
 static void json_tokener_reset_level(struct json_tokener *tok, int depth)
@@ -201,7 +195,7 @@ static void json_tokener_reset_level(struct json_tokener *tok, int depth)
     tok->stack[depth].saved_state = json_tokener_state_start;
     json_object_put(tok->stack[depth].current);
     tok->stack[depth].current = NULL;
-    PhFree(tok->stack[depth].obj_field_name);
+    free(tok->stack[depth].obj_field_name);
     tok->stack[depth].obj_field_name = NULL;
 }
 
@@ -232,8 +226,11 @@ struct json_object *json_tokener_parse_verbose(const char *str, enum json_tokene
 
     tok = json_tokener_new();
     if (!tok)
+    {
+        *error = json_tokener_error_memory;
         return NULL;
-    obj = json_tokener_parse_ex(tok, str, strlen(str));
+    }
+    obj = json_tokener_parse_ex(tok, str, -1);
     *error = tok->err;
     if (tok->err != json_tokener_success
 #if 0
@@ -335,7 +332,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
      * If the function is called with len == -1 then strlen is called to check
      * the string length is less than INT32_MAX (2GB)
      */
-    if (len > INT32_MAX)
+    if ((len < -1) || (len == -1 && strlen(str) > INT32_MAX))
     {
         tok->err = json_tokener_error_size;
         return NULL;
@@ -344,9 +341,15 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
 #ifdef HAVE_USELOCALE
     {
         locale_t duploc = duplocale(oldlocale);
+        if (duploc == NULL && errno == ENOMEM)
+        {
+            tok->err = json_tokener_error_memory;
+            return NULL;
+        }
         newloc = newlocale(LC_NUMERIC_MASK, "C", duploc);
         if (newloc == NULL)
         {
+            tok->err = json_tokener_error_memory;
             freelocale(duploc);
             return NULL;
         }
@@ -363,9 +366,12 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         tmplocale = setlocale(LC_NUMERIC, NULL);
         if (tmplocale)
         {
-            oldlocale = PhDuplicateBytesZSafe(tmplocale);
+            oldlocale = _strdup(tmplocale);
             if (oldlocale == NULL)
+            {
+                tok->err = json_tokener_error_memory;
                 return NULL;
+            }
         }
         setlocale(LC_NUMERIC, "C");
     }
@@ -671,6 +677,12 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                     saved_state = json_tokener_state_string;
                     state = json_tokener_state_string_escape;
                     break;
+                }
+                else if ((tok->flags & JSON_TOKENER_STRICT) && c <= 0x1f)
+                {
+                    // Disallow control characters in strict mode
+                    tok->err = json_tokener_error_parse_string;
+                    goto out;
                 }
                 if (!ADVANCE_CHAR(str, tok) || !PEEK_CHAR(c, tok))
                 {
@@ -1207,7 +1219,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                 {
                     printbuf_memappend_checked(tok->pb, case_start,
                                                str - case_start);
-                    obj_field_name = PhDuplicateBytesZSafe(tok->pb->buf);
+                    obj_field_name = _strdup(tok->pb->buf);
                     if (obj_field_name == NULL)
                     {
                         tok->err = json_tokener_error_memory;
@@ -1260,8 +1272,12 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
             goto redo_char;
 
         case json_tokener_state_object_value_add:
-            json_object_object_add(current, obj_field_name, obj);
-            PhFree(obj_field_name);
+            if (json_object_object_add(current, obj_field_name, obj) != 0)
+            {
+                tok->err = json_tokener_error_memory;
+                goto out;
+            }
+            free(obj_field_name);
             obj_field_name = NULL;
             saved_state = json_tokener_state_object_sep;
             state = json_tokener_state_eatws;
@@ -1315,7 +1331,7 @@ out:
     freelocale(newloc);
 #elif defined(HAVE_SETLOCALE)
     setlocale(LC_NUMERIC, oldlocale);
-    PhFree(oldlocale);
+    free(oldlocale);
 #endif
 
     if (tok->err == json_tokener_success)

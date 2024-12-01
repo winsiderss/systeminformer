@@ -1188,6 +1188,7 @@ VOID PhpFillProcessItemExtension(
     ProcessItem->SharedCommitCharge = processExtension->SharedCommitCharge;
     ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
     ProcessItem->IsSystemProcess = processExtension->Classification != SystemProcessClassificationNormal;
+    ProcessItem->IsSecureSystem = processExtension->Classification == SystemProcessClassificationSecureSystem;
 }
 
 VOID PhpFillProcessItem(
@@ -1254,7 +1255,27 @@ VOID PhpFillProcessItem(
         // If we're dealing with System (PID 4), we need to get the
         // kernel file name. Otherwise, get the image file name. (wj32)
 
-        if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
+        if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+        {
+            PPH_STRING fileName;
+
+            if (fileName = PhGetKernelFileName())
+            {
+                ProcessItem->FileName = fileName;
+                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
+            }
+        }
+        else if (ProcessItem->IsSecureSystem)
+        {
+            PPH_STRING fileName;
+
+            if (fileName = PhGetSecureKernelFileName())
+            {
+                ProcessItem->FileName = fileName;
+                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
+            }
+        }
+        else
         {
             if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
             {
@@ -1274,33 +1295,7 @@ VOID PhpFillProcessItem(
                     {
                         ProcessItem->FileNameWin32 = fileName;
                     }
-
-                    if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
-                    {
-                        PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
-                    }
                 }
-
-                if (!ProcessItem->FileName &&
-                    ProcessItem->IsSecureProcess &&
-                    PhEqualString2(ProcessItem->ProcessName, L"Secure System", FALSE))
-                {
-                    if (fileName = PhGetSecureKernelFileName())
-                    {
-                        ProcessItem->FileName = fileName;
-                        ProcessItem->FileNameWin32 = PhGetFileName(fileName);
-                    }
-                }
-            }
-        }
-        else
-        {
-            PPH_STRING fileName;
-
-            if (fileName = PhGetKernelFileName())
-            {
-                ProcessItem->FileName = fileName;
-                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
             }
         }
     }
@@ -1321,7 +1316,7 @@ VOID PhpFillProcessItem(
             BOOLEAN isElevated;
             BOOLEAN tokenIsUIAccessEnabled;
             PH_INTEGRITY_LEVEL integrityLevel;
-            PH_STRINGREF integrityString;
+            PPH_STRINGREF integrityString;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1363,7 +1358,7 @@ VOID PhpFillProcessItem(
             NtClose(tokenHandle);
         }
     }
-    else
+    // Token information
     {
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
@@ -1378,11 +1373,11 @@ VOID PhpFillProcessItem(
     }
 
     // Known Process Type
-    if (ProcessItem->FileNameWin32)
+    if (ProcessItem->FileName)
     {
         ProcessItem->KnownProcessType = PhGetProcessKnownTypeEx(
             ProcessItem->ProcessId,
-            ProcessItem->FileNameWin32
+            ProcessItem->FileName
             );
     }
 
@@ -1403,6 +1398,7 @@ VOID PhpFillProcessItem(
                 }
             }
         }
+
         if (WindowsVersion >= WINDOWS_8_1)
         {
             if (haveProtection)
@@ -1413,10 +1409,6 @@ VOID PhpFillProcessItem(
         else if (ProcessItem->IsProtectedProcess)
         {
             ProcessItem->ProtectionString = PhReferenceObject(PhpProtectionYesString);
-        }
-        else
-        {
-            ProcessItem->ProtectionString = PhReferenceEmptyString();
         }
     }
 
@@ -1560,7 +1552,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
     {
         UCHAR priorityClass;
 
-        if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
+        if (NT_SUCCESS(PhGetProcessPriorityClass(ProcessItem->QueryHandle, &priorityClass)))
         {
             ProcessItem->PriorityClass = priorityClass;
         }
@@ -2139,16 +2131,19 @@ VOID PhpGetProcessThreadInformation(
 
     if (PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId) && !ProcessItem->IsSystemProcess)
     {
-        if (
-            suspendedCount == Process->NumberOfThreads ||
-            (suspendedCount + workqueueCount) == Process->NumberOfThreads  // (NumberOfThreads - workQueueLength)
-            )
+        if (suspendedCount)
         {
-            isSuspended = TRUE;
-        }
-        else if (suspendedCount)
-        {
-            isPartiallySuspended = TRUE;
+            if (
+                suspendedCount == Process->NumberOfThreads ||
+                (suspendedCount + workqueueCount) == Process->NumberOfThreads  // (NumberOfThreads - workQueueLength)
+                )
+            {
+                isSuspended = TRUE;
+            }
+            else
+            {
+                isPartiallySuspended = TRUE;
+            }
         }
     }
 
@@ -2550,9 +2545,9 @@ VOID PhProcessProviderUpdate(
     PhFlushProcessQueryData();
 
     if (sysTotalTime == 0)
-        sysTotalTime = -1; // max. value
+        sysTotalTime = ULONG64_MAX; // max. value
     if (sysTotalCycleTime == 0)
-        sysTotalCycleTime = -1;
+        sysTotalCycleTime = ULONG64_MAX;
 
     PhCpuTotalCycleDelta = sysTotalCycleTime;
 
@@ -2575,8 +2570,8 @@ VOID PhProcessProviderUpdate(
 
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
-            PhpFillProcessItem(processItem, process);
             PhpFillProcessItemExtension(processItem, process);
+            PhpFillProcessItem(processItem, process);
             processItem->TimeSequenceNumber = PhTimeSequenceNumber;
 
             processRecord = PhpCreateProcessRecord(processItem);
@@ -2804,7 +2799,7 @@ VOID PhProcessProviderUpdate(
                     //BOOLEAN isElevated;
                     //TOKEN_ELEVATION_TYPE elevationType;
                     PH_INTEGRITY_LEVEL integrityLevel;
-                    PH_STRINGREF integrityString;
+                    PPH_STRINGREF integrityString;
 
                     if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
                     {
@@ -3251,7 +3246,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->CreateTime = ProcessItem->CreateTime;
 
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
-    PhSetReference(&processRecord->FileName, ProcessItem->FileNameWin32);
+    PhSetReference(&processRecord->FileName, ProcessItem->FileName);
     PhSetReference(&processRecord->CommandLine, ProcessItem->CommandLine);
     //PhSetReference(&processRecord->UserName, ProcessItem->UserName);
 

@@ -1100,8 +1100,8 @@ BOOLEAN PvGetMappedImageImphash(
     if (!PhIsNullOrEmptyString(stringBuilder.String))
     {
         PPH_STRING importStringFinal;
-        PPH_STRING importStringFuzzy;
         PPH_BYTES importStringUtf8;
+        char* importStringFuzzy;
 
         importStringFinal = PhFinalStringBuilderString(&stringBuilder);
         importStringUtf8 = PhConvertUtf16ToUtf8Ex(importStringFinal->Buffer, importStringFinal->Length);
@@ -1115,7 +1115,8 @@ BOOLEAN PvGetMappedImageImphash(
 
         if (fuzzy_hash_buffer((PBYTE)importStringUtf8->Buffer, importStringUtf8->Length, &importStringFuzzy))
         {
-            hashFuzzyString = importStringFuzzy;
+            hashFuzzyString = PhConvertUtf8ToUtf16(importStringFuzzy);
+            free(importStringFuzzy);
         }
 
         PhDereferenceObject(importStringUtf8);
@@ -1159,7 +1160,8 @@ NTSTATUS PvPeFileHashThread(
     PPH_STRING imphashFuzzyString = NULL;
     PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
-    PPH_STRING tlshHashString = NULL;
+    char* tlshHashString = NULL;
+    char* ssdeepHashStringUtf8 = NULL;
 
     // File hashes
 
@@ -1192,7 +1194,7 @@ NTSTATUS PvPeFileHashThread(
         }
 
         PhSetFilePosition(fileHandle, NULL);
-        fuzzy_hash_file(fileHandle, &ssdeepHashString);
+        fuzzy_hash_file(fileHandle, &ssdeepHashStringUtf8);
 
         PhSetFilePosition(fileHandle, NULL);
         PvGetTlshFileHash(fileHandle, &tlshHashString);
@@ -1209,12 +1211,12 @@ NTSTATUS PvPeFileHashThread(
 
     // Fuzzy hashes
 
-    if (PhIsNullOrEmptyString(ssdeepHashString))
+    if (!ssdeepHashStringUtf8)
     {
-        fuzzy_hash_buffer(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &ssdeepHashString);
+        fuzzy_hash_buffer(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &ssdeepHashStringUtf8);
     }
 
-    if (PhIsNullOrEmptyString(tlshHashString))
+    if (!tlshHashString)
     {
         PvGetTlshBufferHash(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &tlshHashString);
     }
@@ -1254,9 +1256,11 @@ NTSTATUS PvPeFileHashThread(
         results->ImphashString = imphashString;
         results->ImphashFuzzyString = imphashFuzzyString;
         results->ImpMsftHashString = impMsftHashString;
-        results->SsdeepHashString = ssdeepHashString;
-        results->TlshHashString = tlshHashString;
+        results->SsdeepHashString = PhConvertUtf8ToUtf16(ssdeepHashStringUtf8);
+        results->TlshHashString = PhConvertUtf8ToUtf16(tlshHashString);
         results->PageHashList = pagehashesList;
+        free(ssdeepHashStringUtf8);
+        free(tlshHashString);
 
         PostMessage(Context->WindowHandle, WM_PV_HASH_FINISHED, 0, (LPARAM)results);
     }

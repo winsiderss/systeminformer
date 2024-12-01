@@ -68,7 +68,7 @@ VOID PvEnumerateVolatileEntries(
             {
                 if (!(symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
-                    (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, entry.Rva),
+                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, entry.Rva),
                     &symbolResolveLevel,
                     NULL,
                     &symbolName,
@@ -82,7 +82,7 @@ VOID PvEnumerateVolatileEntries(
             {
                 if (!(symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
-                    (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, entry.Rva),
+                    PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, entry.Rva),
                     &symbolResolveLevel,
                     NULL,
                     &symbolName,

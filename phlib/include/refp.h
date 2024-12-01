@@ -94,7 +94,16 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  *
  * \return A pointer to the object header of the object.
  */
-#define PhObjectToObjectHeader(Object) ((PPH_OBJECT_HEADER)CONTAINING_RECORD((Object), PH_OBJECT_HEADER, Body))
+//#define PhObjectToObjectHeader(Object) ((PPH_OBJECT_HEADER)CONTAINING_RECORD((Object), PH_OBJECT_HEADER, Body))
+FORCEINLINE
+PPH_OBJECT_HEADER
+NTAPI
+PhObjectToObjectHeader(
+    _In_ PVOID Object
+    )
+{
+    return CONTAINING_RECORD(Object, PH_OBJECT_HEADER, Body);
+}
 
 /**
  * Gets a pointer to an object from an object header.
@@ -103,7 +112,15 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  *
  * \return A pointer to an object.
  */
-#define PhObjectHeaderToObject(ObjectHeader) ((PVOID)&((PPH_OBJECT_HEADER)(ObjectHeader))->Body)
+//#define PhObjectHeaderToObject(ObjectHeader) ((PVOID)&((PPH_OBJECT_HEADER)(ObjectHeader))->Body)
+FORCEINLINE
+PVOID
+PhObjectHeaderToObject(
+    _In_ PPH_OBJECT_HEADER ObjectHeader
+    )
+{
+    return &ObjectHeader->Body;
+}
 
 /**
  * Calculates the total size to allocate for an object.
@@ -112,7 +129,15 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  *
  * \return The new size, including space for the object header.
  */
-#define PhAddObjectHeaderSize(Size) ((Size) + UFIELD_OFFSET(PH_OBJECT_HEADER, Body))
+//#define PhAddObjectHeaderSize(Size) ((Size) + UFIELD_OFFSET(PH_OBJECT_HEADER, Body))
+FORCEINLINE
+SIZE_T
+PhAddObjectHeaderSize(
+    _In_ SIZE_T Size
+    )
+{
+    return UFIELD_OFFSET(PH_OBJECT_HEADER, Body) + Size;
+}
 
 /** An object type specifies a kind of object and its delete procedure. */
 typedef struct _PH_OBJECT_TYPE

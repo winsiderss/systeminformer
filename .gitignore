@@ -83,6 +83,7 @@ ipch/
 # NuGet Packages
 *.nupkg
 **/packages/
+**/vcpkg_installed/
 
 ##########################
 ## Project specific rules

@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
+#include <phconsole.h>
 
 #include <emenu.h>
 #include <mapimg.h>
@@ -147,6 +148,17 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     if (Context)
         return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
     return STATUS_UNSUCCESSFUL;
+}
+
+NTSTATUS PhpProcessGeneralCloseHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        NtClose(Handle);
+    return STATUS_SUCCESS;
 }
 
 FORCEINLINE PWSTR PhpGetStringOrNa(
@@ -730,7 +742,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PhGetStringOrEmpty(processItem->ProcessName),
                         L"Process",
                         PhpProcessGeneralOpenProcess,
-                        NULL,
+                        PhpProcessGeneralCloseHandle,
                         processItem->ProcessId
                         );
                 }

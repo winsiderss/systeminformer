@@ -259,7 +259,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Data)
 {
-    sortResult = PhCompareStringWithNull(node1->Data, node2->Data, TRUE);
+    sortResult = PhCompareStringRefWithNullSortOrder(node1->Data, node2->Data, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -414,7 +414,17 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->Name);
                 break;
             case TREE_COLUMN_ITEM_SYMBOL:
-                getCellText->Text = PhGetStringRef(node->Data);
+                {
+                    if (node->Data)
+                    {
+                        getCellText->Text.Buffer = node->Data->Buffer;
+                        getCellText->Text.Length = node->Data->Length;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case TREE_COLUMN_ITEM_SIZE:
                 {
@@ -707,7 +717,7 @@ BOOLEAN PvSymbolTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(node->Data))
     {
-        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Data->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, node->Data))
             return TRUE;
     }
 

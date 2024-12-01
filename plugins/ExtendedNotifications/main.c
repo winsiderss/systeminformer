@@ -404,8 +404,8 @@ VOID NTAPI NotifyEventCallback(
         {
             processItem = notifyEvent->Parameter;
 
-            if (processItem->FileNameWin32)
-                found = MatchFilterList(ProcessFilterList, processItem->FileNameWin32, &filterType);
+            if (processItem->FileName)
+                found = MatchFilterList(ProcessFilterList, processItem->FileName, &filterType);
 
             if (!found)
                 MatchFilterList(ProcessFilterList, processItem->ProcessName, &filterType);

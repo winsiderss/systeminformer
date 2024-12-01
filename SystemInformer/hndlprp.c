@@ -95,11 +95,12 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
+    PVOID ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
     PPH_PLUGIN OwnerPlugin;
-} HANDLE_PROPERTIES_CONTEXT, * PHANDLE_PROPERTIES_CONTEXT;
+} HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
@@ -173,6 +174,17 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     return status;
 }
 
+static NTSTATUS PhpDuplicateHandleCloseProcess(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        NtClose(Handle);
+    return STATUS_SUCCESS;
+}
+
 typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
 {
     HWND ParentWindowHandle;
@@ -193,6 +205,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     HANDLE_PROPERTIES_CONTEXT context;
     PH_AUTO_POOL autoPool;
 
+    memset(&context, 0, sizeof(HANDLE_PROPERTIES_CONTEXT));
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
     context.OwnerPlugin = handleContext->OwnerPlugin;
@@ -265,6 +278,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             context.ProcessId,
             &context,
             NULL
@@ -308,11 +322,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
         PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
 
+        memset(&propertiesContext, 0, sizeof(PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT));
         propertiesContext.ParentWindowHandle = handleContext->ParentWindowHandle;
         propertiesContext.ProcessId = handleContext->ProcessId;
         propertiesContext.HandleItem = handleContext->HandleItem;
         propertiesContext.OwnerPlugin = handleContext->OwnerPlugin;
 
+        memset(&objectProperties, 0, sizeof(PH_PLUGIN_OBJECT_PROPERTIES));
         objectProperties.Parameter = &propertiesContext;
         objectProperties.NumberOfPages = propSheetHeader.nPages;
         objectProperties.MaximumNumberOfPages = RTL_NUMBER_OF(pages);
@@ -352,7 +368,7 @@ VOID PhShowHandlePropertiesEx(
 {
     PHANDLE_PROPERTIES_THREAD_CONTEXT context;
 
-    context = PhAllocate(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
+    context = PhAllocateZero(sizeof(HANDLE_PROPERTIES_THREAD_CONTEXT));
     context->ParentWindowHandle = PhCsForceNoParent ? NULL : ParentWindowHandle;
     context->ProcessId = ProcessId;
     context->HandleItem = HandleItem;
@@ -1969,12 +1985,12 @@ VOID PhpUpdateHandleGeneral(
         {
             SYSTEMTIME time;
 
-            PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
+            PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.CreateTime);
             PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
 
             if (exitStatus != STATUS_PENDING)
             {
-                PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
+                PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.ExitTime);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
             }
         }
@@ -2170,12 +2186,12 @@ VOID PhpUpdateHandleGeneral(
         {
             SYSTEMTIME time;
 
-            PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
+            PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.CreateTime);
             PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME], 1, PhaFormatDateTime(&time)->Buffer);
 
             if (isTerminated)
             {
-                PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
+                PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.ExitTime);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
             }
         }
@@ -2223,6 +2239,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIcon(context->ParentWindow);
 
@@ -2284,6 +2301,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            if (context->ListViewClass)
+            {
+                IListView_Release((struct IListView*)context->ListViewClass);
+            }
         }
         break;
     case WM_SIZE:
@@ -2324,7 +2346,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {

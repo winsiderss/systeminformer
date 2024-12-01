@@ -125,11 +125,11 @@ DECLARE_INTERFACE_(IDrawPropertyControl, IUnknown)
     STDMETHOD(GetFormatFlags)(LONG*) PURE;
 
     // IDrawPropertyControl
-    STDMETHOD(GetDrawFlags)(PINT Flags) PURE;
+    STDMETHOD(GetDrawFlags)(PLONG Flags) PURE;
     STDMETHOD(WindowlessDraw)(HDC hDC, RECT pDrawingRectangle, LONG a) PURE;
     STDMETHOD(HasVisibleContent)(VOID) PURE;
     STDMETHOD(GetDisplayText)(LPWSTR * Text) PURE;
-    STDMETHOD(GetTooltipInfo)(HDC, SIZE const*, PINT) PURE;
+    STDMETHOD(GetTooltipInfo)(HDC, SIZE const*, PLONG) PURE;
 };
 
 #undef INTERFACE
@@ -155,7 +155,7 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(SetTextBackgroundColor)(THIS_ COLORREF color) PURE;
     STDMETHOD(GetHotLightColor)(THIS_ COLORREF* pColor) PURE;
     STDMETHOD(SetHotLightColor)(THIS_ COLORREF color) PURE;
-    STDMETHOD(GetItemCount)(THIS_ PINT pItemCount) PURE;
+    STDMETHOD(GetItemCount)(THIS_ PLONG pItemCount) PURE;
     STDMETHOD(SetItemCount)(THIS_ LONG itemCount, ULONG flags) PURE;
     STDMETHOD(GetItem)(THIS_ LVITEMW* pItem) PURE;
     STDMETHOD(SetItem)(THIS_ LVITEMW* const pItem) PURE;
@@ -165,53 +165,53 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(SetItemText)(THIS_ LONG itemIndex, LONG subItemIndex, LPCWSTR pText) PURE;
     STDMETHOD(GetBackgroundImage)(THIS_ LVBKIMAGEW* pBkImage) PURE;
     STDMETHOD(SetBackgroundImage)(THIS_ LVBKIMAGEW* const pBkImage) PURE;
-    STDMETHOD(GetFocusedColumn)(THIS_ PINT pColumnIndex) PURE;
+    STDMETHOD(GetFocusedColumn)(THIS_ PLONG pColumnIndex) PURE;
     STDMETHOD(SetSelectionFlags)(THIS_ ULONG mask, ULONG flags) PURE; // HRESULT SetSelectionFlags (SELECTION_FLAGS, SELECTION_FLAGS);
     STDMETHOD(GetSelectedColumn)(THIS_ PULONG pColumnIndex) PURE;
     STDMETHOD(SetSelectedColumn)(THIS_ ULONG columnIndex) PURE;
     STDMETHOD(GetView)(THIS_ ULONG* pView) PURE;
     STDMETHOD(SetView)(THIS_ ULONG view) PURE;
-    STDMETHOD(InsertItem)(THIS_ LVITEMW* const pItem, PULONG pItemIndex) PURE;
-    STDMETHOD(DeleteItem)(THIS_ ULONG itemIndex) PURE;
+    STDMETHOD(InsertItem)(THIS_ LVITEMW* const pItem, PLONG pItemIndex) PURE;
+    STDMETHOD(DeleteItem)(THIS_ LONG itemIndex) PURE;
     STDMETHOD(DeleteAllItems)(THIS) PURE;
-    STDMETHOD(UpdateItem)(THIS_ ULONG itemIndex) PURE;
+    STDMETHOD(UpdateItem)(THIS_ LONG itemIndex) PURE;
     STDMETHOD(GetItemRect)(THIS_ LVITEMINDEX itemIndex, LONG rectangleType, LPRECT pRectangle) PURE;
     STDMETHOD(GetSubItemRect)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex, LONG rectangleType, LPRECT pRectangle) PURE;
     STDMETHOD(HitTestSubItem)(THIS_ LVHITTESTINFO* pHitTestData) PURE;
-    STDMETHOD(GetIncrSearchString)(THIS_ PWSTR pBuffer, LONG bufferSize, PINT pCopiedChars) PURE;
-    STDMETHOD(GetItemSpacing)(THIS_ BOOL smallIconView, PINT pHorizontalSpacing, PINT pVerticalSpacing) PURE;
-    STDMETHOD(SetIconSpacing)(THIS_ LONG horizontalSpacing, LONG verticalSpacing, PINT pHorizontalSpacing, PINT pVerticalSpacing) PURE;
+    STDMETHOD(GetIncrSearchString)(THIS_ PWSTR pBuffer, LONG bufferSize, PLONG pCopiedChars) PURE;
+    STDMETHOD(GetItemSpacing)(THIS_ BOOL smallIconView, PLONG pHorizontalSpacing, PLONG pVerticalSpacing) PURE;
+    STDMETHOD(SetIconSpacing)(THIS_ LONG horizontalSpacing, LONG verticalSpacing, PLONG pHorizontalSpacing, PLONG pVerticalSpacing) PURE;
     STDMETHOD(GetNextItem)(THIS_ LVITEMINDEX itemIndex, ULONG flags, LVITEMINDEX* pNextItemIndex) PURE;
     STDMETHOD(FindItem)(THIS_ LVITEMINDEX startItemIndex, LVFINDINFOW const* pFindInfo, LVITEMINDEX* pFoundItemIndex) PURE;
     STDMETHOD(GetSelectionMark)(THIS_ LVITEMINDEX* pSelectionMark) PURE;
     STDMETHOD(SetSelectionMark)(THIS_ LVITEMINDEX newSelectionMark, LVITEMINDEX* pOldSelectionMark) PURE;
     STDMETHOD(GetItemPosition)(THIS_ LVITEMINDEX itemIndex, POINT* pPosition) PURE;
-    STDMETHOD(SetItemPosition)(THIS_ ULONG itemIndex, POINT const* pPosition) PURE;
+    STDMETHOD(SetItemPosition)(THIS_ LONG itemIndex, POINT const* pPosition) PURE;
     STDMETHOD(ScrollView)(THIS_ ULONG horizontalScrollDistance, ULONG verticalScrollDistance) PURE;
     STDMETHOD(EnsureItemVisible)(THIS_ LVITEMINDEX itemIndex, BOOL partialOk) PURE;
-    STDMETHOD(EnsureSubItemVisible)(THIS_ LVITEMINDEX itemIndex, ULONG subItemIndex) PURE;
-    STDMETHOD(EditSubItem)(THIS_ LVITEMINDEX itemIndex, ULONG subItemIndex) PURE;
-    STDMETHOD(RedrawItems)(THIS_ ULONG firstItemIndex, ULONG lastItemIndex) PURE;
+    STDMETHOD(EnsureSubItemVisible)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex) PURE;
+    STDMETHOD(EditSubItem)(THIS_ LVITEMINDEX itemIndex, LONG subItemIndex) PURE;
+    STDMETHOD(RedrawItems)(THIS_ LONG firstItemIndex, LONG lastItemIndex) PURE;
     STDMETHOD(ArrangeItems)(THIS_ ULONG mode) PURE;
     STDMETHOD(RecomputeItems)(THIS_ LONG unknown) PURE;
     STDMETHOD(GetEditControl)(THIS_ HWND* EditWindowHandle) PURE;
     STDMETHOD(EditLabel)(THIS_ LVITEMINDEX itemIndex, LPCWSTR initialEditText, HWND* EditWindowHandle) PURE;
     STDMETHOD(EditGroupLabel)(THIS_ ULONG groupIndex) PURE;
     STDMETHOD(CancelEditLabel)(THIS) PURE;
-    STDMETHOD(GetEditItem)(THIS_ LVITEMINDEX* itemIndex, PINT subItemIndex) PURE;
+    STDMETHOD(GetEditItem)(THIS_ LVITEMINDEX* itemIndex, PLONG subItemIndex) PURE;
     STDMETHOD(HitTest)(THIS_ LVHITTESTINFO* pHitTestData) PURE;
-    STDMETHOD(GetStringWidth)(THIS_ PCWSTR pString, PINT pWidth) PURE;
+    STDMETHOD(GetStringWidth)(THIS_ PCWSTR pString, PLONG pWidth) PURE;
     STDMETHOD(GetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* pColumn) PURE;
     STDMETHOD(SetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* const pColumn) PURE;
-    STDMETHOD(GetColumnOrderArray)(THIS_ ULONG numberOfColumns, PINT pColumns) PURE;
+    STDMETHOD(GetColumnOrderArray)(THIS_ ULONG numberOfColumns, PLONG pColumns) PURE;
     STDMETHOD(SetColumnOrderArray)(THIS_ ULONG numberOfColumns, LONG const* pColumns) PURE;
     STDMETHOD(GetHeaderControl)(THIS_ HWND* HeaderWindowHandle) PURE;
-    STDMETHOD(InsertColumn)(THIS_ ULONG insertAt, LVCOLUMNW* const pColumn, PINT pColumnIndex) PURE;
+    STDMETHOD(InsertColumn)(THIS_ ULONG insertAt, LVCOLUMNW* const pColumn, PLONG pColumnIndex) PURE;
     STDMETHOD(DeleteColumn)(THIS_ ULONG columnIndex) PURE;
-    STDMETHOD(CreateDragImage)(THIS_ ULONG itemIndex, POINT const* pUpperLeft, HIMAGELIST* pHImageList) PURE;
+    STDMETHOD(CreateDragImage)(THIS_ LONG itemIndex, POINT const* pUpperLeft, HIMAGELIST* pHImageList) PURE;
     STDMETHOD(GetViewRect)(THIS_ RECT* pRectangle) PURE;
     STDMETHOD(GetClientRect)(THIS_ BOOL unknown, RECT* pClientRectangle) PURE;
-    STDMETHOD(GetColumnWidth)(THIS_ ULONG columnIndex, PINT pWidth) PURE;
+    STDMETHOD(GetColumnWidth)(THIS_ ULONG columnIndex, PLONG pWidth) PURE;
     STDMETHOD(SetColumnWidth)(THIS_ ULONG columnIndex, ULONG width) PURE;
     STDMETHOD(GetCallbackMask)(THIS_ ULONG* pMask) PURE;
     STDMETHOD(SetCallbackMask)(THIS_ ULONG mask) PURE;
@@ -223,18 +223,18 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(GetExtendedStyle)(THIS_ ULONG* pStyle) PURE;
     STDMETHOD(SetExtendedStyle)(THIS_ ULONG mask, ULONG style, ULONG* pOldStyle) PURE;
     STDMETHOD(GetHoverTime)(THIS_ PULONG pTime) PURE;
-    STDMETHOD(SetHoverTime)(THIS_ UINT time, PULONG pOldSetting) PURE;
+    STDMETHOD(SetHoverTime)(THIS_ ULONG time, PULONG pOldSetting) PURE;
     STDMETHOD(GetToolTip)(THIS_ HWND* ToolTipWindowHandle) PURE;
     STDMETHOD(SetToolTip)(THIS_ HWND ToolTipWindowHandle, HWND* OldToolTipWindowHandle) PURE;
     STDMETHOD(GetHotItem)(THIS_ LVITEMINDEX* pHotItem) PURE;
     STDMETHOD(SetHotItem)(THIS_ LVITEMINDEX newHotItem, LVITEMINDEX* pOldHotItem) PURE;
     STDMETHOD(GetHotCursor)(THIS_ HCURSOR* pHCursor) PURE;
     STDMETHOD(SetHotCursor)(THIS_ HCURSOR hCursor, HCURSOR* pHOldCursor) PURE;
-    STDMETHOD(ApproximateViewRect)(THIS_ LONG itemCount, PINT pWidth, PINT pHeight) PURE;
+    STDMETHOD(ApproximateViewRect)(THIS_ LONG itemCount, PLONG pWidth, PLONG pHeight) PURE;
     STDMETHOD(SetRangeObject)(THIS_ LONG unknown, LPVOID pObject) PURE;
     STDMETHOD(GetWorkAreas)(THIS_ LONG numberOfWorkAreas, RECT* pWorkAreas) PURE;
     STDMETHOD(SetWorkAreas)(THIS_ LONG numberOfWorkAreas, RECT const* pWorkAreas) PURE;
-    STDMETHOD(GetWorkAreaCount)(THIS_ PINT pNumberOfWorkAreas) PURE;
+    STDMETHOD(GetWorkAreaCount)(THIS_ PLONG pNumberOfWorkAreas) PURE;
     STDMETHOD(ResetEmptyText)(THIS) PURE;
     STDMETHOD(EnableGroupView)(THIS_ BOOL Eable) PURE;
     STDMETHOD(IsGroupViewEnabled)(THIS_ PBOOL IsEnabled) PURE;
@@ -242,16 +242,16 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(GetGroupInfo)(THIS_ ULONG unknown1, ULONG groupID, LVGROUP* pGroup) PURE;
     STDMETHOD(SetGroupInfo)(THIS_ ULONG unknown, ULONG groupID, LVGROUP* const pGroup) PURE;
     STDMETHOD(GetGroupRect)(THIS_ BOOL unknown, ULONG groupID, ULONG rectangleType, RECT* pRectangle) PURE;
-    STDMETHOD(GetGroupState)(THIS_ ULONG groupID, ULONG mask, ULONG* pState) PURE;
+    STDMETHOD(GetGroupState)(THIS_ LONG groupID, ULONG mask, ULONG* pState) PURE;
     STDMETHOD(HasGroup)(THIS_ LONG groupID, BOOL* pHasGroup) PURE;
-    STDMETHOD(InsertGroup)(THIS_ LONG insertAt, LVGROUP* const pGroup, PINT pGroupID) PURE;
+    STDMETHOD(InsertGroup)(THIS_ LONG insertAt, LVGROUP* const pGroup, PLONG pGroupID) PURE;
     STDMETHOD(RemoveGroup)(THIS_ LONG groupID) PURE;
-    STDMETHOD(InsertGroupSorted)(THIS_ LVINSERTGROUPSORTED const* pGroup, PINT pGroupID) PURE;
+    STDMETHOD(InsertGroupSorted)(THIS_ LVINSERTGROUPSORTED const* pGroup, PLONG pGroupID) PURE;
     STDMETHOD(GetGroupMetrics)(THIS_ LVGROUPMETRICS* pMetrics) PURE;
     STDMETHOD(SetGroupMetrics)(THIS_ LVGROUPMETRICS* const pMetrics) PURE;
     STDMETHOD(RemoveAllGroups)(THIS) PURE;
-    STDMETHOD(GetFocusedGroup)(THIS_ PINT pGroupID) PURE;
-    STDMETHOD(GetGroupCount)(THIS_ PINT pCount) PURE;
+    STDMETHOD(GetFocusedGroup)(THIS_ PLONG pGroupID) PURE;
+    STDMETHOD(GetGroupCount)(THIS_ PLONG pCount) PURE;
     STDMETHOD(SetOwnerDataCallback)(THIS_ IOwnerDataCallback* pCallback) PURE;
     STDMETHOD(GetTileViewInfo)(THIS_ LVTILEVIEWINFO* pInfo) PURE;
     STDMETHOD(SetTileViewInfo)(THIS_ LVTILEVIEWINFO* const pInfo) PURE;
@@ -266,30 +266,30 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(SetInfoTip)(THIS_ LVSETINFOTIP* const pInfoTip) PURE;
     STDMETHOD(GetOutlineColor)(THIS_ COLORREF* pColor) PURE;
     STDMETHOD(SetOutlineColor)(THIS_ COLORREF color, COLORREF* pOldColor) PURE;
-    STDMETHOD(GetFrozenItem)(THIS_ PINT pItemIndex) PURE;
+    STDMETHOD(GetFrozenItem)(THIS_ PLONG pItemIndex) PURE;
     STDMETHOD(SetFrozenItem)(THIS_ LONG unknown1, LONG unknown2) PURE;
     STDMETHOD(GetFrozenSlot)(THIS_ RECT* pUnknown) PURE;
     STDMETHOD(SetFrozenSlot)(THIS_ LONG unknown1, POINT const* pUnknown2) PURE;
     STDMETHOD(GetViewMargin)(THIS_ RECT* pMargin) PURE;
     STDMETHOD(SetViewMargin)(THIS_ RECT const* pMargin) PURE;
     STDMETHOD(SetKeyboardSelected)(THIS_ LVITEMINDEX itemIndex) PURE;
-    STDMETHOD(MapIndexToId)(THIS_ LONG itemIndex, PINT pItemID) PURE;
-    STDMETHOD(MapIdToIndex)(THIS_ LONG itemID, PINT pItemIndex) PURE;
+    STDMETHOD(MapIndexToId)(THIS_ LONG itemIndex, PLONG pItemID) PURE;
+    STDMETHOD(MapIdToIndex)(THIS_ LONG itemID, PLONG pItemIndex) PURE;
     STDMETHOD(IsItemVisible)(THIS_ LVITEMINDEX itemIndex, BOOL* pVisible) PURE;
     STDMETHOD(EnableAlphaShadow)(THIS_ BOOL enable) PURE;
-    STDMETHOD(GetGroupSubsetCount)(THIS_ PINT pNumberOfRowsDisplayed) PURE;
+    STDMETHOD(GetGroupSubsetCount)(THIS_ PLONG pNumberOfRowsDisplayed) PURE;
     STDMETHOD(SetGroupSubsetCount)(THIS_ LONG numberOfRowsToDisplay) PURE;
-    STDMETHOD(GetVisibleSlotCount)(THIS_ PINT pCount) PURE;
+    STDMETHOD(GetVisibleSlotCount)(THIS_ PLONG pCount) PURE;
     STDMETHOD(GetColumnMargin)(THIS_ RECT* pMargin) PURE;
     STDMETHOD(SetSubItemCallback)(THIS_ LPVOID pCallback) PURE;
     STDMETHOD(GetVisibleItemRange)(THIS_ LVITEMINDEX* pFirstItem, LVITEMINDEX* pLastItem) PURE;
-    STDMETHOD(SetTypeAheadFlags)(THIS_ UINT mask, UINT flags) PURE; // HRESULT SetTypeAheadFlags (TYPEAHEAD_FLAGS, TYPEAHEAD_FLAGS);
+    STDMETHOD(SetTypeAheadFlags)(THIS_ ULONG mask, ULONG flags) PURE; // HRESULT SetTypeAheadFlags (TYPEAHEAD_FLAGS, TYPEAHEAD_FLAGS);
 
     // Windows 10
-    STDMETHOD(SetWorkAreasWithDpi)(THIS_ int, struct tagLVWORKAREAWITHDPI const*) PURE;
-    STDMETHOD(GetWorkAreasWithDpi)(THIS_ int, struct tagLVWORKAREAWITHDPI*) PURE;
-    STDMETHOD(SetWorkAreaImageList)(THIS_ int, int, HIMAGELIST, HIMAGELIST*) PURE;
-    STDMETHOD(GetWorkAreaImageList)(THIS_ int, int, HIMAGELIST*) PURE;
+    STDMETHOD(SetWorkAreasWithDpi)(THIS_ LONG, struct tagLVWORKAREAWITHDPI const*) PURE;
+    STDMETHOD(GetWorkAreasWithDpi)(THIS_ LONG, struct tagLVWORKAREAWITHDPI*) PURE;
+    STDMETHOD(SetWorkAreaImageList)(THIS_ LONG, LONG, HIMAGELIST, HIMAGELIST*) PURE;
+    STDMETHOD(GetWorkAreaImageList)(THIS_ LONG, LONG, HIMAGELIST*) PURE;
     STDMETHOD(EnableIconBullying)(THIS_ LONG Mode) PURE;
     STDMETHOD(EnableQuirks)(THIS_ ULONG Flags) PURE;
 
@@ -302,8 +302,8 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     ((This)->lpVtbl->AddRef(This))
 #define IListView_Release(This) \
     ((This)->lpVtbl->Release(This))
-#define IListView_GetWindow(This, WindowHandle) \
-    ((This)->lpVtbl->AddRef(This))
+#define IListView_GetWindow(This, OleWindow, WindowHandle) \
+    ((This)->lpVtbl->GetWindow(This, OleWindow, WindowHandle))
 #define IListView_ContextSensitiveHelp(This, fEnterMode) \
     ((This)->lpVtbl->ContextSensitiveHelp(This, fEnterMode))
 #define IListView_GetImageList(This, imageList, pHImageList) \

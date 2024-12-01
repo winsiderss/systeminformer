@@ -3068,7 +3068,7 @@ extern "C" {
 static WCHAR* mz_utf8z_to_widechar(const char* str)
 {
   int reqChars = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
-  WCHAR* wStr = (WCHAR*)PhAllocateSafe(reqChars * sizeof(WCHAR));
+  WCHAR* wStr = (WCHAR*)malloc(reqChars * sizeof(WCHAR));
   MultiByteToWideChar(CP_UTF8, 0, str, -1, wStr, reqChars);
   return wStr;
 }
@@ -3079,8 +3079,8 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode)
   WCHAR* wMode = mz_utf8z_to_widechar(pMode);
   FILE* pFile = NULL;
   errno_t err = _wfopen_s(&pFile, wFilename, wMode);
-  PhFree(wFilename);
-  PhFree(wMode);
+  free(wFilename);
+  free(wMode);
   return err ? NULL : pFile;
 }
 
@@ -3090,8 +3090,8 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
   WCHAR* wMode = mz_utf8z_to_widechar(pMode);
   FILE* pFile = NULL;
   errno_t err = _wfreopen_s(&pFile, wPath, wMode, pStream);
-  PhFree(wPath);
-  PhFree(wMode);
+  free(wPath);
+  free(wMode);
   return err ? NULL : pFile;
 }
 
@@ -3099,7 +3099,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 {
   WCHAR* wPath = mz_utf8z_to_widechar(path);
   int res = _wstat64(wPath, buffer);
-  PhFree(wPath);
+  free(wPath);
   return res;
 }
 

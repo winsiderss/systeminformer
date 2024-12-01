@@ -304,7 +304,7 @@ HWND PvpCreateOptionsButton(
         // Create the refresh button.
         GetClientRect(PropSheetWindow, &clientRect);
         GetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
-        MapWindowPoints(NULL, PropSheetWindow, (POINT*)& rect, 2);
+        MapWindowRect(NULL, PropSheetWindow, &rect);
         PropSheetContext->RefreshButtonWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,

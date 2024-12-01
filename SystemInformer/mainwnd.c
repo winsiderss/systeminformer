@@ -28,6 +28,7 @@
 #include <netlist.h>
 #include <netprv.h>
 #include <notifico.h>
+#include <phconsole.h>
 #include <phplug.h>
 #include <phsvccl.h>
 #include <procprv.h>
@@ -119,7 +120,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     // Initialize window metrics.
-    PhMwpInitializeMetrics(PhMainWndHandle);
+    PhMwpInitializeMetrics(PhMainWndHandle, 0);
 
     // Initialize window controls.
     PhMwpInitializeControls(PhMainWndHandle);
@@ -231,7 +232,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhMwpOnDpiChanged(hWnd);
+            PhMwpOnDpiChanged(hWnd, LOWORD(wParam));
         }
         break;
     case WM_NCPAINT:
@@ -409,6 +410,7 @@ VOID PhMwpShowWindow(
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
         SetForegroundWindow(PhMainWndHandle);
+        PhConsoleSetForeground(NtCurrentProcess(), TRUE);
     }
 
     if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
@@ -427,7 +429,8 @@ VOID PhMwpApplyUpdateInterval(
 }
 
 VOID PhMwpInitializeMetrics(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
     LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
@@ -640,11 +643,11 @@ VOID PhMwpOnSettingChange(
     _In_opt_ PCWSTR Metric
     )
 {
-    PhInitializeFont(WindowHandle);
+    PhInitializeFont(WindowHandle, 0);
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont(WindowHandle);
+        PhInitializeMonospaceFont(WindowHandle, 0);
     }
 
     if (Action == 0 && Metric)
@@ -690,6 +693,17 @@ static NTSTATUS PhpOpenServiceControlManager(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+static NTSTATUS PhpCloseServiceControlManager(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        PhCloseServiceHandle(Handle);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpOpenSecurityDummyHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -721,6 +735,17 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+static NTSTATUS PhpCloseSecurityDesktopHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        CloseDesktop(Handle);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -740,6 +765,17 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     }
 
     return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityStationHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        CloseWindowStation(Handle);
+    return STATUS_SUCCESS;
 }
 
 static VOID PhpMwpOnDumpCommand(
@@ -1299,7 +1335,7 @@ VOID PhMwpOnCommand(
                 L"Service Control Manager",
                 L"SCManager",
                 PhpOpenServiceControlManager,
-                NULL,
+                PhpCloseServiceControlManager,
                 NULL
                 );
         }
@@ -1347,7 +1383,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Desktop",
                 L"Desktop",
                 PhpOpenSecurityDesktopHandle,
-                NULL,
+                PhpCloseSecurityDesktopHandle,
                 NULL
                 );
         }
@@ -1359,7 +1395,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Station",
                 L"WindowStation",
                 PhpOpenSecurityStationHandle,
-                NULL,
+                PhpCloseSecurityStationHandle,
                 NULL
                 );
         }
@@ -1419,14 +1455,16 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
 
-            if (PhUiTerminateProcesses(WindowHandle, processes, numberOfProcesses))
-                PhDeselectAllProcessNodes();
+                if (PhUiTerminateProcesses(WindowHandle, processes, numberOfProcesses))
+                    PhDeselectAllProcessNodes();
 
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_TERMINATETREE:
@@ -1449,11 +1487,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiSuspendProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiSuspendProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_SUSPENDTREE:
@@ -1473,11 +1513,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiResumeProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiResumeProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_RESUMETREE:
@@ -1715,10 +1757,21 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->FileNameWin32)
+            if (processItem && processItem->QueryHandle)
             {
-                PhSetStringSetting2(L"RunAsProgram", &processItem->FileNameWin32->sr);
-                PhShowRunAsDialog(WindowHandle, NULL);
+                NTSTATUS status;
+                PPH_STRING fileNameWin32;
+
+                if (NT_SUCCESS(status = PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
+                {
+                    PhSetStringSetting2(L"RunAsProgram", &fileNameWin32->sr);
+                    PhShowRunAsDialog(WindowHandle, NULL);
+                    PhDereferenceObject(fileNameWin32);
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                }
             }
         }
         break;
@@ -1862,21 +1915,27 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (
-                processItem &&
-                !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
-                PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32))
-                )
+            if (processItem && processItem->QueryHandle)
             {
-                PhReferenceObject(processItem);
-                PhShellExecuteUserString(
-                    WindowHandle,
-                    L"FileBrowseExecutable",
-                    processItem->FileNameWin32->Buffer,
-                    FALSE,
-                    L"Make sure the Explorer executable file is present."
-                    );
-                PhDereferenceObject(processItem);
+                NTSTATUS status;
+                PPH_STRING fileNameWin32;
+
+                if (NT_SUCCESS(status = PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
+                {
+                    PhShellExecuteUserString(
+                        WindowHandle,
+                        L"FileBrowseExecutable",
+                        PhGetString(fileNameWin32),
+                        FALSE,
+                        L"Make sure the Explorer executable file is present."
+                        );
+
+                    PhDereferenceObject(fileNameWin32);
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                }
             }
         }
         break;
@@ -2376,18 +2435,16 @@ VOID PhMwpOnDeviceChanged(
 }
 
 VOID PhMwpOnDpiChanged(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
-    PhGuiSupportUpdateSystemMetrics(WindowHandle);
+    PhGuiSupportUpdateSystemMetrics(WindowHandle, WindowDpi);
 
-    PhMwpInitializeMetrics(WindowHandle);
+    PhMwpInitializeMetrics(WindowHandle, WindowDpi);
 
     if (PhEnableWindowText)
-    {
-        //PhSetApplicationWindowIcon(WindowHandle);
         PhSetApplicationWindowIconEx(WindowHandle, LayoutWindowDpi);
-    }
 
     PhMwpOnSettingChange(WindowHandle, 0, NULL);
 
@@ -2396,8 +2453,6 @@ VOID PhMwpOnDpiChanged(
         PhMwpInvokeUpdateWindowFontMonospace(WindowHandle, NULL);
 
     PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
-
-    InvalidateRect(WindowHandle, NULL, TRUE);
 
     {
         MSG message;
@@ -2408,6 +2463,8 @@ VOID PhMwpOnDpiChanged(
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
     }
+
+    InvalidateRect(WindowHandle, NULL, TRUE);
 }
 
 LRESULT PhMwpOnUserMessage(
@@ -3424,7 +3481,7 @@ VOID PhMwpInitializeSubMenu(
             {
                 HBITMAP shieldBitmap;
 
-                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, 0, 0))
+                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhSmallIconSize.X, PhSmallIconSize.Y))
                 {
                     if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                         menuItem->Bitmap = shieldBitmap;
@@ -3527,7 +3584,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, 0, 0))
+            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhSmallIconSize.X, PhSmallIconSize.Y))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
@@ -4299,7 +4356,7 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     }
     else
     {
-        PhInitializeMonospaceFont(hwnd);
+        PhInitializeMonospaceFont(hwnd, LayoutWindowDpi);
         return;
     }
 
@@ -4432,14 +4489,14 @@ PVOID PhPluginInvokeWindowCallback(
         {
             PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)lparam;
 
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS:
         {
             PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)lparam;
 
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE:
@@ -4538,6 +4595,16 @@ PVOID PhPluginInvokeWindowCallback(
     case PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE:
         {
             return (PVOID)UlongToPtr(PhPortableEnabled);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOWDPI:
+        {
+            return (PVOID)UlongToPtr(LayoutWindowDpi);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOWNAME:
+        {
+            return (PVOID)PhApplicationName;
         }
         break;
     }

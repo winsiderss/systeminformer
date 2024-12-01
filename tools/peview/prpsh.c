@@ -136,7 +136,7 @@ LRESULT CALLBACK PvpButtonWndProc(
                     PhGetString(PvFileName),
                     L"FileObject",
                     PhpOpenFileSecurity,
-                    NULL,
+                    PhpCloseFileSecurity,
                     NULL
                     );
             }
@@ -164,7 +164,7 @@ static HWND PvpCreateOptionsButton(
         // Create the Reset button.
         GetClientRect(optionsWindow, &clientRect);
         GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
-        MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
+        MapWindowRect(NULL, optionsWindow, &rect);
         OptionsButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
@@ -207,7 +207,7 @@ static HWND PvpCreateSecurityButton(
         SecurityButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
-            L"Security",
+            L"Permissions",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             rect.right + 3,
             rect.top,
@@ -223,7 +223,6 @@ static HWND PvpCreateSecurityButton(
 
     return SecurityButton;
 }
-
 
 static HFONT PvpCreateFont(
     _In_ PWSTR Name,

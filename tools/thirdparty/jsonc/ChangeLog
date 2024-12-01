@@ -1,11 +1,41 @@
-dmex:
-* Changes for size_t
-* Changes for __cdecl
-* Changes for get_random
+0.18 (up to commit 6bfab90, 2023-09-15)
+========================================
 
+Deprecated and removed features:
+--------------------------------
+* Clean up pre-3.9 CMake support in CMakeLists.txt
+
+New features
+------------
+* Build pkg-config for msvc as well
+
+Significant changes and bug fixes
+---------------------------------
+* Critical fix for binary compatibility with 0.16: Move the
+  json_tokener_error_memory entry to the end of enum json_tokener_error.
+* Issue #829: attempt to detect clang-cl.exe and pass MSVC-compatile command
+  line arguments.
+* PR #831 - rename WIN32 to _WIN32
+* PR #839 - Fix gcc 5 "may be used uninitialized" failure in json_pointer.c
+* PR #849 - random_seed.c: add a Coverity Scan suppression
+* Issue #854: Set error=json_tokener_error_memory in
+  json_tokener_parser_verbose() when allocating the tokener fails.
+* Issue #857: fix a few places where json_tokener should have been returning
+  json_tokener_error_memory but wasn't.
+* Handle yet another out-of-memory condition in json_tokener, duplocate can 
+  return NULL.
+* Various fixes in the fuzzers
+* A few minor doc fixes
+
+***
 
 0.17 (up to commit 077661f, 2023-08-08)
 ========================================
+
+Known Bugs
+----------
+* DO NOT USE THE 0.17 RELEASE: json_tokener_error_memory in misplaced in the
+  json_tokener_error enum, leading to binary compatibility issues.
 
 Deprecated and removed features:
 --------------------------------
@@ -20,7 +50,7 @@ New features
 
 Significant changes and bug fixes
 ---------------------------------
-* When serializing with JSON_C_TO_STRING_PRETTY set, keep the opening and
+* When serializing with JSON_C_TO_STRING_PRETTY set, keep the opening and 
   closing curly or square braces on same line for empty objects or arrays.
 * Disable locale handling when targeting a uClibc system due to problems
   with its duplocale() function.
@@ -46,7 +76,7 @@ Deprecated and removed features:
 --------------------------------
 * JSON_C_OBJECT_KEY_IS_CONSTANT is deprecated in favor of
   JSON_C_OBJECT_ADD_CONSTANT_KEY
-* Direct access to lh_table and lh_entry structure members is deprecated.
+* Direct access to lh_table and lh_entry structure members is deprecated.  
   Use access functions instead, lh_table_head(), lh_entry_next(), etc...
 * Drop REFCOUNT_DEBUG code.
 
@@ -75,7 +105,7 @@ Significant changes and bug fixes
 
 Optimizations
 --------------
-* Speed up parsing by replacing ctype functions with simplified, faster
+* Speed up parsing by replacing ctype functions with simplified, faster 
   non-locale-sensitive ones in json_tokener and json_object_to_json_string.
 * Neither vertical tab nor formfeed are considered whitespace per the JSON spec
 * json_object: speed up creation of objects, calloc() -> malloc() + set fields
@@ -108,9 +138,9 @@ New features
   to be parsed even when `JSON_TOKENER_STRICT` is set.
 * Add `json_object_new_array_ext(int)` and `array_list_new_2(int)` to allow
    arrays to be allocated with the exact size needed, when known.
-* Add `json_object_array_shrink()` (and `array_list_shrink()`) and use it in
+* Add `json_object_array_shrink()` (and `array_list_shrink()`) and use it in 
    json_tokener to minimize the amount of memory used.
-* Add a json_parse binary, for use in testing changes (not installed, but
+* Add a json_parse binary, for use in testing changes (not installed, but 
    available in the apps directory).
 
 Build changes
@@ -119,11 +149,11 @@ Build changes
 * #508/#634 - Always enable -fPIC to allow use of the json-c static library in
    other libraries
 * Build both static and shared libraries at the same time.
-* #626 - Restore compatibility with cmake 2.8
+* #626 - Restore compatibility with cmake 2.8 
 * #471 - Always create directories with mode 0755, regardless of umask.
 * #606/#604 - Improve support for OSes like AIX and IBM i, as well as for
    MINGW32 and old versions of MSVC
-* #451/#617 - Add a DISABLE_THREAD_LOCAL_STORAGE cmake option to disable
+* #451/#617 - Add a DISABLE_THREAD_LOCAL_STORAGE cmake option to disable 
    the use of thread-local storage.
 
 Significant changes and bug fixes

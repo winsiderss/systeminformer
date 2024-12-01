@@ -14,6 +14,7 @@
 #define _PH_PHGUI_H
 
 #include <commctrl.h>
+#include <guisupview.h>
 
 EXTERN_C_START
 
@@ -67,21 +68,24 @@ PHLIBAPI
 VOID
 NTAPI
 PhGuiSupportUpdateSystemMetrics(
-    _In_opt_ HWND WindowHandle
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhInitializeFont(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 PHLIBAPI
@@ -384,7 +388,7 @@ FORCEINLINE WNDPROC PhGetWindowProcedure(
 
 FORCEINLINE WNDPROC PhSetWindowProcedure(
     _In_ HWND WindowHandle,
-    _In_ PVOID SubclassProcedure
+    _In_ WNDPROC SubclassProcedure
     )
 {
     return (WNDPROC)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
@@ -522,8 +526,49 @@ FORCEINLINE VOID PhSetListViewStyle(
 PHLIBAPI
 LONG
 NTAPI
+PhAddListViewColumnDpi(
+    _In_ HWND ListViewHandle,
+    _In_ LONG ListViewDpi,
+    _In_ LONG Index,
+    _In_ LONG DisplayIndex,
+    _In_ LONG SubItemIndex,
+    _In_ LONG Format,
+    _In_ LONG Width,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhAddIListViewColumnDpi(
+    _In_ IListView* ListView,
+    _In_ LONG ListViewDpi,
+    _In_ LONG Index,
+    _In_ LONG DisplayIndex,
+    _In_ LONG SubItemIndex,
+    _In_ LONG Format,
+    _In_ LONG Width,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
 PhAddListViewColumn(
     _In_ HWND ListViewHandle,
+    _In_ LONG Index,
+    _In_ LONG DisplayIndex,
+    _In_ LONG SubItemIndex,
+    _In_ LONG Format,
+    _In_ LONG Width,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhAddIListViewColumn(
+    _In_ IListView* ListView,
     _In_ LONG Index,
     _In_ LONG DisplayIndex,
     _In_ LONG SubItemIndex,
@@ -545,6 +590,16 @@ PhAddListViewItem(
 PHLIBAPI
 LONG
 NTAPI
+PhAddIListViewItem(
+    _In_ IListView* ListView,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
+LONG
+NTAPI
 PhFindListViewItemByFlags(
     _In_ HWND ListViewHandle,
     _In_ LONG StartIndex,
@@ -554,8 +609,26 @@ PhFindListViewItemByFlags(
 PHLIBAPI
 LONG
 NTAPI
+PhFindIListViewItemByFlags(
+    _In_ IListView* ListView,
+    _In_ LONG StartIndex,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+LONG
+NTAPI
 PhFindListViewItemByParam(
     _In_ HWND ListViewHandle,
+    _In_ LONG StartIndex,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhFindIListViewItemByParam(
+    _In_ IListView* ListView,
     _In_ LONG StartIndex,
     _In_opt_ PVOID Param
     );
@@ -578,6 +651,16 @@ PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ LONG Index,
     _Outptr_ PVOID *Param
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetIListViewItemParam(
+    _In_ IListView* ListView,
+    _In_ LONG Index,
+    _Outptr_ PVOID * Param
     );
 
 PHLIBAPI
@@ -619,7 +702,25 @@ PhSetListViewSubItem(
 PHLIBAPI
 VOID
 NTAPI
+PhSetIListViewSubItem(
+    _In_ IListView* ListView,
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhRedrawListViewItems(
+    _In_ HWND ListViewHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhRedrawIListViewItems(
+    _In_ IListView* ListView,
     _In_ HWND ListViewHandle
     );
 
@@ -635,8 +736,28 @@ PhAddListViewGroup(
 PHLIBAPI
 LONG
 NTAPI
+PhAddIListViewGroup(
+    _In_ IListView* ListView,
+    _In_ LONG GroupId,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+LONG
+NTAPI
 PhAddListViewGroupItem(
     _In_ HWND ListViewHandle,
+    _In_ LONG GroupId,
+    _In_ LONG Index,
+    _In_ PCWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhAddIListViewGroupItem(
+    _In_ IListView* ListView,
     _In_ LONG GroupId,
     _In_ LONG Index,
     _In_ PCWSTR Text,
@@ -746,10 +867,26 @@ PhSetStateAllListViewItems(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhSetStateAllIListViewItems(
+    _In_ IListView* ListView,
+    _In_ ULONG State,
+    _In_ ULONG Mask
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetSelectedListViewItemParam(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetSelectedIListViewItemParam(
+    _In_ IListView* ListView
     );
 
 PHLIBAPI
@@ -762,7 +899,34 @@ PhGetSelectedListViewItemParams(
     );
 
 PHLIBAPI
-PVOID
+VOID
+NTAPI
+PhGetSelectedIListViewItemParams(
+    _In_ IListView* ListView,
+    _Out_ PVOID** Items,
+    _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetIListViewClientRect(
+    _In_ IListView* ListView,
+    _Inout_ PRECT ClientRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetIListViewItemRect(
+    _In_ IListView* ListView,
+    _In_ LONG StartIndex,
+    _In_ ULONG Flags,
+    _Inout_ PRECT ItemRect
+    );
+
+PHLIBAPI
+IListView*
 NTAPI
 PhGetListViewInterface(
     _In_ HWND ListViewHandle
@@ -790,8 +954,8 @@ PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
     _In_ PCWSTR Name,
     _In_ ULONG Flags,
-    _In_opt_ ULONG Width,
-    _In_opt_ ULONG Height,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height,
     _In_opt_ LONG SystemDpi
     );
 
@@ -875,7 +1039,7 @@ PhCreateDialog(
 PHLIBAPI
 HWND
 NTAPI
-PhCreateWindowWx(
+PhCreateWindowEx(
     _In_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
     _In_ ULONG Style,
@@ -1029,7 +1193,7 @@ PhGetWindowContextEx(
     _In_ HWND WindowHandle
     )
 {
-#if (PHNT_WINDOW_CLASS_CONTEXT)
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
     return PhGetWindowContext(WindowHandle, MAXCHAR);
 #else
     //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
@@ -1045,7 +1209,7 @@ PhSetWindowContextEx(
     _In_ PVOID Context
     )
 {
-#if (PHNT_WINDOW_CLASS_CONTEXT)
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
     PhSetWindowContext(WindowHandle, MAXCHAR, Context);
 #else
     //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
@@ -1060,11 +1224,54 @@ PhRemoveWindowContextEx(
     _In_ HWND WindowHandle
     )
 {
-#if (PHNT_WINDOW_CLASS_CONTEXT)
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
     PhRemoveWindowContext(WindowHandle, MAXCHAR);
 #else
     //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
     SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
+#endif
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhGetDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    return (PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER);
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhSetDialogContext(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)Context);
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhRemoveDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)NULL);
 #endif
 }
 
@@ -1208,7 +1415,7 @@ FORCEINLINE VOID PhCopyControlRectangle(
     RECT windowRect;
 
     GetWindowRect(FromControlHandle, &windowRect);
-    MapWindowPoints(NULL, ParentWindowHandle, (POINT *)&windowRect, 2);
+    MapWindowRect(NULL, ParentWindowHandle, &windowRect);
     MoveWindow(ToControlHandle, windowRect.left, windowRect.top,
         windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, FALSE);
 }
@@ -1489,6 +1696,22 @@ PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateEnvironmentBlock(
+    _Outptr_ PVOID* Environment,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ BOOLEAN Inherit
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDestroyEnvironmentBlock(
+    _In_ _Post_invalid_ PVOID Environment
+    );
+
 _Success_(return)
 PHLIBAPI
 BOOLEAN
@@ -1745,7 +1968,7 @@ PhImageListDrawEx(
     _In_ LONG dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style,
+    _In_ UINT32 Style,
     _In_ ULONG State
     );
 
@@ -1777,30 +2000,6 @@ NTAPI
 PhSetProcessShutdownParameters(
     _In_ ULONG Level,
     _In_ ULONG Flags
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhCustomDrawTreeCpuHeatMap(
-    _In_ HWND WindowHandle,
-    _In_ HDC Hdc,
-    _In_ RECT CellRect,
-    _In_ RECT TextRect,
-    _In_ ULONG ShowCpuBelow001,
-    _In_ FLOAT Value
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhCustomDrawTreePrivateBytesHeatMap(
-    _In_ HWND WindowHandle,
-    _In_ HDC Hdc,
-    _In_ RECT CellRect,
-    _In_ RECT TextRect,
-    _In_ SIZE_T Value,
-    _In_ SIZE_T Total
     );
 
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1
@@ -2347,7 +2546,7 @@ PhRectEmpty(
     _In_ PRECT Rect
     )
 {
-#if (PHNT_NATIVE_RECT)
+#if defined(PHNT_NATIVE_RECT)
     return !!IsRectEmpty(Rect);
 #else
     if (!Rect)
@@ -2369,7 +2568,7 @@ PhInflateRect(
     _In_ LONG dy
     )
 {
-#if (PHNT_NATIVE_RECT)
+#if defined(PHNT_NATIVE_RECT)
     InflateRect(Rect, dx, dy);
 #else
     Rect->left -= dx;
@@ -2388,7 +2587,7 @@ PhOffsetRect(
     _In_ LONG dy
     )
 {
-#if (PHNT_NATIVE_RECT)
+#if defined(PHNT_NATIVE_RECT)
     OffsetRect(Rect, dx, dy);
 #else
     Rect->left += dx;
@@ -2406,7 +2605,7 @@ PhPtInRect(
     _In_ POINT Point
     )
 {
-#if (PHNT_NATIVE_RECT)
+#if defined(PHNT_NATIVE_RECT)
     return !!PtInRect(Rect, Point);
 #else
     return Point.x >= Rect->left && Point.x < Rect->right &&

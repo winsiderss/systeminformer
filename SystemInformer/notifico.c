@@ -279,7 +279,11 @@ VOID PhNfCreateIconThreadDelayed(
 
             // Use a separate thread so we don't block the main GUI or
             // the provider threads when explorer is not responding. (dmex)
-            PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL);
+            if (NT_SUCCESS(PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL)))
+            {
+                NtClose(PhpTrayIconThreadHandle);
+                PhpTrayIconThreadHandle = NULL;
+            }
         }
 
         PhEndInitOnce(&initOnce);
@@ -666,7 +670,7 @@ BOOLEAN PhpShowToastNotification(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
+        iconFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\icon.png", FALSE);
 
         if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
             PhClearReference(&iconFileName);
@@ -796,12 +800,10 @@ HICON PhNfBitmapToIcon(
 {
     ICONINFO iconInfo;
 
-    PhNfpGetBlackIcon();
-
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = PhNfpBlackBitmap;
+    iconInfo.hbmMask = Bitmap;
     iconInfo.hbmColor = Bitmap;
 
     return CreateIconIndirect(&iconInfo);

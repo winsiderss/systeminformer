@@ -449,7 +449,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"System Informer";
+                            config.pszWindowTitle = SystemInformer_GetWindowName();
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -492,7 +492,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"System Informer";
+                            config.pszWindowTitle = SystemInformer_GetWindowName();
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -535,7 +535,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"System Informer";
+                            config.pszWindowTitle = SystemInformer_GetWindowName();
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -955,7 +955,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (processItem->QueryHandle)
                 {
-                    status = PhGetProcessPriority(processItem->QueryHandle, &priorityClass);
+                    status = PhGetProcessPriorityClass(processItem->QueryHandle, &priorityClass);
                 }
 
                 if (NT_SUCCESS(status))
@@ -991,7 +991,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (processItem->QueryHandle)
                     {
-                        status = PhGetProcessPriority(processItem->QueryHandle, &priorityClass);
+                        status = PhGetProcessPriorityClass(processItem->QueryHandle, &priorityClass);
                     }
 
                     if (NT_SUCCESS(status))

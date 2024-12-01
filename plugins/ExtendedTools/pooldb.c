@@ -59,7 +59,7 @@ PPH_STRING FindPoolTagFilePath(
     }
 
     {
-        PPH_STRING path = PhGetApplicationDirectoryFileNameZ(L"pooltag.txt", TRUE);
+        PPH_STRING path = PhGetApplicationDirectoryFileNameZ(L"Resources\\pooltag.txt", TRUE);
 
         if (PhDoesFileExist(&path->sr))
             return path;

@@ -343,7 +343,6 @@ VOID PhHandleProviderUpdate(
     static ULONG fileObjectTypeIndex = ULONG_MAX;
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
     PSYSTEM_HANDLE_INFORMATION_EX handleInfo;
-    BOOLEAN filterNeeded;
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handles;
     ULONG numberOfHandles;
     ULONG i;
@@ -357,8 +356,7 @@ VOID PhHandleProviderUpdate(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
         PhCsEnableHandleSnapshot,
-        &handleInfo,
-        &filterNeeded
+        &handleInfo
         )))
         goto UpdateExit;
 
@@ -379,35 +377,15 @@ VOID PhHandleProviderUpdate(
     handles = handleInfo->Handles;
     numberOfHandles = (ULONG)handleInfo->NumberOfHandles;
 
-    // Make a list of the relevant handles.
-    if (filterNeeded)
+    for (i = 0; i < numberOfHandles; i++)
     {
-        for (i = 0; i < numberOfHandles; i++)
-        {
-            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
 
-            if (handle->UniqueProcessId == (ULONG_PTR)handleProvider->ProcessId)
-            {
-                PhAddItemSimpleHashtable(
-                    handleProvider->TempListHashtable,
-                    (PVOID)handle->HandleValue,
-                    handle
-                    );
-            }
-        }
-    }
-    else
-    {
-        for (i = 0; i < numberOfHandles; i++)
-        {
-            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
-
-            PhAddItemSimpleHashtable(
-                handleProvider->TempListHashtable,
-                (PVOID)handle->HandleValue,
-                handle
-                );
-        }
+        PhAddItemSimpleHashtable(
+            handleProvider->TempListHashtable,
+            (PVOID)handle->HandleValue,
+            handle
+            );
     }
 
     // Look for closed handles.
@@ -457,10 +435,11 @@ VOID PhHandleProviderUpdate(
                     else
                     {
                         if (
-                            handleItem->Handle == (HANDLE)(*tempHashtableValue)->HandleValue &&
+                            handleItem->Handle == (*tempHashtableValue)->HandleValue &&
                             handleItem->GrantedAccess == (*tempHashtableValue)->GrantedAccess &&
                             handleItem->TypeIndex == (*tempHashtableValue)->ObjectTypeIndex &&
-                            handleItem->Attributes == (*tempHashtableValue)->HandleAttributes
+                            handleItem->Attributes == (*tempHashtableValue)->HandleAttributes &&
+                            handleProvider->ProcessId == (*tempHashtableValue)->UniqueProcessId
                             )
                         {
                             found = TRUE;

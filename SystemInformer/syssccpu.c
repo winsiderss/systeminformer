@@ -14,9 +14,6 @@
 #include <settings.h>
 #include <sysinfo.h>
 #include <sysinfop.h>
-
-#include <math.h>
-
 #include <procprv.h>
 #include <phsettings.h>
 
@@ -1029,7 +1026,7 @@ VOID PhSipUpdateCpuPanel(
 #ifdef _ARM64_
     ULONG64 currentExceptionLevel;
 #else
-    INT cpubrand[4];
+    LONG cpubrand[4];
 #endif
     PH_FORMAT format[5];
     WCHAR formatBuffer[256];
@@ -1044,7 +1041,7 @@ VOID PhSipUpdateCpuPanel(
         }
     }
 
-    if (!distributionSucceeded)
+    if (!distributionSucceeded || cpuGhz == 0.0)
         cpuGhz = (DOUBLE)PowerInformation[0].CurrentMhz;
 
     // %.2f%%
@@ -1190,9 +1187,7 @@ VOID PhSipUpdateCpuPanel(
 
     // Do not optimize (dmex)
     PhQueryPerformanceCounter(&performanceCounterStart);
-    MemoryBarrier();
     timeStampCounterStart = PhReadTimeStampCounter();
-    MemoryBarrier();
 #ifdef _ARM64_
     // 0b11    0b000    0b0100    0b0010    0b010    CurrentEL     Current Exception Level
     currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
@@ -1201,7 +1196,6 @@ VOID PhSipUpdateCpuPanel(
 #endif
     MemoryBarrier();
     timeStampCounterEnd = PhReadTimeStampCounter();
-    MemoryBarrier();
     PhQueryPerformanceCounter(&performanceCounterEnd);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 

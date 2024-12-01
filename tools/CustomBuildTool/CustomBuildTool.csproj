@@ -1,88 +1,98 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Platforms>x64;x86;ARM64</Platforms>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <TrimUnusedDependencies>true</TrimUnusedDependencies>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0</Version>
-    <CodePage>65001</CodePage>
-    <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <TrimmerSingleWarn>false</TrimmerSingleWarn>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <DebugType>full</DebugType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <CodePage>65001</CodePage>
     <DebugSymbols>true</DebugSymbols>
-    <FileAlignment>4096</FileAlignment>
+    <DebugType>full</DebugType>
     <Determinisitc>true</Determinisitc>
     <EmbedAllSources>false</EmbedAllSources>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
-    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <PublishTrimmed>true</PublishTrimmed>
     <EventSourceSupport>false</EventSourceSupport>
+    <FileAlignment>4096</FileAlignment>
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
-    <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <PublishAot>True</PublishAot>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <OutputType>Exe</OutputType>
+    <Platforms>x64;x86;ARM64</Platforms>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
+    <PublishAot>True</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <Version>2.0.0.0</Version>
+    <Nullable>disable</Nullable>
+    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+    <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/winsiderss/systeminformer</RepositoryUrl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
+    <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     <PlatformTarget>x86</PlatformTarget>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
-    <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
-    <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
-    <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='ARM64'">
-    <PlatformTarget>ARM64</PlatformTarget>
-    <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
+    <PlatformTarget>ARM64</PlatformTarget>
+    <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>False</Optimize>
-    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <Optimize>False</Optimize>
-    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <Optimize>False</Optimize>
-    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>True</Optimize>
-    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <Optimize>True</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <Optimize>True</Optimize>
-    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <Optimize>True</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <Optimize>True</Optimize>
-    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <Optimize>True</Optimize>
   </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Remove="NativeMethods.json" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="Azure.Core" />
+    <Using Include="Azure.Security.KeyVault.Keys" />
+    <Using Include="Azure.Security.KeyVault.Keys.Cryptography" />
+    <Using Include="AzureSign.Core.Interop" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
     <Using Include="System.Collections.Immutable" />
@@ -103,8 +113,26 @@
     <Using Include="System.Text.Json.Serialization" />
     <Using Include="System.Text.Json.Serialization.Metadata" />
     <Using Include="System.Xml" />
+    <Using Include="Windows.Win32" />
+    <Using Include="Windows.Win32.Foundation" />
+    <Using Include="Windows.Win32.Security.Cryptography" />
+    <Using Include="Windows.Win32.Storage.FileSystem" />
+    <Using Include="Windows.Win32.System.Diagnostics.Debug" />
+    <Using Include="Windows.Win32.System.Registry" />
+    <Using Include="Windows.Win32.System.Threading" />
   </ItemGroup>
   <ItemGroup>
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SharpCompress" Version="0.38.0" />
+  </ItemGroup>
 </Project>
+  

@@ -1985,8 +1985,13 @@ PhGetProcessIsCetEnabled(
 
     if (NT_SUCCESS(status))
     {
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+        *IsCetEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 0);
+        *IsCetStrictModeEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 4);
+#else
         *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
         *IsCetStrictModeEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStackStrictMode;
+#endif
     }
 
     return status;
@@ -1996,7 +2001,7 @@ FORCEINLINE
 NTSTATUS
 NTAPI
 PhGetSystemHypervisorSharedPageInformation(
-    _Out_ PPVOID HypervisorSharedUserVa
+    _Out_ PSYSTEM_HYPERVISOR_USER_SHARED_DATA* HypervisorSharedUserVa
     )
 {
     NTSTATUS status;

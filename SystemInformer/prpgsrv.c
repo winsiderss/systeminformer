@@ -22,7 +22,7 @@ static VOID PhpLayoutServiceListControl(
     RECT rect;
 
     GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
-    MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
+    MapWindowRect(NULL, hwndDlg, &rect);
 
     MoveWindow(
         ServiceListHandle,

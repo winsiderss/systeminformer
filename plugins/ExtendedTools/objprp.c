@@ -1090,24 +1090,6 @@ INT CALLBACK EtpCommonPropPageProc(
     return 1;
 }
 
-static BOOLEAN NTAPI EnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_ PVOID Context
-    )
-{
-    if (Module->Type == PH_MODULE_TYPE_MODULE || Module->Type == PH_MODULE_TYPE_WOW64_MODULE)
-    {
-        PhLoadModuleSymbolProvider(
-            Context,
-            Module->FileName,
-            (ULONG64)Module->BaseAddress,
-            Module->Size
-            );
-    }
-
-    return TRUE;
-}
-
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1148,18 +1130,11 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     if (symbolProvider = PhCreateSymbolProvider(NULL))
                     {
                         PhLoadSymbolProviderOptions(symbolProvider);
-
-                        PhEnumGenericModules(
-                            basicInfo.ProcessId,
-                            NULL,
-                            0,
-                            EnumGenericModulesCallback,
-                            symbolProvider
-                            );
-
+                        PhLoadSymbolProviderModules(symbolProvider, context->ProcessId);
+   
                         symbol = PhGetSymbolFromAddress(
                             symbolProvider,
-                            (ULONG64)basicInfo.StartRoutine,
+                            basicInfo.StartRoutine,
                             NULL,
                             NULL,
                             NULL,
@@ -1584,7 +1559,7 @@ VOID EtpEnumObjectHandles(
         Context->OwnHandlesCount = ownHandlesIndex;
     }
 
-    if (PhEqualString2(Context->HandleItem->TypeName, L"Type", TRUE))
+    if (isTypeObject)
         PhSetDialogItemText(Context->WindowHandle, IDC_OBJ_HANDLESBYNAME_L, L"By type:");
 
     PhPrintUInt32(string, Context->TotalHandlesCount);
@@ -1743,13 +1718,18 @@ static NTSTATUS EtpProcessHandleOpenCallback(
 }
 
 static NTSTATUS EtpProcessHandleCloseCallback(
-    _In_ PVOID Context
-)
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    PhDereferenceObject(context->HandleItem);
-    PhFree(context);
+    if (Release)
+    {
+        PhDereferenceObject(context->HandleItem);
+        PhFree(context);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -1979,7 +1959,6 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 menu = PhCreateEMenu();
-
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, protectedMenuItem = PhCreateEMenuItem(0, IDC_HANDLE_PROTECTED, L"&Protected", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, inheritMenuItem = PhCreateEMenuItem(0, IDC_HANDLE_INHERIT, L"&Inherit", NULL, NULL), ULONG_MAX);
@@ -1993,6 +1972,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
                 PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
                 PhSetFlagsEMenuItem(menu, IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
                 if (numberOfItems > 1)
                 {
                     PhSetDisabledEMenuItem(protectedMenuItem);
@@ -2106,12 +2086,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                 }
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES1:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES1:
                             {
                                 PhShowHandleObjectProperties1(hwndDlg, &info);
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES2:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES2:
                             {
                                 PhShowHandleObjectProperties2(hwndDlg, &info);
                             }
@@ -2262,14 +2242,22 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
 }
 
 static NTSTATUS EtpCloseSecurityDesktop(
-    _In_ PVOID Context
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
     POPEN_DESKTOP_CONTEXT context = Context;
 
-    PhClearReference(&context->DesktopName);
-    if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
-    PhFree(context);
+    if (Release)
+    {
+        PhClearReference(&context->DesktopName);
+        if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
+        PhFree(context);
+    }
+
+    CloseWindowStation(Handle);
+
     return STATUS_SUCCESS;
 }
 

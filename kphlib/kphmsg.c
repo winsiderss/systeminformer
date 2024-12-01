@@ -27,11 +27,16 @@ VOID KphMsgQuerySystemTime(
 #ifdef _KERNEL_MODE
     KeQuerySystemTime(SystemTime);
 #else
-    do
+    while (TRUE)
     {
         SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
         SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
-    } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+
+        if (SystemTime->HighPart == USER_SHARED_DATA->SystemTime.High2Time)
+            break;
+
+        YieldProcessor();
+    }
 #endif
 }
 

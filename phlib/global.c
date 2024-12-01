@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <phconsole.h>
 #include <phintrnl.h>
 
 VOID PhInitializeSystemInformation(
@@ -99,9 +100,14 @@ VOID PhInitializeSystemInformation(
 {
     SYSTEM_BASIC_INFORMATION basicInfo = { 0 };
 
+    // Note: We can't check the return of SystemBasicInformation
+    // due to third party software hooking the function and returnnig
+    // a random error status.
+
     PhSystemBasicInformation.PageSize = PAGE_SIZE;
     PhSystemBasicInformation.NumberOfProcessors = 1;
     PhSystemBasicInformation.NumberOfPhysicalPages = ULONG_MAX;
+    PhSystemBasicInformation.MaximumTimerResolution = 0x2625A;
     PhSystemBasicInformation.AllocationGranularity = 0x10000;
     PhSystemBasicInformation.MaximumUserModeAddress = 0x10000;
     PhSystemBasicInformation.ActiveProcessorsAffinityMask = USHRT_MAX;
@@ -116,6 +122,7 @@ VOID PhInitializeSystemInformation(
     PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
     PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
     PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
+    PhSystemBasicInformation.MaximumTimerResolution = basicInfo.TimerResolution;
     PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;
     PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
     PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
@@ -403,4 +410,32 @@ BOOLEAN PhInitializeProcessorInformation(
     }
 
     return TRUE;
+}
+
+_Use_decl_annotations_
+VOID PhExitApplication(
+    _In_opt_ NTSTATUS Status
+    )
+{
+#define WORKAROUND_CRTBUG_EXITPROCESS
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+    HANDLE standardHandle;
+
+    if (standardHandle = PhGetStdHandle(STD_OUTPUT_HANDLE))
+    {
+        DEVICE_TYPE deviceType;
+
+        if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), standardHandle, &deviceType)))
+        {
+            if (deviceType == FILE_DEVICE_CONSOLE)
+            {
+                FlushFileBuffers(standardHandle);
+            }
+        }
+    }
+
+    NtTerminateProcess(NtCurrentProcess(), Status);
+#else
+    RtlExitUserProcess(Status);
+#endif
 }

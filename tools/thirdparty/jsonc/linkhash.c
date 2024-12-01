@@ -12,8 +12,6 @@
 
 #include "config.h"
 
-#include <ph.h>
-
 #include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -504,21 +502,18 @@ struct lh_table *lh_table_new(int size, lh_entry_free_fn *free_fn, lh_hash_fn *h
 
     /* Allocate space for elements to avoid divisions by zero. */
     assert(size > 0);
-    t = (struct lh_table *)PhAllocateSafe(sizeof(struct lh_table));
+    t = (struct lh_table *)calloc(1, sizeof(struct lh_table));
     if (!t)
         return NULL;
-    memset(t, 0, sizeof(struct lh_table));
 
     t->count = 0;
     t->size = size;
-    t->table = (struct lh_entry *)PhAllocateSafe(size * sizeof(struct lh_entry));
+    t->table = (struct lh_entry *)calloc(size, sizeof(struct lh_entry));
     if (!t->table)
     {
-        PhFree(t);
+        free(t);
         return NULL;
     }
-    memset(t->table, 0, size * sizeof(struct lh_entry));
-
     t->free_fn = free_fn;
     t->hash_fn = hash_fn;
     t->equal_fn = equal_fn;
@@ -558,12 +553,12 @@ int lh_table_resize(struct lh_table *t, int new_size)
             return -1;
         }
     }
-    PhFree(t->table);
+    free(t->table);
     t->table = new_t->table;
     t->size = new_size;
     t->head = new_t->head;
     t->tail = new_t->tail;
-    PhFree(new_t);
+    free(new_t);
 
     return 0;
 }
@@ -576,8 +571,8 @@ void lh_table_free(struct lh_table *t)
         for (c = t->head; c != NULL; c = c->next)
             t->free_fn(c);
     }
-    PhFree(t->table);
-    PhFree(t);
+    free(t->table);
+    free(t);
 }
 
 int lh_table_insert_w_hash(struct lh_table *t, const void *k, const void *v, const unsigned long h,

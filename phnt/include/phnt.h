@@ -66,10 +66,11 @@
 
 // Options
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 //#define PHNT_NO_INLINE_INIT_STRING
-
 #ifndef PHNT_INLINE_TYPEDEFS
 #define PHNT_INLINE_TYPEDEFS
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -91,7 +92,6 @@ extern "C" {
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-#include <cfg.h>
 #include <ntdbg.h>
 #include <ntioapi.h>
 #include <ntlpcapi.h>
@@ -101,25 +101,16 @@ extern "C" {
 #include <ntregapi.h>
 #include <ntrtl.h>
 #include <ntimage.h>
-#endif
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 #include <ntseapi.h>
 #include <nttmapi.h>
 #include <nttp.h>
 #include <ntxcapi.h>
-
 #include <ntwow64.h>
-
 #include <ntlsa.h>
 #include <ntsam.h>
-
 #include <ntmisc.h>
 #include <ntwmi.h>
-
 #include <ntzwapi.h>
-
 #endif
 
 #ifdef __cplusplus

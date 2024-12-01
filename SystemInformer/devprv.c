@@ -45,8 +45,6 @@ DEFINE_GUID(GUID_DEVINTERFACE_GRAPHICSPOWER, 0xea5c6870, 0xe93c, 0x4588, 0xbe, 0
 DEFINE_GUID(GUID_DEVINTERFACE_GNSS, 0x3336e5e4, 0x18a, 0x4669, 0x84, 0xc5, 0xbd, 0x5, 0xf3, 0xbd, 0x36, 0x8b);
 DEFINE_GUID(GUID_DEVINTERFACE_HID, 0x4D1E55B2L, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30);
 DEFINE_GUID(GUID_DEVINTERFACE_LAMP, 0x6c11e9e3, 0x8238, 0x4f0a, 0x0a, 0x19, 0xaa, 0xec, 0x26, 0xca, 0x5e, 0x98);
-DEFINE_GUID(GUID_DEVINTERFACE_NET, 0xcac88484, 0x7515, 0x4c03, 0x82, 0xe6, 0x71, 0xa8, 0x7a, 0xba, 0xc3, 0x61);
-DEFINE_GUID(GUID_DEVINTERFACE_NETUIO, 0x08336f60, 0x0679, 0x4c6c, 0x85, 0xd2, 0xae, 0x7c, 0xed, 0x65, 0xff, 0xf7);
 DEFINE_GUID(GUID_DEVINTERFACE_NFCDTA, 0x7fd3f30b, 0x5e49, 0x4be1, 0xb3, 0xaa, 0xaf, 0x06, 0x26, 0x0d, 0x23, 0x6a);
 DEFINE_GUID(GUID_DEVINTERFACE_NFCSE, 0x8dc7c854, 0xf5e5, 0x4bed, 0x81, 0x5d, 0xc, 0x85, 0xad, 0x4, 0x77, 0x25);
 DEFINE_GUID(GUID_DEVINTERFACE_NFP, 0xFB3842CD, 0x9E2A, 0x4F83, 0x8F, 0xCC, 0x4B, 0x07, 0x61, 0x13, 0x9A, 0xE9);
@@ -112,11 +110,14 @@ DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 
 #include <wdmguid.h>
 #include <bthdef.h>
 #include <devguid.h>
+#include <ndisguid.h>
 #include <usbiodef.h>
 
+#pragma push_macro("DEFINE_GUID")
 #undef DEFINE_GUID
 #include <pciprop.h>
 #include <ntddstor.h>
+#pragma pop_macro("DEFINE_GUID")
 
 static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 static ULONG RootInstanceIdHash = 2387464428; // PhHashStringRefEx(TRUE, PH_STRING_HASH_X65599);
@@ -2005,7 +2006,7 @@ typedef struct _PH_WELL_KNOWN_GUID
     const GUID* Guid;
     PH_STRINGREF Symbol;
 } PH_WELL_KNOWN_GUID, *PPH_WELL_KNOWN_GUID;
-#define PH_DEFINE_WELL_KNOWN_GUID(guid) const PH_WELL_KNOWN_GUID PH_WELL_KNOWN_##guid = { &guid, PH_STRINGREF_INIT(TEXT(#guid)) }
+#define PH_DEFINE_WELL_KNOWN_GUID(guid) const PH_WELL_KNOWN_GUID PH_WELL_KNOWN_##guid = { &(guid), PH_STRINGREF_INIT(TEXT(#guid)) }
 
 PH_DEFINE_WELL_KNOWN_GUID(GUID_HWPROFILE_QUERY_CHANGE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_HWPROFILE_CHANGE_CANCELLED);
@@ -2299,6 +2300,7 @@ PH_DEFINE_WELL_KNOWN_GUID(GUID_DXGKDDI_FLEXIOV_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_SRIOV_DEVICE_INTERFACE_STANDARD);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_MITIGABLE_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_IO_VOLUME_DEVICE_INTERFACE);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_NDIS_LAN_CLASS);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_NFC_RADIO_MEDIA_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_BLUETOOTHLE_DEVICE_INTERFACE);
@@ -2602,6 +2604,7 @@ static const PH_WELL_KNOWN_GUID* PhpWellKnownGuids[] =
     &PH_WELL_KNOWN_GUID_SRIOV_DEVICE_INTERFACE_STANDARD,
     &PH_WELL_KNOWN_GUID_MITIGABLE_DEVICE_INTERFACE,
     &PH_WELL_KNOWN_GUID_IO_VOLUME_DEVICE_INTERFACE,
+    &PH_WELL_KNOWN_GUID_NDIS_LAN_CLASS,
     &PH_WELL_KNOWN_GUID_NFC_RADIO_MEDIA_DEVICE_INTERFACE,
     &PH_WELL_KNOWN_GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE,
     &PH_WELL_KNOWN_GUID_BLUETOOTHLE_DEVICE_INTERFACE,
@@ -2741,6 +2744,81 @@ VOID NTAPI PhpDevPropFillGuid(
     }
 }
 
+PPH_STRING PhpDevPropPciDeviceTypeToString(
+    _In_ ULONG Flags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciConventional))
+        PhAppendStringBuilder2(&stringBuilder, L"PciConventional, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciX))
+        PhAppendStringBuilder2(&stringBuilder, L"PciX, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciExpressEndpoint))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressEndpoint, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciExpressLegacyEndpoint))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressLegacyEndpoint, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciExpressRootComplexIntegratedEndpoint))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressRootComplexIntegratedEndpoint, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_DeviceType_PciExpressTreatedAsPci))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressTreatedAsPci, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciConventional))
+        PhAppendStringBuilder2(&stringBuilder, L"PciConventional, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciX))
+        PhAppendStringBuilder2(&stringBuilder, L"PciX, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressRootPort))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressRootPort, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressUpstreamSwitchPort))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressUpstreamSwitchPort, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressDownstreamSwitchPort))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressDownstreamSwitchPort, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressToPciXBridge))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressToPciXBridge, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciXToExpressBridge))
+        PhAppendStringBuilder2(&stringBuilder, L"PciXToExpressBridge, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressTreatedAsPci))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressTreatedAsPci, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciDevice_BridgeType_PciExpressEventCollector))
+        PhAppendStringBuilder2(&stringBuilder, L"PciExpressEventCollector, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    if (Flags)
+    {
+        PhPrintPointer(pointer, UlongToPtr(Flags));
+        PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillPciDeviceType(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        Property->AsString = PhpDevPropPciDeviceTypeToString(Property->UInt32);
+    }
+}
+
 PPH_STRING PhpDevPropPciDeviceInterruptSupportToString(
     _In_ ULONG Flags
     )
@@ -2786,6 +2864,112 @@ VOID NTAPI PhpDevPropFillPciDeviceInterruptSupport(
     if (Property->Valid)
     {
         Property->AsString = PhpDevPropPciDeviceInterruptSupportToString(Property->UInt32);
+    }
+}
+
+PPH_STRING PhpDevPropPciDeviceRequestSizeToString(
+    _In_ ULONG Flags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_128Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"128B, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_256Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"256B, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_512Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"512B, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_1024Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"1024B, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_2048Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"2048B, ");
+    else if (BooleanFlagOn(Flags, DevProp_PciExpressDevice_PayloadOrRequestSize_4096Bytes))
+        PhAppendStringBuilder2(&stringBuilder, L"4096B, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(Flags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillPciDeviceRequestSize(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        Property->AsString = PhpDevPropPciDeviceRequestSizeToString(Property->UInt32);
+    }
+}
+
+PPH_STRING PhpDevPropPciDeviceSriovSupportToString(
+    _In_ ULONG Flags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_SriovSupport_Ok))
+        PhAppendStringBuilder2(&stringBuilder, L"Ok, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_SriovSupport_MissingAcs))
+        PhAppendStringBuilder2(&stringBuilder, L"MissingAcs, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_SriovSupport_MissingPfDriver))
+        PhAppendStringBuilder2(&stringBuilder, L"MissingPfDriver, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_SriovSupport_NoBusResource))
+        PhAppendStringBuilder2(&stringBuilder, L"NoBusResource, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_SriovSupport_DidntGetVfBarSpace))
+        PhAppendStringBuilder2(&stringBuilder, L"DidntGetVfBarSpace, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(Flags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillPciDeviceSriovSupport(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        Property->AsString = PhpDevPropPciDeviceSriovSupportToString(Property->UInt32);
     }
 }
 
@@ -3613,7 +3797,27 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
 
     { PhDevicePropertyObjectType, &DEVPKEY_DevQuery_ObjectType, PhpDevPropFillUInt32, 0 },
 
+    { PhDevicePropertyPciDeviceType, &DEVPKEY_PciDevice_DeviceType, PhpDevPropFillPciDeviceType, 0 },
+    { PhDevicePropertyPciCurrentSpeedAndMode, &DEVPKEY_PciDevice_CurrentSpeedAndMode, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciBaseClass, &DEVPKEY_PciDevice_BaseClass, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciSubClass, &DEVPKEY_PciDevice_SubClass, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciProgIf, &DEVPKEY_PciDevice_ProgIf, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciCurrentPayloadSize, &DEVPKEY_PciDevice_CurrentPayloadSize, PhpDevPropFillPciDeviceRequestSize, 0 },
+    { PhDevicePropertyPciMaxPayloadSize, &DEVPKEY_PciDevice_MaxPayloadSize, PhpDevPropFillPciDeviceRequestSize, 0 },
+    { PhDevicePropertyPciMaxReadRequestSize, &DEVPKEY_PciDevice_MaxReadRequestSize, PhpDevPropFillPciDeviceRequestSize, 0 },
+    { PhDevicePropertyPciCurrentLinkSpeed, &DEVPKEY_PciDevice_CurrentLinkSpeed, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciCurrentLinkWidth, &DEVPKEY_PciDevice_CurrentLinkWidth, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciMaxLinkSpeed, &DEVPKEY_PciDevice_MaxLinkSpeed, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciMaxLinkWidth, &DEVPKEY_PciDevice_MaxLinkWidth, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciExpressSpecVersion, &DEVPKEY_PciDevice_ExpressSpecVersion, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, PhpDevPropFillPciDeviceInterruptSupport, 0 },
+    { PhDevicePropertyPciInterruptMessageMaximum, &DEVPKEY_PciDevice_InterruptMessageMaximum, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciBarTypes, &DEVPKEY_PciDevice_BarTypes, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciSriovSupport, &DEVPKEY_PciDevice_SriovSupport, PhpDevPropFillPciDeviceSriovSupport, 0 },
+    { PhDevicePropertyPciLabel_Id, &DEVPKEY_PciDevice_Label_Id, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciLabel_String, &DEVPKEY_PciDevice_Label_String, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyPciSerialNumber, &DEVPKEY_PciDevice_SerialNumber, PhpDevPropFillUInt32, 0 },
+
     { PhDevicePropertyPciExpressCapabilityControl, &DEVPKEY_PciRootBus_PCIExpressCapabilityControl, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyPciNativeExpressControl, &DEVPKEY_PciRootBus_NativePciExpressControl, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyPciSystemMsiSupport, &DEVPKEY_PciRootBus_SystemMsiSupport, PhpDevPropFillBoolean, 0 },

@@ -13,7 +13,7 @@
  * This file contains code for several synchronization objects.
  *
  * Event. This is a lightweight notification event object that does not create a kernel event object
- * until needed. Additionally the kernel event object is automatically freed when no longer needed.
+ * until needed. Additionally, the kernel event object is automatically freed when no longer needed.
  * Note that PhfResetEvent is NOT thread-safe.
  *
  * Barrier. This is a non-traditional implementation of a barrier, built on the wake event object. I
@@ -44,7 +44,7 @@ VOID FASTCALL PhfInitializeEvent(
     )
 {
     Event->Value = PH_EVENT_REFCOUNT_INC;
-    Event->EventHandle = NULL;
+    WritePointerRelease(&Event->EventHandle, NULL);
 }
 
 /**
@@ -94,12 +94,12 @@ VOID FASTCALL PhfSetEvent(
     _Inout_ PPH_EVENT Event
     )
 {
-    HANDLE eventHandle;
-
     // Only proceed if the event isn't set already.
     if (!_InterlockedBitTestAndSetPointer((PLONG_PTR)&Event->Value, PH_EVENT_SET_SHIFT))
     {
-        eventHandle = Event->EventHandle;
+        HANDLE eventHandle;
+
+        eventHandle = ReadPointerAcquire(&Event->EventHandle);
 
         if (eventHandle)
         {
@@ -129,7 +129,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     ULONG_PTR value;
     HANDLE eventHandle;
 
-    value = Event->Value;
+    value = ReadULongPtrAcquire(&Event->Value);
 
     // Shortcut: if the event is set, return immediately.
     if (value & PH_EVENT_SET)
@@ -142,12 +142,12 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     // Prevent the event from being invalidated.
     PhpReferenceEvent(Event);
 
-    eventHandle = Event->EventHandle;
+    eventHandle = ReadPointerAcquire(&Event->EventHandle);
 
     if (!eventHandle)
     {
         OBJECT_ATTRIBUTES objectAttributes;
-        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        InitializeObjectAttributes(&objectAttributes, NULL, OBJ_EXCLUSIVE, NULL, NULL);
         NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, &objectAttributes, NotificationEvent, FALSE);
         assert(eventHandle);
 
@@ -160,12 +160,12 @@ BOOLEAN FASTCALL PhfWaitForEvent(
         {
             // Someone else set the event before we did.
             NtClose(eventHandle);
-            eventHandle = Event->EventHandle;
+            eventHandle = ReadPointerAcquire(&Event->EventHandle);
         }
     }
 
     // Essential: check the event one last time to see if it is set.
-    if (!(Event->Value & PH_EVENT_SET))
+    if (!(ReadULongPtrAcquire(&Event->Value) & PH_EVENT_SET))
     {
         result = NtWaitForSingleObject(eventHandle, FALSE, Timeout) == STATUS_WAIT_0;
     }
@@ -194,7 +194,9 @@ VOID FASTCALL PhfResetEvent(
     assert(!Event->EventHandle);
 
     if (PhTestEvent(Event))
-        Event->Value = PH_EVENT_REFCOUNT_INC;
+    {
+        WriteULongPtrRelease(&Event->Value, PH_EVENT_REFCOUNT_INC);
+    }
 }
 
 VOID FASTCALL PhfInitializeBarrier(
@@ -264,7 +266,7 @@ BOOLEAN FASTCALL PhfWaitForBarrier(
     ULONG_PTR count;
     ULONG_PTR target;
 
-    value = Barrier->Value;
+    value = ReadULongPtrAcquire(&Barrier->Value);
 
     while (TRUE)
     {
@@ -356,7 +358,7 @@ BOOLEAN FASTCALL PhfAcquireRundownProtection(
 
     while (TRUE)
     {
-        value = Protection->Value;
+        value = ReadULongPtrAcquire(&Protection->Value);
 
         if (value & PH_RUNDOWN_ACTIVE)
             return FALSE;
@@ -378,7 +380,7 @@ VOID FASTCALL PhfReleaseRundownProtection(
 
     while (TRUE)
     {
-        value = Protection->Value;
+        value = ReadULongPtrAcquire(&Protection->Value);
 
         if (value & PH_RUNDOWN_ACTIVE)
         {
@@ -433,7 +435,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
 
     while (TRUE)
     {
-        value = Protection->Value;
+        value = ReadULongPtrAcquire(&Protection->Value);
         count = value >> PH_RUNDOWN_REF_SHIFT;
 
         // Initialize the wait block if necessary.

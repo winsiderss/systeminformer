@@ -157,7 +157,7 @@ extern void fuzzy_free(fuzzy_state_ptr state);
 extern BOOLEAN fuzzy_hash_buffer(
     _In_ PBYTE Buffer,
     _In_ ULONGLONG BufferLength,
-    _Out_ PPH_STRING* HashResult
+    _Out_ char** HashResult
     );
 
 /**
@@ -174,7 +174,7 @@ extern BOOLEAN fuzzy_hash_buffer(
  * variable must be allocated to hold at least FUZZY_MAX_RESULT bytes.
  * @return Returns zero on success, non-zero on error
  */
-extern NTSTATUS fuzzy_hash_file(_In_ HANDLE FileHandle, _Out_ PPH_STRING* HashResult);
+extern NTSTATUS fuzzy_hash_file(_In_ HANDLE FileHandle, _Out_ char** HashResult);
 
 /**
  * @brief Compute the fuzzy hash of a stream using an open handle
@@ -207,7 +207,7 @@ extern int fuzzy_hash_stream(
  * variable must be allocated to hold at least FUZZY_MAX_RESULT bytes.
  * @return Returns zero on success, non-zero on error.
  */
-extern NTSTATUS fuzzy_hash_filename(_In_ PWSTR FileName, _Out_ PPH_STRING* HashResult);
+extern NTSTATUS fuzzy_hash_filename(_In_ PWSTR FileName, _Out_ char** HashResult);
 
 /// Computes the match score between two fuzzy hash signatures.
 /// @return Returns a value from zero to 100 indicating the

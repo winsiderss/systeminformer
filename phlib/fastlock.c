@@ -71,7 +71,7 @@ FORCEINLINE VOID PhpEnsureEventCreated(
 {
     HANDLE handle;
 
-    if (*Handle != NULL)
+    if (ReadPointerAcquire(Handle))
         return;
 
     NtCreateSemaphore(&handle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
@@ -110,7 +110,7 @@ VOID FASTCALL PhfAcquireFastLockExclusive(
 
     while (TRUE)
     {
-        value = FastLock->Value;
+        value = ReadULongAcquire(&FastLock->Value);
 
         if (!(value & (PH_LOCK_OWNED | PH_LOCK_EXCLUSIVE_WAKING)))
         {
@@ -170,7 +170,7 @@ VOID FASTCALL PhfAcquireFastLockShared(
 
     while (TRUE)
     {
-        value = FastLock->Value;
+        value = ReadULongAcquire(&FastLock->Value);
 
         if (!(value & (
             PH_LOCK_OWNED |
@@ -233,7 +233,7 @@ VOID FASTCALL PhfReleaseFastLockExclusive(
 
     while (TRUE)
     {
-        value = FastLock->Value;
+        value = ReadULongAcquire(&FastLock->Value);
 
         if ((value >> PH_LOCK_EXCLUSIVE_WAITERS_SHIFT) & PH_LOCK_EXCLUSIVE_WAITERS_MASK)
         {
@@ -280,7 +280,7 @@ VOID FASTCALL PhfReleaseFastLockShared(
 
     while (TRUE)
     {
-        value = FastLock->Value;
+        value = ReadULongAcquire(&FastLock->Value);
 
         if (((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK) > 1)
         {
@@ -326,7 +326,7 @@ BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
 {
     ULONG value;
 
-    value = FastLock->Value;
+    value = ReadULongAcquire(&FastLock->Value);
 
     if (value & (PH_LOCK_OWNED | PH_LOCK_EXCLUSIVE_WAKING))
         return FALSE;
@@ -345,7 +345,7 @@ BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
 {
     ULONG value;
 
-    value = FastLock->Value;
+    value = ReadULongAcquire(&FastLock->Value);
 
     if (value & PH_LOCK_EXCLUSIVE_MASK)
         return FALSE;

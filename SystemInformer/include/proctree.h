@@ -190,12 +190,16 @@ typedef struct _PH_PROCESS_NODE
     // Window
     HWND WindowHandle;
     PPH_STRING WindowText;
-    BOOLEAN WindowHung;
     // DEP status
     ULONG DepStatus;
-    // Token
+
+    BOOLEAN WindowHung;
     BOOLEAN VirtualizationAllowed;
     BOOLEAN VirtualizationEnabled;
+    BOOLEAN BreakOnTerminationEnabled;
+    BOOLEAN PowerThrottling;
+    BOOLEAN PriorityBoost;
+
     // OS Context
     GUID OsContextGuid;
     ULONG OsContextVersion;
@@ -220,14 +224,8 @@ typedef struct _PH_PROCESS_NODE
     // File attributes
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
-    // Critical
-    BOOLEAN BreakOnTerminationEnabled;
     // Code page
     USHORT CodePage;
-    // Power throttling
-    BOOLEAN PowerThrottling;
-    // Priority boost
-    BOOLEAN PriorityBoost;
     // TLS bitmap
     USHORT TlsBitmapCount;
     // Reference count
@@ -240,8 +238,8 @@ typedef struct _PH_PROCESS_NODE
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
-    WCHAR IoTotalRateText[PH_INT64_STR_LEN_1 + 3];
-    WCHAR PrivateBytesText[PH_INT64_STR_LEN_1];
+    PPH_STRING IoTotalRateText;
+    PPH_STRING PrivateBytesText;
     PPH_STRING PeakPrivateBytesText;
     PPH_STRING WorkingSetText;
     PPH_STRING PeakWorkingSetText;
@@ -260,9 +258,9 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING IoRoRateText;
     PPH_STRING IoWRateText;
     PPH_STRING StartTimeText;
-    WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
-    WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
-    WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    PPH_STRING TotalCpuTimeText;
+    PPH_STRING KernelCpuTimeText;
+    PPH_STRING UserCpuTimeText;
     PPH_STRING RelativeStartTimeText;
     PPH_STRING WindowTitleText;
     PPH_STRING DepStatusText;
@@ -389,8 +387,9 @@ PhGetSelectedProcessItem(
     VOID
     );
 
+_Success_(return)
 PHAPPAPI
-VOID
+BOOLEAN
 NTAPI
 PhGetSelectedProcessItems(
     _Out_ PPH_PROCESS_ITEM **Processes,

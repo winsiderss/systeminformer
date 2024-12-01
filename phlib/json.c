@@ -551,19 +551,71 @@ CleanupExit:
 
 // XML support
 
+static mxml_node_t* PhXmlLoadString(
+    _In_ PCSTR String
+    )
+{
+    mxml_options_t* options;
+    mxml_node_t* currentNode;
+
+    options = mxmlOptionsNew();
+    mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
+
+    currentNode = mxmlLoadString(NULL, options, String);
+
+    mxmlOptionsDelete(options);
+
+    return currentNode;
+}
+
+static size_t mxml_io_callback(
+    _In_ void* cbdata,
+    _In_ void* buffer,
+    _In_ size_t bytes
+    )
+{
+    PPH_BYTES_BUILDER stringBuilder = cbdata;
+    PH_BYTESREF string;
+
+    string.Buffer = buffer;
+    string.Length = bytes;
+
+    PhAppendBytesBuilder(stringBuilder, &string);
+
+    return bytes;
+}
+
+static PPH_BYTES PhXmlSaveString(
+    _In_ PVOID XmlRootObject,
+    _In_opt_ PVOID XmlSaveCallback
+    )
+{
+    mxml_options_t* options;
+    PH_BYTES_BUILDER stringBuilder;
+    BOOLEAN success;
+
+    PhInitializeBytesBuilder(&stringBuilder, 0x8000);
+
+    options = mxmlOptionsNew();
+    mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, nullptr);
+    mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
+    success = !!mxmlSaveIO(XmlRootObject, options, mxml_io_callback, &stringBuilder);
+    mxmlOptionsDelete(options);
+
+    if (success) return PhFinalBytesBuilderBytes(&stringBuilder);
+    PhDeleteBytesBuilder(&stringBuilder);
+    return NULL;
+}
+
 PVOID PhLoadXmlObjectFromString(
     _In_ PCSTR String
     )
 {
     mxml_node_t* currentNode;
 
-    if (currentNode = mxmlLoadString(
-        NULL,
-        String,
-        MXML_OPAQUE_CALLBACK
-        ))
+    if (currentNode = PhXmlLoadString(String))
     {
-        if (mxmlGetType(currentNode) == MXML_ELEMENT)
+        if (mxmlGetType(currentNode) == MXML_TYPE_ELEMENT)
         {
             return currentNode;
         }
@@ -582,7 +634,8 @@ NTSTATUS PhLoadXmlObjectFromFile(
     NTSTATUS status;
     HANDLE fileHandle;
     LARGE_INTEGER fileSize;
-    mxml_node_t* currentNode;
+    PPH_BYTES fileContent;
+    mxml_node_t* currentNode = NULL;
 
     status = PhCreateFile(
         &fileHandle,
@@ -604,17 +657,17 @@ NTSTATUS PhLoadXmlObjectFromFile(
         return STATUS_END_OF_FILE;
     }
 
-    currentNode = mxmlLoadFd(
-        NULL,
-        fileHandle,
-        MXML_OPAQUE_CALLBACK
-        );
+    if (fileContent = PhGetFileText(fileHandle, FALSE))
+    {
+        currentNode = PhXmlLoadString(fileContent->Buffer);
+        PhDereferenceObject(fileContent);
+    }
 
     NtClose(fileHandle);
 
     if (currentNode)
     {
-        if (mxmlGetType(currentNode) == MXML_ELEMENT)
+        if (mxmlGetType(currentNode) == MXML_TYPE_ELEMENT)
         {
             if (XmlRootObject)
                 *XmlRootObject = currentNode;
@@ -638,35 +691,18 @@ NTSTATUS PhSaveXmlObjectToFile(
     NTSTATUS status;
     PPH_STRING fileName;
     HANDLE fileHandle = NULL;
-    IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
-    LONG xml_length;
-    PSTR xml_buffer;
+    PPH_BYTES string;
 
-    xml_length = mxmlSaveString(XmlRootObject, NULL, 0, XmlSaveCallback);
+    string = PhXmlSaveString(XmlRootObject, XmlSaveCallback);
 
-    if (xml_length == 0)
-        return STATUS_UNSUCCESSFUL;
-
-    xml_buffer = PhAllocateSafe(xml_length);
-
-    if (!xml_buffer)
-        return STATUS_UNSUCCESSFUL;
-
-    xml_length = mxmlSaveString(
-        XmlRootObject,
-        xml_buffer,
-        xml_length,
-        XmlSaveCallback
-        );
-
-    if (xml_length == 0)
+    if (!string)
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
-    allocationSize.QuadPart = xml_length;
+    allocationSize.QuadPart = string->Length;
 
     // Create the directory if it does not exist.
 
@@ -703,14 +739,10 @@ NTSTATUS PhSaveXmlObjectToFile(
 
     // Write the buffer to the temporary file.
 
-    status = NtWriteFile(
+    status = PhWriteFile(
         fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &ioStatusBlock,
-        (PVOID)xml_buffer,
-        (ULONG)xml_length,
+        (PVOID)string->Buffer,
+        (ULONG)string->Length,
         NULL,
         NULL
         );
@@ -738,9 +770,9 @@ CleanupExit:
         NtClose(fileHandle);
     }
 
-    if (xml_buffer)
+    if (string)
     {
-        PhFree(xml_buffer);
+        PhDereferenceObject(string);
     }
 
     return status;
@@ -796,7 +828,7 @@ PVOID PhFindXmlObject(
     _In_opt_ PCSTR Value
     )
 {
-    return mxmlFindElement(XmlNodeObject, XmlTopObject, Element, Attribute, Value, MXML_DESCEND);
+    return mxmlFindElement(XmlNodeObject, XmlTopObject, Element, Attribute, Value, MXML_DESCEND_ALL);
 }
 
 PVOID PhGetXmlNodeFirstChild(
@@ -860,7 +892,7 @@ PPH_STRING PhGetXmlNodeAttributeText(
 
 PCSTR PhGetXmlNodeAttributeByIndex(
     _In_ PVOID XmlNodeObject,
-    _In_ LONG Index,
+    _In_ SIZE_T Index,
     _Out_ PCSTR* AttributeName
     )
 {
@@ -876,7 +908,7 @@ VOID PhSetXmlNodeAttributeText(
     mxmlElementSetAttr(XmlNodeObject, Name, Value);
 }
 
-LONG PhGetXmlNodeAttributeCount(
+SIZE_T PhGetXmlNodeAttributeCount(
     _In_ PVOID XmlNodeObject
     )
 {

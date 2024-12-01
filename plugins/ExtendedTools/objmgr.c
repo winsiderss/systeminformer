@@ -178,7 +178,9 @@ NTSTATUS EtObjectManagerOpenRealObject(
     );
 
 NTSTATUS EtObjectManagerHandleCloseCallback(
-    _In_ PVOID Context
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     );
 
 VOID NTAPI EtpObjectManagerChangeSelection(
@@ -1105,7 +1107,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
 
                     if (NT_SUCCESS(status = PhGetSectionFileName(objectHandle, &fileName)))
                     {
-                        if (newFileName = PhResolveDevicePrefix(&fileName->sr))
+                        if (newFileName = PhGetFileName(fileName))
                             PhMoveReference(&fileName, newFileName);
 
                         PhMoveReference(&entry->Target, fileName);
@@ -1541,10 +1543,7 @@ NTSTATUS EtObjectManagerOpenHandle(
         if (PhIsNullOrEmptyString(Context->CurrentPath))
             return STATUS_INVALID_PARAMETER;
 
-        PhStringRefToUnicodeString(&Context->CurrentPath->sr, &objectName);
-        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-        return NtOpenDirectoryObject(Handle, DesiredAccess, &objectAttributes);
+        return PhOpenDirectoryObject(Handle, DesiredAccess, NULL, &Context->CurrentPath->sr);
     }
 
     if (PhIsNullOrEmptyString(Context->Object->Name) ||
@@ -1553,13 +1552,11 @@ NTSTATUS EtObjectManagerOpenHandle(
         return STATUS_INVALID_PARAMETER;
     }
 
-    PhStringRefToUnicodeString(&Context->Object->BaseDirectory->sr, &objectName);
-    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-    if (!NT_SUCCESS(status = NtOpenDirectoryObject(
+    if (!NT_SUCCESS(status = PhOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
-        &objectAttributes
+        NULL,
+        &Context->Object->BaseDirectory->sr
         )))
     {
         return status;
@@ -2053,17 +2050,21 @@ NTSTATUS EtObjectManagerHandleOpenCallback(
 }
 
 NTSTATUS EtObjectManagerHandleCloseCallback(
-    _In_ PVOID Context
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    PhClearReference(&context->CurrentPath);
-    PhClearReference(&context->FullName);
+    if (Release)
+    {
+        PhClearReference(&context->CurrentPath);
+        PhClearReference(&context->FullName);
+        PhClearReference(&context->Object);
+        PhFree(context);
+    }
 
-    PhClearReference(&context->Object);
-
-    PhFree(context);
     return STATUS_SUCCESS;
 }
 
