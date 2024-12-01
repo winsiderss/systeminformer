@@ -97,7 +97,7 @@ BOOLEAN PhQueuedLockInitialization(
         )))
         return FALSE;
 
-    if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
+    if (PhSystemBasicInformation.NumberOfProcessors > 1)
         PhQueuedLockSpinCount = 4000;
     else
         PhQueuedLockSpinCount = 0;
@@ -280,7 +280,7 @@ _May_raise_ FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
 
         for (i = PhQueuedLockSpinCount; i != 0; i--)
         {
-            if (!(*(volatile ULONG *)&WaitBlock->Flags & PH_QUEUED_WAITER_SPINNING))
+            if (!(ReadULongAcquire(&WaitBlock->Flags) & PH_QUEUED_WAITER_SPINNING))
                 return STATUS_SUCCESS;
 
             YieldProcessor();
@@ -360,7 +360,7 @@ FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
     PPH_QUEUED_WAIT_BLOCK lastWaitBlock;
     PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
 
-    value = Value;
+    value = ReadULongPtrAcquire(&Value);
 
     while (TRUE)
     {
@@ -456,7 +456,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
     PPH_QUEUED_WAIT_BLOCK lastWaitBlock;
     PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
 
-    value = Value;
+    value = ReadULongPtrAcquire(&Value);
 
     while (TRUE)
     {
@@ -635,7 +635,7 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
     BOOLEAN optimize;
     PH_QUEUED_WAIT_BLOCK waitBlock;
 
-    value = QueuedLock->Value;
+    value = ReadULongPtrAcquire(&QueuedLock->Value);
 
     while (TRUE)
     {
@@ -687,7 +687,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
     BOOLEAN optimize;
     PH_QUEUED_WAIT_BLOCK waitBlock;
 
-    value = QueuedLock->Value;
+    value = ReadULongPtrAcquire(&QueuedLock->Value);
 
     while (TRUE)
     {
@@ -746,7 +746,7 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
     ULONG_PTR newValue;
     ULONG_PTR currentValue;
 
-    value = QueuedLock->Value;
+    value = ReadULongPtrAcquire(&QueuedLock->Value);
 
     while (TRUE)
     {
@@ -835,7 +835,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
     ULONG_PTR currentValue;
     PPH_QUEUED_WAIT_BLOCK waitBlock;
 
-    value = QueuedLock->Value;
+    value = ReadULongPtrAcquire(&QueuedLock->Value);
 
     while (!(value & PH_QUEUED_LOCK_WAITERS))
     {
@@ -950,7 +950,7 @@ VOID FASTCALL PhfWaitForCondition(
     PH_QUEUED_WAIT_BLOCK waitBlock;
     BOOLEAN optimize;
 
-    value = Condition->Value;
+    value = ReadULongPtrAcquire(&Condition->Value);
 
     while (TRUE)
     {
@@ -1001,7 +1001,7 @@ VOID FASTCALL PhfWaitForConditionEx(
     PH_QUEUED_WAIT_BLOCK waitBlock;
     BOOLEAN optimize;
 
-    value = Condition->Value;
+    value = ReadULongPtrAcquire(&Condition->Value);
 
     while (TRUE)
     {
@@ -1091,7 +1091,7 @@ VOID FASTCALL PhfQueueWakeEvent(
 
     WaitBlock->Flags = PH_QUEUED_WAITER_SPINNING;
 
-    value = (PPH_QUEUED_WAIT_BLOCK)WakeEvent->Value;
+    value = (PPH_QUEUED_WAIT_BLOCK)ReadULongPtrAcquire(&WakeEvent->Value);
 
     while (TRUE)
     {
