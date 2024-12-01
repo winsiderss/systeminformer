@@ -76,14 +76,11 @@ PhIsExecutingInWow64(
     );
 
 DECLSPEC_NORETURN
-FORCEINLINE
 VOID
+NTAPI
 PhExitApplication(
     _In_opt_ NTSTATUS Status
-    )
-{
-    RtlExitUserProcess(Status);
-}
+    );
 
 // Processor group support (dmex)
 

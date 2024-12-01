@@ -2806,7 +2806,7 @@ CleanupExit:
  *
  * \return The status of the operation.
  */
-NTSTATUS PhInvokeWindowThreadProcedureRemote(
+NTSTATUS PhInvokeWindowProcedureRemote(
     _In_ HWND WindowHandle,
     _In_ PVOID ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
@@ -5880,7 +5880,6 @@ NTSTATUS PhpUnloadDriver(
             static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
 
             // Set up the required values.
-            dword = 1;
             PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
             PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
             PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
@@ -7027,7 +7026,6 @@ NTSTATUS PhEnumHandlesGeneric(
             PhFree(handles);
 
             *Handles = convertedHandles;
-            *FilterNeeded = FALSE;
         }
     }
 

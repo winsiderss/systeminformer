@@ -61,10 +61,10 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
+#include <searchbox.h>
 #include <workqueue.h>
 #include <mapldr.h>
 
-#include <math.h>
 #include <cfgmgr32.h>
 #include <nvme.h>
 
@@ -291,6 +291,7 @@ typedef struct _DV_NETADAPTER_CONTEXT
     };
 
     PH_LAYOUT_MANAGER LayoutManager;
+    IListView* ListViewClass;
 } DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 VOID NetAdaptersLoadList(

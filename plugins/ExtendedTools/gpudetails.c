@@ -393,7 +393,11 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            // Note: This dialog must be centered after all other graphs and controls have been added.
+            if (PhGetIntegerPairSetting(SETTING_NAME_GPU_DETAILS_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_DETAILS_WINDOW_POSITION, SETTING_NAME_GPU_DETAILS_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, (HWND)lParam);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
@@ -410,6 +414,8 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
+
+            PhSaveWindowPlacementToSetting(SETTING_NAME_GPU_DETAILS_WINDOW_POSITION, SETTING_NAME_GPU_DETAILS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

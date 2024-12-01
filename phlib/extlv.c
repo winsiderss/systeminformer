@@ -155,6 +155,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     {
     case WM_DESTROY:
         {
+            if (context->ListViewClass)
+            {
+                IListView_Release(context->ListViewClass);
+                context->ListViewClass = NULL;
+            }
+
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, MAXCHAR);
             PhFree(context);
