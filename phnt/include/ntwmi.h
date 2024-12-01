@@ -3330,7 +3330,7 @@ DEFINE_GUID( /* 472496cf-0daf-4f7c-ac2e-3f8457ecc6bb */
 // Spare guids for Perf/System events.
 //
 
-DEFINE_GUID ( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
+DEFINE_GUID( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
     GlobalLoggerGuid,
     0xe8908abc,
     0xaa84,
