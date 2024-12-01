@@ -817,13 +817,13 @@ VOID WepRefreshWindowGeneralInfo(
     if (Context->WndProc != 0)
     {
         Context->WndProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, Context->WndProc, 1);
+        WepQueueResolveSymbol(Context, hwndDlg, (PVOID)Context->WndProc, 1);
     }
 
     if (Context->DlgProc != 0)
     {
         Context->DlgProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, Context->DlgProc, 2);
+        WepQueueResolveSymbol(Context, hwndDlg, (PVOID)Context->DlgProc, 2);
     }
 
     WepRefreshWindowGeneralInfoSymbols(ListViewHandle, Context);

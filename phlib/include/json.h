@@ -366,7 +366,7 @@ PCSTR
 NTAPI
 PhGetXmlNodeAttributeByIndex(
     _In_ PVOID XmlNodeObject,
-    _In_ LONG Index,
+    _In_ SIZE_T Index,
     _Out_ PCSTR* AttributeName
     );
 
@@ -481,7 +481,7 @@ typedef PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT)(
 
 typedef PCSTR (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)(
     _In_ PVOID XmlNodeObject,
-    _In_ LONG Index,
+    _In_ SIZE_T Index,
     _Out_ PCSTR* AttributeName
     );
 

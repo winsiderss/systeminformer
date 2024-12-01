@@ -1539,11 +1539,11 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    if (line.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
+                    if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
                     {
                         var ordinal = ordinals[0]; ordinals.RemoveAt(0);
 
-                        output.Append(line);
+                        output.Append(line.Replace("DATA", ""));
                         output.Append(" @");
                         output.Append(ordinal);
                         output.Append(" NONAME");

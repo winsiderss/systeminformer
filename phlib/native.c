@@ -15721,7 +15721,7 @@ NTSTATUS PhIsEcCode(
         return STATUS_INVALID_PARAMETER_1;
 
     // each byte of bitmap indexes 8*4K = 2^15 byte span
-    ecCodeBitMap = PTR_ADD_OFFSET(ecCodeBitMap, CodePointer >> 15);
+    ecCodeBitMap = PTR_ADD_OFFSET(ecCodeBitMap, (ULONG_PTR)CodePointer >> 15);
 
     if (!NT_SUCCESS(status = NtReadVirtualMemory(
         ProcessHandle,
@@ -15733,7 +15733,7 @@ NTSTATUS PhIsEcCode(
         return status;
 
     // index to the 4k page within the 8*4K span
-    bitmap >>= ((CodePointer >> PAGE_SHIFT) & 7);
+    bitmap >>= (((ULONG_PTR)CodePointer >> PAGE_SHIFT) & 7);
 
     // test the specific page
     if (bitmap & 1)
