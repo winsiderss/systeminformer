@@ -376,7 +376,7 @@ VOID EtHandlePropertiesWindowInitialized(
         }
 
         // Removing of row breaks cached indexes, so hide reference value instead
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
+        //PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
 
         PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
         EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES] = PhAddListViewGroupItem(
@@ -1667,6 +1667,9 @@ VOID EtpUpdateGeneralTab(
                 NULL
                 )))
             {
+                PhPrintUInt32(string, basicInfo.PointerCount);
+                PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
+
                 PhPrintUInt32(string, Context->ProcessId == NtCurrentProcessId() ? OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount) : basicInfo.HandleCount);
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
