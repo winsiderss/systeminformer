@@ -199,32 +199,47 @@ namespace CustomBuildTool
             }
 
             // Write out the result.
-            using (StreamWriter sw = new StreamWriter(Path.Join([BaseDirectory, OutputFile]), false, Utils.UTF8NoBOM))
+
+            StringBuilder sw = new StringBuilder();
             {
                 // Copyright
-                sw.Write(Notice);
+                sw.Append(Notice);
 
                 // Header
-                sw.Write(Header);
+                sw.Append(Header);
 
                 // Header files
                 foreach (HeaderFile h in orderedHeaderFiles)
                 {
                     //Console.WriteLine("Header file: " + h.Name);
-                    sw.WriteLine();
-                    sw.WriteLine("//");
-                    sw.WriteLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
-                    sw.WriteLine("//");
-                    sw.WriteLine();
+                    sw.AppendLine();
+                    sw.AppendLine("//");
+                    sw.AppendLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
+                    sw.AppendLine("//");
+                    sw.AppendLine();
 
                     foreach (string line in h.Lines)
                     {
-                        sw.WriteLine(line);
+                        sw.AppendLine(line);
                     }
                 }
 
                 // Footer
-                sw.Write(Footer);
+                sw.Append(Footer);
+            }
+
+            // Check for new or modified content. We don't want to touch the file if it's not needed.
+            {
+                string headerFileName = Path.Join([BaseDirectory, OutputFile]);
+                string headerUpdateText = sw.ToString();
+                string headerCurrentText = Utils.ReadAllText(headerFileName);
+
+                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                {
+                    Utils.WriteAllText(headerFileName, headerUpdateText);
+                }
+
+                Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
             }
         }
     }

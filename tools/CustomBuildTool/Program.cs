@@ -57,9 +57,12 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
-                var flags = BuildFlags.BuildVerbose;
+                BuildFlags flags = BuildFlags.None;
 
                 Build.SetupBuildEnvironment(false);
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                    flags |= BuildFlags.BuildVerbose;
 
                 if (ProgramArgs.ContainsKey("-Debug"))
                 {

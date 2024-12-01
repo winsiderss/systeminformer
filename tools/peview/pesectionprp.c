@@ -488,7 +488,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
             PhCreateThread2(PvpPeSectionsEnumerateThread, context);
 
-                  PhSetWindowTheme(hwndDlg);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

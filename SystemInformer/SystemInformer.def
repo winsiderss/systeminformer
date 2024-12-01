@@ -889,8 +889,7 @@ EXPORTS
     PhGetWindowClientId
     PhGetWindowContext
     PhGetWindowText
-    PhGetWindowTextEx 
-    PhSetWindowTheme
+    PhGetWindowTextEx
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon

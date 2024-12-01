@@ -180,7 +180,7 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(DestinationFile))
             {
-                Program.PrintColorMessage($"[CopyIfNewer-DestinationFile]", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"[CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
                 return;
             }
 
@@ -188,7 +188,10 @@ namespace CustomBuildTool
                 string directory = Path.GetDirectoryName(DestinationFile);
 
                 if (string.IsNullOrWhiteSpace(directory))
+                {
+                    Program.PrintColorMessage($"[CopyIfNewer-DestinationFile-null]", ConsoleColor.Yellow);
                     return;
+                }
 
                 Win32.CreateDirectory(directory);
             }
@@ -228,9 +231,9 @@ namespace CustomBuildTool
             }
 
             if (updated)
-                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
+                Program.PrintColorMessage($"[SDK] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green);
             else
-                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
+                Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
