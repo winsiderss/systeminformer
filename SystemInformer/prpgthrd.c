@@ -1320,7 +1320,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             PhaFormatString(L"Thread %u", HandleToUlong(threadItem->ThreadId))->Buffer,
                             L"Thread",
                             PhpThreadPermissionsOpenThread,
-                            NULL,
+                            PhpThreadPermissionsCloseHandle,
                             threadItem->ThreadId
                             );
                     }

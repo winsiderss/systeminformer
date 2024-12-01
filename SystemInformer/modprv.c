@@ -1204,7 +1204,7 @@ NTSTATUS PhModuleEnclaveListInitialize(
 
     if (PhGetLoaderEntryDataZ(L"ntdll.dll", &baseAddress, &sizeOfImage, &fileName))
     {
-        PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)baseAddress, sizeOfImage);
+        PhLoadModuleSymbolProvider(symbolProvider, fileName, baseAddress, sizeOfImage);
         PhDereferenceObject(fileName);
     }
 
