@@ -775,7 +775,17 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
-#include <searchbox.h>
+
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
+typedef
+_Must_inspect_result_
+VOID
+NTAPI
+PH_SEARCHCONTROL_CALLBACK(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+typedef PH_SEARCHCONTROL_CALLBACK* PPH_SEARCHCONTROL_CALLBACK;
 
 PHAPPAPI
 VOID

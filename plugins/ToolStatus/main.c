@@ -735,7 +735,7 @@ VOID SetSearchFocus(
             {
                 LONG dpiValue;
 
-                dpiValue = PhGetWindowDpi(hWnd);
+                dpiValue = SystemInformer_GetWindowDpi();
 
                 if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                     RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), 22);
