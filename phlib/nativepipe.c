@@ -94,7 +94,8 @@ NTSTATUS PhCreatePipeEx(
             objectAttributes.SecurityDescriptor = PipeReadAttributes->lpSecurityDescriptor;
         }
     }
-    else
+
+    if (!objectAttributes.SecurityDescriptor)
     {
         if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
         {
