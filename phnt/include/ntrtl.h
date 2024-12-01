@@ -13,9 +13,9 @@
 #define RTL_PTR_ADD(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Value)))
 #define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Value)))
 
-#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * 10000ui64)
-#define RTL_SEC_TO_100NANOSEC(s) ((s) * 10000000ui64)
-#define RTL_SEC_TO_MILLISEC(s) ((s) * 1000ui64)
+#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * 10000ULL)
+#define RTL_SEC_TO_100NANOSEC(s) ((s) * 10000000ULL)
+#define RTL_SEC_TO_MILLISEC(s) ((s) * 1000ULL)
 
 #define RTL_MEG (1024UL * 1024UL)
 #define RTL_IMAGE_MAX_DOS_HEADER (256UL * RTL_MEG)
@@ -933,7 +933,7 @@ RtlEndStrongEnumerationHashTable(
 //     LONG RecursionCount;
 //     HANDLE OwningThread;
 //     HANDLE LockSemaphore;
-//     ULONG_PTR SpinCount;
+//     SIZE_T SpinCount;
 // } RTL_CRITICAL_SECTION, *PRTL_CRITICAL_SECTION;
 // #pragma pack(pop)
 
@@ -2985,6 +2985,27 @@ RtlCreateProcessParametersEx(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN10_RS4)
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateProcessParametersWithTemplate(
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _In_ PUNICODE_STRING ImagePathName,
+    _In_opt_ PUNICODE_STRING DllPath,
+    _In_opt_ PUNICODE_STRING CurrentDirectory,
+    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PUNICODE_STRING WindowTitle,
+    _In_opt_ PUNICODE_STRING DesktopInfo,
+    _In_opt_ PUNICODE_STRING ShellInfo,
+    _In_opt_ PUNICODE_STRING RuntimeData,
+    _In_opt_ PUNICODE_STRING RedirectionDllName,
+    _In_ ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
+    );
+#endif
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3068,18 +3089,6 @@ NTAPI
 RtlExitUserProcess(
     _In_ NTSTATUS ExitStatus
     );
-#else
-
-#define RtlExitUserProcess RtlExitUserProcess_R
-
-DECLSPEC_NORETURN
-FORCEINLINE VOID RtlExitUserProcess_R(
-    _In_ NTSTATUS ExitStatus
-    )
-{
-    ExitProcess(ExitStatus);
-}
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -3251,7 +3260,7 @@ RtlCreateUserThread(
     _Out_opt_ PCLIENT_ID ClientId
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA) // should be PHNT_WINXP, but is PHNT_VISTA for consistency with RtlExitUserProcess
+#if (PHNT_VERSION >= PHNT_WINXP)
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -3259,22 +3268,9 @@ NTAPI
 RtlExitUserThread(
     _In_ NTSTATUS ExitStatus
     );
-#else
-
-#define RtlExitUserThread RtlExitUserThread_R
-
-DECLSPEC_NORETURN
-FORCEINLINE VOID RtlExitUserThread_R(
-    _In_ NTSTATUS ExitStatus
-    )
-{
-    ExitThread(ExitStatus);
-}
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-
 // rev
 NTSYSAPI
 BOOLEAN
@@ -3282,11 +3278,9 @@ NTAPI
 RtlIsCurrentThreadAttachExempt(
     VOID
     );
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -3307,7 +3301,6 @@ NTAPI
 RtlFreeUserStack(
     _In_ PVOID AllocationBase
     );
-
 #endif
 
 // Extended thread context
@@ -3546,8 +3539,18 @@ RtlRemoteCall(
     _In_ BOOLEAN AlreadySuspended
     );
 
+//
 // Vectored Exception Handlers
+//
 
+/**
+ * Registers a vectored exception handler.
+ * 
+ * @param First If this parameter is TRUE, the handler is the first handler in the list.
+ * @param Handler A pointer to the vectored exception handler to be called.
+ * @return A handle to the vectored exception handler.
+ * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredexceptionhandler
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -3556,6 +3559,13 @@ RtlAddVectoredExceptionHandler(
     _In_ PVECTORED_EXCEPTION_HANDLER Handler
     );
 
+/**
+ * Removes a vectored exception handler.
+ * 
+ * @param Handle A handle to the vectored exception handler to remove.
+ * @return The function returns 0 if the handler is removed, or -1 if the handler is not found.
+ * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredexceptionhandler
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -3563,6 +3573,14 @@ RtlRemoveVectoredExceptionHandler(
     _In_ PVOID Handle
     );
 
+/**
+ * Registers a vectored continue handler.
+ * 
+ * @param First If this parameter is TRUE, the handler is the first handler in the list.
+ * @param Handler A pointer to the vectored exception handler to be called.
+ * @return A handle to the vectored continue handler.
+ * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredcontinuehandler
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -3571,6 +3589,13 @@ RtlAddVectoredContinueHandler(
     _In_ PVECTORED_EXCEPTION_HANDLER Handler
     );
 
+/**
+ * Removes a vectored continue handler.
+ * 
+ * @param Handle A handle to the vectored continue handler to remove.
+ * @return The function returns 0 if the handler is removed, or -1 if the handler is not found.
+ * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredcontinuehandler
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -4172,7 +4197,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetEnvironmentStrings(
-    _In_ PCWCHAR NewEnvironment,
+    _In_ PCWSTR NewEnvironment,
     _In_ SIZE_T NewEnvironmentSize
     );
 
@@ -5731,7 +5756,8 @@ NTSYSAPI
 HANDLE
 NTAPI
 RtlGetCurrentTransaction(
-    VOID
+    _In_opt_ PCWSTR ExistingFileName,
+    _In_opt_ PCWSTR NewFileName
     );
 #endif
 
@@ -5771,11 +5797,9 @@ RtlConvertLongToLuid(
     )
 {
     LUID tempLuid;
-    LARGE_INTEGER tempLi;
 
-    tempLi.QuadPart = Long;
-    tempLuid.LowPart = tempLi.LowPart;
-    tempLuid.HighPart = tempLi.HighPart;
+    tempLuid.LowPart = Long;
+    tempLuid.HighPart = 0;
 
     return tempLuid;
 }
@@ -5802,12 +5826,12 @@ RtlConvertLuidToLonglong(
     _In_ LUID Luid
     )
 {
-    LONGLONG tempLuid;
+    LARGE_INTEGER tempLi;
 
-    tempLuid = Luid.LowPart;
-    tempLuid += ((LONGLONG)(Luid.HighPart) << 32);
+    tempLi.LowPart = Luid.LowPart;
+    tempLi.HighPart = Luid.HighPart;
 
-    return tempLuid;
+    return tempLi.QuadPart;
 }
 
 FORCEINLINE
@@ -6008,7 +6032,17 @@ RtlIsAnyDebuggerPresent(
     return result;
 }
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDebugPrintTimes(
+    VOID
+    );
+
+//
 // Messages
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8724,7 +8758,9 @@ RtlReadThreadProfilingData(
 
 #endif
 
+//
 // WOW64
+//
 
 NTSYSAPI
 NTSTATUS
@@ -9063,7 +9099,7 @@ RtlGetUnloadEventTrace(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSAPI
-VOID
+PRTL_UNLOAD_EVENT_TRACE
 NTAPI
 RtlGetUnloadEventTraceEx(
     _Out_ PULONG *ElementSize,
@@ -10720,6 +10756,8 @@ RtlWow64ChangeThreadState(
  */
 #ifndef _NTRTL_FWD_H
 #define _NTRTL_FWD_H
+
+// Note: ntdll symbols and exports define these forwarders:
 
 // begin_forwarders
 #ifndef PHNT_INLINE_NAME_FORWARDERS
