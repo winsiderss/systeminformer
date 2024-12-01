@@ -52,8 +52,8 @@ typedef enum _PH_SYMBOL_RESOLVE_LEVEL
 
 typedef struct _PH_SYMBOL_INFORMATION
 {
-    ULONG64 Address;
-    ULONG64 ModuleBase;
+    PVOID Address;
+    PVOID ModuleBase;
     ULONG Index;
     ULONG Size;
 } PH_SYMBOL_INFORMATION, *PPH_SYMBOL_INFORMATION;
@@ -91,7 +91,7 @@ BOOLEAN
 NTAPI
 PhGetLineFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address,
+    _In_ PVOID Address,
     _Out_ PPH_STRING *FileName,
     _Out_opt_ PULONG Displacement,
     _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
@@ -99,11 +99,11 @@ PhGetLineFromAddress(
 
 _Success_(return != 0)
 PHLIBAPI
-ULONG64
+PVOID
 NTAPI
 PhGetModuleFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address,
+    _In_ PVOID Address,
     _Out_opt_ PPH_STRING *FileName
     );
 
@@ -114,7 +114,7 @@ PPH_SYMBOL_MODULE
 NTAPI
 PhGetSymbolModuleFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address
+    _In_ PVOID Address
     );
 
 _Success_(return != NULL)
@@ -123,7 +123,7 @@ PPH_STRING
 NTAPI
 PhGetSymbolFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address,
+    _In_ PVOID Address,
     _Out_opt_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
     _Out_opt_ PPH_STRING *FileName,
     _Out_opt_ PPH_STRING *SymbolName,
@@ -146,7 +146,7 @@ NTAPI
 PhLoadModuleSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_STRING FileName,
-    _In_ ULONG64 BaseAddress,
+    _In_ PVOID BaseAddress,
     _In_ ULONG Size
     );
 
@@ -156,7 +156,7 @@ NTAPI
 PhLoadFileNameSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_STRING FileName,
-    _In_ ULONG64 BaseAddress,
+    _In_ PVOID BaseAddress,
     _In_ ULONG Size
     );
 
@@ -374,7 +374,7 @@ NTAPI
 PhEnumerateSymbols(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG64 BaseOfDll,
+    _In_ PVOID BaseOfDll,
     _In_opt_ PCWSTR Mask,
     _In_ PPH_ENUMERATE_SYMBOLS_CALLBACK EnumSymbolsCallback,
     _In_opt_ PVOID UserContext
@@ -386,7 +386,7 @@ BOOLEAN
 NTAPI
 PhGetSymbolProviderDiaSource(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 BaseOfDll,
+    _In_ PVOID BaseOfDll,
     _Out_ PVOID* DiaSource
     );
 
@@ -396,7 +396,7 @@ BOOLEAN
 NTAPI
 PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 BaseOfDll,
+    _In_ PVOID BaseOfDll,
     _Out_ PVOID* DiaSession
     );
 
@@ -466,7 +466,7 @@ PhGetSymbolFromInlineContext(
     _Out_opt_ PPH_STRING* FileName,
     _Out_opt_ PPH_STRING* SymbolName,
     _Out_opt_ PULONG64 Displacement,
-    _Out_opt_ PULONG64 BaseAddress
+    _Out_opt_ PPVOID BaseAddress
     );
 
 _Success_(return)
@@ -476,7 +476,7 @@ NTAPI
 PhGetLineFromInlineContext(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ ULONG64 BaseAddress,
+    _In_opt_ PVOID BaseAddress,
     _Out_ PPH_STRING* FileName,
     _Out_opt_ PULONG Displacement,
     _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
@@ -506,7 +506,7 @@ PhGetLineFromInlineContext(
 
 typedef struct _PH_DIA_SYMBOL_INFORMATION
 {
-    ULONG64 FunctionLength;
+    ULONG FunctionLength;
     PPH_STRING UndecoratedName;
     PPH_STRING SymbolInformation;
     PPH_STRING SymbolLangugage;
@@ -515,7 +515,7 @@ typedef struct _PH_DIA_SYMBOL_INFORMATION
 _Success_(return)
 BOOLEAN PhGetDiaSymbolInformation(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address,
+    _In_ PVOID Address,
     _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
     );
 

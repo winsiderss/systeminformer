@@ -26,6 +26,7 @@
 
 #include <ph.h>
 #include <guisup.h>
+#include <guisupview.h>
 #include <settings.h>
 #include <json.h>
 
@@ -1184,6 +1185,184 @@ PPH_STRING PhSaveListViewColumnSettings(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+BOOLEAN PhLoadIListViewColumnSettings(
+    _In_ IListView* ListView,
+    _In_ PPH_STRING Settings
+    )
+{
+#define ORDER_LIMIT 50
+    HWND headerHandle = NULL;
+    PH_STRINGREF remainingPart;
+    ULONG columnIndex;
+    ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
+    ULONG maxOrder;
+    LONG scale;
+    LONG dpi;
+
+    if (!SUCCEEDED(IListView_GetHeaderControl(ListView, &headerHandle)))
+        return FALSE;
+#ifdef DEBUG
+    assert(Header_GetItemCount(headerHandle) < ORDER_LIMIT);
+#endif
+    if (PhIsNullOrEmptyString(Settings))
+        return FALSE;
+
+    dpi = PhGetWindowDpi(headerHandle);
+
+    remainingPart = Settings->sr;
+    columnIndex = 0;
+    memset(orderArray, 0, sizeof(orderArray));
+    maxOrder = 0;
+
+    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
+    {
+        PH_STRINGREF scalePart;
+        LONG64 integer;
+
+        PhSkipStringRef(&remainingPart, sizeof(WCHAR));
+        PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
+
+        if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
+            return FALSE;
+
+        scale = (LONG)integer;
+    }
+    else
+    {
+        scale = dpi;
+    }
+
+    while (remainingPart.Length != 0)
+    {
+        PH_STRINGREF columnPart;
+        PH_STRINGREF orderPart;
+        PH_STRINGREF widthPart;
+        ULONG64 integer;
+        ULONG order;
+        LONG width;
+        LVCOLUMN lvColumn;
+
+        PhSplitStringRefAtChar(&remainingPart, L'|', &columnPart, &remainingPart);
+
+        if (columnPart.Length == 0)
+            return FALSE;
+
+        PhSplitStringRefAtChar(&columnPart, L',', &orderPart, &widthPart);
+
+        if (orderPart.Length == 0 || widthPart.Length == 0)
+            return FALSE;
+
+        // Order
+
+        if (!PhStringToInteger64(&orderPart, 10, &integer))
+            return FALSE;
+
+        order = (ULONG)integer;
+
+        if (order < ORDER_LIMIT)
+        {
+            orderArray[order] = columnIndex;
+
+            if (maxOrder < order + 1)
+                maxOrder = order + 1;
+        }
+
+        // Width
+
+        if (!PhStringToInteger64(&widthPart, 10, &integer))
+            return FALSE;
+
+        width = (LONG)integer;
+
+        if (scale != dpi && scale != 0)
+            width = PhMultiplyDivideSigned(width, dpi, scale);
+
+        lvColumn.mask = LVCF_WIDTH;
+        lvColumn.cx = width;
+        IListView_SetColumn(ListView, columnIndex, &lvColumn);
+
+        columnIndex++;
+    }
+
+    IListView_SetColumnOrderArray(ListView, maxOrder, orderArray);
+
+    return TRUE;
+}
+
+PPH_STRING PhSaveIListViewColumnSettings(
+    _In_ IListView* ListView
+    )
+{
+    HWND headerHandle = NULL;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG i = 0;
+    LVCOLUMN lvColumn;
+    LONG dpiValue;
+
+    if (!SUCCEEDED(IListView_GetHeaderControl(ListView, &headerHandle)))
+        return NULL;
+
+    PhInitializeStringBuilder(&stringBuilder, 20);
+
+    dpiValue = PhGetWindowDpi(headerHandle);
+
+    {
+        PH_FORMAT format[3];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // @%lu|
+        PhInitFormatC(&format[0], L'@');
+        PhInitFormatU(&format[1], dpiValue);
+        PhInitFormatC(&format[2], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
+        }
+    }
+
+    memset(&lvColumn, 0, sizeof(LVCOLUMN));
+    lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
+
+    while (SUCCEEDED(IListView_GetColumn(ListView, i, &lvColumn)))
+    {
+        PH_FORMAT format[4];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // %u,%u|
+        PhInitFormatU(&format[0], lvColumn.iOrder);
+        PhInitFormatC(&format[1], L',');
+        PhInitFormatU(&format[2], lvColumn.cx);
+        PhInitFormatC(&format[3], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%u,%u|",
+                lvColumn.iOrder,
+                lvColumn.cx
+                );
+        }
+        i++;
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
 VOID PhLoadListViewColumnsFromSetting(
     _In_ PCWSTR Name,
     _In_ HWND ListViewHandle
@@ -1204,6 +1383,30 @@ VOID PhSaveListViewColumnsToSetting(
     PPH_STRING string;
 
     string = PhSaveListViewColumnSettings(ListViewHandle);
+    PhSetStringSetting2(Name, &string->sr);
+    PhDereferenceObject(string);
+}
+
+VOID PhLoadIListViewColumnsFromSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    )
+{
+    PPH_STRING string;
+
+    string = PhGetStringSetting(Name);
+    PhLoadIListViewColumnSettings(ListViewClass, string);
+    PhDereferenceObject(string);
+}
+
+VOID PhSaveIListViewColumnsToSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    )
+{
+    PPH_STRING string;
+
+    string = PhSaveIListViewColumnSettings(ListViewClass);
     PhSetStringSetting2(Name, &string->sr);
     PhDereferenceObject(string);
 }

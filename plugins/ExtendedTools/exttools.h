@@ -18,8 +18,7 @@
 #include <settings.h>
 #include <mapldr.h>
 #include <workqueue.h>
-
-#include <math.h>
+#include <searchbox.h>
 
 #include "resource.h"
 

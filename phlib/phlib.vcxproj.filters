@@ -185,9 +185,6 @@
     <ClCompile Include="ntuser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="counters.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="nativemodule.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -204,6 +201,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="searchbox.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="guisuplistview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -419,6 +419,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\searchbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phconsole.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

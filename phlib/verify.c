@@ -33,10 +33,10 @@ _CryptCATAdminReleaseContext CryptCATAdminReleaseContext;
 //_WTHelperProvDataFromStateData WTHelperProvDataFromStateData_I;
 //_WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
 _WinVerifyTrust WinVerifyTrust_I;
-_CertNameToStr CertNameToStr_I;
-_CertGetEnhancedKeyUsage CertGetEnhancedKeyUsage_I;
-_CertDuplicateCertificateContext CertDuplicateCertificateContext_I;
-_CertFreeCertificateContext CertFreeCertificateContext_I;
+typeof(&CertNameToStrW) CertNameToStr_I;
+typeof(&CertGetEnhancedKeyUsage) CertGetEnhancedKeyUsage_I;
+typeof(&CertDuplicateCertificateContext) CertDuplicateCertificateContext_I;
+typeof(&CertFreeCertificateContext) CertFreeCertificateContext_I;
 
 static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 static CONST GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
@@ -168,42 +168,12 @@ BOOLEAN PhIsChainedToMicrosoft(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HCERTSTORE (WINAPI* CertOpenStore_I)(
-        _In_ LPCSTR lpszStoreProvider,
-        _In_ ULONG dwEncodingType,
-        _In_opt_ HCRYPTPROV_LEGACY hCryptProv,
-        _In_ ULONG dwFlags,
-        _In_opt_ const void* pvPara
-        ) = NULL;
-    static BOOL (WINAPI* CertAddStoreToCollection_I)(
-        _In_ HCERTSTORE hCollectionStore,
-        _In_opt_ HCERTSTORE hSiblingStore,
-        _In_ ULONG dwUpdateFlags,
-        _In_ ULONG dwPriority
-        ) = NULL;
-    static BOOL (WINAPI* CertGetCertificateChain_I)(
-        _In_opt_ HCERTCHAINENGINE hChainEngine,
-        _In_ PCCERT_CONTEXT pCertContext,
-        _In_opt_ LPFILETIME pTime,
-        _In_opt_ HCERTSTORE hAdditionalStore,
-        _In_ PCERT_CHAIN_PARA pChainPara,
-        _In_ ULONG dwFlags,
-        _Reserved_ LPVOID pvReserved,
-        _Out_ PCCERT_CHAIN_CONTEXT * ppChainContext
-        ) = NULL;
-    static BOOL (WINAPI* CertVerifyCertificateChainPolicy_I)(
-        _In_ LPCSTR pszPolicyOID,
-        _In_ PCCERT_CHAIN_CONTEXT pChainContext,
-        _In_ PCERT_CHAIN_POLICY_PARA pPolicyPara,
-        _Inout_ PCERT_CHAIN_POLICY_STATUS pPolicyStatus
-        ) = NULL;
-    static VOID (WINAPI* CertFreeCertificateChain_I)(
-        _In_ PCCERT_CHAIN_CONTEXT pChainContext
-        ) = NULL;
-    static BOOL (WINAPI* CertCloseStore_I)(
-        _In_opt_ HCERTSTORE hCertStore,
-        _In_ ULONG dwFlags
-        ) = NULL;
+    static typeof(&CertOpenStore) CertOpenStore_I = NULL;
+    static typeof(&CertAddStoreToCollection) CertAddStoreToCollection_I = NULL;
+    static typeof(&CertGetCertificateChain) CertGetCertificateChain_I = NULL;
+    static typeof(&CertVerifyCertificateChainPolicy) CertVerifyCertificateChainPolicy_I = NULL;
+    static typeof(&CertFreeCertificateChain) CertFreeCertificateChain_I = NULL;
+    static typeof(&CertCloseStore) CertCloseStore_I = NULL;
     BOOLEAN status = FALSE;
     HCERTSTORE cryptStoreHandle;
     CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
@@ -452,7 +422,7 @@ VERIFY_RESULT PhpVerifyFile(
     if (UnionChoice == WTD_CHOICE_CATALOG)
         trustData.pCatalog = UnionData;
 
-    if (Information->Flags & PH_VERIFY_PREVENT_NETWORK_ACCESS)
+    if (FlagOn(Information->Flags, PH_VERIFY_PREVENT_NETWORK_ACCESS))
     {
         trustData.fdwRevocationChecks = WTD_REVOKE_NONE;
         trustData.dwProvFlags |= WTD_CACHE_ONLY_URL_RETRIEVAL;
@@ -483,10 +453,16 @@ BOOLEAN PhpCalculateFileHash(
     HANDLE catAdminHandle;
     PUCHAR fileHash;
     ULONG fileHashLength;
+    CERT_STRONG_SIGN_PARA strongSigPolicy;
+
+    memset(&strongSigPolicy, 0, sizeof(CERT_STRONG_SIGN_PARA));
+    strongSigPolicy.cbSize = sizeof(CERT_STRONG_SIGN_PARA);
+    strongSigPolicy.dwInfoChoice = CERT_STRONG_SIGN_OID_INFO_CHOICE;
+    strongSigPolicy.pszOID = szOID_CERT_STRONG_SIGN_OS_CURRENT;
 
     if (CryptCATAdminAcquireContext2)
     {
-        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, NULL, 0))
+        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, &strongSigPolicy, 0))
             return FALSE;
     }
     else
@@ -548,10 +524,16 @@ BOOLEAN PhpVerifyGetHashFromFileHandle(
     )
 {
     HANDLE catAdminHandle;
+    CERT_STRONG_SIGN_PARA strongSigPolicy;
+
+    memset(&strongSigPolicy, 0, sizeof(CERT_STRONG_SIGN_PARA));
+    strongSigPolicy.cbSize = sizeof(CERT_STRONG_SIGN_PARA);
+    strongSigPolicy.dwInfoChoice = CERT_STRONG_SIGN_OID_INFO_CHOICE;
+    strongSigPolicy.pszOID = szOID_CERT_STRONG_SIGN_OS_CURRENT;
 
     if (CryptCATAdminAcquireContext2)
     {
-        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, NULL, 0))
+        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, &strongSigPolicy, 0))
             return FALSE;
     }
     else
@@ -1215,6 +1197,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
  * \param SignerName A variable which receives a pointer to a string containing the signer name. You
  * must free the string using PhDereferenceObject() when you no longer need it. Note that the signer
  * name may be NULL if it is not valid.
+ * \param NativeFileName Specify TRUE if the file name is a native path.
  * \param CachedOnly Specify TRUE to fail the function when no cached result exists.
  *
  * \return A VERIFY_RESULT value.

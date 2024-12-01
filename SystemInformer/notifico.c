@@ -279,7 +279,11 @@ VOID PhNfCreateIconThreadDelayed(
 
             // Use a separate thread so we don't block the main GUI or
             // the provider threads when explorer is not responding. (dmex)
-            PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL);
+            if (NT_SUCCESS(PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL)))
+            {
+                NtClose(PhpTrayIconThreadHandle);
+                PhpTrayIconThreadHandle = NULL;
+            }
         }
 
         PhEndInitOnce(&initOnce);

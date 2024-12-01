@@ -6596,7 +6596,7 @@ PPH_STRING PhBufferToHexStringEx(
 {
     PPH_STRING string;
     PCCH table;
-    ULONG i;
+    SIZE_T i;
 
     if (UpperCase)
         table = PhIntegerToCharUpper;

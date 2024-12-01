@@ -15,13 +15,47 @@
 // "660B90C8-73A9-4B58-8CAE-355B7F55341B"
 DEFINE_GUID(CLSID_StartMenuCacheAndAppResolver_I, 0x660B90C8, 0x73A9, 0x4B58, 0x8C, 0xAE, 0x35, 0x5B, 0x7F, 0x55, 0x34, 0x1B);
 // "46A6EEFF-908E-4DC6-92A6-64BE9177B41C"
-DEFINE_GUID(IID_IApplicationResolver61_I, 0x46A6EEFF, 0x908E, 0x4DC6, 0x92, 0xA6, 0x64, 0xBE, 0x91, 0x77, 0xB4, 0x1c);
+DEFINE_GUID(IID_IApplicationResolver_I, 0x46A6EEFF, 0x908E, 0x4DC6, 0x92, 0xA6, 0x64, 0xBE, 0x91, 0x77, 0xB4, 0x1c);
 // "DE25675A-72DE-44b4-9373-05170450C140"
-DEFINE_GUID(IID_IApplicationResolver62_I, 0xDE25675A, 0x72DE, 0x44b4, 0x93, 0x73, 0x05, 0x17, 0x04, 0x50, 0xC1, 0x40);
+DEFINE_GUID(IID_IApplicationResolver2_I, 0xDE25675A, 0x72DE, 0x44b4, 0x93, 0x73, 0x05, 0x17, 0x04, 0x50, 0xC1, 0x40);
 // "33F71155-C2E9-4FFE-9786-A32D98577CFF"
-DEFINE_GUID(IID_IStartMenuAppItems61_I, 0x33F71155, 0xC2E9, 0x4FFE, 0x97, 0x86, 0xA3, 0x2D, 0x98, 0x57, 0x7C, 0xFF);
+DEFINE_GUID(IID_IStartMenuAppItems_I, 0x33F71155, 0xC2E9, 0x4FFE, 0x97, 0x86, 0xA3, 0x2D, 0x98, 0x57, 0x7C, 0xFF);
 // "02C5CCF3-805F-4654-A7B7-340A74335365"
-DEFINE_GUID(IID_IStartMenuAppItems62_I, 0x02C5CCF3, 0x805F, 0x4654, 0xA7, 0xB7, 0x34, 0x0A, 0x74, 0x33, 0x53, 0x65);
+DEFINE_GUID(IID_IStartMenuAppItems2_I, 0x02C5CCF3, 0x805F, 0x4654, 0xA7, 0xB7, 0x34, 0x0A, 0x74, 0x33, 0x53, 0x65);
+
+// ba5a92ae_bfd7_4916_854f_6b3a402b84a8
+// 21cbc515_2dde_4d66_8292_ba34bd25094a
+// 17541a17_f509_4cb6_8d08_651dc68d8227
+// 67383c80_7543_4e04_9e97_c990f5e3878d
+// 3af46105_16ce_776f_43a2_341172b6e95a
+// 6b1d7151_7a17_4c66_abc4_c9b1bc6c0e8d
+// ffd2cca4_adfb_46e9_9a02_49d019db2a68
+// 8dda7cc4_ae71_4e2a_bc8d_7f16ec66f540
+
+// "ba5a92ae-bfd7-4916-854f-6b3a402b84a8"
+//DEFINE_GUID(IID_IStartMenuItemsCache, 0xba5a92ae, 0xbfd7, 0x4916, 0x85, 0x4f, 0x6b, 0x3a, 0x40, 0x2b, 0x84, 0xa8);
+// "21cbc515-2dde-4d66-8292-ba34bd25094a"
+DEFINE_GUID(IID_IDesktopTileActivator, 0x21cbc515, 0x2dde, 0x4d66, 0x82, 0x92, 0xba, 0x34, 0xbd, 0x25, 0x09, 0x4a);
+// "17541a17-f509-4cb6-8d08-651dc68d8227"
+DEFINE_GUID(IID_IAppResolverPinToStart, 0x17541a17, 0xf509, 0x4cb6, 0x8d, 0x08, 0x65, 0x1d, 0xc6, 0x8d, 0x82, 0x27);
+// "67383c80-7543-4e04-9e97-c990f5e3878d"
+DEFINE_GUID(IID_ILauncherAppList, 0x67383c80, 0x7543, 0x4e04, 0x9e, 0x97, 0xc9, 0x90, 0xf5, 0xe3, 0x87, 0x8d);
+// "3af46105-16ce-776f-43a2-341172b6e95a"
+DEFINE_GUID(IID_IStartMenuRankManager, 0x3af46105, 0x16ce, 0x776f, 0x43, 0xa2, 0x34, 0x11, 0x72, 0xb6, 0xe9, 0x5a);
+// "6b1d7151-7a17-4c66-abc4-c9b1bc6c0e8d"
+DEFINE_GUID(IID_IAppResolverCacheAccessor, 0x6b1d7151, 0x7a17, 0x4c66, 0xab, 0xc4, 0xc9, 0xb1, 0xbc, 0x6c, 0x0e, 0x8d);
+// "ffd2cca4-adfb-46e9-9a02-49d019db2a68"
+DEFINE_GUID(IID_IAppResolverPinToStartFF, 0xffd2cca4, 0xadfb, 0x46e9, 0x9a, 0x02, 0x49, 0xd0, 0x19, 0xdb, 0x2a, 0x68);
+// "8dda7cc4-ae71-4e2a-bc8d-7f16ec66f540"
+DEFINE_GUID(IID_IAppResolverPinToStartF, 0x8dda7cc4, 0xae71, 0x4e2a, 0xbc, 0x8d, 0x7f, 0x16, 0xec, 0x66, 0xf5, 0x40);
+// "DE25675A-72DE-44b4-9373-05170450C140"
+
+// IStartMenuItemsCache
+// IDesktopTileActivator
+// IAppResolverPinToStart
+// ILauncherAppList
+// IStartMenuRankManager
+// IAppResolverCacheAccessor
 
 // "DBCE7E40-7345-439D-B12C-114A11819A09"
 DEFINE_GUID(CLSID_MrtResourceManager_I, 0xDBCE7E40, 0x7345, 0x439D, 0xB1, 0x2C, 0x11, 0x4A, 0x11, 0x81, 0x9A, 0x09);
@@ -174,16 +208,14 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
 #define IDesktopAppXActivator_ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle) \
     ((This)->lpVtbl->ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle))
 
-typedef enum _START_MENU_APP_ITEMS_FLAGS
-{
-    SMAIF_DEFAULT = 0,
-    SMAIF_EXTENDED = 1,
-    SMAIF_USAGEINFO = 2
-} START_MENU_APP_ITEMS_FLAGS;
+// "ba5a92ae-bfd7-4916-854f-6b3a402b84a8"
+DEFINE_GUID(IID_IStartMenuItemsCache, 0xba5a92ae, 0xbfd7, 0x4916, 0x85, 0x4f, 0x6b, 0x3a, 0x40, 0x2b, 0x84, 0xa8);
 
+// Note: Interface checks GetModuleFileNameW is equal L"EXPLORER.EXE",
+// else L"PPISHELL.EXE", L"TE.PROCESSHOST.EXE" from HKLM "AppResolverHostProcess"
 #undef INTERFACE
-#define INTERFACE IApplicationResolver61
-DECLARE_INTERFACE_IID(IApplicationResolver61, IUnknown)
+#define INTERFACE IStartMenuItemsCache
+DECLARE_INTERFACE_IID(IStartMenuItemsCache, IUnknown)
 {
     BEGIN_INTERFACE
 
@@ -192,7 +224,40 @@ DECLARE_INTERFACE_IID(IApplicationResolver61, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
-    // IApplicationResolver61
+    // IStartMenuItemsCache
+    STDMETHOD(OnChangeNotify)(THIS, _In_ ULONG, _In_ LONG, _In_ PCIDLIST_ABSOLUTE, _In_ PCIDLIST_ABSOLUTE);
+    STDMETHOD(RegisterForNotifications)(THIS) PURE;
+    STDMETHOD(UnregisterForNotifications)(THIS) PURE;
+    STDMETHOD(PauseNotifications)(THIS) PURE;
+    STDMETHOD(ResumeNotifications)(THIS) PURE;
+    STDMETHOD(RegisterARNotify)(THIS, struct IAppResolverNotify*);
+    STDMETHOD(RefreshCache)(THIS, enum START_MENU_REFRESH_CACHE_FLAGS Flags);
+    STDMETHOD(ReleaseGlobalCacheObject)(THIS) PURE;
+    STDMETHOD(IsCacheMatchingLanguage)(THIS, PLONG);
+    STDMETHOD(EnableAppUsageData)(THIS) PURE;
+
+    END_INTERFACE
+};
+
+typedef enum _START_MENU_APP_ITEMS_FLAGS
+{
+    SMAIF_DEFAULT = 0,
+    SMAIF_EXTENDED = 1,
+    SMAIF_USAGEINFO = 2
+} START_MENU_APP_ITEMS_FLAGS;
+
+#undef INTERFACE
+#define INTERFACE IApplicationResolver
+DECLARE_INTERFACE_IID(IApplicationResolver, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IApplicationResolver
     STDMETHOD(GetAppIDForShortcut)(THIS,
         _In_ IShellItem *psi,
         _Outptr_ PWSTR *ppszAppID
@@ -274,9 +339,16 @@ DECLARE_INTERFACE_IID(IApplicationResolver61, IUnknown)
 #define IApplicationResolver_GenerateShortcutFromItemProperties(This, psi2, ppsi) \
     ((This)->lpVtbl->GenerateShortcutFromItemProperties(This, psi2, ppsi))
 
+typedef enum tagAPP_RESOLVER_ITEM_FILTER_FLAGS
+{
+    ARIFF_NONE = 0,
+    ARIFF_REQUIRE_PREVENT_PINNING_NOT_SET = 1,
+    ARIFF_REQUIRE_PINNABLE = 2,
+} APP_RESOLVER_ITEM_FILTER_FLAGS;
+
 #undef INTERFACE
-#define INTERFACE IApplicationResolver62
-DECLARE_INTERFACE_IID(IApplicationResolver62, IUnknown)
+#define INTERFACE IApplicationResolver2
+DECLARE_INTERFACE_IID(IApplicationResolver2, IUnknown)
 {
     BEGIN_INTERFACE
 
@@ -285,7 +357,7 @@ DECLARE_INTERFACE_IID(IApplicationResolver62, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
-    // IApplicationResolver62
+    // IApplicationResolver2
     STDMETHOD(GetAppIDForShortcut)(THIS,
         _In_ IShellItem *psi,
         _Outptr_ PWSTR *ppszAppID
@@ -345,10 +417,19 @@ DECLARE_INTERFACE_IID(IApplicationResolver62, IUnknown)
         _In_ IShellItem2 *psi2,
         _Out_opt_ IShellItem **ppsi
         ) PURE;
-
-    // STDMETHOD(GetLauncherAppIDForItem)(THIS)
-    // STDMETHOD(GetShortcutForAppID)(THIS)
-    // STDMETHOD(GetLauncherAppIDForItemEx)(THIS)
+    STDMETHOD(GetLauncherAppIDForItem)(THIS,
+        _In_ IShellItem *psi,
+        _Outptr_opt_ PWSTR *ppszAppID
+        ) PURE;
+    STDMETHOD(GetShortcutForAppID)(THIS,
+        _In_ PCWSTR ppszAppID,
+        _Out_opt_ IShellItem **ppsi
+        ) PURE;
+    STDMETHOD(GetLauncherAppIDForItemEx)(THIS,
+        _In_ IShellItem *psi,
+        _In_ APP_RESOLVER_ITEM_FILTER_FLAGS Flags,
+        _Outptr_opt_ PWSTR *ppszAppID
+        ) PURE;
 
     END_INTERFACE
 };
@@ -385,8 +466,8 @@ DECLARE_INTERFACE_IID(IApplicationResolver62, IUnknown)
     ((This)->lpVtbl->GenerateShortcutFromItemProperties(This, psi2, ppsi))
 
 #undef INTERFACE
-#define INTERFACE IStartMenuAppItems61
-DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
+#define INTERFACE IStartMenuAppItems
+DECLARE_INTERFACE_IID(IStartMenuAppItems, IUnknown)
 {
     BEGIN_INTERFACE
 
@@ -395,7 +476,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
-    // IStartMenuAppItems61
+    // IStartMenuAppItems
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
@@ -405,7 +486,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PCWSTR AppUserModelId,
         _In_ REFIID riid,
-        _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
+        _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems
         ) PURE;
 
     END_INTERFACE
@@ -423,8 +504,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     ((This)->lpVtbl->GetItem(This, Flags, AppUserModelId, riid, ppvObject))
 
 #undef INTERFACE
-#define INTERFACE IStartMenuAppItems62
-DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
+#define INTERFACE IStartMenuAppItems2
+DECLARE_INTERFACE_IID(IStartMenuAppItems2, IUnknown)
 {
     BEGIN_INTERFACE
 
@@ -433,7 +514,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
-    // IStartMenuAppItems62
+    // IStartMenuAppItems2
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
@@ -443,10 +524,18 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
         _In_ PCWSTR AppUserModelId,
         _In_ REFIID riid,
-        _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
+        _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems
         ) PURE;
-    // STDMETHOD(GetItemByAppPath)(THIS)
-    // STDMETHOD(EnumCachedItems)(THIS)
+    STDMETHOD(GetItemByAppPath)(THIS,
+        _In_ PCWSTR AppPath,
+        _In_ REFIID riid,
+        _Outptr_ PVOID *ppvObject
+        ) PURE;
+    STDMETHOD(EnumCachedItems)(THIS,
+        _In_ PCIDLIST_ABSOLUTE pidl,
+        _In_ REFIID riid,
+        _Outptr_ PVOID *ppvObject
+        ) PURE;
 
     END_INTERFACE
 };
@@ -915,7 +1004,6 @@ typedef enum PackageGlobalizationProperty
 // Package Properties
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -926,7 +1014,6 @@ GetCurrentPackageContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -938,7 +1025,6 @@ GetPackageContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -950,7 +1036,6 @@ GetPackageProperty(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -962,7 +1047,6 @@ GetPackagePropertyString(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -974,7 +1058,6 @@ GetPackageOSMaxVersionTested(
 // Package Application Properties
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -985,7 +1068,6 @@ GetCurrentPackageApplicationContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -997,7 +1079,6 @@ GetPackageApplicationContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -1009,7 +1090,6 @@ GetPackageApplicationProperty(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -1023,7 +1103,6 @@ GetPackageApplicationPropertyString(
 // Package Resource Properties
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -1034,7 +1113,6 @@ GetCurrentPackageResourcesContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -1046,7 +1124,6 @@ GetPackageResourcesContext(
     );
 
 // rev
-_Success_(return == ERROR_SUCCESS)
 WINBASEAPI
 ULONG
 WINAPI
@@ -1058,7 +1135,6 @@ GetCurrentPackageApplicationResourcesContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageApplicationResourcesContext(
@@ -1070,7 +1146,6 @@ GetPackageApplicationResourcesContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageResourcesProperty(
@@ -1084,7 +1159,6 @@ GetPackageResourcesProperty(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetCurrentPackageSecurityContext(
@@ -1094,7 +1168,6 @@ GetCurrentPackageSecurityContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageSecurityContext(
@@ -1105,7 +1178,6 @@ GetPackageSecurityContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageSecurityProperty(
@@ -1123,7 +1195,6 @@ GetPackageSecurityProperty(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetCurrentTargetPlatformContext(
@@ -1132,7 +1203,6 @@ GetCurrentTargetPlatformContext(
     );
 
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetTargetPlatformContext(
@@ -1143,7 +1213,6 @@ GetTargetPlatformContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageTargetPlatformProperty(
@@ -1173,7 +1242,6 @@ GetCurrentPackageInfo3(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetCurrentPackageGlobalizationContext(
@@ -1184,7 +1252,6 @@ GetCurrentPackageGlobalizationContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageGlobalizationContext(
@@ -1196,7 +1263,6 @@ GetPackageGlobalizationContext(
 
 // rev
 WINBASEAPI
-_Success_(return == ERROR_SUCCESS)
 LONG
 WINAPI
 GetPackageGlobalizationProperty(

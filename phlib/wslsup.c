@@ -394,6 +394,7 @@ BOOLEAN PhCreateProcessLxss(
     _Out_ PPH_STRING *Result
     )
 {
+    static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
     BOOLEAN result = FALSE;
     PPH_STRING lxssOutputString = NULL;
     PPH_STRING lxssCommandLine;
@@ -431,8 +432,8 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(PhCreatePipeEx(
         &outputReadHandle,
         &outputWriteHandle,
-        TRUE,
-        NULL
+        NULL,
+        &securityAttributes
         )))
     {
         goto CleanupExit;
@@ -441,7 +442,7 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
-        TRUE,
+        &securityAttributes,
         NULL
         )))
     {

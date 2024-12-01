@@ -259,7 +259,7 @@ PhDeleteWindowsRuntimeString(
     );
 
 PHLIBAPI
-UINT32
+ULONG
 NTAPI
 PhGetWindowsRuntimeStringLength(
     _In_opt_ HSTRING String
@@ -270,7 +270,7 @@ PCWSTR
 NTAPI
 PhGetWindowsRuntimeStringBuffer(
     _In_opt_ HSTRING String,
-    _Out_opt_ PUINT32 Length
+    _Out_opt_ PULONG Length
     );
 
 PHLIBAPI

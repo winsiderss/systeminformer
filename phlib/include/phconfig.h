@@ -55,7 +55,7 @@ extern PCWSTR WindowsVersionName;
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
-#define dprintf(format, ...) DbgPrint(format, ##__VA_ARGS__)
+#define dprintf(format, ...) DbgPrint(format __VA_OPT__(,) __VA_ARGS__)
 #else
 #define dprintf(format, ...)
 #endif
@@ -91,6 +91,7 @@ typedef struct _PH_SYSTEM_BASIC_INFORMATION
 {
     USHORT PageSize;
     USHORT NumberOfProcessors;
+    ULONG MaximumTimerResolution;
     ULONG NumberOfPhysicalPages;
     ULONG AllocationGranularity;
     ULONG_PTR MaximumUserModeAddress;

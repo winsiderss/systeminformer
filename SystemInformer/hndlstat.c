@@ -216,15 +216,12 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                 if (PhIsNullOrEmptyString(entry->Name))
                     unknownType = PhFormatString(L"(unknown: %lu)", (ULONG)i);
 
-                countString = PhFormatUInt64(entry->Count, TRUE);
-
                 lvItemIndex = PhAddListViewItem(
                     context->ListViewHandle,
                     MAXINT,
                     PhIsNullOrEmptyString(entry->Name) ? PhGetString(entry->Name) : PhGetString(unknownType),
                     entry
                     );
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, countString->Buffer);
 
                 countString = PhFormatUInt64(entry->Count, TRUE);
                 PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, countString->Buffer);

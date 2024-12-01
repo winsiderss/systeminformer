@@ -14,6 +14,8 @@
 #include "clretw.h"
 #include "clrsup.h"
 #include "svcext.h"
+#include <searchbox.h>
+
 #include <evntcons.h>
 
 #define DNATNC_STRUCTURE 0

@@ -960,24 +960,6 @@ INT CALLBACK EtpCommonPropPageProc(
     return 1;
 }
 
-static BOOLEAN NTAPI EnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_ PVOID Context
-    )
-{
-    if (Module->Type == PH_MODULE_TYPE_MODULE || Module->Type == PH_MODULE_TYPE_WOW64_MODULE)
-    {
-        PhLoadModuleSymbolProvider(
-            Context,
-            Module->FileName,
-            (ULONG64)Module->BaseAddress,
-            Module->Size
-            );
-    }
-
-    return TRUE;
-}
-
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1018,18 +1000,11 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     if (symbolProvider = PhCreateSymbolProvider(NULL))
                     {
                         PhLoadSymbolProviderOptions(symbolProvider);
-
-                        PhEnumGenericModules(
-                            basicInfo.ProcessId,
-                            NULL,
-                            0,
-                            EnumGenericModulesCallback,
-                            symbolProvider
-                            );
-
+                        PhLoadSymbolProviderModules(symbolProvider, context->ProcessId);
+   
                         symbol = PhGetSymbolFromAddress(
                             symbolProvider,
-                            (ULONG64)basicInfo.StartRoutine,
+                            basicInfo.StartRoutine,
                             NULL,
                             NULL,
                             NULL,
@@ -1618,8 +1593,11 @@ static NTSTATUS EtpProcessHandleCloseCallback(
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    PhDereferenceObject(context->HandleItem);
-    PhFree(context);
+    if (Release)
+    {
+        PhDereferenceObject(context->HandleItem);
+        PhFree(context);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -2132,14 +2110,22 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
 }
 
 static NTSTATUS EtpCloseSecurityDesktop(
-    _In_ PVOID Context
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
     POPEN_DESKTOP_CONTEXT context = Context;
 
-    PhClearReference(&context->DesktopName);
-    if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
-    PhFree(context);
+    if (Release)
+    {
+        PhClearReference(&context->DesktopName);
+        if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
+        PhFree(context);
+    }
+
+    CloseWindowStation(Handle);
+
     return STATUS_SUCCESS;
 }
 

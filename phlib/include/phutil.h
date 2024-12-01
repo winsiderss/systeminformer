@@ -253,6 +253,13 @@ PhGetWin32FormatMessage(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetNtFormatMessage(
+    _In_ NTSTATUS Status
+    );
+
+PHLIBAPI
 LONG
 NTAPI
 PhShowMessage(
@@ -275,7 +282,7 @@ PhShowMessage2(
     _In_opt_ PCWSTR Icon,
     _In_opt_ PCWSTR Title,
     _In_ PCWSTR Format,
-    _In_ ...
+    ...
     );
 
 #define TD_OK_BUTTON      0x0001
@@ -325,9 +332,12 @@ PhTaskDialogNavigatePage(
     _In_ PTASKDIALOGCONFIG Config
     )
 {
+#ifdef DEBUG
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+#endif
+    #define WM_TDM_NAVIGATE_PAGE (WM_USER + 101)
 
-    SendMessage(WindowHandle, (WM_USER + 101), 0, (LPARAM)(Config));
+    SendMessage(WindowHandle, WM_TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 }
 
 _Success_(return)
@@ -2024,27 +2034,6 @@ NTAPI
 PhDelayExecutionEx(
     _In_ BOOLEAN Alertable,
     _In_ PLARGE_INTEGER DelayInterval
-    );
-
-PHLIBAPI
-ULONGLONG
-NTAPI
-PhReadTimeStampCounter(
-    VOID
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhQueryPerformanceFrequency(
-    _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
 // Stopwatch

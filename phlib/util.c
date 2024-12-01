@@ -21,6 +21,7 @@
 
 #include <apiimport.h>
 #include <appresolver.h>
+#include <guisup.h>
 #include <mapimg.h>
 #include <mapldr.h>
 #include <lsasup.h>
@@ -172,7 +173,7 @@ LCID PhGetSystemDefaultLCID(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetSystemDefaultLCID();
 #else
     LCID localeId = LOCALE_SYSTEM_DEFAULT;
@@ -189,7 +190,7 @@ LCID PhGetUserDefaultLCID(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetUserDefaultLCID();
 #else
     LCID localeId = LOCALE_USER_DEFAULT;
@@ -206,7 +207,7 @@ LCID PhGetCurrentThreadLCID(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetThreadLocale();
 #else
     PTEB currentTeb;
@@ -225,7 +226,7 @@ LANGID PhGetSystemDefaultLangID(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetSystemDefaultLangID();
 #else
     return LANGIDFROMLCID(PhGetSystemDefaultLCID());
@@ -237,7 +238,7 @@ LANGID PhGetUserDefaultLangID(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetUserDefaultLangID();
 #else
     return LANGIDFROMLCID(PhGetUserDefaultLCID());
@@ -249,7 +250,7 @@ LANGID PhGetUserDefaultUILanguage(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     return GetUserDefaultUILanguage();
 #else
     LANGID languageId;
@@ -268,7 +269,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     ULONG localNameLength;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -298,7 +299,7 @@ PPH_STRING PhLCIDToLocaleName(
     _In_ LCID lcid
     )
 {
-#if (PHNT_NATIVE_LOCALE)
+#if defined(PHNT_NATIVE_LOCALE)
     ULONG localNameLength;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -338,7 +339,7 @@ VOID PhLargeIntegerToSystemTime(
     _In_ PLARGE_INTEGER LargeInteger
     )
 {
-#if (PHNT_NATIVE_TIME)
+#if defined(PHNT_NATIVE_TIME)
     FILETIME fileTime;
 
     fileTime.dwLowDateTime = LargeInteger->LowPart;
@@ -366,7 +367,7 @@ BOOLEAN PhSystemTimeToLargeInteger(
     _In_ PSYSTEMTIME SystemTime
     )
 {
-#if (PHNT_NATIVE_TIME)
+#if defined(PHNT_NATIVE_TIME)
     FILETIME fileTime;
 
     if (!SystemTimeToFileTime(SystemTime, &fileTime))
@@ -396,7 +397,7 @@ VOID PhLargeIntegerToLocalSystemTime(
     _In_ PLARGE_INTEGER LargeInteger
     )
 {
-#if (PHNT_NATIVE_TIME)
+#if defined(PHNT_NATIVE_TIME)
     FILETIME fileTime;
     FILETIME newFileTime;
 
@@ -590,8 +591,6 @@ PPH_STRING PhGetWin32Message(
 
     if (message)
     {
-        ULONG_PTR index;
-
         PhTrimToNullTerminatorString(message);
 
         // Remove any trailing newline.
@@ -599,7 +598,7 @@ PPH_STRING PhGetWin32Message(
             message->Buffer[message->Length / sizeof(WCHAR) - 2] == L'\r' &&
             message->Buffer[message->Length / sizeof(WCHAR) - 1] == L'\n')
         {
-            PhMoveReference(&message, PhCreateStringEx(message->Buffer, index * sizeof(WCHAR)));
+            PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
         }
     }
     else
@@ -622,6 +621,46 @@ PPH_STRING PhGetWin32FormatMessage(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
         NULL,
         Result,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (PWSTR)&messageBuffer,
+        0,
+        NULL
+        );
+
+    if (messageBuffer)
+    {
+        if (messageLength)
+        {
+            ULONG_PTR index;
+            PH_STRINGREF string;
+
+            string.Buffer = messageBuffer;
+            string.Length = messageLength * sizeof(WCHAR);
+
+            if ((index = PhFindStringInStringRefZ(&string, L"\r\n", FALSE)) != SIZE_MAX)
+                messageString = PhCreateStringEx(messageBuffer, index * sizeof(WCHAR));
+            else
+                messageString = PhCreateStringEx(messageBuffer, messageLength * sizeof(WCHAR));
+        }
+
+        LocalFree(messageBuffer);
+    }
+
+    return messageString;
+}
+
+PPH_STRING PhGetNtFormatMessage(
+    _In_ NTSTATUS Status
+    )
+{
+    PPH_STRING messageString = NULL;
+    ULONG messageLength = 0;
+    PWSTR messageBuffer = NULL;
+
+    messageLength = FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_FROM_SYSTEM,
+        PhGetLoaderEntryDllBaseZ(L"ntdll.dll"),
+        Status,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (PWSTR)&messageBuffer,
         0,
@@ -4958,13 +4997,10 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (!Information->Environment)
     {
-        if (CreateEnvironmentBlock_Import())
-        {
-            CreateEnvironmentBlock_Import()(&defaultEnvironment, tokenHandle, FALSE);
+        PhCreateEnvironmentBlock(&defaultEnvironment, tokenHandle, FALSE);
 
-            if (defaultEnvironment)
-                Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
-        }
+        if (defaultEnvironment)
+            Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
     }
 
     status = PhCreateProcessWin32Ex(
@@ -4980,8 +5016,10 @@ NTSTATUS PhCreateProcessAsUser(
         ThreadHandle
         );
 
-    if (DestroyEnvironmentBlock_Import() && defaultEnvironment)
-        DestroyEnvironmentBlock_Import()(defaultEnvironment);
+    if (defaultEnvironment)
+    {
+        PhDestroyEnvironmentBlock(defaultEnvironment);
+    }
 
     NtClose(tokenHandle);
 
@@ -7786,7 +7824,7 @@ PVOID PhFileReadAllText(
         FileName,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -7811,7 +7849,7 @@ PVOID PhFileReadAllTextWin32(
         FileName,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -8349,62 +8387,6 @@ NTSTATUS PhDelayExecution(
     }
 }
 
-ULONGLONG PhReadTimeStampCounter(
-    VOID
-    )
-{
-    return ReadTimeStampCounter();
-}
-
-// rev from QueryPerformanceCounter (dmex)
-/**
- * Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
- *
- * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in counts.
- *
- * \return Successful or errant status.
- *
- * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
- */
-BOOLEAN PhQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter
-    )
-{
-#if (PH_WIN32_PERFCOUNTER)
-    return !!QueryPerformanceCounter(PerformanceCounter);
-#elif (PH_NATIVE_PERFCOUNTER)
-    return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, NULL));
-#else
-    return !!RtlQueryPerformanceCounter(PerformanceCounter);
-#endif
-}
-
-// rev from QueryPerformanceFrequency (dmex)
-/**
- * Retrieves the frequency of the performance counter.
- * The frequency of the performance counter is fixed at system boot and is consistent across all processors.
- * Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
- *
- * \param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second.
- *
- * \return Successful or errant status.
- *
- * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
- */
-BOOLEAN PhQueryPerformanceFrequency(
-    _Out_ PLARGE_INTEGER PerformanceFrequency
-    )
-{
-#if (PH_WIN32_PERFCOUNTER)
-    return !!QueryPerformanceFrequency(PerformanceFrequency);
-#elif (PH_NATIVE_PERFCOUNTER)
-    LARGE_INTEGER performanceCounter;
-    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
-#else
-    return !!RtlQueryPerformanceFrequency(PerformanceFrequency);
-#endif
-}
-
 // rev from lucasg https://lucasg.github.io/2017/10/15/Api-set-resolution/ (dmex)
 PPH_STRING PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
@@ -8663,6 +8645,7 @@ NTSTATUS PhCreateProcessRedirection(
     _Out_opt_ PPH_STRING *CommandOutput
     )
 {
+    static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
     NTSTATUS status;
     PPH_STRING output = NULL;
     STARTUPINFOEX startupInfo = { 0 };
@@ -8677,7 +8660,7 @@ NTSTATUS PhCreateProcessRedirection(
     status = PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
-        TRUE,
+        &securityAttributes,
         NULL
         );
 
@@ -8687,8 +8670,8 @@ NTSTATUS PhCreateProcessRedirection(
     status = PhCreatePipeEx(
         &outputReadHandle,
         &outputWriteHandle,
-        TRUE,
-        NULL
+        NULL,
+        &securityAttributes
         );
 
     if (!NT_SUCCESS(status))

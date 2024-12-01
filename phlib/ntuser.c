@@ -12,7 +12,7 @@
 #include <ph.h>
 #include <apiimport.h>
 #include <ntuser.h>
-#include <user.h>
+#include <phconsole.h>
 
 NTSTATUS PhAttachConsole(
     _In_ HANDLE ProcessId
@@ -73,8 +73,9 @@ HANDLE PhGetStdHandle(
 
 NTSTATUS PhGetConsoleProcessList(
     _In_ HANDLE ProcessId,
+    _In_ ULONG ProcessCount,
     _Out_writes_(ProcessCount) PULONG ProcessList,
-    _In_ ULONG ProcessCount
+    _Out_ PULONG ProcessTotal
     )
 {
     NTSTATUS status;
@@ -83,7 +84,7 @@ NTSTATUS PhGetConsoleProcessList(
 
     if (NT_SUCCESS(status))
     {
-        if (GetConsoleProcessList(ProcessList, ProcessCount))
+        if (*ProcessTotal = GetConsoleProcessList(ProcessList, ProcessCount))
             status = STATUS_SUCCESS;
         else
             status = PhGetLastWin32ErrorAsNtStatus();
@@ -94,7 +95,7 @@ NTSTATUS PhGetConsoleProcessList(
     return status;
 }
 
-NTSTATUS PhConsoleControlSetForeground(
+NTSTATUS PhConsoleSetForeground(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN Foreground
     )
@@ -117,7 +118,54 @@ NTSTATUS PhConsoleControlSetForeground(
     return status;
 }
 
-NTSTATUS PhConsoleControlEndTask(
+NTSTATUS PhConsoleNotifyWindow(
+    _In_ HANDLE ProcessID
+    )
+{
+    NTSTATUS status;
+    CONSOLE_PROCESS_INFO consoleProcessInfo;
+
+    if (!ConsoleControl_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    consoleProcessInfo.Flags = CPI_NEWPROCESSWINDOW;
+    consoleProcessInfo.ProcessID = HandleToUlong(ProcessID);
+
+    status = ConsoleControl_Import()(
+        ConsoleNotifyConsoleApplication,
+        &consoleProcessInfo,
+        sizeof(CONSOLE_PROCESS_INFO)
+        );
+
+    return status;
+}
+
+NTSTATUS PhConsoleSetWindow(
+    _In_ HANDLE ProcessID,
+    _In_ HANDLE ThreadId,
+    _In_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    CONSOLEWINDOWOWNER consoleInfo;
+
+    if (!ConsoleControl_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    consoleInfo.ProcessId = HandleToUlong(ProcessID);
+    consoleInfo.ThreadId = HandleToUlong(ThreadId);
+    consoleInfo.WindowHandle = WindowHandle;
+
+    status = ConsoleControl_Import()(
+        ConsoleSetWindowOwner,
+        &consoleInfo,
+        sizeof(CONSOLEWINDOWOWNER)
+        );
+
+    return status;
+}
+
+NTSTATUS PhConsoleEndTask(
     _In_ HANDLE ProcessId,
     _In_ HWND WindowHandle
     )
