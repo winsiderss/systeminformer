@@ -1433,7 +1433,7 @@ PDNS_RECORD PhDnsQuery(
             DnsQuery_W_I(
                 DnsQueryMessage,
                 DnsQueryMessageType,
-                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE | DNS_QUERY_NO_MULTICAST,
                 &dnsServerAddressList,
                 &dnsRecordList,
                 NULL
@@ -1444,7 +1444,7 @@ PDNS_RECORD PhDnsQuery(
             DnsQuery_W_I(
                 DnsQueryMessage,
                 DnsQueryMessageType,
-                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE | DNS_QUERY_NO_MULTICAST,
                 NULL,
                 &dnsRecordList,
                 NULL
@@ -1485,7 +1485,7 @@ PDNS_RECORD PhDnsQuery2(
             DnsQuery_W_I(
                 DnsQueryMessage,
                 DnsQueryMessageType,
-                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE | DNS_QUERY_NO_MULTICAST,
                 &dnsServerAddressList,
                 &dnsRecordList,
                 NULL
@@ -1496,7 +1496,7 @@ PDNS_RECORD PhDnsQuery2(
             DnsQuery_W_I(
                 DnsQueryMessage,
                 DnsQueryMessageType,
-                DnsQueryMessageOptions,
+                DnsQueryMessageOptions | DNS_QUERY_NO_HOSTS_FILE | DNS_QUERY_NO_MULTICAST,
                 NULL,
                 &dnsRecordList,
                 NULL
@@ -1627,7 +1627,7 @@ NTSTATUS PhDnsCreateDnsServerList(
 
     return status;
 }
-
+// HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\Dnscache\Parameters\DohWellKnownServers
 NTSTATUS PhDnsCreateCustomDnsServerList(
     _In_ PCWSTR AddressString,
     _Inout_ DNS_CUSTOM_SERVER* DnsCustomServerList

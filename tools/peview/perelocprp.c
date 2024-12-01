@@ -99,7 +99,7 @@ VOID PvEnumerateRelocationEntries(
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                (ULONG64)entry->ImageBaseVa,
+                entry->ImageBaseVa,
                 NULL,
                 NULL,
                 NULL,
@@ -136,7 +136,7 @@ VOID PvEnumerateRelocationEntries(
                 {
                     symbol = PhGetSymbolFromAddress(
                         PvSymbolProvider,
-                        reloc,
+                        (PVOID)reloc,
                         NULL,
                         NULL,
                         NULL,

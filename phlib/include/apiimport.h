@@ -66,7 +66,6 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
 // User32
 
-PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
 PH_DECLARE_IMPORT(ConsoleControl);
 
 EXTERN_C_END

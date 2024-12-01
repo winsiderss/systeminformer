@@ -35,9 +35,9 @@ static PVOID PhpQueryAppResolverInterface(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion < WINDOWS_8)
-            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver61_I, &resolverInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver_I, &resolverInterface);
         else
-            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver62_I, &resolverInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IApplicationResolver2_I, &resolverInterface);
 
         PhEndInitOnce(&initOnce);
     }
@@ -60,9 +60,9 @@ static PVOID PhpQueryStartMenuCacheInterface(
     if (PhBeginInitOnce(&initOnce))
     {
         if (WindowsVersion < WINDOWS_8)
-            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems61_I, &startMenuInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems_I, &startMenuInterface);
         else
-            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems62_I, &startMenuInterface);
+            PhGetClassObject(L"appresolver.dll", &CLSID_StartMenuCacheAndAppResolver_I, &IID_IStartMenuAppItems2_I, &startMenuInterface);
 
         PhEndInitOnce(&initOnce);
     }
@@ -134,7 +134,7 @@ HRESULT PhAppResolverGetAppIdForProcess(
     if (WindowsVersion < WINDOWS_8)
     {
         status = IApplicationResolver_GetAppIDForProcess(
-            (IApplicationResolver61*)resolverInterface,
+            (IApplicationResolver*)resolverInterface,
             HandleToUlong(ProcessId),
             &appIdText,
             NULL,
@@ -145,7 +145,7 @@ HRESULT PhAppResolverGetAppIdForProcess(
     else
     {
         status = IApplicationResolver2_GetAppIDForProcess(
-            (IApplicationResolver62*)resolverInterface,
+            (IApplicationResolver2*)resolverInterface,
             HandleToUlong(ProcessId),
             &appIdText,
             NULL,
@@ -210,7 +210,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
     if (WindowsVersion < WINDOWS_8)
     {
         status = IApplicationResolver_GetAppIDForWindow(
-            (IApplicationResolver61*)resolverInterface,
+            (IApplicationResolver*)resolverInterface,
             WindowHandle,
             &appIdText,
             NULL,
@@ -221,7 +221,7 @@ HRESULT PhAppResolverGetAppIdForWindow(
     else
     {
         status = IApplicationResolver_GetAppIDForWindow(
-            (IApplicationResolver62*)resolverInterface,
+            (IApplicationResolver2*)resolverInterface,
             WindowHandle,
             &appIdText,
             NULL,
@@ -1232,7 +1232,7 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     if (WindowsVersion < WINDOWS_8)
     {
         status = IStartMenuAppItems_GetItem(
-            (IStartMenuAppItems61*)startMenuInterface,
+            (IStartMenuAppItems*)startMenuInterface,
             SMAIF_DEFAULT,
             PhGetString(applicationUserModelId),
             &IID_IPropertyStore,
@@ -1242,7 +1242,7 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     else
     {
         status = IStartMenuAppItems2_GetItem(
-            (IStartMenuAppItems62*)startMenuInterface,
+            (IStartMenuAppItems2*)startMenuInterface,
             SMAIF_DEFAULT,
             PhGetString(applicationUserModelId),
             &IID_IPropertyStore,

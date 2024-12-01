@@ -267,7 +267,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
 
     name = PhGetSymbolFromAddress(
         context->SymbolProvider,
-        (ULONG64)StackFrame->PcAddress,
+        StackFrame->PcAddress,
         NULL,
         NULL,
         NULL,
@@ -301,22 +301,22 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     {
         BOOLEAN alertable = !!StackFrame->Params[0];
         PVOID timeoutAddress = StackFrame->Params[1];
-        LARGE_INTEGER timeout;
+        LONGLONG timeout;
 
         if (NT_SUCCESS(NtReadVirtualMemory(
             context->ProcessHandle,
             timeoutAddress,
             &timeout,
-            sizeof(LARGE_INTEGER),
+            sizeof(LONGLONG),
             NULL
             )))
         {
-            if (timeout.QuadPart < 0)
+            if (timeout < 0)
             {
                 PhAppendFormatStringBuilder(
                     &context->StringBuilder,
                     L"Thread is sleeping. Timeout: %I64u milliseconds.",
-                    -timeout.QuadPart / PH_TIMEOUT_MS
+                    -timeout / PH_TIMEOUT_MS
                     );
             }
             else

@@ -1316,7 +1316,7 @@ VOID PhpFillProcessItem(
             BOOLEAN isElevated;
             BOOLEAN tokenIsUIAccessEnabled;
             PH_INTEGRITY_LEVEL integrityLevel;
-            PH_STRINGREF integrityString;
+            PPH_STRINGREF integrityString;
 
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -1552,7 +1552,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
     {
         UCHAR priorityClass;
 
-        if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
+        if (NT_SUCCESS(PhGetProcessPriorityClass(ProcessItem->QueryHandle, &priorityClass)))
         {
             ProcessItem->PriorityClass = priorityClass;
         }
@@ -2799,7 +2799,7 @@ VOID PhProcessProviderUpdate(
                     //BOOLEAN isElevated;
                     //TOKEN_ELEVATION_TYPE elevationType;
                     PH_INTEGRITY_LEVEL integrityLevel;
-                    PH_STRINGREF integrityString;
+                    PPH_STRINGREF integrityString;
 
                     if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
                     {
@@ -3246,7 +3246,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->CreateTime = ProcessItem->CreateTime;
 
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
-    PhSetReference(&processRecord->FileName, ProcessItem->FileNameWin32);
+    PhSetReference(&processRecord->FileName, ProcessItem->FileName);
     PhSetReference(&processRecord->CommandLine, ProcessItem->CommandLine);
     //PhSetReference(&processRecord->UserName, ProcessItem->UserName);
 

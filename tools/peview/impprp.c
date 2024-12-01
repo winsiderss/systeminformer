@@ -222,14 +222,14 @@ PPH_STRING PvpQueryModuleOrdinalName(
                                         if (PhLoadModuleSymbolProvider(
                                             moduleSymbolProvider,
                                             exportFileName,
-                                            (ULONG64)mappedImage.ViewBase,
+                                            mappedImage.ViewBase,
                                             (ULONG)mappedImage.ViewSize
                                             ))
                                         {
                                             // Try find the export name using symbols.
                                             exportSymbol = PhGetSymbolFromAddress(
                                                 moduleSymbolProvider,
-                                                (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
+                                                PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
                                                 NULL,
                                                 NULL,
                                                 &exportSymbolName,

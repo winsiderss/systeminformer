@@ -249,7 +249,7 @@ INT WINAPI wWinMain(
         if (PhStartupParameters.PriorityClass != 0)
             priorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
-        PhSetProcessPriority(NtCurrentProcess(), priorityClass);
+        PhSetProcessPriorityClass(NtCurrentProcess(), priorityClass);
     }
 
     if (PhEnableKsiSupport)
@@ -494,6 +494,8 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             goto CleanupExit;
         if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
+
+        PhConsoleSetForeground(processHandle, TRUE);
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
@@ -1228,21 +1230,9 @@ VOID PhpInitializeSettings(
         PhSetIntegerSetting(L"SampleCount", sampleCount);
     }
 
-    if (!PhIsNullOrEmptyString(PhStartupParameters.Channel))
+    if (PhStartupParameters.UpdateChannel)
     {
-        static PH_STRINGREF stableChannel = PH_STRINGREF_INIT(L"release");
-        static PH_STRINGREF previewChannel = PH_STRINGREF_INIT(L"preview");
-        static PH_STRINGREF canaryChannel = PH_STRINGREF_INIT(L"canary");
-        static PH_STRINGREF developerChannel = PH_STRINGREF_INIT(L"developer");
-
-        if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &stableChannel, FALSE))
-            PhSetIntegerSetting(L"ReleaseChannel", PhReleaseChannel);
-        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &previewChannel, FALSE))
-            PhSetIntegerSetting(L"ReleaseChannel", PhPreviewChannel);
-        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &canaryChannel, FALSE))
-            PhSetIntegerSetting(L"ReleaseChannel", PhCanaryChannel);
-        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &developerChannel, FALSE))
-            PhSetIntegerSetting(L"ReleaseChannel", PhDeveloperChannel);
+        PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
     }
 }
 
@@ -1384,7 +1374,16 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.KphStartupMax = TRUE;
             break;
         case PH_ARG_CHANNEL:
-            PhSwapReference(&PhStartupParameters.Channel, Value);
+            {
+                if (Value && PhEqualString2(Value, L"release", FALSE))
+                    PhStartupParameters.UpdateChannel = PhReleaseChannel;
+                else if (Value && PhEqualString2(Value, L"preview", FALSE))
+                    PhStartupParameters.UpdateChannel = PhPreviewChannel;
+                else if (Value && PhEqualString2(Value, L"canary", FALSE))
+                    PhStartupParameters.UpdateChannel = PhCanaryChannel;
+                else if (Value && PhEqualString2(Value, L"developer", FALSE))
+                    PhStartupParameters.UpdateChannel = PhDeveloperChannel;
+            }
             break;
         }
     }
@@ -1455,12 +1454,6 @@ VOID PhpProcessStartupParameters(
         NULL
         ) || PhStartupParameters.Help)
     {
-        if (PhStartupParameters.Help)
-        {
-            PhGuiSupportInitialization();
-            PhpInitializeSettings();
-            PhInitializeSuperclassControls();
-        }
         PhShowInformation2(
             NULL,
             L"Command line options:",
@@ -1484,8 +1477,7 @@ VOID PhpProcessStartupParameters(
             L"-v"
             );
 
-        if (PhStartupParameters.Help)
-            PhExitApplication(STATUS_SUCCESS);
+        PhExitApplication(STATUS_SUCCESS);
     }
 
     if (PhStartupParameters.Elevate && !PhGetOwnTokenAttributes().Elevated)

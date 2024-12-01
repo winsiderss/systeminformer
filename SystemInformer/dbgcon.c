@@ -24,6 +24,7 @@
 #include <mapldr.h>
 #include <workqueue.h>
 #include <workqueuep.h>
+#include <phconsole.h>
 
 #include <procprv.h>
 #include <srvprv.h>
@@ -113,7 +114,7 @@ VOID PhCloseDebugConsole(
     _wfreopen(L"NUL", L"w", stderr);
     _wfreopen(L"NUL", L"r", stdin);
 
-    FreeConsole();
+    PhFreeConsole();
 }
 
 static BOOL ConsoleHandlerRoutine(
@@ -132,30 +133,12 @@ static BOOL ConsoleHandlerRoutine(
     return FALSE;
 }
 
-static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_ PVOID Context
-    )
-{
-    if (!PhLoadModuleSymbolProvider(
-        (PPH_SYMBOL_PROVIDER)Context,
-        Module->FileName,
-        (ULONG64)Module->BaseAddress,
-        Module->Size
-        ))
-    {
-        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileName));
-    }
-
-    return TRUE;
-}
-
 static PWSTR PhpGetSymbolForAddress(
     _In_ PVOID Address
     )
 {
     return PH_AUTO_T(PH_STRING, PhGetSymbolFromAddress(
-        DebugConsoleSymbolProvider, (ULONG64)Address, NULL, NULL, NULL, NULL
+        DebugConsoleSymbolProvider, Address, NULL, NULL, NULL, NULL
         ))->Buffer;
 }
 
@@ -430,7 +413,7 @@ static NTSTATUS PhpLeakEnumerationRoutine(
         {
             PPH_STRING symbol;
 
-            symbol = PhGetSymbolFromAddress(DebugConsoleSymbolProvider, (ULONG64)StackTrace[i], NULL, NULL, NULL, NULL);
+            symbol = PhGetSymbolFromAddress(DebugConsoleSymbolProvider, StackTrace[i], NULL, NULL, NULL, NULL);
 
             if (symbol)
             {
@@ -663,12 +646,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
     }
 
-    PhEnumGenericModules(
-        NtCurrentProcessId(),
-        NtCurrentProcess(),
-        0,
-        PhpLoadCurrentProcessSymbolsCallback,
-        DebugConsoleSymbolProvider
+    PhLoadSymbolProviderModules(
+        DebugConsoleSymbolProvider,
+        NtCurrentProcessId()
         );
 
 #ifdef DEBUG
@@ -1426,7 +1406,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     wprintf(L"Process item at %Ix: %s (%u)\n", (ULONG_PTR)process, process->ProcessName->Buffer, HandleToUlong(process->ProcessId));
                     wprintf(L"\tRecord at %Ix\n", (ULONG_PTR)process->Record);
                     wprintf(L"\tQuery handle %Ix\n", (ULONG_PTR)process->QueryHandle);
-                    wprintf(L"\tFile name at %Ix: %s\n", (ULONG_PTR)process->FileNameWin32, PhGetStringOrDefault(process->FileNameWin32, L"(null)"));
+                    wprintf(L"\tFile name at %Ix: %s\n", (ULONG_PTR)process->FileName, PhGetStringOrDefault(process->FileName, L"(null)"));
                     wprintf(L"\tCommand line at %Ix: %s\n", (ULONG_PTR)process->CommandLine, PhGetStringOrDefault(process->CommandLine, L"(null)"));
                     wprintf(L"\tFlags: %u\n", process->Flags);
                     wprintf(L"\n");

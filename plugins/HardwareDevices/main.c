@@ -12,11 +12,11 @@
 
 #include "devices.h"
 #include <hndlinfo.h>
-#include <secedit.h>
 
 PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
 ULONG NetWindowsVersion = WINDOWS_ANCIENT;
+ULONG NetUpdateInterval = 0;
 
 PPH_OBJECT_TYPE NetworkDeviceEntryType = NULL;
 PPH_LIST NetworkDevicesList = NULL;
@@ -48,6 +48,7 @@ VOID NTAPI LoadSettings(
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
     NetWindowsVersion = PhWindowsVersion;
+    NetUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
 }
 
 VOID NTAPI LoadCallback(

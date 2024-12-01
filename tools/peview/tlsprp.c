@@ -51,7 +51,7 @@ VOID PvpPeEnumerateTlsCallbacks(
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                (ULONG64)entry.Address,
+                (PVOID)entry.Address,
                 NULL,
                 NULL,
                 &symbolName,

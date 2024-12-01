@@ -229,3 +229,5 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
+
+#define _CRT_SECURE_NO_WARNINGS 1

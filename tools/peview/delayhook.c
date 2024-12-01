@@ -64,8 +64,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
 
             if (PhDefaultEnableStreamerMode)
             {
-                if (SetWindowDisplayAffinity_Import())
-                    SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
             if (PhEnableThemeSupport)
@@ -117,8 +116,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
             {
                 if (PhDefaultEnableStreamerMode)
                 {
-                    if (SetWindowDisplayAffinity_Import())
-                        SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                    SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
                 if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
@@ -178,8 +176,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
             {
                 if (PhDefaultEnableStreamerMode)
                 {
-                    if (SetWindowDisplayAffinity_Import())
-                        SetWindowDisplayAffinity_Import()(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
+                    SetWindowDisplayAffinity(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
                 }
             }
         }
@@ -1579,8 +1576,7 @@ HWND PhCreateWindowExHook(
     {
         if (PhDefaultEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
@@ -1868,8 +1864,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     {
         if (PhDefaultEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         PhInitializeThemeWindowFrame(WindowHandle);

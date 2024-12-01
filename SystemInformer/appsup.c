@@ -21,6 +21,7 @@
 #include <phappres.h>
 #include <phsvccl.h>
 #include <thirdparty.h>
+#include <phconsole.h>
 
 /**
  * Determines whether a process is suspended.
@@ -908,10 +909,25 @@ VOID PhShellExecuteUserString(
     else
     {
         NTSTATUS status;
+        HANDLE processHandle;
 
-        status = PhCreateProcessWin32(NULL, executeString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
+        status = PhCreateProcessWin32(
+            NULL,
+            executeString->Buffer,
+            NULL,
+            NULL,
+            0,
+            NULL,
+            &processHandle,
+            NULL
+            );
 
-        if (!NT_SUCCESS(status))
+        if (NT_SUCCESS(status))
+        {
+            PhConsoleSetForeground(processHandle, TRUE);
+            NtClose(processHandle);
+        }
+        else
         {
             if (ErrorMessage)
             {
@@ -1499,6 +1515,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
         // Ignore the debug object status.
         result = TRUE;
 
+        PhConsoleSetForeground(processHandle, TRUE);
         NtClose(processHandle);
     }
 

@@ -666,7 +666,7 @@ BOOLEAN PhpShowToastNotification(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
+        iconFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\icon.png", FALSE);
 
         if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
             PhClearReference(&iconFileName);

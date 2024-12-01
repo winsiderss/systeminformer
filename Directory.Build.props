@@ -7,30 +7,24 @@
           <SDLCheck>true</SDLCheck>
           <MinimalRebuild>false</MinimalRebuild>
           <MultiProcessorCompilation>true</MultiProcessorCompilation>
-          <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-          <FunctionLevelLinking>true</FunctionLevelLinking>
           <LanguageStandard>stdcpplatest</LanguageStandard>
           <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
           <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
           <StringPooling>true</StringPooling>
           <SupportJustMyCode>false</SupportJustMyCode>
-          <CallingConvention>StdCall</CallingConvention>
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
           <OmitFramePointers>true</OmitFramePointers>
-          <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-          <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <ConformanceMode>true</ConformanceMode>
           <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <FloatingPointModel>Precise</FloatingPointModel>
+          <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
       </ClCompile>
       <Link>
-          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <SubSystem>Windows</SubSystem>
           <CETCompat>true</CETCompat>
           <LargeAddressAware>true</LargeAddressAware>
-          <TerminalServerAware>true</TerminalServerAware>
       </Link>
       <ResourceCompile>
           <Culture>0x0009</Culture>
@@ -43,59 +37,48 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
-    <PlatformToolset>v143</PlatformToolset>   
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <!-- Release Builds -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+    <PlatformToolset>v143</PlatformToolset>
     <SpectreMitigation>Spectre</SpectreMitigation>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <LinkIncremental>false</LinkIncremental>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
 
   <!-- Debug|Win32 Builds -->
@@ -103,44 +86,52 @@
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
+          <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
+          <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>true</LinkIncremental>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
+          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
       </Link>
   </ItemDefinitionGroup>
- 
+
   <!-- Debug|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
+          <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
+          <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>true</LinkIncremental>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
+          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
       </Link>
   </ItemDefinitionGroup>
 
@@ -149,25 +140,29 @@
       <ClCompile>
           <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+          <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <Optimization>Disabled</Optimization>
           <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
+          <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
+          <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
           <IntrinsicFunctions>true</IntrinsicFunctions>
           <GuardSignedReturns>true</GuardSignedReturns>
       </ClCompile>
       <Link>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>true</LinkIncremental>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
+          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
       </Link>
   </ItemDefinitionGroup>
- 
+
   <!-- Release|Win32 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       <ClCompile>
@@ -187,21 +182,22 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <CETCompat>true</CETCompat>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <Optimization>Disabled</Optimization>
+          <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>false</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
       </Link>
   </ItemDefinitionGroup>
-  
+
   <!-- Release|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       <ClCompile>
@@ -222,24 +218,25 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <CETCompat>true</CETCompat>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+          <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>false</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
       </Link>
   </ItemDefinitionGroup>
- 
+
   <!-- Release|ARM64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <Optimization>Full</Optimization>
@@ -254,12 +251,13 @@
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
-          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
-          <MinimumRequiredVersion>10</MinimumRequiredVersion>    
+          <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
+          <AdditionalDependencies>binmode.obj;invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+          <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
-          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <GenerateDebugInformation>false</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>

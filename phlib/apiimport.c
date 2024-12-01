@@ -54,7 +54,7 @@ PVOID PhpImportProcedure(
         {
             if (procedure = PhGetDllBaseProcedureAddress(module, ProcedureName, 0))
             {
-                *Cookie = (ULONG_PTR)NtGetTickCount64();
+                *Cookie = (ULONG_PTR)PhReadTimeStampCounter();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
             }
         }
@@ -111,7 +111,7 @@ PVOID PhpImportProcedureNative(
                 &procedure
                 )))
             {
-                *Cookie = (ULONG_PTR)NtGetTickCount64();
+                *Cookie = (ULONG_PTR)PhReadTimeStampCounter();
                 *Cache = (PVOID)((ULONG_PTR)procedure ^ (ULONG_PTR)*Cookie);
             }
         }
@@ -193,7 +193,6 @@ PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
-PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 
 // CRT

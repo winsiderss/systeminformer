@@ -155,38 +155,28 @@ VOID PhpColumnsResetListBox(
 
 VOID NTAPI PhpInactiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
-    _In_opt_ PVOID Context
+    _In_ PCOLUMNS_DIALOG_CONTEXT Context
     )
 {
-    PCOLUMNS_DIALOG_CONTEXT context = Context;
-
-    assert(context);
-
     PhpColumnsResetListBox(
-        context->InactiveWindowHandle,
+        Context->InactiveWindowHandle,
         MatchHandle,
-        context->InactiveListArray,
+        Context->InactiveListArray,
         PhpInactiveColumnsCompareNameTn
         );
 }
 
 VOID NTAPI PhpActiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
-    _In_opt_ PVOID Context
     )
 {
-    PCOLUMNS_DIALOG_CONTEXT context = Context;
-
-    assert(context);
-
     PhpColumnsResetListBox(
-        context->ActiveWindowHandle,
+        Context->ActiveWindowHandle,
         MatchHandle,
-        context->ActiveListArray,
+        Context->ActiveListArray,
         NULL
         );
 }
-
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
     _In_ HWND hwndDlg,
@@ -261,7 +251,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             Button_Enable(context->MoveUpHandle, FALSE);
             Button_Enable(context->MoveDownHandle, FALSE);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhEnableThemeSupport)
             {
                 context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
                 context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);
@@ -391,10 +381,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     #define ORDER_LIMIT 210
                     ULONG i;
-                    LONG orderArray[ORDER_LIMIT];
-                    LONG maxOrder;
+                    ULONG orderArray[ORDER_LIMIT];
+                    ULONG maxOrder;
 #ifdef DEBUG
-                    assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // bump ORDER_LIMIT macro (dmex)
+                    assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // ORDER_LIMIT must be defined a value greater than ColumnCount // (dmex)
 #endif
                     memset(orderArray, 0, sizeof(orderArray));
                     maxOrder = 0;
@@ -419,7 +409,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             {
                                 orderArray[index] = column->Id;
 
-                                if ((ULONG)maxOrder < index + 1)
+                                if (maxOrder < index + 1)
                                     maxOrder = index + 1;
                             }
                         }
@@ -437,7 +427,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_INACTIVE:
                 {
-                    switch (HIWORD(wParam))
+                    switch (GET_WM_COMMAND_CMD(wParam, lParam))
                     {
                     case LBN_DBLCLK:
                         {
@@ -456,7 +446,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDC_ACTIVE:
                 {
-                    switch (HIWORD(wParam))
+                    switch (GET_WM_COMMAND_CMD(wParam, lParam))
                     {
                     case LBN_DBLCLK:
                         {

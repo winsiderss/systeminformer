@@ -259,21 +259,21 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug32\\Resources\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Debug64\\Resources\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\DebugARM64\\Resources\\{file.Value}", Flags);
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release32\\Resources\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\Release64\\Resources\\{file.Value}", Flags);
                     if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\{file.Value}", Flags);
+                        Win32.CopyIfNewer($"SystemInformer\\resources\\{file.Key}", $"bin\\ReleaseARM64\\Resources\\{file.Value}", Flags);
                 }
             }
 
@@ -455,14 +455,14 @@ namespace CustomBuildTool
 
             // Copy the plugin SDK headers
             foreach (string file in BuildConfig.Build_Phnt_Headers)
-                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}");
+                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}", Flags);
             foreach (string file in BuildConfig.Build_Phlib_Headers)
-                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}");
+                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}", Flags);
             foreach (string file in BuildConfig.Build_Kphlib_Headers)
-                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}");
+                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}", Flags);
 
             // Copy readme
-            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt");
+            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt", Flags);
             // Copy symbols
             //Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
             //Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");

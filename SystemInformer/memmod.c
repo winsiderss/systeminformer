@@ -262,7 +262,7 @@ static NTSTATUS PhpLimitedSymbolProviderLookupFunction(
                 PhLoadFileNameSymbolProvider(
                     result->Context->SymbolProvider,
                     entry->FileName,
-                    (ULONG64)entry->ImageBase,
+                    entry->ImageBase,
                     (ULONG)entry->SizeOfImage
                     );
             }
@@ -284,7 +284,7 @@ static NTSTATUS PhpLimitedSymbolProviderLookupFunction(
 
     result->Symbol = PhGetSymbolFromAddress(
         result->Context->SymbolProvider,
-        (ULONG64)result->Address,
+        result->Address,
         NULL,
         &result->FileName,
         NULL,
@@ -368,10 +368,10 @@ static VOID PhpProcessSymbolLookupResults(
 // Get a basic symbol name (module+offset).
 static PPH_STRING PhpLimitedSymbolProviderGetBasicSymbol(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address
+    _In_ PVOID Address
     )
 {
-    ULONG64 modBase;
+    PVOID modBase;
     PPH_STRING fileName = NULL;
     PPH_STRING baseName = NULL;
     PPH_STRING symbol;
@@ -381,7 +381,7 @@ static PPH_STRING PhpLimitedSymbolProviderGetBasicSymbol(
     if (!fileName)
     {
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
-        PhPrintPointer(symbol->Buffer, (PVOID)Address);
+        PhPrintPointer(symbol->Buffer, Address);
         PhTrimToNullTerminatorString(symbol);
     }
     else
@@ -392,7 +392,7 @@ static PPH_STRING PhpLimitedSymbolProviderGetBasicSymbol(
 
         PhInitFormatSR(&format[0], baseName->sr);
         PhInitFormatS(&format[1], L"+0x");
-        PhInitFormatIX(&format[2], (ULONG_PTR)(Address - modBase));
+        PhInitFormatIX(&format[2], (ULONG_PTR)Address - (ULONG_PTR)modBase);
 
         symbol = PhFormat(format, 3, baseName->Length + 6 + 32);
     }

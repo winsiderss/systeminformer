@@ -480,9 +480,8 @@ VOID PhInitializeEtwTraceGuidCache(
     PVOID jsonObject;
     ULONG arrayLength;
 
-    if (guidListFileName = PhGetApplicationDirectory())
+    if (guidListFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\EtwGuids.txt", TRUE))
     {
-        PhMoveReference(&guidListFileName, PhConcatStringRefZ(&guidListFileName->sr, L"etwguids.txt"));
         guidListString = PhFileReadAllText(&guidListFileName->sr, TRUE);
         PhDereferenceObject(guidListFileName);
     }
@@ -2242,6 +2241,7 @@ NTSTATUS PhpCallWithTimeout(
         if (!NT_SUCCESS(status = PhCreateUserThread(
             NtCurrentProcess(),
             NULL,
+            THREAD_ALL_ACCESS,
             0,
             0,
             UInt32x32To64(32, 1024),

@@ -281,7 +281,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            PPH_STRING ssdeepHashString = NULL;
+            char* ssdeepHashString = NULL;
 
             fuzzy_hash_buffer(
                 imageDirectoryData,
@@ -291,7 +291,8 @@ VOID PvpPeEnumerateImageDataDirectory(
 
             if (ssdeepHashString)
             {
-                directoryNode->SsdeepString = ssdeepHashString;
+                directoryNode->SsdeepString = PhConvertUtf8ToUtf16(ssdeepHashString);
+                free(ssdeepHashString);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -302,7 +303,7 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            PPH_STRING tlshHashString = NULL;
+            char* tlshHashString = NULL;
 
             //
             // This can fail in TLSH library during finalization when
@@ -314,9 +315,10 @@ VOID PvpPeEnumerateImageDataDirectory(
                 &tlshHashString
                 );
 
-            if (!PhIsNullOrEmptyString(tlshHashString))
+            if (tlshHashString)
             {
-                directoryNode->TlshString = tlshHashString;
+                directoryNode->TlshString = PhConvertUtf8ToUtf16(tlshHashString);
+                free(tlshHashString);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

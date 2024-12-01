@@ -63,12 +63,14 @@ namespace CustomBuildTool
 
                 if (ProgramArgs.ContainsKey("-Debug"))
                 {
+                    flags |= BuildFlags.BuildDebug;
+
                     if (ProgramArgs.ContainsKey("-Win32"))
-                        flags |= BuildFlags.BuildDebug | BuildFlags.Build32bit;
+                        flags |= BuildFlags.Build32bit;
                     else if (ProgramArgs.ContainsKey("-x64"))
-                        flags |= BuildFlags.BuildDebug | BuildFlags.Build64bit;
+                        flags |= BuildFlags.Build64bit;
                     else if (ProgramArgs.ContainsKey("-arm64"))
-                        flags |= BuildFlags.BuildDebug | BuildFlags.BuildArm64bit;
+                        flags |= BuildFlags.BuildArm64bit;
                     else
                     {
                         Environment.Exit(1);
@@ -76,12 +78,14 @@ namespace CustomBuildTool
                 }
                 else if (ProgramArgs.ContainsKey("-release"))
                 {
+                    flags |= BuildFlags.BuildRelease;
+
                     if (ProgramArgs.ContainsKey("-Win32"))
-                        flags |= BuildFlags.BuildRelease | BuildFlags.Build32bit;
+                        flags |= BuildFlags.Build32bit;
                     else if (ProgramArgs.ContainsKey("-x64"))
-                        flags |= BuildFlags.BuildRelease | BuildFlags.Build64bit;
+                        flags |= BuildFlags.Build64bit;
                     else if (ProgramArgs.ContainsKey("-arm64"))
-                        flags |= BuildFlags.BuildRelease | BuildFlags.BuildArm64bit;
+                        flags |= BuildFlags.BuildArm64bit;
                     else
                     {
                         Environment.Exit(1);

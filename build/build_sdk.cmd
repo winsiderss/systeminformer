@@ -9,6 +9,12 @@ if not exist %BUILD_TOOL% (
     exit /b 1
 )
 
-start /B /W "" %BUILD_TOOL% "-sdk"
+REM start /B /W "" %BUILD_TOOL% "-sdk" "-Debug" "-Win32"
+REM start /B /W "" %BUILD_TOOL% "-sdk" "-Debug" "-x64"
+REM start /B /W "" %BUILD_TOOL% "-sdk" "-Debug" "-arm64"
+
+REM start /B /W "" %BUILD_TOOL% "-sdk" "-Release" "-Win32"
+start /B /W "" %BUILD_TOOL% "-sdk" "-Release" "-x64"
+REM start /B /W "" %BUILD_TOOL% "-sdk" "-Release" "-arm64"
 
 pause

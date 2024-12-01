@@ -457,7 +457,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            if (!NT_SUCCESS(PhGetProcessPriority(
+            if (!NT_SUCCESS(PhGetProcessPriorityClass(
                 processHandle,
                 &priorityClass
                 )))

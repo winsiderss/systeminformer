@@ -590,6 +590,7 @@ EXPORTS
     PhGetProcessWindowTitle
     PhGetProcessWorkingSetInformation
     PhGetProcessWsCounters
+    PhGetSectionFileName
     PhGetTokenGroups
     PhGetTokenIntegrityLevel
     PhGetTokenIntegrityLevelRID
@@ -639,6 +640,7 @@ EXPORTS
     PhSetTokenSessionId
     PhSetValueKey
     PhTerminateProcess
+    PhTraceControl
     PhTransceiveNamedPipe
     PhUnloadDllProcess
     PhUnloadDriver
@@ -1048,6 +1050,7 @@ EXPORTS
     PhGetModuleFromAddress
     PhGetSymbolFromAddress
     PhGetSymbolFromName
+    PhLoadSymbolProviderModules
     PhLoadModuleSymbolProvider
     PhLoadModulesForVirtualSymbolProvider
     PhSetOptionsSymbolProvider

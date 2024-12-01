@@ -232,19 +232,16 @@ VOID PhpRefreshEnvironmentList(
         HANDLE tokenHandle;
         ULONG flags = 0;
 
-        if (CreateEnvironmentBlock_Import())
-        {
-            CreateEnvironmentBlock_Import()(&systemDefaultEnvironment, NULL, FALSE);
+        PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE);
 
-            if (NT_SUCCESS(PhOpenProcessToken(
-                processHandle,
-                TOKEN_QUERY | TOKEN_DUPLICATE,
-                &tokenHandle
-                )))
-            {
-                CreateEnvironmentBlock_Import()(&userDefaultEnvironment, tokenHandle, FALSE);
-                NtClose(tokenHandle);
-            }
+        if (NT_SUCCESS(PhOpenProcessToken(
+            processHandle,
+            TOKEN_QUERY | TOKEN_DUPLICATE,
+            &tokenHandle
+            )))
+        {
+            PhCreateEnvironmentBlock(&userDefaultEnvironment, tokenHandle, FALSE);
+            NtClose(tokenHandle);
         }
 
 #ifdef _WIN64
@@ -366,13 +363,10 @@ VOID PhpRefreshEnvironmentList(
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
-    if (DestroyEnvironmentBlock_Import())
-    {
-        if (systemDefaultEnvironment)
-            DestroyEnvironmentBlock_Import()(systemDefaultEnvironment);
-        if (userDefaultEnvironment)
-            DestroyEnvironmentBlock_Import()(userDefaultEnvironment);
-    }
+    if (systemDefaultEnvironment)
+        PhDestroyEnvironmentBlock(systemDefaultEnvironment);
+    if (userDefaultEnvironment)
+        PhDestroyEnvironmentBlock(userDefaultEnvironment);
 }
 
 NTSTATUS PhpEditDlgSetEnvironment(
@@ -577,7 +571,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
             PhSetWindowContext(windowhandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(windowhandle));
-            PhSetWindowProcedure(windowhandle, PhpEditEnvSubclassProc);
+            PhSetWindowProcedure(windowhandle, (WNDPROC)PhpEditEnvSubclassProc);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
@@ -881,8 +875,8 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentNode(
     PhAddEntryHashtable(Context->NodeHashtable, &node);
     PhAddItemList(Context->NodeList, node);
 
-    if (Context->TreeFilterSupport.FilterList)
-        node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
+    //if (Context->TreeFilterSupport.FilterList)
+    //   node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
 
     if (ParentNode)
     {
@@ -900,6 +894,8 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpAddEnvironmentNode(
         // This is a root node.
         PhAddItemList(Context->NodeRootList, node);
     }
+
+    //TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return node;
 }
@@ -1322,15 +1318,16 @@ VOID PhpInitializeEnvironmentTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     TreeNew_SetCallback(Context->TreeNewHandle, PhpEnvironmentTreeNewCallback, Context);
-
+    // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"Value", 250, PH_ALIGN_LEFT, 1, 0);
-
+    // Customizable columns
+    // ...
+    // Search filters
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpEnvironmentTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
-    TreeNew_SetSort(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, NoSortOrder);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
@@ -1351,14 +1348,12 @@ VOID PhpDeleteEnvironmentTree(
 
 BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_ENVIRONMENT_CONTEXT context = Context;
     PPHP_PROCESS_ENVIRONMENT_TREENODE environmentNode = (PPHP_PROCESS_ENVIRONMENT_TREENODE)Node;
 
-    if (!context)
-        return FALSE;
     if (!environmentNode->Parent && environmentNode->Children && environmentNode->Children->Count == 0)
         return FALSE;
     if (context->TreeNewSortOrder != NoSortOrder && environmentNode->HasChildren)

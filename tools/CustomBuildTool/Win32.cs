@@ -228,9 +228,9 @@ namespace CustomBuildTool
             }
 
             if (updated)
-                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.White, true, Flags);
+                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
             else
-                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.Yellow, true, Flags);
+                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile, BuildFlags Flags = BuildFlags.None)
@@ -276,9 +276,9 @@ namespace CustomBuildTool
             }
 
             if (updated)
-                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.White, true, Flags);
+                Program.PrintColorMessage($"[Success] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
             else
-                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.Yellow, true, Flags);
+                Program.PrintColorMessage($"[Skipped] {SourceFile} was older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         /// <summary>

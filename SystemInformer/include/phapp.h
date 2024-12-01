@@ -31,10 +31,10 @@
 #include <phnet.h>
 
 #include "../resource.h"
+
 #include <phfwddef.h>
 #include <appsup.h>
-
-#include <minidumpapiset.h>
+#include <searchbox.h>
 
 // main
 
@@ -75,7 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
     PPH_STRING SysInfo;
-    PPH_STRING Channel;
+    ULONG UpdateChannel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
@@ -874,6 +874,7 @@ BOOLEAN PhGetElevationTypeString(
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_ HANDLE ProcessId,
     _In_ PVOID Context,
     _In_opt_ PCWSTR Title
@@ -887,6 +888,7 @@ INT CALLBACK PhpTokenSheetProc(
 
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc

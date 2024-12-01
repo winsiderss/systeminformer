@@ -84,9 +84,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (PhSearchControlMatch(SearchMatchHandle, &processNode->ProcessItem->IntegrityString))
-        return TRUE;
-
+    if (processNode->ProcessItem->IntegrityString)
+    {
+        if (PhSearchControlMatch(SearchMatchHandle, processNode->ProcessItem->IntegrityString))
+            return TRUE;
+    }
 
     if (processNode->ProcessItem->Protection.Level ||
         processNode->ProcessItem->IsSecureProcess ||

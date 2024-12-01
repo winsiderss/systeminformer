@@ -308,6 +308,16 @@ static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     return STATUS_UNSUCCESSFUL;
 }
 
+static NTSTATUS PhpThreadPermissionsCloseHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle) NtClose(Handle);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -318,6 +328,16 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
         return PhOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
 
     return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseThreadTokenObject(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle) NtClose(Handle);
+    return STATUS_SUCCESS;
 }
 
 BOOLEAN PhpThreadTreeFilterCallback(
@@ -1323,6 +1343,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             PhShowTokenProperties(
                                 hwndDlg,
                                 PhpOpenThreadTokenObject,
+                                PhpCloseThreadTokenObject,
                                 threadsContext->Provider->ProcessId,
                                 (PVOID)threadHandle,
                                 NULL

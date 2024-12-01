@@ -209,7 +209,7 @@ VOID PvEnumerateDynamicRelocationEntries(
 
                 symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
-                    (ULONG64)entry->ImageBaseVa,
+                    entry->ImageBaseVa,
                     NULL,
                     NULL,
                     NULL,

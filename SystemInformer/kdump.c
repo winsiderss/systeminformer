@@ -64,7 +64,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     else
     {
         liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION_1;
-        length = RTL_SIZEOF_THROUGH_FIELD(SYSDBG_LIVEDUMP_CONTROL, AddPagesControl);
+        length = sizeof(SYSDBG_LIVEDUMP_CONTROL_V1);
     }
 
     liveDumpControl.DumpFileHandle = Context->FileHandle;
@@ -140,12 +140,24 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 PH_FORMAT format[2];
                 WCHAR string[MAX_PATH];
 
-                PhInitFormatS(&format[0], L"Size: ");
-                PhInitFormatSize(&format[1], fileSize.QuadPart);
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+                if (fileSize.QuadPart)
                 {
-                    SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                    PhInitFormatS(&format[0], L"Size: ");
+                    PhInitFormatSize(&format[1], fileSize.QuadPart);
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+                    {
+                        SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                    }
+                }
+                else
+                {
+                    PhInitFormatS(&format[0], L"Initializing...");
+
+                    if (PhFormatToBuffer(format, 1, string, sizeof(string), NULL))
+                    {
+                        SendMessage(context->WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                    }
                 }
             }
             else

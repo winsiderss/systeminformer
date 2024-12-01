@@ -348,7 +348,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                PPH_STRING ssdeepHashString = NULL;
+                char* ssdeepHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {
@@ -360,7 +360,8 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
                     if (ssdeepHashString)
                     {
-                        sectionNode->SsdeepString = ssdeepHashString;
+                        sectionNode->SsdeepString = PhConvertUtf8ToUtf16(ssdeepHashString);
+                        free(ssdeepHashString);
                     }
                 }
             }
@@ -372,7 +373,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
             __try
             {
-                PPH_STRING tlshHashString = NULL;
+                char* tlshHashString = NULL;
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {
@@ -386,9 +387,10 @@ NTSTATUS PvpPeSectionsEnumerateThread(
                         &tlshHashString
                         );
 
-                    if (!PhIsNullOrEmptyString(tlshHashString))
+                    if (tlshHashString)
                     {
-                        sectionNode->TlshString = tlshHashString;
+                        sectionNode->TlshString = PhConvertUtf8ToUtf16(tlshHashString);
+                        free(tlshHashString);
                     }
                 }
             }
@@ -486,7 +488,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
             PhCreateThread2(PvpPeSectionsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+                  PhSetWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

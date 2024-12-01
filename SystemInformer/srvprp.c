@@ -88,10 +88,21 @@ static NTSTATUS PhpOpenServiceCallback(
 }
 
 NTSTATUS PhpCloseServiceCallback(
-    _In_ PVOID Context
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
-    PhDereferenceObject(((PPH_SERVICE_ITEM)Context));
+    if (Handle)
+    {
+        PhCloseServiceHandle(Handle);
+    }
+
+    if (Release && Context)
+    {
+        PhDereferenceObject(((PPH_SERVICE_ITEM)Context));
+    }
+
     return STATUS_SUCCESS;
 }
 

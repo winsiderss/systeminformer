@@ -13,13 +13,11 @@
 #include <ph.h>
 #include <apiimport.h>
 #include <guisup.h>
-#include <guisupview.h>
 #include <mapimg.h>
 #include <mapldr.h>
 #include <settings.h>
 #include <guisupp.h>
 
-#include <math.h>
 #include <commoncontrols.h>
 #include <shellscalingapi.h>
 #include <wincodec.h>
@@ -149,14 +147,15 @@ VOID PhGuiSupportInitialization(
         }
     }
 
-    PhGuiSupportUpdateSystemMetrics(NULL);
+    PhGuiSupportUpdateSystemMetrics(NULL, 0);
 }
 
 VOID PhGuiSupportUpdateSystemMetrics(
-    _In_opt_ HWND WindowHandle
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
     )
 {
-    PhSystemDpi = WindowHandle ? PhGetWindowDpi(WindowHandle) : PhGetSystemDpi();
+    PhSystemDpi = WindowDpi ? WindowDpi : (WindowHandle ? PhGetWindowDpi(WindowHandle) : PhGetSystemDpi());
     PhSmallIconSize.X = PhGetSystemMetrics(SM_CXSMICON, PhSystemDpi);
     PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
     PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
@@ -164,10 +163,11 @@ VOID PhGuiSupportUpdateSystemMetrics(
 }
 
 VOID PhInitializeFont(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
-    LONG windowDpi = PhGetWindowDpi(WindowHandle);
+    LONG windowDpi = WindowDpi ? WindowDpi : PhGetWindowDpi(WindowHandle);
     HFONT oldFont = PhApplicationFont;
 
     if (
@@ -182,10 +182,11 @@ VOID PhInitializeFont(
 }
 
 VOID PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
-    LONG windowDpi = PhGetWindowDpi(WindowHandle);
+    LONG windowDpi = WindowDpi ? WindowDpi : PhGetWindowDpi(WindowHandle);
     HFONT oldFont = PhMonospaceFont;
 
     if (
@@ -2441,6 +2442,59 @@ VOID PhWindowNotifyTopMostEvent(
     }
 
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
+}
+
+/**
+ * Retrieves the environment variables for the specified user.
+ *
+ * @param Environment A pointer to the new environment block. 
+ * @param TokenHandle Token to query for user environment variables.
+ * If this is a primary token, the token must have TOKEN_QUERY and TOKEN_DUPLICATE access.
+ * If the token is an impersonation token, it must have TOKEN_QUERY access.
+ * If this parameter is NULL, the returned environment block contains system variables only.
+ * @param Inherit Specifies whether to inherit variables from the current process' environment. If this value is TRUE, the process inherits the current process' environment. 
+ * @return A pointer to the imported procedure, or NULL if the procedure could not be imported.
+ * @remarks User-specific environment variables such as %USERPROFILE% are set only when the user's profile is loaded. To load a user's profile, call the LoadUserProfile function.
+ */
+NTSTATUS PhCreateEnvironmentBlock(
+    _Outptr_ PVOID* Environment,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ BOOLEAN Inherit
+    )
+{
+    //#include <UserEnv.h>
+    //HANDLE profileHandle;
+    //
+    //if (TokenHandle)
+    //{
+    //    PROFILEINFO profileInfo = { sizeof(PROFILEINFO) };
+    //    LoadUserProfile(TokenHandle, &profileInfo);
+    //    profileHandle = profileInfo.hProfile;
+    //}
+
+    if (CreateEnvironmentBlock_Import()(Environment, TokenHandle, Inherit))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    //if (TokenHandle && profileHandle)
+    //{
+    //    UnloadUserProfile(TokenHandle, profileHandle);
+    //}
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
+ * Frees environment variables created by the CreateEnvironmentBlock function.
+ *
+ * @param Environment A pointer to the new environment block.
+ */
+VOID PhDestroyEnvironmentBlock(
+    _In_ _Post_invalid_ PVOID Environment
+    )
+{
+    DestroyEnvironmentBlock_Import()(Environment);
 }
 
 _Success_(return)

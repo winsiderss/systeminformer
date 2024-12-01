@@ -54,7 +54,7 @@ PPH_STRING PvpCHPERvaToSymbol(
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
-                (ULONG64)va,
+                va,
                 &level,
                 NULL,
                 NULL,

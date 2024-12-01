@@ -572,7 +572,7 @@ PPH_STRING PvLayoutPeFormatDateTime(
 }
 
 PPH_STRING PvLayoutGetRelativeTimeString(
-    _In_ PLARGE_INTEGER Time
+    _In_ PLONGLONG Time
     )
 {
     LARGE_INTEGER time;
@@ -581,7 +581,7 @@ PPH_STRING PvLayoutGetRelativeTimeString(
     PPH_STRING timeRelativeString;
     PPH_STRING timeString;
 
-    time = *Time;
+    time.QuadPart = *Time;
     PhQuerySystemTime(&currentTime);
     timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
 
@@ -1099,10 +1099,10 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             PvAddChildLayoutNode(Context, NULL, L"File reference number", PhFormatString(L"%I64u (0x%I64x)", fileLayoutEntry->FileReferenceNumber, fileLayoutEntry->FileReferenceNumber));
             PvAddChildLayoutNode(Context, NULL, L"File attributes", PhFormatUInt64(fileLayoutEntry->FileAttributes, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"File entry flags", PhFormatUInt64(fileLayoutEntry->Flags, FALSE));
-            PvAddChildLayoutNode(Context, NULL, L"Creation time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.CreationTime));
-            //PvAddChildLayoutNode(Context, NULL, L"Access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
-            PvAddChildLayoutNode(Context, NULL, L"Write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime));
-            PvAddChildLayoutNode(Context, NULL, L"Change time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.ChangeTime));
+            PvAddChildLayoutNode(Context, NULL, L"Creation time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.CreationTime.QuadPart));
+            //PvAddChildLayoutNode(Context, NULL, L"Access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime.QuadPart));
+            PvAddChildLayoutNode(Context, NULL, L"Write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime.QuadPart));
+            PvAddChildLayoutNode(Context, NULL, L"Change time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.ChangeTime.QuadPart));
             PvAddChildLayoutNode(Context, NULL, L"LastUsn", PhFormatUInt64(fileLayoutInfoEntry->Usn, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"OwnerId", PhFormatUInt64(fileLayoutInfoEntry->OwnerId, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"SecurityId", PhFormatUInt64(fileLayoutInfoEntry->SecurityId, FALSE));

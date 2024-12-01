@@ -28,6 +28,7 @@
 #include <netlist.h>
 #include <netprv.h>
 #include <notifico.h>
+#include <phconsole.h>
 #include <phplug.h>
 #include <phsvccl.h>
 #include <procprv.h>
@@ -691,6 +692,17 @@ static NTSTATUS PhpOpenServiceControlManager(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
+static NTSTATUS PhpCloseServiceControlManager(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        PhCloseServiceHandle(Handle);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpOpenSecurityDummyHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -722,6 +734,17 @@ static NTSTATUS PhpOpenSecurityDesktopHandle(
     return STATUS_UNSUCCESSFUL;
 }
 
+static NTSTATUS PhpCloseSecurityDesktopHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        CloseDesktop(Handle);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpOpenSecurityStationHandle(
     _Inout_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -741,6 +764,17 @@ static NTSTATUS PhpOpenSecurityStationHandle(
     }
 
     return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityStationHandle(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Handle)
+        CloseWindowStation(Handle);
+    return STATUS_SUCCESS;
 }
 
 static VOID PhpMwpOnDumpCommand(
@@ -1300,7 +1334,7 @@ VOID PhMwpOnCommand(
                 L"Service Control Manager",
                 L"SCManager",
                 PhpOpenServiceControlManager,
-                NULL,
+                PhpCloseServiceControlManager,
                 NULL
                 );
         }
@@ -1348,7 +1382,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Desktop",
                 L"Desktop",
                 PhpOpenSecurityDesktopHandle,
-                NULL,
+                PhpCloseSecurityDesktopHandle,
                 NULL
                 );
         }
@@ -1360,7 +1394,7 @@ VOID PhMwpOnCommand(
                 L"Current Window Station",
                 L"WindowStation",
                 PhpOpenSecurityStationHandle,
-                NULL,
+                PhpCloseSecurityStationHandle,
                 NULL
                 );
         }
@@ -1420,14 +1454,16 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
 
-            if (PhUiTerminateProcesses(WindowHandle, processes, numberOfProcesses))
-                PhDeselectAllProcessNodes();
+                if (PhUiTerminateProcesses(WindowHandle, processes, numberOfProcesses))
+                    PhDeselectAllProcessNodes();
 
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_TERMINATETREE:
@@ -1450,11 +1486,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiSuspendProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiSuspendProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_SUSPENDTREE:
@@ -1474,11 +1512,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiResumeProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiResumeProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PROCESS_RESUMETREE:
