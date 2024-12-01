@@ -24,7 +24,7 @@
 #define SYMBOLIC_LINK_QUERY 0x0001
 #define SYMBOLIC_LINK_SET 0x0002
 #define SYMBOLIC_LINK_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYMBOLIC_LINK_QUERY)
-#define SYMBOLIC_LINK_ALL_ACCESS_EX (STANDARD_RIGHTS_REQUIRED | 0xFFFF)
+#define SYMBOLIC_LINK_ALL_ACCESS_EX (STANDARD_RIGHTS_REQUIRED | SPECIFIC_RIGHTS_ALL)
 #endif
 
 #ifndef OBJ_PROTECT_CLOSE
@@ -59,28 +59,37 @@ typedef enum _OBJECT_INFORMATION_CLASS
 #define ObjectSessionObjectInformation 6
 #endif
 
+/**
+ * The OBJECT_BASIC_INFORMATION structure contains basic information about an object.
+ */
 typedef struct _OBJECT_BASIC_INFORMATION
 {
-    ULONG Attributes;
-    ACCESS_MASK GrantedAccess;
-    ULONG HandleCount;
-    ULONG PointerCount;
-    ULONG PagedPoolCharge;
-    ULONG NonPagedPoolCharge;
-    ULONG Reserved[3];
-    ULONG NameInfoSize;
-    ULONG TypeInfoSize;
-    ULONG SecurityDescriptorSize;
-    LARGE_INTEGER CreationTime;
+    ULONG Attributes;               // The attributes of the object include whether the object is permanent, can be inherited, and other characteristics.
+    ACCESS_MASK GrantedAccess;      // Specifies a mask that represents the granted access when the object was created.
+    ULONG HandleCount;              // The number of handles that are currently open for the object.
+    ULONG PointerCount;             // The number of references to the object from both handles and other references, such as those from the system.
+    ULONG PagedPoolCharge;          // The amount of paged pool memory that the object is using.
+    ULONG NonPagedPoolCharge;       // The amount of non-paged pool memory that the object is using.
+    ULONG Reserved[3];              // Reserved for future use.
+    ULONG NameInfoSize;             // The size of the name information for the object.
+    ULONG TypeInfoSize;             // The size of the type information for the object.
+    ULONG SecurityDescriptorSize;   // The size of the security descriptor for the object.
+    LARGE_INTEGER CreationTime;     // The time when a symbolic link was created. Not supported for other types of objects.
 } OBJECT_BASIC_INFORMATION, *POBJECT_BASIC_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+/**
+ * The OBJECT_NAME_INFORMATION structure contains the name, if there is one, of a given object.
+ */
 typedef struct _OBJECT_NAME_INFORMATION
 {
-    UNICODE_STRING Name;
+    UNICODE_STRING Name; // The object name (when present) includes a NULL-terminator and all path separators "\" in the name.
 } OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
 #endif
 
+/**
+ * The OBJECT_NAME_INFORMATION structure contains various statistics and properties about an object type.
+ */
 typedef struct _OBJECT_TYPE_INFORMATION
 {
     UNICODE_STRING TypeName;
