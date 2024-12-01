@@ -163,7 +163,7 @@ VOID ToolbarGraphsInitializeDpi(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        graph->GraphDpi = 0;
+        graph->GraphDpi = SystemInformer_GetWindowDpi();
     }
 }
 
@@ -701,7 +701,7 @@ BOOLEAN CpuHistoryGraphMessageCallback(
 
             if (graph->GraphDpi == 0)
             {
-                graph->GraphDpi = PhGetWindowDpi(WindowHandle);
+                graph->GraphDpi = SystemInformer_GetWindowDpi();
                 graph->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
                 graph->GraphColor2 = PhGetIntegerSetting(L"ColorCpuUser");
             }
@@ -804,7 +804,7 @@ BOOLEAN PhysicalHistoryGraphMessageCallback(
 
             if (graph->GraphDpi == 0)
             {
-                graph->GraphDpi = PhGetWindowDpi(WindowHandle);
+                graph->GraphDpi = SystemInformer_GetWindowDpi();
                 graph->GraphColor1 = PhGetIntegerSetting(L"ColorPhysical");
             }
 
@@ -899,7 +899,7 @@ BOOLEAN CommitHistoryGraphMessageCallback(
 
             if (graph->GraphDpi == 0)
             {
-                graph->GraphDpi = PhGetWindowDpi(WindowHandle);
+                graph->GraphDpi = SystemInformer_GetWindowDpi();
                 graph->GraphColor1 = PhGetIntegerSetting(L"ColorPrivate");
             }
 
@@ -994,7 +994,7 @@ BOOLEAN IoHistoryGraphMessageCallback(
 
             if (graph->GraphDpi == 0)
             {
-                graph->GraphDpi = PhGetWindowDpi(WindowHandle);
+                graph->GraphDpi = SystemInformer_GetWindowDpi();
                 graph->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
                 graph->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
             }
