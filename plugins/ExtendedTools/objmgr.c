@@ -2668,6 +2668,15 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
+    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+    if (numberOfItems != 0)
+        oldSelect = EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name);
+    else
+        oldSelect = PhReferenceObject(context->CurrentPath);
+
+    PhSetDialogItemText(context->WindowHandle, IDC_OBJMGR_PATH, PhGetString(oldSelect));
+    PhDereferenceObject(oldSelect);
+
     WCHAR string[PH_INT32_STR_LEN_1];
     PhPrintUInt32(string, ListView_GetItemCount(context->ListViewHandle));
     PhSetDialogItemText(context->WindowHandle, IDC_OBJMGR_COUNT, string);
