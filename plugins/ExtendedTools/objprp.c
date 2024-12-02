@@ -1725,7 +1725,12 @@ static NTSTATUS EtpProcessHandleCloseCallback(
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    if (Release)
+    if (Handle)
+    {
+        NtClose(Handle);
+    }
+
+    if (Release && context)
     {
         PhDereferenceObject(context->HandleItem);
         PhFree(context);
@@ -2249,14 +2254,17 @@ static NTSTATUS EtpCloseSecurityDesktop(
 {
     POPEN_DESKTOP_CONTEXT context = Context;
 
-    if (Release)
+    if (Handle)
+    {
+        CloseDesktop(Handle);
+    }
+
+    if (Release && context)
     {
         PhClearReference(&context->DesktopName);
         if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
         PhFree(context);
     }
-
-    CloseWindowStation(Handle);
 
     return STATUS_SUCCESS;
 }

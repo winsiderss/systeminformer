@@ -2057,7 +2057,12 @@ NTSTATUS EtObjectManagerHandleCloseCallback(
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    if (Release)
+    if (Handle)
+    {
+        NtClose(Handle);
+    }
+
+    if (Release && Context)
     {
         PhClearReference(&context->CurrentPath);
         PhClearReference(&context->FullName);
