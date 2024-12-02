@@ -1414,7 +1414,7 @@ typedef struct _THREAD_UMS_INFORMATION
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
-    // A Unicode string that specifies the description of the thread.
+    // An Unicode string that specifies the description of the thread.
     UNICODE_STRING ThreadName;
 } THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
