@@ -650,7 +650,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, lengthString);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -766,7 +766,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
 
             PvpSearchStrings(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

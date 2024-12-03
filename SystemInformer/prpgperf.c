@@ -94,7 +94,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
             BringWindowToTop(performanceContext->IoGraphHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

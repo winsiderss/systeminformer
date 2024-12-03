@@ -486,7 +486,7 @@ VOID PhSipOnInitDialog(
 
     PhRegisterWindowCallback(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-    //PhInitializeWindowTheme(PhSipWindow, PhEnableThemeSupport);
+    //PhInitializeWindowTheme(PhSipWindow);
     PhInitializeThemeWindowFrame(PhSipWindow);
 
     PhSipOnSize(PhSipWindow, 0, 0, 0);
@@ -2136,10 +2136,7 @@ VOID PhSipCreateSectionDialog(
                 createDialog.Parameter
                 );
 
-            if (PhEnableThemeSupport)
-            {
-                PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
-            }
+            PhInitializeWindowTheme(Section->DialogHandle);
         }
     }
 }

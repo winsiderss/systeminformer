@@ -704,7 +704,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             PhpUpdateProcessStatistics(processItem, statisticsContext);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

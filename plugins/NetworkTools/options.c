@@ -193,7 +193,7 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
 
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_KEY_EDIT));
 
-            PhInitializeWindowTheme(WindowHandle, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_DESTROY:

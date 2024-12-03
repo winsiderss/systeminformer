@@ -1946,7 +1946,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhReferenceObject(context);
             DotNetAsmRefreshTraceQuery(context, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

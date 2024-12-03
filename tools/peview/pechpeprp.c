@@ -469,7 +469,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -246,18 +246,19 @@ typedef enum _PreferredAppMode
     PreferredAppModeDisabled,
     PreferredAppModeDarkOnDark,
     PreferredAppModeDarkAlways,
-    PreferredAppModeLightAlways
+    PreferredAppModeLightAlways,
+    PreferredAppModeMax
 } PreferredAppMode;
 
 PHLIBAPI
-BOOLEAN
+PreferredAppMode
 NTAPI
 PhSetPreferredAppMode(
     _In_ PreferredAppMode AppMode
     );
 
 PHLIBAPI
-BOOLEAN
+VOID
 NTAPI
 PhFlushMenuThemes(
     VOID
@@ -2357,8 +2358,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeWindowTheme(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN EnableThemeSupport
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
@@ -2415,9 +2415,39 @@ PhInitializeWindowThemeMenu(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeTreeNewTheme(
+    _In_ HWND TreeNewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeListViewTheme(
+    _In_ HWND ListViewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+CALLBACK
+PhInitializeSuperclassControls(
+    VOID
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetAppsUseLightTheme(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeTransparencyEnabled(
     VOID
     );
 
@@ -2466,13 +2496,6 @@ LRESULT
 CALLBACK
 PhThemeWindowDrawToolbar(
     _In_ LPNMTBCUSTOMDRAW DrawInfo
-    );
-
-PHLIBAPI
-VOID
-CALLBACK
-PhInitializeSuperclassControls(
-    VOID
     );
 
 // Font support

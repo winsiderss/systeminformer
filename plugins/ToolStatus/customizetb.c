@@ -535,7 +535,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             CustomizeLoadToolbarItems(context);
             CustomizeLoadToolbarSettings(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }

@@ -575,7 +575,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1453,7 +1453,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
             PhpRefreshEnvironmentList(context, processItem);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -63,7 +63,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
                 EndDialog(WindowHandle, IDCANCEL);
             }
 
-            PhInitializeWindowTheme(WindowHandle, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_DESTROY:

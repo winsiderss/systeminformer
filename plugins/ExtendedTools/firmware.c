@@ -264,7 +264,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EtEnumerateFirmwareEntries(context);
         }

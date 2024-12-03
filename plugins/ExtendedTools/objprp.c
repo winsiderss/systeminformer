@@ -1174,7 +1174,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                 NtClose(workerFactoryHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     }
@@ -1695,7 +1695,7 @@ static COLORREF NTAPI EtpColorItemColorFunction(
     PET_HANDLE_ENTRY entry = Param;
     COLORREF color = entry->UseCustomColor ?
         entry->Color :
-        !!PhGetIntegerSetting(L"EnableThemeSupport") ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
+        PhIsThemeSupportEnabled() ? PhGetIntegerSetting(L"ThemeWindowBackgroundColor") : GetSysColor(COLOR_WINDOW);
 
     return color;
 }
@@ -1806,7 +1806,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
             EtpEnumObjectHandles(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_SIZE:
@@ -2368,7 +2368,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_SIZE:

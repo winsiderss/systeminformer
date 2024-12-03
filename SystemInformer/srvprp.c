@@ -458,7 +458,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             context->Ready = TRUE;
 
-            PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
+            PhInitializeWindowTheme(GetParent(hwndDlg));  // HACK (GetParent)
         }
         break;
     case WM_DESTROY:

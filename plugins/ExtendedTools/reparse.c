@@ -1007,7 +1007,7 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Filename");
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             if (context->FileList)
             {
@@ -1205,7 +1205,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                 break;
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
 

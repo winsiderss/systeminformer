@@ -600,7 +600,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             PhpRefreshProcessMemoryList(propPageContext);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

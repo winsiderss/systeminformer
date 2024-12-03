@@ -397,7 +397,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EtpNpuDetailsEnumAdapters(context->ListViewHandle);
 

@@ -554,7 +554,7 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
 
             PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
 
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle);
 
             {
                 NTSTATUS status;

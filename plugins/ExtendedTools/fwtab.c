@@ -87,7 +87,7 @@ BOOLEAN FwTabPageCallback(
 
             InitializeFwTreeList(hwnd);
 
-            PhInitializeWindowTheme(hwnd, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwnd);
 
             if (PhGetOwnTokenAttributes().Elevated)
             {

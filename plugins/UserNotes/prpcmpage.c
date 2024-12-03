@@ -72,7 +72,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             if (!processItem->CommandLine)
                 EnableWindow(context->MatchCommandlineHandle, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -268,7 +268,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -360,7 +360,7 @@ UINT_PTR CALLBACK ColorDlgHookProc(
         {
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:

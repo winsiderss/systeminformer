@@ -778,8 +778,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDC_SECURITY), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, TRUE);
+            PhInitializeWindowTheme(hwndDlg);
 
             {
                 HICON smallIcon;
@@ -1009,8 +1008,7 @@ NTSTATUS NTAPI PvReInitializeThemeThread(
     {
         PhEnableThemeSupport = currentTheme;
 
-        if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
-            PhEnableThemeAcrylicWindowSupport = FALSE;
+        PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
         PhReInitializeTheme(PhEnableThemeSupport);
     };
@@ -1226,5 +1224,5 @@ VOID PvCreateTabSectionDialog(
         Section->Parameter
         );
 
-    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+    PhInitializeWindowTheme(Section->DialogHandle);
 }

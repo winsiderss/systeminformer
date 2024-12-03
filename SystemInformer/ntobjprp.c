@@ -201,7 +201,7 @@ INT_PTR CALLBACK PhpEventPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshEventPageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -388,7 +388,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshSemaphorePageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -499,7 +499,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshTimerPageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -682,7 +682,7 @@ INT_PTR CALLBACK PhpMappingsPageProc(
 
             PhpEnumerateMappingsEntries(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

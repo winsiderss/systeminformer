@@ -662,7 +662,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         if (!this->IsPage)
             PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
 
-        PhInitializeWindowTheme(GetParent(hwnd), PhEnableThemeSupport);
+        PhInitializeWindowTheme(GetParent(hwnd));
     }
 
     return E_NOTIMPL;

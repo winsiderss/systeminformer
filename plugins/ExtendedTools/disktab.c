@@ -114,7 +114,7 @@ BOOLEAN EtpDiskPageCallback(
 
             EtInitializeDiskTreeList(hwnd);
 
-            PhInitializeWindowTheme(hwnd, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwnd);
 
             //if (!EtEtwEnabled) // always show status (dmex)
             {
@@ -1342,7 +1342,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+//            PhInitializeWindowTheme(hwndDlg);
 //        }
 //        break;
 //    case WM_COMMAND:

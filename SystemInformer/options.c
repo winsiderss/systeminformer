@@ -316,8 +316,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-            if (PhEnableThemeSupport) // TODO: fix options dialog theme (dmex)
-                PhInitializeWindowTheme(hwndDlg, TRUE);
+            PhInitializeWindowTheme(hwndDlg);
 
             {
                 PPH_OPTIONS_SECTION section;
@@ -703,7 +702,7 @@ VOID PhOptionsCreateSectionDialog(
         Section->Parameter
         );
 
-    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+    PhInitializeWindowTheme(Section->DialogHandle);
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
@@ -1540,6 +1539,7 @@ static VOID PhpOptionsNotifyChangeCallback(
 
     BOOLEAN oldTheme = PhEnableThemeSupport;
     PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+    PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
     if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
     {
@@ -1551,9 +1551,6 @@ static VOID PhpOptionsNotifyChangeCallback(
             PhInitializeWindowThemeMenu(PhMainWndHandle, TRUE);
         }
     }
-
-    if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
-        PhEnableThemeAcrylicWindowSupport = FALSE;
 
     if (PhEnableThemeSupport != oldTheme || PhEnableThemeAcrylicWindowSupport != oldAcrylicWindowSupport)
     {
@@ -1787,7 +1784,7 @@ UINT_PTR CALLBACK PhpChooseFontDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -2263,7 +2260,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -3379,7 +3376,7 @@ UINT_PTR CALLBACK PhpColorDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:

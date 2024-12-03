@@ -391,7 +391,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 NtClose(jobHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -748,7 +748,7 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
                 &jobPageContext->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -772,9 +772,9 @@ INT CALLBACK PhpJobStatisticsSheetProc(
     _In_ LPARAM lParam
     )
 {
-    if (uMsg == PSCB_INITIALIZED && PhEnableThemeSupport)
+    if (uMsg == PSCB_INITIALIZED)
     {
-        PhInitializeWindowTheme(hwndDlg, TRUE);
+        PhInitializeWindowTheme(hwndDlg);
     }
     return 0;
 }

@@ -3004,7 +3004,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context->CurrentPath
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
             if (PhIsNullOrEmptyString(Target))  // HACK

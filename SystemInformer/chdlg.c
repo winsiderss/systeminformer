@@ -253,7 +253,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     SWP_NOACTIVATE | SWP_NOZORDER);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(hwndDlg, comboBoxHandle);
         }
@@ -455,17 +455,12 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
             PhSetDialogFocus(WindowHandle, context->ComboBoxHandle);
 
-            if (PhEnableThemeSupport)
-                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_HIDE);
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_THEMECHANGED:
         {
-            if (PhEnableThemeSupport)
-                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_HIDE);
-            else
-                ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), SW_SHOW);
+            ShowWindow(GetDlgItem(WindowHandle, IDC_SIZE_), PhEnableThemeSupport ? SW_HIDE : SW_SHOW);
         }
         break;
     case WM_DESTROY:

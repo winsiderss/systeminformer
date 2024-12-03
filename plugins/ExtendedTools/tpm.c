@@ -781,7 +781,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EtEnumerateTpmEntries(context);
         }

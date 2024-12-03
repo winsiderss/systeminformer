@@ -166,7 +166,7 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
         }

@@ -859,7 +859,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1647,7 +1647,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
             WepRefreshWindows(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

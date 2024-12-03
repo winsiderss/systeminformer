@@ -67,23 +67,19 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                 SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
-            if (PhEnableThemeSupport)
+            if (PhEnableThemeSupport && PhEnableThemeAcrylicSupport)
             {
-                if (PhEnableThemeAcrylicSupport)
-                {
-                    // Note: DWM crashes if called from WM_NCCREATE (dmex)
-                    PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)), TRUE);
-                }
+                // Note: DWM crashes if called from WM_NCCREATE (dmex)
+                PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)), TRUE);
             }
         }
         break;
     case WM_NCDESTROY:
         {
-            if (PhEnableThemeSupport)
-            {
-                HFONT fontHandle;
+            HFONT fontHandle;
 
-                fontHandle = PhGetWindowContext(WindowHandle, (ULONG)'font');
+            if (fontHandle = PhGetWindowContext(WindowHandle, (ULONG)'font'))
+            {
                 PhRemoveWindowContext(WindowHandle, (ULONG)'font');
 
                 if (fontHandle)
@@ -139,19 +135,19 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     _In_ LPARAM lParam
     )
 {
-    switch (WindowMessage)
+    if (PhEnableThemeSupport)
     {
-    case WM_CTLCOLOREDIT:
-        if (PhEnableThemeSupport)
+        switch (WindowMessage)
         {
+        case WM_CTLCOLOREDIT:
             HDC hdc = (HDC)wParam;
 
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            break;
         }
-        break;
     }
 
     return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
@@ -176,8 +172,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
 
             if (SendMessage(WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info) && info.hwndList)
             {
-                if (SetWindowDisplayAffinity_Import())
-                    SetWindowDisplayAffinity_Import()(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
+                SetWindowDisplayAffinity(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
             }
         }
         break;
@@ -237,7 +232,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         }
         break;
     case WM_KILLFOCUS:
-        if (contextTag == 'ACLC')
+        if (contextTag == 'ACLC' && PhEnableThemeSupport)
         {
             RECT rectClient;
             HWND ParentHandle = GetParent(WindowHandle);
@@ -562,7 +557,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
     }
-    else if (PhEnableThemeSupport && WindowMessage != WM_NCDESTROY)
+    else if (PhEnableThemeSupport || WindowMessage == WM_NCDESTROY || WindowMessage == WM_THEMECHANGED) // don't handle any drawing-related messages if theme is off
     {
         context = PhGetWindowContext(WindowHandle, LONG_MAX);
     }
@@ -760,6 +755,7 @@ typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
     BOOLEAN MouseActive;
     POINT CursorPos;
     HWND ParentWindow;
+    BOOLEAN ThemeEnabled;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
 VOID ThemeWindowRenderHeaderControl(
@@ -952,8 +948,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
                 if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
                 {
-                    PhSetControlTheme(WindowHandle, PhEnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
-
                     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
                 }
             }
@@ -965,12 +959,14 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 		context->CursorPos.y = LONG_MIN;
 		context->ParentWindow = createStruct->hwndParent;
 		PhSetWindowContext(WindowHandle, LONG_MAX, context);
-
-        PhSetControlTheme(WindowHandle, PhEnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
     }
-    else if (PhEnableThemeSupport || WindowMessage == WM_NCDESTROY)
+    else if (PhEnableThemeSupport || WindowMessage == WM_NCDESTROY || WindowMessage == WM_THEMECHANGED) // don't handle any drawing-related messages if theme is off
     {
         context = PhGetWindowContext(WindowHandle, LONG_MAX);
+
+        // Don't apply header theme for unsupported dialogs: Advanced Security, Digital Signature Details, etc. (Dart Vanya)
+        if (context && !context->ThemeEnabled && WindowMessage != WM_NCDESTROY && WindowMessage != WM_THEMECHANGED)  // HACK
+            context = NULL;
     }
 
     if (context)
@@ -998,6 +994,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 }
 
                 context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+
+                context->ThemeEnabled = PhIsDarkModeAllowedForWindow(context->ParentWindow);
             }
             break;
         case WM_ERASEBKGND:
@@ -1051,17 +1049,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             break;
         case WM_PAINT:
             {
-                // Don't apply header theme for unsupported dialogs: Advanced Security, Digital Signature Details, etc. (Dart Vanya)
-                if (!PhIsDarkModeAllowedForWindow(context->ParentWindow))
-                {
-                    PhRemoveWindowContext(WindowHandle, LONG_MAX);
-                    if (context->ThemeHandle)
-                        PhCloseThemeData(context->ThemeHandle);
-                    PhSetControlTheme(WindowHandle, L"Explorer");
-                    PhFree(context);
-                    break;
-                }
-
                 //PAINTSTRUCT ps;
                 //HDC BufferedHDC;
                 //HPAINTBUFFER BufferedPaint;
@@ -1102,14 +1089,11 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
                 //EndPaint(WindowHandle, &ps);
             }
-            goto DefaultWndProc;
+            return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
         }
     }
 
     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
 VOID PhRegisterDialogSuperClass(
@@ -1274,98 +1258,31 @@ VOID PhRegisterHeaderSuperClass(
 
 // Detours export procedure hooks
 
-static HRESULT (WINAPI* DefaultDrawThemeBackground)(
-    _In_ HTHEME Theme,
-    _In_ HDC Hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
-    _In_ LPCRECT Rect,
-    _In_ LPCRECT ClipRect
-    ) = NULL;
+#define PH_THEMEAPI HRESULT STDAPICALLTYPE
 
-static HRESULT (WINAPI* DefaultDrawThemeBackgroundEx)(
-    _In_ HTHEME         hTheme,
-    _In_ HDC            hdc,
-    _In_ int            iPartId,
-    _In_ int            iStateId,
-    _In_ LPCRECT        pRect,
-    _In_ const DTBGOPTS* pOptions
-    ) = NULL;
+static typeof(&DrawThemeBackground) DefaultDrawThemeBackground = nullptr;
 
-static HRESULT(WINAPI* DefaultDrawThemeText)(
-    _In_ HTHEME  hTheme,
-    _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
-    _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
-    _In_ LPCRECT pRect
-    ) = NULL;
+static typeof(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = nullptr;
 
-static HRESULT(WINAPI* DefaultDrawThemeTextEx)(
-    _In_      HTHEME        hTheme,
-    _In_      HDC           hdc,
-    _In_      int           iPartId,
-    _In_      int           iStateId,
-    _In_      LPCWSTR       pszText,
-    _In_      int           cchText,
-    _In_      DWORD         dwTextFlags,
-    _Inout_   LPRECT        pRect,
-    _In_      const DTTOPTS* pOptions
-    ) = NULL;
+static typeof(&DrawThemeText) DefaultDrawThemeText = nullptr;
 
-int (WINAPI* DefaultComCtl32DrawTextW)(
-    _In_      HDC     hdc,
-    _Inout_   LPCWSTR lpchText,
-    _In_      int     cchText,
-    _Inout_   LPRECT  lprc,
-    _In_      UINT    format
-    ) = NULL;
+static typeof(&DrawThemeTextEx) DefaultDrawThemeTextEx = nullptr;
 
-static HRESULT(WINAPI* DefaultTaskDialogIndirect)(
-    _In_      const TASKDIALOGCONFIG* pTaskConfig,
-    _Out_opt_ int* pnButton,
-    _Out_opt_ int* pnRadioButton,
-    _Out_opt_ BOOL* pfVerificationFlagChecked
-    ) = NULL;
+static typeof(&DrawTextW) DefaultComCtl32DrawTextW = nullptr;
 
-static HRESULT(WINAPI* DefaultGetThemeColor)(
-    _In_  HTHEME   hTheme,
-    _In_  int      iPartId,
-    _In_  int      iStateId,
-    _In_  int      iPropId,
-    _Out_ COLORREF* pColor
-    ) = NULL;
+static typeof(&TaskDialogIndirect) DefaultTaskDialogIndirect = nullptr;
+
+static typeof(&GetThemeColor) DefaultGetThemeColor = nullptr;
 
 // uxtheme.dll ordinal 49
-static HTHEME(WINAPI* DefaultOpenNcThemeData)(
+static HTHEME(STDAPICALLTYPE* DefaultOpenNcThemeData)(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
-    ) = NULL;
+    ) = nullptr;
 
-static BOOL (WINAPI* DefaultSystemParametersInfo)(
-    _In_ UINT uiAction,
-    _In_ UINT uiParam,
-    _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-    _In_ UINT fWinIni
-    ) = NULL;
+static typeof(&SystemParametersInfo) DefaultSystemParametersInfo = nullptr;
 
-static HWND (WINAPI* DefaultCreateWindowEx)(
-    _In_ ULONG ExStyle,
-    _In_opt_ PCWSTR ClassName,
-    _In_opt_ PCWSTR WindowName,
-    _In_ ULONG Style,
-    _In_ INT X,
-    _In_ INT Y,
-    _In_ INT Width,
-    _In_ INT Height,
-    _In_opt_ HWND Parent,
-    _In_opt_ HMENU Menu,
-    _In_opt_ PVOID Instance,
-    _In_opt_ PVOID Param
-    ) = NULL;
+static typeof(&CreateWindowEx) DefaultCreateWindowEx = nullptr;
 
 typedef struct _TASKDIALOG_CALLBACK_WRAP
 {
@@ -1383,7 +1300,7 @@ typedef struct _TASKDIALOG_WINDOW_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     ULONG Painting;
-    PTASKDIALOG_CALLBACK_WRAP CallbackData;
+    TASKDIALOG_CALLBACK_WRAP CallbackData;
 } TASKDIALOG_WINDOW_CONTEXT, *PTASKDIALOG_WINDOW_CONTEXT;
 
 #define TASKDIALOG_CONTEXT_TAG (ULONG)'TDLG'
@@ -1404,76 +1321,78 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     );
 
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
-    _In_ HWND hwndDlg,
-    _In_opt_ PVOID Context
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID RootDialogWindow
     );
 
-HRESULT PhDrawThemeBackgroundHook(
-    _In_ HTHEME Theme,
-    _In_ HDC Hdc,
-    _In_ LONG PartId,
-    _In_ LONG StateId,
-    _In_ LPCRECT Rect,
-    _In_ LPCRECT ClipRect
+PH_THEMEAPI
+PhDrawThemeBackgroundHook(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_ LPCRECT pRect,
+    _In_opt_ LPCRECT pClipRect
     )
 {
-    WCHAR className[MAX_PATH];
-
-    if (PhEnableThemeSupport &&
-        PhGetThemeClass(Theme, className, RTL_NUMBER_OF(className)))
+    if (PhEnableThemeSupport)
     {
-        if (WindowsVersion >= WINDOWS_11)
+        WCHAR className[MAX_PATH];
+
+        if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)))
         {
-            if (PhEqualStringZ(className, VSCLASS_MENU, TRUE))
+            if (WindowsVersion >= WINDOWS_11)
             {
-                if (PartId == MENU_POPUPGUTTER || PartId == MENU_POPUPBORDERS)
+                if (PhEqualStringZ(className, VSCLASS_MENU, TRUE))
                 {
-                    FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
+                    if (iPartId == MENU_POPUPGUTTER || iPartId == MENU_POPUPBORDERS)
+                    {
+                        FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
+                        return S_OK;
+                    }
+                }
+            }
+
+            if (PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE)
+                /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(Hdc) == NULL*/)
+            {
+                if (iPartId == PP_TRANSPARENTBAR || iPartId == PP_TRANSPARENTBARVERT) // Progress bar background
+                {
+                    FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
+                    SetDCBrushColor(hdc, RGB(0x60, 0x60, 0x60));
+                    FrameRect(hdc, pRect, PhGetStockBrush(DC_BRUSH));
                     return S_OK;
                 }
             }
         }
-
-        if (PhEqualStringZ(className, VSCLASS_PROGRESS, TRUE)
-            /*|| WindowsVersion < WINDOWS_11 && WindowFromDC(Hdc) == NULL*/)
-        {
-            if (PartId == PP_TRANSPARENTBAR || PartId == PP_TRANSPARENTBARVERT) // Progress bar background
-            {
-                FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
-                SetDCBrushColor(Hdc, RGB(0x60, 0x60, 0x60));
-                FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
-                return S_OK;
-            }
-        }
     }
 
-    return DefaultDrawThemeBackground(Theme, Hdc, PartId, StateId, Rect, ClipRect);
+    return DefaultDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
 }
 
-HRESULT WINAPI PhDrawThemeBackgroundExHook(
-    _In_ HTHEME         hTheme,
-    _In_ HDC            hdc,
-    _In_ int            iPartId,
-    _In_ int            iStateId,
-    _In_ LPCRECT        pRect,
-    _In_ const DTBGOPTS* pOptions
-)
+PH_THEMEAPI
+PhDrawThemeBackgroundExHook(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_ LPCRECT pRect,
+    _In_opt_ const DTBGOPTS* pOptions
+    )
 {
-    WCHAR className[MAX_PATH];
-
     if (PhEnableThemeSupport)
     {
+        WCHAR className[MAX_PATH];
         // Apply theme to ListView checkboxes
         if (iPartId == BP_CHECKBOX /*|| iPartId == BP_RADIOBUTTON*/)
         {
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) &&
                 PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
             {
-                HTHEME darkButtonTheme = PhOpenThemeData(NULL, L"DarkMode_Explorer::Button", 0);
-                HRESULT retVal = DefaultDrawThemeBackgroundEx(darkButtonTheme ? darkButtonTheme : hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-                if (darkButtonTheme)
-                    PhCloseThemeData(darkButtonTheme);
-                return retVal;
+                HTHEME darkButtonTheme = PhOpenThemeData(NULL, L"Explorer::Button", 0);
+                HRESULT result = DefaultDrawThemeBackgroundEx(darkButtonTheme ? darkButtonTheme : hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+                if (darkButtonTheme) PhCloseThemeData(darkButtonTheme);
+                return result;
             }
         }
 
@@ -1523,10 +1442,13 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
                     if (mustInvertButton == unknown)
                     {
                         DefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
-                        int buttonCenterX = pOptions->rcClip.left + (pOptions->rcClip.right - pOptions->rcClip.left) / 2;
-                        int buttonCenterY = pOptions->rcClip.top + (pOptions->rcClip.bottom - pOptions->rcClip.top) / 2;
-                        COLORREF centerPixel = GetPixel(hdc, buttonCenterX, buttonCenterY);
-                        mustInvertButton = centerPixel == PhThemeWindowTextColor ? no : yes;
+                        if (pOptions)
+                        {
+                            int buttonCenterX = pOptions->rcClip.left + (pOptions->rcClip.right - pOptions->rcClip.left) / 2;
+                            int buttonCenterY = pOptions->rcClip.top + (pOptions->rcClip.bottom - pOptions->rcClip.top) / 2;
+                            COLORREF centerPixel = GetPixel(hdc, buttonCenterX, buttonCenterY);
+                            mustInvertButton = centerPixel == PhThemeWindowTextColor ? no : yes;
+                        }
                     }
                     FillRect(hdc, pRect, PhThemeWindowBackgroundBrush);
                     if (mustInvertButton == yes) InvertRect(hdc, pRect);
@@ -1541,37 +1463,39 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     return DefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
 }
 
-HWND PhCreateWindowExHook(
-    _In_ ULONG ExStyle,
-    _In_opt_ PCWSTR ClassName,
-    _In_opt_ PCWSTR WindowName,
-    _In_ ULONG Style,
-    _In_ LONG X,
-    _In_ LONG Y,
-    _In_ LONG Width,
-    _In_ LONG Height,
-    _In_opt_ HWND Parent,
-    _In_opt_ HMENU Menu,
-    _In_opt_ PVOID Instance,
-    _In_opt_ PVOID Param
+HWND
+WINAPI
+PhCreateWindowExHook(
+    _In_ DWORD dwExStyle,
+    _In_opt_ LPCWSTR lpClassName,
+    _In_opt_ LPCWSTR lpWindowName,
+    _In_ DWORD dwStyle,
+    _In_ int X,
+    _In_ int Y,
+    _In_ int nWidth,
+    _In_ int nHeight,
+    _In_opt_ HWND hWndParent,
+    _In_opt_ HMENU hMenu,
+    _In_opt_ HINSTANCE hInstance,
+    _In_opt_ LPVOID lpParam
     )
 {
     HWND windowHandle = DefaultCreateWindowEx(
-        ExStyle,
-        ClassName,
-        WindowName,
-        Style,
+        dwExStyle,
+        lpClassName,
+        lpWindowName,
+        dwStyle,
         X,
         Y,
-        Width,
-        Height,
-        Parent,
-        Menu,
-        Instance,
-        Param
+        nWidth,
+        nHeight,
+        hWndParent,
+        hMenu,
+        hInstance,
+        lpParam
         );
 
-    if (Parent == NULL)
+    if (hWndParent == NULL)
     {
         if (PhEnableStreamerMode)
         {
@@ -1586,12 +1510,12 @@ HWND PhCreateWindowExHook(
     else
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
-        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE))
+        if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_LINK, TRUE))
         {
-            PhInitializeTaskDialogTheme(windowHandle, 0);
+            PhInitializeTaskDialogTheme(windowHandle, NULL);
         }
-        else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
-                 PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
+        else if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_BUTTON, TRUE) &&
+                 PhGetWindowContext(GetAncestor(hWndParent, GA_ROOT), LONG_MAX))
         {
             PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
         }
@@ -1600,7 +1524,10 @@ HWND PhCreateWindowExHook(
     return windowHandle;
 }
 
-BOOL WINAPI PhSystemParametersInfoHook(
+_Success_(return != FALSE)
+BOOL
+WINAPI
+PhSystemParametersInfoHook(
     _In_ UINT uiAction,
     _In_ UINT uiParam,
     _Pre_maybenull_ _Post_valid_ PVOID pvParam,
@@ -1703,22 +1630,23 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //#define RGB_FROM_COLOREF(cref) \
 //    ((((cref) & 0x000000FF) << 16) | (((cref) & 0x0000FF00)) | (((cref) & 0x00FF0000) >> 16))
 
-HRESULT WINAPI PhDrawThemeTextHook(
-    _In_ HTHEME  hTheme,
-    _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
-    _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+PH_THEMEAPI
+PhDrawThemeTextHook(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_reads_(cchText) LPCWSTR pszText,
+    _In_ int cchText,
+    _In_ DWORD dwTextFlags,
+    _In_ DWORD dwTextFlags2,
     _In_ LPCRECT pRect
     )
 {
-    WCHAR className[MAX_PATH];
-
     if (PhEnableThemeSupport)
     {
+        WCHAR className[MAX_PATH];
+
         if ((iPartId == BP_COMMANDLINK /*|| iPartId == BP_RADIOBUTTON*/) && iStateId != PBS_DISABLED)
         {
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
@@ -1733,22 +1661,23 @@ HRESULT WINAPI PhDrawThemeTextHook(
     return DefaultDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, dwTextFlags2, pRect);
 }
 
-HRESULT WINAPI PhDrawThemeTextExHook(
-    _In_      HTHEME        hTheme,
-    _In_      HDC           hdc,
-    _In_      int           iPartId,
-    _In_      int           iStateId,
-    _In_      LPCWSTR       pszText,
-    _In_      int           cchText,
-    _In_      DWORD         dwTextFlags,
-    _Inout_   LPRECT        pRect,
-    _In_      const DTTOPTS* pOptions
+PH_THEMEAPI
+PhDrawThemeTextExHook(
+    _In_ HTHEME hTheme,
+    _In_ HDC hdc,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_reads_(cchText) LPCWSTR pszText,
+    _In_ int cchText,
+    _In_ DWORD dwTextFlags,
+    _Inout_ LPRECT pRect,
+    _In_opt_ const DTTOPTS* pOptions
     )
 {
-    WCHAR className[MAX_PATH];
-
     if (PhEnableThemeSupport)
     {
+        WCHAR className[MAX_PATH];
+
         if (iPartId == BP_COMMANDLINK)
         {
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_BUTTON, TRUE)
@@ -1768,23 +1697,29 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     return DefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, pRect, pOptions);
 }
 
-int PhDetoursComCtl32DrawTextW(
-    _In_      HDC     hdc,
-    _Inout_   LPCWSTR lpchText,
-    _In_      int     cchText,
-    _Inout_   LPRECT  lprc,
-    _In_      UINT    format
+_Success_(return)
+int
+WINAPI
+PhDetoursComCtl32DrawTextW(
+    _In_ HDC hdc,
+    _When_((format & DT_MODIFYSTRING), _At_((LPWSTR)lpchText, _Inout_grows_updates_bypassable_or_z_(cchText, 4)))
+    _When_((!(format & DT_MODIFYSTRING)), _In_bypassable_reads_or_z_(cchText))
+    LPCWSTR lpchText,
+    _In_ int cchText,
+    _Inout_ LPRECT lprc,
+    _In_ UINT format
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static COLORREF colLinkNormal = RGB(0, 0 ,0);
-    static COLORREF colLinkHot = RGB(0, 0, 0);
-    static COLORREF colLinkPressed = RGB(0, 0, 0);
-    HWND WindowHandle;
-    WCHAR windowClassName[MAX_PATH];
-
     if (PhEnableThemeSupport)
     {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static COLORREF colLinkNormal = RGB(0, 0, 0);
+        static COLORREF colLinkHot = RGB(0, 0, 0);
+        static COLORREF colLinkPressed = RGB(0, 0, 0);
+
+        HWND WindowHandle;
+        WCHAR windowClassName[MAX_PATH];
+
         if ((WindowHandle = WindowFromDC(hdc)) && PhIsDarkModeAllowedForWindow(WindowHandle))    // HACK
         {
             GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
@@ -1817,20 +1752,21 @@ int PhDetoursComCtl32DrawTextW(
     return DefaultComCtl32DrawTextW(hdc, lpchText, cchText, lprc, format);
 }
 
-HRESULT PhGetThemeColorHook(
-    _In_  HTHEME   hTheme,
-    _In_  int      iPartId,
-    _In_  int      iStateId,
-    _In_  int      iPropId,
+PH_THEMEAPI
+PhGetThemeColorHook(
+    _In_ HTHEME hTheme,
+    _In_ int iPartId,
+    _In_ int iStateId,
+    _In_ int iPropId,
     _Out_ COLORREF* pColor
     )
 {
-    WCHAR className[MAX_PATH];
-
-    HRESULT retVal = DefaultGetThemeColor(hTheme, iPartId, iStateId, iPropId, pColor);
+    HRESULT result = DefaultGetThemeColor(hTheme, iPartId, iStateId, iPropId, pColor);
 
     if (PhEnableThemeSupport)
     {
+        WCHAR className[MAX_PATH];
+
         if (iPropId == TMT_TEXTCOLOR && iPartId == TDLG_MAININSTRUCTIONPANE)
         {
             if (PhGetThemeClass(hTheme, className, RTL_NUMBER_OF(className)) && PhEqualStringZ(className, VSCLASS_TASKDIALOGSTYLE, TRUE)
@@ -1849,10 +1785,12 @@ HRESULT PhGetThemeColorHook(
         }
     }
 
-    return retVal;
+    return result;
 }
 
-HTHEME PhOpenNcThemeDataHook(
+HTHEME
+STDAPICALLTYPE
+PhOpenNcThemeDataHook(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
     )
@@ -1871,30 +1809,26 @@ HTHEME PhOpenNcThemeDataHook(
 
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID CallbackData
+    _In_opt_ PVOID RootDialogWindow
     )
 {
     WCHAR windowClassName[MAX_PATH];
     PTASKDIALOG_COMMON_CONTEXT context;
     BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG);
 
-    if (CallbackData && !windowHasContext)
+    if (RootDialogWindow && !windowHasContext)
     {
         if (PhEnableStreamerMode)
         {
             SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport)
-        {
-            PhInitializeThemeWindowFrame(WindowHandle);
-        }
+        PhInitializeThemeWindowFrame(WindowHandle);
 
         PTASKDIALOG_WINDOW_CONTEXT context = PhAllocateZero(sizeof(TASKDIALOG_WINDOW_CONTEXT));
         context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-        context->CallbackData = CallbackData;
         PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
-        windowHasContext = TRUE;
+        windowHasContext = !!context;
     }
 
     PhEnumChildWindows(
@@ -1952,16 +1886,38 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
 
     OldWndProc = context->DefaultWindowProc;
 
+    if (!PhEnableThemeSupport && uMsg != WM_NCDESTROY && uMsg != TDM_NAVIGATE_PAGE)
+        goto OriginalWndProc;
+
     switch (uMsg)
     {
+    case WM_NCDESTROY:
+        {
+            PhSetWindowProcedure(hwnd, OldWndProc);
+            PhRemoveWindowContext(hwnd, TASKDIALOG_CONTEXT_TAG);
+            PhFree(context);
+        }
+        goto OriginalWndProc;
+    case TDM_NAVIGATE_PAGE:
+        {
+            PTASKDIALOG_WINDOW_CONTEXT WindowContext = (PTASKDIALOG_WINDOW_CONTEXT)context;
+            PTASKDIALOGCONFIG trueConfig = (PTASKDIALOGCONFIG)lParam;
+            PTASKDIALOGCONFIG myConfig;
+            TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+
+            WindowContext->CallbackData.pfCallback = trueConfig ? trueConfig->pfCallback : NULL;
+            WindowContext->CallbackData.lpCallbackData = trueConfig ? trueConfig->lpCallbackData : 0;
+            myConfig = trueConfig ? trueConfig : &config;
+            myConfig->pfCallback = ThemeTaskDialogCallbackHook;
+            myConfig->lpCallbackData = (LONG_PTR)&WindowContext->CallbackData;
+
+            return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, (LPARAM)myConfig);
+        }
     case WM_ERASEBKGND:
         {
             HDC hdc = (HDC)wParam;
             RECT rect;
             WCHAR windowClassName[MAX_PATH];
-
-            if (!PhEnableThemeSupport)
-                return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
 
             SetTextColor(hdc, PhThemeWindowTextColor); // Color for SysLink, which must be set in its parent.
 
@@ -1982,9 +1938,6 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
         {
             LPNMHDR data = (LPNMHDR)lParam;
 
-            if (!PhEnableThemeSupport)
-                return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
-
             if (data->code == NM_CUSTOMDRAW)
             {
                 LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
@@ -1998,37 +1951,18 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
             }
         }
         break;
-    case TDM_NAVIGATE_PAGE:
-        {
-            PTASKDIALOG_WINDOW_CONTEXT WindowContext = (PTASKDIALOG_WINDOW_CONTEXT)context;
-            PTASKDIALOGCONFIG trueConfig = (PTASKDIALOGCONFIG)lParam;
-            PTASKDIALOGCONFIG myConfig;
-            TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-
-            WindowContext->CallbackData->pfCallback = trueConfig ? trueConfig->pfCallback : NULL;
-            WindowContext->CallbackData->lpCallbackData = trueConfig ? trueConfig->lpCallbackData : 0;
-            myConfig = trueConfig ? trueConfig : &config;
-            myConfig->pfCallback = ThemeTaskDialogCallbackHook;
-            myConfig->lpCallbackData = (LONG_PTR)WindowContext->CallbackData;
-
-            return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, (LPARAM)myConfig);
-        }
-    case WM_NCDESTROY:
-        {
-            PhSetWindowProcedure(hwnd, OldWndProc);
-            PhRemoveWindowContext(hwnd, TASKDIALOG_CONTEXT_TAG);
-            PhFree(context);
-        }
-        return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
     case WM_CTLCOLORDLG:
         // Window background color when the extender resizes upward (Windows 10 only).
-        return PhEnableThemeSupport ? (LRESULT)PhThemeWindowBackgroundBrush : CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
+        return (LRESULT)PhThemeWindowBackgroundBrush;
     }
 
     context->Painting++;
     result = CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
     context->Painting--;
     return result;
+
+OriginalWndProc:
+    return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK ThemeTaskDialogCallbackHook(
@@ -2045,7 +1979,7 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
 
     if (uMsg == TDN_DIALOG_CONSTRUCTED) // Called on each new page, including the first one.
     {
-        PhInitializeTaskDialogTheme(hwndDlg, CallbackData);
+        PhInitializeTaskDialogTheme(hwndDlg, hwndDlg);
     }
 
     if (CallbackData->pfCallback)
@@ -2055,8 +1989,8 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
 }
 
 // https://github.com/SFTRS/DarkTaskDialog
-HRESULT PhTaskDialogIndirectHook(
-    _In_      const TASKDIALOGCONFIG* pTaskConfig,
+HRESULT WINAPI PhTaskDialogIndirectHook(
+    _In_ const TASKDIALOGCONFIG* pTaskConfig,
     _Out_opt_ int* pnButton,
     _Out_opt_ int* pnRadioButton,
     _Out_opt_ BOOL* pfVerificationFlagChecked
@@ -2168,10 +2102,11 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
-        PhEnableThemeAcrylicSupport = FALSE;
-    //if (PhEnableThemeAcrylicSupport)
-        //PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
+    // All acrylic effects works only if it enabled in system.
+    // Skip checking for PhIsThemeTransparencyEnabled() - if transparency disabled it will not affect the menu appearance.
+    PhEnableThemeAcrylicSupport = PhEnableThemeAcrylicSupport && PhEnableThemeSupport;
+    // But it will affect to window appearance (it will be opaque but with more brighter colors).
+    PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
     // For early TaskDialog with PhStartupParameters.ShowOptions
     if (!PhThemeWindowBackgroundBrush)

@@ -3866,8 +3866,6 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
             {
                 PhShowServiceProgressDialogStatusPage(context);
             }
-
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }
@@ -3952,6 +3950,7 @@ VOID PhShowServiceProgressDialog(
     context = PhCreateServiceProgressContext();
     context->ParentWindowHandle = WindowHandle;
     context->Verb = Verb;
+    context->Object = NumberOfServices == 1 ? L"the selected service" : L"the selected services";
     context->Message = Message;
     context->Warning = Warning;
     context->ActionCallback = ActionCallback;

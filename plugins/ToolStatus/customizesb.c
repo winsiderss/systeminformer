@@ -311,7 +311,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeLoadStatusBarItems(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }

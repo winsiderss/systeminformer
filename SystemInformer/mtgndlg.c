@@ -265,7 +265,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
 
             PhSetDialogFocus(hwndDlg, lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

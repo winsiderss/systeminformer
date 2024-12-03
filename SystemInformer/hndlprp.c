@@ -2275,10 +2275,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
             }
 
-            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(context->ParentWindow);
         }
         break;
     case WM_DESTROY:

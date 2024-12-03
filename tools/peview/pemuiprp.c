@@ -270,7 +270,7 @@ INT_PTR CALLBACK PvpPeMuiResourceDlgProc(
 
             PvPeGetMuiInfo(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

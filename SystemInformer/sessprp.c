@@ -281,7 +281,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport); // HACK
+            PhInitializeWindowTheme(hwndDlg); // HACK
         }
         break;
     case WM_DESTROY:

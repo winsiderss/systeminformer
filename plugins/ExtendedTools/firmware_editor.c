@@ -174,7 +174,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
         }

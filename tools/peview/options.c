@@ -187,12 +187,13 @@ VOID PvGeneralPageSave(
     SetSettingForLvItemCheck(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
 
     BOOLEAN oldTheme = PhEnableThemeSupport;
+    BOOLEAN oldAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport;
     BOOLEAN oldStreamerMode = PhEnableStreamerMode;
 
     PvUpdateCachedSettings();
     PvSaveSettings();
 
-    if (PhEnableThemeSupport != oldTheme)
+    if (PhEnableThemeSupport != oldTheme || PhEnableThemeAcrylicWindowSupport != oldAcrylicWindowSupport)
     {
         PhReInitializeTheme(PhEnableThemeSupport);
     }
@@ -282,7 +283,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PvLoadGeneralPage(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

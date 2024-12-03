@@ -154,14 +154,15 @@ COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
 COLORREF PhThemeWindowTextColor = RGB(255, 255, 255);
 
+// This wrapper designed for general use from any places including plugins.
+// No need te explicitly pass PhEnableThemeSupport or PhIsThemeSupportEnabled()
 VOID PhInitializeWindowTheme(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN EnableThemeSupport
+    _In_ HWND WindowHandle
     )
 {
-    if (EnableThemeSupport && PhEnableThemeSupport)
+    if (PhEnableThemeSupport)
     {
-        PhInitializeWindowThemeEx(WindowHandle, EnableThemeSupport);
+        PhInitializeWindowThemeEx(WindowHandle, TRUE);
     }
 }
 
@@ -172,46 +173,31 @@ VOID PhInitializeWindowThemeEx(
 {
     WCHAR windowClassName[MAX_PATH];
 
-    PhInitializeThemeWindowFrameEx(WindowHandle, EnableThemeSupport);
+    GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
 
+    if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE)) // HACK for dynamically generated plugin tabs
     {
-        GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
-
-        if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE)) // HACK for dynamically generated plugin tabs
-        {
-            if (WindowsVersion >= WINDOWS_10_RS5)
-            {
-                HWND tooltipWindow = TreeNew_GetTooltips(WindowHandle);
-
-                PhAllowDarkModeForWindow(WindowHandle, EnableThemeSupport);
-                PhWindowThemeSetDarkMode(WindowHandle, EnableThemeSupport);
-                if (tooltipWindow)
-                    PhWindowThemeSetDarkMode(tooltipWindow, EnableThemeSupport);
-                TreeNew_ThemeSupport(WindowHandle, EnableThemeSupport);
-            }
-        }
-        else
-        {
-            PhThemeUpdateWindowProcedure(WindowHandle, PhpThemeWindowSubclassProc, EnableThemeSupport);
-
-            PhInitializeWindowThemeMenu(WindowHandle, EnableThemeSupport);
-        }
-
-        PhEnumChildWindows(
-            WindowHandle,
-            0x1000,
-            PhpThemeWindowEnumChildWindows,
-            (PVOID)EnableThemeSupport
-            );
-
-        //InvalidateRect(WindowHandle, NULL, FALSE);          // HACK
-        RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN /*| RDW_ERASENOW | RDW_UPDATENOW*/);
-        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);   // Redraws buttons background in dialogs
+        PhInitializeTreeNewTheme(WindowHandle, EnableThemeSupport);
     }
-    //else
+    else
     {
-        //EnableThemeDialogTexture(WindowHandle, ETDT_ENABLETAB);
+        PhInitializeThemeWindowFrameEx(WindowHandle, EnableThemeSupport);
+
+        PhThemeUpdateWindowProcedure(WindowHandle, PhpThemeWindowSubclassProc, EnableThemeSupport);
+
+        PhInitializeWindowThemeMenu(WindowHandle, EnableThemeSupport);
     }
+
+    PhEnumChildWindows(
+        WindowHandle,
+        0x1000,
+        PhpThemeWindowEnumChildWindows,
+        (PVOID)EnableThemeSupport
+        );
+
+    //InvalidateRect(WindowHandle, NULL, FALSE);          // HACK
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN /*| RDW_ERASENOW | RDW_UPDATENOW*/);
+    SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);   // Redraws buttons background in dialogs
 }
 
 BOOLEAN PhGetAppsUseLightTheme(
@@ -286,8 +272,7 @@ VOID PhReInitializeStreamerMode(
         {
             if ((PhGetWindowStyle(currentWindow) & WS_VISIBLE) == WS_VISIBLE)
             {
-                if (SetWindowDisplayAffinity_Import())
-                    SetWindowDisplayAffinity_Import()(currentWindow, Enable ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
+                SetWindowDisplayAffinity(currentWindow, Enable ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
             }
         }
     }
@@ -341,7 +326,10 @@ VOID PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
     )
 {
-    PhInitializeThemeWindowFrameEx(WindowHandle, PhEnableThemeSupport);
+    if (PhEnableThemeSupport)
+    {
+        PhInitializeThemeWindowFrameEx(WindowHandle, TRUE);
+    }
 }
 
 VOID PhInitializeThemeWindowFrameEx(
@@ -376,7 +364,7 @@ VOID PhWindowThemeSetDarkMode(
     _In_ BOOLEAN EnableDarkMode
     )
 {
-    if (EnableDarkMode && PhEnableThemeSupport) // PhShouldAppsUseDarkMode()
+    if (EnableDarkMode)
     {
         PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
         //PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
@@ -737,59 +725,12 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhWindowThemeSetDarkMode(WindowHandle, FALSE);
-            //    break;
-            //case 1: // Old colors
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
     {
-        if (WindowsVersion >= WINDOWS_10_RS5)
-        {
-            HWND tooltipWindow = ListView_GetToolTips(WindowHandle);
-
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"explorer");
-            //    PhSetControlTheme(tooltipWindow, L"");
-            //    break;
-            //case 1: // Old colors
-            //PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-            PhAllowDarkModeForWindow(WindowHandle, enableThemeSupport);
-            PhSetControlTheme(WindowHandle, enableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
-            if (tooltipWindow)
-                PhWindowThemeSetDarkMode(tooltipWindow, enableThemeSupport);
-        }
-
-        if (enableThemeSupport && PhEnableThemeListviewBorder)
-        {
-            PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
-        }
-        else if (enableThemeSupport)
-        {
-            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-        }
-
-        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-
-        //switch (PhpThemeColorMode)
-        //{
-        //case 0: // New colors
-        //    ListView_SetBkColor(WindowHandle, RGB(0xff, 0xff, 0xff));
-        //    ListView_SetTextBkColor(WindowHandle, RGB(0xff, 0xff, 0xff));
-        //    ListView_SetTextColor(WindowHandle, RGB(0x0, 0x0, 0x0));
-        //    break;
-        //case 1: // Old colors
-        ListView_SetBkColor(WindowHandle, enableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW)); // RGB(30, 30, 30)
-        ListView_SetTextBkColor(WindowHandle, enableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW)); // RGB(30, 30, 30)
-        ListView_SetTextColor(WindowHandle, enableThemeSupport ? PhThemeWindowTextColor : GetSysColor(COLOR_WINDOWTEXT));
+        PhInitializeListViewTheme(WindowHandle, enableThemeSupport);
     }
     else if (PhEqualStringZ(windowClassName, WC_TREEVIEW, FALSE))
     {
@@ -798,11 +739,12 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             HWND tooltipWindow = TreeView_GetToolTips(WindowHandle);
 
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
-            PhWindowThemeSetDarkMode(tooltipWindow, enableThemeSupport);
+			if (tooltipWindow)
+				PhWindowThemeSetDarkMode(tooltipWindow, enableThemeSupport);
         }
 
         TreeView_SetBkColor(WindowHandle, enableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW));// RGB(30, 30, 30));
-        //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
+        //TreeView_SetTextBkColor(WindowHandle, enableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW));
         TreeView_SetTextColor(WindowHandle, enableThemeSupport ? PhThemeWindowTextColor : GetSysColor(COLOR_WINDOWTEXT));
     }
     else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
@@ -815,51 +757,12 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
 #define EM_SETBKGNDCOLOR (WM_USER + 67)
-        //switch (PhpThemeColorMode)
-        //{
-        //case 0: // New colors
-        //    SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, RGB(0xff, 0xff, 0xff));
-        //    break;
-        //case 1: // Old colors
         SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, enableThemeSupport ? PhMakeColorBrighter(PhThemeWindowForegroundColor, 2) : GetSysColor(COLOR_WINDOW));  // RGB(30, 30, 30)
         PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
     }
     else if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE))
     {
-        if (WindowsVersion >= WINDOWS_10_RS5)
-        {
-            HWND tooltipWindow = TreeNew_GetTooltips(WindowHandle);
-
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(tooltipWindow, L"");
-            //    PhSetControlTheme(WindowHandle, L"");
-            //    break;
-            //case 1: // Old colors
-            PhWindowThemeSetDarkMode(tooltipWindow, enableThemeSupport);
-            PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
-            PhAllowDarkModeForWindow(WindowHandle, enableThemeSupport);
-        }
-
-        if (enableThemeSupport && PhEnableThemeListviewBorder)
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
-        else if (enableThemeSupport)
-            PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
-
-        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-
-        //switch (PhpThemeColorMode)
-        //{
-        //case 0: // New colors
-        //    TreeNew_ThemeSupport(WindowHandle, FALSE);
-        //    break;
-        //case 1: // Old colors
-        TreeNew_ThemeSupport(WindowHandle, enableThemeSupport);
-    }
-    else if (PhEqualStringZ(windowClassName, WC_HEADER, FALSE))
-    {
-        PhSetControlTheme(WindowHandle, enableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
+        PhInitializeTreeNewTheme(WindowHandle, enableThemeSupport);
     }
     else if (
         PhEqualStringZ(windowClassName, WC_LISTBOX, FALSE) ||
@@ -868,12 +771,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"explorer");
-            //    break;
-            //case 1: // Old colors
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
         }
 
@@ -905,12 +802,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"explorer");
-            //    break;
-            //case 1: // Old colors
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
         }
 
@@ -930,9 +821,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
         PhAllowDarkModeForWindow(WindowHandle, enableThemeSupport); // fix for unsupported system dialogs (ex. Advanced Security)
     }
-    else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+    else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))   // SysLink theme support (Dart Vanya)
     {
-        // SysLink theme support (Dart Vanya)
         PhAllowDarkModeForWindow(WindowHandle, enableThemeSupport);
     }
     else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))  // TaskDialog
@@ -941,6 +831,73 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
 
     return TRUE;
+}
+
+VOID PhInitializeTreeNewTheme(
+    _In_ HWND TreeNewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    )
+{
+    if (WindowsVersion >= WINDOWS_10_RS5)
+    {
+        HWND headerHandle = TreeNew_GetHeader(TreeNewHandle);
+        HWND fixedHeaderHandle = TreeNew_GetFixedHeader(TreeNewHandle);
+        HWND tooltipWindow = TreeNew_GetTooltips(TreeNewHandle);
+
+        PhAllowDarkModeForWindow(TreeNewHandle, EnableThemeSupport);
+        PhWindowThemeSetDarkMode(TreeNewHandle, EnableThemeSupport);
+        if (headerHandle)
+            PhSetControlTheme(headerHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
+        if (fixedHeaderHandle)
+            PhSetControlTheme(fixedHeaderHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
+        if (tooltipWindow)
+            PhWindowThemeSetDarkMode(tooltipWindow, EnableThemeSupport);
+    }
+
+    if (EnableThemeSupport && PhEnableThemeListviewBorder)
+        PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+    else if (EnableThemeSupport)
+        PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, 0);
+
+    SetWindowPos(TreeNewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    TreeNew_ThemeSupport(TreeNewHandle, EnableThemeSupport);
+}
+
+VOID PhInitializeListViewTheme(
+    _In_ HWND ListViewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    )
+{
+    if (WindowsVersion >= WINDOWS_10_RS5)
+    {
+        HWND tooltipWindow = ListView_GetToolTips(ListViewHandle);
+        HWND headerHandle = ListView_GetHeader(ListViewHandle);
+
+        PhAllowDarkModeForWindow(ListViewHandle, EnableThemeSupport);
+        PhSetControlTheme(ListViewHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
+        if (headerHandle)
+            PhSetControlTheme(headerHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
+        if (tooltipWindow)
+            PhWindowThemeSetDarkMode(tooltipWindow, EnableThemeSupport);
+    }
+
+    if (EnableThemeSupport && PhEnableThemeListviewBorder)
+    {
+        PhSetWindowStyle(ListViewHandle, WS_BORDER, WS_BORDER);
+        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+    }
+    else if (EnableThemeSupport)
+    {
+        PhSetWindowStyle(ListViewHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, 0);
+    }
+
+    SetWindowPos(ListViewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    ListView_SetBkColor(ListViewHandle, EnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW)); // RGB(30, 30, 30)
+    ListView_SetTextBkColor(ListViewHandle, EnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW)); // RGB(30, 30, 30)
+    ListView_SetTextColor(ListViewHandle, EnableThemeSupport ? PhThemeWindowTextColor : GetSysColor(COLOR_WINDOWTEXT));
 }
 
 BOOLEAN PhThemeWindowDrawItem(
@@ -1547,7 +1504,8 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
     BOOLEAN isSelected = (DrawInfo->uItemState & CDIS_SELECTED) == CDIS_SELECTED;
     BOOLEAN isHighlighted = (DrawInfo->uItemState & CDIS_HOT) == CDIS_HOT;
     BOOLEAN isFocused = (DrawInfo->uItemState & CDIS_FOCUS) == CDIS_FOCUS;
-    BOOLEAN isKeyboardFocused = isFocused && (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES;
+    BOOLEAN showKeyboardCues = (DrawInfo->uItemState & CDIS_SHOWKEYBOARDCUES) == CDIS_SHOWKEYBOARDCUES;
+    UINT hidePrefixFlag = showKeyboardCues ? 0 : DT_HIDEPREFIX;
     RECT bufferRect =
     {
         0, 0,
@@ -1650,6 +1608,12 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                 else
                 {
                     SetBkMode(DrawInfo->hdc, TRANSPARENT);
+                    if (showKeyboardCues)   // fix artefacts on Alt press
+                    {
+                        SetDCBrushColor(DrawInfo->hdc, PhGetWindowContext(GetAncestor(DrawInfo->hdr.hwndFrom, GA_ROOT), LONG_MAX) ?
+							PhThemeWindowBackgroundColor : PhThemeWindowBackground2Color);	// TaskDialog HACK
+                        FillRect(DrawInfo->hdc, &DrawInfo->rc, PhGetStockBrush(DC_BRUSH));
+                    }
                     SetTextColor(DrawInfo->hdc, !isDisabled ? PhThemeWindowTextColor : RGB(0x9B, 0x9B, 0x9B));
 
                     if (themeHandle = PhOpenThemeData(DrawInfo->hdr.hwndFrom, VSCLASS_BUTTON, dpiValue))
@@ -1697,7 +1661,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_SINGLELINE | DT_VCENTER | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
+                                DT_LEFT | DT_SINGLELINE | DT_VCENTER | hidePrefixFlag
                                 );
                         }
                         else
@@ -1707,7 +1671,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | DT_CALCRECT | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
+                                DT_LEFT | DT_TOP | DT_CALCRECT | hidePrefixFlag
                                 );
 
                             bufferRect.top = (DrawInfo->rc.bottom - DrawInfo->rc.top) / 2 - (bufferRect.bottom - bufferRect.top) / 2 - 1;
@@ -1718,18 +1682,18 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
+                                DT_LEFT | DT_TOP | hidePrefixFlag
                                 );
                         }
 
-                        if (isKeyboardFocused)
+                        if (showKeyboardCues && isFocused)
                         {
                             DrawText(
                                 DrawInfo->hdc,
                                 buttonText->Buffer,
                                 (UINT)buttonText->Length / sizeof(WCHAR),
                                 &bufferRect,
-                                DT_LEFT | DT_TOP | DT_CALCRECT
+                                DT_LEFT | DT_TOP | DT_CALCRECT | hidePrefixFlag
                                 );
                             PhInflateRect(&bufferRect, 1, 0);
                             bufferRect.top += 1, bufferRect.bottom += 2;
@@ -1767,6 +1731,8 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                         }
                         else
                         {
+                            ODS_DISABLED;
+
                             HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22, dpiValue);
                             HFONT oldFont;
 
@@ -1790,7 +1756,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                             buttonText->Buffer,
                             (UINT)buttonText->Length / sizeof(WCHAR),
                             &bufferRect,
-                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
+                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | hidePrefixFlag
                             );
                     }
                 }
@@ -1843,7 +1809,7 @@ LRESULT CALLBACK PhThemeWindowDrawButton(
                         buttonText->Buffer,
                         (UINT)buttonText->Length / sizeof(WCHAR),
                         &bufferRect,
-                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | (!isKeyboardFocused ? DT_HIDEPREFIX : 0)
+                        DT_CENTER | DT_SINGLELINE | DT_VCENTER | hidePrefixFlag
                         );
                 }
             }
@@ -1861,7 +1827,10 @@ LRESULT CALLBACK PhThemeWindowDrawRebar(
 {
     // temp chevron workaround until location/state supported.
     if (DrawInfo->dwDrawStage != CDDS_PREPAINT)
-        return CDRF_DODEFAULT;
+    {
+        // Skip erasing of background to remove flickering when close settings or lock/unlock toolbar (Dart Vanya)
+        return DrawInfo->dwDrawStage == CDDS_PREERASE ? CDRF_SKIPDEFAULT : CDRF_DODEFAULT;
+    }
 
     switch (DrawInfo->dwDrawStage)
     {
@@ -2142,7 +2111,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
             //SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
-            SelectFont(DrawInfo->nmcd.hdc, fontHandle);
+            if (fontHandle) SelectFont(DrawInfo->nmcd.hdc, fontHandle);
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);

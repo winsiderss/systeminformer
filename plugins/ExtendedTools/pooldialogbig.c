@@ -124,7 +124,7 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
             else
                 PhCenterWindow(hwndDlg, NULL);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EtUpdateBigPoolTable(context);
         }

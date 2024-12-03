@@ -455,26 +455,26 @@ BOOLEAN PhIsThemeSupportEnabled(
     return PhEnableThemeSupport;
 }
 
-BOOLEAN PhSetPreferredAppMode(
+PreferredAppMode PhSetPreferredAppMode(
     _In_ PreferredAppMode AppMode
     )
 {
     if (!SetPreferredAppMode_I)
-        return FALSE;
+        return PreferredAppModeDisabled;
 
-    BOOLEAN retval = !!SetPreferredAppMode_I(AppMode);
+    PreferredAppMode prevMode = SetPreferredAppMode_I(AppMode);
     PhFlushMenuThemes();
-    return retval;
+    return prevMode;
 }
 
-BOOLEAN PhFlushMenuThemes(
+VOID PhFlushMenuThemes(
     VOID
     )
 {
-    if (!PhFlushMenuThemes)
-        return FALSE;
-
-    return !!FlushMenuThemes_I();
+    if (FlushMenuThemes_I)
+    {
+        FlushMenuThemes_I();
+    }
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)

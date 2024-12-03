@@ -738,7 +738,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

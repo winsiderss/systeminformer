@@ -832,7 +832,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             //if (!PhGetOwnTokenAttributes().Elevated)
             //    Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDOK), TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2362,7 +2362,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 PhpRunFileSetImageList(context);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -3273,7 +3273,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                 context
                 );
 
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle);
 
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDCANCEL));
 

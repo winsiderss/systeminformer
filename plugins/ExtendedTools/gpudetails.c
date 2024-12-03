@@ -399,7 +399,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
 
             EtpGpuDetailsEnumAdapters(context->ListViewHandle);
 

@@ -1371,7 +1371,7 @@ VOID DevicesTreeInitialize(
         TreeNew_SetRowHeight(DeviceTreeHandle, treelistCustomRowSize);
     }
 
-    PhInitializeWindowTheme(DeviceTreeHandle, PhIsThemeSupportEnabled());
+    PhInitializeWindowTheme(DeviceTreeHandle);
 
     TreeNew_SetTriState(DeviceTreeHandle, TRUE);
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);

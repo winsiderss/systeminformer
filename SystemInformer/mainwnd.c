@@ -135,7 +135,7 @@ BOOLEAN PhMainWndInitialization(
     PhMwpInitializeMainMenu(PhMainWndHandle);
 
     // Initialize window theme.
-    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
+    PhInitializeWindowTheme(PhMainWndHandle);
 
     // Initialize providers.
     PhMwpInitializeProviders();
@@ -652,8 +652,7 @@ static NTSTATUS PhMwpReInitializeThemeThread(
     {
         PhEnableThemeSupport = currentTheme;
 
-        if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
-            PhEnableThemeAcrylicWindowSupport = FALSE;
+        PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
         PhReInitializeTheme(PhEnableThemeSupport);
 

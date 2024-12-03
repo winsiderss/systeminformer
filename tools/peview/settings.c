@@ -141,15 +141,13 @@ VOID PvUpdateCachedSettings(
     PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
 
     PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+    PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
     if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
     {
         DeleteBrush(PhThemeWindowBackgroundBrush);
         PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
     }
-
-    if (PhEnableThemeAcrylicWindowSupport && !PhEnableThemeSupport)
-        PhEnableThemeAcrylicWindowSupport = FALSE;
 }
 
 VOID PvInitializeSettings(

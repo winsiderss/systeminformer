@@ -276,7 +276,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
 
-            PhInitializeWindowTheme(GetParent(hwndDlg), PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(GetParent(hwndDlg));
         }
         break;
     case WM_DESTROY:
@@ -677,7 +677,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
 
             DeviceInitializePropsPage(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -851,7 +851,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
 
             DeviceInitializeInterfacesPage(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, PhIsThemeSupportEnabled());
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
