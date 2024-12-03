@@ -31,6 +31,7 @@
 
 #include <phapp.h>
 #include <hidnproc.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 #include <mainwnd.h>
 #include <procprv.h>
