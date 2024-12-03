@@ -123,7 +123,7 @@ typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
     _In_ BCD_MESSAGE_TYPE type,
     _In_ PCWSTR Message
     );
-    
+
 /**
  * Sets the logging level and callback routine for BCD messages.
  * 
@@ -138,7 +138,7 @@ BcdSetLogging(
     _In_ BCD_MESSAGE_TYPE BcdLoggingLevel,
     _In_ BCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
     );
-    
+
 /**
  * Initializes the BCD synchronization mutant.
  */
@@ -148,7 +148,7 @@ NTAPI
 BcdInitializeBcdSyncMutant(
     VOID
     );
-    
+
 /**
  * Retrieves the file name for the BCD.
  * 
@@ -161,7 +161,7 @@ NTAPI
 BcdGetSystemStorePath(
     _Out_ PWSTR* BcdSystemStorePath // RtlFreeHeap(RtlProcessHeap(), 0, BcdSystemStorePath);
     );
-    
+
 /**
  * Sets the device for the system BCD store.
  * 
@@ -174,7 +174,7 @@ NTAPI
 BcdSetSystemStoreDevice(
     _In_ UNICODE_STRING SystemPartition
     );
-    
+
 /**
  * Opens the BCD system store.
  * 
@@ -187,7 +187,7 @@ NTAPI
 BcdOpenSystemStore(
     _Out_ PHANDLE BcdStoreHandle
     );
-    
+
 /**
  * Opens a BCD store from a file.
  * 
@@ -202,7 +202,7 @@ BcdOpenStoreFromFile(
     _In_ UNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
-    
+
 /**
  * Creates a BCD store.
  * 
@@ -217,7 +217,7 @@ BcdCreateStore(
     _In_ UNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
-    
+
 /**
  * Exports the BCD store to a file.
  * 
@@ -360,7 +360,7 @@ NTAPI
 BcdFlushStore(
     _In_ HANDLE BcdStoreHandle
     );
-    
+
 /**
  * Forcibly unloads a BCD store.
  * 

@@ -4568,7 +4568,7 @@ typedef struct _PERFINFO_PAGE_RANGE_IDENTITY
         ULONG_PTR PageFrameIndex;           // Used for DriverLocked/UserPhysical Mdls.
         PVOID VirtualAddress;               // Used otherwise.
     };
-    SIZE_T PageCount;                    // Number of pages.
+    SIZE_T PageCount;                       // Number of pages.
 } PERFINFO_PAGE_RANGE_IDENTITY, *PPERFINFO_PAGE_RANGE_IDENTITY;
 
 #define PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS 5
@@ -4586,7 +4586,7 @@ typedef struct _PERFINFO_KERNELMEMORY_RANGE_USAGE
     ULONG UsageType : PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS;
     ULONG Spare: (NTWMI_BITSIZE (ULONG) - PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS);
     PVOID VirtualAddress;               // Starting VA (where meaningful).
-    SIZE_T PageCount;                // Number of pages.
+    SIZE_T PageCount;                   // Number of pages.
 } PERFINFO_KERNELMEMORY_RANGE_USAGE, *PPERFINFO_KERNELMEMORY_RANGE_USAGE;
 
 #define PERFINFO_MM_STAT_TYPE_BITS 6
