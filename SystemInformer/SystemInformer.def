@@ -532,6 +532,7 @@ EXPORTS
     PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
     PhEnumHandlesEx
+    PhEnumHandlesEx2
     PhEnumKernelModules
     PhEnumNextProcess
     PhEnumNextThread
@@ -719,6 +720,7 @@ EXPORTS
     PhGetMessage
     PhGetMonitorDpi
     PhGetNtMessage
+    PhGetNtSystemRoot
     PhGetSizeDpiValue
     PhGetStatusMessage
     PhGetSystemDirectory
@@ -889,8 +891,7 @@ EXPORTS
     PhGetWindowClientId
     PhGetWindowContext
     PhGetWindowText
-    PhGetWindowTextEx 
-    PhSetWindowTheme
+    PhGetWindowTextEx
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon
@@ -910,6 +911,7 @@ EXPORTS
     PhLoadImageFormatFromResource
     PhModalPropertySheet
     PhQueryDirectXExclusiveOwnership
+    PhInitializeWindowTheme
     PhReInitializeWindowTheme
     PhRegisterWindowCallback
     PhRemoveListViewItem

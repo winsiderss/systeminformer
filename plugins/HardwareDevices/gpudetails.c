@@ -390,7 +390,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhSetWindowTheme(hwndDlg);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             GraphicsDeviceQueryAdapterDetails(context);
 

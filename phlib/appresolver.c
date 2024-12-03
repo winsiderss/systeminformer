@@ -815,7 +815,7 @@ HRESULT PhAppResolverBeginCrashDumpTask(
     )
 {
     HRESULT status;
-    IOSTaskCompletion* taskCompletion;
+    IOSTaskCompletion* taskCompletion = NULL;
 
     status = PhGetClassObject(
         L"twinapi.appcore.dll",
@@ -851,7 +851,7 @@ HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
     )
 {
     HRESULT status;
-    IOSTaskCompletion* taskCompletion;
+    IOSTaskCompletion* taskCompletion = NULL;;
 
     status = PhGetClassObject(
         L"twinapi.appcore.dll",

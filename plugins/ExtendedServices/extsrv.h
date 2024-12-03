@@ -15,6 +15,7 @@
 
 #include <phdk.h>
 #include <phappresource.h>
+#include <guisup.h>
 #include <settings.h>
 #include <mapldr.h>
 

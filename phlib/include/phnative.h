@@ -1077,11 +1077,48 @@ NTSTATUS
 NTAPI
 PhCreateSecurityDescriptor(
     _Out_ PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _In_ BYTE Revision
+    _In_ ULONG Revision
     )
 {
     memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
-    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision = Revision;
+    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision = (BYTE)Revision;
+    return STATUS_SUCCESS;
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidAcl(
+    _In_ PACL Acl
+    )
+{
+    return RtlValidAcl(Acl);
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhFirstFreeAce(
+    _In_ PACL Acl,
+    _Out_ PULONG_PTR NextAce
+    )
+{
+    ULONG_PTR Current = (ULONG_PTR)Acl + sizeof(ACL);
+    ULONG_PTR AclEnd = (ULONG_PTR)Acl + Acl->AclSize;
+
+    for (USHORT i = 0; i < Acl->AceCount; i++)
+    {
+        if (Current >= AclEnd)
+            return FALSE;
+
+        Current += ((PACE_HEADER)Current)->AceSize;
+    }
+
+    if (Current <= AclEnd)
+    {
+        *NextAce = Current;
+    }
+
     return STATUS_SUCCESS;
 }
 
@@ -1091,7 +1128,7 @@ NTAPI
 PhCreateAcl(
     _Out_ PACL Acl,
     _In_ ULONG Length,
-    _In_ UCHAR Revision
+    _In_ ULONG Revision
     )
 {
     if (Length < sizeof(ACL))
@@ -1099,10 +1136,10 @@ PhCreateAcl(
     if (Length > USHRT_MAX)
         return STATUS_INVALID_PARAMETER;
     if (Revision < MIN_ACL_REVISION || Revision > MAX_ACL_REVISION)
-        return STATUS_INVALID_PARAMETER;
+        return STATUS_REVISION_MISMATCH;
 
     memset(Acl, 0, sizeof(ACL));
-    Acl->AclRevision = Revision;
+    Acl->AclRevision = (BYTE)Revision;
     Acl->AclSize = (USHORT)(Length & ~0x0003);
     return STATUS_SUCCESS;
 }

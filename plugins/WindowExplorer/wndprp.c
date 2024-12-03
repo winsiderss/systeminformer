@@ -30,6 +30,7 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND PropsListViewHandle;
     HWND PropStoreListViewHandle;
+    IListView* ListViewClass;
 
     HICON WindowIcon;
     ULONG PropsListCount;
@@ -57,7 +58,7 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
 typedef struct _SYMBOL_RESOLVE_CONTEXT
 {
     LIST_ENTRY ListEntry;
-    ULONG64 Address;
+    PVOID Address;
     PPH_STRING Symbol;
     PH_SYMBOL_RESOLVE_LEVEL ResolveLevel;
     HWND NotifyWindow;
@@ -394,7 +395,7 @@ NTSTATUS WepResolveSymbolFunction(
 
     context->Symbol = PhGetSymbolFromAddress(
         context->Context->SymbolProvider,
-        (ULONG64)context->Address,
+        context->Address,
         &context->ResolveLevel,
         NULL,
         NULL,
@@ -423,7 +424,7 @@ NTSTATUS WepResolveSymbolFunction(
 VOID WepQueueResolveSymbol(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context,
     _In_ HWND NotifyWindow,
-    _In_ ULONG64 Address,
+    _In_ PVOID Address,
     _In_ ULONG Id
     )
 {
@@ -816,13 +817,13 @@ VOID WepRefreshWindowGeneralInfo(
     if (Context->WndProc != 0)
     {
         Context->WndProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, Context->WndProc, 1);
+        WepQueueResolveSymbol(Context, hwndDlg, (PVOID)Context->WndProc, 1);
     }
 
     if (Context->DlgProc != 0)
     {
         Context->DlgProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, Context->DlgProc, 2);
+        WepQueueResolveSymbol(Context, hwndDlg, (PVOID)Context->DlgProc, 2);
     }
 
     WepRefreshWindowGeneralInfoSymbols(ListViewHandle, Context);
@@ -1199,7 +1200,7 @@ VOID WepRefreshWindowClassInfo(
     if (Context->ClassInfo.lpfnWndProc)
     {
         Context->ClassWndProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, (ULONG_PTR)Context->ClassInfo.lpfnWndProc, 3);
+        WepQueueResolveSymbol(Context, hwndDlg, (PVOID)Context->ClassInfo.lpfnWndProc, 3);
     }
 
     WepRefreshWindowClassInfoSymbols(ListViewHandle, Context);
@@ -1479,13 +1480,14 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_WINDOWINFO);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIcon(GetParent(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhAddIListViewColumn(context->ListViewClass, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
+            PhAddIListViewColumn(context->ListViewClass, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, context->ListViewHandle);
 
@@ -1494,8 +1496,9 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             if (!PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X) // HACK
             {
                 PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
-                ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
+
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
@@ -1510,6 +1513,11 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             if (context->WindowIcon)
             {
                 DestroyIcon(context->WindowIcon);
+            }
+
+            if (context->ListViewClass)
+            {
+                IListView_Release(context->ListViewClass);
             }
         }
         break;

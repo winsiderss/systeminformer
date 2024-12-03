@@ -2302,15 +2302,9 @@ extern COLORREF PhThemeWindowTextColor;
 PHLIBAPI
 VOID
 NTAPI
-PhUpdateWindowThemeSupport(
-    _In_ ULONG EnableThemeSupport
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhSetWindowTheme(
-    _In_ HWND WindowHandle
+PhInitializeWindowTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
     );
 
 PHLIBAPI

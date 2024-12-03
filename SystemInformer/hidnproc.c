@@ -31,6 +31,7 @@
 
 #include <phapp.h>
 #include <hidnproc.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 #include <mainwnd.h>
 #include <procprv.h>
@@ -687,7 +688,7 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
 
         // TODO: Token information?
 
-        if (NT_SUCCESS(PhGetProcessPriority(processHandle, &priorityClass)))
+        if (NT_SUCCESS(PhGetProcessPriorityClass(processHandle, &priorityClass)))
         {
             processItem->PriorityClass = priorityClass;
         }

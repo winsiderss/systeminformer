@@ -119,6 +119,12 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _In_opt_ PVOID Context
     );
 
+NTSTATUS NTAPI PhpCloseProcessTokenForPage(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    );
+
 INT_PTR CALLBACK PhpProcessTokenHookProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -340,13 +346,14 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
+    IListView* ListView;
+
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
     PPH_PROCESS_ITEM ProcessItem;
 
     BOOLEAN GotCycles;
     BOOLEAN GotCounters;
-    BOOLEAN GotUptime;
 
     ULONG PagePriority;
     IO_PRIORITY_HINT IoPriority;
@@ -356,21 +363,17 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONGLONG RunningTime;
     ULONGLONG SuspendedTime;
     ULONGLONG NetworkTxRxBytes;
+    PH_UINT64_DELTA KeyboardDelta;
+    PH_UINT64_DELTA MouseDelta;
 
-    PPH_STRING PrivateWs;
-    PPH_STRING ShareableWs;
-    PPH_STRING SharedWs;
+    //PPH_STRING PrivateWs;
+    //PPH_STRING ShareableWs;
+    //PPH_STRING SharedWs;
     PPH_STRING PeakHandles;
     PPH_STRING GdiHandles;
     PPH_STRING UserHandles;
     PPH_STRING PeakGdiHandles;
     PPH_STRING PeakUserHandles;
-
-    PPH_STRING SharedCommitUsage;
-    PPH_STRING PrivateCommitUsage;
-    PPH_STRING PeakPrivateCommitUsage;
-    //PPH_STRING PrivateCommitLimit;
-    //PPH_STRING TotalCommitLimit;
 
     FLOAT CpuUsage; FLOAT CpuUsageMin; FLOAT CpuUsageMax; FLOAT CpuUsageDiff;
     FLOAT CpuUsageUser; FLOAT CpuUsageUserMin; FLOAT CpuUsageUserMax; FLOAT CpuUsageUserDiff;
@@ -385,6 +388,46 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG64 KernelTimeDelta; ULONG64 KernelTimeDeltaMin; ULONG64 KernelTimeDeltaMax; ULONG64 KernelTimeDeltaDiff;
     ULONG64 UserTime; ULONG64 UserTimeMin; ULONG64 UserTimeMax; ULONG64 UserTimeDiff;
     ULONG64 UserTimeDelta; ULONG64 UserTimeDeltaMin; ULONG64 UserTimeDeltaMax; ULONG64 UserTimeDeltaDiff;
+    KPRIORITY BasePriority; KPRIORITY BasePriorityMin; KPRIORITY BasePriorityMax; KPRIORITY BasePriorityDiff;
+
+    ULONG_PTR PagefileUsage; ULONG_PTR PagefileUsageMin; ULONG_PTR PagefileUsageMax; ULONG_PTR PagefileUsageDiff;
+    ULONG_PTR PagefileDelta; ULONG_PTR PagefileDeltaMin; ULONG_PTR PagefileDeltaMax; ULONG_PTR PagefileDeltaDiff;
+    ULONG64 PeakPagefileUsage; ULONG64 PeakPagefileUsageMin; ULONG64 PeakPagefileUsageMax; ULONG64 PeakPagefileUsageDiff;
+    ULONG64 VirtualSize; ULONG64 VirtualSizeMin; ULONG64 VirtualSizeMax; ULONG64 VirtualSizeDiff;
+    ULONG64 PeakVirtualSize; ULONG64 PeakVirtualSizeMin; ULONG64 PeakVirtualSizeMax; ULONG64 PeakVirtualSizeDiff;
+    ULONG64 PageFaultCount; ULONG64 PageFaultCountMin; ULONG64 PageFaultCountMax; ULONG64 PageFaultCountDiff;
+    ULONG64 PageFaultsDelta; ULONG64 PageFaultsDeltaMin; ULONG64 PageFaultsDeltaMax; ULONG64 PageFaultsDeltaDiff;
+    ULONG64 HardFaultCount; ULONG64 HardFaultCountMin; ULONG64 HardFaultCountMax; ULONG64 HardFaultCountDiff;
+    ULONG64 HardFaultsDelta; ULONG64 HardFaultsDeltaMin; ULONG64 HardFaultsDeltaMax; ULONG64 HardFaultsDeltaDiff;
+    ULONG64 WorkingSetSize; ULONG64 WorkingSetSizeMin; ULONG64 WorkingSetSizeMax; ULONG64 WorkingSetSizeDiff;
+    ULONG64 PeakWorkingSetSize; ULONG64 PeakWorkingSetSizeMin; ULONG64 PeakWorkingSetSizeMax; ULONG64 PeakWorkingSetSizeDiff;
+
+    ULONG64 QuotaPagedPoolUsage; ULONG64 QuotaPagedPoolUsageMin; ULONG64 QuotaPagedPoolUsageMax; ULONG64 QuotaPagedPoolUsageDiff;
+    ULONG64 QuotaPeakPagedPoolUsage; ULONG64 QuotaPeakPagedPoolUsageMin; ULONG64 QuotaPeakPagedPoolUsageMax; ULONG64 QuotaPeakPagedPoolUsageDiff;
+    ULONG64 QuotaNonPagedPoolUsage; ULONG64 QuotaNonPagedPoolUsageMin; ULONG64 QuotaNonPagedPoolUsageMax; ULONG64 QuotaNonPagedPoolUsageDiff;
+    ULONG64 QuotaPeakNonPagedPoolUsage; ULONG64 QuotaPeakNonPagedPoolUsageMin; ULONG64 QuotaPeakNonPagedPoolUsageMax; ULONG64 QuotaPeakNonPagedPoolUsageDiff;
+
+    ULONG64 NumberOfPrivatePages; ULONG64 NumberOfPrivatePagesMin; ULONG64 NumberOfPrivatePagesMax; ULONG64 NumberOfPrivatePagesDiff;
+    ULONG64 NumberOfShareablePages; ULONG64 NumberOfShareablePagesMin; ULONG64 NumberOfShareablePagesMax; ULONG64 NumberOfShareablePagesDiff;
+    ULONG64 NumberOfSharedPages; ULONG64 NumberOfSharedPagesMin; ULONG64 NumberOfSharedPagesMax; ULONG64 NumberOfSharedPagesDiff;
+    ULONG64 SharedCommitUsage; ULONG64 SharedCommitUsageMin; ULONG64 SharedCommitUsageMax; ULONG64 SharedCommitUsageDiff;
+    ULONG64 PrivateCommitUsage; ULONG64 PrivateCommitUsageMin; ULONG64 PrivateCommitUsageMax; ULONG64 PrivateCommitUsageDiff;
+    ULONG64 PeakPrivateCommitUsage; ULONG64 PeakPrivateCommitUsageMin; ULONG64 PeakPrivateCommitUsageMax; ULONG64 PeakPrivateCommitUsageDiff;
+
+    ULONG64 ReadOperationCount; ULONG64 ReadOperationCountMin; ULONG64 ReadOperationCountMax; ULONG64 ReadOperationCountDiff;
+    ULONG64 IoReadCountDelta; ULONG64 IoReadCountDeltaMin; ULONG64 IoReadCountDeltaMax; ULONG64 IoReadCountDeltaDiff;
+    ULONG64 ReadTransferCount; ULONG64 ReadTransferCountMin; ULONG64 ReadTransferCountMax; ULONG64 ReadTransferCountDiff;
+    ULONG64 IoReadDelta; ULONG64 IoReadDeltaMin; ULONG64 IoReadDeltaMax; ULONG64 IoReadDeltaDiff;
+
+    ULONG64 WriteOperationCount; ULONG64 WriteOperationCountMin; ULONG64 WriteOperationCountMax; ULONG64 WriteOperationCountDiff;
+    ULONG64 IoWriteCountDelta; ULONG64 IoWriteCountDeltaMin; ULONG64 IoWriteCountDeltaMax; ULONG64 IoWriteCountDeltaDiff;
+    ULONG64 WriteTransferCount; ULONG64 WriteTransferCountMin; ULONG64 WriteTransferCountMax; ULONG64 WriteTransferCountDiff;
+    ULONG64 IoWriteDelta; ULONG64 IoWriteDeltaMin; ULONG64 IoWriteDeltaMax; ULONG64 IoWriteDeltaDiff;
+
+    ULONG64 OtherOperationCount; ULONG64 OtherOperationCountMin; ULONG64 OtherOperationCountMax; ULONG64 OtherOperationCountDiff;
+    ULONG64 IoOtherCountDelta; ULONG64 IoOtherCountDeltaMin; ULONG64 IoOtherCountDeltaMax; ULONG64 IoOtherCountDeltaDiff;
+    ULONG64 OtherTransferCount; ULONG64 OtherTransferCountMin; ULONG64 OtherTransferCountMax; ULONG64 OtherTransferCountDiff;
+    ULONG64 IoOtherDelta; ULONG64 IoOtherDeltaMin; ULONG64 IoOtherDeltaMax; ULONG64 IoOtherDeltaDiff;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)

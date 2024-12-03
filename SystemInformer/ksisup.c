@@ -869,7 +869,7 @@ VOID KsiConnect(
     }
 
     if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
-        PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
+        PhMoveReference(&objectName, PhConcatStrings2(KPH_OBJECT_PATH, KPH_OBJECT_NAME));
     if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
         PhClearReference(&portName);
     if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))

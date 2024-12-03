@@ -3867,7 +3867,7 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
                 PhShowServiceProgressDialogStatusPage(context);
             }
 
-            PhSetWindowTheme(WindowHandle);
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }
@@ -3987,6 +3987,7 @@ static BOOLEAN PhpShowContinueMessageServices(
             object = L"the selected services";
         }
 
+        return PhShowConfirmMessage(
             WindowHandle,
             Verb,
             object,
@@ -5984,6 +5985,39 @@ BOOLEAN PhUiFreeMemory(
             status,
             0
             );
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhUiEmptyProcessMemoryWorkingSet(
+    _In_ HWND WindowHandle,
+    _In_ HANDLE ProcessId,
+    _In_ PPH_MEMORY_ITEM MemoryItem
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_VM_OPERATION,
+        ProcessId
+        )))
+    {
+        status = PhSetProcessEmptyPageWorkingSet(
+            processHandle,
+            MemoryItem->BaseAddress,
+            MemoryItem->RegionSize
+            );
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to empty the region working set.", status, 0);
         return FALSE;
     }
 

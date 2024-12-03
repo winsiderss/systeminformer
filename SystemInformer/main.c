@@ -19,6 +19,7 @@
 #include <extmgri.h>
 #include <mainwnd.h>
 #include <netprv.h>
+#include <phconsole.h>
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>

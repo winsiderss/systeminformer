@@ -28,8 +28,8 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     );
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 #endif

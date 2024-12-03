@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <phconsole.h>
 #include <phintrnl.h>
 
 VOID PhInitializeSystemInformation(
@@ -409,4 +410,32 @@ BOOLEAN PhInitializeProcessorInformation(
     }
 
     return TRUE;
+}
+
+_Use_decl_annotations_
+VOID PhExitApplication(
+    _In_opt_ NTSTATUS Status
+    )
+{
+#define WORKAROUND_CRTBUG_EXITPROCESS
+#ifdef WORKAROUND_CRTBUG_EXITPROCESS
+    HANDLE standardHandle;
+
+    if (standardHandle = PhGetStdHandle(STD_OUTPUT_HANDLE))
+    {
+        DEVICE_TYPE deviceType;
+
+        if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), standardHandle, &deviceType)))
+        {
+            if (deviceType == FILE_DEVICE_CONSOLE)
+            {
+                FlushFileBuffers(standardHandle);
+            }
+        }
+    }
+
+    NtTerminateProcess(NtCurrentProcess(), Status);
+#else
+    RtlExitUserProcess(Status);
+#endif
 }

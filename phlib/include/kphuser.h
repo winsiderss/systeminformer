@@ -19,9 +19,10 @@
 
 EXTERN_C_START
 
-#define KPH_SERVICE_NAME __TEXT("KSystemInformer")
-#define KPH_OBJECT_NAME  __TEXT("\\Driver\\KSystemInformer")
-#define KPH_PORT_NAME    __TEXT("\\KSystemInformer")
+#define KPH_SERVICE_NAME TEXT("SystemInformer")
+#define KPH_OBJECT_PATH  TEXT("\\Driver")
+#define KPH_OBJECT_NAME  TEXT("\\SystemInformer")
+#define KPH_PORT_NAME    TEXT("\\SystemInformer")
 
 #ifdef DEBUG
 #define KSI_COMMS_INIT_ASSERT() assert(KphMessageFreeList.Size == sizeof(KPH_MESSAGE))
