@@ -18,6 +18,7 @@
 #include <settings.h>
 
 #include <actions.h>
+#include <mainwnd.h>
 #include <phappres.h>
 #include <phsvccl.h>
 #include <thirdparty.h>
