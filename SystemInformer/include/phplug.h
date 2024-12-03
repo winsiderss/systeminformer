@@ -226,6 +226,7 @@ typedef struct _PH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
+    PVOID ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_MAXIMUM];
