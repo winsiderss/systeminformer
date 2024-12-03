@@ -460,12 +460,6 @@ VOID FindRaplDevices(
             NtClose(deviceHandle);
         }
 
-        if (deviceEntry->DevicePresent && !deviceEntry->DeviceSupported)
-        {
-            // TODO: Remove this once we know our channel names are correct. (dmex)
-            PhMoveReference(&deviceEntry->DeviceName, PhConcatStringRefZ(&deviceEntry->DeviceName->sr, L" [UNKNOWN DEVICE - PLEASE REPORT ON GITHUB]"));
-        }
-
         PhAddItemList(deviceList, deviceEntry);
 
         PhDereferenceObject(deviceDescription);

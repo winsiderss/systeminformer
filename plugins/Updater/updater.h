@@ -19,6 +19,7 @@
 #include <settings.h>
 #include <workqueue.h>
 #include <mapimg.h>
+#include <guisup.h>
 
 #include <bcrypt.h>
 

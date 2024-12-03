@@ -824,7 +824,7 @@ static VOID ReadCurrentUserRun(
         PhInitializeArray(&keyEntryArray, sizeof(PHP_HKURUN_ENTRY), 20);
         PhEnumerateValueKey(keyHandle, KeyValueFullInformation, PhpReadCurrentRunCallback, &keyEntryArray);
 
-        for (SIZE_T i = 0; i < keyEntryArray.Count; i++)
+        for (SIZE_T i = 0; i < PhFinalArrayCount(&keyEntryArray); i++)
         {
             PPHP_HKURUN_ENTRY entry = PhItemArray(&keyEntryArray, i);
             PH_STRINGREF fileName;
@@ -1410,7 +1410,6 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME,
     PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN,
     PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE,
-    PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH,
     PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
@@ -1452,12 +1451,7 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_AVX_EXTENSIONS, L"Enable AVX extensions (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals (experimental)", NULL);
-#ifdef _ARM64_
-        // see: PhpEstimateIdleCyclesForARM (jxy-s)
-        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage (experimental)", NULL);
-#else
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
-#endif
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"Enable fixed graph scaling (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"Enable new memory strings dialog", NULL);
@@ -1466,7 +1460,6 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"Use Windows app color mode", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"Enable streamer mode (disable window capture) (experimental)", NULL);
-        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"Enable silent crash notification (experimental)", NULL);
         //PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"Enable Windows subsystem for Linux support", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"Resolve network addresses", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"Resolve DNS over HTTPS (DoH)", NULL);
@@ -1499,7 +1492,6 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
-    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
@@ -1733,7 +1725,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
-    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
@@ -2085,29 +2076,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                         switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                         {
-                        case INDEXTOSTATEIMAGEMASK(1): // unchecked
-                            {
-                                switch (listView->iItem)
-                                {
-                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
-                                    {
-                                        if (!PhGetOwnTokenAttributes().Elevated)
-                                        {
-                                            PhShowInformation2(
-                                                PhOptionsWindowHandle,
-                                                L"Unable to change process exit notification.",
-                                                L"%s",
-                                                L"You need to disable this option with administrative privileges."
-                                                );
-
-                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                            return TRUE;
-                                        }
-                                    }
-                                    break;
-                                }
-                            }
-                            break;
                         case INDEXTOSTATEIMAGEMASK(2): // checked
                             {
                                 switch (listView->iItem)
@@ -2170,31 +2138,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         }
                                     }
                                     break;
-                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
-                                    {
-                                        NTSTATUS status;
-
-                                        if (!PhGetOwnTokenAttributes().Elevated)
-                                        {
-                                            PhShowInformation2(
-                                                PhOptionsWindowHandle,
-                                                L"Unable to change process exit notification.",
-                                                L"%s",
-                                                L"You need to enable this option with administrative privileges."
-                                                );
-
-                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                            return TRUE;
-                                        }
-
-                                        status = PhpSetSilentProcessNotifyEnabled(TRUE);
-
-                                        if (!NT_SUCCESS(status))
-                                        {
-                                            PhShowStatus(hwndDlg, L"Unable to change process exit notification.", status, 0);
-                                        }
-                                    }
-                                    break;
                                 }
                             }
                             break;
@@ -2224,8 +2167,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     break;
                                 case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
                                     break;
-                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
-                                    break;
                                 }
                             }
                             break;
@@ -2243,18 +2184,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
                                         {
                                             PhDeleteAdminTask(&SI_RUNAS_ADMIN_TASK_NAME);
-                                        }
-                                    }
-                                    break;
-                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
-                                    {
-                                        NTSTATUS status;
-
-                                        status = PhpSetSilentProcessNotifyEnabled(FALSE);
-
-                                        if (!NT_SUCCESS(status))
-                                        {
-                                            PhShowStatus(hwndDlg, L"Unable to change process exit notification.", status, 0);
                                         }
                                     }
                                     break;

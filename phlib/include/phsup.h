@@ -20,8 +20,13 @@
 #include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <inttypes.h>
+#include <math.h>
 #include <malloc.h>
 #include <float.h>
 
@@ -82,9 +87,13 @@
 #if defined(_M_IX86)
 #define UInt32Add32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) + ((unsigned int)(b)))) // Avoids warning C26451 (dmex)
 #define UInt32Sub32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) - ((unsigned int)(b))))
+#define UInt32Div32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
+#define UInt32Mul32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) / ((unsigned int)(b))))
 #else
 #define UInt32Add32To64(a, b) (((unsigned __int64)((unsigned int)(a))) + ((unsigned __int64)((unsigned int)(b)))) // from UInt32x32To64 (dmex)
 #define UInt32Sub32To64(a, b) (((unsigned __int64)((unsigned int)(a))) - ((unsigned __int64)((unsigned int)(b))))
+#define UInt32Div32To64(a, b) (((unsigned __int64)((unsigned int)(a))) / ((unsigned __int64)((unsigned int)(b))))
+#define UInt32Mul32To64(a, b) (((unsigned __int64)((unsigned int)(a))) * ((unsigned __int64)((unsigned int)(b))))
 #endif
 
 // Time
@@ -300,9 +309,9 @@ FORCEINLINE LONG_PTR __InterlockedExchangeAddPointer(
     )
 {
 #ifdef _WIN64
-    return (LONG_PTR)_InterlockedExchangeAdd64((PLONG64)Addend, (LONG64)Value);
+    return (LONG_PTR)_InterlockedExchangeAdd64((volatile LONG64*)Addend, (LONG64)Value);
 #else
-    return (LONG_PTR)_InterlockedExchangeAdd((PLONG)Addend, (LONG)Value);
+    return (LONG_PTR)_InterlockedExchangeAdd((volatile LONG*)Addend, (LONG)Value);
 #endif
 }
 
@@ -313,9 +322,9 @@ FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
     )
 {
 #ifdef _WIN64
-    return (LONG_PTR)_InterlockedIncrement64((PLONG64)Addend);
+    return (LONG_PTR)_InterlockedIncrement64((volatile LONG64*)Addend);
 #else
-    return (LONG_PTR)_InterlockedIncrement((PLONG)Addend);
+    return (LONG_PTR)_InterlockedIncrement((volatile LONG*)Addend);
 #endif
 }
 
@@ -324,9 +333,9 @@ FORCEINLINE LONG_PTR __InterlockedDecrementPointer(
     )
 {
 #ifdef _WIN64
-    return (LONG_PTR)_InterlockedDecrement64((PLONG64)Addend);
+    return (LONG_PTR)_InterlockedDecrement64((volatile LONG64*)Addend);
 #else
-    return (LONG_PTR)_InterlockedDecrement((PLONG)Addend);
+    return (LONG_PTR)_InterlockedDecrement((volatile LONG*)Addend);
 #endif
 }
 
@@ -338,9 +347,9 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndResetPointer(
     )
 {
 #ifdef _WIN64
-    return _interlockedbittestandreset64((PLONG64)Base, (LONG64)Bit);
+    return _interlockedbittestandreset64((volatile LONG64*)Base, (LONG64)Bit);
 #else
-    return _interlockedbittestandreset((PLONG)Base, (LONG)Bit);
+    return _interlockedbittestandreset((volatile LONG*)Base, (LONG)Bit);
 #endif
 }
 
@@ -350,9 +359,9 @@ FORCEINLINE BOOLEAN _InterlockedBitTestAndSetPointer(
     )
 {
 #ifdef _WIN64
-    return _interlockedbittestandset64((PLONG64)Base, (LONG64)Bit);
+    return _interlockedbittestandset64((volatile LONG64*)Base, (LONG64)Bit);
 #else
-    return _interlockedbittestandset((PLONG)Base, (LONG)Bit);
+    return _interlockedbittestandset((volatile LONG*)Base, (LONG)Bit);
 #endif
 }
 
@@ -550,7 +559,7 @@ FORCEINLINE LONG PhMultiplyDivideSigned(
     )
 {
     if (Number >= 0)
-        return PhMultiplyDivide(Number, Numerator, Denominator);
+        return (LONG)PhMultiplyDivide(Number, Numerator, Denominator);
     else
         return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
 }

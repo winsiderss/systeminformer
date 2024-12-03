@@ -85,6 +85,14 @@ PhQueryObjectBasicInformation(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhCompareObjects(
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetEtwPublisherName(

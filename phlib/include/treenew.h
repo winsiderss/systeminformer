@@ -458,8 +458,9 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_GETVISIBLECOLUMN (WM_USER + 50)
 #define TNM_GETVISIBLECOLUMNARRAY (WM_USER + 51)
 #define TNM_GETSELECTEDCOUNT (WM_USER + 52)
-#define TNM_FOCUSMARKSELECT (WM_USER + 53)
-#define TNM_LAST (WM_USER + 54)
+#define TNM_GETSELECTEDNODE (WM_USER + 53)
+#define TNM_FOCUSMARKSELECT (WM_USER + 54)
+#define TNM_LAST (WM_USER + 55)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -610,6 +611,9 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 
 #define TreeNew_GetSelectedNodeCount(hWnd) \
     ((ULONG)SendMessage((hWnd), TNM_GETSELECTEDCOUNT, 0, 0))
+
+#define TreeNew_GetSelectedNode(hWnd) \
+    ((PPH_TREENEW_NODE)SendMessage((hWnd), TNM_GETSELECTEDNODE, 0, 0))
 
 #define TreeNew_FocusMarkSelectNode(hWnd, Node) \
     SendMessage((hWnd), TNM_FOCUSMARKSELECT, 0, (LPARAM)(Node))

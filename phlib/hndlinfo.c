@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <apiimport.h>
 #include <hndlinfo.h>
 #include <json.h>
 #include <kphuser.h>
@@ -416,6 +417,28 @@ NTSTATUS PhQueryObjectBasicInformation(
     return PhGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
+NTSTATUS PhCompareObjects(
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    )
+{
+    NTSTATUS status;
+
+    if (NtCompareObjects_Import())
+    {
+        status = NtCompareObjects_Import()(
+            FirstObjectHandle,
+            SecondObjectHandle
+            );
+    }
+    else
+    {
+        status = STATUS_NOT_SUPPORTED;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetEtwObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -457,9 +480,8 @@ VOID PhInitializeEtwTraceGuidCache(
     PVOID jsonObject;
     ULONG arrayLength;
 
-    if (guidListFileName = PhGetApplicationDirectory())
+    if (guidListFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\EtwGuids.txt", TRUE))
     {
-        PhMoveReference(&guidListFileName, PhConcatStringRefZ(&guidListFileName->sr, L"etwguids.txt"));
         guidListString = PhFileReadAllText(&guidListFileName->sr, TRUE);
         PhDereferenceObject(guidListFileName);
     }
@@ -1192,7 +1214,7 @@ NTSTATUS PhpGetBestObjectName(
     else if (PhEqualString2(TypeName, L"Section", TRUE))
     {
         HANDLE dupHandle = NULL;
-        PPH_STRING fileName;
+        PPH_STRING fileName = NULL;
 
         if (!PhIsNullOrEmptyString(ObjectName))
             goto CleanupExit;
@@ -2219,6 +2241,7 @@ NTSTATUS PhpCallWithTimeout(
         if (!NT_SUCCESS(status = PhCreateUserThread(
             NtCurrentProcess(),
             NULL,
+            THREAD_ALL_ACCESS,
             0,
             0,
             UInt32x32To64(32, 1024),

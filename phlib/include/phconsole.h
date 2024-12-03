@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef _PH_USER_H
-#define _PH_USER_H
+#ifndef _PH_CONSOLE_H
+#define _PH_CONSOLE_H
 
 PHLIBAPI
 NTSTATUS
@@ -38,14 +38,15 @@ NTSTATUS
 NTAPI
 PhGetConsoleProcessList(
     _In_ HANDLE ProcessId,
+    _In_ ULONG ProcessCount,
     _Out_writes_(ProcessCount) PULONG ProcessList,
-    _In_ ULONG ProcessCount
+    _Out_ PULONG ProcessTotal
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhConsoleControlSetForeground(
+PhConsoleSetForeground(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN Foreground
     );
@@ -53,7 +54,16 @@ PhConsoleControlSetForeground(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhConsoleControlEndTask(
+PhConsoleSetWindow(
+    _In_ HANDLE ProcessID,
+    _In_ HANDLE ThreadId,
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhConsoleEndTask(
     _In_ HANDLE ProcessId,
     _In_ HWND WindowHandle
     );

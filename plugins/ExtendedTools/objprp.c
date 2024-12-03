@@ -204,7 +204,8 @@ typedef enum _ET_OBJECT_GENERAL_CATEGORY
     OBJECT_GENERAL_CATEGORY_TYPE,
     OBJECT_GENERAL_CATEGORY_TYPE_ACCESS,
     OBJECT_GENERAL_CATEGORY_WINDOWSTATION,
-    OBJECT_GENERAL_CATEGORY_DESKTOP
+    OBJECT_GENERAL_CATEGORY_DESKTOP,
+    OBJECT_GENERAL_CATEGORY_SESSION
 } ET_OBJECT_GENERAL_CATEGORY;
 
 typedef enum _ET_OBJECT_GENERAL_INDEX {
@@ -245,6 +246,15 @@ typedef enum _ET_OBJECT_GENERAL_INDEX {
     OBJECT_GENERAL_INDEX_DESKTOPIO,
     OBJECT_GENERAL_INDEX_DESKTOPSID,
     OBJECT_GENERAL_INDEX_DESKTOPHEAP,
+
+    OBJECT_GENERAL_INDEX_SESSIONNAME,
+    OBJECT_GENERAL_INDEX_SESSIONID,
+    OBJECT_GENERAL_INDEX_SESSIONUSERNAME,
+    OBJECT_GENERAL_INDEX_SESSIONSTATE,
+    OBJECT_GENERAL_INDEX_SESSIONLOGON,
+    OBJECT_GENERAL_INDEX_SESSIONCONNECT,
+    OBJECT_GENERAL_INDEX_SESSIONDISCONNECT,
+    OBJECT_GENERAL_INDEX_SESSIONLASTINPUT,
 
     OBJECT_GENERAL_INDEX_MAXIMUM
 } ET_OBJECT_GENERAL_INDEX;
@@ -366,7 +376,7 @@ VOID EtHandlePropertiesWindowInitialized(
         }
 
         // Removing of row breaks cached indexes, so hide reference value instead
-        PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
+        //PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
 
         PhRemoveListViewItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK]);
         EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES] = PhAddListViewGroupItem(
@@ -553,7 +563,8 @@ VOID EtHandlePropertiesWindowInitialized(
             EtListViewRowCache[OBJECT_GENERAL_INDEX_DEVICEPNPNAME] = PhAddListViewGroupItem(context->ListViewHandle,
                 OBJECT_GENERAL_CATEGORY_DEVICE, OBJECT_GENERAL_INDEX_DEVICEPNPNAME, L"PnP Device Name", NULL);
 
-            if (KsiLevel() == KphLevelMax)
+            if (KsiLevel() == KphLevelMax &&
+                !PhIsNullOrEmptyString(context->HandleItem->ObjectName))
             {
                 PhStringRefToUnicodeString(&context->HandleItem->ObjectName->sr, &objectName);
                 InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
@@ -602,7 +613,8 @@ VOID EtHandlePropertiesWindowInitialized(
                 }
             }
 
-            if (driverName = PhGetPnPDeviceName(context->HandleItem->ObjectName))
+            if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
+                (driverName = PhGetPnPDeviceName(context->HandleItem->ObjectName)))
             {
                 ULONG_PTR columnPos = PhFindLastCharInString(driverName, 0, L':');
                 PPH_STRING devicePdoName = PhSubstring(driverName, 0, columnPos - 5);
@@ -723,7 +735,29 @@ VOID EtHandlePropertiesWindowInitialized(
             PPH_STRING accessString;
             PH_STRING_BUILDER stringBuilder;
 
-            if (PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
+            ListView_RemoveGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA);
+
+            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE, L"Type information");
+
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEINDEX, L"Index", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEOBJECTS, L"Objects", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEHANDLES, L"Handles", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS, L"Peak Objects", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, L"Peak Handles", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, L"Pool Type", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPAGECHARGE, L"Default Paged Charge", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, L"Default NP Charge", NULL);
+
+            if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
+                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
             {
                 typeIndex = PhGetObjectTypeNumber(&typeName);
 
@@ -736,27 +770,6 @@ VOID EtHandlePropertiesWindowInitialized(
                     {
                         if (objectType->TypeIndex == typeIndex)
                         {
-                            ListView_RemoveGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA);
-
-                            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE, L"Type information");
-
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEINDEX, L"Index", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEOBJECTS, L"Objects", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEHANDLES, L"Handles", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS, L"Peak Objects", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, L"Peak Handles", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, L"Pool Type", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEPAGECHARGE, L"Default Paged Charge", NULL);
-                            EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE] = PhAddListViewGroupItem(context->ListViewHandle,
-                                OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, L"Default NP Charge", NULL);
-
                             PhPrintUInt32(string, objectType->TypeIndex);
                             PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEINDEX], 1, string);
                             PhPrintUInt32(string, objectType->TotalNumberOfObjects);
@@ -853,6 +866,72 @@ VOID EtHandlePropertiesWindowInitialized(
                 }
             }
         }
+        else if (PhEqualString2(context->HandleItem->TypeName, L"Session", TRUE))
+        {
+            PH_STRINGREF firstPart;
+            PH_STRINGREF sessionName;
+            WINSTATIONINFORMATION winStationInfo;
+            ULONG returnLength;
+            ULONG sessionId;
+            SYSTEMTIME systemTime;
+
+            PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_SESSION, L"Session information");
+
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONNAME] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONNAME, L"Session Name", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONID] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONID, L"Session ID", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONUSERNAME] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONUSERNAME, L"User name", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONSTATE] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONSTATE, L"State", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONLOGON] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONLOGON, L"Logon time", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONCONNECT] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONCONNECT, L"Connect time", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONDISCONNECT] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONDISCONNECT, L"Disconnect time", NULL);
+            EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONLASTINPUT] = PhAddListViewGroupItem(context->ListViewHandle,
+                OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONLASTINPUT, L"Last input time", NULL);
+
+            if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
+                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &sessionName) &&
+                (sessionId = EtSessionIdFromObjectName(&sessionName)) != ULONG_MAX)
+            {
+                if (WinStationQueryInformationW(
+                    WINSTATION_CURRENT_SERVER,
+                    sessionId,
+                    WinStationInformation,
+                    &winStationInfo,
+                    sizeof(WINSTATIONINFORMATION),
+                    &returnLength
+                    ))
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONNAME], 1, winStationInfo.WinStationName);
+                    PhPrintUInt32(string, sessionId);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONID], 1, string);
+
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONUSERNAME], 1,
+                        PhaFormatString(
+                            L"%s%c%s",
+                            winStationInfo.Domain,
+                            winStationInfo.Domain[0] != UNICODE_NULL ? OBJ_NAME_PATH_SEPARATOR : UNICODE_NULL,
+                            winStationInfo.UserName)->Buffer);
+
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONSTATE], 1,
+                        EtMapSessionConnectState(winStationInfo.ConnectState));
+
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.LogonTime);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONLOGON], 1, PhaFormatDateTime(&systemTime)->Buffer);
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.ConnectTime);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONCONNECT], 1, PhaFormatDateTime(&systemTime)->Buffer);
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.DisconnectTime);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONDISCONNECT], 1, PhaFormatDateTime(&systemTime)->Buffer);
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.LastInputTime);
+                    PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_SESSIONLASTINPUT], 1, PhaFormatDateTime(&systemTime)->Buffer);
+                }
+            }
+        }
     }
 }
 
@@ -885,6 +964,57 @@ PPH_STRING EtGetWindowStationType(
         PhInitFormatS(&format[0], L"Network Service");
 
     return format[0].u.Char != UNICODE_NULL ? PhFormat(format, RTL_NUMBER_OF(format), 0) : NULL;
+}
+
+ULONG EtSessionIdFromObjectName(
+    _In_ PPH_STRINGREF Name
+    )
+{
+    static PH_STRINGREF session = PH_STRINGREF_INIT(L"Session");
+
+    ULONG sessionId = ULONG_MAX;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF idString;
+
+    if (PhSplitStringRefAtString(Name, &session, TRUE, &firstPart, &idString) &&
+        idString.Length > 0)
+    {
+        LONG64 id;
+        if (PhStringToInteger64(&idString, 0, &id))
+            sessionId = (ULONG)id;
+    }
+
+    return sessionId;
+}
+
+PWSTR EtMapSessionConnectState(
+    _In_ WINSTATIONSTATECLASS State
+    )
+{
+    static CONST PH_KEY_VALUE_PAIR EtpConnectStatePairs[] =
+    {
+        SIP(L"Active", State_Active),
+        SIP(L"Connected", State_Connected),
+        SIP(L"ConnectQuery", State_ConnectQuery),
+        SIP(L"Shadow", State_Shadow),
+        SIP(L"Disconnected", State_Disconnected),
+        SIP(L"Idle", State_Idle),
+        SIP(L"Listen", State_Listen),
+        SIP(L"Reset", State_Reset),
+        SIP(L"Down", State_Down),
+        SIP(L"Init", State_Init)
+    };
+
+    PWSTR stateString = NULL;
+
+    PhFindStringSiKeyValuePairs(
+        EtpConnectStatePairs,
+        sizeof(EtpConnectStatePairs),
+        State,
+        &stateString
+        );
+
+    return stateString;
 }
 
 VOID EtHandlePropertiesWindowUninitializing(
@@ -960,24 +1090,6 @@ INT CALLBACK EtpCommonPropPageProc(
     return 1;
 }
 
-static BOOLEAN NTAPI EnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_ PVOID Context
-    )
-{
-    if (Module->Type == PH_MODULE_TYPE_MODULE || Module->Type == PH_MODULE_TYPE_WOW64_MODULE)
-    {
-        PhLoadModuleSymbolProvider(
-            Context,
-            Module->FileName,
-            (ULONG64)Module->BaseAddress,
-            Module->Size
-            );
-    }
-
-    return TRUE;
-}
-
 INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1018,18 +1130,11 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     if (symbolProvider = PhCreateSymbolProvider(NULL))
                     {
                         PhLoadSymbolProviderOptions(symbolProvider);
-
-                        PhEnumGenericModules(
-                            basicInfo.ProcessId,
-                            NULL,
-                            0,
-                            EnumGenericModulesCallback,
-                            symbolProvider
-                            );
-
+                        PhLoadSymbolProviderModules(symbolProvider, context->ProcessId);
+   
                         symbol = PhGetSymbolFromAddress(
                             symbolProvider,
-                            (ULONG64)basicInfo.StartRoutine,
+                            basicInfo.StartRoutine,
                             NULL,
                             NULL,
                             NULL,
@@ -1454,7 +1559,7 @@ VOID EtpEnumObjectHandles(
         Context->OwnHandlesCount = ownHandlesIndex;
     }
 
-    if (PhEqualString2(Context->HandleItem->TypeName, L"Type", TRUE))
+    if (isTypeObject)
         PhSetDialogItemText(Context->WindowHandle, IDC_OBJ_HANDLESBYNAME_L, L"By type:");
 
     PhPrintUInt32(string, Context->TotalHandlesCount);
@@ -1540,7 +1645,7 @@ VOID EtpUpdateGeneralTab(
                 PhPrintUInt32(string, basicInfo.PointerCount);
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_REFERENCES, 1, string);
 
-                PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount));
+                PhPrintUInt32(string, Context->ProcessId == NtCurrentProcessId() ? OBJECT_CORRECT_HANDLES_COUNT(basicInfo.HandleCount) : basicInfo.HandleCount);
                 PhSetListViewSubItem(generalPageList, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1, string);
             }
 
@@ -1613,13 +1718,23 @@ static NTSTATUS EtpProcessHandleOpenCallback(
 }
 
 static NTSTATUS EtpProcessHandleCloseCallback(
-    _In_ PVOID Context
-)
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    )
 {
     PET_HANDLE_OPEN_CONTEXT context = Context;
 
-    PhDereferenceObject(context->HandleItem);
-    PhFree(context);
+    if (Handle)
+    {
+        NtClose(Handle);
+    }
+
+    if (Release && context)
+    {
+        PhDereferenceObject(context->HandleItem);
+        PhFree(context);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -1849,7 +1964,6 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 menu = PhCreateEMenu();
-
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, protectedMenuItem = PhCreateEMenuItem(0, IDC_HANDLE_PROTECTED, L"&Protected", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, inheritMenuItem = PhCreateEMenuItem(0, IDC_HANDLE_INHERIT, L"&Inherit", NULL, NULL), ULONG_MAX);
@@ -1863,6 +1977,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
                 PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
                 PhSetFlagsEMenuItem(menu, IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
                 if (numberOfItems > 1)
                 {
                     PhSetDisabledEMenuItem(protectedMenuItem);
@@ -1976,12 +2091,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                                 }
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES1:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES1:
                             {
                                 PhShowHandleObjectProperties1(hwndDlg, &info);
                             }
                             break;
-                        case ID_HANDLE_OBJECTPROPERTIES2:
+                        case PHAPP_ID_HANDLE_OBJECTPROPERTIES2:
                             {
                                 PhShowHandleObjectProperties2(hwndDlg, &info);
                             }
@@ -2132,14 +2247,25 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
 }
 
 static NTSTATUS EtpCloseSecurityDesktop(
-    _In_ PVOID Context
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
     )
 {
     POPEN_DESKTOP_CONTEXT context = Context;
 
-    PhClearReference(&context->DesktopName);
-    if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
-    PhFree(context);
+    if (Handle)
+    {
+        CloseDesktop(Handle);
+    }
+
+    if (Release && context)
+    {
+        PhClearReference(&context->DesktopName);
+        if (context->DesktopWinStation) CloseWindowStation(context->DesktopWinStation);
+        PhFree(context);
+    }
+
     return STATUS_SUCCESS;
 }
 

@@ -297,12 +297,32 @@ typedef struct _KPH_DYN_CONFIG
             string headerFile = $"{Build.BuildWorkingFolder}\\kphlib\\include\\kphdyn.h";
             string sourceFile = $"{Build.BuildWorkingFolder}\\kphlib\\kphdyn.c";
 
-            GenerateConfig(manifestFile, out byte[] config);
+            // Check for new or modified content. We don't want to touch the file if it's not needed.
+            {
+                string headerUpdateText = GenerateHeader();
+                string headerCurrentText = Utils.ReadAllText(headerFile);
 
-            Utils.WriteAllText(headerFile, GenerateHeader());
-            Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
-            Utils.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
-            Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
+                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                {
+                    Utils.WriteAllText(headerFile, headerUpdateText);
+                }
+
+                Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
+            }
+
+            byte[] config = GenerateConfig(manifestFile);
+
+            {
+                var headerUpdateText = GenerateSource(BytesToString(config));
+                var headerCurrentText = Utils.ReadAllText(sourceFile);
+
+                if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                {
+                    Utils.WriteAllText(sourceFile, headerUpdateText);
+                }
+
+                Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
+            }
 
             if (string.IsNullOrWhiteSpace(OutDir))
                 return true;
@@ -310,11 +330,37 @@ typedef struct _KPH_DYN_CONFIG
             string configFile = $"{OutDir}\\ksidyn.bin";
 
             if (File.Exists(configFile))
+            {
+                var configUpdateBytes = Utils.ReadAllBytes(configFile).AsSpan();
+                var configSigFileName = Path.ChangeExtension(configFile, ".sig");
+
+                if (configUpdateBytes.SequenceEqual(config) && File.Exists(configSigFileName))
+                {
+                    Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
+                    return true;
+                }
+
                 File.Delete(configFile);
-            Directory.CreateDirectory(OutDir);
-            Utils.WriteAllBytes(configFile, config);
-            Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
-            return Verify.CreateSigFile("kph", configFile, StrictChecks);
+                File.Delete(configSigFileName);
+                Utils.WriteAllBytes(configFile, config);
+
+                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+
+                Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
+
+                return configFileSig;
+            }
+            else
+            {
+                Directory.CreateDirectory(OutDir);
+                Utils.WriteAllBytes(configFile, config);
+
+                bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
+
+                Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
+
+                return configFileSig;
+            }
         }
 
         private static string GenerateHeader()
@@ -358,10 +404,7 @@ typedef struct _KPH_DYN_CONFIG
             return sb.ToString();
         }
 
-        private static void GenerateConfig(
-            string ManifestFile,
-            out byte[] ConfigBytes
-            )
+        private static byte[] GenerateConfig(string ManifestFile)
         {
             var xml = new XmlDocument();
             var fieldsMap = new Dictionary<UInt32, XmlNode>();
@@ -369,7 +412,6 @@ typedef struct _KPH_DYN_CONFIG
             var fieldsStream = new MemoryStream();
             var fieldsWirter = new BinaryWriter(fieldsStream);
             var entries = new List<DynDataEntry>(10);
-            var configNames = new List<string>(10);
 
             xml.Load(ManifestFile);
 
@@ -385,7 +427,6 @@ typedef struct _KPH_DYN_CONFIG
             foreach (XmlNode data in dataNodes)
             {
                 var entry = new DynDataEntry();
-                var version = data.Attributes?.GetNamedItem("version")?.Value;
                 var file = data.Attributes?.GetNamedItem("file")?.Value;
                 var arch = data.Attributes?.GetNamedItem("arch")?.Value;
                 var timestamp = data.Attributes?.GetNamedItem("timestamp")?.Value;
@@ -399,8 +440,7 @@ typedef struct _KPH_DYN_CONFIG
 
                 var fieldId = UInt32.Parse(data.InnerText);
 
-                UInt32 offset;
-                if (!fieldsOffsets.TryGetValue(fieldId, out offset))
+                if (!fieldsOffsets.TryGetValue(fieldId, out UInt32 offset))
                 {
                     offset = (UInt32)fieldsStream.Length;
                     fieldsOffsets.Add(fieldId, offset);
@@ -459,7 +499,7 @@ typedef struct _KPH_DYN_CONFIG
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries)));
                 writer.Write(fieldsStream.ToArray());
 
-                ConfigBytes = stream.ToArray();
+                return stream.ToArray();
             }
         }
 

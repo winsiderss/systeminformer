@@ -26,7 +26,7 @@ VOID EspLayoutServiceListControl(
     RECT rect;
 
     GetWindowRect(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), &rect);
-    MapWindowPoints(NULL, WindowHandle, (POINT *)&rect, 2);
+    MapWindowRect(NULL, WindowHandle, &rect);
 
     MoveWindow(
         ServiceListHandle,

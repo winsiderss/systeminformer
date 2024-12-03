@@ -14,6 +14,8 @@
 #include "clretw.h"
 #include "clrsup.h"
 #include "svcext.h"
+#include <searchbox.h>
+
 #include <evntcons.h>
 
 #define DNATNC_STRUCTURE 0
@@ -1886,7 +1888,7 @@ BOOLEAN DotNetAsmTreeFilterCallback(
 VOID NTAPI DotNetAsmSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
-)
+    )
 {
     PASMPAGE_CONTEXT context = Context;
 

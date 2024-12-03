@@ -224,9 +224,9 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                 ShowWindow(checkBoxHandle, SW_HIDE);
                 GetWindowRect(checkBoxHandle, &checkBoxRect);
-                MapWindowPoints(NULL, hwndDlg, (POINT *)&checkBoxRect, 2);
+                MapWindowRect(NULL, hwndDlg, &checkBoxRect);
                 GetWindowRect(GetDlgItem(hwndDlg, IDOK), &rect);
-                MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
+                MapWindowRect(NULL, hwndDlg, &rect);
                 diff = rect.top - checkBoxRect.top;
 
                 // OK
@@ -238,7 +238,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                 // Cancel
                 GetWindowRect(GetDlgItem(hwndDlg, IDCANCEL), &rect);
-                MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
+                MapWindowRect(NULL, hwndDlg, &rect);
                 rect.top -= diff;
                 rect.bottom -= diff;
                 SetWindowPos(GetDlgItem(hwndDlg, IDCANCEL), NULL, rect.left, rect.top,

@@ -807,7 +807,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                         PhLoadModuleSymbolProvider(
                             PvSymbolProvider,
                             fileName,
-                            (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
+                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, 0),
                             PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
                             );
                     }
@@ -816,7 +816,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                         PhLoadModuleSymbolProvider(
                             PvSymbolProvider,
                             fileName,
-                            (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+                            PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, 0),
                             PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
                             );
                     }
@@ -890,7 +890,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                         PhGetString(PvFileName),
                         L"FileObject",
                         PhpOpenFileSecurity,
-                        NULL,
+                        PhpCloseFileSecurity,
                         NULL
                         );
                 }

@@ -12,18 +12,18 @@
 // Allocate an MMDB_data_pool_s. It initially has space for size
 // MMDB_entry_data_list_s structs.
 MMDB_data_pool_s *data_pool_new(size_t const size) {
-    MMDB_data_pool_s *const pool = PhAllocateSafe(sizeof(MMDB_data_pool_s));
+    MMDB_data_pool_s* const pool = calloc(1, sizeof(MMDB_data_pool_s));
     if (!pool) {
         return NULL;
     }
-    memset(pool, 0, sizeof(MMDB_data_pool_s));
+
     if (size == 0 ||
         !can_multiply(SIZE_MAX, size, sizeof(MMDB_entry_data_list_s))) {
         data_pool_destroy(pool);
         return NULL;
     }
     pool->size = size;
-    pool->blocks[0] = PhAllocateSafe(pool->size * sizeof(MMDB_entry_data_list_s));
+    pool->blocks[0] = calloc(pool->size, sizeof(MMDB_entry_data_list_s));
     if (!pool->blocks[0]) {
         data_pool_destroy(pool);
         return NULL;
@@ -57,10 +57,10 @@ void data_pool_destroy(MMDB_data_pool_s *const pool) {
     }
 
     for (size_t i = 0; i <= pool->index; i++) {
-        PhFree(pool->blocks[i]);
+        free(pool->blocks[i]);
     }
 
-    PhFree(pool);
+    free(pool);
 }
 
 // Claim a new struct from the pool. Doing this may cause the pool's size to
@@ -92,7 +92,7 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
     if (!can_multiply(SIZE_MAX, new_size, sizeof(MMDB_entry_data_list_s))) {
         return NULL;
     }
-    pool->blocks[new_index] = PhAllocateSafe(new_size * sizeof(MMDB_entry_data_list_s));
+    pool->blocks[new_index] = calloc(new_size, sizeof(MMDB_entry_data_list_s));
     if (!pool->blocks[new_index]) {
         return NULL;
     }

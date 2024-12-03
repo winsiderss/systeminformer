@@ -72,6 +72,12 @@ NTSTATUS PhpOpenFileSecurity(
     _In_opt_ PVOID Context
     );
 
+NTSTATUS PhpCloseFileSecurity(
+    _In_opt_ HANDLE Handle,
+    _In_opt_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    );
+
 // libprp
 
 VOID PvLibProperties(
@@ -287,8 +293,8 @@ typedef struct _PV_SYMBOL_NODE
     ULONG64 Size;
     ULONG64 Address;
     PPH_STRING Name;
-    PPH_STRING Data;
     PPH_STRING SizeText;
+    PPH_STRINGREF Data;
     WCHAR Index[PH_INT64_STR_LEN_1];
     WCHAR Pointer[PH_PTR_STR_LEN_1];
 

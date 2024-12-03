@@ -88,7 +88,7 @@
 #define PlatformRole 75 // POWER_PLATFORM_ROLE
 #define LastResumePerformance 76 // RESUME_PERFORMANCE
 #define DisplayBurst 77 // in: NULL (PowerMonitorOn)
-#define ExitLatencySamplingPercentage 78
+#define ExitLatencySamplingPercentage 78 // in: NULL (ClearExitLatencySamplingPercentage), in: ULONG (SetExitLatencySamplingPercentage) (max 100)
 #define RegisterSpmPowerSettings 79 // (kernel-mode only)
 #define PlatformIdleStates 80 // (kernel-mode only)
 #define ProcessorIdleVeto 81 // (kernel-mode only) // deprecated
@@ -222,7 +222,7 @@ typedef enum _POWER_STATE_DISABLED_TYPE
     PoDisabledStateReserved5 = 5,
     PoDisabledStateSleeping4Firmware = 6,
     PoDisabledStateMaximum = 7
-} POWER_STATE_DISABLED_TYPE, PPOWER_STATE_DISABLED_TYPE;
+} POWER_STATE_DISABLED_TYPE, *PPOWER_STATE_DISABLED_TYPE;
 
 #define POWER_STATE_DISABLED_TYPE_MAX  8
 
@@ -358,7 +358,7 @@ typedef struct _DIAGNOSTIC_BUFFER
 typedef struct _WAKE_TIMER_INFO
 {
     SIZE_T OffsetToNext;
-    ULARGE_INTEGER DueTime;
+    LARGE_INTEGER DueTime;
     ULONG Period;
     DIAGNOSTIC_BUFFER ReasonContext;
 } WAKE_TIMER_INFO, *PWAKE_TIMER_INFO;
@@ -640,15 +640,15 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalStandbyNetworkRequest, // POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
     PowerInternalDirtyTransitionInformation, // out: BOOLEAN
     PowerInternalSetBackgroundTaskState, // POWER_SET_BACKGROUND_TASK_STATE
-    PowerInternalTtmOpenTerminal,
-    PowerInternalTtmCreateTerminal, // 10
-    PowerInternalTtmEvacuateDevices,
-    PowerInternalTtmCreateTerminalEventQueue,
-    PowerInternalTtmGetTerminalEvent,
-    PowerInternalTtmSetDefaultDeviceAssignment,
-    PowerInternalTtmAssignDevice,
-    PowerInternalTtmSetDisplayState,
-    PowerInternalTtmSetDisplayTimeouts,
+    PowerInternalTtmOpenTerminal, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmCreateTerminal, // (requires SeShutdownPrivilege and terminalPowerManagement capability) // 10
+    PowerInternalTtmEvacuateDevices, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmCreateTerminalEventQueue, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmGetTerminalEvent, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDefaultDeviceAssignment, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmAssignDevice, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDisplayState, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
+    PowerInternalTtmSetDisplayTimeouts, // (requires SeShutdownPrivilege and terminalPowerManagement capability)
     PowerInternalBootSessionStandbyActivationInformation, // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
     PowerInternalSessionPowerState, // in: POWER_SESSION_POWER_STATE
     PowerInternalSessionTerminalInput, // 20
@@ -678,8 +678,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalTimeBrokerExpirationReason,
     PowerInternalNotifyUserShutdownStatus,
     PowerInternalPowerRequestTerminalCoreWindow,
-    PowerInternalProcessorIdleVeto,
-    PowerInternalPlatformIdleVeto,
+    PowerInternalProcessorIdleVeto, // PROCESSOR_IDLE_VETO
+    PowerInternalPlatformIdleVeto, // PLATFORM_IDLE_VETO
     PowerInternalIsLongPowerButtonBugcheckEnabled,
     PowerInternalAutoChkCausedReboot, // 50
     PowerInternalSetWakeAlarmOverride,
@@ -709,8 +709,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalClassIdleIntervalStats,
     PowerInternalCpuNodeConcurrencyStats,
     PowerInternalClassConcurrencyStats,
-    PowerInternalQueryProcMeasurementCapabilities,
-    PowerInternalQueryProcMeasurementValues,
+    PowerInternalQueryProcMeasurementCapabilities, // PPROCESSOR_QUERY_MEASUREMENT_CAPABILITIES
+    PowerInternalQueryProcMeasurementValues, // PROCESSOR_QUERY_MEASUREMENT_VALUES
     PowerInternalPrepareForSystemInitiatedReboot, // 80
     PowerInternalGetAdaptiveSessionState,
     PowerInternalSetConsoleLockedState,
@@ -850,6 +850,25 @@ typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
     ULONG Version;
     ULONG NominalFrequency; // if (Domain) Prcb->PowerState.CheckContext.Domain.NominalFrequency else Prcb->MHz
 } POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT;
+
+// rev
+typedef struct _PROCESSOR_IDLE_VETO
+{
+    ULONG Version;
+    PROCESSOR_NUMBER ProcessorNumber;
+    ULONG StateIndex;
+    ULONG VetoReason;
+    UCHAR Increment;
+} PROCESSOR_IDLE_VETO, *PPROCESSOR_IDLE_VETO;
+
+// rev
+typedef struct _PLATFORM_IDLE_VETO
+{
+    ULONG Version;
+    ULONG StateIndex;
+    ULONG VetoReason;
+    UCHAR Increment;
+} PLATFORM_IDLE_VETO, *PPLATFORM_IDLE_VETO;
 
 // rev
 typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC

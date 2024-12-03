@@ -329,6 +329,7 @@
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="guisup.c" />
+    <ClCompile Include="guisuplistview.cpp" />
     <ClCompile Include="handle.c" />
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
@@ -376,6 +377,7 @@
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
+    <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\searchbox.h" />
     <ClInclude Include="include\user.h" />
     <ClInclude Include="include\cpysave.h" />

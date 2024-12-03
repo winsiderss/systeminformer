@@ -41,11 +41,9 @@ VOID DiskDevicesInitialize(
 }
 
 VOID DiskDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     PhAcquireQueuedLockShared(&DiskDevicesListLock);
 
     for (ULONG i = 0; i < DiskDevicesList->Count; i++)
@@ -167,7 +165,7 @@ VOID DiskDevicesUpdate(
             entry->HaveFirstSample = TRUE;
         }
 
-        if (runCount != 0)
+        if (RunCount != 0)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
@@ -177,8 +175,6 @@ VOID DiskDevicesUpdate(
     }
 
     PhReleaseQueuedLockShared(&DiskDevicesListLock);
-
-    runCount++;
 }
 
 VOID DiskDeviceUpdateDeviceInfo(

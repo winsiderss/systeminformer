@@ -11,11 +11,12 @@
 
 namespace CustomBuildTool
 {
-    public static class Utils
+    public static unsafe class Utils
     {
-        private static Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static string GitFilePath;
+        private static string MsBuildFilePath;
         private static string VsWhereFilePath;
 
         /// <summary>
@@ -180,52 +181,72 @@ namespace CustomBuildTool
 
         private static string GetMsbuildFilePath(BuildFlags Flags)
         {
-            string MsBuildFilePath = null;
-            List<string> MsBuildPath = 
-            [
-                "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
-                "\\MSBuild\\Current\\Bin\\MSBuild.exe",
-                "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-            ];
-
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
-            {
-                MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe");
-            }
-
-            VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
-
-            if (instance != null)
-            {
-                foreach (string path in MsBuildPath)
-                {
-                    string file = Path.Join([instance.Path, path]);
-
-                    if (File.Exists(file))
-                    {
-                        MsBuildFilePath = file;
-                        break;
-                    }
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
-                // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
-                string vswhereResult = ExecuteVsWhereCommand(
-                    "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
-                    );
+                List<string> MsBuildPath =
+                [
+                    "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
+                    "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+                    "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+                ];
 
-                if (!string.IsNullOrWhiteSpace(vswhereResult))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                {
+                    MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe");
+                }
+
+                VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
+
+                if (instance != null)
                 {
                     foreach (string path in MsBuildPath)
                     {
-                        string file = Path.Join([vswhereResult, path]);
+                        string file = Path.Join([instance.Path, path]);
 
                         if (File.Exists(file))
                         {
                             MsBuildFilePath = file;
                             break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(MsBuildFilePath))
+                {
+                    string vswhereResult = ExecuteVsWhereCommand(
+                        "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
+                        );
+
+                    if (!string.IsNullOrWhiteSpace(vswhereResult))
+                    {
+                        foreach (string path in MsBuildPath)
+                        {
+                            string file = Path.Join([vswhereResult, path]);
+
+                            if (File.Exists(file))
+                            {
+                                MsBuildFilePath = file;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(MsBuildFilePath))
+                {
+                    string vswhereResult = ExecuteVsWhereCommand(
+                        "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -find \"MSBuild\\**\\Bin\\MSBuild.exe"
+                        );
+                    if (!string.IsNullOrWhiteSpace(vswhereResult))
+                    {
+                        foreach (string path in MsBuildPath)
+                        {
+                            string file = Path.Join([vswhereResult, path]);
+                            if (File.Exists(file))
+                            {
+                                MsBuildFilePath = file;
+                                break;
+                            }
                         }
                     }
                 }
@@ -606,7 +627,7 @@ namespace CustomBuildTool
                 BufferSize = 0x1000
             };
 
-            long length = Win32.GetFileSize(FileName);
+            ulong length = Win32.GetFileSize(FileName);
 
             byte[] buffer = new byte[length];
 
@@ -640,8 +661,6 @@ namespace CustomBuildTool
 
         public static bool IsSpanNullOrWhiteSpace(ReadOnlySpan<char> value)
         {
-            if (value == null)
-                return true;
             if (value.IsEmpty)
                 return true;
             if (value.IsWhiteSpace())
@@ -663,13 +682,13 @@ namespace CustomBuildTool
         {
             if (EnvironmentBlock.Count == 0)
             {
-                if (NativeMethods.CreateEnvironmentBlock(out IntPtr block, IntPtr.Zero, false))
+                if (PInvoke.CreateEnvironmentBlock(out var block, null, false))
                 {
-                    IntPtr offset = block;
+                    char* offset = (char*)block;
 
-                    while (offset != IntPtr.Zero)
+                    while (offset != null)
                     {
-                        string variable = Marshal.PtrToStringUni(offset);
+                        string variable = new string(offset);
 
                         if (string.IsNullOrEmpty(variable))
                             break;
@@ -677,10 +696,11 @@ namespace CustomBuildTool
                         string[] parts = variable.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                         EnvironmentBlock.Add(parts[0], parts.Length <= 1 ? string.Empty : parts[1]);
 
-                        offset = new IntPtr(offset.ToInt64() + (variable.Length + 1) * sizeof(char));
+                        //offset = new IntPtr(offset.ToInt64() + (variable.Length + 1) * sizeof(char));
+                        offset += variable.Length + 1;
                     }
 
-                    NativeMethods.DestroyEnvironmentBlock(block);
+                    PInvoke.DestroyEnvironmentBlock(block);
                 }
             }
 
@@ -690,6 +710,20 @@ namespace CustomBuildTool
         public static string GetBuildLogPath(string Solution, string Platform, BuildFlags Flags)
         {
             return $"{Path.GetFileNameWithoutExtension(Solution)}{(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")}{Platform}";
+        }
+
+        public static DateTime FileTimeToDateTime(this System.Runtime.InteropServices.ComTypes.FILETIME FileTime)
+        {
+            long fileTime = ((long)FileTime.dwHighDateTime << 32) + FileTime.dwLowDateTime;
+
+            return DateTime.FromFileTime(fileTime);
+        }
+
+        public static long FileTimeFromFileTime(this System.Runtime.InteropServices.ComTypes.FILETIME FileTime)
+        {
+            long fileTime = ((long)FileTime.dwHighDateTime << 32) + FileTime.dwLowDateTime;
+
+            return fileTime;
         }
     }
 
@@ -741,7 +775,7 @@ namespace CustomBuildTool
 
     public class GithubReleasesResponse
     {
-        [JsonPropertyName("id")] public long ID { get; init; }
+        [JsonPropertyName("id")] public ulong ID { get; init; }
         [JsonPropertyName("upload_url")] public string UploadUrl { get; init; }
         [JsonPropertyName("html_url")] public string HtmlUrl { get; init; }
         [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; init; }
@@ -757,7 +791,7 @@ namespace CustomBuildTool
     {
         [JsonPropertyName("name")] public string Name { get; init; }
         [JsonPropertyName("label")] public string Label { get; init; }
-        [JsonPropertyName("size")] public long Size { get; init; }
+        [JsonPropertyName("size")] public ulong Size { get; init; }
         [JsonPropertyName("state")] public string State { get; init; }
         [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; init; }
 
@@ -779,157 +813,151 @@ namespace CustomBuildTool
     public class GithubAuthor
     {
         [JsonPropertyName("name")]
-        public string name { get; init; }
+        public string Name { get; init; }
 
         [JsonPropertyName("email")]
-        public string email { get; init; }
+        public string Email { get; init; }
 
         [JsonPropertyName("date")]
-        public DateTime date { get; init; }
+        public DateTime Date { get; init; }
 
         [JsonPropertyName("login")]
-        public string login { get; init; }
+        public string Login { get; init; }
 
         [JsonPropertyName("id")]
-        public long id { get; init; }
+        public ulong Id { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; init; }
+        public string NodeId { get; init; }
 
         [JsonPropertyName("avatar_url")]
-        public string avatar_url { get; init; }
+        public string AvatarUrl { get; init; }
 
         [JsonPropertyName("gravatar_id")]
-        public string gravatar_id { get; init; }
+        public string GravatarId { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; init; }
+        public string Url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; init; }
+        public string HtmlUrl { get; init; }
 
         [JsonPropertyName("followers_url")]
-        public string followers_url { get; init; }
+        public string FollowersUrl { get; init; }
 
         [JsonPropertyName("following_url")]
-        public string following_url { get; init; }
+        public string FollowingUrl { get; init; }
 
         [JsonPropertyName("gists_url")]
-        public string gists_url { get; init; }
+        public string GistsUrl { get; init; }
 
         [JsonPropertyName("starred_url")]
-        public string starred_url { get; init; }
+        public string StarredUrl { get; init; }
 
         [JsonPropertyName("subscriptions_url")]
-        public string subscriptions_url { get; init; }
+        public string SubscriptionsUrl { get; init; }
 
         [JsonPropertyName("organizations_url")]
-        public string organizations_url { get; init; }
+        public string OrganizationsUrl { get; init; }
 
         [JsonPropertyName("repos_url")]
-        public string repos_url { get; init; }
+        public string ReposUrl { get; init; }
 
         [JsonPropertyName("events_url")]
-        public string events_url { get; init; }
+        public string EventsUrl { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string received_events_url { get; init; }
+        public string Received_events_url { get; init; }
 
         [JsonPropertyName("type")]
-        public string type { get; init; }
-
-        [JsonPropertyName("site_admin")]
-        public bool site_admin { get; init; }
+        public string Type { get; init; }
     }
 
     public class GithubCommit
     {
         [JsonPropertyName("author")]
-        public GithubAuthor author { get; init; }
+        public GithubAuthor Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor committer { get; init; }
+        public GithubCommitAuthor Committer { get; init; }
 
         [JsonPropertyName("message")]
-        public string message { get; init; }
+        public string Message { get; init; }
 
         [JsonPropertyName("tree")]
-        public GithubCommitTree tree { get; init; }
+        public GithubCommitTree Tree { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; init; }
+        public string Url { get; init; }
 
         [JsonPropertyName("comment_count")]
-        public int comment_count { get; init; }
+        public ulong CommentCount { get; init; }
 
         [JsonPropertyName("verification")]
-        public GithubCommitVerification verification { get; init; }
+        public GithubCommitVerification Verification { get; init; }
     }
 
     public class GithubCommitAuthor
     {
         [JsonPropertyName("name")]
-        public string name { get; init; }
+        public string Name { get; init; }
 
         [JsonPropertyName("email")]
-        public string email { get; init; }
+        public string Email { get; init; }
 
         [JsonPropertyName("date")]
-        public DateTime date { get; init; }
+        public DateTime Date { get; init; }
 
         [JsonPropertyName("login")]
-        public string login { get; init; }
+        public string Login { get; init; }
 
         [JsonPropertyName("id")]
-        public int id { get; init; }
+        public ulong Id { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; init; }
+        public string NodeId { get; init; }
 
         [JsonPropertyName("avatar_url")]
-        public string avatar_url { get; init; }
+        public string AvatarUrl { get; init; }
 
         [JsonPropertyName("gravatar_id")]
-        public string gravatar_id { get; init; }
+        public string Gravatar_id { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; init; }
+        public string Url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; init; }
+        public string HtmlUrl { get; init; }
 
         [JsonPropertyName("followers_url")]
-        public string followers_url { get; init; }
+        public string FollowersUrl { get; init; }
 
         [JsonPropertyName("following_url")]
-        public string following_url { get; init; }
+        public string FollowingUrl { get; init; }
 
         [JsonPropertyName("gists_url")]
-        public string gists_url { get; init; }
+        public string GistsUrl { get; init; }
 
         [JsonPropertyName("starred_url")]
-        public string starred_url { get; init; }
+        public string StarredUrl { get; init; }
 
         [JsonPropertyName("subscriptions_url")]
-        public string subscriptions_url { get; init; }
+        public string SubscriptionsUrl { get; init; }
 
         [JsonPropertyName("organizations_url")]
-        public string organizations_url { get; init; }
+        public string OrganizationsUrl { get; init; }
 
         [JsonPropertyName("repos_url")]
-        public string repos_url { get; init; }
+        public string ReposUrl { get; init; }
 
         [JsonPropertyName("events_url")]
-        public string events_url { get; init; }
+        public string EventsUrl { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string received_events_url { get; init; }
+        public string ReceivedEventsUrl { get; init; }
 
         [JsonPropertyName("type")]
-        public string type { get; init; }
-
-        [JsonPropertyName("site_admin")]
-        public bool site_admin { get; init; }
+        public string Type { get; init; }
     }
 
     //public class GithubFile
@@ -980,34 +1008,34 @@ namespace CustomBuildTool
     public class GithubCommitResponse
     {
         [JsonPropertyName("sha")]
-        public string sha { get; init; }
+        public string Sha { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; init; }
+        public string NodeId { get; init; }
 
         [JsonPropertyName("commit")]
-        public GithubCommit commit { get; init; }
+        public GithubCommit Commit { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; init; }
+        public string Url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; init; }
+        public string HtmlUrl { get; init; }
 
         [JsonPropertyName("comments_url")]
-        public string comments_url { get; init; }
+        public string CommentsUrl { get; init; }
 
         [JsonPropertyName("author")]
-        public GithubAuthor author { get; init; }
+        public GithubAuthor Author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor committer { get; init; }
+        public GithubCommitAuthor Committer { get; init; }
 
         //[JsonPropertyName("parents")]
         //public List<GithubParent> parents { get; init; }
 
         [JsonPropertyName("stats")]
-        public GithubCommitStats stats { get; init; }
+        public GithubCommitStats Stats { get; init; }
 
         //[JsonPropertyName("files")]
         //public List<GithubFile> files { get; init; }
@@ -1016,37 +1044,37 @@ namespace CustomBuildTool
     public class GithubCommitStats
     {
         [JsonPropertyName("total")]
-        public int total { get; init; }
+        public ulong Total { get; init; }
 
         [JsonPropertyName("additions")]
-        public int additions { get; init; }
+        public ulong Additions { get; init; }
 
         [JsonPropertyName("deletions")]
-        public int deletions { get; init; }
+        public ulong Deletions { get; init; }
     }
 
     public class GithubCommitTree
     {
         [JsonPropertyName("sha")]
-        public string sha { get; init; }
+        public string Sha { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; init; }
+        public string Url { get; init; }
     }
 
     public class GithubCommitVerification
     {
         [JsonPropertyName("verified")]
-        public bool verified { get; init; }
+        public bool Verified { get; init; }
 
         [JsonPropertyName("reason")]
-        public string reason { get; init; }
+        public string Reason { get; init; }
 
         [JsonPropertyName("signature")]
-        public string signature { get; init; }
+        public string Signature { get; init; }
 
         [JsonPropertyName("payload")]
-        public string payload { get; init; }
+        public string Payload { get; init; }
     }
 
     [JsonSerializable(typeof(BuildUpdateRequest))]
@@ -1094,10 +1122,15 @@ namespace CustomBuildTool
 
         public static string ToPrettySize(this int value, int decimalPlaces = 0)
         {
-            return ((long)value).ToPrettySize(decimalPlaces);
+            return ((ulong)value).ToPrettySize(decimalPlaces);
         }
 
         public static string ToPrettySize(this long value, int decimalPlaces = 0)
+        {
+            return ((ulong)value).ToPrettySize(decimalPlaces);
+        }
+
+        public static string ToPrettySize(this ulong value, int decimalPlaces = 0)
         {
             double asTb = Math.Round((double)value / OneTb, decimalPlaces);
             double asGb = Math.Round((double)value / OneGb, decimalPlaces);

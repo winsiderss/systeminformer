@@ -28,6 +28,32 @@ $Export_Header = @"
  */
 "@;
 
+function InitializeScriptEnvironment()
+{
+    # Get script start time
+    $global:TimeStart = (Get-Date);
+    # Stop script execution after any errors.
+    $global:ErrorActionPreference = "Stop";
+}
+
+function CheckSolutionDirectory()
+{
+    # Check if the current directory contains the main solution
+    if (!(Test-Path "SystemInformer.sln"))
+    {
+        # Change root directory to the \build\ directory (where this script is located).
+        Set-Location $PSScriptRoot;
+        # Set the current location to the parent directory.
+        Set-Location "..\";
+        # Re-check if the current directory
+        if (!(Test-Path "SystemInformer.sln"))
+        {
+            Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
+            exit 5
+        }
+    }
+}
+
 function UpdateExportDefs()
 {
     $ordinal = 1000
@@ -79,7 +105,7 @@ function UpdateExportDefs()
                 }
                 else
                 {
-                    $format = "{0,-80} {1,-10} NONAME" -f $export, $offset,
+                    $format = "{0,-80} {1,-10} NONAME" -f $export, $offset
                     [void]$content.AppendLine($format.TrimEnd());
                 }
             }
@@ -144,26 +170,8 @@ function UpdateExportHeader()
     $export_content | Out-File -FilePath "SystemInformer\SystemInformer.def.h" -Force
 }
 
-# Get script start time
-$global:TimeStart = (Get-Date);
-# Stop script execution after any errors.
-$global:ErrorActionPreference = "Stop";
-
-# Check if the current directory contains the main solution
-if (!(Test-Path "SystemInformer.sln"))
-{
-    # Change root directory to the \build\internal\ directory (where this script is located).
-    Set-Location $PSScriptRoot;
-    # Set the current location to the base repository directory.
-    Set-Location "..\";
-    # Re-check if the current directory
-    if (!(Test-Path "SystemInformer.sln"))
-    {
-        Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
-        exit 5
-    }
-}
-
-# Update the solution exports
+# Entry point
+InitializeScriptEnvironment;
+CheckSolutionDirectory;
 UpdateExportDefs;
 UpdateExportHeader;

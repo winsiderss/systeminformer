@@ -316,7 +316,9 @@ NTSTATUS PhpEnumProcessModules(
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_11)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11;
+    else if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
     else
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
@@ -675,7 +677,9 @@ NTSTATUS PhpEnumProcessModules32(
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_11)
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN11_32;
+    else if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
     else
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
@@ -1045,7 +1049,7 @@ NTSTATUS PhSetProcessModuleLoadCount32(
 
 typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
 {
-    PPH_ENUM_PROCESS_VIRTUAL_IMAGES_CALLBACK Callback;
+    PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback;
     PVOID Context;
 } PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
 
@@ -1121,7 +1125,7 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
 
 NTSTATUS PhEnumProcessModulesLimited(
     _In_ HANDLE ProcessHandle,
-    _In_ PPH_ENUM_PROCESS_VIRTUAL_IMAGES_CALLBACK Callback,
+    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
@@ -1646,13 +1650,6 @@ NTSTATUS PhEnumGenericModules(
 {
     NTSTATUS status;
     PPH_HASHTABLE baseAddressHashtable;
-
-    baseAddressHashtable = PhCreateHashtable(
-        sizeof(PVOID),
-        PhpBaseAddressHashtableEqualFunction,
-        PhpBaseAddressHashtableHashFunction,
-        100
-        );
 
     baseAddressHashtable = PhCreateHashtable(
         sizeof(PVOID),

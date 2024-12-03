@@ -860,7 +860,7 @@ NTAPI
 NtSetInformationVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
-    _In_ ULONG_PTR NumberOfEntries,
+    _In_ SIZE_T NumberOfEntries,
     _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
     _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
     _In_ ULONG VmInformationLength
@@ -1074,26 +1074,26 @@ typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
     ULONG NumaNode;
     ULONG Channel;
     ULONG NumberOfNumaNodes;
-    ULONG_PTR ResidentAvailablePages;
-    ULONG_PTR CommittedPages;
-    ULONG_PTR CommitLimit;
-    ULONG_PTR PeakCommitment;
-    ULONG_PTR TotalNumberOfPages;
-    ULONG_PTR AvailablePages;
-    ULONG_PTR ZeroPages;
-    ULONG_PTR FreePages;
-    ULONG_PTR StandbyPages;
-    ULONG_PTR StandbyPageCountByPriority[8]; // since REDSTONE2
-    ULONG_PTR RepurposedPagesByPriority[8];
-    ULONG_PTR MaximumCommitLimit;
-    ULONG_PTR Reserved; // DonatedPagesToPartitions
+    SIZE_T ResidentAvailablePages;
+    SIZE_T CommittedPages;
+    SIZE_T CommitLimit;
+    SIZE_T PeakCommitment;
+    SIZE_T TotalNumberOfPages;
+    SIZE_T AvailablePages;
+    SIZE_T ZeroPages;
+    SIZE_T FreePages;
+    SIZE_T StandbyPages;
+    SIZE_T StandbyPageCountByPriority[8]; // since REDSTONE2
+    SIZE_T RepurposedPagesByPriority[8];
+    SIZE_T MaximumCommitLimit;
+    SIZE_T Reserved; // DonatedPagesToPartitions
     ULONG PartitionId; // since REDSTONE3
 } MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
 
 // private
 typedef struct _MEMORY_PARTITION_TRANSFER_INFORMATION
 {
-    ULONG_PTR NumberOfPages;
+    SIZE_T NumberOfPages;
     ULONG NumaNode;
     ULONG Flags;
 } MEMORY_PARTITION_TRANSFER_INFORMATION, *PMEMORY_PARTITION_TRANSFER_INFORMATION;
@@ -1112,7 +1112,7 @@ typedef struct _MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
 {
     HANDLE StopHandle;
     ULONG Flags;
-    ULONG_PTR TotalNumberOfPages;
+    SIZE_T TotalNumberOfPages;
 } MEMORY_PARTITION_PAGE_COMBINE_INFORMATION, *PMEMORY_PARTITION_PAGE_COMBINE_INFORMATION;
 
 // private
@@ -1127,7 +1127,7 @@ typedef struct _MEMORY_PARTITION_INITIAL_ADD_INFORMATION
 {
     ULONG Flags;
     ULONG NumberOfRanges;
-    ULONG_PTR NumberOfPagesAdded;
+    SIZE_T NumberOfPagesAdded;
     MEMORY_PARTITION_PAGE_RANGE PartitionRanges[1];
 } MEMORY_PARTITION_INITIAL_ADD_INFORMATION, *PMEMORY_PARTITION_INITIAL_ADD_INFORMATION;
 
@@ -1145,7 +1145,7 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
     } Flags;
 
     ULONG HandleAttributes;
-    ULONG DesiredAccess;
+    ACCESS_MASK DesiredAccess;
     HANDLE LowCommitCondition; // \KernelObjects\LowCommitCondition
     HANDLE HighCommitCondition; // \KernelObjects\HighCommitCondition
     HANDLE MaximumCommitCondition; // \KernelObjects\MaximumCommitCondition
@@ -1199,7 +1199,7 @@ NTSTATUS
 NTAPI
 NtMapUserPhysicalPages(
     _In_ PVOID VirtualAddress,
-    _In_ ULONG_PTR NumberOfPages,
+    _In_ SIZE_T NumberOfPages,
     _In_reads_opt_(NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -1208,7 +1208,7 @@ NTSTATUS
 NTAPI
 NtMapUserPhysicalPagesScatter(
     _In_reads_(NumberOfPages) PVOID *VirtualAddresses,
-    _In_ ULONG_PTR NumberOfPages,
+    _In_ SIZE_T NumberOfPages,
     _In_reads_opt_(NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -1217,7 +1217,7 @@ NTSTATUS
 NTAPI
 NtAllocateUserPhysicalPages(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PULONG_PTR NumberOfPages,
+    _Inout_ PSIZE_T NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -1227,7 +1227,7 @@ NTSTATUS
 NTAPI
 NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PULONG_PTR NumberOfPages,
+    _Inout_ PSIZE_T NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
     _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
@@ -1239,7 +1239,7 @@ NTSTATUS
 NTAPI
 NtFreeUserPhysicalPages(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PULONG_PTR NumberOfPages,
+    _Inout_ PSIZE_T NumberOfPages,
     _In_reads_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -1258,7 +1258,7 @@ NtGetWriteWatch(
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
     _Out_writes_(*EntriesInUserAddressArray) PVOID *UserAddressArray,
-    _Inout_ PULONG_PTR EntriesInUserAddressArray,
+    _Inout_ PSIZE_T EntriesInUserAddressArray,
     _Out_ PULONG Granularity
     );
 

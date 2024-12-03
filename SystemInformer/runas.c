@@ -57,7 +57,7 @@
 #include <appresolver.h>
 #include <actions.h>
 #include <lsasup.h>
-#include <mapldr.h>
+#include <phconsole.h>
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>
@@ -350,7 +350,7 @@ static VOID PhpFreeAccountsComboBox(
 
 BOOLEAN PhpEnumerateRecentProgramsToComboBox(
     _In_ PPH_STRINGREF Command,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     ComboBox_AddString(Context, PhGetStringRefZ(Command));
@@ -359,7 +359,7 @@ BOOLEAN PhpEnumerateRecentProgramsToComboBox(
 
 NTSTATUS PhpEnumerateAccountsToComboBox(
     _In_ PPH_STRING AccountName,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     ComboBox_AddString(Context, PhGetString(AccountName));
@@ -989,6 +989,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PH_CREATE_PROCESS_AS_USER_INFO createInfo;
                             PPH_STRING domainPart = NULL;
                             PPH_STRING userPart = NULL;
+                            HANDLE newProcessHandle;
 
                             PhpSplitUserName(username->Buffer, &domainPart, &userPart);
 
@@ -1011,9 +1012,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 &createInfo,
                                 PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | (createSuspended ? PH_CREATE_PROCESS_SUSPENDED : 0),
                                 NULL,
-                                NULL,
+                                &newProcessHandle,
                                 NULL
                                 );
+
+                            if (NT_SUCCESS(status))
+                            {
+                                PhConsoleSetForeground(newProcessHandle, TRUE);
+                                NtClose(newProcessHandle);
+                            }
 
                            CleanupAsUserExit:
                             if (domainPart) PhDereferenceObject(domainPart);
@@ -1026,6 +1033,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 HANDLE processHandle = NULL;
                                 HANDLE newProcessHandle;
                                 STARTUPINFOEX startupInfo = { 0 };
+                                PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
                                 PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
                                 PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
                                 PVOID environment = NULL;
@@ -1072,11 +1080,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     if (commandString) PhDereferenceObject(commandString);
                                 }
 
-                                memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-                                startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-                                startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-                                startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
-
                                 status = PhOpenProcess(
                                     &processHandle,
                                     PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
@@ -1086,13 +1089,13 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
 
-                                status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
+                                status = PhInitializeProcThreadAttributeList(&attributeList, 1);
 
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
 
                                 status = PhUpdateProcThreadAttribute(
-                                    startupInfo.lpAttributeList,
+                                    attributeList,
                                     PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
                                     &(HANDLE){ processHandle },
                                     sizeof(HANDLE)
@@ -1125,7 +1128,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                             );
                                     }
 
-                                    if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
+                                    if (NT_SUCCESS(PhCreateEnvironmentBlock(&environment, tokenHandle, FALSE)))
                                     {
                                         flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
                                     }
@@ -1138,12 +1141,18 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
 
+                                memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+                                startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+                                startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+                                startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+                                startupInfo.lpAttributeList = attributeList;
+
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
                                     PhGetString(program),
                                     environment,
                                     NULL,
-                                    &startupInfo.StartupInfo,
+                                    &startupInfo,
                                     PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
                                     NULL,
                                     NULL,
@@ -1153,8 +1162,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                 if (NT_SUCCESS(status))
                                 {
-                                    PROCESS_BASIC_INFORMATION basicInfo;
-
                                     if (PhGetOwnTokenAttributes().Elevated)
                                     {
                                         // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
@@ -1186,20 +1193,18 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                         }
                                     }
 
-                                    if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-                                    {
-                                        AllowSetForegroundWindow(ASFW_ANY); // HandleToUlong(basicInfo.UniqueProcessId));
-                                    }
+                                    PhConsoleSetForeground(newProcessHandle, TRUE);
 
                                     NtResumeProcess(newProcessHandle);
+
                                     NtClose(newProcessHandle);
                                 }
 
                             CleanupExit:
 
-                                if (environment && DestroyEnvironmentBlock_Import())
+                                if (environment)
                                 {
-                                    DestroyEnvironmentBlock_Import()(environment);
+                                    PhDestroyEnvironmentBlock(environment);
                                 }
 
                                 if (tokenSecurityDescriptor)
@@ -1212,9 +1217,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     PhFree(processSecurityDescriptor);
                                 }
 
-                                if (startupInfo.lpAttributeList)
+                                if (attributeList)
                                 {
-                                    PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+                                    PhDeleteProcThreadAttributeList(attributeList);
                                 }
 
                                 if (processHandle)
@@ -1786,6 +1791,7 @@ NTSTATUS PhInvokeRunAsService(
     PPH_STRING domainName;
     PPH_STRING userName;
     PH_CREATE_PROCESS_AS_USER_INFO createInfo;
+    HANDLE newProcessHandle;
     ULONG flags;
 
     if (Parameters->UserName)
@@ -1828,9 +1834,15 @@ NTSTATUS PhInvokeRunAsService(
         &createInfo,
         flags,
         NULL,
-        NULL,
+        &newProcessHandle,
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        PhConsoleSetForeground(newProcessHandle, TRUE);
+        NtClose(newProcessHandle);
+    }
 
     if (domainName) PhDereferenceObject(domainName);
     if (userName) PhDereferenceObject(userName);
@@ -2123,9 +2135,11 @@ NTSTATUS RunAsCreateProcessThread(
 {
     PPH_STRING command = Parameter;
     NTSTATUS status;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     SERVICE_STATUS_PROCESS serviceStatus = { 0 };
     SC_HANDLE serviceHandle = NULL;
     HANDLE processHandle = NULL;
+    HANDLE newProcessHandle;
     STARTUPINFOEX startupInfo;
     PPH_STRING commandLine = NULL;
     PPH_STRING filePathString;
@@ -2134,11 +2148,6 @@ NTSTATUS RunAsCreateProcessThread(
         PhMoveReference(&commandLine, filePathString);
     else
         PhSetReference(&commandLine, command);
-
-    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
     if (!NT_SUCCESS(status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS | SERVICE_START, L"TrustedInstaller")))
         goto CleanupExit;
@@ -2183,11 +2192,17 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_CREATE_PROCESS, UlongToHandle(serviceStatus.dwProcessId))))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1)))
+    if (!NT_SUCCESS(status = PhInitializeProcThreadAttributeList(&attributeList, 1)))
         goto CleanupExit;
 
+    PROC_THREAD_ATTRIBUTE extended;
+    extended.Attribute = PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS;
+    extended.Size = sizeof(ULONG);
+    extended.Value = (ULONG_PTR)EXTENDED_PROCESS_CREATION_FLAG_FORCELUA;
+    attributeList->ExtendedFlagsAttribute = &extended;
+
     status = PhUpdateProcThreadAttribute(
-        startupInfo.lpAttributeList,
+        attributeList,
         PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
         &(HANDLE){ processHandle },
         sizeof(HANDLE)
@@ -2196,20 +2211,30 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    AllowSetForegroundWindow(ASFW_ANY);
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+    startupInfo.lpAttributeList = attributeList;
 
     status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandLine),
         NULL,
         NULL,
-        &startupInfo.StartupInfo,
+        &startupInfo,
         PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE,
         NULL,
         NULL,
-        NULL,
+        &newProcessHandle,
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        PhConsoleSetForeground(newProcessHandle, TRUE);
+        NtClose(newProcessHandle);
+    }
 
 CleanupExit:
 
@@ -2219,9 +2244,9 @@ CleanupExit:
     if (serviceHandle)
         PhCloseServiceHandle(serviceHandle);
 
-    if (startupInfo.lpAttributeList)
+    if (attributeList)
     {
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhDeleteProcThreadAttributeList(attributeList);
     }
 
     if (commandLine)

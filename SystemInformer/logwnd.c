@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <settings.h>
 #include <mainwnd.h>
 #include <emenu.h>
@@ -29,9 +28,13 @@ INT_PTR CALLBACK PhpLogDlgProc(
 HWND PhLogWindowHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
+static HWND AutoScrollHandle;
 static HWND ListViewHandle;
+static IListView* ListViewClass;
 static ULONG ListViewCount;
 static PH_CALLBACK_REGISTRATION LoggedRegistration;
+static BOOLEAN ListViewStateInitializing = FALSE;
+static BOOLEAN ListViewAutoScroll = FALSE;
 
 VOID PhShowLogDialog(
     VOID
@@ -61,7 +64,10 @@ static VOID NTAPI LoggedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0);
+    if (PhLogWindowHandle)
+    {
+        PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0);
+    }
 }
 
 static VOID PhpUpdateLogList(
@@ -69,13 +75,22 @@ static VOID PhpUpdateLogList(
     )
 {
     ListViewCount = PhLogBuffer.Count;
-    ListView_SetItemCountEx(ListViewHandle, ListViewCount, LVSICF_NOSCROLL);
+    IListView_SetItemCount(ListViewClass, ListViewCount, LVSICF_NOSCROLL);
 
-    if (ListViewCount >= 2 && Button_GetCheck(GetDlgItem(PhLogWindowHandle, IDC_AUTOSCROLL)) == BST_CHECKED)
+    if (ListViewCount >= 2 && ReadBooleanAcquire(&ListViewAutoScroll))
     {
-        if (ListView_IsItemVisible(ListViewHandle, ListViewCount - 2))
+        LVITEMINDEX itemIndex;
+        BOOL itemVisible;
+
+        itemIndex.iItem = (LONG)(ListViewCount - 2);
+        itemIndex.iGroup = 0;
+
+        if (SUCCEEDED(IListView_IsItemVisible(ListViewClass, itemIndex, &itemVisible)) && itemVisible)
         {
-            ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
+            itemIndex.iItem = (LONG)(ListViewCount - 1);
+            itemIndex.iGroup = 0;
+
+            IListView_EnsureItemVisible(ListViewClass, itemIndex, FALSE);
         }
     }
 }
@@ -102,8 +117,10 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
 
         if (!All)
         {
+            ULONG itemState;
+
             // The list view displays the items in reverse order...
-            if (!(ListView_GetItemState(ListViewHandle, ListViewCount - i - 1, LVIS_SELECTED) & LVIS_SELECTED))
+            if (!(HR_SUCCESS(IListView_GetItemState(ListViewClass, ListViewCount - i - 1, 0, LVIS_SELECTED, &itemState)) && FlagOn(itemState, LVIS_SELECTED)))
             {
                 goto ContinueLoop;
             }
@@ -149,7 +166,10 @@ INT_PTR CALLBACK PhpLogDlgProc(
         {
             PhSetApplicationWindowIcon(hwndDlg);
 
+            AutoScrollHandle = GetDlgItem(hwndDlg, IDC_AUTOSCROLL);
             ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            ListViewClass = PhGetListViewInterface(ListViewHandle);
+
             PhSetListViewStyle(ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewHandle, L"explorer");
             PhAddListViewColumn(ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
@@ -161,7 +181,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_AUTOSCROLL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&WindowLayoutManager, AutoScrollHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_CLEAR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             MinimumSize.left = 0;
@@ -175,11 +195,13 @@ INT_PTR CALLBACK PhpLogDlgProc(
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOSCROLL), BST_CHECKED);
+            ListViewStateInitializing = TRUE;
+            WriteBooleanRelease(&ListViewAutoScroll, TRUE);
+            Button_SetCheck(AutoScrollHandle, BST_CHECKED);
+            ListViewStateInitializing = FALSE;
 
             PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), LoggedCallback, NULL, &LoggedRegistration);
             PhpUpdateLogList();
-            ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -194,6 +216,12 @@ INT_PTR CALLBACK PhpLogDlgProc(
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), &LoggedRegistration);
             PhUnregisterDialog(PhLogWindowHandle);
             PhLogWindowHandle = NULL;
+
+            if (ListViewClass)
+            {
+                IListView_Release(ListViewClass);
+                ListViewClass = NULL;
+            }
         }
         break;
     case WM_COMMAND:
@@ -213,9 +241,9 @@ INT_PTR CALLBACK PhpLogDlgProc(
             case IDC_COPY:
                 {
                     PPH_STRING string;
-                    ULONG selectedCount;
+                    ULONG selectedCount = 0;
 
-                    selectedCount = ListView_GetSelectedCount(ListViewHandle);
+                    IListView_GetSelectedCount(ListViewClass, &selectedCount);
 
                     if (selectedCount == 0)
                     {
@@ -321,6 +349,31 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             string = PhFormatLogEntry(entry);
                             wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
+                        }
+                    }
+                }
+                break;
+            case LVN_ITEMCHANGED:
+                {
+                    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+
+                    if (FlagOn(listView->uChanged, LVIF_STATE))
+                    {
+                        if (ListViewStateInitializing)
+                            break;
+
+                        switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
+                        {
+                        case INDEXTOSTATEIMAGEMASK(2): // checked
+                            {
+                                WriteBooleanRelease(&ListViewAutoScroll, TRUE);
+                            }
+                            break;
+                        case INDEXTOSTATEIMAGEMASK(1): // unchecked
+                            {
+                                WriteBooleanRelease(&ListViewAutoScroll, FALSE);
+                            }
+                            break;
                         }
                     }
                 }

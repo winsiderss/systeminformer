@@ -1897,7 +1897,7 @@ VOID NTAPI FwItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    SystemInformer_Invoke(OnFwItemsUpdated, FwRunCount);
+    SystemInformer_Invoke(OnFwItemsUpdated, UlongToPtr(FwRunCount));
 }
 
 VOID NTAPI OnFwItemsUpdated(

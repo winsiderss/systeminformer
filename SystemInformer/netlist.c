@@ -1012,7 +1012,7 @@ VOID PhGetSelectedNetworkItems(
             PhAddItemArray(&array, &node->NetworkItem);
     }
 
-    *NumberOfNetworkItems = (ULONG)array.Count;
+    *NumberOfNetworkItems = (ULONG)PhFinalArrayCount(&array);
     *NetworkItems = PhFinalArrayItems(&array);
 }
 

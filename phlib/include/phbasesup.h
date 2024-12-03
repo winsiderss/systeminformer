@@ -48,6 +48,7 @@ NTAPI
 PhCreateUserThread(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG CreateFlags,
     _In_opt_ SIZE_T ZeroBits,
     _In_opt_ SIZE_T StackSize,
@@ -93,6 +94,51 @@ PhQueueUserWorkItem(
     );
 
 // Misc. system
+
+PHLIBAPI
+ULONGLONG
+NTAPI
+PhReadTimeStampCounter(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhQueryPerformanceFrequency(
+    _Out_ PLARGE_INTEGER PerformanceFrequency
+    );
+
+FORCEINLINE
+ULONGLONG
+NTAPI
+PhReadPerformanceCounter(
+    VOID
+    )
+{
+    LARGE_INTEGER counter;
+    PhQueryPerformanceCounter(&counter);
+    return (ULONGLONG)counter.QuadPart;
+}
+
+FORCEINLINE
+ULONGLONG
+NTAPI
+PhReadPerformanceFrequency(
+    VOID
+    )
+{
+    LARGE_INTEGER counter;
+    PhQueryPerformanceCounter(&counter);
+    return (ULONGLONG)counter.QuadPart;
+}
 
 PHLIBAPI
 VOID
@@ -214,6 +260,7 @@ PhFree(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
+_Success_(return != NULL)
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -228,6 +275,7 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+_Success_(return != NULL)
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -264,6 +312,28 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
+    _In_ _Post_invalid_ PVOID Memory
+    );
+
+PHLIBAPI
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
+_Success_(return != NULL)
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
+DECLSPEC_RESTRICT
+PVOID
+NTAPI
+PhAllocatePageAligned(
+    _In_ SIZE_T Size,
+    _In_ SIZE_T Alignment
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreePageAligned(
     _In_ _Post_invalid_ PVOID Memory
     );
 
@@ -343,7 +413,7 @@ PhInitializeSListHead(
     _Out_ PSLIST_HEADER ListHead
     )
 {
-#if (PHNT_NATIVE_SLIST)
+#if defined(PHNT_NATIVE_SLIST)
     RtlInitializeSListHead(ListHead);
 #else
     if (IS_ALIGNED(ListHead, MEMORY_ALLOCATION_ALIGNMENT))
@@ -361,7 +431,7 @@ PhQueryDepthSList(
     _In_ PSLIST_HEADER ListHead
     )
 {
-#if (PHNT_NATIVE_SLIST)
+#if defined(PHNT_NATIVE_SLIST)
     return RtlQueryDepthSList(ListHead);
 #else
 #ifdef _M_X64
@@ -407,7 +477,7 @@ typedef struct _PH_EVENT
     HANDLE EventHandle;
 } PH_EVENT, *PPH_EVENT;
 
-C_ASSERT(sizeof(PH_EVENT) == sizeof(ULONG_PTR) + sizeof(HANDLE));
+static_assert(sizeof(PH_EVENT) == sizeof(ULONG_PTR) + sizeof(HANDLE));
 
 #define PH_EVENT_INIT { { PH_EVENT_REFCOUNT_INC }, NULL }
 
@@ -461,8 +531,8 @@ PhInitializeEvent(
     _Out_ PPH_EVENT Event
     )
 {
-    Event->Value = PH_EVENT_REFCOUNT_INC;
-    Event->EventHandle = NULL;
+    WriteULongPtrRelease(&Event->Value, PH_EVENT_REFCOUNT_INC);
+    WritePointerRelease(&Event->EventHandle, UlongToPtr(0));
 }
 
 /**
@@ -1636,7 +1706,7 @@ PhGetStringRefZ(
     if (String)
         return String->Buffer;
     else
-        return TEXT("");
+        return L"";
 }
 
 /**
@@ -1654,7 +1724,7 @@ PhGetStringOrEmpty(
     if (String)
         return String->Buffer;
     else
-        return TEXT("");
+        return L"";
 }
 
 /**
@@ -3868,7 +3938,7 @@ BOOLEAN
 NTAPI
 PhHexStringToBufferEx(
     _In_ PPH_STRINGREF String,
-    _In_ ULONG BufferLength,
+    _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PVOID Buffer
     );
 
@@ -3877,14 +3947,14 @@ PPH_STRING
 NTAPI
 PhBufferToHexString(
     _In_reads_bytes_(Length) PUCHAR Buffer,
-    _In_ ULONG Length
+    _In_ SIZE_T Length
     );
 
 PPH_STRING
 NTAPI
 PhBufferToHexStringEx(
     _In_reads_bytes_(Length) PUCHAR Buffer,
-    _In_ ULONG Length,
+    _In_ SIZE_T Length,
     _In_ BOOLEAN UpperCase
     );
 
@@ -3987,6 +4057,7 @@ PhFormatEntropy(
     _In_opt_ USHORT VariancePrecision
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
@@ -3996,6 +4067,7 @@ PhFillMemoryUlong(
     _In_ SIZE_T Count
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
@@ -4005,6 +4077,7 @@ PhDivideSinglesBySingle(
     _In_ SIZE_T Count
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 FLOAT
 NTAPI
@@ -4013,6 +4086,7 @@ PhMaxMemorySingles(
     _In_ SIZE_T Count
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 FLOAT
 NTAPI
@@ -4022,6 +4096,7 @@ PhAddPlusMaxMemorySingles(
     _In_ SIZE_T Count
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
@@ -4031,6 +4106,7 @@ PhConvertCopyMemoryUlong(
     _In_ SIZE_T Count
     );
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI
@@ -4042,6 +4118,7 @@ PhConvertCopyMemorySingles(
 
 typedef struct _PH_CIRCULAR_BUFFER_ULONG* PPH_CIRCULAR_BUFFER_ULONG;
 
+DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
 NTAPI

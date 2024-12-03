@@ -186,14 +186,13 @@ PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
     // Query adapter description using undocumented function. (dmex)
     static ULONG (WINAPI* NhGetInterfaceNameFromDeviceGuid_I)(
         _In_ PGUID DeviceGuid,
-        _Out_writes_(InterfaceDescriptionLength) PWSTR InterfaceDescription,
-        _Inout_ PSIZE_T InterfaceDescriptionLength,
+        _Out_writes_(InterfaceDescriptionLength) PWCHAR InterfaceDescription,
+        _Inout_ PULONG InterfaceDescriptionLength,
         _In_ BOOL Cache,
         _In_ BOOL Refresh
         ) = NULL;
-    GUID interfaceGuid = { 0 };
     WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-    SIZE_T adapterAliasLength = sizeof(adapterAlias);
+    ULONG adapterAliasLength = sizeof(adapterAlias);
 
     if (!NhGetInterfaceNameFromDeviceGuid_I)
     {

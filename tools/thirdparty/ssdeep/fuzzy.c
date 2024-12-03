@@ -156,7 +156,7 @@ fuzzy_state_ptr fuzzy_new(void)
 {
     fuzzy_state_ptr self;
 
-    if (!(self = PhAllocateSafe(sizeof(fuzzy_state))))
+    if (!(self = calloc(1, sizeof(fuzzy_state))))
         return NULL;
 
     self->bhstart = 0;
@@ -180,7 +180,7 @@ fuzzy_state_ptr fuzzy_clone(fuzzy_state_ptr state)
 {
     fuzzy_state_ptr newstate;
 
-    if (!(newstate = PhAllocateSafe(sizeof(fuzzy_state))))
+    if (!(newstate = calloc(1, sizeof(fuzzy_state))))
         return NULL;
 
     memcpy(newstate, state, sizeof(fuzzy_state));
@@ -509,13 +509,13 @@ int fuzzy_digest(
 
 void fuzzy_free(fuzzy_state_ptr self)
 {
-    PhFree(self);
+    free(self);
 }
 
 BOOLEAN fuzzy_hash_buffer(
     _In_ PBYTE Buffer,
     _In_ ULONGLONG BufferLength,
-    _Out_ PPH_STRING* HashResult
+    _Out_ char** HashResult
     )
 {
     BOOLEAN status = FALSE;
@@ -538,7 +538,7 @@ BOOLEAN fuzzy_hash_buffer(
 
     if (HashResult)
     {
-        *HashResult = PhZeroExtendToUtf16(result);
+        *HashResult = _strdup(result);
     }
 
 out:
@@ -616,15 +616,22 @@ out:
 
 NTSTATUS fuzzy_hash_file(
     _In_ HANDLE FileHandle,
-    _Out_ PPH_STRING* HashResult
+    _Out_ char** HashResult
     )
 {
     NTSTATUS status;
-    LARGE_INTEGER fileSize;
     fuzzy_state_ptr ctx;
+    IO_STATUS_BLOCK isb;
+    FILE_STANDARD_INFORMATION standardInfo;
     CHAR result[FUZZY_MAX_RESULT];
 
-    status = PhGetFileSize(FileHandle, &fileSize);
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        &standardInfo,
+        sizeof(FILE_STANDARD_INFORMATION),
+        FileStandardInformation
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -635,13 +642,13 @@ NTSTATUS fuzzy_hash_file(
         goto CleanupExit;
     }
 
-    if (fuzzy_set_total_input_length(ctx, (uint_least64_t)fileSize.QuadPart) < 0)
+    if (fuzzy_set_total_input_length(ctx, (uint_least64_t)standardInfo.EndOfFile.QuadPart) < 0)
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
-    if (fuzzy_update_stream(ctx, FileHandle, &fileSize) < 0)
+    if (fuzzy_update_stream(ctx, FileHandle, &standardInfo.EndOfFile) < 0)
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
@@ -658,7 +665,7 @@ CleanupExit:
 
     if (NT_SUCCESS(status))
     {
-        *HashResult = PhZeroExtendToUtf16(result);
+        *HashResult = _strdup(result);
     }
 
     return status;
@@ -666,31 +673,64 @@ CleanupExit:
 
 NTSTATUS fuzzy_hash_filename(
     _In_ PWSTR FileName,
-    _Out_ PPH_STRING* HashResult
+    _Out_ char** HashResult
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    LARGE_INTEGER fileSize;
+    HANDLE fileHandle = NULL;
+    UNICODE_STRING fileName;
+    FILE_STANDARD_INFORMATION basicInfo;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
     CHAR result[FUZZY_MAX_RESULT];
 
-    status = PhCreateFileWin32(
-        &fileHandle,
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
+        &fileName,
+        NULL,
+        NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        status = PhGetFileSize(fileHandle, &fileSize);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateFile(
+            &fileHandle,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            &objectAttributes,
+            &ioStatusBlock,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
+            NULL,
+            0
+            );
+
+        RtlFreeUnicodeString(&fileName);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = NtQueryInformationFile(
+            fileHandle,
+            &ioStatusBlock,
+            &basicInfo,
+            sizeof(FILE_STANDARD_INFORMATION),
+            FileStandardInformation
+            );
 
         if (NT_SUCCESS(status))
         {
-            if (fuzzy_hash_stream(fileHandle, &fileSize, result) < 0)
+            if (fuzzy_hash_stream(fileHandle, &basicInfo.EndOfFile, result) < 0)
             {
                 status = STATUS_UNSUCCESSFUL;
             }
@@ -701,7 +741,7 @@ NTSTATUS fuzzy_hash_filename(
 
     if (NT_SUCCESS(status))
     {
-        *HashResult = PhZeroExtendToUtf16(result);
+        *HashResult = _strdup(result);
     }
 
     return status;

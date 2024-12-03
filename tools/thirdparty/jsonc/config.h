@@ -119,7 +119,7 @@
 //#define HAVE_SETLOCALE 1
 
 /* Define to 1 if you have the `snprintf' function. */
-#define HAVE_SNPRINTF 1
+#define HAVE_SNPRINTF
 
 
 /* Define to 1 if you have the `strcasecmp' function. */
@@ -186,7 +186,7 @@
 #define PACKAGE_NAME "json-c"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "json-c 0.17"
+#define PACKAGE_STRING "json-c 0.18."
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "json-c"
@@ -195,7 +195,7 @@
 #define PACKAGE_URL "https://github.com/json-c/json-c"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.17"
+#define PACKAGE_VERSION "0.18."
 
 /* The number of bytes in type int */
 #define SIZEOF_INT 4
@@ -216,13 +216,13 @@
 #define SIZEOF_SSIZE_T 8
 
 /* Specifier for __thread */
-#define SPEC___THREAD __declspec(thread)
+#define SPEC___THREAD __declspec;(;thread;)
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.17"
+#define VERSION "0.18."
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
@@ -231,5 +231,3 @@
 /* #undef size_t */
 
 #define _CRT_SECURE_NO_WARNINGS 1
-
-#define WIN32 1

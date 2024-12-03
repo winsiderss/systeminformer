@@ -337,7 +337,7 @@ PVOID PhGetDllHandle(
     _In_ PCWSTR DllName
     )
 {
-#if (PHNT_NATIVE_LDR)
+#if defined(PHNT_NATIVE_LDR)
     UNICODE_STRING dllName;
     PVOID dllHandle;
 
@@ -361,7 +361,7 @@ PVOID PhGetModuleProcAddress(
     _In_opt_ PCSTR ProcedureName
     )
 {
-#if (PHNT_NATIVE_LDR)
+#if defined(PHNT_NATIVE_LDR)
     PVOID module;
 
     module = PhGetDllHandle(ModuleName);
@@ -384,7 +384,7 @@ PVOID PhGetProcedureAddress(
     _In_opt_ USHORT ProcedureNumber
     )
 {
-#if (PHNT_NATIVE_LDR)
+#if defined(PHNT_NATIVE_LDR)
     NTSTATUS status;
     ANSI_STRING procedureName;
     PVOID procedureAddress;
@@ -1714,8 +1714,8 @@ VOID PhLoaderEntrySnapShowErrorMessage(
         {
             PhShowError2(
                 NULL,
-                PhApplicationName,
-                L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
+                L"Unable to load plugin.",
+                L"Name: %s\r\nOrdinal: %u\r\nModule: %hs",
                 PhGetStringOrEmpty(fileName),
                 IMAGE_ORDINAL(OriginalThunk->u1.Ordinal),
                 ImportName
@@ -1729,8 +1729,8 @@ VOID PhLoaderEntrySnapShowErrorMessage(
 
             PhShowError2(
                 NULL,
-                L"Error.",
-                L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
+                L"Unable to load plugin.",
+                L"Name: %s\r\nFunction: %hs\r\nModule: %hs",
                 PhGetStringOrEmpty(fileName),
                 importByName->Name,
                 ImportName
@@ -1780,7 +1780,7 @@ NTSTATUS PhLoaderEntrySnapImportThunk(
     return STATUS_ORDINAL_NOT_FOUND;
 }
 
-#if (PH_NATIVE_LOADER_WORKQUEUE)
+#if defined(PH_NATIVE_LOADER_WORKQUEUE)
 typedef struct _PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT
 {
     PVOID BaseAddress;
@@ -1851,7 +1851,7 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
         return STATUS_DLL_NOT_FOUND;
     }
 
-#if (PH_NATIVE_LOADER_WORKQUEUE)
+#if defined(PH_NATIVE_LOADER_WORKQUEUE)
     PTP_POOL loaderThreadpool;
     TP_CALLBACK_ENVIRON loaderThreadpoolEnvironment;
     PTP_CLEANUP_GROUP loaderThreadpoolCleanupGroup;
@@ -2666,7 +2666,7 @@ NTSTATUS PhLoadPluginImage(
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
 
-#if (PH_NATIVE_PLUGIN_IMAGE_LOAD)
+#if defined(PH_NATIVE_PLUGIN_IMAGE_LOAD)
     UNICODE_STRING imageFileName;
     ULONG imageType;
 
@@ -2739,7 +2739,7 @@ CleanupExit:
     }
     else
     {
-#if (PH_NATIVE_PLUGIN_IMAGE_LOAD)
+#if defined(PH_NATIVE_PLUGIN_IMAGE_LOAD)
         LdrUnloadDll(imageBaseAddress);
 #else
         PhLoaderEntryUnloadDll(imageBaseAddress);

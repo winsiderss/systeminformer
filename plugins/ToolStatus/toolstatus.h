@@ -16,7 +16,10 @@
 #include <phdk.h>
 #include <phapppub.h>
 #include <phappresource.h>
+#include <phconsole.h>
+#include <hndlinfo.h>
 #include <settings.h>
+#include <searchbox.h>
 
 #include "resource.h"
 #include <toolstatusintf.h>

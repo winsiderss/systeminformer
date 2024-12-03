@@ -1510,7 +1510,7 @@ VOID PhGetSelectedModuleItems(
             PhAddItemArray(&array, &node->ModuleItem);
     }
 
-    *NumberOfModules = (ULONG)array.Count;
+    *NumberOfModules = (ULONG)PhFinalArrayCount(&array);
     *Modules = PhFinalArrayItems(&array);
 }
 
@@ -1522,7 +1522,7 @@ VOID PhDeselectAllModuleNodes(
 }
 
 // Copied from proctree.c (dmex)
-static FLOAT LowImageCoherencyThreshold = 0.5f;
+const FLOAT LowImageCoherencyThreshold = 0.5f;
 
 BOOLEAN PhShouldShowModuleCoherency(
     _In_ PPH_MODULE_ITEM ModuleItem,

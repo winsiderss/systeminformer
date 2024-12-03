@@ -40,11 +40,9 @@ VOID NetworkDevicesInitialize(
 }
 
 VOID NetworkDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
     for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
@@ -177,7 +175,7 @@ VOID NetworkDevicesUpdate(
             entry->HaveFirstSample = TRUE;
         }
 
-        if (runCount != 0)
+        if (RunCount != 0)
         {
             entry->CurrentNetworkSend = entry->NetworkSendDelta.Delta;
             entry->CurrentNetworkReceive = entry->NetworkReceiveDelta.Delta;
@@ -190,8 +188,6 @@ VOID NetworkDevicesUpdate(
     }
 
     PhReleaseQueuedLockShared(&NetworkDevicesListLock);
-
-    runCount++;
 }
 
 VOID NetworkDeviceUpdateDeviceInfo(

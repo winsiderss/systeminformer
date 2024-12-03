@@ -18,6 +18,12 @@ typedef struct _PH_SINGLE_DELTA
     FLOAT Delta;
 } PH_SINGLE_DELTA, *PPH_SINGLE_DELTA;
 
+typedef struct _PH_DOUBLE_DELTA
+{
+    DOUBLE Value;
+    DOUBLE Delta;
+} PH_DOUBLE_DELTA, *PPH_DOUBLE_DELTA;
+
 typedef struct _PH_UINT32_DELTA
 {
     ULONG Value;
@@ -44,6 +50,7 @@ typedef struct _PH_UINTPTR_DELTA
     (DltMgr)->Value = (NewValue), (DltMgr)->Delta)
 
 #define PH_SINGLE_DELTA_INIT { 0.0F, 0.0F }
+#define PH_DOUBLE_DELTA_INIT { 0.0, 0.0 }
 #define PH_UINT32_DELTA_INIT { 0UL, 0UL }
 #define PH_UINT64_DELTA_INIT { 0ULL, 0ULL }
 #define PH_UINTPTR_DELTA_INIT { 0, 0 }

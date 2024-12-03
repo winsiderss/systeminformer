@@ -70,12 +70,12 @@ BEGIN
         BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName", "Winsider Seminars & Solutions"
-            VALUE "FileDescription", "Portable Executable View"
+            VALUE "FileDescription", "Portable Executable Viewer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "Portable Executable View"
+            VALUE "InternalName", "Portable Executable Viewer"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "peview.exe"
-            VALUE "ProductName", "Portable Executable View"
+            VALUE "ProductName", "Portable Executable Viewer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END

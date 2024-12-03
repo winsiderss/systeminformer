@@ -9,6 +9,14 @@
 
 // This header file provides access to Win32, plus NTSTATUS values and some access mask values.
 
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #ifndef __cplusplus
 #ifndef CINTERFACE
 #define CINTERFACE
@@ -70,6 +78,10 @@
 #define COM_NO_WINDOWS_H
 #endif
 
+#ifndef STRICT_TYPED_ITEMIDS
+#define STRICT_TYPED_ITEMIDS
+#endif
+
 #ifndef __cplusplus
 // This is needed to workaround C17 preprocessor errors when using legacy versions of the Windows SDK. (dmex)
 #ifndef MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS
@@ -89,12 +101,12 @@
 #include <ntstatus.h>
 #include <winioctl.h>
 #include <evntrace.h>
+#include <minidumpapiset.h>
+#include <objbase.h>
 
 #ifdef COM_NO_WINDOWS_H
 #include <ole2.h>
 #endif
-
-#include <fltUser.h>
 
 typedef DOUBLE *PDOUBLE;
 typedef GUID *PGUID;

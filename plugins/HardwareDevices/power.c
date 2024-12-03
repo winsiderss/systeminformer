@@ -53,11 +53,9 @@ VOID RaplDeviceInitialize(
 }
 
 VOID RaplDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     PhAcquireQueuedLockShared(&RaplDevicesListLock);
 
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
@@ -198,7 +196,7 @@ VOID RaplDevicesUpdate(
             entry->DevicePresent = FALSE;
         }
 
-        if (runCount != 0)
+        if (RunCount != 0)
         {
             PhAddItemCircularBuffer_FLOAT(&entry->PackageBuffer, entry->CurrentProcessorPower);
             PhAddItemCircularBuffer_FLOAT(&entry->CoreBuffer, entry->CurrentCorePower);
@@ -210,8 +208,6 @@ VOID RaplDevicesUpdate(
     }
 
     PhReleaseQueuedLockShared(&RaplDevicesListLock);
-
-    runCount++;
 }
 
 VOID InitializeRaplDeviceId(

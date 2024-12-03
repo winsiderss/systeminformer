@@ -850,9 +850,8 @@ VOID PhInitializeCapabilitySidCache(
     if (!RtlDeriveCapabilitySidsFromName_Import())
         return;
 
-    if (capabilityListFileName = PhGetApplicationDirectory())
+    if (capabilityListFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\CapsList.txt", TRUE))
     {
-        PhMoveReference(&capabilityListFileName, PhConcatStringRefZ(&capabilityListFileName->sr, L"capslist.txt"));
         capabilityListString = PhFileReadAllText(&capabilityListFileName->sr, TRUE);
         PhDereferenceObject(capabilityListFileName);
     }

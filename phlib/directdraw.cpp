@@ -56,7 +56,7 @@ BOOLEAN PhInitializeGDIPlus(
     if (PhBeginInitOnce(&initOnce))
     {
         static ULONG_PTR gdiplusToken = 0;
-        static GdiplusStartupInput gdiplusStartupInput{};
+        static GdiplusStartupInput gdiplusStartupInput = { nullptr, false, true };
 
         if (GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) == Status::Ok)
         {
@@ -101,39 +101,39 @@ HICON PhGdiplusConvertBitmapToIcon(
 
     if (PhInitializeGDIPlus())
     {
-        Bitmap* image = PhGdiplusCreateBitmapFromDIB(OriginalBitmap);
+        DIBSECTION dib;
 
-        if (image != nullptr)
+        RtlZeroMemory(&dib, sizeof(DIBSECTION));
+
+        if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
+            return nullptr;
+
+        LONG width = dib.dsBmih.biWidth;
+        LONG height = dib.dsBmih.biHeight;
+        LONG pitch = dib.dsBm.bmWidthBytes;
+        BYTE* bitmapBuffer = static_cast<BYTE*>(dib.dsBm.bmBits);
+
+        Bitmap image(width, height, pitch, PixelFormat32bppARGB, bitmapBuffer);
+        Bitmap buffer(Width, Height, PixelFormat32bppARGB);
+        Graphics graphics(&buffer);
+
+        if (Background)
         {
-            Bitmap* buffer = new Bitmap(Width, Height, PixelFormat32bppARGB);
-            Graphics* graphics = Graphics::FromImage(buffer);
+            Color color(Color::DodgerBlue);
+            color.SetFromCOLORREF(Background);
+            graphics.Clear(color);
+        }
+        else
+        {
+            graphics.Clear(Color::DodgerBlue);
+        }
 
-            if (Background)
+        if (graphics.DrawImage(&image, 0, 0) == Status::Ok)
+        {
+            if (buffer.GetHICON(&icon) == Status::Ok)
             {
-                Color color(Color::DodgerBlue);
-                color.SetFromCOLORREF(Background);
-                graphics->Clear(color);
+                return icon;
             }
-            else
-            {
-                graphics->Clear(Color::DodgerBlue);
-            }
-
-            if (graphics->DrawImage(image, 0, 0) == Status::Ok)
-            {
-                if (buffer->GetHICON(&icon) == Status::Ok)
-                {
-                    delete graphics;
-                    delete buffer;
-                    delete image;
-
-                    return icon;
-                }
-            }
-
-            delete graphics;
-            delete buffer;
-            delete image;
         }
     }
 
@@ -144,16 +144,16 @@ HICON PhGdiplusConvertHBitmapToHIcon(
     _In_ HBITMAP NitmapHandle
     )
 {
-    HICON hIcon = nullptr;
+    HICON iconHandle = nullptr;
 
     if (PhInitializeGDIPlus())
     {
         Bitmap bitmap(NitmapHandle, nullptr);
 
-        bitmap.GetHICON(&hIcon);
+        bitmap.GetHICON(&iconHandle);
     }
 
-    return hIcon;
+    return iconHandle;
 }
 
 

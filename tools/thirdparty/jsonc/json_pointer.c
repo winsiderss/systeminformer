@@ -8,8 +8,6 @@
 
 #include "config.h"
 
-#include <ph.h>
-
 #include "strerror_override.h"
 
 #include <stdarg.h>
@@ -160,7 +158,7 @@ static int json_pointer_result_get_recursive(struct json_object *obj, char *path
                                              struct json_pointer_get_result *res)
 {
     struct json_object *parent_obj = obj;
-    size_t idx;
+    size_t idx = 0;
     char *endp;
     int rc;
 
@@ -192,7 +190,7 @@ static int json_pointer_result_get_recursive(struct json_object *obj, char *path
         res->parent = parent_obj;
         res->obj = obj;
         if (json_object_is_type(res->parent, json_type_array))
-            res->index_in_parent = idx;
+            res->index_in_parent = (uint32_t)idx;
         else
             res->key_in_parent = path;
     }
@@ -233,12 +231,12 @@ int json_pointer_get_internal(struct json_object *obj, const char *path,
         res->parent = NULL;
         res->obj = obj;
         res->key_in_parent = NULL;
-        res->index_in_parent = -1;
+        res->index_in_parent = UINT32_MAX;
         return 0;
     }
 
     /* pass a working copy to the recursive call */
-    if (!(path_copy = PhDuplicateBytesZSafe((PSTR)path)))
+    if (!(path_copy = _strdup(path)))
     {
         errno = ENOMEM;
         return -1;
@@ -247,7 +245,7 @@ int json_pointer_get_internal(struct json_object *obj, const char *path,
     /* re-map the path string to the const-path string */
     if (rc == 0 && json_object_is_type(res->parent, json_type_object) && res->key_in_parent)
         res->key_in_parent = path + (res->key_in_parent - path_copy);
-    PhFree(path_copy);
+    free(path_copy);
 
     return rc;
 }
@@ -295,7 +293,7 @@ int json_pointer_getf(struct json_object *obj, struct json_object **res, const c
 
     rc = json_pointer_object_get_recursive(obj, path_copy, res);
 out:
-    PhFree(path_copy);
+    free(path_copy);
 
     return rc;
 }
@@ -336,14 +334,14 @@ int json_pointer_set_with_array_cb(struct json_object **obj, const char *path,
     }
 
     /* pass a working copy to the recursive call */
-    if (!(path_copy = PhDuplicateBytesZSafe((PSTR)path)))
+    if (!(path_copy = _strdup(path)))
     {
         errno = ENOMEM;
         return -1;
     }
     path_copy[endp - path] = '\0';
     rc = json_pointer_object_get_recursive(*obj, path_copy, &set);
-    PhFree(path_copy);
+    free(path_copy);
 
     if (rc)
         return rc;
@@ -412,6 +410,6 @@ set_single_path:
     rc = json_pointer_set_single_path(set, endp, value,
                       json_object_array_put_idx_cb, NULL);
 out:
-    PhFree(path_copy);
+    free(path_copy);
     return rc;
 }

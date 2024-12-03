@@ -305,7 +305,7 @@ PPH_STRING PhGetApplicationVersionString(
     PhInitFormatC(&format[6], L'.');
     PhInitFormatU(&format[7], PHAPP_VERSION_REVISION);
     PhInitFormatC(&format[8], L' ');
-    PhInitFormatS(&format[9], (PWSTR)channelName);
+    PhInitFormatS(&format[9], channelName);
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 #endif

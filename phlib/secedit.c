@@ -396,7 +396,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
     if (this->RefCount == 0)
     {
         if (this->CloseObject)
-            this->CloseObject(this->Context);
+            this->CloseObject(NULL, TRUE, this->Context);
 
         if (this->ObjectName)
             PhDereferenceObject(this->ObjectName);
@@ -1313,12 +1313,10 @@ NTSTATUS PhStdGetObjectSecurity(
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
         status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        PhCloseServiceHandle(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
     }
     else if (
         PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
@@ -1343,8 +1341,6 @@ NTSTATUS PhStdGetObjectSecurity(
                 );
             LsaFreeMemory(securityDescriptor);
         }
-
-        LsaClose(handle);
     }
     else if (
         PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
@@ -1385,26 +1381,41 @@ NTSTATUS PhStdGetObjectSecurity(
         if (NT_SUCCESS(status))
         {
             ULONG allocationLength;
+            ULONG allocationLengthRelative = 0;
             PSECURITY_DESCRIPTOR securityDescriptor;
+            PSECURITY_DESCRIPTOR securityRelative;
 
             allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
 
             securityDescriptor = PhAllocateZero(allocationLength);
-            RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-            RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+            status = RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
 
             assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
 
-            *SecurityDescriptor = PhAllocateCopy(
-                securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
-                );
-            PhFree(securityDescriptor);
+            status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
+            if (status != STATUS_BUFFER_TOO_SMALL)
+                goto CleanupExit;
 
+            securityRelative = PhAllocateZero(allocationLengthRelative);
+            status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            allocationLength = RtlLengthSecurityDescriptor(securityRelative);
+            assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
+
+            *SecurityDescriptor = securityRelative;
+
+        CleanupExit:
+            PhFree(securityDescriptor);
             PhFree(defaultDacl);
         }
-
-        NtClose(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
     {
@@ -1458,13 +1469,15 @@ NTSTATUS PhStdGetObjectSecurity(
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        // NtClose doesn't work for Desktop here. This was causing a huge leak of Desktop handles (Dart Vanya)
-        if (PhEqualString2(this->ObjectType, L"Desktop", TRUE))
-            CloseDesktop(handle);
-        else if (PhEqualString2(this->ObjectType, L"WindowStation", TRUE))
-            CloseWindowStation(handle);
-        else
-            NtClose(handle);
+    }
+
+    if (this->CloseObject)
+    {
+        this->CloseObject(
+            handle,
+            FALSE,
+            this->Context
+            );
     }
 
     return status;
@@ -1505,12 +1518,10 @@ NTSTATUS PhStdSetObjectSecurity(
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
         status = PhSetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        PhCloseServiceHandle(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
     }
     else if (
         PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
@@ -1524,8 +1535,6 @@ NTSTATUS PhStdSetObjectSecurity(
             SecurityInformation,
             SecurityDescriptor
             );
-
-        LsaClose(handle);
     }
     else if (
         PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
@@ -1569,8 +1578,6 @@ NTSTATUS PhStdSetObjectSecurity(
                 sizeof(TOKEN_DEFAULT_DACL)
                 );
         }
-
-        NtClose(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
     {
@@ -1616,10 +1623,15 @@ NTSTATUS PhStdSetObjectSecurity(
     else
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        if (!PhEqualString2(this->ObjectType, L"Desktop", TRUE))
-            NtClose(handle);
-        else
-            CloseDesktop(handle);
+    }
+
+    if (this->CloseObject)
+    {
+        this->CloseObject(
+            handle,
+            FALSE,
+            this->Context
+            );
     }
 
     return status;

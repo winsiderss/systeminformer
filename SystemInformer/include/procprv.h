@@ -112,9 +112,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
 
 // begin_phapppub
-#define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
-#define INTERRUPTS_PROCESS_ID ((HANDLE)(LONG_PTR)-3)
-
 // DPCs, Interrupts and System Idle Process are not real.
 // Non-"real" processes can never be opened.
 #define PH_IS_REAL_PROCESS_ID(ProcessId) ((LONG_PTR)(ProcessId) > 0)
@@ -127,7 +124,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 // end_phapppub
 
 // begin_phapppub
-typedef enum _VERIFY_RESULT VERIFY_RESULT;
 typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;
 
 typedef struct _PH_IMAGELIST_ITEM
@@ -172,7 +168,7 @@ typedef struct _PH_PROCESS_ITEM
     PSID Sid;
     TOKEN_ELEVATION_TYPE ElevationType;
     PH_INTEGRITY_LEVEL IntegrityLevel;
-    PH_STRINGREF IntegrityString;
+    PPH_STRINGREF IntegrityString;
     PS_PROTECTION Protection;
     PPH_STRING ProtectionString;
 
@@ -187,7 +183,7 @@ typedef struct _PH_PROCESS_ITEM
 
     // Signature, Packed
 
-    VERIFY_RESULT VerifyResult;
+    ULONG VerifyResult;
     PPH_STRING VerifySignerName;
     ULONG ImportFunctions;
     ULONG ImportModules;
@@ -227,7 +223,8 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsXfgAuditEnabled : 1;
             ULONG IsPowerThrottling : 1;
             ULONG IsSystemProcess : 1;
-            ULONG Spare : 4;
+            ULONG IsSecureSystem : 1;
+            ULONG Spare : 3;
         };
     };
 
@@ -380,6 +377,7 @@ PhEnumProcessItems(
     );
 // end_phapppub
 
+typedef enum _VERIFY_RESULT VERIFY_RESULT;
 typedef struct _PH_VERIFY_FILE_INFO *PPH_VERIFY_FILE_INFO;
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(

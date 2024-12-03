@@ -47,7 +47,7 @@ typedef ADDRESS_FAMILY sa_family_t;
             abort();                                                           \
         }                                                                      \
         fprintf(stderr, fmt "\n", binary);                                     \
-        PhFree(binary);                                                          \
+        free(binary);                                                          \
     } while (0)
 #define DEBUG_NL fprintf(stderr, "\n")
 #else
@@ -59,11 +59,10 @@ typedef ADDRESS_FAMILY sa_family_t;
 
 #ifdef MMDB_DEBUG
 char *byte_to_binary(uint8_t byte) {
-    char *bits = PhAllocateSafe(9 * sizeof(char));
+    char* bits = calloc(9, sizeof(char));
     if (NULL == bits) {
         return bits;
     }
-    memset(bits, 0, 9 * sizeof(char));
 
     for (uint8_t i = 0; i < 8; i++) {
         bits[i] = byte & (128 >> i) ? '1' : '0';
@@ -238,7 +237,7 @@ static char *bytes_to_hex(uint8_t const *bytes, uint32_t size);
 
 #define FREE_AND_SET_NULL(p)                                                   \
     {                                                                          \
-        PhFree((void *)(p));                                                     \
+        free((void *)(p));                                                     \
         (p) = NULL;                                                            \
     }
 
@@ -351,16 +350,14 @@ cleanup:
 
 static LPWSTR utf8_to_utf16(const char *utf8_str) {
     int wide_chars = MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, NULL, 0);
-    wchar_t *utf16_str = (wchar_t *)PhAllocateSafe(wide_chars * sizeof(wchar_t));
+    wchar_t* utf16_str = (wchar_t*)calloc(wide_chars, sizeof(wchar_t));
     if (!utf16_str) {
         return NULL;
     }
 
-    //memset(utf16_str, 0, wide_chars * sizeof(wchar_t));
-
     if (MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, utf16_str, wide_chars) <
         1) {
-        PhFree(utf16_str);
+        free(utf16_str);
         return NULL;
     }
 
@@ -372,24 +369,49 @@ static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modifie
     NTSTATUS status;
     HANDLE fileHandle;
     HANDLE sectionHandle;
-    LARGE_INTEGER fileSize;
+    FILE_STANDARD_INFORMATION basicInfo;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
     SIZE_T viewSize;
     PVOID viewBase;
 
-    status = PhCreateFile(
+    fileName.Length = (USHORT)filename->Length;
+    fileName.MaximumLength = (USHORT)filename->Length + sizeof(UNICODE_NULL);
+    fileName.Buffer = filename->Buffer;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
         &fileHandle,
-        filename,
         FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
         );
 
     if (!NT_SUCCESS(status))
         return MMDB_FILE_OPEN_ERROR;
 
-    status = PhGetFileSize(fileHandle, &fileSize);
+    status = NtQueryInformationFile(
+        fileHandle,
+        &ioStatusBlock,
+        &basicInfo,
+        sizeof(FILE_STANDARD_INFORMATION),
+        FileStandardInformation
+        );
 
     if (!NT_SUCCESS(status))
     {
@@ -401,7 +423,7 @@ static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modifie
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
         NULL,
-        &fileSize,
+        &basicInfo.EndOfFile,
         PAGE_READONLY,
         SEC_COMMIT,
         fileHandle
@@ -412,7 +434,7 @@ static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modifie
     if (!NT_SUCCESS(status))
         return MMDB_FILE_OPEN_ERROR;
 
-    viewSize = (SIZE_T)fileSize.QuadPart;
+    viewSize = (SIZE_T)basicInfo.EndOfFile.QuadPart;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
@@ -827,21 +849,19 @@ static int populate_description_metadata(MMDB_s *mmdb,
                               MMDB_INVALID_METADATA_ERROR);
 
     mmdb->metadata.description.descriptions =
-        PhAllocateSafe(map_size * sizeof(MMDB_description_s *));
+        calloc(map_size, sizeof(MMDB_description_s*));
     if (NULL == mmdb->metadata.description.descriptions) {
         status = MMDB_OUT_OF_MEMORY_ERROR;
         goto cleanup;
     }
-    memset(mmdb->metadata.description.descriptions, 0, map_size * sizeof(MMDB_description_s*));
 
     for (uint32_t i = 0; i < map_size; i++) {
         mmdb->metadata.description.descriptions[i] =
-            PhAllocateSafe(sizeof(MMDB_description_s));
+            calloc(1, sizeof(MMDB_description_s));
         if (NULL == mmdb->metadata.description.descriptions[i]) {
             status = MMDB_OUT_OF_MEMORY_ERROR;
             goto cleanup;
         }
-        memset(mmdb->metadata.description.descriptions[i], 0, sizeof(MMDB_description_s));
 
         mmdb->metadata.description.count = i + 1;
         mmdb->metadata.description.descriptions[i]->language = NULL;
@@ -1167,7 +1187,7 @@ int MMDB_vget_value(MMDB_entry_s *const start,
         return MMDB_INVALID_METADATA_ERROR;
     }
 
-    const char **path = PhAllocateSafe((length + 1) * sizeof(const char *));
+    const char** path = calloc(length + 1, sizeof(const char*));
     if (NULL == path) {
         return MMDB_OUT_OF_MEMORY_ERROR;
     }
@@ -1180,7 +1200,7 @@ int MMDB_vget_value(MMDB_entry_s *const start,
 
     int status = MMDB_aget_value(start, entry_data, path);
 
-    PhFree(path);
+    free(path);
 
     return status;
 }
@@ -1602,7 +1622,7 @@ static int decode_one(const MMDB_s *const mmdb,
             abort();
         }
         DEBUG_MSGF("string value: %s", string);
-        PhFree(string);
+        free(string);
 #endif
     } else if (type == MMDB_DATA_TYPE_BYTES) {
         entry_data->bytes = &mem[offset];
@@ -1988,7 +2008,7 @@ dump_entry_data_list(FILE *stream,
 
                 print_indentation(stream, indent);
                 fprintf(stream, "\"%s\": \n", key);
-                PhFree(key);
+                free(key);
 
                 entry_data_list = entry_data_list->next;
                 entry_data_list = dump_entry_data_list(
@@ -2033,7 +2053,7 @@ dump_entry_data_list(FILE *stream,
             }
             print_indentation(stream, indent);
             fprintf(stream, "\"%s\" <utf8_string>\n", string);
-            PhFree(string);
+            free(string);
             entry_data_list = entry_data_list->next;
         } break;
         case MMDB_DATA_TYPE_BYTES: {
@@ -2048,7 +2068,7 @@ dump_entry_data_list(FILE *stream,
 
             print_indentation(stream, indent);
             fprintf(stream, "%s <bytes>\n", hex_string);
-            PhFree(hex_string);
+            free(hex_string);
 
             entry_data_list = entry_data_list->next;
         } break;
@@ -2102,7 +2122,7 @@ dump_entry_data_list(FILE *stream,
                 return NULL;
             }
             fprintf(stream, "0x%s <uint128>\n", hex_string);
-            PhFree(hex_string);
+            free(hex_string);
 #else
             uint64_t high = entry_data_list->entry_data.uint128 >> 64;
             uint64_t low = (uint64_t)entry_data_list->entry_data.uint128;
@@ -2139,7 +2159,7 @@ static char *bytes_to_hex(uint8_t const *bytes, uint32_t size) {
     char *hex_string;
     MAYBE_CHECK_SIZE_OVERFLOW(size, SIZE_MAX / 2 - 1, NULL);
 
-    hex_string = PhAllocateSafe(((size * 2) + 1) * sizeof(char));
+    hex_string = calloc((size * 2) + 1, sizeof(char));
     if (NULL == hex_string) {
         return NULL;
     }

@@ -496,8 +496,8 @@ typedef struct _ALPC_HANDLE_ATTR32
     ULONG Reserved1;
     ULONG Handle;
     ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
-    ULONG DesiredAccess;
-    ULONG GrantedAccess;
+    ACCESS_MASK DesiredAccess;
+    ACCESS_MASK GrantedAccess;
 } ALPC_HANDLE_ATTR32, *PALPC_HANDLE_ATTR32;
 
 // private

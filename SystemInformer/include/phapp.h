@@ -31,10 +31,10 @@
 #include <phnet.h>
 
 #include "../resource.h"
+
 #include <phfwddef.h>
 #include <appsup.h>
-
-#include <minidumpapiset.h>
+#include <searchbox.h>
 
 // main
 
@@ -75,7 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
     PPH_STRING SysInfo;
-    PPH_STRING Channel;
+    ULONG UpdateChannel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
@@ -775,7 +775,17 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
-#include <searchbox.h>
+
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
+typedef
+_Must_inspect_result_
+VOID
+NTAPI
+PH_SEARCHCONTROL_CALLBACK(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+typedef PH_SEARCHCONTROL_CALLBACK* PPH_SEARCHCONTROL_CALLBACK;
 
 PHAPPAPI
 VOID
@@ -874,6 +884,7 @@ BOOLEAN PhGetElevationTypeString(
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_ HANDLE ProcessId,
     _In_ PVOID Context,
     _In_opt_ PCWSTR Title
@@ -887,6 +898,7 @@ INT CALLBACK PhpTokenSheetProc(
 
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_ HANDLE ProcessId,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc

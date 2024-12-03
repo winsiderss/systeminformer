@@ -70,10 +70,10 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateFileStream(
-    _Out_ PPH_FILE_STREAM *FileStream,
+    _Out_ PPH_FILE_STREAM* FileStream,
     _In_ PCWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG ShareMode,
+    _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG Flags
     );

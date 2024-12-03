@@ -30,7 +30,7 @@ typedef struct _KSI_DEBUG_LOG_DEF
 {
     PH_STRINGREF Name;
     PKSI_DEBUG_LOG_GET_LOG_STRING GetLogString;
-} SI_DEBUG_LOG_DEF, * PSI_DEBUG_LOG_DEF;
+} SI_DEBUG_LOG_DEF, *PSI_DEBUG_LOG_DEF;
 
 static BOOLEAN KsiDebugLogEnabled = FALSE;
 static PH_FAST_LOCK KsiDebugLogFileStreamLock = PH_FAST_LOCK_INIT;

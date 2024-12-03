@@ -516,7 +516,7 @@ NTSTATUS PhSvcApiControlProcess(
                 UCHAR priorityClass;
 
                 priorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
-                status = PhSetProcessPriority(processHandle, priorityClass);
+                status = PhSetProcessPriorityClass(processHandle, priorityClass);
 
                 NtClose(processHandle);
             }

@@ -17,7 +17,7 @@ extern "C" {
 
 #include <string.h>
 
-JSON_EXPORT char *_json_c_strerror(int errno_in);
+//JSON_EXPORT char *_json_c_strerror(int errno_in);
 
 #ifndef STRERROR_OVERRIDE_IMPL
 #define strerror _json_c_strerror

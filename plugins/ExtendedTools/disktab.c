@@ -466,7 +466,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(File)
 {
-    sortResult = PhCompareStringWithNullSortOrder(diskItem1->FileNameWin32, diskItem2->FileNameWin32, DiskTreeNewSortOrder, FALSE);
+    sortResult = PhCompareStringWithNullSortOrder(diskItem1->FileName, diskItem2->FileName, DiskTreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
@@ -1220,7 +1220,7 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    SystemInformer_Invoke(EtpOnDiskItemsUpdated, EtRunCount);
+    SystemInformer_Invoke(EtpOnDiskItemsUpdated, UlongToPtr(EtRunCount));
 }
 
 VOID NTAPI EtpOnDiskItemsUpdated(

@@ -71,7 +71,7 @@ typedef struct _PH_THREAD_STACKS_THREAD_NODE
 
     HANDLE ThreadId;
     HANDLE ThreadHandle;
-    ULONG64 StartAddress;
+    PVOID StartAddress;
     PPH_STRING ThreadName;
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
     WCHAR StartAddressString[PH_PTR_STR_LEN_1];
@@ -386,15 +386,15 @@ VOID PhpThreadStacksCreateThreadNode(
         ULONG_PTR startAddress;
 
         if (NT_SUCCESS(PhGetThreadStartAddress(node->Thread.ThreadHandle, &startAddress)))
-            node->Thread.StartAddress = (ULONG64)startAddress;
+            node->Thread.StartAddress = (PVOID)startAddress;
 
         PhGetThreadName(node->Thread.ThreadHandle, &node->Thread.ThreadName);
     }
 
     if (!node->Thread.StartAddress)
-        node->Thread.StartAddress = (ULONG64)ThreadInfo->StartAddress;
+        node->Thread.StartAddress = (PVOID)ThreadInfo->StartAddress;
 
-    PhPrintPointer(node->Thread.StartAddressString, (PVOID)node->Thread.StartAddress);
+    PhPrintPointer(node->Thread.StartAddressString, node->Thread.StartAddress);
 
     if (!PhIsNullOrEmptyString(node->Thread.ThreadName))
         node->Symbol = PhReferenceObject(node->Thread.ThreadName);
@@ -496,7 +496,7 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     PPH_STRING symbol = NULL;
     PPH_STRING fileName = NULL;
     PPH_STRING lineText = NULL;
-    ULONG64 baseAddress = 0;
+    PVOID baseAddress = NULL;
     PPH_STRING lineFileName;
     PH_SYMBOL_LINE_INFORMATION lineInfo;
 
@@ -551,7 +551,7 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     {
         symbol = PhGetSymbolFromAddress(
             FrameNode->Thread->Process->SymbolProvider,
-            (ULONG64)StackFrame->PcAddress,
+            StackFrame->PcAddress,
             NULL,
             &fileName,
             NULL,
@@ -576,7 +576,7 @@ PPH_STRING PhpThreadStacksInitFrameNode(
 
         if (PhGetLineFromAddress(
             FrameNode->Thread->Process->SymbolProvider,
-            (ULONG64)StackFrame->PcAddress,
+            StackFrame->PcAddress,
             &lineFileName,
             NULL,
             &lineInfo

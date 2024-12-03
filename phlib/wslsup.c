@@ -394,6 +394,7 @@ BOOLEAN PhCreateProcessLxss(
     _Out_ PPH_STRING *Result
     )
 {
+    static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
     BOOLEAN result = FALSE;
     PPH_STRING lxssOutputString = NULL;
     PPH_STRING lxssCommandLine;
@@ -401,6 +402,7 @@ BOOLEAN PhCreateProcessLxss(
     HANDLE processHandle;
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
     PH_FORMAT format[4];
@@ -430,8 +432,8 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(PhCreatePipeEx(
         &outputReadHandle,
         &outputWriteHandle,
-        TRUE,
-        NULL
+        NULL,
+        &securityAttributes
         )))
     {
         goto CleanupExit;
@@ -440,8 +442,21 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
-        TRUE,
+        &securityAttributes,
         NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&attributeList, 1)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+        attributeList,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
+        sizeof(HANDLE[2])
         )))
     {
         goto CleanupExit;
@@ -454,26 +469,14 @@ BOOLEAN PhCreateProcessLxss(
     startupInfo.StartupInfo.hStdInput = inputReadHandle;
     startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
     startupInfo.StartupInfo.hStdError = outputWriteHandle;
-
-    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1)))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-        startupInfo.lpAttributeList,
-        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
-        )))
-    {
-        goto CleanupExit;
-    }
+    startupInfo.lpAttributeList = attributeList;
 
     if (!NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
         PhGetString(lxssCommandLine),
         NULL,
         NULL,
-        &startupInfo.StartupInfo,
+        &startupInfo,
         PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE |
         PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
         NULL,
@@ -520,8 +523,8 @@ CleanupExit:
     if (inputWriteHandle)
         NtClose(inputWriteHandle);
 
-    if (startupInfo.lpAttributeList)
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+    if (attributeList)
+        PhDeleteProcThreadAttributeList(attributeList);
 
     return result;
 }

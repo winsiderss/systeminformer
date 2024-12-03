@@ -68,6 +68,11 @@ typedef struct _LARGE_INTEGER_128
     LONGLONG QuadPart[2];
 } LARGE_INTEGER_128, *PLARGE_INTEGER_128;
 
+typedef struct _ULARGE_INTEGER_128
+{
+    ULONGLONG QuadPart[2];
+} ULARGE_INTEGER_128, *PULARGE_INTEGER_128;
+
 // Limits
 
 #define MINCHAR     0x80        // winnt

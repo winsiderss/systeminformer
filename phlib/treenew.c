@@ -645,8 +645,6 @@ VOID PhTnpOnDpiChanged(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    Context->WindowDpi = PhGetWindowDpi(Context->Handle);
-
     PhTnpUpdateSystemMetrics(Context);
     PhTnpUpdateTextMetrics(Context);
     PhTnpUpdateThemeData(Context);
@@ -2189,6 +2187,28 @@ LRESULT PhTnpOnUserMessage(
             return (LRESULT)selectedCount;
        }
        break;
+    case TNM_GETSELECTEDNODE:
+        {
+            ULONG i;
+            ULONG visibleCount;
+            PPH_TREENEW_NODE node;
+
+            if (Context->SuspendUpdateStructure)
+                visibleCount = 0;
+            else
+                visibleCount = Context->FlatList->Count;
+
+            for (i = 0; i < visibleCount; i++)
+            {
+                node = Context->FlatList->Items[i];
+
+                if (node->Selected)
+                {
+                    return (LRESULT)node;
+                }
+            }
+        }
+        break;
     case TNM_FOCUSMARKSELECT:
        {
             PPH_TREENEW_NODE node = (PPH_TREENEW_NODE)LParam;
@@ -6451,7 +6471,7 @@ BOOLEAN PhTnpPrepareTooltipShow(
 
     rect = Context->TooltipRect;
     SendMessage(Context->TooltipsHandle, TTM_ADJUSTRECT, TRUE, (LPARAM)&rect);
-    MapWindowPoints(Context->Handle, NULL, (POINT *)&rect, 2);
+    MapWindowRect(Context->Handle, NULL, &rect);
     SetWindowPos(
         Context->TooltipsHandle,
         HWND_TOPMOST,
@@ -6750,7 +6770,7 @@ BOOLEAN TnHeaderCustomPaint(
 
     if (column->Text)
     {
-        PWSTR textBuffer;
+        PCWSTR textBuffer;
         LONG textLength;
         RECT textRect;
         HFONT oldFont;
@@ -6778,7 +6798,7 @@ BOOLEAN TnHeaderCustomPaint(
                 sdf = HSAS_SORTEDUP;
         }
 
-        textBuffer = (PWSTR)column->Text;
+        textBuffer = column->Text;
         textLength = (LONG)PhCountStringZ(column->Text);
 
         textRect = CustomDraw->rc;
@@ -6826,20 +6846,17 @@ BOOLEAN TnHeaderCustomPaint(
         {
             if (Context->HeaderThemeHandle)
             {
-                static SIZE sortArrowSize = { 0 };
+                SIZE sortArrowSize = { 0 };
 
-                if (sortArrowSize.cx == 0 && sortArrowSize.cy == 0)
-                {
-                    PhGetThemePartSize(
-                        Context->HeaderThemeHandle,
-                        CustomDraw->hdc,
-                        HP_HEADERSORTARROW,
-                        sdf,
-                        NULL,
-                        THEMEPARTSIZE_TRUE,
-                        &sortArrowSize
-                        );
-                }
+                PhGetThemePartSize(
+                    Context->HeaderThemeHandle,
+                    CustomDraw->hdc,
+                    HP_HEADERSORTARROW,
+                    sdf,
+                    NULL,
+                    THEMEPARTSIZE_TRUE,
+                    &sortArrowSize
+                    );
 
                 CustomDraw->rc.bottom = sortArrowSize.cy;
 
@@ -7235,7 +7252,7 @@ BOOLEAN PhTnpDetectDrag(
     dragRect.top = CursorY - Context->SystemDragY;
     dragRect.right = CursorX + Context->SystemDragX;
     dragRect.bottom = CursorY + Context->SystemDragY;
-    MapWindowPoints(Context->Handle, NULL, (POINT *)&dragRect, 2);
+    MapWindowRect(Context->Handle, NULL, &dragRect);
 
     SetCapture(Context->Handle);
 

@@ -18,7 +18,6 @@
 
 #include <ph.h>
 #include <guisup.h>
-#include <guisupview.h>
 
 #define PH_MAX_COMPARE_FUNCTIONS 16
 
@@ -48,7 +47,7 @@ typedef struct _PH_EXTLV_CONTEXT
 
     LONG EnableRedraw;
     HCURSOR Cursor;
-    IListView* Instance;
+    IListView* ListViewClass;
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -126,7 +125,7 @@ VOID PhSetExtendedListViewEx(
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
-    context->Instance = PhGetListViewInterface(WindowHandle);
+    context->ListViewClass = PhGetListViewInterface(WindowHandle);
 
     context->OldWndProc = PhGetWindowProcedure(WindowHandle);
     PhSetWindowContext(WindowHandle, MAXCHAR, context);
@@ -156,6 +155,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     {
     case WM_DESTROY:
         {
+            if (context->ListViewClass)
+            {
+                IListView_Release(context->ListViewClass);
+                context->ListViewClass = NULL;
+            }
+
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, MAXCHAR);
             PhFree(context);
@@ -485,10 +490,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 // values. The disadvantage of this method is that default sorting is not available
                 // - if a column doesn't have a comparison function, it doesn't get sorted at all.
 
-                if (context->Instance)
+                if (context->ListViewClass)
                 {
                     result = SUCCEEDED(IListView_SortItems(
-                        context->Instance,
+                        context->ListViewClass,
                         FALSE,
                         (WPARAM)context,
                         (PFNLVCOMPARE)PhpExtendedListViewCompareFastFunc
@@ -507,10 +512,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
             else
             {
-                if (context->Instance)
+                if (context->ListViewClass)
                 {
                     result = SUCCEEDED(IListView_SortItems(
-                        context->Instance,
+                        context->ListViewClass,
                         TRUE,
                         (WPARAM)context,
                         (PFNLVCOMPARE)PhpExtendedListViewCompareFunc
@@ -611,11 +616,11 @@ INT PhpExtendedListViewCompareFunc(
     yItem.iItem = y;
     yItem.iSubItem = 0;
 
-    if (context->Instance)
+    if (context->ListViewClass)
     {
-        if (FAILED(IListView_GetItem(context->Instance, &xItem)))
+        if (FAILED(IListView_GetItem(context->ListViewClass, &xItem)))
             return 0;
-        if (FAILED(IListView_GetItem(context->Instance, &yItem)))
+        if (FAILED(IListView_GetItem(context->ListViewClass, &yItem)))
             return 0;
     }
     else
@@ -786,8 +791,8 @@ INT PhpDefaultCompareListViewItems(
 
     xText[0] = UNICODE_NULL;
 
-    if (Context->Instance)
-        IListView_GetItem(Context->Instance, &item);
+    if (Context->ListViewClass)
+        IListView_GetItem(Context->ListViewClass, &item);
     else
         CallWindowProc(Context->OldWndProc, Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
@@ -799,8 +804,8 @@ INT PhpDefaultCompareListViewItems(
 
     yText[0] = UNICODE_NULL;
 
-    if (Context->Instance)
-        IListView_GetItem(Context->Instance, &item);
+    if (Context->ListViewClass)
+        IListView_GetItem(Context->ListViewClass, &item);
     else
         CallWindowProc(Context->OldWndProc, Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
@@ -817,17 +822,15 @@ HWND PhGetExtendedListViewHeader(
     _In_ PPH_EXTLV_CONTEXT Context
     )
 {
-    HWND headerHandle = NULL;
-
-    if (Context->Instance)
+    if (Context->ListViewClass)
     {
-        IListView_GetHeaderControl(Context->Instance, &headerHandle);
+        HWND headerHandle;
+
+        if (HR_SUCCESS(IListView_GetHeaderControl(Context->ListViewClass, &headerHandle)))
+        {
+            return headerHandle;
+        }
     }
 
-    if (headerHandle == NULL)
-    {
-        headerHandle = ListView_GetHeader(Context->Handle);
-    }
-
-    return headerHandle;
+    return ListView_GetHeader(Context->Handle);
 }

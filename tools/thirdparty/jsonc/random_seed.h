@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-extern long json_c_get_random_seed(void);
+extern int json_c_get_random_seed(void);
 
 #ifdef __cplusplus
 }

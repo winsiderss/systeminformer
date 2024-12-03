@@ -110,20 +110,33 @@ PvPropPageDlgProcHeader(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (uMsg == WM_INITDIALOG)
     {
         // Save the context.
-        PhSetWindowContext(hwndDlg, ULONG_MAX, (HANDLE)lParam);
+        propSheetPage = (LPPROPSHEETPAGE)lParam;
+        propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, 0xfff, propSheetPage);
+    }
+    else
+    {
+        propSheetPage = PhGetWindowContext(hwndDlg, 0xfff);
+
+        if (!propSheetPage)
+            return FALSE;
+
+        propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+
+        if (uMsg == WM_NCDESTROY)
+        {
+            PhRemoveWindowContext(hwndDlg, 0xfff);
+        }
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, ULONG_MAX);
-
-    if (!propSheetPage)
-        return FALSE;
-
     *PropSheetPage = propSheetPage;
-    *PropPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+    *PropPageContext = propPageContext;
 
     return TRUE;
 }

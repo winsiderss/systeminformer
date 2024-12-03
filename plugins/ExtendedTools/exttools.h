@@ -18,8 +18,7 @@
 #include <settings.h>
 #include <mapldr.h>
 #include <workqueue.h>
-
-#include <math.h>
+#include <searchbox.h>
 
 #include "resource.h"
 
@@ -112,6 +111,8 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION (PLUGIN_NAME L".ModuleServiceWindowPosition")
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE (PLUGIN_NAME L".ModuleServiceWindowSize")
 #define SETTING_NAME_MODULE_SERVICES_COLUMNS (PLUGIN_NAME L".ModuleServiceListColumns")
+#define SETTING_NAME_GPU_DETAILS_WINDOW_POSITION (PLUGIN_NAME L".GpuDetailsWindowPosition")
+#define SETTING_NAME_GPU_DETAILS_WINDOW_SIZE (PLUGIN_NAME L".GpuDetailsWindowSize")
 #define SETTING_NAME_GPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".GpuNodesWindowPosition")
 #define SETTING_NAME_GPU_NODES_WINDOW_SIZE (PLUGIN_NAME L".GpuNodesWindowSize")
 #define SETTING_NAME_NPU_NODES_WINDOW_POSITION (PLUGIN_NAME L".NpuNodesWindowPosition")
@@ -149,6 +150,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_OBJMGR_LIST_SORT (PLUGIN_NAME L".ObjectManagerWindowListSort")
 #define SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerPropertiesWindowPosition")
 #define SETTING_NAME_OBJMGR_LAST_PATH (PLUGIN_NAME L".ObjectManagerLastPath")
+#define SETTING_NAME_OBJMGR_HISTORY (PLUGIN_NAME L".ObjectManagerHistory")
 #define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
 #define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
@@ -1680,6 +1682,18 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
     _Out_opt_ PULONG TypeIndex,
     _Out_opt_ PULONG Attributes
     );
+
+#include <winsta.h>
+
+ULONG EtSessionIdFromObjectName(
+    _In_ PPH_STRINGREF Name
+    );
+
+PWSTR EtMapSessionConnectState(
+    _In_ WINSTATIONSTATECLASS State
+    );
+
+#define ET_OBJMGR_HISTORY_SEPARATOR L"||"
 
 // poolmon
 

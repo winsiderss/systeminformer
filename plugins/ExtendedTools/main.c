@@ -1284,6 +1284,8 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
                 { StringSettingType, SETTING_NAME_MODULE_SERVICES_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_GPU_DETAILS_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_GPU_DETAILS_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_NPU_NODES_WINDOW_POSITION, L"0,0" },
@@ -1297,7 +1299,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_LOOPBACK, L"1" },
-                { IntegerSettingType, SETTING_NAME_FW_IGNORE_ALLOW, L"0" },
+                { IntegerSettingType, SETTING_NAME_FW_IGNORE_ALLOW, L"1" },
                 { StringSettingType, SETTING_NAME_FW_SESSION_GUID, L"" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { StringSettingType, SETTING_NAME_WCT_TREE_LIST_COLUMNS, L"" },
@@ -1321,6 +1323,12 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_LIST_SORT, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, L"0,0" },
                 { StringSettingType, SETTING_NAME_OBJMGR_LAST_PATH, L"\\" },
+                { StringSettingType, SETTING_NAME_OBJMGR_HISTORY,
+                    L"\\" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\BaseNamedObjects" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\Device" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\KernelObjects" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\ObjectTypes" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },

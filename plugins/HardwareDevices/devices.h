@@ -28,6 +28,8 @@
 #define SETTING_NAME_SMART_COUNTERS_COLUMNS (PLUGIN_NAME L".SmartListColumns")
 #define SETTING_NAME_RAPL_LIST (PLUGIN_NAME L".RaplList")
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
+#define SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION (PLUGIN_NAME L".GraphicsDetailsWindowPosition")
+#define SETTING_NAME_GRAPHICS_DETAILS_WINDOW_SIZE (PLUGIN_NAME L".GraphicsDetailsWindowSize")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
 #define SETTING_NAME_GRAPHICS_UNIQUE_INDICES (PLUGIN_NAME L".GraphicsUniqueIndices")
@@ -59,10 +61,10 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
+#include <searchbox.h>
 #include <workqueue.h>
 #include <mapldr.h>
 
-#include <math.h>
 #include <cfgmgr32.h>
 #include <nvme.h>
 
@@ -289,6 +291,7 @@ typedef struct _DV_NETADAPTER_CONTEXT
     };
 
     PH_LAYOUT_MANAGER LayoutManager;
+    IListView* ListViewClass;
 } DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 VOID NetAdaptersLoadList(
@@ -302,7 +305,7 @@ VOID NetworkDevicesInitialize(
     );
 
 VOID NetworkDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     );
 
 VOID NetworkDeviceUpdateDeviceInfo(
@@ -600,7 +603,7 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
 
 VOID DiskDevicesInitialize(VOID);
 VOID DiskDrivesLoadList(VOID);
-VOID DiskDevicesUpdate(VOID);
+VOID DiskDevicesUpdate(_In_ ULONG RunCount);
 
 VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
@@ -1202,7 +1205,7 @@ VOID RaplDevicesLoadList(
     );
 
 VOID RaplDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     );
 
 VOID InitializeRaplDeviceId(
@@ -1397,7 +1400,7 @@ VOID GraphicsDevicesLoadList(
     );
 
 VOID GraphicsDevicesUpdate(
-    VOID
+    _In_ ULONG RunCount
     );
 
 VOID InitializeGraphicsDeviceId(

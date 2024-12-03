@@ -167,7 +167,7 @@ static NTSTATUS EtpSymbolLookupFunction(
 
     result->Symbol = PhGetSymbolFromAddress(
         result->Context->SymbolProvider,
-        (ULONG64)result->Address,
+        result->Address,
         NULL,
         &result->FileName,
         NULL,
@@ -207,10 +207,10 @@ static VOID EtpQueueSymbolLookup(
 
 static PPH_STRING EtpGetBasicSymbol(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 Address
+    _In_ PVOID Address
     )
 {
-    ULONG64 modBase;
+    PVOID modBase;
     PPH_STRING fileName = NULL;
     PPH_STRING baseName = NULL;
     PPH_STRING symbol;
@@ -231,7 +231,7 @@ static PPH_STRING EtpGetBasicSymbol(
 
         PhInitFormatSR(&format[0], baseName->sr);
         PhInitFormatS(&format[1], L"+0x");
-        PhInitFormatIX(&format[2], (ULONG_PTR)(Address - modBase));
+        PhInitFormatIX(&format[2], ((ULONG_PTR)Address - (ULONG_PTR)modBase));
 
         symbol = PhFormat(format, 3, baseName->Length + 6 + 32);
     }
@@ -382,8 +382,7 @@ static BOOLEAN EtpUpdateWsWatch(
             PhAddItemSimpleHashtable(Context->Hashtable, wsWatchInfo->BasicInfo.FaultingPc, UlongToPtr(1));
 
             // Get a basic symbol name (module+offset).
-            basicSymbol = EtpGetBasicSymbol(Context->SymbolProvider, (ULONG64)wsWatchInfo->BasicInfo.FaultingPc);
-
+            basicSymbol = EtpGetBasicSymbol(Context->SymbolProvider, wsWatchInfo->BasicInfo.FaultingPc);
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, basicSymbol->Buffer, wsWatchInfo->BasicInfo.FaultingPc);
             PhDereferenceObject(basicSymbol);
 
@@ -430,32 +429,6 @@ PPH_STRING EtpCreateWindowTitle(
     PhMoveReference(&windowTitle, PhFormat(format, RTL_NUMBER_OF(format), 0));
 
     return windowTitle;
-}
-
-static BOOLEAN NTAPI EtpWsWatchEnumGenericModulesCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_ PVOID Context
-    )
-{
-    PWS_WATCH_CONTEXT context = Context;
-
-    // If we're loading kernel module symbols for a process other than
-    // System, ignore modules which are in user space. This may happen
-    // in Windows 7.
-    if (
-        context->LoadingSymbolsForProcessId == SYSTEM_PROCESS_ID &&
-        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress
-        )
-        return TRUE;
-
-    PhLoadModuleSymbolProvider(
-        context->SymbolProvider,
-        Module->FileName,
-        (ULONG64)Module->BaseAddress,
-        Module->Size
-        );
-
-    return TRUE;
 }
 
 INT_PTR CALLBACK EtpWsWatchDlgProc(
@@ -521,25 +494,10 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 break;
             }
 
-            PhLoadSymbolProviderOptions(context->SymbolProvider);
-
             // Load symbols for both process and kernel modules.
             context->LoadingSymbolsForProcessId = context->ProcessId;
-            PhEnumGenericModules(
-                context->ProcessId,
-                context->ProcessHandle,
-                0,
-                EtpWsWatchEnumGenericModulesCallback,
-                context
-                );
-            context->LoadingSymbolsForProcessId = SYSTEM_PROCESS_ID;
-            PhEnumGenericModules(
-                SYSTEM_PROCESS_ID,
-                NULL,
-                0,
-                EtpWsWatchEnumGenericModulesCallback,
-                context
-                );
+            PhLoadSymbolProviderOptions(context->SymbolProvider);
+            PhLoadSymbolProviderModules(context->SymbolProvider, context->ProcessId);
 
             context->Enabled = EtpUpdateWsWatch(hwndDlg, context);
 

@@ -551,18 +551,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     // HYPERVISOR_SHARED_DATA
     if (WindowsVersion >= WINDOWS_10_RS4)
     {
-        static PVOID hypervisorSharedUserVa = NULL;
+        static PSYSTEM_HYPERVISOR_USER_SHARED_DATA hypervisorSharedUserData = NULL;
         static PH_INITONCE hypervisorSharedUserInitOnce = PH_INITONCE_INIT;
 
         if (PhBeginInitOnce(&hypervisorSharedUserInitOnce))
         {
-            PhGetSystemHypervisorSharedPageInformation(&hypervisorSharedUserVa);
+            PhGetSystemHypervisorSharedPageInformation(&hypervisorSharedUserData);
             PhEndInitOnce(&hypervisorSharedUserInitOnce);
         }
 
-        if (hypervisorSharedUserVa)
+        if (hypervisorSharedUserData)
         {
-            PhpSetMemoryRegionType(List, hypervisorSharedUserVa, TRUE, HypervisorSharedDataRegion);
+            PhpSetMemoryRegionType(List, hypervisorSharedUserData, TRUE, HypervisorSharedDataRegion);
         }
     }
 
@@ -979,7 +979,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             SIZE_T bytesRead;
 
             // HACK: Windows 10 RS2 and above 'added TEB/PEB sub-VAD segments' and we need to tag individual sections.
-            if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBase, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
+            if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)thread->TebBase, WindowsVersion < WINDOWS_10_RS2 ? TRUE : FALSE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
             if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&

@@ -334,8 +334,8 @@ BOOLEAN PhCmLoadSettingsEx(
     PPH_HASHTABLE columnHashtable;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_KEY_VALUE_PAIR pair;
-    LONG orderArray[PH_CM_ORDER_LIMIT];
-    LONG maxOrder;
+    ULONG orderArray[PH_CM_ORDER_LIMIT];
+    ULONG maxOrder;
     LONG dpiValue;
 
     dpiValue = PhGetWindowDpi(TreeNewHandle);
@@ -431,7 +431,7 @@ BOOLEAN PhCmLoadSettingsEx(
                 if (columnPart.Length == 0 || !PhStringToInteger64(&columnPart, 10, &integer))
                     goto CleanupExit;
 
-                width = (ULONG)integer;
+                width = (LONG)integer;
 
                 if (scale != dpiValue && scale != 0)
                     width = PhMultiplyDivideSigned(width, dpiValue, scale);
@@ -483,7 +483,7 @@ BOOLEAN PhCmLoadSettingsEx(
                             {
                                 orderArray[(*columnPtr)->DisplayIndex] = i;
 
-                                if ((ULONG)maxOrder < (*columnPtr)->DisplayIndex + 1)
+                                if (maxOrder < (*columnPtr)->DisplayIndex + 1)
                                     maxOrder = (*columnPtr)->DisplayIndex + 1;
                             }
                         }

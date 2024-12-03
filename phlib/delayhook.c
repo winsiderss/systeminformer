@@ -64,8 +64,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
 
             if (PhEnableStreamerMode)
             {
-                if (SetWindowDisplayAffinity_Import())
-                    SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
             if (PhEnableThemeSupport)
@@ -117,8 +116,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
             {
                 if (PhEnableStreamerMode)
                 {
-                    if (SetWindowDisplayAffinity_Import())
-                        SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                    SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
                 if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
@@ -1577,8 +1575,7 @@ HWND PhCreateWindowExHook(
     {
         if (PhEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
@@ -1589,17 +1586,14 @@ HWND PhCreateWindowExHook(
     else
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
-        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE) && WindowsVersion >= WINDOWS_11)
+        if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_LINK, TRUE))
         {
             PhInitializeTaskDialogTheme(windowHandle, 0);
         }
-        else if (PhEnableThemeSupport)
+        else if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
+                 PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
         {
-            if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, WC_BUTTON, TRUE) &&
-                PhGetWindowContext(GetAncestor(Parent, GA_ROOT), LONG_MAX))
-            {
-                PhWindowThemeSetDarkMode(windowHandle, TRUE);
-            }
+            PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
         }
     }
 
@@ -1888,8 +1882,7 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     {
         if (PhEnableStreamerMode)
         {
-            if (SetWindowDisplayAffinity_Import())
-                SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+            SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
         if (PhEnableThemeSupport)

@@ -37,13 +37,13 @@
 #include <unistd.h>
 #endif /* HAVE_UNISTD_H */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <io.h>
 #include <windows.h>
-#endif /* defined(WIN32) */
+#endif /* defined(_WIN32) */
 
-#if !defined(HAVE_OPEN) && defined(WIN32)
+#if !defined(HAVE_OPEN) && defined(_WIN32)
 #define open _open
 #endif
 
@@ -101,8 +101,8 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
     if (!tok)
     {
         _json_c_set_last_err(
-            "json_object_from_fd_ex: unable to allocate json_tokener(depth=%d): %s\n",
-            depth, strerror(errno));
+            "json_object_from_fd_ex: unable to allocate json_tokener(depth=%d)\n",
+            depth);
         printbuf_free(pb);
         return NULL;
     }
@@ -115,7 +115,7 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
 #error "Can't append more than INT_MAX bytes at a time"
 #endif
             _json_c_set_last_err(
-                "json_object_from_fd_ex: failed to printbuf_memappend after reading %d+%d bytes: %s", printbuf_length(pb), (int)ret, strerror(errno));
+                "json_object_from_fd_ex: failed to printbuf_memappend after reading %d+%d bytes", printbuf_length(pb), (int)ret);
             json_tokener_free(tok);
             printbuf_free(pb);
             return NULL;
@@ -123,8 +123,7 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
     }
     if (ret < 0)
     {
-        _json_c_set_last_err("json_object_from_fd_ex: error reading fd %d: %s\n", fd,
-                             strerror(errno));
+        _json_c_set_last_err("json_object_from_fd_ex: error reading fd %d\n", fd);
         json_tokener_free(tok);
         printbuf_free(pb);
         return NULL;
@@ -147,8 +146,8 @@ struct json_object *json_object_from_file(const char *filename)
 
     if ((fd = open(filename, O_RDONLY)) < 0)
     {
-        _json_c_set_last_err("json_object_from_file: error opening file %s: %s\n",
-                             filename, strerror(errno));
+        _json_c_set_last_err("json_object_from_file: error opening file %s\n",
+                             filename);
         return NULL;
     }
     obj = json_object_from_fd(fd);
@@ -171,8 +170,8 @@ int json_object_to_file_ext(const char *filename, struct json_object *obj, int f
 
     if ((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0)
     {
-        _json_c_set_last_err("json_object_to_file_ext: error opening file %s: %s\n",
-                             filename, strerror(errno));
+        _json_c_set_last_err("json_object_to_file_ext: error opening file %s\n",
+                             filename);
         return -1;
     }
     ret = _json_object_to_fd(fd, obj, flags, filename);
@@ -209,10 +208,10 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
     wpos = 0;
     while (wpos < wsize)
     {
-        if ((ret = _write(fd, json_str + wpos, (unsigned)(wsize - wpos))) < 0)
+        if ((ret = _write(fd, json_str + wpos, (unsigned int)(wsize - wpos))) < 0)
         {
-            _json_c_set_last_err("json_object_to_fd: error writing file %s: %s\n",
-                                 filename, strerror(errno));
+            _json_c_set_last_err("json_object_to_fd: error writing file %s\n",
+                                 filename);
             return -1;
         }
 
@@ -283,8 +282,8 @@ void *rpl_realloc(void *p, size_t n)
     if (n == 0)
         n = 1;
     if (p == 0)
-        return PhAllocateSafe(n);
-    return PhReAllocateSafe(p, n);
+        return malloc(n);
+    return realloc(p, n);
 }
 #endif
 

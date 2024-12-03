@@ -210,7 +210,7 @@ NTSTATUS LoadDb(
 
         if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
-            for (INT i = 0; i < PhGetXmlNodeAttributeCount(currentNode); i++)
+            for (SIZE_T i = 0; i < PhGetXmlNodeAttributeCount(currentNode); i++)
             {
                 PCSTR elementName;
                 PCSTR elementValue;

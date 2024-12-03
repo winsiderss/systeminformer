@@ -7,3 +7,4 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0090:Use 'new(...)'")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("IntelliSenseCorrection", "IDE0003", Justification = "Allowing usage of 'this' keyword to maintain consistency/readability of code.")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "Maintain consistency/readability of code.")]

@@ -440,7 +440,7 @@ NTSTATUS NetworkTracertThreadStart(
     if (icmpRandString = PhCreateStringEx(NULL, icmpEchoBufferLength * sizeof(WCHAR) + sizeof(UNICODE_NULL)))
     {
         PhGenerateRandomAlphaString(icmpRandString->Buffer, icmpRandString->Length / sizeof(WCHAR));
-        icmpEchoBuffer = PhConvertUtf16ToMultiByteEx(icmpRandString->Buffer, icmpRandString->Length - sizeof(UNICODE_NULL));
+        icmpEchoBuffer = PhConvertUtf16ToUtf8Ex(icmpRandString->Buffer, icmpRandString->Length - sizeof(UNICODE_NULL));
         PhDereferenceObject(icmpRandString);
     }
 

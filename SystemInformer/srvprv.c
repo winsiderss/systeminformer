@@ -127,9 +127,9 @@ static HANDLE PhNonPollEventHandle = NULL;
 static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
 static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
 static SLIST_HEADER PhpServiceQueryDataListHead;
-static _NotifyServiceStatusChangeW NotifyServiceStatusChange_I = NULL;
-static _SubscribeServiceChangeNotifications SubscribeServiceChangeNotifications_I = NULL;
-static _UnsubscribeServiceChangeNotifications UnsubscribeServiceChangeNotifications_I = NULL;
+static typeof(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
+static typeof(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
+static typeof(&UnsubscribeServiceChangeNotifications) UnsubscribeServiceChangeNotifications_I = NULL;
 
 BOOLEAN PhServiceProviderInitialization(
     VOID
