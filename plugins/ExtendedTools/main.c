@@ -1323,6 +1323,12 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_LIST_SORT, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, L"0,0" },
                 { StringSettingType, SETTING_NAME_OBJMGR_LAST_PATH, L"\\" },
+                { StringSettingType, SETTING_NAME_OBJMGR_HISTORY,
+                    L"\\" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\BaseNamedObjects" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\Device" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\KernelObjects" ET_OBJMGR_HISTORY_SEPARATOR
+                    L"\\ObjectTypes" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },

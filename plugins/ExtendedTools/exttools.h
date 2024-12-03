@@ -150,6 +150,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_OBJMGR_LIST_SORT (PLUGIN_NAME L".ObjectManagerWindowListSort")
 #define SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION (PLUGIN_NAME L".ObjectManagerPropertiesWindowPosition")
 #define SETTING_NAME_OBJMGR_LAST_PATH (PLUGIN_NAME L".ObjectManagerLastPath")
+#define SETTING_NAME_OBJMGR_HISTORY (PLUGIN_NAME L".ObjectManagerHistory")
 #define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
 #define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
@@ -1691,6 +1692,8 @@ ULONG EtSessionIdFromObjectName(
 PWSTR EtMapSessionConnectState(
     _In_ WINSTATIONSTATECLASS State
     );
+
+#define ET_OBJMGR_HISTORY_SEPARATOR L"||"
 
 // poolmon
 

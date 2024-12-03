@@ -91,6 +91,7 @@ typedef struct _ET_OBJECT_CONTEXT
     HWND TreeViewHandle;
     HWND SearchBoxHandle;
     HWND PathControlHandle;
+    HWND PathControlEdit;
     PH_LAYOUT_MANAGER LayoutManager;
 
     HTREEITEM RootTreeObject;
@@ -1405,7 +1406,8 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
         PhShowStatus(Context->WindowHandle, L"Unable to query directory object.", status, 0);
     }
 
-    PhSetDialogItemText(Context->WindowHandle, IDC_OBJMGR_PATH, PhGetString(Context->CurrentPath));
+    PhSetWindowText(Context->PathControlHandle, PhGetString(Context->CurrentPath));
+    Edit_SetSel(Context->PathControlEdit, -2, -1);
 
     PhPrintUInt32(string, ListView_GetItemCount(Context->ListViewHandle));
     PhSetDialogItemText(Context->WindowHandle, IDC_OBJMGR_COUNT, string);
@@ -2400,7 +2402,7 @@ BOOLEAN EtListViewFindAndSelectItem(
     return item != INT_ERROR;
 }
 
-VOID NTAPI EtpObjectManagerOpenTarget(
+BOOLEAN NTAPI EtpObjectManagerOpenTarget(
     _In_ PET_OBJECT_CONTEXT Context,
     _In_ PPH_STRING Target
     )
@@ -2412,6 +2414,7 @@ VOID NTAPI EtpObjectManagerOpenTarget(
     BOOLEAN reverseScan = FALSE;
     BOOLEAN startFromRoot;
     HTREEITEM directoryItem;
+    BOOLEAN targetFound = FALSE;
 
     remainingPart = PhGetStringRef(PhReferenceObject(Target));
     Context->SelectedTreeItem = Context->RootTreeObject;
@@ -2420,10 +2423,11 @@ VOID NTAPI EtpObjectManagerOpenTarget(
     PhSplitStringRefAtLastChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &pathPart, &namePart);
 
     // Check if target directory is equal to current
-    if (!PhEqualStringRef(&pathPart, &Context->CurrentPath->sr, TRUE))
+    if (!PhEqualStringRef(&Target->sr, &Context->CurrentPath->sr, TRUE))
     {
-        if (PhStartsWithStringRef(&remainingPart, &EtObjectManagerRootDirectoryObject, TRUE))
+        if (PhStartsWithStringRef(&remainingPart, &EtObjectManagerRootDirectoryObject, FALSE))
         {
+            PhSetWindowText(Context->SearchBoxHandle, L"");
 start_scan:
             startFromRoot = TRUE;
 
@@ -2450,13 +2454,13 @@ start_scan:
 
                     if (directoryItem)
                     {
-                        PhSetWindowText(Context->SearchBoxHandle, L"");
-
                         TreeView_SelectItem(Context->TreeViewHandle, directoryItem);
                         Context->SelectedTreeItem = directoryItem;
+                        targetFound = TRUE;
                     }
                     else if (EtListViewFindAndSelectItem(Context, &directoryPart)) // try to find and select target in listview
                     {
+                        targetFound = TRUE;
                         break;
                     }
                 }
@@ -2470,17 +2474,17 @@ start_scan:
                 remainingPart = PhGetStringRef(Target);
                 Context->SelectedTreeItem = Context->RootTreeObject;
                 reverseScan = TRUE;
+                targetFound = FALSE;
                 goto start_scan;
             }
         }
 
         // If we did jump to new tree target, then focus to listview target item
-        if (directoryPart.Length > 0)   // HACK
+        if (directoryPart.Length > 0 || PhEqualStringRef(&Target->sr, &EtObjectManagerRootDirectoryObject, FALSE))   // HACK
         {
-            PhSetWindowText(Context->SearchBoxHandle, L"");
             EtpObjectManagerSearchControlCallback(0, Context);
         }
-        else if (!Context->DisableSelChanged)    // browse to target in explorer
+        else    // browse to target in explorer
         {
             if (!PhIsNullOrEmptyString(Target) &&
                 (PhDoesFileExist(&Target->sr) || PhDoesFileExistWin32(Target->Buffer)))
@@ -2491,7 +2495,7 @@ start_scan:
                     PhGetString(Target),
                     FALSE,
                     L"Make sure the Explorer executable file is present."
-                    );
+                );
             }
             else
             {
@@ -2504,10 +2508,11 @@ start_scan:
         PhSetWindowText(Context->SearchBoxHandle, L"");
         EtpObjectManagerSearchControlCallback(0, Context);
 
-        EtListViewFindAndSelectItem(Context, &namePart);
+        targetFound = EtListViewFindAndSelectItem(Context, &namePart);
     }
 
     PhDereferenceObject(Target);
+    return targetFound;
 }
 
 VOID NTAPI EtpObjectManagerRefresh(
@@ -2810,6 +2815,67 @@ VOID EtpObjectEntryDeleteProcedure(
     PhClearReference(&entry->BaseDirectory);
 }
 
+VOID EtpLoadComboBoxHistoryToSettings(
+    _In_ PET_OBJECT_CONTEXT Context
+    )
+{
+    PPH_STRING savedChoices = PhGetStringSetting(SETTING_NAME_OBJMGR_HISTORY);
+    PPH_STRING savedChoice;
+    ULONG_PTR indexOfDelim;
+    ULONG_PTR i = 0;
+
+    // Split the saved choices using the delimiter.
+    while (i < savedChoices->Length / sizeof(WCHAR))
+    {
+        indexOfDelim = PhFindStringInString(savedChoices, i, ET_OBJMGR_HISTORY_SEPARATOR);
+
+        if (indexOfDelim == SIZE_MAX)
+            indexOfDelim = savedChoices->Length / sizeof(WCHAR);
+
+        savedChoice = PhSubstring(savedChoices, i, indexOfDelim - i);
+
+        if (savedChoice->Length)
+        {
+            ComboBox_InsertString(Context->PathControlHandle, UINT_MAX, savedChoice->Buffer);
+        }
+
+        PhDereferenceObject(savedChoice);
+
+        i = indexOfDelim + 2;
+    }
+
+    PhDereferenceObject(savedChoices);
+}
+
+VOID EtpSaveComboBoxHistoryToSettings(
+    _In_ PET_OBJECT_CONTEXT Context
+    )
+{
+    PH_STRING_BUILDER savedChoices;
+    PPH_STRING choice;
+
+    PhInitializeStringBuilder(&savedChoices, 100);
+
+    for (ULONG i = 0; i < PH_CHOICE_DIALOG_SAVED_CHOICES * 2; i++)
+    {
+        choice = PhGetComboBoxString(Context->PathControlHandle, i);
+
+        if (!choice)
+            break;
+
+        PhAppendStringBuilder(&savedChoices, &choice->sr);
+        PhDereferenceObject(choice);
+
+        PhAppendStringBuilder2(&savedChoices, ET_OBJMGR_HISTORY_SEPARATOR);
+    }
+
+    if (PhEndsWithString2(savedChoices.String, ET_OBJMGR_HISTORY_SEPARATOR, FALSE))
+        PhRemoveEndStringBuilder(&savedChoices, 2);
+
+    PhSetStringSetting2(SETTING_NAME_OBJMGR_HISTORY, &savedChoices.String->sr);
+    PhDeleteStringBuilder(&savedChoices);
+}
+
 INT_PTR CALLBACK WinObjDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2858,12 +2924,16 @@ INT_PTR CALLBACK WinObjDlgProc(
     {
     case WM_INITDIALOG:
         {
+            COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+
             context->WindowHandle = hwndDlg;
             context->ParentWindowHandle = (HWND)lParam;
             context->TreeViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_TREE);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_SEARCH);
             context->PathControlHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_PATH);
+            if (GetComboBoxInfo(context->PathControlHandle, &info))
+                context->PathControlEdit = info.hwndItem;
             context->CurrentDirectoryList = PhCreateList(100);
             if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
@@ -2940,6 +3010,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             if (PhIsNullOrEmptyString(Target))  // HACK
                 Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
 
+            EtpLoadComboBoxHistoryToSettings(context);
+
             context->DisableSelChanged = TRUE;
             EtpObjectManagerOpenTarget(context, Target);
             TreeView_EnsureVisible(context->TreeViewHandle, context->SelectedTreeItem);
@@ -2983,6 +3055,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhSetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH, PhGetString(currentPath));
             PhDereferenceObject(currentPath);
 
+            EtpSaveComboBoxHistoryToSettings(context);
+
             PhDeleteLayoutManager(&context->LayoutManager);
 
             EtObjectManagerDialogHandle = NULL;
@@ -3022,6 +3096,18 @@ INT_PTR CALLBACK WinObjDlgProc(
                 case IDC_REFRESH:
                     EtpObjectManagerRefresh(context);
                     break;
+                default:
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELENDOK &&
+                        GET_WM_COMMAND_HWND(wParam, lParam) == context->PathControlHandle)
+                    {
+                        PPH_STRING newTarget = PH_AUTO(PhGetComboBoxString(context->PathControlHandle, ComboBox_GetCurSel(context->PathControlHandle)));
+
+                        if (!PhIsNullOrEmptyString(newTarget))
+                        {
+                            EtpObjectManagerOpenTarget(context, newTarget);
+                            //SetFocus(context->ListViewHandle);
+                        }
+                    }
             }
         }
         break;
@@ -3086,7 +3172,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                     {
                         PET_OBJECT_ENTRY entry = (PET_OBJECT_ENTRY)info->lParam;
 
-                        PhSetDialogItemText(hwndDlg, IDC_OBJMGR_PATH, PhGetString(PH_AUTO_T(PH_STRING, EtGetObjectFullPath(entry->BaseDirectory, entry->Name))));
+                        PhSetWindowText(context->PathControlHandle, PhGetString(PH_AUTO_T(PH_STRING, EtGetObjectFullPath(entry->BaseDirectory, entry->Name))));
+                        Edit_SetSel(context->PathControlEdit, -2, -1);  // HACK
                     }
                 }
                 break;
@@ -3478,7 +3565,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bCtrl+Enter", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYOBJECTADDRESS, L"Copy Object &Address\bCtrl+Shift+C", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
 
@@ -3535,39 +3622,6 @@ INT_PTR CALLBACK WinObjDlgProc(
                                 break;
                             }
                         }
-                    }
-
-                    PhDestroyEMenu(menu);
-                }
-            }
-            else if ((HWND)wParam == hwndDlg)
-            {
-                POINT point;
-                RECT pathRect;
-
-                point.x = GET_X_LPARAM(lParam);
-                point.y = GET_Y_LPARAM(lParam);
-
-                GetWindowRect(context->PathControlHandle, &pathRect);
-                PhInflateRect(&pathRect, 0, 3);
-
-                if (PtInRect(&pathRect, point))
-                {
-                    menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name", NULL, NULL), ULONG_MAX);
-
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
-
-                    if (item && item->Id == IDC_COPYPATH)
-                    {
-                        PhSetClipboardString(hwndDlg, &PH_AUTO_T(PH_STRING, PhGetWindowText(context->PathControlHandle))->sr);
                     }
 
                     PhDestroyEMenu(menu);
@@ -3650,8 +3704,32 @@ INT_PTR CALLBACK WinObjDlgProc(
                         }
                     }
                 }
+                else if (GetFocus() == context->PathControlEdit)
+                {
+                    PPH_STRING newTarget = PH_AUTO(PhGetWindowText(context->PathControlHandle));
+                    PPH_STRING comboEntry;
+                    BOOLEAN alreadyExist = FALSE;
+
+                    if (!PhIsNullOrEmptyString(newTarget) &&
+                        EtpObjectManagerOpenTarget(context, newTarget))
+                    {
+                        for (INT i = 0; i < ComboBox_GetCount(context->PathControlHandle); i++)
+                        {
+                            comboEntry = PH_AUTO(PhGetComboBoxString(context->PathControlHandle, i));
+                            if (PhEqualString(newTarget, comboEntry, TRUE))
+                            {
+                                alreadyExist = TRUE;
+                                break;
+                            }
+                        }
+
+                        if (!alreadyExist)
+                            ComboBox_InsertString(context->PathControlHandle, 0, PhGetString(newTarget));
+                    }
+                }
                 break;
         }
+        break;
     }
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
