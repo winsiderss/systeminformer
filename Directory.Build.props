@@ -15,7 +15,6 @@
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
           <OmitFramePointers>true</OmitFramePointers>
           <ConformanceMode>true</ConformanceMode>
-          <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <FloatingPointModel>Precise</FloatingPointModel>
           <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
