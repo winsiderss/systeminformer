@@ -2679,7 +2679,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     else
         oldSelect = PhReferenceObject(context->CurrentPath);
 
-    PhSetDialogItemText(context->WindowHandle, IDC_OBJMGR_PATH, PhGetString(oldSelect));
+    PhSetWindowText(context->PathControlHandle, PhGetString(oldSelect));
     PhDereferenceObject(oldSelect);
 
     WCHAR string[PH_INT32_STR_LEN_1];
@@ -2815,7 +2815,7 @@ VOID EtpObjectEntryDeleteProcedure(
     PhClearReference(&entry->BaseDirectory);
 }
 
-VOID EtpLoadComboBoxHistoryToSettings(
+VOID EtpLoadComboBoxHistoryFromSettings(
     _In_ PET_OBJECT_CONTEXT Context
     )
 {
@@ -3010,7 +3010,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             if (PhIsNullOrEmptyString(Target))  // HACK
                 Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
 
-            EtpLoadComboBoxHistoryToSettings(context);
+            EtpLoadComboBoxHistoryFromSettings(context);
 
             context->DisableSelChanged = TRUE;
             EtpObjectManagerOpenTarget(context, Target);
