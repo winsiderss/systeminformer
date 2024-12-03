@@ -3330,7 +3330,7 @@ DEFINE_GUID( /* 472496cf-0daf-4f7c-ac2e-3f8457ecc6bb */
 // Spare guids for Perf/System events.
 //
 
-DEFINE_GUID ( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
+DEFINE_GUID( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
     GlobalLoggerGuid,
     0xe8908abc,
     0xaa84,
@@ -4568,7 +4568,7 @@ typedef struct _PERFINFO_PAGE_RANGE_IDENTITY
         ULONG_PTR PageFrameIndex;           // Used for DriverLocked/UserPhysical Mdls.
         PVOID VirtualAddress;               // Used otherwise.
     };
-    SIZE_T PageCount;                    // Number of pages.
+    SIZE_T PageCount;                       // Number of pages.
 } PERFINFO_PAGE_RANGE_IDENTITY, *PPERFINFO_PAGE_RANGE_IDENTITY;
 
 #define PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS 5
@@ -4586,7 +4586,7 @@ typedef struct _PERFINFO_KERNELMEMORY_RANGE_USAGE
     ULONG UsageType : PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS;
     ULONG Spare: (NTWMI_BITSIZE (ULONG) - PERFINFO_MM_KERNELMEMORY_USAGE_TYPE_BITS);
     PVOID VirtualAddress;               // Starting VA (where meaningful).
-    SIZE_T PageCount;                // Number of pages.
+    SIZE_T PageCount;                   // Number of pages.
 } PERFINFO_KERNELMEMORY_RANGE_USAGE, *PPERFINFO_KERNELMEMORY_RANGE_USAGE;
 
 #define PERFINFO_MM_STAT_TYPE_BITS 6
@@ -6247,9 +6247,9 @@ typedef struct _MOFRESOURCEINFOA
 } MOFRESOURCEINFOA, *PMOFRESOURCEINFOA;
 
 #ifdef UNICODE
-typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
+typedef struct _MOFRESOURCEINFOW MOFRESOURCEINFO, *PMOFRESOURCEINFO;
 #else
-typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
+typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, *PMOFRESOURCEINFO;
 #endif
 
 //
@@ -6258,7 +6258,7 @@ typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
 #define MOFCI_RESERVED1  0x00000002
 #define MOFCI_RESERVED2  0x00000004
 
-typedef struct
+typedef struct _MOFRESOURCEINFOW
 {
     LPWSTR ImagePath;      // Path to image containing MOF resource
     LPWSTR ResourceName;   // Name of resource in image
