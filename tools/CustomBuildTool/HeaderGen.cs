@@ -233,17 +233,18 @@ namespace CustomBuildTool
                 string headerFileName = Path.Join([BaseDirectory, OutputFile]);
                 string headerUpdateText = sw.ToString();
 
-                if (File.Exists(headerFileName))
-                {
-                    string headerCurrentText = Utils.ReadAllText(headerFileName);
-
-                    if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Utils.WriteAllText(headerFileName, headerUpdateText);
-                    }
-                }
+                //if (File.Exists(headerFileName))
+                //{
+                //    string headerCurrentText = Utils.ReadAllText(headerFileName);
+                //
+                //    if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                //    {
+                //        Utils.WriteAllText(headerFileName, headerUpdateText);
+                //    }
+                //}
 
                 Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
+                Utils.WriteAllText(headerFileName, headerUpdateText);
             }
         }
     }
