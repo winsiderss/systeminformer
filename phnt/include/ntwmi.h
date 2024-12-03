@@ -3330,7 +3330,7 @@ DEFINE_GUID( /* 472496cf-0daf-4f7c-ac2e-3f8457ecc6bb */
 // Spare guids for Perf/System events.
 //
 
-DEFINE_GUID ( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
+DEFINE_GUID( /* e8908abc-aa84-11d2-9a93-00805f85d7c6 */
     GlobalLoggerGuid,
     0xe8908abc,
     0xaa84,
@@ -6247,9 +6247,9 @@ typedef struct _MOFRESOURCEINFOA
 } MOFRESOURCEINFOA, *PMOFRESOURCEINFOA;
 
 #ifdef UNICODE
-typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
+typedef struct _MOFRESOURCEINFOW MOFRESOURCEINFO, *PMOFRESOURCEINFO;
 #else
-typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
+typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, *PMOFRESOURCEINFO;
 #endif
 
 //
@@ -6258,7 +6258,7 @@ typedef struct _MOFRESOURCEINFOA MOFRESOURCEINFO, PMOFRESOURCEINFO;
 #define MOFCI_RESERVED1  0x00000002
 #define MOFCI_RESERVED2  0x00000004
 
-typedef struct
+typedef struct _MOFRESOURCEINFOW
 {
     LPWSTR ImagePath;      // Path to image containing MOF resource
     LPWSTR ResourceName;   // Name of resource in image
