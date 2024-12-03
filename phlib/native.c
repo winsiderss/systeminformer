@@ -7037,22 +7037,25 @@ NTSTATUS PhEnumHandlesGeneric(
 
         if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
         {
+            PPH_LIST filteredHandles = PhCreateList(0x1000);
+
             for (i = 0; i < handles->NumberOfHandles; i++)
             {
                 PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
 
                 if (handle->UniqueProcessId == ProcessId)
                 {
-                    numberOfHandles++;
+                    PhAddItemList(filteredHandles, handle);
                 }
             }
 
+            numberOfHandles = filteredHandles->Count;
             convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
             convertedHandles->NumberOfHandles = numberOfHandles;
 
-            for (i = 0; i < handles->NumberOfHandles; i++)
+            for (i = 0; i < numberOfHandles; i++)
             {
-                PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+                PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = filteredHandles->Items[i];
 
                 convertedHandles->Handles[i].Object = nullptr;
                 convertedHandles->Handles[i].UniqueProcessId = ProcessId;
@@ -7064,6 +7067,7 @@ NTSTATUS PhEnumHandlesGeneric(
             }
 
             PhFree(handles);
+            PhDereferenceObject(filteredHandles);
 
             *Handles = convertedHandles;
         }
