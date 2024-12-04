@@ -497,6 +497,9 @@
     <ClInclude Include="include\informer.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\hndlprp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SystemInformer.ico">

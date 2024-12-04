@@ -5,12 +5,14 @@
  *
  * Authors:
  *
- *     wj32    2010-2013
- *     dmex    2018-2024
+ *     wj32         2010-2013
+ *     dmex         2018-2024
+ *     Dart Vanya   2024
  *
  */
 
 #include <phapp.h>
+#include <hndlprp.h>
 #include <hndlprv.h>
 #include <phplug.h>
 #include <phsettings.h>
@@ -22,90 +24,6 @@
 #include <procprv.h>
 #include <secedit.h>
 
-typedef enum _PHP_HANDLE_GENERAL_CATEGORY
-{
-    // common
-    PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
-    PH_HANDLE_GENERAL_CATEGORY_REFERENCES,
-    PH_HANDLE_GENERAL_CATEGORY_QUOTA,
-    // extra
-    PH_HANDLE_GENERAL_CATEGORY_ALPC,
-    PH_HANDLE_GENERAL_CATEGORY_FILE,
-    PH_HANDLE_GENERAL_CATEGORY_SECTION,
-    PH_HANDLE_GENERAL_CATEGORY_MUTANT,
-    PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
-    PH_HANDLE_GENERAL_CATEGORY_ETW,
-    PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
-
-    PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
-} PHP_HANDLE_GENERAL_CATEGORY;
-
-typedef enum _PHP_HANDLE_GENERAL_INDEX
-{
-    PH_HANDLE_GENERAL_INDEX_NAME,
-    PH_HANDLE_GENERAL_INDEX_TYPE,
-    PH_HANDLE_GENERAL_INDEX_OBJECT,
-    PH_HANDLE_GENERAL_INDEX_ACCESSMASK,
-
-    PH_HANDLE_GENERAL_INDEX_REFERENCES,
-    PH_HANDLE_GENERAL_INDEX_HANDLES,
-
-    PH_HANDLE_GENERAL_INDEX_PAGED,
-    PH_HANDLE_GENERAL_INDEX_NONPAGED,
-
-    PH_HANDLE_GENERAL_INDEX_FLAGS,
-    PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER,
-    PH_HANDLE_GENERAL_INDEX_PORTCONTEXT,
-
-    PH_HANDLE_GENERAL_INDEX_FILETYPE,
-    PH_HANDLE_GENERAL_INDEX_FILEMODE,
-    PH_HANDLE_GENERAL_INDEX_FILEPOSITION,
-    PH_HANDLE_GENERAL_INDEX_FILESIZE,
-    PH_HANDLE_GENERAL_INDEX_FILEPRIORITY,
-    PH_HANDLE_GENERAL_INDEX_FILEDRIVER,
-    PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
-
-    PH_HANDLE_GENERAL_INDEX_SECTIONTYPE,
-    PH_HANDLE_GENERAL_INDEX_SECTIONFILE,
-    PH_HANDLE_GENERAL_INDEX_SECTIONSIZE,
-
-    PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT,
-    PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED,
-    PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
-
-    PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION,
-    PH_HANDLE_GENERAL_INDEX_ALPCSERVER,
-    PH_HANDLE_GENERAL_INDEX_ALPCCLIENT,
-
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME,
-    PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE,
-
-    PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME,
-    PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
-
-    PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
-
-    PH_HANDLE_GENERAL_INDEX_MAXIMUM
-} PHP_HANDLE_GENERAL_INDEX;
-
-typedef struct _HANDLE_PROPERTIES_CONTEXT
-{
-    HWND ListViewHandle;
-    HWND ParentWindow;
-    HANDLE ProcessId;
-    PVOID ListViewClass;
-    PPH_HANDLE_ITEM HandleItem;
-    PH_LAYOUT_MANAGER LayoutManager;
-    INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
-    PPH_PLUGIN OwnerPlugin;
-} HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
-
-#define PH_FILEMODE_ASYNC 0x01000000
-#define PhFileModeUpdAsyncFlag(mode) \
-    ((mode) & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? (mode) &~ PH_FILEMODE_ASYNC: (mode) | PH_FILEMODE_ASYNC)
-
 CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
     { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
@@ -116,20 +34,13 @@ CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
     { L"FILE_SYNCHRONOUS_IO_NONALERT", FILE_SYNCHRONOUS_IO_NONALERT, FALSE, FALSE, L"Synchronous non-alert" },
 };
 
-INT_PTR CALLBACK PhpHandleGeneralDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 static NTSTATUS PhpDuplicateHandleFromProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PVOID Context
     )
 {
-    PHANDLE_PROPERTIES_CONTEXT context = Context;
+    PPH_HANDLE_PROPERTIES_CONTEXT context = Context;
     NTSTATUS status;
     HANDLE processHandle;
 
@@ -202,10 +113,10 @@ NTSTATUS PhpShowHandlePropertiesThread(
     PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[16];
-    HANDLE_PROPERTIES_CONTEXT context;
+    PH_HANDLE_PROPERTIES_CONTEXT context;
     PH_AUTO_POOL autoPool;
 
-    memset(&context, 0, sizeof(HANDLE_PROPERTIES_CONTEXT));
+    memset(&context, 0, sizeof(PH_HANDLE_PROPERTIES_CONTEXT));
     context.ProcessId = handleContext->ProcessId;
     context.HandleItem = handleContext->HandleItem;
     context.OwnerPlugin = handleContext->OwnerPlugin;
@@ -312,7 +223,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
             objectName,
             PhGetStringOrEmpty(handleContext->HandleItem->TypeName),
             PhpDuplicateHandleFromProcess,
-            NULL,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -380,7 +291,7 @@ VOID PhShowHandlePropertiesEx(
 }
 
 VOID PhpUpdateHandleGeneralListViewGroups(
-    _In_ PHANDLE_PROPERTIES_CONTEXT Context
+    _In_ PPH_HANDLE_PROPERTIES_CONTEXT Context
     )
 {
     ListView_EnableGroupView(Context->ListViewHandle, TRUE);
@@ -722,7 +633,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
 }
 
 VOID PhpUpdateHandleGeneral(
-    _In_ PHANDLE_PROPERTIES_CONTEXT Context
+    _In_ PPH_HANDLE_PROPERTIES_CONTEXT Context
     )
 {
     HANDLE processHandle;
@@ -2216,12 +2127,12 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PHANDLE_PROPERTIES_CONTEXT context;
+    PPH_HANDLE_PROPERTIES_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
         LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-        context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+        context = (PPH_HANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -2237,6 +2148,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
+            context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
             context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
@@ -2269,10 +2181,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             if (PhPluginsEnabled)
             {
-                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
-                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
-
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), Context);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowInitialized), context);
             }
 
             PhInitializeWindowTheme(context->ParentWindow);
@@ -2289,10 +2198,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             // Plugins perform uninitializing in GeneralCallbackHandlePropertiesWindowUninitializing, ex. Object Manager (Dart Vanya)
             else if (PhPluginsEnabled)
             {
-                PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT Context;
-                Context = (PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT)context;
-
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowUninitializing), Context);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesWindowUninitializing), context);
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -2301,7 +2207,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             if (context->ListViewClass)
             {
-                IListView_Release((struct IListView*)context->ListViewClass);
+                IListView_Release(context->ListViewClass);
             }
         }
         break;

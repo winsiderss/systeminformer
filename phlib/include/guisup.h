@@ -734,8 +734,25 @@ PhRemoveListViewItem(
 PHLIBAPI
 VOID
 NTAPI
+PhRemoveIListViewItem(
+    _In_ IListView * ListView,
+    _In_ LONG Index
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhSetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
+    _In_ LONG Index,
+    _In_ LONG ImageIndex
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetIListViewItemImageIndex(
+    _In_ IListView * ListView,
     _In_ LONG Index,
     _In_ LONG ImageIndex
     );
