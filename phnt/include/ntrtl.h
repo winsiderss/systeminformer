@@ -4644,7 +4644,7 @@ NTAPI
 RtlWow64GetProcessMachines(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessMachine,
-    _Out_ PUSHORT NativeMachine
+    _Out_opt_ PUSHORT NativeMachine
     );
 #endif
 
