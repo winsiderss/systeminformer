@@ -6185,10 +6185,10 @@ WmiExecuteMethodW(
 // Enable or disable a trace logging guid.
 #define NOTIFICATION_TRACE_FLAG 0x00010000
 // Enable or disable a trace direct callback.
-// The callback is invoked immediately via a seperate thread.
+// The callback is invoked immediately via a separate thread.
 #define NOTIFICATION_CALLBACK_DIRECT 0x00000004
 // Set this flag (and only this flag) when you want to only check if the 
-// caller has permission to receive events for the guid
+// caller has permission to receive events for the guid.
 #define NOTIFICATION_CHECK_ACCESS 0x00000008
 // Enable lightweight notification.
 #define NOTIFICATION_LIGHTWEIGHT_FLAG 0x00000020
@@ -6242,7 +6242,7 @@ typedef struct _MOFRESOURCEINFOA
 {
     PSTR ImagePath;        // Path to image containing MOF resource
     PSTR ResourceName;     // Name of resource in image
-    ULONG ResourceSize;     // Number of bytes in resource
+    ULONG ResourceSize;    // Number of bytes in resource
     PUCHAR ResourceBuffer;
 } MOFRESOURCEINFOA, *PMOFRESOURCEINFOA;
 
