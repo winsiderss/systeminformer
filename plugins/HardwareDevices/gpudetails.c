@@ -372,7 +372,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
         {
             context->DialogHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
-            context->ListViewClass = PhGetListViewInterface(hwndDlg);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetApplicationWindowIcon(hwndDlg);
 

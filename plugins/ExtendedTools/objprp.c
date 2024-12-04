@@ -38,6 +38,7 @@ typedef struct _COMMON_PAGE_CONTEXT
     HANDLE ProcessId;
     HWND WindowHandle;
     HWND ListViewHandle;
+    IListView* ListViewClass;
 
     // Handles tab
     ULONG TotalHandlesCount;
@@ -1487,31 +1488,31 @@ VOID EtpEnumObjectHandles(
 
             ClientId.UniqueProcess = entry->ProcessId;
             columnString = PH_AUTO(PhGetClientIdName(&ClientId));
-            lvItemIndex = PhAddListViewItem(
-                Context->ListViewHandle,
+            lvItemIndex = PhAddIListViewItem(
+                Context->ListViewClass,
                 entry->OwnHandle ? ownHandlesIndex++ : MAXINT,     // object own handles first
                 PhGetString(columnString),
                 entry
                 );
 
             PhPrintPointer(value, (PVOID)handleInfo->HandleValue);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, ETHNLVC_HANDLE, value);
+            PhSetIListViewSubItem(Context->ListViewClass, lvItemIndex, ETHNLVC_HANDLE, value);
 
             columnString = PH_AUTO(EtGetAccessString(Context->HandleItem->TypeName, handleInfo->GrantedAccess));
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, ETHNLVC_ACCESS, PhGetString(columnString));
+            PhSetIListViewSubItem(Context->ListViewClass, lvItemIndex, ETHNLVC_ACCESS, PhGetString(columnString));
 
             switch (handleInfo->HandleAttributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
             {
                 case OBJ_PROTECT_CLOSE:
-                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected");
+                    PhSetIListViewSubItem(Context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected");
                     entry->Color = colorProtected, entry->UseCustomColor = TRUE;
                     break;
                 case OBJ_INHERIT:
-                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Inherit");
+                    PhSetIListViewSubItem(Context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Inherit");
                     entry->Color = colorInherit, entry->UseCustomColor = TRUE;
                     break;
                 case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
-                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected, Inherit");
+                    PhSetIListViewSubItem(Context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected, Inherit");
                     entry->Color = colorProtectedInherit, entry->UseCustomColor = TRUE;
                     break;
             }
@@ -1527,8 +1528,8 @@ VOID EtpEnumObjectHandles(
             {
                 if (!Context->ColumnsAdded)
                 {
-                    Context->ColumnsAdded = !!PhAddListViewColumn(Context->ListViewHandle, ETHNLVC_NAME, ETHNLVC_NAME, ETHNLVC_NAME, LVCFMT_LEFT, 200, L"Name");
-                    PhAddListViewColumn(Context->ListViewHandle, ETHNLVC_ORIGNAME, ETHNLVC_ORIGNAME, ETHNLVC_ORIGNAME, LVCFMT_LEFT, 200, L"Original name");
+                    Context->ColumnsAdded = !!PhAddIListViewColumn(Context->ListViewClass, ETHNLVC_NAME, ETHNLVC_NAME, ETHNLVC_NAME, LVCFMT_LEFT, 200, L"Name");
+                    PhAddIListViewColumn(Context->ListViewClass, ETHNLVC_ORIGNAME, ETHNLVC_ORIGNAME, ETHNLVC_ORIGNAME, LVCFMT_LEFT, 200, L"Original name");
                 }
 
                 if (useWorkQueue && entry->HandleItem->TypeIndex == EtFileTypeIndex)
@@ -1555,7 +1556,7 @@ VOID EtpEnumObjectHandles(
             PhDeleteWorkQueue(&workQueue);
         }
 
-        Context->TotalHandlesCount = ListView_GetItemCount(Context->ListViewHandle);
+        IListView_GetItemCount(Context->ListViewClass, &Context->TotalHandlesCount);
         Context->OwnHandlesCount = ownHandlesIndex;
     }
 
@@ -1669,7 +1670,7 @@ VOID EtpCloseObjectHandles(
         if (PhUiCloseHandles(Context->WindowHandle, ListviewItems[i]->ProcessId, &ListviewItems[i]->HandleItem, 1, TRUE))
         {
             ownHandle = !!ListviewItems[i]->OwnHandle;
-            PhRemoveListViewItem(Context->ListViewHandle, PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, ListviewItems[i]));
+            PhRemoveListViewItem(Context->ListViewHandle, PhFindIListViewItemByParam(Context->ListViewClass, INT_ERROR, ListviewItems[i]));
             PhClearReference(&ListviewItems[i]->HandleItem);
             PhFree(ListviewItems[i]);
 
@@ -1745,14 +1746,14 @@ VOID EtpHandlesFreeListViewItems(
 {
     INT index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
+    while ((index = PhFindIListViewItemByFlags(
+        Context->ListViewClass,
         index,
         LVNI_ALL
         )) != INT_ERROR)
     {
         PET_HANDLE_ENTRY entry;
-        if (PhGetListViewItemParam(Context->ListViewHandle, index, &entry))
+        if (PhGetIListViewItemParam(Context->ListViewClass, index, &entry))
         {
             PhClearReference(&entry->HandleItem);
             PhFree(entry);
@@ -1790,13 +1791,14 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, ETHNLVC_PROCESS, ETHNLVC_PROCESS, ETHNLVC_PROCESS, LVCFMT_LEFT, 120, L"Process");
-            PhAddListViewColumn(context->ListViewHandle, ETHNLVC_HANDLE, ETHNLVC_HANDLE, ETHNLVC_HANDLE, LVCFMT_LEFT, 50, L"Handle");
-            PhAddListViewColumn(context->ListViewHandle, ETHNLVC_ACCESS, ETHNLVC_ACCESS, ETHNLVC_ACCESS, LVCFMT_LEFT, 125, L"Access");
-            PhAddListViewColumn(context->ListViewHandle, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, LVCFMT_LEFT, 70, L"Attributes");
+            PhAddIListViewColumn(context->ListViewClass, ETHNLVC_PROCESS, ETHNLVC_PROCESS, ETHNLVC_PROCESS, LVCFMT_LEFT, 120, L"Process");
+            PhAddIListViewColumn(context->ListViewClass, ETHNLVC_HANDLE, ETHNLVC_HANDLE, ETHNLVC_HANDLE, LVCFMT_LEFT, 50, L"Handle");
+            PhAddIListViewColumn(context->ListViewClass, ETHNLVC_ACCESS, ETHNLVC_ACCESS, ETHNLVC_ACCESS, LVCFMT_LEFT, 125, L"Access");
+            PhAddIListViewColumn(context->ListViewClass, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, ETHNLVC_ATTRIBUTES, LVCFMT_LEFT, 70, L"Attributes");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
             ExtendedListView_SetItemColorFunction(context->ListViewHandle, EtpColorItemColorFunction);
@@ -1818,6 +1820,11 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
     case WM_DESTROY:
         {
             EtpHandlesFreeListViewItems(context);
+
+            if (context->ListViewClass)
+            {
+                IListView_Release(context->ListViewClass);
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -1837,7 +1844,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             case VK_RETURN:
                 if (GetFocus() == context->ListViewHandle)
                 {
-                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
                     if (numberOfItems == 1)
                     {
                         if (GetKeyState(VK_CONTROL) < 0)
@@ -1862,7 +1869,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             case VK_DELETE:
                 if (GetFocus() == context->ListViewHandle)
                 {
-                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
                     if (numberOfItems != 0)
                     {
                         EtpCloseObjectHandles(context, listviewItems, numberOfItems);
@@ -1888,10 +1895,14 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 header->hwndFrom == context->ListViewHandle)
             {
                 LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
-                PET_HANDLE_ENTRY entry;
+                PET_HANDLE_ENTRY* listviewItems;
+                ULONG numberOfItems;
 
-                if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                if (numberOfItems == 1)
                 {
+                    PET_HANDLE_ENTRY entry = listviewItems[0];
+
                     if (GetKeyState(VK_CONTROL) < 0)
                     {
                         PPH_PROCESS_ITEM processItem;
@@ -1943,7 +1954,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             PET_HANDLE_ENTRY* listviewItems;
             ULONG numberOfItems;
 
-            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+            PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
             if (numberOfItems != 0)
             {
                 POINT point;
@@ -1961,7 +1972,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
 
                 menu = PhCreateEMenu();
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CLOSEHANDLE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
@@ -1975,7 +1986,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PhInsertEMenuItem(menu, propMenuItem = PhCreateEMenuItem(0, IDC_PROPERTIES, L"Prope&rties\bEnter", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+                PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
                 PhSetFlagsEMenuItem(menu, IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                 if (numberOfItems > 1)
@@ -2046,32 +2057,32 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
 
                                     // Update list row
 
-                                    LONG lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItems[0]);
+                                    LONG lvItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, listviewItems[0]);
                                     listviewItems[0]->UseCustomColor = listviewItems[0]->OwnHandle;
 
                                     switch (listviewItems[0]->HandleItem->Attributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
                                     {
                                         case OBJ_PROTECT_CLOSE:
-                                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected");
+                                            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected");
                                             listviewItems[0]->Color = PhGetIntegerSetting(L"ColorProtectedHandles"), listviewItems[0]->UseCustomColor = TRUE;
                                             break;
                                         case OBJ_INHERIT:
-                                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Inherit");
+                                            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Inherit");
                                             listviewItems[0]->Color = PhGetIntegerSetting(L"ColorInheritHandles"), listviewItems[0]->UseCustomColor = TRUE;
                                             break;
                                         case OBJ_PROTECT_CLOSE | OBJ_INHERIT:
-                                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected, Inherit");
+                                            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"Protected, Inherit");
                                             listviewItems[0]->Color = PhGetIntegerSetting(L"ColorPartiallySuspended"), listviewItems[0]->UseCustomColor = TRUE;
                                             break;
                                         default:
-                                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETHNLVC_ATTRIBUTES, L"");
+                                            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETHNLVC_ATTRIBUTES, L"");
                                             break;
                                     }
 
                                     if (listviewItems[0]->OwnHandle)
                                         listviewItems[0]->Color = PhGetIntegerSetting(L"ColorOwnProcesses");
 
-                                    ListView_SetItemState(context->ListViewHandle, -1, 0, LVIS_SELECTED);
+                                    IListView_SetItemState(context->ListViewClass, INT_ERROR, 0, LVIS_SELECTED, 0);
                                 }
                             }
                             break;
@@ -2122,7 +2133,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                             break;
                         case IDC_COPY:
                             {
-                                PhCopyListView(context->ListViewHandle);
+                                PhCopyIListView(context->ListViewHandle, context->ListViewClass);
                             }
                             break;
                     }
@@ -2141,7 +2152,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 PH_SORT_ORDER sortOrder;
 
                 EtpHandlesFreeListViewItems(context);
-                ListView_DeleteAllItems(context->ListViewHandle);
+                IListView_DeleteAllItems(context->ListViewClass);
                 PhSetDialogItemText(context->WindowHandle, IDC_OBJ_HANDLESTOTAL, L"");
                 PhSetDialogItemText(context->WindowHandle, IDC_OBJ_HANDLESBYOBJECT, L"");
                 PhSetDialogItemText(context->WindowHandle, IDC_OBJ_HANDLESBYNAME, L"");
@@ -2170,7 +2181,7 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
     HDESK hDesktop;
     UINT lvItemIndex;
 
-    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, lpszDesktop, PhCreateString(lpszDesktop));
+    lvItemIndex = PhAddIListViewItem(context->ListViewClass, MAXINT, lpszDesktop, PhCreateString(lpszDesktop));
 
     if (hDesktop = OpenDesktop(lpszDesktop, 0, FALSE, DESKTOP_READOBJECTS))
     {
@@ -2186,19 +2197,19 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
         if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
-            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
+            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
             PhFree(UserSid);
         }
 
         if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
         {
             PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
-            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_HEAP, PhGetString(size));
+            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETDTLVC_HEAP, PhGetString(size));
         }
 
         if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
         {
-            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_IO, !!vInfo ? L"True" : L"False");
+            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETDTLVC_IO, !!vInfo ? L"True" : L"False");
         }
 
         CloseDesktop(hDesktop);
@@ -2334,13 +2345,14 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             HWINSTA hWinStation;
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, ETDTLVC_NAME, ETDTLVC_NAME, ETDTLVC_NAME, LVCFMT_LEFT, 152, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, ETDTLVC_SID, ETDTLVC_SID, ETDTLVC_SID, LVCFMT_LEFT, 105, L"SID");
-            PhAddListViewColumn(context->ListViewHandle, ETDTLVC_HEAP, ETDTLVC_HEAP, ETDTLVC_HEAP, LVCFMT_LEFT, 62, L"Heap Size");
-            PhAddListViewColumn(context->ListViewHandle, ETDTLVC_IO, ETDTLVC_IO, ETDTLVC_IO, LVCFMT_LEFT, 45, L"Input");
+            PhAddIListViewColumn(context->ListViewClass, ETDTLVC_NAME, ETDTLVC_NAME, ETDTLVC_NAME, LVCFMT_LEFT, 152, L"Name");
+            PhAddIListViewColumn(context->ListViewClass, ETDTLVC_SID, ETDTLVC_SID, ETDTLVC_SID, LVCFMT_LEFT, 105, L"SID");
+            PhAddIListViewColumn(context->ListViewClass, ETDTLVC_HEAP, ETDTLVC_HEAP, ETDTLVC_HEAP, LVCFMT_LEFT, 62, L"Heap Size");
+            PhAddIListViewColumn(context->ListViewClass, ETDTLVC_IO, ETDTLVC_IO, ETDTLVC_IO, LVCFMT_LEFT, 45, L"Input");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 0, NoSortOrder);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -2381,17 +2393,22 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
         {
             INT index = INT_ERROR;
 
-            while ((index = PhFindListViewItemByFlags(
-                context->ListViewHandle,
+            while ((index = PhFindIListViewItemByFlags(
+                context->ListViewClass,
                 index,
                 LVNI_ALL
                 )) != INT_ERROR)
             {
                 PPH_STRING deskName;
-                if (PhGetListViewItemParam(context->ListViewHandle, index, &deskName))
+                if (PhGetIListViewItemParam(context->ListViewClass, index, &deskName))
                 {
                     PhDereferenceObject(deskName);
                 }
+            }
+
+            if (context->ListViewClass)
+            {
+                IListView_Release(context->ListViewClass);
             }
         }
         break;
@@ -2409,27 +2426,27 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
 
             LPNMHDR header = (LPNMHDR)lParam;
 
-            if (header->code == NM_DBLCLK)
+            if (header->code == NM_DBLCLK &&
+                header->hwndFrom == context->ListViewHandle)
             {
-                if (header->hwndFrom != context->ListViewHandle)
-                    break;
-
                 LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
-                PPH_STRING deskName;
+                PPH_STRING* listviewItems;
+                ULONG numberOfItems;
 
-                if (deskName = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                if (numberOfItems == 1)
                 {
-                    EtpOpenDesktopSecurity(context, deskName);
+                    EtpOpenDesktopSecurity(context, listviewItems[0]);
                 }
             }
         }
         break;
     case WM_CONTEXTMENU:
         {
-            PVOID* listviewItems;
+            PPH_STRING* listviewItems;
             ULONG numberOfItems;
 
-            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+            PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
             if (numberOfItems != 0)
             {
                 POINT point;
@@ -2441,14 +2458,14 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
 
                 menu = PhCreateEMenu();
 
                 PhInsertEMenuItem(menu, secMenuItem = PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bEnter", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+                PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
                 PhSetFlagsEMenuItem(menu, IDC_SECURITY, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
                 if (numberOfItems > 1)
                     PhSetDisabledEMenuItem(secMenuItem);
@@ -2467,7 +2484,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                     switch (item->Id)
                     {
                     case IDC_COPY:
-                        PhCopyListView(context->ListViewHandle);
+                        PhCopyIListView(context->ListViewHandle, context->ListViewClass);
                         break;
                     case IDC_SECURITY:
                         EtpOpenDesktopSecurity(context, listviewItems[0]);
@@ -2489,7 +2506,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             case VK_RETURN:
                 if (GetFocus() == context->ListViewHandle)
                 {
-                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                    PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
                     if (numberOfItems == 1)
                     {
                         EtpOpenDesktopSecurity(context, listviewItems[0]);
