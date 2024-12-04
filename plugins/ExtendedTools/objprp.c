@@ -718,8 +718,7 @@ VOID EtHandlePropertiesWindowInitialized(
 
                 if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
                 {
-                    PPH_STRING size = PH_AUTO(PhFormatSize(vInfo * 1024, ULONG_MAX));
-                    PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP], 1, PhGetString(size));
+                    PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_DESKTOPHEAP], 1, PhaFormatSize(vInfo * 1024, ULONG_MAX)->Buffer);
                 }
 
                 CloseDesktop(hDesktop);
@@ -2187,10 +2186,8 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
         PSID UserSid = NULL;
 
         GetUserObjectInformation(hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
-
         if (nLengthNeeded)
             UserSid = PhAllocate(nLengthNeeded);
-
         if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
@@ -2200,8 +2197,7 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
 
         if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
         {
-            PPH_STRING size = PH_AUTO(PhFormatString(L"%d MB", vInfo / 1024));
-            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETDTLVC_HEAP, PhGetString(size));
+            PhSetIListViewSubItem(context->ListViewClass, lvItemIndex, ETDTLVC_HEAP, PhaFormatSize(vInfo * 1024, ULONG_MAX)->Buffer);
         }
 
         if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
@@ -2254,7 +2250,7 @@ static NTSTATUS EtpOpenSecurityDesktopHandle(
     return status;
 }
 
-static NTSTATUS EtpCloseSecurityDesktop(
+static NTSTATUS EtpCloseSecurityDesktopHandle(
     _In_ HANDLE Handle,
     _In_ BOOLEAN Release,
     _In_opt_ PVOID Context
@@ -2295,7 +2291,7 @@ VOID EtpOpenDesktopSecurity(
         context->HandleItem->Handle
         )))
     {
-        if (NtCompareObjects((HANDLE)OpenContext->CurrentWinStation, (HANDLE)hWinStation) == STATUS_NOT_SAME_OBJECT)
+        if (PhCompareObjects((HANDLE)OpenContext->CurrentWinStation, (HANDLE)hWinStation) == STATUS_NOT_SAME_OBJECT)
             OpenContext->DesktopWinStation = hWinStation;
         else
             CloseWindowStation(hWinStation);
@@ -2306,7 +2302,7 @@ VOID EtpOpenDesktopSecurity(
         PhGetString(deskName),
         L"Desktop",
         EtpOpenSecurityDesktopHandle,
-        EtpCloseSecurityDesktop,
+        EtpCloseSecurityDesktopHandle,
         OpenContext
         );
 }
@@ -2340,6 +2336,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
     case WM_INITDIALOG:
         {
             HWINSTA hWinStation;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
@@ -2366,7 +2363,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                 )))
             {
                 HWINSTA currentStation = GetProcessWindowStation();
-                NTSTATUS status = NtCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
+                NTSTATUS status = PhCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
                 if (status == STATUS_NOT_SAME_OBJECT)
                     SetProcessWindowStation(hWinStation);
                 EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);

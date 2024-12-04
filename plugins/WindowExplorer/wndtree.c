@@ -52,7 +52,7 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowHandleString[0])
     {
-        if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, windowNode->WindowHandleString))
+        if (PhSearchControlMatchPointer(context->SearchMatchHandle, windowNode->WindowHandle))
             return TRUE;
     }
 
