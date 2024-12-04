@@ -7033,7 +7033,7 @@ NTSTATUS PhEnumHandlesGeneric(
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
-        ULONG i, numberOfHandles = 0;
+        ULONG i, count = 0, numberOfHandles = 0;
 
         if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
         {
@@ -7054,13 +7054,12 @@ NTSTATUS PhEnumHandlesGeneric(
             {
                 PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
 
-                convertedHandles->Handles[i].Object = nullptr;
-                convertedHandles->Handles[i].UniqueProcessId = ProcessId;
-                convertedHandles->Handles[i].HandleValue = handle->HandleValue;
-                convertedHandles->Handles[i].GrantedAccess = handle->GrantedAccess;
-                convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
-                convertedHandles->Handles[i].ObjectTypeIndex = handle->ObjectTypeIndex;
-                convertedHandles->Handles[i].HandleAttributes = handle->HandleAttributes;
+                if (handle->UniqueProcessId == ProcessId)
+                {
+                    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[count++];
+
+                    memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                }
             }
 
             PhFree(handles);
