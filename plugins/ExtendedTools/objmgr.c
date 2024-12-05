@@ -2264,7 +2264,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     }
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = PhReferenceObject(Entry);
+    objectContext.Object = Entry;
     objectContext.FullName = NULL;
 
     if (Entry->EtObjectType == EtObjectDirectory)
@@ -2369,7 +2369,6 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Object Manager plugin window
     PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
-    PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
 
@@ -2756,7 +2755,7 @@ VOID EtpObjectManagerCopyObjectAddress(
     }
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = PhReferenceObject(Entry);
+    objectContext.Object = Entry;
     objectContext.FullName = NULL;
 
     if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)) ||
@@ -2796,7 +2795,6 @@ VOID EtpObjectManagerCopyObjectAddress(
 cleanup_exit:
     PhSetClipboardString(context->WindowHandle, &pointer);
 
-    PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
 

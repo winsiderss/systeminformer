@@ -254,8 +254,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->RefCount = 1;
 
     info->WindowHandle = WindowHandle;
-    info->ObjectName = ObjectName ? PhCreateString(ObjectName) : PhReferenceEmptyString();
-    info->ObjectType = ObjectType ? PhCreateString(ObjectType) : PhReferenceEmptyString();
+    info->ObjectName = PhCreateString(ObjectName);
+    info->ObjectType = PhCreateString(ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
     info->GetObjectSecurity = GetObjectSecurity;
@@ -263,7 +263,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->Context = Context;
     info->IsPage = IsPage;
 
-    if (PhGetAccessEntries(info->ObjectType->Buffer, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
+    if (PhGetAccessEntries(ObjectType, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
     {
         info->AccessEntries = PhAllocateZero(sizeof(SI_ACCESS) * info->NumberOfAccessEntries);
 
