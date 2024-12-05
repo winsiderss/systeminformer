@@ -1741,6 +1741,7 @@ VOID UpdateCachedSettings(
     EnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     EnableThemeSupport = PhIsThemeSupportEnabled();
+    InvalidateRect(RebarHandle, NULL, TRUE);
 
     if (ToolbarInitialized)
     {

@@ -123,7 +123,6 @@ VOID PvUpdateCachedSettings(
 {
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
-    PhEnableThemeSupport = PhIsThemeSupportEnabled();
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
     COLORREF oldPhThemeWindowBackgroundColor = PhThemeWindowBackgroundColor;
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");

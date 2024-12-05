@@ -23,14 +23,14 @@
 #include "settings.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/winmsg/about-window-procedures#window-procedure-superclassing
-static WNDPROC PhDefaultMenuWindowProcedure = NULL;
 static WNDPROC PhDefaultDialogWindowProcedure = NULL;
+static WNDPROC PhDefaultMenuWindowProcedure = NULL;
 static WNDPROC PhDefaultRebarWindowProcedure = NULL;
-static WNDPROC PhDefaultComboBoxWindowProcedure = NULL;
 static WNDPROC PhDefaultStaticWindowProcedure = NULL;
 static WNDPROC PhDefaultStatusbarWindowProcedure = NULL;
 static WNDPROC PhDefaultEditWindowProcedure = NULL;
 static WNDPROC PhDefaultHeaderWindowProcedure = NULL;
+static WNDPROC PhDefaultToolTipWindowProcedure = NULL;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
@@ -115,11 +115,21 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
                     SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
-                if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
+                if (PhEnableThemeAcrylicWindowSupport)
                 {
                     // Note: DWM crashes if called from WM_NCCREATE (dmex)
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)), TRUE);
                 }
+            }
+        }
+        break;
+    case WM_COMMAND:
+        if (PhEnableStreamerMode && GET_WM_COMMAND_CMD(wParam, lParam) == CBN_DROPDOWN)
+        {
+            COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+            if (SendMessage(GET_WM_COMMAND_HWND(wParam, lParam), CB_GETCOMBOBOXINFO, 0, (LPARAM)&info) && info.hwndList)
+            {
+                SetWindowDisplayAffinity(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
             }
         }
         break;
@@ -153,27 +163,21 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
-LRESULT CALLBACK PhComboBoxWindowHookProcedure(
+LRESULT CALLBACK PhToolTipWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    LRESULT result = CallWindowProc(PhDefaultComboBoxWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+    LRESULT result = CallWindowProc(PhDefaultToolTipWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
     switch (WindowMessage)
     {
     case WM_NCCREATE:
         if (PhEnableStreamerMode)
         {
-            //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
-            COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
-
-            if (SendMessage(WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info) && info.hwndList)
-            {
-                SetWindowDisplayAffinity(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
-            }
+            SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
         break;
     }
@@ -1096,160 +1100,25 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
-VOID PhRegisterDialogSuperClass(
-    VOID
+VOID PhRegisterSuperClassCommon(
+    _In_ PWSTR ClassName,
+    _In_ WNDPROC HookProc,
+    _Out_ WNDPROC *OldWndProc
     )
 {
     WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
 
-    if (!GetClassInfoEx(NULL, L"#32770", &wcex))
-        return;
-
-    PhDefaultDialogWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhDialogWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(L"#32770", NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
+    if (!GetClassInfoEx(NULL, ClassName, &wcex))
     {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterMenuSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, L"#32768", &wcex))
+        *OldWndProc = NULL;
         return;
+    }
 
-    PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhMenuWindowHookProcedure;
+    *OldWndProc = wcex.lpfnWndProc;
+    wcex.lpfnWndProc = HookProc;
     wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
 
-    UnregisterClass(L"#32768", NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterRebarSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, REBARCLASSNAME, &wcex))
-        return;
-
-    PhDefaultRebarWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhRebarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(REBARCLASSNAME, NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterComboBoxSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, WC_COMBOBOX, &wcex))
-        return;
-
-    PhDefaultComboBoxWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhComboBoxWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(WC_COMBOBOX, NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterStaticSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, WC_STATIC, &wcex))
-        return;
-
-    PhDefaultStaticWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhStaticWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(WC_STATIC, NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterStatusBarSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, STATUSCLASSNAME, &wcex))
-        return;
-
-    PhDefaultStatusbarWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhStatusBarWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(STATUSCLASSNAME, NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterEditSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, WC_EDIT, &wcex))
-        return;
-
-    PhDefaultEditWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhEditWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(WC_EDIT, NULL);
-    if (RegisterClassEx(&wcex) == INVALID_ATOM)
-    {
-        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
-    }
-}
-
-VOID PhRegisterHeaderSuperClass(
-    VOID
-    )
-{
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    if (!GetClassInfoEx(NULL, WC_HEADER, &wcex))
-        return;
-
-    PhDefaultHeaderWindowProcedure = wcex.lpfnWndProc;
-    wcex.lpfnWndProc = PhHeaderWindowHookProcedure;
-    wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-
-    UnregisterClass(WC_HEADER, NULL);
+    UnregisterClass(ClassName, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
     {
         PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
@@ -1502,7 +1371,7 @@ PhCreateWindowExHook(
             SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport && PhEnableThemeAcrylicWindowSupport)
+        if (PhEnableThemeAcrylicWindowSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)), TRUE);
         }
@@ -1510,14 +1379,9 @@ PhCreateWindowExHook(
     else
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
-        if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_LINK, TRUE))
+        if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_LINK, FALSE))
         {
             PhInitializeTaskDialogTheme(windowHandle, NULL);
-        }
-        else if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_BUTTON, TRUE) &&
-                 PhGetWindowContext(GetAncestor(hWndParent, GA_ROOT), LONG_MAX))
-        {
-            PhSetControlTheme(windowHandle, L"DarkMode_Explorer");
         }
     }
 
@@ -1818,10 +1682,11 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     if (RootDialogWindow && !windowHasContext)
     {
-        if (PhEnableStreamerMode)
-        {
-            SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
-        }
+        // Handled by PhDialogWindowHookProcedure
+        //if (PhEnableStreamerMode)
+        //{
+        //    SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+        //}
 
         PhInitializeThemeWindowFrame(WindowHandle);
 
@@ -2109,20 +1974,19 @@ VOID PhInitializeSuperclassControls(
     PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
     // For early TaskDialog with PhStartupParameters.ShowOptions
-    if (!PhThemeWindowBackgroundBrush)
-        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+    PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
 
     // Superclasses and detours now always installing that gives opportunity to flawlessly runtime theme switching.
     // If theme is disabled they are just trampolined to original hooked procedures.
     {
-        PhRegisterDialogSuperClass();
-        PhRegisterMenuSuperClass();
-        PhRegisterRebarSuperClass();
-        PhRegisterComboBoxSuperClass();
-        PhRegisterStaticSuperClass();
-        PhRegisterStatusBarSuperClass();
-        PhRegisterEditSuperClass();
-        PhRegisterHeaderSuperClass();
+        PhRegisterSuperClassCommon(L"#32770", PhDialogWindowHookProcedure, &PhDefaultDialogWindowProcedure);
+        PhRegisterSuperClassCommon(L"#32768", PhMenuWindowHookProcedure, &PhDefaultMenuWindowProcedure);
+        PhRegisterSuperClassCommon(REBARCLASSNAME, PhRebarWindowHookProcedure, &PhDefaultRebarWindowProcedure);
+        PhRegisterSuperClassCommon(WC_STATIC, PhStaticWindowHookProcedure, &PhDefaultStaticWindowProcedure);
+        PhRegisterSuperClassCommon(STATUSCLASSNAME, PhStatusBarWindowHookProcedure, &PhDefaultStatusbarWindowProcedure);
+        PhRegisterSuperClassCommon(WC_EDIT, PhEditWindowHookProcedure, &PhDefaultEditWindowProcedure);
+        PhRegisterSuperClassCommon(WC_HEADER, PhHeaderWindowHookProcedure, &PhDefaultHeaderWindowProcedure);
+        PhRegisterSuperClassCommon(TOOLTIPS_CLASS, PhToolTipWindowHookProcedure, &PhDefaultToolTipWindowProcedure);
 
         PhRegisterDetoursHooks();
     }

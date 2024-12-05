@@ -1217,9 +1217,6 @@ VOID PhpInitializeSettings(
     PhEnableKsiSupport = !!PhGetIntegerSetting(L"KsiEnable") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
     PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
 
-    if (!PhThemeWindowBackgroundBrush)
-        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
-
     // If AppMode is set to PreferredAppModeDarkOnDark, PhShouldAppsUseDarkMode should return current Windows app color mode.
     // It's weird that sometimes it can return incorrect inverted value (idk why).
     // In this case use PhGetAppsUseLightTheme() to retrieve raw value from registry.

@@ -231,11 +231,10 @@ VOID PhReInitializeTheme(
 
     while (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
     {
+        WCHAR windowClassName[MAX_PATH];
         ULONG processID = 0;
 
         GetWindowThreadProcessId(currentWindow, &processID);
-
-        WCHAR windowClassName[MAX_PATH];
 
         if (UlongToHandle(processID) == NtCurrentProcessId())
         {
@@ -264,13 +263,19 @@ VOID PhReInitializeStreamerMode(
 
     while (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
     {
+        WCHAR windowClassName[MAX_PATH];
         ULONG processID = 0;
 
         GetWindowThreadProcessId(currentWindow, &processID);
 
         if (UlongToHandle(processID) == NtCurrentProcessId())
         {
-            if ((PhGetWindowStyle(currentWindow) & WS_VISIBLE) == WS_VISIBLE)
+            GETCLASSNAME_OR_NULL(currentWindow, windowClassName);
+
+            if ((PhGetWindowStyle(currentWindow) & WS_VISIBLE) == WS_VISIBLE ||
+                PhEqualStringZ(windowClassName, TOOLTIPS_CLASS, FALSE)
+                //|| PhEqualStringZ(windowClassName, L"ComboLBox", FALSE)
+                )
             {
                 SetWindowDisplayAffinity(currentWindow, Enable ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
             }
@@ -291,18 +296,13 @@ VOID PhReInitializeStreamerMode(
 
 HRESULT PhSetWindowThemeAttribute(
     _In_ HWND WindowHandle,
-    _In_ ULONG AttributeId,
-    _In_reads_bytes_(AttributeLength) PVOID Attribute,
-    _In_ ULONG AttributeLength
+    _In_ DWORD AttributeId,
+    _In_reads_bytes_(AttributeLength) LPCVOID Attribute,
+    _In_ DWORD AttributeLength
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI* DwmSetWindowAttribute_I)(
-        _In_ HWND WindowHandle,
-        _In_ ULONG AttributeId,
-        _In_reads_bytes_(AttributeLength) PVOID Attribute,
-        _In_ ULONG AttributeLength
-        );
+    static typeof(&DwmSetWindowAttribute) DwmSetWindowAttribute_I = nullptr;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -3148,7 +3148,6 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
         goto DefaultWndProc;
     }
 
-    // BUG BUG BUG fix 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
 DefaultWndProc:
