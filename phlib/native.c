@@ -5618,7 +5618,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
     InitializeObjectAttributes(
         &objectAttributes,
         &objectDirectoryName,
-        OBJ_EXCLUSIVE,
+        0,
         NULL,
         NULL
         );
@@ -5669,7 +5669,7 @@ NTSTATUS PhOpenDriver(
         InitializeObjectAttributes(
             &objectAttributes,
             &objectName,
-            OBJ_EXCLUSIVE | OBJ_CASE_INSENSITIVE,
+            OBJ_CASE_INSENSITIVE,
             RootDirectory,
             NULL
             );

@@ -1489,6 +1489,20 @@ NTSTATUS EtDuplicateHandleFromProcessEx(
     HANDLE processHandle;
 
     *Handle = NULL;
+
+    if (!ProcessHandle && ProcessId == NtCurrentProcessId())
+    {
+        return NtDuplicateObject(
+            NtCurrentProcess(),
+            SourceHandle,
+            NtCurrentProcess(),
+            Handle,
+            DesiredAccess,
+            0,
+            0
+            );
+    }
+
     processHandle = ProcessHandle;
 
     if (ProcessHandle ||
@@ -2789,6 +2803,7 @@ VOID EtpObjectManagerCopyObjectAddress(
             {
                 Entry->Object = objectAddress;
                 PhPrintPointer(Entry->ObjectString, objectAddress);
+                Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
                 IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
                 PhInitializeStringRef(&pointer, Entry->ObjectString);
             }
