@@ -2674,7 +2674,9 @@ BOOLEAN PhTnpAddColumn(
 
         updateHeaders = FALSE;
 
-        if (!realColumn->Fixed && realColumn->DisplayIndex != Header_GetItemCount(Context->HeaderHandle))
+        assert(Context->NumberOfColumnsByDisplay == (ULONG)Header_GetItemCount(Context->HeaderHandle));
+        //if (!realColumn->Fixed && realColumn->DisplayIndex != Header_GetItemCount(Context->HeaderHandle))
+        if (!realColumn->Fixed && realColumn->DisplayIndex != Context->NumberOfColumnsByDisplay)
             updateHeaders = TRUE;
 
         realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
@@ -6310,12 +6312,13 @@ VOID PhTnpInitializeTooltips(
     }
 
     // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
-    Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
-    Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
+    Context->HeaderWindowProc = PhGetWindowProcedure(Context->HeaderHandle);
     PhSetWindowContext(Context->HeaderHandle, MAXCHAR, Context);
+    PhSetWindowProcedure(Context->HeaderHandle, PhTnpHeaderHookWndProc);
+
+    Context->FixedHeaderWindowProc = PhGetWindowProcedure(Context->FixedHeaderHandle);
     PhSetWindowContext(Context->FixedHeaderHandle, MAXCHAR, Context);
-    SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
-    SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
+    PhSetWindowProcedure(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SetWindowFont(Context->TooltipsHandle, Context->Font, FALSE);
@@ -6899,6 +6902,7 @@ VOID PhTnpHeaderDestroyBufferedContext(
     if (Context->HeaderBufferedDc && Context->HeaderBufferedOldBitmap)
     {
         SelectBitmap(Context->HeaderBufferedDc, Context->HeaderBufferedOldBitmap);
+        Context->HeaderBufferedOldBitmap = NULL;
     }
 
     if (Context->HeaderBufferedBitmap)
