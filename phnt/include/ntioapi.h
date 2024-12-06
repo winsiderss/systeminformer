@@ -310,22 +310,34 @@ typedef enum _FILE_INFORMATION_CLASS
 
 // NtQueryInformationFile/NtSetInformationFile types
 
+/**
+ * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
+ * \li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
+ * \li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
+ * \li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
+ * \remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
+ */
 typedef struct _FILE_BASIC_INFORMATION
 {
-    LARGE_INTEGER CreationTime;
-    LARGE_INTEGER LastAccessTime;
-    LARGE_INTEGER LastWriteTime;
-    LARGE_INTEGER ChangeTime;
-    ULONG FileAttributes;
+    LARGE_INTEGER CreationTime;         // Specifies the time that the file was created.
+    LARGE_INTEGER LastAccessTime;       // Specifies the time that the file was last accessed.
+    LARGE_INTEGER LastWriteTime;        // Specifies the time that the file was last written to.
+    LARGE_INTEGER ChangeTime;           // Specifies the last time the file was changed.
+    ULONG FileAttributes;               // Specifies one or more FILE_ATTRIBUTE_XXX flags.
 } FILE_BASIC_INFORMATION, *PFILE_BASIC_INFORMATION;
 
+/**
+ * The FILE_STANDARD_INFORMATION structure contains standard information of a file.
+ * \remarks EndOfFile specifies the byte offset to the end of the file.
+ * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to the byte immediately following the last valid byte in the file.
+ */
 typedef struct _FILE_STANDARD_INFORMATION
 {
-    LARGE_INTEGER AllocationSize;
-    LARGE_INTEGER EndOfFile;
-    ULONG NumberOfLinks;
-    BOOLEAN DeletePending;
-    BOOLEAN Directory;
+    LARGE_INTEGER AllocationSize;       // The file allocation size in bytes. Usually, this value is a multiple of the sector or cluster size of the underlying physical device.
+    LARGE_INTEGER EndOfFile;            // The end of file location as a byte offset.
+    ULONG NumberOfLinks;                // The number of hard links to the file.
+    BOOLEAN DeletePending;              // The delete pending status. TRUE indicates that a file deletion has been requested.
+    BOOLEAN Directory;                  // The file directory status. TRUE indicates the file object represents a directory.
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
 typedef struct _FILE_STANDARD_INFORMATION_EX
@@ -673,9 +685,12 @@ typedef struct _FILE_PROCESS_IDS_USING_FILE_INFORMATION
     _Field_size_(NumberOfProcessIdsInList) ULONG_PTR ProcessIdList[1];
 } FILE_PROCESS_IDS_USING_FILE_INFORMATION, *PFILE_PROCESS_IDS_USING_FILE_INFORMATION;
 
+/**
+ * The FILE_IS_REMOTE_DEVICE_INFORMATION structure indicates whether the file system that contains the file is a remote file system.
+ */
 typedef struct _FILE_IS_REMOTE_DEVICE_INFORMATION
 {
-    BOOLEAN IsRemote;
+    BOOLEAN IsRemote; // A value that indicates whether the file system that contains the file is a remote file system.
 } FILE_IS_REMOTE_DEVICE_INFORMATION, *PFILE_IS_REMOTE_DEVICE_INFORMATION;
 
 typedef struct _FILE_NUMA_NODE_INFORMATION
@@ -1078,7 +1093,7 @@ typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
-    KnownFolderNone,
+    KnownFolderNone = 0,
     KnownFolderDesktop,
     KnownFolderDocuments,
     KnownFolderDownloads,
@@ -1086,7 +1101,7 @@ typedef enum _FILE_KNOWN_FOLDER_TYPE
     KnownFolderPictures,
     KnownFolderVideos,
     KnownFolderOther,
-    KnownFolderMax = 7
+    KnownFolderMax
 } FILE_KNOWN_FOLDER_TYPE;
 
 typedef struct _FILE_KNOWN_FOLDER_INFORMATION
@@ -2109,13 +2124,9 @@ NtNotifyChangeDirectoryFileEx(
 #endif
 
 /**
- * @brief Loads a driver.
- *
- * This function loads a driver specified by the DriverServiceName parameter.
- *
- * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
- *
- * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * \brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
+ * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully loaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_INSUFFICIENT_RESOURCES: There are insufficient resources to load the driver.
@@ -2131,13 +2142,9 @@ NtLoadDriver(
     );
 
 /**
- * @brief Unloads a driver.
- *
- * This function unloads a driver specified by the DriverServiceName parameter.
- *
- * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
- *
- * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * \brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
+ * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully unloaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
