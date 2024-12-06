@@ -308,7 +308,9 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
+//
 // NtQueryInformationFile/NtSetInformationFile types
+//
 
 /**
  * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
