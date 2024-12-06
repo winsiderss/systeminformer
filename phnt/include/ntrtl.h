@@ -4320,6 +4320,7 @@ RtlSetSystemGlobalData(
 
 //
 // Environment
+//
 
 NTSYSAPI
 NTSTATUS
@@ -10207,7 +10208,9 @@ RtlTlsSetValue(
     );
 #endif
 
+//
 // State isolation
+//
 
 typedef enum _STATE_LOCATION_TYPE
 {
