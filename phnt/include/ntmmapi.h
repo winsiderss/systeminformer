@@ -735,6 +735,19 @@ NtReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64ReadVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesRead,
+    _In_ ULONG Flags
+    );
+
 #if (PHNT_VERSION >= PHNT_WIN11)
 // rev
 NTSYSCALLAPI
@@ -761,6 +774,18 @@ NtWriteVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64WriteVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesWritten
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -782,6 +807,19 @@ NtQueryVirtualMemory(
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ SIZE_T MemoryInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64QueryVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONGLONG MemoryInformationLength,
+    _Out_opt_ PULONGLONG ReturnLength
     );
 
 typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
@@ -1227,7 +1265,7 @@ NTSTATUS
 NTAPI
 NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
     _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
@@ -1239,7 +1277,7 @@ NTSTATUS
 NTAPI
 NtFreeUserPhysicalPages(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _In_reads_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -1258,7 +1296,7 @@ NtGetWriteWatch(
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
     _Out_writes_(*EntriesInUserAddressArray) PVOID *UserAddressArray,
-    _Inout_ PSIZE_T EntriesInUserAddressArray,
+    _Inout_ PULONG_PTR EntriesInUserAddressArray,
     _Out_ PULONG Granularity
     );
 
