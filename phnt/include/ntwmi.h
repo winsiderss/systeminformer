@@ -5936,7 +5936,7 @@ typedef enum _ETWTRACECONTROLCODE
     EtwWdiSemUpdate = 20,
     EtwEnumTraceGuidList = 21, // out GUID[]
     EtwGetTraceGuidInfo = 22, // in GUID, out ETW_TRACE_GUID_INFO
-    EtwEnumerateTraceGuids = 23,
+    EtwEnumerateTraceGuids = 23, // out TRACE_GUID_PROPERTIES[]
     EtwRegisterSecurityProv = 24,
     EtwReferenceTimeCode = 25, // in ULONG LoggerId, out ETW_REF_CLOCK
     EtwTrackBinaryCode = 26, // in HANDLE
