@@ -1687,7 +1687,6 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggingAllowed, // s: ULONG
     SystemActivityModerationExeState, // SYSTEM_ACTIVITY_MODERATION_EXE_STATE
     SystemActivityModerationUserSettings, // SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
-    SystemCodeIntegrityPoliciesFullInformation,
     SystemCodeIntegrityPoliciesFullInformation, // NtQuerySystemInformationEx
     SystemCodeIntegrityUnlockInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,
