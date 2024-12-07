@@ -3385,6 +3385,30 @@ VOID PhShowServiceProgressDialogStatusPage(
     );
 #pragma endregion
 
+VOID PhpShowServiceProgressInitializeText(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _Out_ PPH_STRING* Verb,
+    _Out_ PPH_STRING* VerbCaps,
+    _Out_ PPH_STRING* Action,
+    _Out_ PCWSTR* Object
+    )
+{
+    if (Context->ServiceItemList->Count == 1)
+        *Object = L"the selected service";
+    else
+        *Object = L"the selected services";
+
+    // Make sure the verb is all lowercase.
+    *Verb = PhaLowerString(PhaCreateString(Context->Verb));
+
+    // "terminate" -> "Terminate"
+    *VerbCaps = PhaDuplicateString(*Verb);
+    if (!PhIsNullOrEmptyString(*VerbCaps)) (*VerbCaps)->Buffer[0] = PhUpcaseUnicodeChar((*VerbCaps)->Buffer[0]);
+
+    // "terminate", "the process" -> "terminate the process"
+    *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", *Object);
+}
+
 HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -3677,6 +3701,12 @@ VOID PhShowServiceProgressDialogStatusPage(
     )
 {
     TASKDIALOGCONFIG config;
+    PPH_STRING verb;
+    PPH_STRING verbCaps;
+    PPH_STRING action;
+    PCWSTR object;
+
+    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action, &object);
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -3686,7 +3716,7 @@ VOID PhShowServiceProgressDialogStatusPage(
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = PhpUiServiceProgressDialogCallbackProc;
-    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", Context->Verb, L" ", Context->Object, L"...")->Buffer;
+    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", verb, L" ", object, L"...")->Buffer;
     config.cxWidth = 200;
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
@@ -3720,29 +3750,6 @@ HRESULT CALLBACK PhpUiServiceConfirmDialogCallbackProc(
     return S_OK;
 }
 
-VOID PhpShowServiceProgressInitializeText(
-    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
-    _Out_ PPH_STRING* Verb,
-    _Out_ PPH_STRING* VerbCaps,
-    _Out_ PPH_STRING* Action
-    )
-{
-    if (Context->ServiceItemList->Count == 1)
-        Context->Object = L"the selected service";
-    else
-        Context->Object = L"the selected services";
-
-    // Make sure the verb is all lowercase.
-    *Verb = PhaLowerString(PhaCreateString(Context->Verb));
-
-    // "terminate" -> "Terminate"
-    *VerbCaps = PhaDuplicateString(*Verb);
-    if (!PhIsNullOrEmptyString(*VerbCaps)) (*VerbCaps)->Buffer[0] = PhUpcaseUnicodeChar((*VerbCaps)->Buffer[0]);
-
-    // "terminate", "the process" -> "terminate the process"
-    *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", Context->Object);
-}
-
 VOID PhShowServiceProgressDialogConfirmMessage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -3752,8 +3759,9 @@ VOID PhShowServiceProgressDialogConfirmMessage(
     PPH_STRING verb;
     PPH_STRING verbCaps;
     PPH_STRING action;
+    PCWSTR object;
 
-    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action);
+    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action, &object);
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);

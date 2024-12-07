@@ -294,16 +294,8 @@ VOID PhpShowKsiMessage(
 
     if (Status != 0)
     {
-        switch (Status)
-        {
-        case STATUS_NO_SUCH_FILE:
-            errorMessage = PhCreateString(L"The file does not exist.");
-            break;
-        default:
-            if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-                errorMessage = PhGetStatusMessage(0, Status);
-            break;
-        }
+        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+            errorMessage = PhGetStatusMessage(0, Status);
 
         if (errorMessage)
         {

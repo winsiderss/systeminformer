@@ -42,7 +42,7 @@ NTSYSAPI
 ULONG
 STDAPIVCALLTYPE
 DbgPrint(
-    _In_z_ _Printf_format_string_ PCSTR Format,
+    _In_z_ _Printf_format_string_ PCCH Format,
     ...
     );
 
@@ -52,7 +52,7 @@ STDAPIVCALLTYPE
 DbgPrintEx(
     _In_ ULONG ComponentId,
     _In_ ULONG Level,
-    _In_z_ _Printf_format_string_ PCSTR Format,
+    _In_z_ _Printf_format_string_ PCCH Format,
     ...
     );
 
@@ -75,6 +75,14 @@ vDbgPrintExWithPrefix(
     _In_ ULONG Level,
     _In_z_ PCCH Format,
     _In_ va_list arglist
+    );
+
+NTSYSAPI
+ULONG 
+STDAPIVCALLTYPE
+DbgPrintReturnControlC(
+    _In_z_ _Printf_format_string_ PCCH Format,
+    ...
     );
 
 NTSYSAPI
@@ -255,7 +263,7 @@ NTAPI
 NtSetInformationDebugObject(
     _In_ HANDLE DebugObjectHandle,
     _In_ DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
-    _In_ PVOID DebugInformation,
+    _In_reads_bytes_(DebugInformationLength) PVOID DebugInformation,
     _In_ ULONG DebugInformationLength,
     _Out_opt_ PULONG ReturnLength
     );

@@ -355,7 +355,7 @@ typedef enum _THREADINFOCLASS
     ThreadStrongerBadHandleChecks, // since 22H1
     ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority, // q: ULONG
-    ThreadUpdateLockOwnership, // since 24H2
+    ThreadUpdateLockOwnership, // THREAD_LOCK_OWNERSHIP // since 24H2
     ThreadSchedulerSharedDataSlot, // SCHEDULER_SHARED_DATA_SLOT_INFORMATION
     ThreadTebInformationAtomic, // THREAD_TEB_INFORMATION
     ThreadIndexInformation, // THREAD_INDEX_INFORMATION
@@ -929,9 +929,9 @@ typedef enum _PS_PROTECTED_SIGNER
 
 // vProtectionLevel.Level = PsProtectedValue(PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
 #define PsProtectedValue(aSigner, aAudit, aType) ( \
-    ((aSigner & PS_PROTECTED_SIGNER_MASK) << 4) | \
-    ((aAudit & PS_PROTECTED_AUDIT_MASK) << 3) | \
-    (aType & PS_PROTECTED_TYPE_MASK)\
+    (((aSigner) & PS_PROTECTED_SIGNER_MASK) << 4) | \
+    (((aAudit) & PS_PROTECTED_AUDIT_MASK) << 3) | \
+    ((aType) & PS_PROTECTED_TYPE_MASK)\
     )
 
 // InitializePsProtection(&vProtectionLevel, PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
@@ -1244,11 +1244,15 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
  */
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
-    // The total number of cycles accumulated by the thread.
-    ULONGLONG AccumulatedCycles;
-    // The current cycle count of the thread.
-    ULONGLONG CurrentCycleCount;
+    ULONGLONG AccumulatedCycles;        // The total number of cycles accumulated by the thread.
+    ULONGLONG CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
+
+// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles 
+typedef struct _THREAD_LOCK_OWNERSHIP
+{
+    ULONG SrwLock[1];
+} THREAD_LOCK_OWNERSHIP, *PTHREAD_LOCK_OWNERSHIP;
 
 typedef enum _SCHEDULER_SHARED_DATA_SLOT_ACTION
 {
@@ -1274,18 +1278,14 @@ typedef struct _THREAD_TEB_INFORMATION
 /**
  * The COUNTER_READING structure is used to store individual counter data from a hardware counter.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
-{
-    // Specifies the type of hardware counter data collected.
-    HARDWARE_COUNTER_TYPE Type;
-    // An identifier for the specific counter.
-    ULONG Index;
-    // The initial value of the counter when measurement started.
-    ULONG64 Start;
-    // The accumulated value of the counter over the measurement period.
-    ULONG64 Total;
+{   
+    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.  
+    ULONG Index;                    // An identifier for the specific counter.   
+    ULONG64 Start;                  // The initial value of the counter when measurement started.   
+    ULONG64 Total;                  // The accumulated value of the counter over the measurement period.
 } COUNTER_READING, *PCOUNTER_READING;
 
 #ifndef THREAD_PERFORMANCE_DATA_VERSION
@@ -1299,26 +1299,16 @@ typedef struct _COUNTER_READING
  */
 typedef struct _THREAD_PERFORMANCE_DATA
 {
-    // The size of the structure.
-    USHORT Size;
-    // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
-    USHORT Version;
-    // The processor number that identifies where the thread is running.
-    PROCESSOR_NUMBER ProcessorNumber;
-    // The number of context switches that occurred from the time profiling was enabled.
-    ULONG ContextSwitches;
-    // The number of array elements in the HwCounters array that contain hardware counter data.
-    ULONG HwCountersCount;
-    // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
-    ULONG64 UpdateCount;
-    // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
-    ULONG64 WaitReasonBitMap;
-    // A bitmask of hardware counters used to collect counter data.
-    ULONG64 HardwareCounters;
-    // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
-    COUNTER_READING CycleTime;
-    // The COUNTER_READING structure that contains hardware counter data.
-    COUNTER_READING HwCounters[MAX_HW_COUNTERS];
+    USHORT Size;                                    // The size of the structure.
+    USHORT Version;                                 // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
+    PROCESSOR_NUMBER ProcessorNumber;               // The processor number that identifies where the thread is running.
+    ULONG ContextSwitches;                          // The number of context switches that occurred from the time profiling was enabled.
+    ULONG HwCountersCount;                          // The number of array elements in the HwCounters array that contain hardware counter data.
+    ULONG64 UpdateCount;                            // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
+    ULONG64 WaitReasonBitMap;                       // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
+    ULONG64 HardwareCounters;                       // A bitmask of hardware counters used to collect counter data.
+    COUNTER_READING CycleTime;                      // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
+    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The COUNTER_READING structure that contains hardware counter data.
 } THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
 
 #ifndef THREAD_PROFILING_FLAG_DISPATCH
@@ -1332,7 +1322,7 @@ typedef struct _THREAD_PERFORMANCE_DATA
 /**
  * The THREAD_PROFILING_INFORMATION structure contains profiling information and references to performance data.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
  */
 typedef struct _THREAD_PROFILING_INFORMATION
 {
@@ -1727,6 +1717,18 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64QueryInformationProcess64(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESSINFOCLASS ProcessInformationClass,
     _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
@@ -2170,6 +2172,17 @@ NTAPI
 NtAlertThreadByThreadIdEx(
     _In_ HANDLE ThreadId,
     _In_opt_ PRTL_SRWLOCK Lock
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertMultipleThreadByThreadId(
+    _In_ PHANDLE MultipleThreadId,
+    _In_ ULONG Count,
+    _In_ PVOID Boost,
+    _In_ ULONG BoostCount
     );
 #endif
 
