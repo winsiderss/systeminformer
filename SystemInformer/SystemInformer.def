@@ -532,7 +532,6 @@ EXPORTS
     PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
     PhEnumHandlesEx
-    PhEnumHandlesEx2
     PhEnumKernelModules
     PhEnumNextProcess
     PhEnumNextThread
@@ -542,6 +541,7 @@ EXPORTS
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
     PhEnumProcessesEx
+    PhEnumProcessHandles
     PhEnumReparsePointInformation
     PhEnumerateKey
     PhEnumerateValueKey
@@ -622,6 +622,7 @@ EXPORTS
     PhQuerySymbolicLinkObject
     PhQueryTokenVariableSize
     PhQueryValueKey
+    PhReadFile
     PhResolveDevicePrefix
     PhRevertImpersonationToken
     PhSetFileAllocationSize
@@ -882,7 +883,6 @@ EXPORTS
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
-    PhGetListViewInterface
     PhGetSelectedListViewItemParam
     PhGetSelectedListViewItemParams
     PhGetSelectedIListViewItemParams

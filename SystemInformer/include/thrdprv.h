@@ -19,7 +19,15 @@ extern PPH_OBJECT_TYPE PhThreadItemType;
 // begin_phapppub
 typedef struct _PH_THREAD_ITEM
 {
-    HANDLE ThreadId;
+    union
+    {
+        CLIENT_ID ClientId;
+        struct
+        {
+            HANDLE ProcessId;
+            HANDLE ThreadId;
+        };
+    };
 
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER KernelTime;
@@ -127,7 +135,7 @@ VOID PhLoadSymbolsThreadProvider(
     );
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    _In_ HANDLE ThreadId
+    _In_ CLIENT_ID ClientId
     );
 
 PPH_THREAD_ITEM PhReferenceThreadItem(

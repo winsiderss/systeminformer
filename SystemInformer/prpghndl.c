@@ -91,8 +91,6 @@ VOID PhpInitializeHandleMenu(
     _Inout_ PPH_HANDLES_CONTEXT HandlesContext
     )
 {
-    KPH_LEVEL level;
-
     if (NumberOfHandles == 0)
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
@@ -115,10 +113,8 @@ VOID PhpInitializeHandleMenu(
         PhEnableEMenuItem(Menu, ID_HANDLE_COPY, TRUE);
     }
 
-    level = KsiLevel();
-
     // Protected, Inherit
-    if (NumberOfHandles == 1 && (level >= KphLevelMed))
+    if (NumberOfHandles == 1)
     {
         HandlesContext->SelectedHandleProtected = FALSE;
         HandlesContext->SelectedHandleInherit = FALSE;

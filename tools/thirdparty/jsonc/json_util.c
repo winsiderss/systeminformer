@@ -144,7 +144,7 @@ struct json_object *json_object_from_file(const char *filename)
     struct json_object *obj;
     int fd;
 
-    if ((fd = open(filename, O_RDONLY)) < 0)
+    if ((fd = open(filename, _O_RDONLY)) < 0)
     {
         _json_c_set_last_err("json_object_from_file: error opening file %s\n",
                              filename);
@@ -168,7 +168,7 @@ int json_object_to_file_ext(const char *filename, struct json_object *obj, int f
         return -1;
     }
 
-    if ((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0)
+    if ((fd = open(filename, _O_WRONLY | _O_TRUNC | _O_CREAT, 0644)) < 0)
     {
         _json_c_set_last_err("json_object_to_file_ext: error opening file %s\n",
                              filename);

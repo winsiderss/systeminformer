@@ -121,7 +121,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     if (PH_IS_REAL_PROCESS_ID(ProcessId))
     {
-        static ACCESS_MASK accesses[] =
+        static const ACCESS_MASK accesses[] =
         {
             PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, // Try to get a handle with query information + vm read access. (wj32)
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, // Try to get a handle with query limited information + vm read access. (wj32)
@@ -870,7 +870,7 @@ VOID PhModuleProviderUpdate(
 
             if (!moduleProvider->HaveFirst)
             {
-                if (WindowsVersion < WINDOWS_10)
+                if (WindowsVersion < WINDOWS_8)
                 {
                     moduleItem->IsFirst = i == 0;
                     moduleProvider->HaveFirst = TRUE;
@@ -997,6 +997,12 @@ PPH_STRINGREF PhGetModuleTypeName(
 {
     PPH_STRINGREF string;
 
+    if (ModuleType >= PH_MODULE_TYPE_MODULE &&
+        ModuleType <= PH_MODULE_TYPE_ENCLAVE_MODULE)
+    {
+        return (PPH_STRINGREF)PhModuleTypePairs[ModuleType].Key;
+    }
+
     if (PhFindStringRefSiKeyValuePairs(
         PhModuleTypePairs,
         sizeof(PhModuleTypePairs),
@@ -1030,6 +1036,12 @@ PPH_STRINGREF PhGetModuleLoadReasonTypeName(
     )
 {
     PPH_STRINGREF string;
+
+    if (LoadReason >= LoadReasonStaticDependency &&
+        LoadReason <= LoadReasonPatchImage)
+    {
+        return (PPH_STRINGREF)PhModuleLoadReasonTypePairs[LoadReason].Key;
+    }
 
     if (PhFindStringRefSiKeyValuePairs(
         PhModuleLoadReasonTypePairs,
