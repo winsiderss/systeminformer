@@ -13,14 +13,14 @@ if not defined VSINSTALLPATH (
 
 
 :: Pre-cleanup (required since dotnet doesn't cleanup)
-if exist "tools\CustomBuildTool\bin\Release" (
-   rmdir /S /Q "tools\CustomBuildTool\bin\Release"
-)
 if exist "tools\CustomBuildTool\bin\" (
    rmdir /S /Q "tools\CustomBuildTool\bin\"
 )
 if exist "tools\CustomBuildTool\obj" (
    rmdir /S /Q "tools\CustomBuildTool\obj"
+)
+if exist "tools\CustomBuildTool\.vs" (
+   rmdir /S /Q "tools\CustomBuildTool\.vs"
 )
 
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
