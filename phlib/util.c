@@ -886,7 +886,7 @@ PPH_STRING PhGetStatusMessage(
         // In some cases we want the simple Win32 messages.
         if (
             Status == STATUS_ACCESS_DENIED ||
-            Status == STATUS_ACCESS_VIOLATION |
+            Status == STATUS_ACCESS_VIOLATION ||
             Status == STATUS_NO_SUCH_FILE
             )
         {
