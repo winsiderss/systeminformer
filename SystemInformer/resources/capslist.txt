@@ -686,6 +686,7 @@ curatedTileCollections
 customInstallActions
 dateAndTimeDeviceSettings
 dependencyTarget
+delegatedTokenRequests
 developerSettings
 developmentModeNetwork
 deviceEncryptionManagement
@@ -742,6 +743,7 @@ hidTelephony
 holographicCompositor
 holographicCompositorSystem
 humanInterfaceDevice
+humanPresence
 imeSystem
 indexedContent
 inProcessMediaExtension
@@ -871,6 +873,7 @@ phoneCallSystem
 phoneLineTransportManagement
 picturesLibrary
 pointOfService
+polarisService
 policyManager
 powerDeviceSettings
 preemptiveCamera
