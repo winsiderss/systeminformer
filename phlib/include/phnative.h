@@ -3125,6 +3125,14 @@ PhSetThreadAffinityMask(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetThreadBasePriorityClientId(
+    _In_ CLIENT_ID ClientId,
+    _In_ KPRIORITY Increment
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetThreadBasePriority(
     _In_ HANDLE ThreadHandle,
     _In_ KPRIORITY Increment
@@ -3324,7 +3332,7 @@ NTSTATUS
 NTAPI
 PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     );
 
 PHLIBAPI
