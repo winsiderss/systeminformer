@@ -340,6 +340,29 @@ NTSTATUS PhSetThreadAffinityMask(
     return status;
 }
 
+NTSTATUS PhSetThreadBasePriorityClientId(
+    _In_ CLIENT_ID ClientId,
+    _In_ KPRIORITY Increment
+    )
+{
+    NTSTATUS status;
+    SYSTEM_THREAD_CID_PRIORITY_INFORMATION threadInfo;
+
+    threadInfo.ClientId = ClientId;
+    threadInfo.Priority = Increment;
+
+    status = NtSetSystemInformation(
+        SystemThreadPriorityClientIdInformation,
+        &threadInfo,
+        sizeof(SYSTEM_THREAD_CID_PRIORITY_INFORMATION)
+        );
+
+    if (status == STATUS_PENDING)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
 NTSTATUS PhSetThreadBasePriority(
     _In_ HANDLE ThreadHandle,
     _In_ KPRIORITY Increment
@@ -1437,4 +1460,1604 @@ BOOLEAN PhSwitchToThread(
     LARGE_INTEGER interval = { 0 };
 
     return PhDelayExecutionEx(FALSE, &interval) != STATUS_NO_YIELD_PERFORMED;
+}
+
+NTSTATUS PhGetProcessRuntimeLibrary(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_PROCESS_RUNTIME_LIBRARY* RuntimeLibrary,
+    _Out_opt_ PBOOLEAN IsWow64Process
+    )
+{
+    static PH_PROCESS_RUNTIME_LIBRARY NativeRuntime =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\user32.dll"),
+    };
+#ifdef _WIN64
+    static PH_PROCESS_RUNTIME_LIBRARY Wow64Runtime =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\user32.dll"),
+    };
+#ifdef _M_ARM64
+    static PH_PROCESS_RUNTIME_LIBRARY Arm32Runtime =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\user32.dll"),
+    };
+    static PH_PROCESS_RUNTIME_LIBRARY Chpe32Runtime =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\user32.dll"),
+    };
+#endif
+#endif
+
+    *RuntimeLibrary = &NativeRuntime;
+
+    if (IsWow64Process)
+        *IsWow64Process = FALSE;
+
+#ifdef _WIN64
+    NTSTATUS status;
+#ifdef _M_ARM64
+    USHORT machine;
+
+    status = PhGetProcessArchitecture(ProcessHandle, &machine);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (machine != IMAGE_FILE_MACHINE_TARGET_HOST)
+    {
+        switch (machine)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+        case IMAGE_FILE_MACHINE_CHPE_X86:
+            {
+                *RuntimeLibrary = &Chpe32Runtime;
+
+                if (IsWow64Process)
+                    *IsWow64Process = TRUE;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_ARMNT:
+            {
+                *RuntimeLibrary = &Arm32Runtime;
+
+                if (IsWow64Process)
+                    *IsWow64Process = TRUE;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_AMD64:
+        case IMAGE_FILE_MACHINE_ARM64:
+            break;
+        default:
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+#else
+    BOOLEAN isWow64 = FALSE;
+
+    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (isWow64)
+    {
+        *RuntimeLibrary = &Wow64Runtime;
+
+        if (IsWow64Process)
+            *IsWow64Process = TRUE;
+    }
+#endif
+#endif
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Causes a process to load a DLL.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param FileName The file name of the DLL to inject.
+ * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
+ *
+ * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
+ * timeout value carefully.
+ */
+NTSTATUS PhLoadDllProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN LoadDllUsingApcThread,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    SIZE_T fileNameAllocationSize;
+    PVOID fileNameBaseAddress = NULL;
+    PVOID loadLibraryW = NULL;
+    PVOID rtlExitUserThread = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    if (KphProcessLevel(ProcessHandle) > KphLevelMed)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "LoadLibraryW",
+        &loadLibraryW,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (LoadDllUsingApcThread)
+    {
+        status = PhGetProcedureAddressRemote(
+            ProcessHandle,
+            &runtimeLibrary->NtdllFileName,
+            "RtlExitUserThread",
+            &rtlExitUserThread,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    fileNameAllocationSize = FileName->Length + sizeof(UNICODE_NULL);
+    status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &fileNameBaseAddress,
+        0,
+        &fileNameAllocationSize,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteVirtualMemory(
+        ProcessHandle,
+        fileNameBaseAddress,
+        FileName->Buffer,
+        FileName->Length + sizeof(UNICODE_NULL),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    if (LoadDllUsingApcThread)
+    {
+        status = PhCreateUserThread(
+            ProcessHandle,
+            NULL,
+            THREAD_ALL_ACCESS,
+            THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+            0,
+            0,
+            0,
+            rtlExitUserThread,
+            LongToPtr(STATUS_SUCCESS),
+            &threadHandle,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtQueueApcThread(
+            threadHandle,
+            loadLibraryW,
+            fileNameBaseAddress,
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+        status = PhCreateUserThread(
+            ProcessHandle,
+            NULL,
+            THREAD_ALL_ACCESS,
+            0,
+            0,
+            0,
+            0,
+            loadLibraryW,
+            fileNameBaseAddress,
+            &threadHandle,
+            NULL
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhWaitForSingleObject(threadHandle, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+    if (threadHandle)
+        NtClose(threadHandle);
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+
+    if (fileNameBaseAddress)
+        PhFreeVirtualMemory(ProcessHandle, fileNameBaseAddress, MEM_RELEASE);
+
+    return status;
+}
+
+/**
+ * Causes a process to unload a DLL.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param BaseAddress The base address of the DLL to unload.
+ * \param Timeout The timeout, in milliseconds, for the process to unload the DLL.
+ */
+NTSTATUS PhUnloadDllProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    HANDLE powerRequestHandle = NULL;
+    THREAD_BASIC_INFORMATION basicInfo;
+    PVOID threadStart;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // No point trying to set the load count on Windows 8 and higher, because NT now uses a DAG of
+    // loader nodes.
+    if (WindowsVersion < WINDOWS_8)
+    {
+#ifdef _WIN64
+        BOOLEAN isWow64 = FALSE;
+        BOOLEAN isModule32 = FALSE;
+#endif
+        status = PhSetProcessModuleLoadCount(
+            ProcessHandle,
+            BaseAddress,
+            1
+            );
+
+#ifdef _WIN64
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
+        if (isWow64 && status == STATUS_DLL_NOT_FOUND)
+        {
+            // The DLL might be 32-bit.
+            status = PhSetProcessModuleLoadCount32(
+                ProcessHandle,
+                BaseAddress,
+                1
+                );
+
+            if (NT_SUCCESS(status))
+                isModule32 = TRUE;
+        }
+#endif
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "LdrUnloadDll",
+        &threadStart,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        0,
+        0,
+        0,
+        0,
+        threadStart,
+        BaseAddress,
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhWaitForSingleObject(threadHandle, Timeout);
+
+    if (status == STATUS_WAIT_0)
+    {
+        status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
+
+        if (NT_SUCCESS(status))
+            status = basicInfo.ExitStatus;
+    }
+
+    NtClose(threadHandle);
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+
+    return status;
+}
+
+/**
+ * Sets an environment variable in a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param Name The name of the environment variable to set.
+ * \param Value The new value of the environment variable. If this parameter is NULL, the
+ * environment variable is deleted.
+ * \param Timeout The timeout, in milliseconds, for the process to set the environment variable.
+ */
+NTSTATUS PhSetEnvironmentVariableRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRINGREF Value,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInformation;
+    PVOID nameBaseAddress = NULL;
+    PVOID valueBaseAddress = NULL;
+    SIZE_T nameAllocationSize = 0;
+    SIZE_T valueAllocationSize = 0;
+    PVOID rtlExitUserThread = NULL;
+    PVOID setEnvironmentVariableW = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    nameAllocationSize = Name->Length + sizeof(UNICODE_NULL);
+
+    if (Value)
+        valueAllocationSize = Value->Length + sizeof(UNICODE_NULL);
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        &isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "SetEnvironmentVariableW",
+        &setEnvironmentVariableW,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &nameBaseAddress,
+        0,
+        &nameAllocationSize,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteVirtualMemory(
+        ProcessHandle,
+        nameBaseAddress,
+        Name->Buffer,
+        Name->Length,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (Value)
+    {
+        status = NtAllocateVirtualMemory(
+            ProcessHandle,
+            &valueBaseAddress,
+            0,
+            &valueAllocationSize,
+            MEM_COMMIT,
+            PAGE_READWRITE
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtWriteVirtualMemory(
+            ProcessHandle,
+            valueBaseAddress,
+            Value->Buffer,
+            Value->Length,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            setEnvironmentVariableW,
+            nameBaseAddress,
+            valueBaseAddress,
+            NULL
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThread(
+            threadHandle,
+            setEnvironmentVariableW,
+            nameBaseAddress,
+            valueBaseAddress,
+            NULL
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL); // Execute the pending APC (dmex)
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInformation.ExitStatus;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    if (nameBaseAddress)
+    {
+        nameAllocationSize = 0;
+        NtFreeVirtualMemory(
+            ProcessHandle,
+            &nameBaseAddress,
+            &nameAllocationSize,
+            MEM_RELEASE
+            );
+    }
+
+    if (valueBaseAddress)
+    {
+        valueAllocationSize = 0;
+        NtFreeVirtualMemory(
+            ProcessHandle,
+            &valueBaseAddress,
+            &valueAllocationSize,
+            MEM_RELEASE
+            );
+    }
+
+    return status;
+}
+
+// based on https://www.drdobbs.com/a-safer-alternative-to-terminateprocess/184416547 (dmex)
+NTSTATUS PhTerminateProcessAlternative(
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    PVOID rtlExitUserProcess = NULL;
+    HANDLE powerRequestHandle = NULL;
+    HANDLE threadHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserProcess",
+        &rtlExitUserProcess,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        0,
+        0,
+        0,
+        0,
+        rtlExitUserProcess,
+        LongToPtr(ExitStatus),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhWaitForSingleObject(threadHandle, Timeout);
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessSystemDllInitBlock(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    )
+{
+    NTSTATUS status;
+    PS_SYSTEM_DLL_INIT_BLOCK ldrSystemDllInitBlock = { 0 };
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        &LdrSystemDllInitBlock,
+        &ldrSystemDllInitBlock,
+        RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (RTL_CONTAINS_FIELD(&ldrSystemDllInitBlock, ldrSystemDllInitBlock.Size, MitigationAuditOptionsMap))
+    {
+        RtlMoveMemory(SystemDllInitBlock, &ldrSystemDllInitBlock, sizeof(ldrSystemDllInitBlock));
+    }
+    else
+    {
+        status = STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessCodePage(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUSHORT ProcessCodePage
+    )
+{
+    NTSTATUS status;
+    USHORT codePage = 0;
+
+    if (WindowsVersion >= WINDOWS_11)
+    {
+        PVOID pebBaseAddress;
+#ifdef _WIN64
+        BOOLEAN isWow64 = FALSE;
+
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+        if (isWow64)
+        {
+            status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+        else
+#endif
+        {
+            status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+    }
+    else
+    {
+        PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+        PVOID nlsAnsiCodePage;
+
+        status = PhGetProcessRuntimeLibrary(
+            ProcessHandle,
+            &runtimeLibrary,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetProcedureAddressRemote(
+            ProcessHandle,
+            &runtimeLibrary->NtdllFileName,
+            "NlsAnsiCodePage",
+            &nlsAnsiCodePage,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            nlsAnsiCodePage,
+            &codePage,
+            sizeof(USHORT),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessCodePage = codePage;
+    }
+
+CleanupExit:
+    return status;
+}
+
+NTSTATUS PhGetProcessConsoleCodePage(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN ConsoleOutputCP,
+    _Out_ PUSHORT ConsoleCodePage
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInformation;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PVOID getConsoleCP = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
+        &getConsoleCP,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        0,
+        0,
+        0,
+        0,
+        getConsoleCP,
+        NULL,
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhWaitForSingleObject(threadHandle, PhTimeoutFromMillisecondsEx(5000));
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *ConsoleCodePage = (USHORT)basicInformation.ExitStatus;
+
+CleanupExit:
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhFlushProcessHeapsRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInformation;
+    PVOID rtlExitUserThread = NULL;
+    PVOID rtlFlushHeaps = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        &isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlFlushHeaps",
+        &rtlFlushHeaps,
+        NULL
+        );
+  
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            rtlFlushHeaps,
+            NULL,
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThreadEx(
+            threadHandle,
+            QUEUE_USER_APC_SPECIAL_USER_APC,
+            rtlFlushHeaps,
+            NULL,
+            NULL,
+            NULL
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL); // Execute the pending APC (dmex)
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInformation.ExitStatus;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
+
+/*
+ * Invokes a procedure in the context of the owning thread for the window.
+ *
+ * \param WindowHandle The handle of the window.
+ * \param ApcRoutine The procedure to be invoked.
+ * \param ApcArgument1 The first argument to be passed to the procedure.
+ * \param ApcArgument2 The second argument to be passed to the procedure.
+ * \param ApcArgument3 The third argument to be passed to the procedure.
+ *
+ * \return The status of the operation.
+ */
+NTSTATUS PhInvokeWindowProcedureRemote(
+    _In_ HWND WindowHandle,
+    _In_ PVOID ApcRoutine,
+    _In_opt_ PVOID ApcArgument1,
+    _In_opt_ PVOID ApcArgument2,
+    _In_opt_ PVOID ApcArgument3
+    )
+{
+    NTSTATUS status;
+    HANDLE processHande = NULL;
+    HANDLE threadHande = NULL;
+    HANDLE powerHandle = NULL;
+    CLIENT_ID clientId;
+
+    // Get the client ID of the window.
+
+    status = PhGetWindowClientId(WindowHandle, &clientId);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Open the process associated with the window.
+
+    status = PhOpenProcessClientId(
+        &processHande,
+        PROCESS_ALL_ACCESS,
+        &clientId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Open the thread associated with the window.
+
+    status = PhOpenThreadClientId(
+        &threadHande,
+        THREAD_ALL_ACCESS, // THREAD_ALERT
+        &clientId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Create an execution required request for the process (Windows 8 and above)
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(processHande, &powerHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    // Queue a Special user-mode APC to execute within the context of the message loop.
+
+    status = NtQueueApcThreadEx(
+        threadHande,
+        QUEUE_USER_APC_SPECIAL_USER_APC,
+        ApcRoutine,
+        ApcArgument1,
+        ApcArgument2,
+        ApcArgument3
+        );
+
+CleanupExit:
+    if (threadHande)
+        NtClose(threadHande);
+    if (processHande)
+        NtClose(processHande);
+    if (powerHandle)
+        PhDestroyExecutionRequiredRequest(powerHandle);
+
+    return status;
+}
+
+/**
+ * Destroys the specified window in a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_LIMITED_INFORMATION access.
+ * \param WindowHandle A handle to the window to be destroyed.
+ *
+ * \return Successful or errant status.
+ *
+ * \remarks A thread cannot call DestroyWindow for a window created by a different thread,
+ * unless we queue a special APC to the owner thread.
+ */
+NTSTATUS PhDestroyWindowRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    PVOID destroyWindow = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->User32FileName,
+        "DestroyWindow",
+        &destroyWindow,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhInvokeWindowProcedureRemote(
+        WindowHandle,
+        destroyWindow,
+        (PVOID)WindowHandle,
+        NULL,
+        NULL
+        );
+
+CleanupExit:
+    return status;
+}
+
+NTSTATUS PhPostWindowQuitMessageRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    PVOID postQuitMessage = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->User32FileName,
+        "PostQuitMessage",
+        &postQuitMessage,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhInvokeWindowProcedureRemote(
+        WindowHandle,
+        postQuitMessage,
+        UlongToPtr(EXIT_SUCCESS),
+        NULL,
+        NULL
+        );
+
+CleanupExit:
+    return status;
+}
+
+/// https://learn.microsoft.com/en-us/windows/win32/multimedia/obtaining-and-setting-timer-resolution
+NTSTATUS PhSetProcessTimerResolutionRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Period
+    )
+{
+    NTSTATUS status;
+    PVOID rtlExitUserThread = NULL;
+    PVOID timeBeginPeriod = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        & isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "TimeBeginPeriod",
+        &timeBeginPeriod,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            timeBeginPeriod,
+            UlongToPtr(Period),
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThread(
+            threadHandle,
+            timeBeginPeriod,
+            UlongToPtr(Period),
+            NULL,
+            NULL
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessTimerResolutionRemote2(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Period
+    )
+{
+    NTSTATUS status;
+    PVOID rtlExitUserThread = NULL;
+    PVOID timeBeginPeriod = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        & isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "TimeBeginPeriod",
+        &timeBeginPeriod,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            timeBeginPeriod,
+            UlongToPtr(Period),
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThread(
+            threadHandle,
+            timeBeginPeriod,
+            UlongToPtr(Period),
+            NULL,
+            NULL
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetHandleInformationRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE RemoteHandle,
+    _In_ ULONG Mask,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    PVOID rtlExitUserThread = NULL;
+    PVOID setHandleInformation = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+    THREAD_BASIC_INFORMATION basicInformation;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        & isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->Kernel32FileName,
+        "SetHandleInformation",
+        &setHandleInformation,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_ALL_ACCESS,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            setHandleInformation,
+            RemoteHandle,
+            UlongToPtr(Mask),
+            UlongToPtr(Flags)
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThread(
+            threadHandle,
+            setHandleInformation,
+            RemoteHandle,
+            UlongToPtr(Mask),
+            UlongToPtr(Flags)
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if ((BOOL)basicInformation.ExitStatus) // Read TEB->LastErrorStatus?
+        status = STATUS_SUCCESS;
+    else
+        status = STATUS_UNSUCCESSFUL;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
 }
