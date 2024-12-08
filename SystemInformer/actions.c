@@ -2306,6 +2306,29 @@ BOOLEAN PhUiRestartProcess(
     if (Process->ProcessId == NtCurrentProcessId())
         return FALSE;
 
+    // Special handling for the current shell process. (dmex)
+    {
+        CLIENT_ID shellClientId;
+
+        if (NT_SUCCESS(PhGetWindowClientId(PhGetShellWindow(), &shellClientId)))
+        {
+            if (Process->ProcessId == shellClientId.UniqueProcess)
+            {
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_TERMINATE,
+                    Process->ProcessId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                    NtClose(processHandle);
+                }
+            }
+        }
+    }
+
     fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
     if (PhIsNullOrEmptyString(fileNameWin32) || !PhDoesFileExistWin32(PhGetString(fileNameWin32)))
@@ -2939,7 +2962,7 @@ BOOLEAN PhUiSetEcoModeProcess(
 BOOLEAN PhUiSetExecutionRequiredProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
-)
+    )
 {
     NTSTATUS status;
 
@@ -3067,7 +3090,7 @@ BOOLEAN PhUiLoadDllProcess(
         LARGE_INTEGER timeout;
 
         timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(processHandle, &fileName->sr, &timeout);
+        status = PhLoadDllProcess(processHandle, &fileName->sr, FALSE, &timeout);
 
         NtClose(processHandle);
     }
@@ -3346,7 +3369,6 @@ typedef struct _PH_UI_SERVICE_PROGRESS_DIALOG
     HWND WindowHandle;
     HWND ParentWindowHandle;
 
-    PCWSTR Object;
     PCWSTR Verb;
     PCWSTR Message;
 
@@ -6085,7 +6107,7 @@ BOOLEAN PhUiCloseHandles(
     )
 {
     NTSTATUS status;
-    BOOLEAN cont = FALSE;
+    BOOLEAN result = FALSE;
     BOOLEAN success = TRUE;
     HANDLE processHandle;
 
@@ -6094,7 +6116,7 @@ BOOLEAN PhUiCloseHandles(
 
     if (Warn && PhGetIntegerSetting(L"EnableWarnings"))
     {
-        cont = PhShowConfirmMessage(
+        result = PhShowConfirmMessage(
             WindowHandle,
             L"close",
             NumberOfHandles == 1 ? L"the selected handle" : L"the selected handles",
@@ -6104,10 +6126,10 @@ BOOLEAN PhUiCloseHandles(
     }
     else
     {
-        cont = TRUE;
+        result = TRUE;
     }
 
-    if (!cont)
+    if (!result)
         return FALSE;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -6150,7 +6172,7 @@ BOOLEAN PhUiCloseHandles(
 
         if (critical && strict)
         {
-            cont = PhShowConfirmMessage(
+            result = PhShowConfirmMessage(
                 WindowHandle,
                 L"close",
                 L"critical process handle(s)",
@@ -6159,11 +6181,26 @@ BOOLEAN PhUiCloseHandles(
                 );
         }
 
-        if (!cont)
+        if (!result)
             return FALSE;
 
         for (ULONG i = 0; i < NumberOfHandles; i++)
         {
+            if (FlagOn(Handles[i]->Attributes, OBJ_PROTECT_CLOSE))
+            {
+                if (!PhpShowErrorHandle(
+                    WindowHandle,
+                    L"close",
+                    NULL,
+                    Handles[i],
+                    STATUS_HANDLE_NOT_CLOSABLE,
+                    0
+                    ))
+                {
+                    break;
+                }
+            }
+
             status = NtDuplicateObject(
                 processHandle,
                 Handles[i]->Handle,
@@ -6184,22 +6221,6 @@ BOOLEAN PhUiCloseHandles(
                     NULL,
                     Handles[i],
                     status,
-                    0
-                    ))
-                    break;
-            }
-            // If handle is protected from closing NtDuplicateObject doesn't close handle but returns STATUS_SUCCESS.
-            // Show error to notify user that "Protected" attribute should be removed first (Dart Vanya)
-            else if (Handles[i]->Attributes & OBJ_PROTECT_CLOSE)
-            {
-                success = FALSE;
-
-                if (!PhpShowErrorHandle(
-                    WindowHandle,
-                    L"close",
-                    L".\nRemove \"Protected\" attribute from menu and try again.",
-                    Handles[i],
-                    STATUS_HANDLE_NOT_CLOSABLE,
                     0
                     ))
                     break;

@@ -487,6 +487,38 @@ PhGetProcessConsoleHostProcessId(
 
 FORCEINLINE
 NTSTATUS
+PhGetProcessConsoleHostProcess(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE ConsoleHostProcessId,
+    _Out_opt_ PBOOLEAN ConsoleApplication
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR consoleHostProcess;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessConsoleHostProcess,
+        &consoleHostProcess,
+        sizeof(ULONG_PTR),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ConsoleHostProcessId = (HANDLE)(consoleHostProcess & ~3);
+    }
+
+    if (ConsoleApplication)
+    {
+        *ConsoleApplication = !!(ULONG_PTR)(consoleHostProcess & 2);
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessProtection(
     _In_ HANDLE ProcessHandle,
     _Out_ PPS_PROTECTION Protection
