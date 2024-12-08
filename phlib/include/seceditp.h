@@ -13,6 +13,31 @@
 #ifndef _PH_SECEDITP_H
 #define _PH_SECEDITP_H
 
+typedef enum _PH_SE_OBJECT_TYPE
+{
+    PH_SE_DEFAULT_OBJECT_TYPE,
+
+    // System objects
+    PH_SE_FILE_OBJECT_TYPE,
+    PH_SE_SERVICE_OBJECT_TYPE,
+    PH_SE_LSA_OBJECT_TYPE,
+    PH_SE_SAM_OBJECT_TYPE,
+
+    PH_SE_KEY_OBJECT,
+    PH_SE_KERNEL_OBJECT,
+    PH_SE_WINDOW_OBJECT,
+    PH_SE_WMIGUID_OBJECT,
+    // ...
+
+    // Virtual objects (always last)
+    PH_SE_TOKENDEF_OBJECT_TYPE,
+    PH_SE_POWERDEF_OBJECT_TYPE,
+    PH_SE_RDPDEF_OBJECT_TYPE,
+    PH_SE_WMIDEF_OBJECT_TYPE,
+    // ...
+
+} PH_SE_OBJECT_TYPE;
+
 typedef struct
 {
     const ISecurityInformationVtbl *VTable;
@@ -27,12 +52,17 @@ typedef struct
     ULONG NumberOfAccessEntries;
     GENERIC_MAPPING GenericMapping;
 
+    PH_SE_OBJECT_TYPE ObjectTypeMask;
+
     PPH_STRING ObjectName;
     PPH_STRING ObjectType;
+
     PPH_OPEN_OBJECT OpenObject;
     PPH_CLOSE_OBJECT CloseObject;
+
     PPH_GET_OBJECT_SECURITY GetObjectSecurity;
     PPH_SET_OBJECT_SECURITY SetObjectSecurity;
+
     PVOID Context;
 } PhSecurityInformation;
 
@@ -99,10 +129,10 @@ typedef struct
 
 ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
@@ -343,6 +373,10 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     _Out_ PULONG ObjectTypeListLength,
     _Out_ PACCESS_MASK* GrantedAccessList,
     _Out_ PULONG GrantedAccessListLength
+    );
+
+PH_SE_OBJECT_TYPE PhSecurityObjectType(
+    _In_ PPH_STRING ObjectType
     );
 
 #endif
