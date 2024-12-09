@@ -101,14 +101,16 @@ namespace CustomBuildTool
 
                 if (!Build.CopyResourceFiles(flags))
                     Environment.Exit(1);
-
                 if (!Build.BuildSdk(flags))
                     Environment.Exit(1);
-
                 if (!Build.CopyKernelDriver(flags))
                     Environment.Exit(1);
-
                 if (!Build.CopyWow64Files(flags))
+                    Environment.Exit(1);
+            }
+            else if (ProgramArgs.ContainsKey("-azure-sign"))
+            {
+                if (!EntraKeyVault.SignFiles(ProgramArgs["-Path"], ProgramArgs["-SearchPattern"]))
                     Environment.Exit(1);
             }
             else if (ProgramArgs.TryGetValue("-kph-sign", out string SignArg))
@@ -190,7 +192,6 @@ namespace CustomBuildTool
                     flags |= BuildFlags.BuildMsix;
 
                 Build.SetupBuildEnvironment(true);
-
                 Build.CopySourceLink(true);
 
                 try
@@ -273,9 +274,7 @@ namespace CustomBuildTool
                     Environment.Exit(1);
 
                 Build.BuildStorePackage(flags);
-
                 Build.BuildPdbZip(true);
-
                 Build.CopyTextFiles(false);
             }
             else

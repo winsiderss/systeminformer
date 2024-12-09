@@ -262,16 +262,14 @@ VOID PhShowKsiStatus(
     }
 }
 
-VOID PhpShowKsiMessage(
-    _In_opt_ HWND WindowHandle,
-    _In_opt_ PCWSTR Icon,
+PPH_STRING PhGetKsiMessage(
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
-    _In_ PCWSTR Title,
     _In_ PCWSTR Format,
-    _In_ va_list ArgPtr
+    ...
     )
 {
+    va_list argptr;
     PPH_STRING versionString;
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
@@ -280,30 +278,21 @@ VOID PhpShowKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
-    if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
-        return;
-
     versionString = PhGetApplicationVersionString(FALSE);
     kernelVersion = KsiGetKernelVersionString();
     errorMessage = NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
+    va_start(argptr, Format);
+    PhAppendFormatStringBuilder_V(&stringBuilder, Format, argptr);
+    va_end(argptr);
     PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
 
     if (Status != 0)
     {
-        switch (Status)
-        {
-        case STATUS_NO_SUCH_FILE:
-            errorMessage = PhCreateString(L"The file does not exist.");
-            break;
-        default:
-            if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-                errorMessage = PhGetStatusMessage(0, Status);
-            break;
-        }
+        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+            errorMessage = PhGetStatusMessage(0, Status);
 
         if (errorMessage)
         {
@@ -340,7 +329,6 @@ VOID PhpShowKsiMessage(
     PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
     PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));
     PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-
     PhAppendStringBuilder(&stringBuilder, &versionString->sr);
     PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
@@ -352,7 +340,7 @@ VOID PhpShowKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (Force && !PhEnableKsiWarnings)
+    if (!PhEnableKsiWarnings)
     {
         PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
@@ -365,6 +353,30 @@ VOID PhpShowKsiMessage(
 
     messageString = PhFinalStringBuilderString(&stringBuilder);
 
+    PhClearReference(&errorMessage);
+    PhClearReference(&kernelVersion);
+    PhDereferenceObject(versionString);
+
+    return messageString;
+}
+
+VOID PhpShowKsiMessage(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    _In_ va_list ArgPtr
+    )
+{
+    PPH_STRING errorMessage;
+
+    if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
+        return;
+
+    errorMessage = PhGetKsiMessage(Status, Force, Format, ArgPtr);
+
     if (Force)
     {
         PhShowMessage2(
@@ -372,7 +384,7 @@ VOID PhpShowKsiMessage(
             TD_OK_BUTTON,
             Icon,
             Title,
-            PhGetString(messageString)
+            PhGetString(errorMessage)
             );
     }
     else
@@ -382,7 +394,7 @@ VOID PhpShowKsiMessage(
             TD_OK_BUTTON,
             Icon,
             Title,
-            PhGetString(messageString)
+            PhGetString(errorMessage)
             ))
         {
             PhEnableKsiWarnings = FALSE;
@@ -391,8 +403,6 @@ VOID PhpShowKsiMessage(
     }
 
     PhClearReference(&errorMessage);
-    PhClearReference(&kernelVersion);
-    PhDereferenceObject(versionString);
 }
 
 VOID PhShowKsiMessageEx(

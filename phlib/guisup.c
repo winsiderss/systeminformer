@@ -2505,7 +2505,7 @@ VOID PhWindowNotifyTopMostEvent(
  * @remarks User-specific environment variables such as %USERPROFILE% are set only when the user's profile is loaded. To load a user's profile, call the LoadUserProfile function.
  */
 NTSTATUS PhCreateEnvironmentBlock(
-    _Outptr_ PVOID* Environment,
+    _Out_ PVOID* Environment,
     _In_opt_ HANDLE TokenHandle,
     _In_ BOOLEAN Inherit
     )

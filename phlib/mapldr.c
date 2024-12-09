@@ -448,8 +448,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
  * \param FileName The file name of the DLL containing the procedure.
- * \param ProcedureName The name of the procedure.
- * \param ProcedureNumber The ordinal of the procedure.
+ * \param ProcedureName The name or ordinal of the procedure.
  * \param ProcedureAddress A variable which receives the address of the procedure in the address
  * space of the process.
  * \param DllBase A variable which receives the base address of the DLL containing the procedure.
@@ -457,8 +456,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
 NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_opt_ PCSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
+    _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     )
@@ -563,13 +561,26 @@ NTSTATUS PhGetProcedureAddressRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetMappedImageExportFunctionRemote(
-        &exports,
-        ProcedureName,
-        ProcedureNumber,
-        context.DllBase,
-        ProcedureAddress
-        );
+    if (IS_INTRESOURCE(ProcedureName))
+    {
+        status = PhGetMappedImageExportFunctionRemote(
+            &exports,
+            NULL,
+            PtrToUshort(ProcedureName),
+            context.DllBase,
+            ProcedureAddress
+            );
+    }
+    else
+    {
+        status = PhGetMappedImageExportFunctionRemote(
+            &exports,
+            ProcedureName,
+            0,
+            context.DllBase,
+            ProcedureAddress
+            );
+    }
 
     if (NT_SUCCESS(status))
     {

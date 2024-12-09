@@ -886,7 +886,8 @@ PPH_STRING PhGetStatusMessage(
         // In some cases we want the simple Win32 messages.
         if (
             Status == STATUS_ACCESS_DENIED ||
-            Status == STATUS_ACCESS_VIOLATION
+            Status == STATUS_ACCESS_VIOLATION ||
+            Status == STATUS_NO_SUCH_FILE
             )
         {
             Win32Result = RtlNtStatusToDosErrorNoTeb(Status);
@@ -1071,13 +1072,13 @@ VOID PhGenerateGuid(
     _Out_ PGUID Guid
     )
 {
-    LARGE_INTEGER seed;
+    ULARGE_INTEGER seed;
     // The top/sign bit is always unusable for RtlRandomEx (the result is always unsigned), so we'll
     // take the bottom 24 bits. We need 128 bits in total, so we'll call the function 6 times.
     ULONG random[6];
     ULONG i;
 
-    PhQueryPerformanceCounter(&seed);
+    seed.QuadPart = PhReadPerformanceCounter();
 
     for (i = 0; i < 6; i++)
         random[i] = RtlRandomEx(&seed.LowPart);
@@ -1249,13 +1250,13 @@ VOID PhGenerateRandomAlphaString(
     _In_ SIZE_T Count
     )
 {
-    LARGE_INTEGER seed;
+    ULARGE_INTEGER seed;
     ULONG i;
 
     if (Count == 0)
         return;
 
-    PhQueryPerformanceCounter(&seed);
+    seed.QuadPart = PhReadPerformanceCounter();
 
     for (i = 0; i < Count - 1; i++)
     {
@@ -1269,11 +1270,10 @@ ULONG64 PhGenerateRandomNumber64(
     VOID
     )
 {
-    LARGE_INTEGER seed;
+    ULARGE_INTEGER seed;
     ULARGE_INTEGER value;
 
-    PhQueryPerformanceCounter(&seed);
-
+    seed.QuadPart = PhReadPerformanceCounter();
     value.LowPart = RtlRandomEx(&seed.LowPart);
     value.HighPart = RtlRandomEx(&seed.LowPart);
 
@@ -4851,8 +4851,8 @@ NTSTATUS PhCreateProcessAsUser(
         ULONG returnLength;
 
         memset(&userToken, 0, sizeof(WINSTATIONUSERTOKEN));
-        //userToken.ProcessId = NtCurrentProcessId();
-        //userToken.ThreadId = NtCurrentThreadId();
+        userToken.ProcessId = NtCurrentProcessId();
+        userToken.ThreadId = NtCurrentThreadId();
 
         if (!WinStationQueryInformationW(
             WINSTATION_CURRENT_SERVER,
@@ -5179,7 +5179,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
             newDacl = PhAllocate(newDaclLength);
-            RtlCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+            PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
             if (currentDaclPresent && currentDacl)
@@ -5196,7 +5196,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
 
             // Set the security descriptor of the new token.
 
-            RtlCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 
             if (NT_SUCCESS(RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
                 PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
@@ -6445,7 +6445,7 @@ VOID PhSetFileDialogFileName(
 
         PhFree(ofn->lpstrFile);
 
-        ofn->nMaxFile = (ULONG)max(fileName.Length / sizeof(WCHAR) + 1, 0x400);
+        ofn->nMaxFile = (ULONG)__max(fileName.Length / sizeof(WCHAR) + 1, 0x400);
         ofn->lpstrFile = PhAllocate(ofn->nMaxFile * sizeof(WCHAR));
         memcpy(ofn->lpstrFile, fileName.Buffer, fileName.Length + sizeof(UNICODE_NULL));
     }
@@ -6551,7 +6551,7 @@ NTSTATUS PhIsExecutablePacked(
     // Get the module and function totals.
 
     numberOfModules = imports.NumberOfDlls;
-    limitNumberOfModules = min(numberOfModules, 64);
+    limitNumberOfModules = __min(numberOfModules, 64);
 
     for (i = 0; i < limitNumberOfModules; i++)
     {
@@ -7660,8 +7660,8 @@ HANDLE PhGetNamespaceHandle(
         securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
         dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-        RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+        PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
@@ -8925,7 +8925,7 @@ HRESULT PhDevGetObjects(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static typeof(&DevGetObjects) DevGetObjects_I = NULL;
-
+    HRESULT status;
     if (PhBeginInitOnce(&initOnce))
     {
         PVOID cfgmgr32;
@@ -8941,7 +8941,7 @@ HRESULT PhDevGetObjects(
     if (!DevGetObjects_I)
         return E_FAIL;
 
-    return DevGetObjects_I(
+    status = DevGetObjects_I(
         ObjectType,
         QueryFlags,
         RequestedPropertiesCount,
@@ -8951,6 +8951,16 @@ HRESULT PhDevGetObjects(
         ObjectCount,
         Objects
         );
+
+    if (SUCCEEDED(status))
+    {
+        if (*ObjectCount == 0)
+        {
+            status = E_FAIL;
+        }
+    }
+
+    return status;
 }
 
 VOID PhDevFreeObjects(

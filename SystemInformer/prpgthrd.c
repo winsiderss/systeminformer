@@ -1673,10 +1673,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     if (threadNode->Node.Visible)
                     {
-                        TreeNew_SetFocusNode(threadsContext->TreeNewHandle, &threadNode->Node);
-                        TreeNew_SetMarkNode(threadsContext->TreeNewHandle, &threadNode->Node);
-                        TreeNew_SelectRange(threadsContext->TreeNewHandle, threadNode->Node.Index, threadNode->Node.Index);
-                        TreeNew_EnsureVisible(threadsContext->TreeNewHandle, &threadNode->Node);
+                        TreeNew_FocusMarkSelectNode(threadsContext->TreeNewHandle, &threadNode->Node);
                     }
                 }
 

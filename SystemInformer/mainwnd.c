@@ -1201,7 +1201,10 @@ VOID PhMwpOnCommand(
 
             PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
 
-            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
+            if (PhPluginsEnabled)
+            {
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
+            }
         }
         break;
     case ID_TOOLS_THREADSTACKS:
@@ -2447,6 +2450,7 @@ VOID PhMwpOnDeviceChanged(
         break;
     }
 
+    if (PhPluginsEnabled)
     {
         MSG message;
 
@@ -2480,6 +2484,7 @@ VOID PhMwpOnDpiChanged(
 
     PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
 
+    if (PhPluginsEnabled)
     {
         MSG message;
 

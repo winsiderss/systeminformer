@@ -2123,6 +2123,14 @@ PhCreateProcessAsInteractiveUser(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateProcessClone(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateProcessReflection(
     _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
     _In_ HANDLE ProcessHandle

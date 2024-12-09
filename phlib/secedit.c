@@ -123,10 +123,10 @@ static NTSTATUS PhEditSecurityAdvancedThread(
  * \param Context A user-defined value to pass to the callback functions.
  */
 PVOID PhCreateSecurityPage(
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
@@ -164,10 +164,10 @@ PVOID PhCreateSecurityPage(
  */
 VOID PhEditSecurity(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
@@ -205,10 +205,10 @@ VOID PhEditSecurity(
  */
 VOID PhEditSecurityEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context
@@ -236,10 +236,10 @@ VOID PhEditSecurityEx(
 
 ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
@@ -256,6 +256,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->WindowHandle = WindowHandle;
     info->ObjectName = PhCreateString(ObjectName);
     info->ObjectType = PhCreateString(ObjectType);
+    info->ObjectTypeMask = PhSecurityObjectType(info->ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
     info->GetObjectSecurity = GetObjectSecurity;
@@ -273,15 +274,16 @@ ISecurityInformation *PhSecurityInformation_Create(
             info->AccessEntries[i].mask = info->AccessEntriesArray[i].Access;
 
             if (info->AccessEntriesArray[i].General)
-                info->AccessEntries[i].dwFlags |= SI_ACCESS_GENERAL;
+                SetFlag(info->AccessEntries[i].dwFlags, SI_ACCESS_GENERAL);
             if (info->AccessEntriesArray[i].Specific)
-                info->AccessEntries[i].dwFlags |= SI_ACCESS_SPECIFIC;
+                SetFlag(info->AccessEntries[i].dwFlags, SI_ACCESS_SPECIFIC);
 
-            if (PhEqualString2(info->ObjectType, L"FileObject", TRUE)) // TODO: Remove PhEqualString2 (dmex)
-                info->AccessEntries[i].dwFlags |= OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+            if (info->ObjectTypeMask == PH_SE_FILE_OBJECT_TYPE)
+                SetFlag(info->AccessEntries[i].dwFlags, OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
         }
     }
 
+    if (info->ObjectType)
     {
         GENERIC_MAPPING genericMapping;
 
@@ -423,31 +425,49 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
 
     memset(ObjectInfo, 0, sizeof(SI_OBJECT_INFO));
-    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | (WindowsVersion >= WINDOWS_8 ? SI_VIEW_ONLY : 0) | SI_EDIT_EFFECTIVE;
-    ObjectInfo->pszObjectName = (PWSTR)PhGetString(this->ObjectName);
+    ObjectInfo->dwFlags = SI_EDIT_ALL | SI_ADVANCED | SI_EDIT_EFFECTIVE;
+    ObjectInfo->pszObjectName = PhGetString(this->ObjectName);
 
-    if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
+    if (WindowsVersion >= WINDOWS_8)
     {
-        ObjectInfo->dwFlags |= SI_ENABLE_EDIT_ATTRIBUTE_CONDITION | SI_MAY_WRITE; // SI_RESET | SI_READONLY
-        //if (Folder) ObjectInfo->dwFlags |= SI_CONTAINER;
+        SetFlag(ObjectInfo->dwFlags, SI_VIEW_ONLY | SI_EDIT_EFFECTIVE);
     }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
+
+    switch (this->ObjectTypeMask)
     {
-        ObjectInfo->dwFlags &= ~(SI_EDIT_OWNER | SI_EDIT_AUDITS);
-    }
-    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
-    {
-        ObjectInfo->dwFlags &= ~SI_EDIT_AUDITS;
-        ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY | SI_CONTAINER | SI_OWNER_READONLY;
-    }
-    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
-    {
-        ObjectInfo->dwFlags &= ~SI_EDIT_OWNER;
-        ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY;
-    }
-    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
-    {
-        ObjectInfo->dwFlags |= SI_CONTAINER | SI_OWNER_READONLY;
+    case PH_SE_FILE_OBJECT_TYPE:
+        {
+            SetFlag(ObjectInfo->dwFlags, SI_ENABLE_EDIT_ATTRIBUTE_CONDITION | SI_MAY_WRITE); // SI_RESET | SI_READONLY
+
+            // Check if the string is a filename or directory.
+            if (this->ObjectName && PhFindLastCharInString(this->ObjectName, 0, OBJ_NAME_PATH_SEPARATOR) == SIZE_MAX)
+            {
+                SetFlag(ObjectInfo->dwFlags, SI_CONTAINER); // directory
+            }
+        }
+        break;
+    case PH_SE_TOKENDEF_OBJECT_TYPE:
+        {
+            ClearFlag(ObjectInfo->dwFlags, SI_EDIT_OWNER | SI_EDIT_AUDITS);
+        }
+        break;
+    case PH_SE_POWERDEF_OBJECT_TYPE:
+        {
+            ClearFlag(ObjectInfo->dwFlags, SI_EDIT_AUDITS);
+            SetFlag(ObjectInfo->dwFlags, SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY | SI_CONTAINER | SI_OWNER_READONLY);
+        }
+        break;
+    case PH_SE_RDPDEF_OBJECT_TYPE:
+        {
+            ClearFlag(ObjectInfo->dwFlags, SI_EDIT_OWNER);
+            SetFlag(ObjectInfo->dwFlags, SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY);
+        }
+        break;
+    case PH_SE_WMIDEF_OBJECT_TYPE:
+        {
+            SetFlag(ObjectInfo->dwFlags, SI_CONTAINER | SI_OWNER_READONLY);
+        }
+        break;
     }
 
     return S_OK;
@@ -585,7 +605,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
 {
     PhSecurityInformation* this = (PhSecurityInformation*)This;
 
-    if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
+    if (this->ObjectTypeMask == PH_SE_FILE_OBJECT_TYPE)
     {
         static GENERIC_MAPPING genericMappings =
         {
@@ -617,7 +637,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
 
     PhSecurityInformation* this = (PhSecurityInformation*)This;
 
-    if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    if (this->ObjectTypeMask == PH_SE_WMIDEF_OBJECT_TYPE)
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
@@ -807,10 +827,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation3_GetFullResourceName(
 {
     PhSecurityInformation3 *this = (PhSecurityInformation3 *)This;
 
-    if (PhIsNullOrEmptyString(this->Context->ObjectName))
-        *ppszResourceName = PhGetString(this->Context->ObjectType);
-    else
-        *ppszResourceName = PhGetString(this->Context->ObjectName);
+    *ppszResourceName = PhGetString(this->Context->ObjectName);
 
     return S_OK;
 }
@@ -1095,7 +1112,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityObjectTypeInfo_GetInheritSource(
     PINHERITED_FROM result;
     ULONG status;
 
-    if (!PhEqualString2(this->Context->ObjectType, L"FileObject", TRUE)) // TODO: Remove PhEqualString2 (dmex)
+    if (this->Context->ObjectTypeMask != PH_SE_FILE_OBJECT_TYPE)
         return S_FALSE;
 
     result = (PINHERITED_FROM)LocalAlloc(LPTR, ((ULONGLONG)Acl->AceCount + 1) * sizeof(INHERITED_FROM));
@@ -1291,15 +1308,12 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
 NTSTATUS PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
     NTSTATUS status;
     HANDLE handle;
-
-    if (!this)
-        return STATUS_UNSUCCESSFUL;
 
     status = this->OpenObject(
         &handle,
@@ -1310,165 +1324,36 @@ NTSTATUS PhStdGetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
+    switch (this->ObjectTypeMask)
     {
-        status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-    }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
+    case PH_SE_FILE_OBJECT_TYPE:
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
-    }
-    else if (
-        PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaPolicy", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaSecret", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaTrusted", TRUE)
-        )
-    {
-        PSECURITY_DESCRIPTOR securityDescriptor;
-
-        status = LsaQuerySecurityObject(
-            handle,
-            SecurityInformation,
-            &securityDescriptor
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *SecurityDescriptor = PhAllocateCopy(
-                securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
-                );
-            LsaFreeMemory(securityDescriptor);
-        }
-    }
-    else if (
-        PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamDomain", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamGroup", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamServer", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamUser", TRUE)
-        )
-    {
-        //PSECURITY_DESCRIPTOR securityDescriptor;
-        //
-        //status = SamQuerySecurityObject(
-        //    handle,
-        //    SecurityInformation,
-        //    &securityDescriptor
-        //    );
-        //
-        //if (NT_SUCCESS(status))
-        //{
-        //    *SecurityDescriptor = PhAllocateCopy(
-        //        securityDescriptor,
-        //        RtlLengthSecurityDescriptor(securityDescriptor)
-        //        );
-        //    SamFreeMemory(securityDescriptor);
-        //}
-        //
-        //SamCloseHandle(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
-    {
-        PTOKEN_DEFAULT_DACL defaultDacl;
-
-        status = PhGetTokenDefaultDacl(
-            handle,
-            &defaultDacl
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            ULONG allocationLength;
-            ULONG allocationLengthRelative = 0;
-            PSECURITY_DESCRIPTOR securityDescriptor;
-            PSECURITY_DESCRIPTOR securityRelative;
-
-            allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
-
-            securityDescriptor = PhAllocateZero(allocationLength);
-            status = RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
-
-            status = RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
-
-            assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
-
-            status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
-            if (status != STATUS_BUFFER_TOO_SMALL)
-                goto CleanupExit;
-
-            securityRelative = PhAllocateZero(allocationLengthRelative);
-            status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
-
-            allocationLength = RtlLengthSecurityDescriptor(securityRelative);
-            assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
-
-            *SecurityDescriptor = securityRelative;
-
-        CleanupExit:
-            PhFree(securityDescriptor);
-            PhFree(defaultDacl);
-        }
-    }
-    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
-    {
-        PSECURITY_DESCRIPTOR securityDescriptor;
-        PPH_STRING powerPolicySddl;
-
-        if (NT_SUCCESS(status = PhpGetPowerPolicySecurityDescriptor(&powerPolicySddl)))
-        {
-            if (securityDescriptor = PhGetSecurityDescriptorFromString(PhGetString(powerPolicySddl)))
-            {
-                *SecurityDescriptor = PhAllocateCopy(
-                    securityDescriptor,
-                    RtlLengthSecurityDescriptor(securityDescriptor)
-                    );
-                PhFree(securityDescriptor);
-            }
-            else
-            {
-                status = STATUS_INVALID_SECURITY_DESCR;
-            }
-
-            PhDereferenceObject(powerPolicySddl);
-        }
-    }
-    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
-    {
-        PSECURITY_DESCRIPTOR securityDescriptor;
-
-        if (NT_SUCCESS(status = PhpGetRemoteDesktopSecurityDescriptor(&securityDescriptor)))
-        {
-            *SecurityDescriptor = PhAllocateCopy(
-                securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
-                );
-            PhFree(securityDescriptor);
-        }
-    }
-    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
-    {
-        PSECURITY_DESCRIPTOR securityDescriptor;
-
-        if (NT_SUCCESS(status = PhGetWmiNamespaceSecurityDescriptor(&securityDescriptor)))
-        {
-            *SecurityDescriptor = PhAllocateCopy(
-                securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
-                );
-            PhFree(securityDescriptor);
-        }
-    }
-    else
-    {
+        break;
+    case PH_SE_SERVICE_OBJECT_TYPE:
+        status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_LSA_OBJECT_TYPE:
+        status = PhLsaQuerySecurityObject(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_SAM_OBJECT_TYPE:
+        status = PhSamQuerySecurityObject(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_TOKENDEF_OBJECT_TYPE:
+        status = PhGetSeObjectSecurityTokenDefault(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_POWERDEF_OBJECT_TYPE:
+        status = PhGetSeObjectSecurityPowerGuid(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_RDPDEF_OBJECT_TYPE:
+        status = PhpGetRemoteDesktopSecurityDescriptor(SecurityDescriptor);
+        break;
+    case PH_SE_WMIDEF_OBJECT_TYPE:
+        status = PhGetWmiNamespaceSecurityDescriptor(SecurityDescriptor);
+        break;
+    case PH_SE_DEFAULT_OBJECT_TYPE:
+    default:
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        break;
     }
 
     if (this->CloseObject)
@@ -1496,15 +1381,12 @@ NTSTATUS PhStdGetObjectSecurity(
 NTSTATUS PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
     NTSTATUS status;
     HANDLE handle;
-
-    if (!this)
-        return STATUS_UNSUCCESSFUL;
 
     status = this->OpenObject(
         &handle,
@@ -1515,114 +1397,36 @@ NTSTATUS PhStdSetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
+    switch (this->ObjectTypeMask)
     {
+    case PH_SE_FILE_OBJECT_TYPE:
+        status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_SERVICE_OBJECT_TYPE:
         status = PhSetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-    }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
-        status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-    }
-    else if (
-        PhEqualString2(this->ObjectType, L"LsaAccount", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaPolicy", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaSecret", TRUE) ||
-        PhEqualString2(this->ObjectType, L"LsaTrusted", TRUE)
-        )
-    {
-        status = LsaSetSecurityObject(
-            handle,
-            SecurityInformation,
-            SecurityDescriptor
-            );
-    }
-    else if (
-        PhEqualString2(this->ObjectType, L"SamAlias", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamDomain", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamGroup", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamServer", TRUE) ||
-        PhEqualString2(this->ObjectType, L"SamUser", TRUE)
-        )
-    {
-        //status = SamSetSecurityObject(
-        //    handle,
-        //    SecurityInformation,
-        //    SecurityDescriptor
-        //    );
-        //
-        //SamCloseHandle(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
-    {
-        BOOLEAN present = FALSE;
-        BOOLEAN defaulted = FALSE;
-        PACL dacl = NULL;
-
-        status = PhGetDaclSecurityDescriptorNotNull(
-            SecurityDescriptor,
-            &present,
-            &defaulted,
-            &dacl
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            TOKEN_DEFAULT_DACL defaultDacl;
-
-            defaultDacl.DefaultDacl = dacl;
-
-            status = NtSetInformationToken(
-                handle,
-                TokenDefaultDacl,
-                &defaultDacl,
-                sizeof(TOKEN_DEFAULT_DACL)
-                );
-        }
-    }
-    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
-    {
-        PPH_STRING powerPolicySddl;
-
-        // kludge the descriptor into the correct SDDL format required by powercfg (dmex)
-        // 1) The owner must always be the built-in domain administrator.
-        // 2) The group must always be NT AUTHORITY\SYSTEM.
-        // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
-
-        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
-        RtlSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
-        RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
-
-        if (powerPolicySddl = PhGetSecurityDescriptorAsString(
-            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-            DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
-            SecurityDescriptor
-            ))
-        {
-            status = PhpSetPowerPolicySecurityDescriptor(powerPolicySddl);
-            PhDereferenceObject(powerPolicySddl);
-        }
-    }
-    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
-    {
+        break;
+    case PH_SE_LSA_OBJECT_TYPE:
+        status = LsaSetSecurityObject(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_SAM_OBJECT_TYPE:
+        status = STATUS_NOT_SUPPORTED; // SamSetSecurityObject(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_TOKENDEF_OBJECT_TYPE:
+        status = PhSetSeObjectSecurityTokenDefault(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_POWERDEF_OBJECT_TYPE:
+        status = PhSetSeObjectSecurityPowerGuid(handle, SecurityInformation, SecurityDescriptor);
+        break;
+    case PH_SE_RDPDEF_OBJECT_TYPE:
         status = PhpSetRemoteDesktopSecurityDescriptor(SecurityDescriptor);
-    }
-    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
-    {
-        PSID administratorsSid;
-
-        // kludge the descriptor into the correct format required by wmimgmt (dmex)
-        // 1) The owner must always be the built-in domain administrator.
-        // 2) The group must always be the built-in domain administrator.
-
-        administratorsSid = PhSeAdministratorsSid();
-        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
-        RtlSetGroupSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
-
+        break;
+    case PH_SE_WMIDEF_OBJECT_TYPE:
         status = PhSetWmiNamespaceSecurityDescriptor(SecurityDescriptor);
-    }
-    else
-    {
+        break;
+    case PH_SE_DEFAULT_OBJECT_TYPE:
+    default:
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        break;
     }
 
     if (this->CloseObject)
@@ -1746,4 +1550,274 @@ NTSTATUS PhSetSeObjectSecurity(
         return PhDosErrorToNtStatus(win32Result);
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhLsaQuerySecurityObject(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+
+    status = LsaQuerySecurityObject(
+        Handle,
+        SecurityInformation,
+        &securityDescriptor
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SecurityDescriptor = PhAllocateCopy(
+            securityDescriptor,
+            RtlLengthSecurityDescriptor(securityDescriptor)
+            );
+        LsaFreeMemory(securityDescriptor);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSamQuerySecurityObject(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    //NTSTATUS status;
+    //PSECURITY_DESCRIPTOR securityDescriptor;
+    //
+    //status = SamQuerySecurityObject(
+    //    Handle,
+    //    SecurityInformation,
+    //    &securityDescriptor
+    //    );
+    //
+    //if (NT_SUCCESS(status))
+    //{
+    //    *SecurityDescriptor = PhAllocateCopy(
+    //        securityDescriptor,
+    //        RtlLengthSecurityDescriptor(securityDescriptor)
+    //        );
+    //    SamFreeMemory(securityDescriptor);
+    //}
+    //
+    //return status;
+    return STATUS_NOT_SUPPORTED;
+}
+
+NTSTATUS PhGetSeObjectSecurityTokenDefault(
+    _In_ HANDLE TokenHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PTOKEN_DEFAULT_DACL defaultDacl;
+
+    status = PhGetTokenDefaultDacl(
+        TokenHandle,
+        &defaultDacl
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG allocationLength;
+        ULONG allocationLengthRelative = 0;
+        PSECURITY_DESCRIPTOR securityDescriptor;
+        PSECURITY_DESCRIPTOR securityRelative;
+
+        allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
+
+        securityDescriptor = PhAllocateZero(allocationLength);
+        status = RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
+
+        status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
+        if (status != STATUS_BUFFER_TOO_SMALL)
+            goto CleanupExit;
+
+        securityRelative = PhAllocateZero(allocationLengthRelative);
+        status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
+
+        *SecurityDescriptor = securityRelative;
+
+CleanupExit:
+        PhFree(securityDescriptor);
+        PhFree(defaultDacl);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetSeObjectSecurityTokenDefault(
+    _In_ HANDLE TokenHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL dacl = NULL;
+
+    status = PhGetDaclSecurityDescriptorNotNull(
+        SecurityDescriptor,
+        &present,
+        &defaulted,
+        &dacl
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        TOKEN_DEFAULT_DACL defaultDacl;
+
+        defaultDacl.DefaultDacl = dacl;
+
+        status = NtSetInformationToken(
+            TokenHandle,
+            TokenDefaultDacl,
+            &defaultDacl,
+            sizeof(TOKEN_DEFAULT_DACL)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetSeObjectSecurityPowerGuid(
+    _In_ HANDLE Object,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    PPH_STRING powerPolicySddl;
+
+    status = PhpGetPowerPolicySecurityDescriptor(&powerPolicySddl);
+
+    if (NT_SUCCESS(status))
+    {
+        if (securityDescriptor = PhGetSecurityDescriptorFromString(PhGetString(powerPolicySddl)))
+        {
+            if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
+            {
+                RtlSetOwnerSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
+            }
+
+            if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
+            {
+                RtlSetGroupSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
+            }
+
+            *SecurityDescriptor = PhAllocateCopy(
+                securityDescriptor,
+                RtlLengthSecurityDescriptor(securityDescriptor)
+                );
+            PhFree(securityDescriptor);
+        }
+        else
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+        }
+
+        PhDereferenceObject(powerPolicySddl);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetSeObjectSecurityPowerGuid(
+    _In_ HANDLE Object,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PPH_STRING powerPolicySddl;
+
+    // kludge the descriptor into the correct SDDL format required by powercfg (dmex)
+    // 1) The owner must always be the built-in domain administrator.
+    // 2) The group must always be NT AUTHORITY\SYSTEM.
+    // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
+
+    RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
+    RtlSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
+    RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
+
+    if (powerPolicySddl = PhGetSecurityDescriptorAsString(
+        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
+        SecurityDescriptor
+        ))
+    {
+        status = PhpSetPowerPolicySecurityDescriptor(powerPolicySddl);
+        PhDereferenceObject(powerPolicySddl);
+    }
+    else
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+    }
+
+    return status;
+}
+
+PH_SE_OBJECT_TYPE PhSecurityObjectType(
+    _In_ PPH_STRING ObjectType
+    )
+{
+    if (PhEqualString2(ObjectType, L"File", TRUE))
+        return PH_SE_FILE_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"FileObject", TRUE))
+        return PH_SE_FILE_OBJECT_TYPE;
+
+    if (PhEqualString2(ObjectType, L"Service", TRUE))
+        return PH_SE_SERVICE_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"SCManager", TRUE))
+        return PH_SE_SERVICE_OBJECT_TYPE;
+
+    if (PhEqualString2(ObjectType, L"TokenDefault", TRUE))
+        return PH_SE_TOKENDEF_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"PowerDefault", TRUE))
+        return PH_SE_POWERDEF_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"RdpDefault", TRUE))
+        return PH_SE_RDPDEF_OBJECT_TYPE;
+    if (PhEqualString2(ObjectType, L"WmiDefault", TRUE))
+        return PH_SE_WMIDEF_OBJECT_TYPE;
+
+    if (
+        PhEqualString2(ObjectType, L"LsaAccount", TRUE) ||
+        PhEqualString2(ObjectType, L"LsaPolicy", TRUE) ||
+        PhEqualString2(ObjectType, L"LsaSecret", TRUE) ||
+        PhEqualString2(ObjectType, L"LsaTrusted", TRUE)
+        )
+    {
+        return PH_SE_LSA_OBJECT_TYPE;
+    }
+
+    if (
+        PhEqualString2(ObjectType, L"SamAlias", TRUE) ||
+        PhEqualString2(ObjectType, L"SamDomain", TRUE) ||
+        PhEqualString2(ObjectType, L"SamGroup", TRUE) ||
+        PhEqualString2(ObjectType, L"SamServer", TRUE) ||
+        PhEqualString2(ObjectType, L"SamUser", TRUE)
+        )
+    {
+        return PH_SE_SAM_OBJECT_TYPE;
+    }
+
+    return PH_SE_DEFAULT_OBJECT_TYPE;
 }

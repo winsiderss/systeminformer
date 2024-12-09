@@ -81,7 +81,7 @@
 #define MonitorInvocation 68 // (kernel-mode only)
 #define FirmwareTableInformationRegistered 69 // (kernel-mode only)
 #define SetShutdownSelectedTime 70 // in: NULL
-#define SuspendResumeInvocation 71 // (kernel-mode only)
+#define SuspendResumeInvocation 71 // (kernel-mode only) // not implemented
 #define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define ScreenOff 73 // in: NULL (PowerMonitorOff)
 #define CsDeviceNotification 74 // (kernel-mode only)

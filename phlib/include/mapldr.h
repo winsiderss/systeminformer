@@ -75,8 +75,7 @@ NTAPI
 PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
-    _In_opt_ PCSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
+    _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     );
@@ -87,8 +86,7 @@ NTAPI
 PhGetProcedureAddressRemoteZ(
     _In_ HANDLE ProcessHandle,
     _In_ PCWSTR FileName,
-    _In_opt_ PCSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
+    _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     )
@@ -101,7 +99,6 @@ PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         &fileName,
         ProcedureName,
-        ProcedureNumber,
         ProcedureAddress,
         DllBase
         );

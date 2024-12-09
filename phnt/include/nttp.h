@@ -433,6 +433,22 @@ TpWaitForAlpcCompletion(
     _Inout_ PTP_ALPC Alpc
     );
 
+// rev
+NTSYSAPI
+VOID
+NTAPI
+TpAlpcRegisterCompletionList(
+    _Inout_ PTP_ALPC Alpc
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+TpAlpcUnregisterCompletionList(
+    _Inout_ PTP_ALPC Alpc
+    );
+
 // private
 typedef enum _TP_TRACE_TYPE
 {

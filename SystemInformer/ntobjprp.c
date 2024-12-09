@@ -562,10 +562,21 @@ VOID PhpEnumerateMappingsEntries(
 
     if (KsiLevel() < KphLevelMed)
     {
-        PhShowKsiNotConnected(
-            Context->WindowHandle,
+        PPH_STRING statusText;
+        HWND statusWindow;
+
+        statusWindow = GetDlgItem(Context->WindowHandle, IDC_TEXT);
+        ShowWindow(Context->ListViewHandle, SW_HIDE);
+        ShowWindow(statusWindow, SW_SHOW);
+
+        statusText = PhGetKsiNotConnectedString(
             L"Viewing active mappings requires a connection to the kernel driver."
             );
+        PhSetWindowText(statusWindow, PhGetString(statusText));
+        //SendMessage(statusWindow, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
+        PhSetDialogFocus(GetParent(Context->WindowHandle), GetDlgItem(GetParent(Context->WindowHandle), IDCANCEL));
+        PhDereferenceObject(statusText);
+
         return;
     }
 
@@ -709,7 +720,6 @@ INT_PTR CALLBACK PhpMappingsPageProc(
                 PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
             menu = PhCreateEMenu();
-
             if (info && info->ViewMapType == VIEW_MAP_TYPE_PROCESS)
             {
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Go to process", NULL, NULL), ULONG_MAX);

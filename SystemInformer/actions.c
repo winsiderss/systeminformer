@@ -2306,6 +2306,29 @@ BOOLEAN PhUiRestartProcess(
     if (Process->ProcessId == NtCurrentProcessId())
         return FALSE;
 
+    // Special handling for the current shell process. (dmex)
+    {
+        CLIENT_ID shellClientId;
+
+        if (NT_SUCCESS(PhGetWindowClientId(PhGetShellWindow(), &shellClientId)))
+        {
+            if (Process->ProcessId == shellClientId.UniqueProcess)
+            {
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_TERMINATE,
+                    Process->ProcessId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                    NtClose(processHandle);
+                }
+            }
+        }
+    }
+
     fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
     if (PhIsNullOrEmptyString(fileNameWin32) || !PhDoesFileExistWin32(PhGetString(fileNameWin32)))
@@ -2939,7 +2962,7 @@ BOOLEAN PhUiSetEcoModeProcess(
 BOOLEAN PhUiSetExecutionRequiredProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
-)
+    )
 {
     NTSTATUS status;
 
@@ -3067,7 +3090,7 @@ BOOLEAN PhUiLoadDllProcess(
         LARGE_INTEGER timeout;
 
         timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(processHandle, &fileName->sr, &timeout);
+        status = PhLoadDllProcess(processHandle, &fileName->sr, FALSE, &timeout);
 
         NtClose(processHandle);
     }
@@ -3346,7 +3369,6 @@ typedef struct _PH_UI_SERVICE_PROGRESS_DIALOG
     HWND WindowHandle;
     HWND ParentWindowHandle;
 
-    PCWSTR Object;
     PCWSTR Verb;
     PCWSTR Message;
 
@@ -3384,6 +3406,30 @@ VOID PhShowServiceProgressDialogStatusPage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     );
 #pragma endregion
+
+VOID PhpShowServiceProgressInitializeText(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _Out_ PPH_STRING* Verb,
+    _Out_ PPH_STRING* VerbCaps,
+    _Out_ PPH_STRING* Action,
+    _Out_ PCWSTR* Object
+    )
+{
+    if (Context->ServiceItemList->Count == 1)
+        *Object = L"the selected service";
+    else
+        *Object = L"the selected services";
+
+    // Make sure the verb is all lowercase.
+    *Verb = PhaLowerString(PhaCreateString(Context->Verb));
+
+    // "terminate" -> "Terminate"
+    *VerbCaps = PhaDuplicateString(*Verb);
+    if (!PhIsNullOrEmptyString(*VerbCaps)) (*VerbCaps)->Buffer[0] = PhUpcaseUnicodeChar((*VerbCaps)->Buffer[0]);
+
+    // "terminate", "the process" -> "terminate the process"
+    *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", *Object);
+}
 
 HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
     _In_ HWND WindowHandle,
@@ -3677,6 +3723,12 @@ VOID PhShowServiceProgressDialogStatusPage(
     )
 {
     TASKDIALOGCONFIG config;
+    PPH_STRING verb;
+    PPH_STRING verbCaps;
+    PPH_STRING action;
+    PCWSTR object;
+
+    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action, &object);
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -3686,7 +3738,7 @@ VOID PhShowServiceProgressDialogStatusPage(
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = PhpUiServiceProgressDialogCallbackProc;
-    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", Context->Verb, L" ", Context->Object, L"...")->Buffer;
+    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", verb, L" ", object, L"...")->Buffer;
     config.cxWidth = 200;
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
@@ -3720,29 +3772,6 @@ HRESULT CALLBACK PhpUiServiceConfirmDialogCallbackProc(
     return S_OK;
 }
 
-VOID PhpShowServiceProgressInitializeText(
-    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
-    _Out_ PPH_STRING* Verb,
-    _Out_ PPH_STRING* VerbCaps,
-    _Out_ PPH_STRING* Action
-    )
-{
-    if (Context->ServiceItemList->Count == 1)
-        Context->Object = L"the selected service";
-    else
-        Context->Object = L"the selected services";
-
-    // Make sure the verb is all lowercase.
-    *Verb = PhaLowerString(PhaCreateString(Context->Verb));
-
-    // "terminate" -> "Terminate"
-    *VerbCaps = PhaDuplicateString(*Verb);
-    if (!PhIsNullOrEmptyString(*VerbCaps)) (*VerbCaps)->Buffer[0] = PhUpcaseUnicodeChar((*VerbCaps)->Buffer[0]);
-
-    // "terminate", "the process" -> "terminate the process"
-    *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", Context->Object);
-}
-
 VOID PhShowServiceProgressDialogConfirmMessage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -3752,8 +3781,9 @@ VOID PhShowServiceProgressDialogConfirmMessage(
     PPH_STRING verb;
     PPH_STRING verbCaps;
     PPH_STRING action;
+    PCWSTR object;
 
-    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action);
+    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action, &object);
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -3950,7 +3980,6 @@ VOID PhShowServiceProgressDialog(
     context = PhCreateServiceProgressContext();
     context->ParentWindowHandle = WindowHandle;
     context->Verb = Verb;
-    context->Object = NumberOfServices == 1 ? L"the selected service" : L"the selected services";
     context->Message = Message;
     context->Warning = Warning;
     context->ActionCallback = ActionCallback;
@@ -6076,7 +6105,7 @@ BOOLEAN PhUiCloseHandles(
     )
 {
     NTSTATUS status;
-    BOOLEAN cont = FALSE;
+    BOOLEAN result = FALSE;
     BOOLEAN success = TRUE;
     HANDLE processHandle;
 
@@ -6085,7 +6114,7 @@ BOOLEAN PhUiCloseHandles(
 
     if (Warn && PhGetIntegerSetting(L"EnableWarnings"))
     {
-        cont = PhShowConfirmMessage(
+        result = PhShowConfirmMessage(
             WindowHandle,
             L"close",
             NumberOfHandles == 1 ? L"the selected handle" : L"the selected handles",
@@ -6095,10 +6124,10 @@ BOOLEAN PhUiCloseHandles(
     }
     else
     {
-        cont = TRUE;
+        result = TRUE;
     }
 
-    if (!cont)
+    if (!result)
         return FALSE;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -6141,7 +6170,7 @@ BOOLEAN PhUiCloseHandles(
 
         if (critical && strict)
         {
-            cont = PhShowConfirmMessage(
+            result = PhShowConfirmMessage(
                 WindowHandle,
                 L"close",
                 L"critical process handle(s)",
@@ -6150,11 +6179,26 @@ BOOLEAN PhUiCloseHandles(
                 );
         }
 
-        if (!cont)
+        if (!result)
             return FALSE;
 
         for (ULONG i = 0; i < NumberOfHandles; i++)
         {
+            if (FlagOn(Handles[i]->Attributes, OBJ_PROTECT_CLOSE))
+            {
+                if (!PhpShowErrorHandle(
+                    WindowHandle,
+                    L"close",
+                    NULL,
+                    Handles[i],
+                    STATUS_HANDLE_NOT_CLOSABLE,
+                    0
+                    ))
+                {
+                    break;
+                }
+            }
+
             status = NtDuplicateObject(
                 processHandle,
                 Handles[i]->Handle,
@@ -6175,22 +6219,6 @@ BOOLEAN PhUiCloseHandles(
                     NULL,
                     Handles[i],
                     status,
-                    0
-                    ))
-                    break;
-            }
-            // If handle is protected from closing NtDuplicateObject doesn't close handle but returns STATUS_SUCCESS.
-            // Show error to notify user that "Protected" attribute should be removed first (Dart Vanya)
-            else if (Handles[i]->Attributes & OBJ_PROTECT_CLOSE)
-            {
-                success = FALSE;
-
-                if (!PhpShowErrorHandle(
-                    WindowHandle,
-                    L"close",
-                    L".\nRemove \"Protected\" attribute from menu and try again.",
-                    Handles[i],
-                    STATUS_HANDLE_NOT_CLOSABLE,
                     0
                     ))
                     break;

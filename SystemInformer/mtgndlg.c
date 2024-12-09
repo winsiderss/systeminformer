@@ -24,7 +24,7 @@ typedef struct _MITIGATION_POLICY_ENTRY
 typedef struct _MITIGATION_POLICY_CONTEXT
 {
     HWND ListViewHandle;
-    PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock;
+    PS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock;
     MITIGATION_POLICY_ENTRY Entries[MaxProcessMitigationPolicy];
 } MITIGATION_POLICY_CONTEXT, *PMITIGATION_POLICY_CONTEXT;
 
@@ -68,7 +68,7 @@ VOID PhShowProcessMitigationPolicyDialog(
 
     if (NT_SUCCESS(status))
     {
-        PPS_SYSTEM_DLL_INIT_BLOCK dllInitBlock;
+        PS_SYSTEM_DLL_INIT_BLOCK dllInitBlock;
 
         if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(processHandle, &dllInitBlock)))
         {
@@ -133,9 +133,6 @@ VOID PhShowProcessMitigationPolicyDialog(
             }
         }
 
-        if (context.SystemDllInitBlock)
-            PhFree(context.SystemDllInitBlock);
-
         NtClose(processHandle);
     }
     else
@@ -195,7 +192,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                 PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
             }
 
-            if (context->SystemDllInitBlock && RTL_CONTAINS_FIELD(context->SystemDllInitBlock, context->SystemDllInitBlock->Size, MitigationOptionsMap))
+            if (RTL_CONTAINS_FIELD(&context->SystemDllInitBlock, context->SystemDllInitBlock.Size, MitigationOptionsMap))
             {
                 // TODO: Windows doesn't propagate these flags into the MitigationOptionsMap array. (dmex)
                 //if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
@@ -222,7 +219,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                 //    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 //}
 
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
+                if (context->SystemDllInitBlock.MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
@@ -234,7 +231,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_ON)
+                if (context->SystemDllInitBlock.MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 
@@ -246,7 +243,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON)
+                if (context->SystemDllInitBlock.MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
 

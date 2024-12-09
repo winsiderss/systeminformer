@@ -3503,7 +3503,7 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateString(Attribute->Values.ppString[ValueIndex]);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %I64u: %s",
+        return PhFormatString(L"Version %llu: %s",
             Attribute->Values.pFqbn[ValueIndex].Version,
             Attribute->Values.pFqbn[ValueIndex].Name);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_SID:
@@ -3639,7 +3639,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateStringFromUnicodeString(&Attribute->Values.pString[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %I64u: %.*s",
+        return PhFormatString(L"Version %llu: %.*s",
             Attribute->Values.pFqbn[ValueIndex].Version,
             Attribute->Values.pFqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
             Attribute->Values.pFqbn[ValueIndex].Name.Buffer);

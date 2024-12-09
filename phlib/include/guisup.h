@@ -993,12 +993,24 @@ PhGetIListViewItemRect(
     _Inout_ PRECT ItemRect
     );
 
-PHLIBAPI
+FORCEINLINE
 IListView*
 NTAPI
 PhGetListViewInterface(
     _In_ HWND ListViewHandle
-    );
+    )
+{
+    IListView* listviewInterface = nullptr;
+
+    SendMessage(
+        ListViewHandle,
+        LVM_QUERYINTERFACE,
+        (WPARAM)&IID_IListView,
+        (LPARAM)&listviewInterface
+        );
+
+    return listviewInterface;
+}
 
 PHLIBAPI
 VOID
@@ -1768,7 +1780,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateEnvironmentBlock(
-    _Outptr_ PVOID* Environment,
+    _Out_ PVOID* Environment,
     _In_opt_ HANDLE TokenHandle,
     _In_ BOOLEAN Inherit
     );

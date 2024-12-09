@@ -28,8 +28,9 @@
 #define PHHNTLC_GRANTEDACCESSSYMBOLIC 6
 #define PHHNTLC_ORIGINALNAME 7
 #define PHHNTLC_FILESHAREACCESS 8
+#define PHHNTLC_HANDLEVALUE 9
 
-#define PHHNTLC_MAXIMUM 9
+#define PHHNTLC_MAXIMUM 10
 
 // begin_phapppub
 typedef enum _PH_HANDLE_TREE_MENUITEM
@@ -64,6 +65,7 @@ typedef struct _PH_HANDLE_NODE
 
     PPH_STRING GrantedAccessSymbolicText;
     WCHAR FileShareAccessText[4];
+    PPH_STRING HandleValue;
 // begin_phapppub
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
 // end_phapppub
