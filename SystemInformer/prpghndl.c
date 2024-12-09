@@ -636,7 +636,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         PhEditSecurity(
                             PhCsForceNoParent ? NULL : hwndDlg,
-                            PhGetStringOrEmpty(handleItem->ObjectName),
+                            PhGetString(handleItem->ObjectName),
                             PhGetString(handleItem->TypeName),
                             PhpProcessHandleOpenCallback,
                             PhpProcessHandleCloseCallback,
