@@ -1086,6 +1086,8 @@ VOID PhpQueueProcessQueryStage1(
 
     PhInitializeWorkQueueEnvironment(&environment);
     environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.IoPriority = IoPriorityLow;
+    environment.PagePriority = MEMORY_PRIORITY_LOW;
 
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpProcessQueryStage1Worker, ProcessItem, NULL, &environment);
 }
@@ -1099,7 +1101,7 @@ VOID PhpQueueProcessQueryStage2(
     PhReferenceObject(ProcessItem);
 
     PhInitializeWorkQueueEnvironment(&environment);
-    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.BasePriority = THREAD_PRIORITY_LOWEST;
     environment.IoPriority = IoPriorityVeryLow;
     environment.PagePriority = MEMORY_PRIORITY_VERY_LOW;
 

@@ -706,23 +706,6 @@ BOOLEAN PhGetIListViewItemRect(
     return SUCCEEDED(ListView->GetItemRect(itemIndex, Flags, ItemRect));
 }
 
-IListView* PhGetListViewInterface(
-    _In_ HWND ListViewHandle
-    )
-{
-    IListView* listviewInterface = nullptr;
-
-    SendMessage(
-        ListViewHandle,
-        LVM_QUERYINTERFACE,
-        reinterpret_cast<WPARAM>(&IID_IListView),
-        reinterpret_cast<LPARAM>(&listviewInterface)
-        );
-
-    return listviewInterface;
-}
-
-
 
 
 enum class SlimEventType

@@ -26,8 +26,9 @@ typedef struct _PH_HANDLE_ITEM
 {
     PH_HASH_ENTRY HashEntry;
 
-    HANDLE Handle;
     PVOID Object;
+    HANDLE Handle;
+    HANDLE ProcessId;
     ULONG Attributes;
     ACCESS_MASK GrantedAccess;
     ULONG TypeIndex;

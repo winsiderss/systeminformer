@@ -419,7 +419,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    wbemObjectString = SysAllocStringLen(L"GetSD", 5);
+    wbemMethodString = SysAllocStringLen(L"GetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemObjectString,
@@ -545,6 +545,15 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     BOOLEAN freeSecurityDescriptor = FALSE;
     VARIANT variantArrayValue;
     VARIANT variantReturnValue;
+    PSID administratorsSid;
+
+    // kludge the descriptor into the correct format required by wmimgmt (dmex)
+    // 1) The owner must always be the built-in domain administrator.
+    // 2) The group must always be the built-in domain administrator.
+
+    administratorsSid = PhSeAdministratorsSid();
+    RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
+    RtlSetGroupSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
 
     RtlZeroMemory(&variantArrayValue, sizeof(VARIANT));
     RtlZeroMemory(&variantReturnValue, sizeof(VARIANT));
@@ -680,7 +689,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    wbemObjectString = SysAllocStringLen(L"SetSD", 5);
+    wbemMethodString = SysAllocStringLen(L"SetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemObjectString,
@@ -728,7 +737,6 @@ CleanupExit:
     VariantClear(&variantReturnValue);
     VariantClear(&variantArrayValue);
     //if (safeArray) SafeArrayDestroy(safeArray);
-    PhClearReference(&querySelectString);
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
@@ -736,7 +744,8 @@ CleanupExit:
         SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
-
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
 
     if (HR_SUCCESS(status))
     {
@@ -759,12 +768,12 @@ HRESULT PhRestartDefenderOfflineScan(
     PVOID wbemImageBaseAddress;
     PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
-    BSTR wbemQueryString = NULL;
+    BSTR wbemObjectString = NULL;
     BSTR wbemMethodString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
     IWbemClassObject* wbemClassObject = NULL;
-    IWbemClassObject* wbemStartClassObject = 0;
+    IWbemClassObject* wbemStartClassObject = NULL;
     VARIANT variantReturnValue;
 
     RtlZeroMemory(&variantReturnValue, sizeof(VARIANT));
@@ -805,10 +814,10 @@ HRESULT PhRestartDefenderOfflineScan(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocStringLen(L"MSFT_MpWDOScan", 14);
+    wbemObjectString = SysAllocStringLen(L"MSFT_MpWDOScan", 14);
     status = IWbemServices_GetObject(
         wbemServices,
-        wbemQueryString,
+        wbemObjectString,
         0,
         NULL,
         &wbemClassObject,
@@ -821,7 +830,7 @@ HRESULT PhRestartDefenderOfflineScan(
     wbemMethodString = SysAllocStringLen(L"Start", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
-        wbemQueryString,
+        wbemObjectString,
         wbemMethodString,
         0,
         NULL,
@@ -865,8 +874,8 @@ CleanupExit:
 
     if (wbemMethodString)
         SysFreeString(wbemMethodString);
-    if (wbemQueryString)
-        SysFreeString(wbemQueryString);
+    if (wbemObjectString)
+        SysFreeString(wbemObjectString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
     if (querySelectString)

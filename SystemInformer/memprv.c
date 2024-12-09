@@ -1114,7 +1114,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
 #ifdef _WIN64
 
-    PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
+    PS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PPH_MEMORY_ITEM cfgBitmapMemoryItem;
 
     status = PhGetProcessSystemDllInitBlock(ProcessHandle, &ldrInitBlock);
@@ -1124,10 +1124,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID cfgBitmapAddress = NULL;
         PVOID cfgBitmapWow64Address = NULL;
 
-        if (RTL_CONTAINS_FIELD(ldrInitBlock, ldrInitBlock->Size, Wow64CfgBitMap))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap))
         {
-            cfgBitmapAddress = (PVOID)ldrInitBlock->CfgBitMap;
-            cfgBitmapWow64Address = (PVOID)ldrInitBlock->Wow64CfgBitMap;
+            cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
+            cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
         }
 
         if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
@@ -1161,8 +1161,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
             }
         }
-
-        PhFree(ldrInitBlock);
     }
 #endif
 

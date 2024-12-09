@@ -1331,20 +1331,22 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(Build.BuildCommitHash))
                 {
                     Build.BuildSourceLink = $"{Build.BuildWorkingFolder}\\sourcelink.json";
-                    string directory = Build.BuildWorkingFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
 
-                    StringBuilder sb = new StringBuilder(260);
-                    sb.Append("{{ \"documents\": {{ ");
-                    sb.Append($"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
-                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
-                    sb.Append("}} }}");
+                    JsonObject jsonObject = new JsonObject
+                    {
+                        ["documents"] = new JsonObject
+                        {
+                            ["\\*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*",
+                            [$"{Path.Join([Build.BuildWorkingFolder, "\\"])}*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*"
+                        }
+                    };
 
-                    Utils.WriteAllText(Build.BuildSourceLink, sb.ToString());
+                    Utils.WriteAllText(Build.BuildSourceLink, jsonObject.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
                 }
             }
             else
             {
-                Win32.DeleteFile(BuildSourceLink);
+                Win32.DeleteFile(Build.BuildSourceLink);
             }
         }
 

@@ -586,7 +586,7 @@ VOID PhpUpdateThreadNodeLastSystemCall(
             if (NT_SUCCESS(PhOpenThread(
                 &threadHandle,
                 THREAD_GET_CONTEXT,
-                ThreadNode->ThreadItem->ThreadId
+                ThreadNode->ThreadId
                 )))
             {
                 ThreadNode->ThreadContextHandle = threadHandle;

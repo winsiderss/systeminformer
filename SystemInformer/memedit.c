@@ -30,7 +30,7 @@ typedef struct _MEMORY_EDITOR_CONTEXT
         };
         ULONG_PTR Key[3];
     };
-    HANDLE ProcessHandle;
+
     HWND WindowHandle;
     HWND OwnerHandle;
     HWND HexEditHandle;
@@ -42,7 +42,6 @@ typedef struct _MEMORY_EDITOR_CONTEXT
     ULONG Flags;
 
     BOOLEAN LoadCompleted;
-    BOOLEAN WriteAccess;
 } MEMORY_EDITOR_CONTEXT, *PMEMORY_EDITOR_CONTEXT;
 
 INT NTAPI PhpMemoryEditorCompareFunction(
@@ -171,6 +170,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     case WM_INITDIALOG:
         {
             NTSTATUS status;
+            HANDLE processHandle;
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -199,16 +199,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 return TRUE;
             }
 
-            if (!NT_SUCCESS(status = PhOpenProcess(
-                &context->ProcessHandle,
-                PROCESS_VM_READ,
-                context->ProcessId
-                )))
-            {
-                PhShowStatus(context->OwnerHandle, L"Unable to open the process", status, 0);
-                return TRUE;
-            }
-
             context->Buffer = PhAllocatePage(context->RegionSize, NULL);
 
             if (!context->Buffer)
@@ -217,16 +207,36 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 return TRUE;
             }
 
-            if (!NT_SUCCESS(status = NtReadVirtualMemory(
-                context->ProcessHandle,
-                context->BaseAddress,
-                context->Buffer,
-                context->RegionSize,
-                NULL
-                )))
             {
-                PhShowStatus(context->OwnerHandle, L"Unable to read memory", status, 0);
-                return TRUE;
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ,
+                    context->ProcessId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    status = NtReadVirtualMemory(
+                        processHandle,
+                        context->BaseAddress,
+                        context->Buffer,
+                        context->RegionSize,
+                        NULL
+                        );
+
+                    NtClose(processHandle);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhShowStatus(context->OwnerHandle, L"Unable to read memory", status, 0);
+                        return TRUE;
+                    }
+                }
+                else
+                {
+                    PhShowStatus(context->OwnerHandle, L"Unable to open the process", status, 0);
+                    return TRUE;
+                }
             }
 
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL,
@@ -331,7 +341,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             if (context->Buffer) PhFreePage(context->Buffer);
-            if (context->ProcessHandle) NtClose(context->ProcessHandle);
             PhClearReference(&context->Title);
 
             if ((context->Flags & PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION) && context->ProcessId == NtCurrentProcessId())
@@ -459,50 +468,70 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         break;
                     }
 
-                    if (!context->WriteAccess)
                     {
                         HANDLE processHandle;
 
-                        if (!NT_SUCCESS(status = PhOpenProcess(
+                        status = PhOpenProcess(
                             &processHandle,
                             PROCESS_VM_READ | PROCESS_VM_WRITE,
                             context->ProcessId
-                            )))
+                            );
+
+                        if (NT_SUCCESS(status))
+                        {
+                            status = NtWriteVirtualMemory(
+                                processHandle,
+                                context->BaseAddress,
+                                context->Buffer,
+                                context->RegionSize,
+                                NULL
+                                );
+
+                            NtClose(processHandle);
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to write memory", status, 0);
+                            }
+                        }
+                        else
                         {
                             PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
-                            break;
                         }
-
-                        if (context->ProcessHandle) NtClose(context->ProcessHandle);
-                        context->ProcessHandle = processHandle;
-                        context->WriteAccess = TRUE;
-                    }
-
-                    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
-                        context->ProcessHandle,
-                        context->BaseAddress,
-                        context->Buffer,
-                        context->RegionSize,
-                        NULL
-                        )))
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to write memory", status, 0);
                     }
                 }
                 break;
             case IDC_REREAD:
                 {
                     NTSTATUS status;
+                    HANDLE processHandle;
 
-                    if (!NT_SUCCESS(status = NtReadVirtualMemory(
-                        context->ProcessHandle,
-                        context->BaseAddress,
-                        context->Buffer,
-                        context->RegionSize,
-                        NULL
-                        )))
+                    status = PhOpenProcess(
+                        &processHandle,
+                        PROCESS_VM_READ,
+                        context->ProcessId
+                        );
+
+                    if (NT_SUCCESS(status))
                     {
-                        PhShowStatus(hwndDlg, L"Unable to read memory", status, 0);
+                        status = NtReadVirtualMemory(
+                            processHandle,
+                            context->BaseAddress,
+                            context->Buffer,
+                            context->RegionSize,
+                            NULL
+                            );
+
+                        NtClose(processHandle);
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to read memory", status, 0);
+                        }
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
                     }
 
                     InvalidateRect(context->HexEditHandle, NULL, TRUE);

@@ -528,7 +528,7 @@ VOID PhQueueServiceQueryStage2(
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
     PhInitializeWorkQueueEnvironment(&environment);
-    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.BasePriority = THREAD_PRIORITY_LOWEST;
     environment.IoPriority = IoPriorityVeryLow;
     environment.PagePriority = MEMORY_PRIORITY_VERY_LOW;
 

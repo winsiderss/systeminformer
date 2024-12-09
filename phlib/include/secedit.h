@@ -32,10 +32,10 @@ PHLIBAPI
 PVOID
 NTAPI
 PhCreateSecurityPage(
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
@@ -44,10 +44,10 @@ VOID
 NTAPI
 PhEditSecurity(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
@@ -56,10 +56,10 @@ VOID
 NTAPI
 PhEditSecurityEx(
     _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ObjectName,
+    _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context
@@ -151,7 +151,7 @@ NTAPI
 PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     );
 
 PHLIBAPI
@@ -160,7 +160,7 @@ NTAPI
 PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     );
 
 PHLIBAPI
@@ -183,7 +183,63 @@ PhSetSeObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLsaQuerySecurityObject(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSamQuerySecurityObject(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSeObjectSecurityTokenDefault(
+    _In_ HANDLE TokenHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetSeObjectSecurityTokenDefault(
+    _In_ HANDLE TokenHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSeObjectSecurityPowerGuid(
+    _In_ HANDLE Object,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetSeObjectSecurityPowerGuid(
+    _In_ HANDLE Object,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+//
 // secdata
+//
 
 PHLIBAPI
 BOOLEAN

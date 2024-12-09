@@ -1,6 +1,6 @@
 ﻿namespace CustomBuildTool
 {
-    internal unsafe sealed class MemoryCertificateStore : IDisposable
+    internal sealed unsafe class MemoryCertificateStore : IDisposable
     {
         private HCERTSTORE _handle;
         private readonly X509Store _store;
@@ -20,16 +20,12 @@
             }
         }
 
-        public unsafe static MemoryCertificateStore Create()
+        public static MemoryCertificateStore Create()
         {
-            byte[] buffer = Encoding.UTF8.GetBytes("Memory");
-            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-            IntPtr address = handle.AddrOfPinnedObject();
-
-            try
+            fixed (byte* p = "Memory"u8)
             {
                 var MemoryCertStore = PInvoke.CertOpenStore(
-                    new PCSTR((byte*)address.ToPointer()),
+                    new PCSTR(p),
                     0,
                     (HCRYPTPROV_LEGACY)0,
                     0,
@@ -37,10 +33,6 @@
                     );
 
                 return new MemoryCertificateStore(MemoryCertStore);
-            }
-            finally
-            {
-                handle.Free();
             }
         }
 

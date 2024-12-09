@@ -49,12 +49,35 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(ENTRA_CLIENT_SECRET))
                 return false;
 
+            return SignFiles(
+                Path, 
+                SearchPattern,
+                ENTRA_TIMESTAMP_SERVER,
+                ENTRA_CERIFICATE_NAME, 
+                ENTRA_CERIFICATE_VAULT, 
+                ENTRA_TENANT_GUID,
+                ENTRA_CLIENT_GUID, 
+                ENTRA_CLIENT_SECRET
+                );
+        }
+
+        public static bool SignFiles(
+            string Path,
+            string SearchPattern,
+            string TimeStampServer,
+            string AzureCertName,
+            string AzureVaultName,
+            string TenantGuid,
+            string ClientGuid,
+            string ClientSecret
+            )
+        {
             try
             {
-                var azureCertificateTimeStamp = new TimeStampConfiguration(ENTRA_TIMESTAMP_SERVER, TimeStampType.RFC3161);
-                var azureCertificateCredential = new global::Azure.Identity.ClientSecretCredential(ENTRA_TENANT_GUID, ENTRA_CLIENT_GUID, ENTRA_CLIENT_SECRET);
-                var azureCertificateClient = new global::Azure.Security.KeyVault.Certificates.CertificateClient(new Uri(ENTRA_CERIFICATE_VAULT), azureCertificateCredential);
-                var azureCertificateBuffer = azureCertificateClient.GetCertificateAsync(ENTRA_CERIFICATE_NAME).GetAwaiter().GetResult();
+                var azureCertificateTimeStamp = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
+                var azureCertificateCredential = new global::Azure.Identity.ClientSecretCredential(TenantGuid, ClientGuid, ClientSecret);
+                var azureCertificateClient = new global::Azure.Security.KeyVault.Certificates.CertificateClient(new Uri(AzureVaultName), azureCertificateCredential);
+                var azureCertificateBuffer = azureCertificateClient.GetCertificateAsync(AzureCertName).GetAwaiter().GetResult();
 
                 if (!azureCertificateBuffer.HasValue)
                 {
@@ -74,15 +97,15 @@ namespace CustomBuildTool
                 }
 
                 using var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(
-                    azureCertificateRsa, 
+                    azureCertificateRsa,
                     azureCertificatePublic,
-                    HashAlgorithmName.SHA256, 
-                    azureCertificateTimeStamp, 
+                    HashAlgorithmName.SHA256,
+                    azureCertificateTimeStamp,
                     null);
 
                 var files = Directory.EnumerateFiles(
-                    Path, 
-                    SearchPattern, 
+                    Path,
+                    SearchPattern,
                     SearchOption.AllDirectories
                     );
 

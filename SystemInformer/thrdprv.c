@@ -233,7 +233,7 @@ VOID PhLoadSymbolsThreadProvider(
 }
 
 PPH_THREAD_ITEM PhCreateThreadItem(
-    _In_ HANDLE ThreadId
+    _In_ CLIENT_ID ClientId
     )
 {
     PPH_THREAD_ITEM threadItem;
@@ -243,10 +243,10 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         PhThreadItemType
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
-    threadItem->ThreadId = ThreadId;
+    threadItem->ClientId = ClientId;
 
-    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
-    PhPrintUInt32IX(threadItem->ThreadIdHexString, HandleToUlong(ThreadId));
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ClientId.UniqueThread));
+    PhPrintUInt32IX(threadItem->ThreadIdHexString, HandleToUlong(ClientId.UniqueThread));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
@@ -502,27 +502,22 @@ PPH_STRING PhpGetThreadBasicStartAddress(
 
 static NTSTATUS PhThreadProviderOpenThread(
     _Out_ PHANDLE ThreadHandle,
-    _In_ PPH_THREAD_PROVIDER ThreadProvider,
     _In_ PPH_THREAD_ITEM ThreadItem
     )
 {
     NTSTATUS status;
     HANDLE threadHandle;
-    CLIENT_ID clientId;
 
-    if (ThreadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+    if (ThreadItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
         if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
             return STATUS_UNSUCCESSFUL;
     }
 
-    clientId.UniqueProcess = ThreadProvider->ProcessId;
-    clientId.UniqueThread = ThreadItem->ThreadId;
-
     status = PhOpenThreadClientId(
         &threadHandle,
         THREAD_QUERY_INFORMATION,
-        &clientId
+        &ThreadItem->ClientId
         );
 
     if (!NT_SUCCESS(status))
@@ -530,52 +525,35 @@ static NTSTATUS PhThreadProviderOpenThread(
         status = PhOpenThreadClientId(
             &threadHandle,
             THREAD_QUERY_LIMITED_INFORMATION,
-            &clientId
+            &ThreadItem->ClientId
             );
     }
 
     if (NT_SUCCESS(status))
     {
-        THREAD_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
-        {
-            if (basicInfo.ClientId.UniqueProcess == ThreadProvider->ProcessId &&
-                basicInfo.ClientId.UniqueThread == ThreadItem->ThreadId)
-            {
-                *ThreadHandle = threadHandle;
-            }
-            else
-            {
-                status = STATUS_UNSUCCESSFUL;
-                NtClose(threadHandle);
-            }
-        }
+        *ThreadHandle = threadHandle;
     }
 
     return status;
 }
 
 static NTSTATUS PhpGetThreadCycleTime(
-    _In_ PPH_THREAD_PROVIDER ThreadProvider,
     _In_ PPH_THREAD_ITEM ThreadItem,
     _Out_ PULONG64 CycleTime
     )
 {
-    if (ThreadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
-    {
-        if (ThreadItem->ThreadHandle)
-        {
-            return PhGetThreadCycleTime(ThreadItem->ThreadHandle, CycleTime);
-        }
-    }
-    else
+    if (ThreadItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
         if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
         {
             *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].CycleTime;
             return STATUS_SUCCESS;
         }
+    }
+
+    if (ThreadItem->ThreadHandle)
+    {
+        return PhGetThreadCycleTime(ThreadItem->ThreadHandle, CycleTime);
     }
 
     return STATUS_INVALID_PARAMETER;
@@ -783,7 +761,7 @@ VOID PhpThreadProviderUpdate(
 
         if (!threadItem)
         {
-            threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
+            threadItem = PhCreateThreadItem(thread->ClientId);
             threadItem->KernelTime = thread->KernelTime;
             PhUpdateDelta(&threadItem->CpuKernelDelta, threadItem->KernelTime.QuadPart);
             threadItem->UserTime = thread->UserTime;
@@ -802,7 +780,6 @@ VOID PhpThreadProviderUpdate(
 
                 status = PhThreadProviderOpenThread(
                     &threadHandle,
-                    threadProvider,
                     threadItem
                     );
 
@@ -1011,7 +988,6 @@ VOID PhpThreadProviderUpdate(
                 oldDelta = threadItem->CyclesDelta.Delta;
 
                 if (NT_SUCCESS(PhpGetThreadCycleTime(
-                    threadProvider,
                     threadItem,
                     &cycles
                     )))

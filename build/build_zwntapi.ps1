@@ -16,7 +16,7 @@ function CheckSolutionDirectory()
         Set-Location $PSScriptRoot;
 
         # Set the current location to the base repository directory.
-        Set-Location "..\..\";
+        Set-Location "..\";
 
         # Re-check if the current directory
         if (!(Test-Path "SystemInformer.sln"))
@@ -46,7 +46,7 @@ function GenerateZw()
     $regex = New-Object System.Text.RegularExpressions.RegEx("NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", [System.Text.RegularExpressions.RegexOptions]::Singleline)
     $definitions = @()
     
-    $files = Get-ChildItem -Path $BaseDirectory -Filter "*.h" -Recurse
+    $files = Get-ChildItem -Path $BaseDirectory -Filter "*.h" -Exclude "ntuser.h" -Recurse
     foreach ($file in $files) {
         $text = Get-Content -Path $file.FullName -Raw
 

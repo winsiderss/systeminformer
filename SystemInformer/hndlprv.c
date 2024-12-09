@@ -137,10 +137,11 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
 
     if (Handle)
     {
-        handleItem->Handle = (HANDLE)Handle->HandleValue;
         handleItem->Object = Handle->Object;
+        handleItem->ProcessId = Handle->UniqueProcessId;
+        handleItem->Handle = Handle->HandleValue;
         handleItem->Attributes = Handle->HandleAttributes;
-        handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
+        handleItem->GrantedAccess = Handle->GrantedAccess;
         handleItem->TypeIndex = Handle->ObjectTypeIndex;
 
         PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
@@ -407,7 +408,7 @@ VOID PhHandleProviderUpdate(
 
                 tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhFindItemSimpleHashtable(
                     handleProvider->TempListHashtable,
-                    (PVOID)(handleItem->Handle)
+                    handleItem->Handle
                     );
 
                 if (tempHashtableValue)
@@ -439,7 +440,7 @@ VOID PhHandleProviderUpdate(
                             handleItem->GrantedAccess == (*tempHashtableValue)->GrantedAccess &&
                             handleItem->TypeIndex == (*tempHashtableValue)->ObjectTypeIndex &&
                             handleItem->Attributes == (*tempHashtableValue)->HandleAttributes &&
-                            handleProvider->ProcessId == (*tempHashtableValue)->UniqueProcessId
+                            handleItem->ProcessId == (*tempHashtableValue)->UniqueProcessId
                             )
                         {
                             found = TRUE;
@@ -486,7 +487,7 @@ VOID PhHandleProviderUpdate(
         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = handlePair->Value;
         PPH_HANDLE_ITEM handleItem;
 
-        handleItem = PhpLookupHandleItem(handleProvider, (HANDLE)handle->HandleValue);
+        handleItem = PhpLookupHandleItem(handleProvider, handle->HandleValue);
 
         if (!handleItem)
         {

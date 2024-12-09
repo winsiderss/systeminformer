@@ -110,6 +110,7 @@
     <Using Include="System.Security.Cryptography.X509Certificates" />
     <Using Include="System.Text" />
     <Using Include="System.Text.Json" />
+    <Using Include="System.Text.Json.Nodes" />
     <Using Include="System.Text.Json.Serialization" />
     <Using Include="System.Text.Json.Serialization.Metadata" />
     <Using Include="System.Xml" />

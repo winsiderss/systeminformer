@@ -50,13 +50,15 @@ NtDelayExecution(
 // Firmware environment values
 //
 
-
 /**
  * Retrieves the value of the specified firmware environment variable.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName 
- * @param VariableValue 
- * @return NTSTATUS Successful or errant status. 
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * @param ValueLength The size of the \c VariableValue buffer, in bytes.
+ * @param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
+ * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -68,26 +70,55 @@ NtQuerySystemEnvironmentValue(
     _Out_opt_ PUSHORT ReturnLength
     );
 
+// The firmware environment variable is stored in non-volatile memory (e.g. NVRAM).
 #define EFI_VARIABLE_NON_VOLATILE 0x00000001
+// The firmware environment variable can be accessed during boot service.
 #define EFI_VARIABLE_BOOTSERVICE_ACCESS 0x00000002
+// The firmware environment variable can be accessed at runtime.
 #define EFI_VARIABLE_RUNTIME_ACCESS 0x00000004
+// Indicates hardware related errors encountered at runtime.
 #define EFI_VARIABLE_HARDWARE_ERROR_RECORD 0x00000008
+// Indicates an authentication requirement that must be met before writing to this firmware environment variable. 
 #define EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS 0x00000010
+// Indicates authentication and time stamp requirements that must be met before writing to this firmware environment variable.
+// When this attribute is set, the buffer, represented by Buffer, will begin with an instance of a complete (and serialized) EFI_VARIABLE_AUTHENTICATION_2 descriptor. 
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
+// Append an existing environment variable with the value of Buffer. If the firmware does not support the operation, the function returns ERROR_INVALID_FUNCTION.
 #define EFI_VARIABLE_APPEND_WRITE 0x00000040
+// The firmware environment variable will return metadata in addition to variable data.
 #define EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS 0x00000080
 
+/**
+ * Retrieves the value of the specified firmware environment variable and its attributes.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * @param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * @param BufferLength The size of the \c Buffer, in bytes.
+ * @param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
-    _Inout_ PULONG ValueLength,
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength,
     _Out_opt_ PULONG Attributes // EFI_VARIABLE_*
     );
 
+/**
+ * Sets the value of the specified firmware environment variable.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VariableValue A pointer to the new value for the firmware environment variable.
+ * If this parameter is zero, the firmware environment variable is deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -96,14 +127,28 @@ NtSetSystemEnvironmentValue(
     _In_ PUNICODE_STRING VariableValue
     );
 
+/**
+ * Sets the value of the specified firmware environment variable and the attributes that indicate how this variable is stored and maintained.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * @param Buffer A pointer to the new value for the firmware environment variable.
+ * @param BufferLength The size of the pValue buffer, in bytes.
+ * Unless the VARIABLE_ATTRIBUTE_APPEND_WRITE, VARIABLE_ATTRIBUTE_AUTHENTICATED_WRITE_ACCESS,
+ * or VARIABLE_ATTRIBUTE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS variable attribute is set via dwAttributes,
+ * setting this value to zero will result in the deletion of this variable.
+ * @param Attributes Bitmask to set UEFI variable attributes associated with the variable.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _In_reads_bytes_opt_(ValueLength) PVOID Value,
-    _In_ ULONG ValueLength, // 0 = delete variable
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength, // 0 = delete variable
     _In_ ULONG Attributes // EFI_VARIABLE_*
     );
 

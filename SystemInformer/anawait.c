@@ -315,7 +315,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             {
                 PhAppendFormatStringBuilder(
                     &context->StringBuilder,
-                    L"Thread is sleeping. Timeout: %I64u milliseconds.",
+                    L"Thread is sleeping. Timeout: %llu milliseconds.",
                     -timeout / PH_TIMEOUT_MS
                     );
             }

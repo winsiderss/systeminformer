@@ -114,7 +114,7 @@ NTAPI
 PhOpenProcessClientId(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ CLIENT_ID ClientId
+    _In_ PCLIENT_ID ClientId
     );
 
 PHLIBAPI
@@ -557,6 +557,7 @@ NTAPI
 PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN LoadDllUsingApcThread,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
@@ -619,7 +620,7 @@ PhDestroyWindowRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhInvokeWindowThreadProcedureRemote(
+PhInvokeWindowProcedureRemote(
     _In_ HWND WindowHandle,
     _In_ PVOID ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
@@ -1143,6 +1144,7 @@ PhCreateAcl(
     Acl->AclSize = (USHORT)(Length & ~0x0003);
     return STATUS_SUCCESS;
 }
+
 
 FORCEINLINE
 NTSTATUS
@@ -1799,6 +1801,34 @@ PhSetProcessAffinityMask(
     _In_ KAFFINITY AffinityMask
     );
 
+#include <pshpack1.h>
+typedef struct _SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS
+{
+    LARGE_INTEGER LastUpdatedTime; // QuerySystemTime
+    SYSTEM_ACTIVITY_MODERATION_STATE ModerationState;
+    UCHAR Reserved[4];
+    SYSTEM_ACTIVITY_MODERATION_APP_TYPE AppType;
+    UCHAR Flags[4];
+} SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS;
+#include <poppack.h>
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessActivityModerationState(
+    _In_ PPH_STRINGREF ModerationIdentifier,
+    _Out_ PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS ModerationSettings
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessActivityModerationState(
+    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ SYSTEM_ACTIVITY_MODERATION_APP_TYPE ModerationType,
+    _In_ SYSTEM_ACTIVITY_MODERATION_STATE ModerationState
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -1985,7 +2015,7 @@ PhEnumHandlesEx(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhEnumHandlesEx2(
+PhEnumProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
     );
@@ -3125,6 +3155,14 @@ PhSetThreadAffinityMask(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetThreadBasePriorityClientId(
+    _In_ CLIENT_ID ClientId,
+    _In_ KPRIORITY Increment
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetThreadBasePriority(
     _In_ HANDLE ThreadHandle,
     _In_ KPRIORITY Increment
@@ -3324,7 +3362,7 @@ NTSTATUS
 NTAPI
 PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     );
 
 PHLIBAPI
