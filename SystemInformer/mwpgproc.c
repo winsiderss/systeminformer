@@ -851,6 +851,21 @@ VOID PhMwpInitializeProcessMenu(
             item->Flags |= PH_EMENU_DISABLED;
         }
     }
+
+    // Special case for the current shell process
+    if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_RESTART))
+    {
+        if (NumberOfProcesses == 1)
+        {
+            CLIENT_ID shellClientId;
+
+            if (NT_SUCCESS(PhGetWindowClientId(PhGetShellWindow(), &shellClientId)) &&
+                Processes[0]->ProcessId == shellClientId.UniqueProcess)
+            {
+                item->Text = L"Res&tart shell";
+            }
+        }
+    }
 }
 
 PPH_EMENU PhpCreateProcessMenu(
