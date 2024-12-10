@@ -56,6 +56,8 @@ typedef struct _PH_MEMSTRINGS_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     HANDLE ProcessHandle;
+    BOOLEAN UseClone;
+    HANDLE CloneHandle;
 
     HWND WindowHandle;
     HWND TreeNewHandle;
@@ -135,7 +137,8 @@ typedef struct _PH_MEMSTRINGS_SEARCH_CONTEXT
 BOOLEAN PhpShowMemoryStringTreeDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_opt_ PPH_LIST PrevNodeList
+    _In_opt_ PPH_LIST PrevNodeList,
+    _In_ BOOLEAN UseClone
     );
 
 VOID PhpShowMemoryEditor(
@@ -152,11 +155,17 @@ NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBuffer(
     )
 {
     NTSTATUS status;
+    HANDLE handle;
     PPH_MEMSTRINGS_SEARCH_CONTEXT context;
 
     assert(Context);
 
     context = Context;
+
+    if (context->TreeContext->UseClone)
+        handle = context->TreeContext->CloneHandle;
+    else
+        handle = context->TreeContext->ProcessHandle;
 
     *Buffer = NULL;
     *Length = 0;
@@ -165,7 +174,7 @@ NTSTATUS NTAPI PhpMemoryStringSearchTreeNextBuffer(
         goto ReadMemory;
 
     while (NT_SUCCESS(status = NtQueryVirtualMemory(
-        context->TreeContext->ProcessHandle,
+        handle,
         PTR_ADD_OFFSET(context->BasicInfo.BaseAddress, context->BasicInfo.RegionSize),
         MemoryBasicInformation,
         &context->BasicInfo,
@@ -202,8 +211,10 @@ ReadMemory:
             context->CurrentReadAddress = context->NextReadAddress;
             length = min(context->ReadRemaning, context->BufferSize);
 
+            assert(context->Buffer);
+
             if (NT_SUCCESS(status = NtReadVirtualMemory(
-                context->TreeContext->ProcessHandle,
+                handle,
                 context->CurrentReadAddress,
                 context->Buffer,
                 length,
@@ -563,6 +574,13 @@ VOID PhpDeleteMemoryStringsTree(
     }
     Context->StopSearch = FALSE;
 
+    if (Context->CloneHandle)
+    {
+        NtTerminateProcess(Context->CloneHandle, STATUS_PROCESS_CLONED);
+        NtClose(Context->CloneHandle);
+        Context->CloneHandle = NULL;
+    }
+
     PhpAddPendingMemoryStringsNodes(Context);
 
     PhpDeleteMemoryStringsNodeList(Context->NodeList);
@@ -592,6 +610,20 @@ VOID PhpSearchMemoryStrings(
     TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
     TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+
+    if (Context->UseClone)
+    {
+        NTSTATUS status;
+
+        if (!NT_SUCCESS(status = PhCreateProcessClone(
+            &Context->CloneHandle,
+            Context->ProcessItem->ProcessId
+            )))
+        {
+            PhShowStatus(Context->WindowHandle, L"Unable to clone the process", status, 0);
+            return;
+        }
+    }
 
     Context->State = PH_MEMSEARCH_STATE_SEARCHING;
     EnableWindow(Context->FilterHandle, FALSE);
@@ -1434,7 +1466,12 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
 
                     PhpCopyFilteredMemoryStringsNodes(context, &nodeList);
 
-                    if (!PhpShowMemoryStringTreeDialog(hwndDlg, context->ProcessItem, nodeList))
+                    if (!PhpShowMemoryStringTreeDialog(
+                        hwndDlg,
+                        context->ProcessItem,
+                        nodeList,
+                        context->UseClone
+                        ))
                     {
                         PhpDeleteMemoryStringsNodeList(nodeList);
                         PhDereferenceObject(nodeList);
@@ -1518,7 +1555,8 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
 BOOLEAN PhpShowMemoryStringTreeDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_opt_ PPH_LIST PrevNodeList
+    _In_opt_ PPH_LIST PrevNodeList,
+    _In_ BOOLEAN UseClone
     )
 {
     NTSTATUS status;
@@ -1538,6 +1576,7 @@ BOOLEAN PhpShowMemoryStringTreeDialog(
     context = PhAllocateZero(sizeof(PH_MEMSTRINGS_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->ProcessHandle = processHandle;
+    context->UseClone = UseClone;
     context->PrevNodeList = PrevNodeList;
 
     if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
@@ -1557,5 +1596,10 @@ VOID PhShowMemoryStringTreeDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhpShowMemoryStringTreeDialog(ParentWindowHandle, ProcessItem, NULL);
+    PhpShowMemoryStringTreeDialog(
+        ParentWindowHandle,
+        ProcessItem,
+        NULL,
+        ProcessItem->ProcessId == NtCurrentProcessId()
+        );
 }
