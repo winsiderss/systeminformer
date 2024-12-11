@@ -154,12 +154,16 @@ COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
 COLORREF PhThemeWindowTextColor = RGB(255, 255, 255);
 
+#define PH_THEME_ALLOWED_PROP L"PhEnableThemeSupport"
+
 // This wrapper designed for general use from any places including plugins.
 // No need te explicitly pass PhEnableThemeSupport or PhIsThemeSupportEnabled()
 VOID PhInitializeWindowTheme(
     _In_ HWND WindowHandle
     )
 {
+    SetProp(GetAncestor(WindowHandle, GA_ROOT), PH_THEME_ALLOWED_PROP, (HANDLE)TRUE);   // HACK for PhReInitializeTheme
+
     if (PhEnableThemeSupport)
     {
         PhInitializeWindowThemeEx(WindowHandle, TRUE);
@@ -231,12 +235,11 @@ VOID PhReInitializeTheme(
 
     while (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
     {
+        CLIENT_ID clientId;
         WCHAR windowClassName[MAX_PATH];
-        ULONG processID = 0;
 
-        GetWindowThreadProcessId(currentWindow, &processID);
-
-        if (UlongToHandle(processID) == NtCurrentProcessId())
+        if (NT_SUCCESS(PhGetWindowClientId(currentWindow, &clientId)) &&
+            clientId.UniqueProcess == NtCurrentProcessId())
         {
             GETCLASSNAME_OR_NULL(currentWindow, windowClassName);
 
@@ -244,8 +247,8 @@ VOID PhReInitializeTheme(
             {
                 PhWindowThemeSetDarkMode(currentWindow, EnableThemeSupport);    // handle tooltips
             }
-            // Update theme on all visible top-level System Informer windows.
-            else if ((PhGetWindowStyle(currentWindow) & WS_VISIBLE) == WS_VISIBLE)
+            // Update theme on all theme-allowed System Informer windows.
+            else if (GetProp(currentWindow, PH_THEME_ALLOWED_PROP))
             {
                 dprintf("PhReInitializeTheme: %S\r\n", windowClassName);
 
@@ -263,12 +266,11 @@ VOID PhReInitializeStreamerMode(
 
     while (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
     {
+        CLIENT_ID clientId;
         WCHAR windowClassName[MAX_PATH];
-        ULONG processID = 0;
-
-        GetWindowThreadProcessId(currentWindow, &processID);
-
-        if (UlongToHandle(processID) == NtCurrentProcessId())
+        
+        if (NT_SUCCESS(PhGetWindowClientId(currentWindow, &clientId)) &&
+            clientId.UniqueProcess == NtCurrentProcessId())
         {
             GETCLASSNAME_OR_NULL(currentWindow, windowClassName);
 
@@ -554,14 +556,6 @@ VOID PhInitializeThemeWindowTabControl(
     }
 }
 
-VOID PhInitializeThemeWindowGroupBox(
-    _In_ HWND GroupBoxHandle,
-    _In_ BOOLEAN EnableThemeSupport
-    )
-{
-    PhThemeUpdateWindowProcedure(GroupBoxHandle, PhpThemeWindowGroupBoxSubclassProc, EnableThemeSupport);
-}
-
 VOID PhInitializeWindowThemeMenu(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN EnableThemeSupport
@@ -672,14 +666,6 @@ VOID PhInitializeWindowThemeComboboxControl(
     }
 }
 
-VOID PhInitializeWindowThemeACLUI(
-    _In_ HWND ACLUIControl,
-    _In_ BOOLEAN EnableThemeSupport
-    )
-{
-    PhThemeUpdateWindowProcedure(ACLUIControl, PhpThemeWindowACLUISubclassProc, EnableThemeSupport);
-}
-
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -710,7 +696,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if ((PhGetWindowStyle(WindowHandle) & BS_GROUPBOX) == BS_GROUPBOX)
         {
-            PhInitializeThemeWindowGroupBox(WindowHandle, enableThemeSupport);
+            PhThemeUpdateWindowProcedure(WindowHandle, PhpThemeWindowGroupBoxSubclassProc, enableThemeSupport);
         }
         else    // apply theme for CheckBox, Radio (Dart Vanya)
         {
@@ -736,11 +722,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            HWND tooltipWindow = TreeView_GetToolTips(WindowHandle);
-
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
-			if (tooltipWindow)
-				PhWindowThemeSetDarkMode(tooltipWindow, enableThemeSupport);
+            // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
         }
 
         TreeView_SetBkColor(WindowHandle, enableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW));// RGB(30, 30, 30));
@@ -805,7 +788,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
         }
 
-        PhInitializeWindowThemeACLUI(WindowHandle, enableThemeSupport);
+        PhThemeUpdateWindowProcedure(WindowHandle, PhpThemeWindowACLUISubclassProc, enableThemeSupport);
     }
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
@@ -842,7 +825,6 @@ VOID PhInitializeTreeNewTheme(
     {
         HWND headerHandle = TreeNew_GetHeader(TreeNewHandle);
         HWND fixedHeaderHandle = TreeNew_GetFixedHeader(TreeNewHandle);
-        HWND tooltipWindow = TreeNew_GetTooltips(TreeNewHandle);
 
         PhAllowDarkModeForWindow(TreeNewHandle, EnableThemeSupport);
         PhWindowThemeSetDarkMode(TreeNewHandle, EnableThemeSupport);
@@ -850,8 +832,7 @@ VOID PhInitializeTreeNewTheme(
             PhSetControlTheme(headerHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
         if (fixedHeaderHandle)
             PhSetControlTheme(fixedHeaderHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
-        if (tooltipWindow)
-            PhWindowThemeSetDarkMode(tooltipWindow, EnableThemeSupport);
+        // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
     if (EnableThemeSupport && PhEnableThemeListviewBorder)
@@ -871,15 +852,13 @@ VOID PhInitializeListViewTheme(
 {
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        HWND tooltipWindow = ListView_GetToolTips(ListViewHandle);
         HWND headerHandle = ListView_GetHeader(ListViewHandle);
 
         PhAllowDarkModeForWindow(ListViewHandle, EnableThemeSupport);
         PhSetControlTheme(ListViewHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
         if (headerHandle)
             PhSetControlTheme(headerHandle, EnableThemeSupport ? L"DarkMode_ItemsView" : L"Explorer");
-        if (tooltipWindow)
-            PhWindowThemeSetDarkMode(tooltipWindow, EnableThemeSupport);
+        // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
     if (EnableThemeSupport && PhEnableThemeListviewBorder)

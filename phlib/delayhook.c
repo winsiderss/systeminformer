@@ -179,6 +179,10 @@ LRESULT CALLBACK PhToolTipWindowHookProcedure(
         {
             SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
+        if (PhEnableThemeSupport)
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+        }
         break;
     }
 
@@ -1382,6 +1386,12 @@ PhCreateWindowExHook(
         if (!IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_LINK, FALSE))
         {
             PhInitializeTaskDialogTheme(windowHandle, NULL);
+        }
+        else if (PhEnableThemeSupport &&
+            !IS_INTRESOURCE(lpClassName) && PhEqualStringZ(lpClassName, WC_BUTTON, FALSE) &&
+            PhGetWindowContext(hWndParent, LONG_MAX))
+        {
+            PhWindowThemeSetDarkMode(windowHandle, TRUE);
         }
     }
 
