@@ -821,16 +821,32 @@ VOID KsiConnect(
 
     if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
     {
-        PhShowKsiMessageEx(
-            WindowHandle,
-            TD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The kernel driver is not yet supported on this kernel "
-            L"version. Request support by submitting a GitHub issue with "
-            L"the Windows Kernel version."
-            );
+        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_ERROR_ICON,
+                0,
+                FALSE,
+                L"Unable to load kernel driver",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. For the latest kernel support switch to the Canary "
+                L"update channel (Help > Check for updates > Canary > Check)."
+                );
+        }
+        else
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_ERROR_ICON,
+                0,
+                FALSE,
+                L"Unable to load kernel driver",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. Request support by submitting a GitHub issue with "
+                L"the Windows Kernel version."
+                );
+        }
         goto CleanupExit;
     }
 
