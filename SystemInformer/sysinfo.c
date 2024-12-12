@@ -1074,15 +1074,15 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
         break;
     case 1: // Old colors
-        DrawInfo->BackColor = RGB(0x00, 0x00, 0x00);
+        DrawInfo->BackColor = PhThemeWindowForegroundColor;
         DrawInfo->LineColor1 = Color1;
         DrawInfo->LineBackColor1 = PhHalveColorBrightness(Color1);
         DrawInfo->LineColor2 = Color2;
         DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
-        DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
+        DrawInfo->GridColor = PhThemeWindowBackground2Color;
         DrawInfo->LabelYColor = RGB(0xd0, 0xa0, 0x70);
-        DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
-        DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
+        DrawInfo->TextColor = PhMakeColorDarker(PhThemeWindowTextColor, 7);
+        DrawInfo->TextBoxColor = PhThemeWindowBackgroundColor;
         break;
     }
 }

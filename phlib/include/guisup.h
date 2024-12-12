@@ -1722,6 +1722,39 @@ PhMakeColorBrighter(
     return RGB(r, g, b);
 }
 
+FORCEINLINE
+COLORREF
+PhMakeColorDarker(
+    _In_ COLORREF Color,
+    _In_ UCHAR Increment
+    )
+{
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+
+    r = (UCHAR)Color;
+    g = (UCHAR)(Color >> 8);
+    b = (UCHAR)(Color >> 16);
+
+    if (r - Increment > 0)
+        r -= Increment;
+    else
+        r = 0;
+
+    if (g - Increment > 0)
+        g -= Increment;
+    else
+        g = 0;
+
+    if (b - Increment > 0)
+        b -= Increment;
+    else
+        b = 0;
+
+    return RGB(r, g, b);
+}
+
 // Window support
 
 typedef enum _PH_PLUGIN_WINDOW_EVENT_TYPE

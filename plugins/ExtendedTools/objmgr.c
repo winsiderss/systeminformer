@@ -1454,10 +1454,7 @@ VOID EtObjectManagerFreeListViewItems(
 
     PhClearReference(&Context->CurrentPath);
 
-    for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
-    {
-        PhDereferenceObject(Context->CurrentDirectoryList->Items[i]);
-    }
+    PhDereferenceObjects(Context->CurrentDirectoryList->Items, Context->CurrentDirectoryList->Count);
 
     //INT index = INT_ERROR;
     //while ((index = PhFindListViewItemByFlags(
