@@ -570,7 +570,7 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
             if (PhEnableThemeSupport)
             {
-                SetDCBrushColor(hdc, RGB(50, 50, 50));
+                SetDCBrushColor(hdc, PhMakeColorBrighter(PhThemeWindowBackgroundColor, 7)); // RGB(50, 50, 50)
                 FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
                 clientRect.bottom = clientRect.top + 1;
                 SetDCBrushColor(hdc, PhThemeWindowForegroundColor);

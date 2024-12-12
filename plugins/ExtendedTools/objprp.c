@@ -271,6 +271,7 @@ typedef enum _ET_OBJECT_POOLTYPE {
 #define OBJECT_CHILD_HANDLEPROP_WINDOW 1
 #define OBJECT_CORRECT_HANDLES_COUNT(real_count) ((ULONG)(real_count) - 1)
 
+#define OBJECT_HANDLES_CONTEXT_TAG (ULONG)'OBJH'
 typedef struct _ET_GENERAL_PAGE_CONTEXT
 {
     WNDPROC OldWndProc;
@@ -287,7 +288,7 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
 {
     PET_GENERAL_PAGE_CONTEXT context;
 
-    if (!(context = PhGetWindowContext(hWnd, 'OBJH')))
+    if (!(context = PhGetWindowContext(hWnd, OBJECT_HANDLES_CONTEXT_TAG)))
         return FALSE;
 
     WNDPROC oldWndProc = context->OldWndProc;
@@ -303,7 +304,7 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
     else if (uMsg == WM_NCDESTROY)
     {
         PhSetWindowProcedure(hWnd, oldWndProc);
-        PhRemoveWindowContext(hWnd, 'OBJH');
+        PhRemoveWindowContext(hWnd, OBJECT_HANDLES_CONTEXT_TAG);
         PhFree(context);
     }
 
@@ -312,7 +313,7 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
 
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
-    )
+)
 {
     static INT EtListViewRowCache[OBJECT_GENERAL_INDEX_MAXIMUM];
 
@@ -340,7 +341,7 @@ VOID EtHandlePropertiesWindowInitialized(
             PET_GENERAL_PAGE_CONTEXT pageContext = PhAllocateZero(sizeof(ET_GENERAL_PAGE_CONTEXT));
             pageContext->OldWndProc = PhGetWindowProcedure(generalPage);
             pageContext->ParentWindow = context->ParentWindow;
-            PhSetWindowContext(generalPage, 'OBJH', pageContext);
+            PhSetWindowContext(generalPage, OBJECT_HANDLES_CONTEXT_TAG, pageContext);
             PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
 
             EtObjectManagerShowHandlesPage = FALSE;

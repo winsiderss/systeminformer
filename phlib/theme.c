@@ -20,6 +20,7 @@
 #include <dwmapi.h>
 #include <vsstyle.h>
 #include <vssym32.h>
+#include <richedit.h>
 
 typedef struct _PHP_THEME_WINDOW_TAB_CONTEXT
 {
@@ -739,8 +740,14 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
         SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
-#define EM_SETBKGNDCOLOR (WM_USER + 67)
+        CHARFORMAT cf = { sizeof(CHARFORMAT) };
+        cf.dwMask = CFM_COLOR;
+        cf.dwEffects = enableThemeSupport ? 0 : CFE_AUTOCOLOR;
+        if (enableThemeSupport) cf.crTextColor = PhThemeWindowTextColor;
+
         SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, enableThemeSupport ? PhMakeColorBrighter(PhThemeWindowForegroundColor, 2) : GetSysColor(COLOR_WINDOW));  // RGB(30, 30, 30)
+        SendMessage(WindowHandle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+
         PhWindowThemeSetDarkMode(WindowHandle, enableThemeSupport);
     }
     else if (PhEqualStringZ(windowClassName, PH_TREENEW_CLASSNAME, FALSE))

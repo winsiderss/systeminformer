@@ -1554,6 +1554,12 @@ static VOID PhpOptionsNotifyChangeCallback(
 
     if (PhEnableThemeSupport != oldTheme || PhEnableThemeAcrylicWindowSupport != oldAcrylicWindowSupport)
     {
+        if (PhEnableThemeSupport != oldTheme)
+        {
+            PhSetIntegerSetting(L"GraphColorMode", PhEnableThemeSupport); // HACK switch to dark theme. (dmex)
+            PhCsGraphColorMode = PhGetIntegerSetting(L"GraphColorMode");
+        }
+
         PhReInitializeTheme(PhEnableThemeSupport);
     }
 
@@ -1734,11 +1740,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
-
-    if (PhEnableThemeSupport)
-    {
-        PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
-    }
 
     WriteCurrentUserRun(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,

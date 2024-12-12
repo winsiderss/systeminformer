@@ -1850,15 +1850,15 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
 {
     HRESULT result = S_OK;
 
-    PTASKDIALOG_CALLBACK_WRAP CallbackData = (PTASKDIALOG_CALLBACK_WRAP)dwRefData;
+    PTASKDIALOG_CALLBACK_WRAP callbackData = (PTASKDIALOG_CALLBACK_WRAP)dwRefData;
 
     if (uMsg == TDN_DIALOG_CONSTRUCTED) // Called on each new page, including the first one.
     {
         PhInitializeTaskDialogTheme(hwndDlg, hwndDlg);
     }
 
-    if (CallbackData->pfCallback)
-        result = CallbackData->pfCallback(hwndDlg, uMsg, wParam, lParam, CallbackData->lpCallbackData);
+    if (callbackData->pfCallback)
+        result = callbackData->pfCallback(hwndDlg, uMsg, wParam, lParam, callbackData->lpCallbackData);
 
     return result;
 }
@@ -1871,12 +1871,12 @@ HRESULT WINAPI PhTaskDialogIndirectHook(
     _Out_opt_ BOOL* pfVerificationFlagChecked
     )
 {
-    TASKDIALOG_CALLBACK_WRAP CallbackData;
-    CallbackData.pfCallback = pTaskConfig->pfCallback;
-    CallbackData.lpCallbackData = pTaskConfig->lpCallbackData;
+    TASKDIALOG_CALLBACK_WRAP callbackData;
+    callbackData.pfCallback = pTaskConfig->pfCallback;
+    callbackData.lpCallbackData = pTaskConfig->lpCallbackData;
     TASKDIALOGCONFIG myConfig = *pTaskConfig;
     myConfig.pfCallback = ThemeTaskDialogCallbackHook;
-    myConfig.lpCallbackData = (LONG_PTR)&CallbackData;
+    myConfig.lpCallbackData = (LONG_PTR)&callbackData;
 
     return DefaultTaskDialogIndirect(&myConfig, pnButton, pnRadioButton, pfVerificationFlagChecked);
 }

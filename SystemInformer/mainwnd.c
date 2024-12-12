@@ -654,6 +654,9 @@ static NTSTATUS PhMwpReInitializeThemeThread(
 
         PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
 
+        PhSetIntegerSetting(L"GraphColorMode", PhEnableThemeSupport); // HACK switch to dark theme. (dmex)
+        PhCsGraphColorMode = PhGetIntegerSetting(L"GraphColorMode");
+
         PhReInitializeTheme(PhEnableThemeSupport);
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
