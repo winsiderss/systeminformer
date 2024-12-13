@@ -495,7 +495,12 @@ ULONGLONG PhReadTimeStampCounter(
     ULONG64 value;
 
     value = ReadTimeStampCounter();
+
+#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+    MemoryBarrier();
+#else
     SpeculationFence();
+#endif
 
 #else
     ULONG64 value;
@@ -988,20 +993,22 @@ PVOID PhAllocatePage(
     )
 {
     PVOID baseAddress;
+    SIZE_T regionSize;
 
     baseAddress = NULL;
+    regionSize = Size;
 
     if (NT_SUCCESS(NtAllocateVirtualMemory(
         NtCurrentProcess(),
         &baseAddress,
         0,
-        &Size,
+        &regionSize,
         MEM_COMMIT,
         PAGE_READWRITE
         )))
     {
         if (NewSize)
-            *NewSize = Size;
+            *NewSize = regionSize;
 
         return baseAddress;
     }
@@ -7043,7 +7050,7 @@ BOOLEAN PhPrintTimeSpanToBuffer(
         {
             PH_FORMAT format[7];
 
-            // %I64u:%02I64u:%02I64u:%02I64u
+            // %llu:%02I64u:%02I64u:%02I64u
             PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
             PhInitFormatC(&format[1], L':');
             PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
@@ -7059,7 +7066,7 @@ BOOLEAN PhPrintTimeSpanToBuffer(
         {
             PH_FORMAT format[9];
 
-            // %I64u:%02I64u:%02I64u:%02I64u
+            // %llu:%02I64u:%02I64u:%02I64u
             PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
             PhInitFormatC(&format[1], L':');
             PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);

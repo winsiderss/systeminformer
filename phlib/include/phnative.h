@@ -108,6 +108,44 @@ PhOpenProcess(
     _In_ HANDLE ProcessId
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhOpenProcessWithQueryAccess(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+
+    status = PhOpenProcess(
+        ProcessHandle,
+        PROCESS_QUERY_INFORMATION | DesiredAccess,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            ProcessHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | DesiredAccess,
+            ProcessId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhOpenProcess(
+                ProcessHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                ProcessId
+                );
+        }
+    }
+
+    return status;
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -370,14 +408,12 @@ PhGetProcessDepStatus(
     _Out_ PULONG DepStatus
     );
 
-#define PH_GET_PROCESS_ENVIRONMENT_WOW64 0x1 // retrieve the WOW64 environment
-
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessEnvironment(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Flags,
+    _In_ BOOLEAN IsWow64Process,
     _Out_ PVOID *Environment,
     _Out_ PULONG EnvironmentLength
     );

@@ -850,6 +850,14 @@ PhSelectComboBoxString(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhDeleteComboBoxStrings(
+    _In_ HWND ComboBoxHandle,
+    _In_ BOOLEAN ResetContent
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetListBoxString(

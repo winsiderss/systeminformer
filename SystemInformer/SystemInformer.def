@@ -622,6 +622,7 @@ EXPORTS
     PhQuerySymbolicLinkObject
     PhQueryTokenVariableSize
     PhQueryValueKey
+    PhQueueUserWorkItem
     PhReadFile
     PhResolveDevicePrefix
     PhRevertImpersonationToken

@@ -1027,11 +1027,11 @@ VOID PhpShowWmiProviderStatus(
     {
         if (Message)
         {
-            PhShowError2(hWnd, Message, L"%s", statusMessage->Buffer);
+            PhShowError2(hWnd, Message, L"%s", PhGetString(statusMessage));
         }
         else
         {
-            PhShowError2(hWnd, statusMessage->Buffer, L"%s", L"");
+            PhShowError2(hWnd, L"Unable to perform the operation.", L"%s", PhGetString(statusMessage));
         }
 
         PhDereferenceObject(statusMessage);
@@ -1040,11 +1040,11 @@ VOID PhpShowWmiProviderStatus(
     {
         if (Message)
         {
-            PhShowError2(hWnd, Message, L"%s", L"");
+            PhShowError2(hWnd, L"Unable to perform the operation.", L"%s", Message);
         }
         else
         {
-            PhShowError2(hWnd, L"Unable to perform the operation.", L"%s", L"");
+            PhShowStatus(hWnd, L"Unable to perform the operation.", STATUS_UNSUCCESSFUL, 0);
         }
     }
 }

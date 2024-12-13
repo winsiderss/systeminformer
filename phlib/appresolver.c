@@ -1052,7 +1052,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
 
     if (HR_FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
         return FALSE;
-    if (!(V_VT(&packageHostEnvironment) == VT_UI4 && V_UI4(&packageHostEnvironment)))
+    if (packageHostEnvironment.vt != VT_UI4 && packageHostEnvironment.ulVal)
         return FALSE;
 
     IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_ID, &packageAppUserModelID);
@@ -1281,7 +1281,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
         goto CleanupExit;
     if (HR_FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
         goto CleanupExit;
-    if (HR_FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), V_BSTR(&propertyPathValue), &imagePath)))
+    if (HR_FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), propertyPathValue.bstrVal, &imagePath)))
         goto CleanupExit;
 
     if (IconLarge)
@@ -1295,7 +1295,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }
@@ -1311,7 +1311,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }
@@ -1319,8 +1319,8 @@ BOOLEAN PhAppResolverGetPackageIcon(
 CleanupExit:
     if (imagePath)
         CoTaskMemFree(imagePath);
-    if (V_BSTR(&propertyPathValue))
-        CoTaskMemFree(V_BSTR(&propertyPathValue));
+    if (propertyPathValue.bstrVal)
+        CoTaskMemFree(propertyPathValue.bstrVal);
     if (propertyStore)
         IPropertyStore_Release(propertyStore);
 

@@ -1777,7 +1777,7 @@ VOID PhShowFindObjectsDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, NULL)))
         {
-            PhShowError2(PhMainWndHandle, L"Unable to create the window.", L"%s", L"");
+            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
             return;
         }
 

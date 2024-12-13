@@ -1210,7 +1210,7 @@ NTSTATUS PhGetProcessDepStatus(
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION and
  * PROCESS_VM_READ access.
- * \param Flags A combination of flags.
+ * \param IsWow64Process A variable which receives a boolean indicating whether the process is 32-bit.
  * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the environment block from the WOW64 PEB.
  * \param Environment A variable which will receive a pointer to the environment block copied from
  * the process. You must free the block using PhFreePage() when you no longer need it.
@@ -1219,7 +1219,7 @@ NTSTATUS PhGetProcessDepStatus(
  */
 NTSTATUS PhGetProcessEnvironment(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Flags,
+    _In_ BOOLEAN IsWow64Process,
     _Out_ PVOID *Environment,
     _Out_ PULONG EnvironmentLength
     )
@@ -1230,35 +1230,7 @@ NTSTATUS PhGetProcessEnvironment(
     PVOID environment;
     SIZE_T environmentLength;
 
-    if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
-    {
-        PVOID pebBaseAddress;
-        PVOID processParameters;
-
-        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
-            &processParameters,
-            sizeof(PVOID),
-            NULL
-            )))
-            return status;
-
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
-            &environmentRemote,
-            sizeof(PVOID),
-            NULL
-            )))
-            return status;
-    }
-    else
+    if (IsWow64Process)
     {
         PVOID pebBaseAddress32;
         ULONG processParameters32;
@@ -1288,6 +1260,34 @@ NTSTATUS PhGetProcessEnvironment(
             return status;
 
         environmentRemote = UlongToPtr(environmentRemote32);
+    }
+    else
+    {
+        PVOID pebBaseAddress;
+        PVOID processParameters;
+
+        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
+            &processParameters,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
+            &environmentRemote,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
     }
 
     if (!NT_SUCCESS(status = NtQueryVirtualMemory(

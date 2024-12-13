@@ -1003,6 +1003,28 @@ LONG PhSelectComboBoxString(
     }
 }
 
+VOID PhDeleteComboBoxStrings(
+    _In_ HWND ComboBoxHandle,
+    _In_ BOOLEAN ResetContent
+    )
+{
+    LONG total;
+
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
+        return;
+
+    for (LONG i = 0; i < total; i++)
+    {
+        ComboBox_DeleteString(ComboBoxHandle, i);
+    }
+
+    if (ResetContent)
+    {
+        ComboBox_ResetContent(ComboBoxHandle);
+    }
+}
+
+
 PPH_STRING PhGetListBoxString(
     _In_ HWND WindowHandle,
     _In_ LONG Index

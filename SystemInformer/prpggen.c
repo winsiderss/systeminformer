@@ -718,6 +718,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     else
                     {
                         PhShowError2(hwndDlg, L"The process does not exist.", L"%s", L"");
+                        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_NOT_FOUND, 0);
                     }
                 }
                 break;

@@ -67,6 +67,7 @@
 
 typedef struct _RUNAS_DIALOG_CONTEXT
 {
+    HWND WindowHandle;
     HWND ProgramComboBoxWindowHandle;
     HWND UserComboBoxWindowHandle;
     HWND TypeComboBoxWindowHandle;
@@ -299,55 +300,6 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
-static VOID PhpFreeRecentProgramsComboBox(
-    _In_ HWND ComboBoxHandle
-    )
-{
-    INT total;
-
-    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
-        return;
-
-    for (INT i = 0; i < total; i++)
-    {
-        ComboBox_DeleteString(ComboBoxHandle, i);
-    }
-
-    ComboBox_ResetContent(ComboBoxHandle);
-}
-
-static VOID PhpFreeProgramsComboBox(
-    _In_ HWND ComboBoxHandle
-    )
-{
-    INT total;
-
-    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
-        return;
-
-    for (INT i = 0; i < total; i++)
-    {
-        ComboBox_DeleteString(ComboBoxHandle, i);
-    }
-}
-
-static VOID PhpFreeAccountsComboBox(
-    _In_ HWND ComboBoxHandle
-    )
-{
-    INT total;
-
-    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
-        return;
-
-    for (INT i = 0; i < total; i++)
-    {
-        ComboBox_DeleteString(ComboBoxHandle, i);
-    }
-
-    ComboBox_ResetContent(ComboBoxHandle);
-}
-
 BOOLEAN PhpEnumerateRecentProgramsToComboBox(
     _In_ PPH_STRINGREF Command,
     _In_ PVOID Context
@@ -370,7 +322,7 @@ static VOID PhpAddProgramsToComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    PhpFreeRecentProgramsComboBox(ComboBoxHandle);
+    PhDeleteComboBoxStrings(ComboBoxHandle, TRUE);
 
     PhEnumerateRecentList(PhpEnumerateRecentProgramsToComboBox, ComboBoxHandle);
 }
@@ -379,7 +331,7 @@ static VOID PhpAddAccountsToComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    PhpFreeAccountsComboBox(ComboBoxHandle);
+    PhDeleteComboBoxStrings(ComboBoxHandle, TRUE);
 
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName((PSID)&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
