@@ -348,42 +348,10 @@ namespace CustomBuildTool
 
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
-            if (
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string key) &&
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string value) &&
-                Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt)
-                )
+            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
             {
-                if (Uri.TryCreate(value, UriKind.Absolute, out Uri result) && result.IsFile)
-                {
-                    using (var fileStream = File.OpenRead(value))
-                    {
-                        KeyMaterial = Decrypt(fileStream, key, salt);
-                    }
-                }
-                else
-                {
-                    byte[] bytes = Utils.ReadAllBytes(value);
-                    KeyMaterial = Decrypt(bytes, key, salt);
-                }
-
-                return true;
-            }
-            else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
-            {
-                if (Uri.TryCreate(secret, UriKind.Absolute, out Uri result) && result.IsFile)
-                {
-                    using (var fileStream = File.OpenRead(secret))
-                    {
-                        KeyMaterial = Decrypt(fileStream, secret, GetSalt(null));
-                    }
-                }
-                else
-                {
-                    byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                    KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
-                }
-
+                byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+                KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))
@@ -397,5 +365,57 @@ namespace CustomBuildTool
                 return false;
             }
         }
+
+        //private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
+        //{
+        //    if (
+        //        Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string key) &&
+        //        Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string value) &&
+        //        Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt)
+        //        )
+        //    {
+        //        if (Uri.TryCreate(value, UriKind.Absolute, out Uri result) && result.IsFile)
+        //        {
+        //            using (var fileStream = File.OpenRead(value))
+        //            {
+        //                KeyMaterial = Decrypt(fileStream, key, salt);
+        //            }
+        //        }
+        //        else
+        //        {
+        //            byte[] bytes = Utils.ReadAllBytes(value);
+        //            KeyMaterial = Decrypt(bytes, key, salt);
+        //        }
+        //
+        //        return true;
+        //    }
+        //    else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
+        //    {
+        //        if (Uri.TryCreate(secret, UriKind.Absolute, out Uri result) && result.IsFile)
+        //        {
+        //            using (var fileStream = File.OpenRead(secret))
+        //            {
+        //                KeyMaterial = Decrypt(fileStream, secret, GetSalt(null));
+        //            }
+        //        }
+        //        else
+        //        {
+        //            byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+        //            KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
+        //        }
+        //
+        //        return true;
+        //    }
+        //    else if (File.Exists(GetPath($"{KeyName}.key")))
+        //    {
+        //        KeyMaterial = Utils.ReadAllBytes(GetPath($"{KeyName}.key"));
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        KeyMaterial = null;
+        //        return false;
+        //    }
+        //}
     }
 }
