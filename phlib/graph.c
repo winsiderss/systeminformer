@@ -687,9 +687,12 @@ static VOID PhpDeleteBufferedContext(
         // The original bitmap must be selected back into the context, otherwise the bitmap can't be
         // deleted.
         SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
-        DeleteBitmap(Context->BufferedBitmap);
-        DeleteDC(Context->BufferedContext);
+        Context->BufferedOldBitmap = NULL;
 
+        DeleteBitmap(Context->BufferedBitmap);
+        Context->BufferedBitmap = NULL;
+
+        DeleteDC(Context->BufferedContext);
         Context->BufferedContext = NULL;
         Context->BufferedBitmap = NULL;
         Context->BufferedBits = NULL;
@@ -729,11 +732,14 @@ static VOID PhpDeleteFadeOutContext(
     if (Context->FadeOutContext)
     {
         SelectBitmap(Context->FadeOutContext, Context->FadeOutOldBitmap);
-        DeleteBitmap(Context->FadeOutBitmap);
-        DeleteDC(Context->FadeOutContext);
+        Context->FadeOutOldBitmap = NULL;
 
-        Context->FadeOutContext = NULL;
+        DeleteBitmap(Context->FadeOutBitmap);
         Context->FadeOutBitmap = NULL;
+
+        DeleteDC(Context->FadeOutContext);
+        Context->FadeOutContext = NULL;
+
         Context->FadeOutBits = NULL;
     }
 }
@@ -754,7 +760,8 @@ static VOID PhpCreateFadeOutContext(
 
     PhpDeleteFadeOutContext(Context);
 
-    GetClientRect(Context->Handle, &Context->FadeOutContextRect);
+    if (!GetClientRect(Context->Handle, &Context->FadeOutContextRect))
+        return;
     Context->FadeOutContextRect.right = Context->Options.FadeOutWidth;
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -968,6 +975,7 @@ LRESULT CALLBACK PhpGraphWndProc(
     case WM_SIZE:
         {
             // Force a re-create of the buffered context.
+            PhpDeleteBufferedContext(context);
             PhpCreateBufferedContext(context);
             PhpDeleteFadeOutContext(context);
 
