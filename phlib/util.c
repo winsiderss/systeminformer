@@ -903,10 +903,10 @@ PPH_STRING PhGetStatusMessage(
         }
     }
 
-    if (!Win32Result)
-        return PhGetNtMessage(Status);
-    else
+    if (Win32Result)
         return PhGetWin32Message(Win32Result);
+    else
+        return PhGetNtMessage(Status);
 }
 
 /**
@@ -929,18 +929,18 @@ VOID PhShowStatus(
     if (statusMessage = PhGetStatusMessage(Status, Win32Result))
     {
         if (Message)
-            PhShowError2(WindowHandle, Message, L"%s", statusMessage->Buffer);
+            PhShowError2(WindowHandle, Message, L"%s", PhGetString(statusMessage));
         else
-            PhShowError2(WindowHandle, statusMessage->Buffer, L"");
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", PhGetString(statusMessage));
 
         PhDereferenceObject(statusMessage);
     }
     else
     {
         if (Message)
-            PhShowError2(WindowHandle, Message, L"");
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
         else
-            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"");
+            PhShowStatus(WindowHandle, L"Unable to perform the operation.", STATUS_UNSUCCESSFUL, 0);
     }
 }
 
@@ -4372,7 +4372,7 @@ NTSTATUS PhCreateProcess(
     {
         status = RtlCreateUserProcess(
             &fileName,
-            OBJ_CASE_INSENSITIVE,
+            0,
             parameters,
             NULL,
             NULL,
