@@ -2975,7 +2975,9 @@ RtlFreeToPeb(
     );
 #endif
 
+//
 // Processes
+//
 
 typedef struct _CURDIR
 {
@@ -2983,6 +2985,7 @@ typedef struct _CURDIR
     HANDLE Handle;
 } CURDIR, *PCURDIR;
 
+// CURDIR Handle | Flags
 #define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
 #define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
 
@@ -2994,6 +2997,7 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
     STRING DosPath;
 } RTL_DRIVE_LETTER_CURDIR, *PRTL_DRIVE_LETTER_CURDIR;
 
+// RTL_DRIVE_LETTER_CURDIR Flags
 #define RTL_MAX_DRIVE_LETTERS 32
 #define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
 
@@ -3047,18 +3051,25 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     ULONG HeapMemoryTypeMask; // WIN11
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
-#define RTL_USER_PROC_PARAMS_NORMALIZED 0x00000001
-#define RTL_USER_PROC_PROFILE_USER 0x00000002
-#define RTL_USER_PROC_PROFILE_KERNEL 0x00000004
-#define RTL_USER_PROC_PROFILE_SERVER 0x00000008
-#define RTL_USER_PROC_RESERVE_1MB 0x00000020
-#define RTL_USER_PROC_RESERVE_16MB 0x00000040
-#define RTL_USER_PROC_CASE_SENSITIVE 0x00000080
-#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT 0x00000100
-#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL 0x00001000
-#define RTL_USER_PROC_APP_MANIFEST_PRESENT 0x00002000
-#define RTL_USER_PROC_IMAGE_KEY_MISSING 0x00004000
-#define RTL_USER_PROC_OPTIN_PROCESS 0x00020000
+// RTL_USER_PROCESS_PARAMETERS Flags
+#define RTL_USER_PROC_PARAMS_NORMALIZED                 0x00000001
+#define RTL_USER_PROC_PROFILE_USER                      0x00000002
+#define RTL_USER_PROC_PROFILE_KERNEL                    0x00000004
+#define RTL_USER_PROC_PROFILE_SERVER                    0x00000008
+#define RTL_USER_PROC_RESERVE_1MB                       0x00000020
+#define RTL_USER_PROC_RESERVE_16MB                      0x00000040
+#define RTL_USER_PROC_CASE_SENSITIVE                    0x00000080
+#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT             0x00000100
+#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL             0x00001000
+#define RTL_USER_PROC_APP_MANIFEST_PRESENT              0x00002000
+#define RTL_USER_PROC_IMAGE_KEY_MISSING                 0x00004000
+#define RTL_USER_PROC_DEV_OVERRIDE_ENABLED              0x00008000
+#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
+#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
+#define RTL_USER_PROC_SESSION_OWNER                     0x00040000
+#define RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS   0x00080000
+#define RTL_USER_PROC_PROTECTED_PROCESS                 0x00400000
+#define RTL_USER_PROC_SECURE_PROCESS                    0x80000000
 
 NTSYSAPI
 NTSTATUS
@@ -3153,7 +3164,7 @@ NTSTATUS
 NTAPI
 RtlCreateUserProcess(
     _In_ PUNICODE_STRING NtImagePathName,
-    _In_ ULONG AttributesDeprecated,
+    _In_ ULONG ExtendedParameters, // HIWORD(NumaNodeNumber), LOWORD(Reserved)
     _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _In_opt_ PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
     _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
@@ -6836,7 +6847,7 @@ RtlSecondsSince1970ToTime(
 
 #if (PHNT_VERSION >= PHNT_WIN8)
 NTSYSAPI
-LARGE_INTEGER
+ULONGLONG
 NTAPI
 RtlGetSystemTimePrecise(
     VOID
@@ -6856,7 +6867,7 @@ RtlGetSystemTimeAndBias(
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSAPI
-LARGE_INTEGER
+ULONGLONG
 NTAPI
 RtlGetInterruptTimePrecise(
     _Out_ PLARGE_INTEGER PerformanceCounter
@@ -6871,6 +6882,23 @@ RtlQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER InterruptTime
     );
 #endif
+
+FORCEINLINE
+ULONGLONG
+NTAPI
+RtlBeginReadTickLock(
+    _In_ PULONGLONG TimeUpdateLock // USER_SHARED_DATA->TimeUpdateLock
+    )
+{
+    ULONGLONG result;
+
+    for (result = *TimeUpdateLock; (*TimeUpdateLock & 1) != 0; result = *TimeUpdateLock)
+    {
+        YieldProcessor();
+    }
+
+    return result;
+}
 
 // Time zones
 
@@ -11147,7 +11175,9 @@ RtlRunOnceInitialize(
     );
 
 typedef _Function_class_(RTL_RUN_ONCE_INIT_FN)
-LOGICAL NTAPI RTL_RUN_ONCE_INIT_FN(
+LOGICAL 
+NTAPI 
+RTL_RUN_ONCE_INIT_FN(
     _Inout_ PRTL_RUN_ONCE RunOnce,
     _Inout_opt_ PVOID Parameter,
     _Inout_opt_ PVOID *Context
@@ -11201,7 +11231,9 @@ RtlEqualWnfChangeStamps(
 
 _Always_(_Post_satisfies_(return == STATUS_NO_MEMORY || return == STATUS_RETRY || return == STATUS_SUCCESS))
 typedef _Function_class_(WNF_USER_CALLBACK)
-NTSTATUS NTAPI WNF_USER_CALLBACK(
+NTSTATUS 
+NTAPI 
+WNF_USER_CALLBACK(
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,
     _In_opt_ PWNF_TYPE_ID TypeId,
