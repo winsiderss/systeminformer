@@ -393,7 +393,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                             {
                                 if (!PhpTerminateVdmTask(processItem, entry->Task16))
                                 {
-                                    PhShowStats(hwndDlg, L"Unable to terminate the task.", 0, PhGetLastError());
+                                    PhShowStatus(hwndDlg, L"Unable to terminate the task.", 0, PhGetLastError());
                                 }
                             }
                             break;
