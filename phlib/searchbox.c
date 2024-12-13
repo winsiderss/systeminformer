@@ -36,6 +36,7 @@ typedef struct _PH_SEARCHCONTROL_BUTTON
     ULONG Index;
     ULONG ImageIndex;
     ULONG ActiveImageIndex;
+    HWND TooltipHandle;
 } PH_SEARCHCONTROL_BUTTON, *PPH_SEARCHCONTROL_BUTTON;
 
 #define PH_SC_BUTTON_COUNT 3
@@ -283,6 +284,57 @@ VOID PhpSearchControlButtonRect(
     // Shift the button rect to the left based on the button index.
     ButtonRect->left -= ((Context->ButtonWidth + Context->BorderSize - 1) * (PH_SC_BUTTON_COUNT - 1 - Button->Index));
     ButtonRect->right -= ((Context->ButtonWidth + Context->BorderSize - 1) * (PH_SC_BUTTON_COUNT - 1 - Button->Index));
+}
+
+VOID PhpSearchControlCreateTooltip(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context,
+    _In_ PPH_SEARCHCONTROL_BUTTON Button,
+    _In_ HWND ParentWindow,
+    _In_ RECT TooltipRect,
+    _In_ PWSTR TooltipText
+    )
+{
+    TOOLINFO toolInfo;
+
+    if (Button->TooltipHandle)
+        return;
+
+    Button->TooltipHandle = PhCreateWindowEx(
+        TOOLTIPS_CLASS,
+        NULL,
+        WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_NOANIMATE | TTS_NOFADE,
+        WS_EX_TOPMOST | WS_EX_TRANSPARENT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    SetWindowPos(
+        Button->TooltipHandle,
+        HWND_TOPMOST,
+        0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+        );
+
+    MapWindowRect(HWND_DESKTOP, ParentWindow, &TooltipRect);
+    PhInflateRect(&TooltipRect, -1, -1);
+
+    memset(&toolInfo, 0, sizeof(TOOLINFO));
+    toolInfo.cbSize = sizeof(TOOLINFO);
+    toolInfo.uFlags = TTF_TRANSPARENT | TTF_SUBCLASS;
+    toolInfo.hwnd = ParentWindow;
+    toolInfo.lpszText = TooltipText;
+    toolInfo.rect = TooltipRect;
+    SendMessage(Button->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+    SendMessage(Button->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    SendMessage(Button->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
+    SendMessage(Button->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
+    SendMessage(Button->TooltipHandle, TTM_POPUP, 0, 0);
 }
 
 VOID PhpSearchControlThemeChanged(
@@ -623,6 +675,24 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (context->SearchboxRegexMatchData)
             {
                 pcre2_match_data_free(context->SearchboxRegexMatchData);
+            }
+
+            if (context->CaseButton.TooltipHandle)
+            {
+                DestroyWindow(context->CaseButton.TooltipHandle);
+                context->CaseButton.TooltipHandle = nullptr;
+            }
+
+            if (context->RegexButton.TooltipHandle)
+            {
+                DestroyWindow(context->RegexButton.TooltipHandle);
+                context->RegexButton.TooltipHandle = nullptr;
+            }
+
+            if (context->SearchButton.TooltipHandle)
+            {
+                DestroyWindow(context->SearchButton.TooltipHandle);
+                context->SearchButton.TooltipHandle = nullptr;
             }
 
             PhpSearchControlDestroyBufferedContext(context);
@@ -994,14 +1064,29 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
             context->Hot = PtInRect(&windowRect, windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
-            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
-
             PhpSearchControlButtonRect(context, &context->RegexButton, windowRect, &buttonRect);
             context->RegexButton.Hot = PtInRect(&buttonRect, windowPoint);
 
+            if (context->RegexButton.Hot)
+            {
+                PhpSearchControlCreateTooltip(context, &context->RegexButton, hWnd, buttonRect, L"Use Regular Expression");
+            }
+
             PhpSearchControlButtonRect(context, &context->CaseButton, windowRect, &buttonRect);
             context->CaseButton.Hot = PtInRect(&buttonRect, windowPoint);
+
+            if (context->CaseButton.Hot)
+            {
+                PhpSearchControlCreateTooltip(context, &context->CaseButton, hWnd, buttonRect, L"Match Case");
+            }
+
+            PhpSearchControlButtonRect(context, &context->SearchButton, windowRect, &buttonRect);
+            context->SearchButton.Hot = PtInRect(&buttonRect, windowPoint);
+
+            if (context->SearchButton.Hot)
+            {
+                PhpSearchControlCreateTooltip(context, &context->SearchButton, hWnd, buttonRect, L"Clear Search");
+            }
 
             // Check that the mouse is within the inserted button.
             if (!context->HotTrack)
