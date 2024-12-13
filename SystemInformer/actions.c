@@ -5131,7 +5131,6 @@ BOOLEAN PhUiCloseConnections(
 
     if (!SetTcpEntry_I)
     {
-        PhShowError2(WindowHandle, L"This feature is not supported by your operating system.", L"%s", L"");
         PhShowStatus(WindowHandle, L"Unable to close the TCP connection", STATUS_NOT_SUPPORTED, 0);
         return FALSE;
     }
