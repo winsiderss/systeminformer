@@ -169,7 +169,7 @@ namespace CustomBuildTool
             }
             catch (Exception e)
             {
-                Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e.Message}", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
             }
 
             return !string.IsNullOrWhiteSpace(Signature);
@@ -308,9 +308,7 @@ namespace CustomBuildTool
         {
             byte[] buffer;
 
-            var fileStream = File.ReadAllBytes(FileName);
-
-            //using (FileStream fileStream = File.OpenRead(FileName))
+            using (FileStream fileStream = File.OpenRead(FileName))
             using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
             {
                 if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
