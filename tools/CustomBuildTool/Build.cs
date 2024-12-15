@@ -694,7 +694,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
                     );
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green, false);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
