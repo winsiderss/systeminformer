@@ -308,7 +308,9 @@ namespace CustomBuildTool
         {
             byte[] buffer;
 
-            using (FileStream fileStream = File.OpenRead(FileName))
+            var fileStream = File.ReadAllBytes(FileName);
+
+            //using (FileStream fileStream = File.OpenRead(FileName))
             using (CngKey cngkey = CngKey.Import(KeyMaterial, CngKeyBlobFormat.GenericPrivateBlob))
             {
                 if (cngkey.Algorithm == CngAlgorithm.ECDsaP256)
