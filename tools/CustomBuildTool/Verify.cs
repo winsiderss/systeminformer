@@ -191,9 +191,9 @@ namespace CustomBuildTool
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] copy = GC.AllocateUninitializedArray<byte>((int)memoryStream.Position);
-                    memoryStream.GetBuffer().AsSpan(0, copy.Length).CopyTo(copy);
-                    return copy;
+                    byte[] result = new byte[memoryStream.Position];
+                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
+                    return result;
                 }
             }
             catch (Exception e)
@@ -226,9 +226,9 @@ namespace CustomBuildTool
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] copy = GC.AllocateUninitializedArray<byte>((int)memoryStream.Position);
-                    memoryStream.GetBuffer().AsSpan(0, copy.Length).CopyTo(copy);
-                    return copy;
+                    byte[] result = new byte[memoryStream.Position];
+                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
+                    return result;
                 }
             }
             catch (Exception e)
