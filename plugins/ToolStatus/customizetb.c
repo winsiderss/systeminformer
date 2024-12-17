@@ -514,20 +514,15 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
 
-            if (PhIsThemeSupportEnabled())
-            {
-                context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
-                context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
-                context->BrushPushed = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
-                context->TextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
-            }
-            else
-            {
-                context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-                context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
-                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-                context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
-            }
+            context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+            context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
+            context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+            context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
+
+            context->BrushNormalDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
+            context->BrushHotDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
+            context->BrushPushedDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
+            context->TextColorDark = PhGetIntegerSetting(L"ThemeWindowTextColor");
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
@@ -554,6 +549,15 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             if (context->BrushPushed)
                 DeleteBrush(context->BrushPushed);
+
+            if (context->BrushNormalDark)
+                DeleteBrush(context->BrushNormalDark);
+
+            if (context->BrushHotDark)
+                DeleteBrush(context->BrushHotDark);
+
+            if (context->BrushPushedDark)
+                DeleteBrush(context->BrushPushedDark);
 
             if (context->FontHandle)
                 DeleteFont(context->FontHandle);
@@ -888,13 +892,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 SelectFont(bufferDc, context->FontHandle);
                 SetBkMode(bufferDc, TRANSPARENT);
 
-                if (isFocused || isSelected)
-                    FillRect(bufferDc, &bufferRect, context->BrushHot);
+                if (isSelected || isFocused)
+                    FillRect(bufferDc, &bufferRect, PhIsThemeSupportEnabled() ? context->BrushHotDark : context->BrushHot);
                 else
-                    FillRect(bufferDc, &bufferRect, context->BrushNormal);
+                    FillRect(bufferDc, &bufferRect, PhIsThemeSupportEnabled() ? context->BrushNormalDark : context->BrushNormal);
 
                 if (!itemContext->IsVirtual)
-                    SetTextColor(bufferDc, context->TextColor);
+                    SetTextColor(bufferDc, PhIsThemeSupportEnabled() ? context->TextColorDark : context->TextColor);
                 else
                     SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
 

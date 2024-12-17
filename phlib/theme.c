@@ -733,10 +733,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
     {
-        if (enableThemeSupport && PhEnableThemeListviewBorder)
-            PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
-        else if (enableThemeSupport)
-            PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
+        PhSetWindowStyle(WindowHandle, WS_BORDER, enableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_BORDER);
 
         SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
@@ -842,10 +839,7 @@ VOID PhInitializeTreeNewTheme(
         // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
-    if (EnableThemeSupport && PhEnableThemeListviewBorder)
-        PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
-    else if (EnableThemeSupport)
-        PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, 0);
+    PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_EX_CLIENTEDGE);
 
     SetWindowPos(TreeNewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
@@ -868,16 +862,8 @@ VOID PhInitializeListViewTheme(
         // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
-    if (EnableThemeSupport && PhEnableThemeListviewBorder)
-    {
-        PhSetWindowStyle(ListViewHandle, WS_BORDER, WS_BORDER);
-        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
-    }
-    else if (EnableThemeSupport)
-    {
-        PhSetWindowStyle(ListViewHandle, WS_BORDER, 0);
-        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, 0);
-    }
+    PhSetWindowStyle(ListViewHandle, WS_BORDER, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_BORDER);
+    PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_EX_CLIENTEDGE);
 
     SetWindowPos(ListViewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 

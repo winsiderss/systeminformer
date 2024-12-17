@@ -94,8 +94,8 @@ UINT_PTR CALLBACK PhpColorBoxDlgHookProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            if (context->EnableThemeSupport)
-                PhInitializeWindowThemeEx(hwndDlg, TRUE);
+            //if (context->EnableThemeSupport)
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:
