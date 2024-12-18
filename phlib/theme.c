@@ -733,10 +733,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
     {
-        PhSetWindowStyle(WindowHandle, WS_BORDER, enableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_BORDER);
-
-        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-
         CHARFORMAT cf = { sizeof(CHARFORMAT) };
         cf.dwMask = CFM_COLOR;
         cf.dwEffects = enableThemeSupport ? 0 : CFE_AUTOCOLOR;
@@ -839,7 +835,11 @@ VOID PhInitializeTreeNewTheme(
         // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
-    PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_EX_CLIENTEDGE);
+    if (EnableThemeSupport)
+    {
+        PhSetWindowStyle(TreeNewHandle, WS_BORDER, !PhEnableThemeListviewBorder ? 0 : WS_BORDER);
+        PhSetWindowExStyle(TreeNewHandle, WS_EX_CLIENTEDGE, 0);
+    }
 
     SetWindowPos(TreeNewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
@@ -862,8 +862,15 @@ VOID PhInitializeListViewTheme(
         // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
     }
 
-    PhSetWindowStyle(ListViewHandle, WS_BORDER, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_BORDER);
-    PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, EnableThemeSupport && !PhEnableThemeListviewBorder ? 0 : WS_EX_CLIENTEDGE);
+    if (EnableThemeSupport)
+    {
+        PhSetWindowExStyle(ListViewHandle, WS_BORDER, 0);
+        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, !PhEnableThemeListviewBorder ? 0 : WS_EX_CLIENTEDGE);
+    }
+    else
+    {
+        PhSetWindowExStyle(ListViewHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+    }
 
     SetWindowPos(ListViewHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
@@ -2087,30 +2094,65 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);
-            groupInfo.mask = LVGF_HEADER;
+            groupInfo.mask = LVGF_HEADER | LVGF_STATE;
+            groupInfo.stateMask = LVGS_SELECTED | LVGS_FOCUSED | LVGS_COLLAPSED | LVGS_COLLAPSIBLE;
 
             if (ListView_GetGroupInfo(DrawInfo->nmcd.hdr.hwndFrom, (ULONG)DrawInfo->nmcd.dwItemSpec, &groupInfo) != INT_ERROR)
             {
-                SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
-                SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackground2Color);
+                RECT headerRect = DrawInfo->rcText;
+                POINT pt;
+                HTHEME glyphTheme;
 
-                DrawInfo->rcText.top += PhGetDpi(2, dpiValue);
-                DrawInfo->rcText.bottom -= PhGetDpi(2, dpiValue);
-                FillRect(DrawInfo->nmcd.hdc, &DrawInfo->rcText, PhGetStockBrush(DC_BRUSH));
-                DrawInfo->rcText.top -= PhGetDpi(2, dpiValue);
-                DrawInfo->rcText.bottom += PhGetDpi(2, dpiValue);
+                BOOLEAN isCollapsible = (groupInfo.state & LVGS_COLLAPSIBLE) == LVGS_COLLAPSIBLE;
+                BOOLEAN isCollapsed = (groupInfo.state & LVGS_COLLAPSED) == LVGS_COLLAPSED;
+                GetCursorPos(&pt);
+                MapWindowPoints(NULL, DrawInfo->nmcd.hdr.hwndFrom, &pt, 1);
+                BOOLEAN isHot = PtInRect(&DrawInfo->rcText, pt); // LVGS_HOT is missing
+
+                SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
+                headerRect.top += PhGetDpi(2, dpiValue);
+                headerRect.bottom -= PhGetDpi(2, dpiValue);
+
+                if (isCollapsible &&
+                    (glyphTheme = PhOpenThemeData(DrawInfo->nmcd.hdr.hwndFrom, VSCLASS_LISTVIEW, dpiValue)))
+                {
+                    SIZE glyphSize;
+                    RECT glyphRect = headerRect;
+                    INT partId = isCollapsed ? LVP_EXPANDBUTTON : LVP_COLLAPSEBUTTON;
+                    INT stateId = LVCB_NORMAL;
+
+                    PhGetThemePartSize(glyphTheme, DrawInfo->nmcd.hdc, partId, stateId, &glyphRect, TS_TRUE, &glyphSize);
+                    glyphRect.left = glyphRect.right - glyphSize.cx - glyphSize.cx / 2;
+
+                    if (PtInRect(&glyphRect, pt))
+                    {
+                        stateId = IsLButtonDown() ? LVCB_PUSHED : LVCB_HOVER;
+                        SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackground2Color);
+                    }
+                    else
+                    {
+                        SetDCBrushColor(DrawInfo->nmcd.hdc, !isHot ? PhThemeWindowBackground2Color : PhMakeColorBrighter(PhThemeWindowBackground2Color, 12));
+                    }
+                    FillRect(DrawInfo->nmcd.hdc, &headerRect, PhGetStockBrush(DC_BRUSH));
+                    PhDrawThemeBackground(glyphTheme, DrawInfo->nmcd.hdc, partId, stateId, &glyphRect, NULL);
+                    PhCloseThemeData(glyphTheme);
+                }
+                else
+                {
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, !isHot ? PhThemeWindowBackground2Color : PhMakeColorBrighter(PhThemeWindowBackground2Color, 12));
+                    FillRect(DrawInfo->nmcd.hdc, &headerRect, PhGetStockBrush(DC_BRUSH));
+                }
 
                 if (groupInfo.pszHeader)
                 {
-                    DrawInfo->rcText.left += PhGetDpi(10, dpiValue);
+                    headerRect.left += PhGetDpi(10, dpiValue);
                     DrawText(
                         DrawInfo->nmcd.hdc,
                         groupInfo.pszHeader,
                         (UINT)PhCountStringZ(groupInfo.pszHeader),
-                        &DrawInfo->rcText,
+                        &headerRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                         );
-                    DrawInfo->rcText.left -= PhGetDpi(10, dpiValue);
                 }
             }
 
