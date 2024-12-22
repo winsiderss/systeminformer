@@ -13812,7 +13812,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 
         // Allocate a large buffer and copy all entries.
 
-        while ((status = NtPssCaptureVaSpaceBulk(
+        while ((status = NtPssCaptureVaSpaceBulk_Import()(
             ProcessHandle,
             BaseAddress,
             buffer,
