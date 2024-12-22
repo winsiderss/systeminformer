@@ -6950,6 +6950,9 @@ RtlSetTimeZoneInformation(
 #define RtlInterlockedClearBitsDiscardReturn(Flags, Flag) \
     RtlInterlockedAndBitsDiscardReturn(Flags, ~(Flag))
 
+#define RtlInterlockedTestBits(Flags, Flag) \
+    ((InterlockedOr((PLONG)(Flags), 0) & (Flag)) == (Flag)) // dmex
+
 // Bitmaps
 
 typedef struct _RTL_BITMAP
