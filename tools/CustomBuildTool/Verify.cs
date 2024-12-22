@@ -191,7 +191,9 @@ namespace CustomBuildTool
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    return memoryStream.ToArray();
+                    byte[] result = new byte[memoryStream.Position];
+                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
+                    return result;
                 }
             }
             catch (Exception e)
@@ -224,7 +226,9 @@ namespace CustomBuildTool
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    return memoryStream.ToArray();
+                    byte[] result = new byte[memoryStream.Position];
+                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
+                    return result;
                 }
             }
             catch (Exception e)
