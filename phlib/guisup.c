@@ -474,6 +474,19 @@ BOOLEAN PhGetWindowRect(
     return TRUE;
 }
 
+BOOLEAN PhGetClientRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    )
+{
+    GetClientRect(WindowHandle, ClientRect);
+
+    if (!(ClientRect->right && ClientRect->bottom))
+        return FALSE;
+
+    return TRUE;
+}
+
 BOOLEAN PhIsHungAppWindow(
     _In_ HWND WindowHandle
     )
