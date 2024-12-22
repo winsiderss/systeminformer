@@ -2789,7 +2789,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            if (!GetClientRect(hwndDlg, &clientRect))
+            if (!PhGetClientRect(hwndDlg, &clientRect))
                 break;
 
             SetBkMode(hdc, TRANSPARENT);
