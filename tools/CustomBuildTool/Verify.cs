@@ -185,15 +185,14 @@ namespace CustomBuildTool
                 {
                     using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
                     {
                         Stream.CopyTo(cryptoStream);
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] result = new byte[memoryStream.Position];
-                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
-                    return result;
+                    memoryStream.SetLength(memoryStream.Position);
+                    return memoryStream.ToArray();
                 }
             }
             catch (Exception e)
@@ -220,15 +219,14 @@ namespace CustomBuildTool
                 {
                     using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
                     {
                         Stream.CopyTo(cryptoStream);
                         cryptoStream.FlushFinalBlock();
                     }
 
-                    byte[] result = new byte[memoryStream.Position];
-                    Array.Copy(memoryStream.GetBuffer(), 0, result, 0, result.Length);
-                    return result;
+                    memoryStream.SetLength(memoryStream.Position);
+                    return memoryStream.ToArray();
                 }
             }
             catch (Exception e)
@@ -244,7 +242,7 @@ namespace CustomBuildTool
 
             return null;
         }
-        
+
         private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
         {
             using (var blobStream = new MemoryStream(Bytes))
