@@ -34,13 +34,13 @@ static BOOLEAN PhpBcdApiInitialized(
     {
         if (BcdDllBaseAddress = PhLoadLibrary(L"bcd.dll"))
         {
-            BcdOpenSystemStore_I = reinterpret_cast<decltype(&BcdOpenSystemStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdOpenSystemStore"), 0));
-            BcdCloseStore_I = reinterpret_cast<decltype(&BcdCloseStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdCloseStore"), 0));
-            BcdOpenObject_I = reinterpret_cast<decltype(&BcdOpenObject)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdOpenObject"), 0));
-            BcdCloseObject_I = reinterpret_cast<decltype(&BcdCloseObject)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdCloseObject"), 0));
-            BcdGetElementData_I = reinterpret_cast<decltype(&BcdGetElementData)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdGetElementData"), 0));
-            BcdSetElementData_I = reinterpret_cast<decltype(&BcdSetElementData)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdSetElementData"), 0));
-            //BcdDeleteElement_I = reinterpret_cast<decltype(&BcdDeleteElement)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdDeleteElement"), 0));
+            BcdOpenSystemStore_I = reinterpret_cast<decltype(&BcdOpenSystemStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdOpenSystemStore", 0));
+            BcdCloseStore_I = reinterpret_cast<decltype(&BcdCloseStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdCloseStore", 0));
+            BcdOpenObject_I = reinterpret_cast<decltype(&BcdOpenObject)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdOpenObject", 0));
+            BcdCloseObject_I = reinterpret_cast<decltype(&BcdCloseObject)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdCloseObject", 0));
+            BcdGetElementData_I = reinterpret_cast<decltype(&BcdGetElementData)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdGetElementData", 0));
+            BcdSetElementData_I = reinterpret_cast<decltype(&BcdSetElementData)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdSetElementData", 0));
+            //BcdDeleteElement_I = reinterpret_cast<decltype(&BcdDeleteElement)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdDeleteElement", 0));
         }
 
         if (
@@ -193,7 +193,7 @@ NTSTATUS PhBcdEnumerateObjects(
     if (!BcdEnumerateObjects_I)
     {
         BcdEnumerateObjects_I = reinterpret_cast<decltype(&BcdEnumerateObjects)>(
-            PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdEnumerateObjects"), 0));
+            PhGetDllBaseProcedureAddress(BcdDllBaseAddress, "BcdEnumerateObjects", 0));
     }
 
     if (!BcdEnumerateObjects_I)
