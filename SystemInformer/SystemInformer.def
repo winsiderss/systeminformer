@@ -705,6 +705,7 @@ EXPORTS
     PhGetBaseName
     PhGetClassObject
     PhGetDllFileName
+    PhGetClientRect
     PhGetDpi
     PhGetDpiValue
     PhGetFileDialogFileName
