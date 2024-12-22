@@ -1597,6 +1597,8 @@ namespace CustomBuildTool
                             );
                     }
                 }
+
+                File.Delete("SystemInformer\\SystemInformer.bak");
             }
         }
 
