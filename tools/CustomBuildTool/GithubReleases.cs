@@ -168,9 +168,10 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[DeleteRelease] " + ex, ConsoleColor.Red);
+                //return false; ignore
             }
 
-            return false;
+            return true;
         }
 
         public static GithubReleasesResponse UpdateRelease(string ReleaseId)
