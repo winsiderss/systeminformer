@@ -172,7 +172,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdSetSystemStoreDevice(
-    _In_ UNICODE_STRING SystemPartition
+    _In_ PCUNICODE_STRING SystemPartition
     );
 
 /**
@@ -199,7 +199,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStoreFromFile(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
 
@@ -214,7 +214,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdCreateStore(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
 
@@ -228,7 +228,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdExportStore(
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 
 #if (PHNT_VERSION > PHNT_WIN11)
@@ -246,7 +246,7 @@ NTAPI
 BcdExportStoreEx(
     _In_ HANDLE BcdStoreHandle,
     _In_ ULONG Flags,
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 #endif
 
@@ -260,7 +260,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdImportStore(
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 
 typedef enum _BCD_IMPORT_FLAGS
@@ -280,7 +280,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdImportStoreWithFlags(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_IMPORT_FLAGS BcdImportFlags
     );
 
@@ -330,7 +330,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStore(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_OPEN_FLAGS BcdOpenFlags,
     _Out_ PHANDLE BcdStoreHandle
     );
