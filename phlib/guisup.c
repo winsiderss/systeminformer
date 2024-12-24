@@ -459,7 +459,7 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
 
 BOOLEAN PhGetWindowRect(
     _In_ HWND WindowHandle,
-    _Out_ LPRECT WindowRect
+    _Out_ PRECT WindowRect
     )
 {
     // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
@@ -469,6 +469,19 @@ BOOLEAN PhGetWindowRect(
     GetWindowRect(WindowHandle, WindowRect);
 
     if (PhRectEmpty(WindowRect))
+        return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhGetClientRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    )
+{
+    GetClientRect(WindowHandle, ClientRect);
+
+    if (!(ClientRect->right && ClientRect->bottom))
         return FALSE;
 
     return TRUE;
@@ -1697,9 +1710,8 @@ INT CALLBACK PhpGeneralPropSheetProc(
     {
         case PSCB_INITIALIZED:
         {
-            PhSetWindowContext(hwndDlg, 0xF, (PVOID)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
-
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpGeneralPropSheetWndProc);
+            PhSetWindowContext(hwndDlg, 0xF, (PVOID)PhGetWindowProcedure(hwndDlg));
+            PhSetWindowProcedure(hwndDlg, PhpGeneralPropSheetWndProc);
 
             // Hide the OK button.
             ShowWindow(GetDlgItem(hwndDlg, IDOK), SW_HIDE);
@@ -1762,19 +1774,33 @@ BOOLEAN PhModalPropertySheet(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
+        BOOLEAN processed = FALSE;
+
         if (result == INT_ERROR)
             break;
 
         if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
         {
+            HWND pageWindowHandle;
+
+            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
+            {
+                if (SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
+                {
+                    processed = TRUE;
+                }
+            }
+
             //DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
-            CallWindowProc((WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC), hwnd, message.message, message.wParam, message.lParam);
         }
 
-        if (!PropSheet_IsDialogMessage(hwnd, &message))
+        if (!processed)
         {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
+            if (!PropSheet_IsDialogMessage(hwnd, &message))
+            {
+                TranslateMessage(&message);
+                DispatchMessage(&message);
+            }
         }
 
         PhDrainAutoPool(&autoPool);
@@ -1809,7 +1835,7 @@ VOID PhInitializeLayoutManager(
 
     dpiValue = PhGetWindowDpi(RootWindowHandle);
 
-    GetClientRect(RootWindowHandle, &rect);
+    PhGetClientRect(RootWindowHandle, &rect);
 
     PhGetSizeDpiValue(&rect, dpiValue, FALSE);
 
@@ -2063,7 +2089,9 @@ VOID PhLayoutManagerLayout(
     dpiValue = PhGetWindowDpi(Manager->RootItem.Handle);
     Manager->dpiValue = dpiValue;
 
-    GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
+    if (!PhGetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect))
+        return;
+
     PhGetSizeDpiValue(&Manager->RootItem.Rect, dpiValue, FALSE);
 
     for (i = 0; i < Manager->List->Count; i++)

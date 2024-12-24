@@ -1504,6 +1504,11 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
             node->RepresentativeIsHung = FALSE;
     }
 
+    if (FlagOn(ProcessGroup->Representative->State, PH_PROCESS_ITEM_REMOVED))
+    {
+        node->RepresentativeIsTerminated = TRUE;
+    }
+
     PhAddItemList(ListSection->NodeList, node);
 
     return node;
@@ -1670,6 +1675,14 @@ BOOLEAN PhMipListSectionTreeNewCallback(
 
                 PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&hungPrefix, &getTitleText.Title->sr));
                 getTitleText.TitleColor = RGB(0xff, 0x00, 0x00);
+            }
+
+            if (node->RepresentativeIsTerminated)
+            {
+                static PH_STRINGREF terminatedPrefix = PH_STRINGREF_INIT(L"(Terminated) ");
+
+                PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&terminatedPrefix, &getTitleText.Title->sr));
+                getTitleText.TitleColor = RGB(0xA9, 0xA9, 0xA9);
             }
 
             listSection->Callback(listSection, MiListSectionGetTitleText, &getTitleText, NULL);

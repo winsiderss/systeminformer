@@ -730,8 +730,8 @@ NTAPI
 NtReadVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
@@ -741,11 +741,10 @@ NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
-    _Out_opt_ PULONGLONG NumberOfBytesRead,
-    _In_ ULONG Flags
+    _In_opt_ ULONGLONG BaseAddress,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToRead,
+    _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
 #if (PHNT_VERSION >= PHNT_WIN11)
@@ -756,8 +755,8 @@ NTAPI
 NtReadVirtualMemoryEx(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead,
     _In_ ULONG Flags
     );
@@ -769,8 +768,8 @@ NTAPI
 NtWriteVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
@@ -780,9 +779,9 @@ NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
+    _In_opt_ ULONGLONG BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToWrite,
     _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
@@ -815,7 +814,7 @@ NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
+    _In_opt_ ULONGLONG BaseAddress,
     _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ ULONGLONG MemoryInformationLength,
@@ -1267,7 +1266,7 @@ NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
     _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
-    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
 #endif

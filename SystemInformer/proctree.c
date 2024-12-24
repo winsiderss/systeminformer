@@ -4344,14 +4344,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
                 getNodeColor->BackColor = PhCsColorJobProcesses;
             else if (
-                PhCsUseColorServiceProcesses &&
-                ((processItem->ServiceList && processItem->ServiceList->Count != 0) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeServiceSid)) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeLocalServiceSid)) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeNetworkServiceSid))
-                ))
-                getNodeColor->BackColor = PhCsColorServiceProcesses;
-            else if (
                 PhCsUseColorSystemProcesses &&
                 (processItem->IsSystemProcess ||
                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeLocalSystemSid)) ||
@@ -4364,6 +4356,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
+            else if (
+                PhCsUseColorServiceProcesses &&
+                ((processItem->ServiceList && processItem->ServiceList->Count != 0) ||
+                (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeServiceSid)) ||
+                (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeLocalServiceSid)) ||
+                (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeNetworkServiceSid))
+                ))
+                getNodeColor->BackColor = PhCsColorServiceProcesses;
         }
         return TRUE;
     case TreeNewGetNodeIcon:

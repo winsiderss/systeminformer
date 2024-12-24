@@ -334,8 +334,8 @@ VOID KphSetServiceSecurity(
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION,
@@ -347,7 +347,7 @@ VOID KphSetServiceSecurity(
         DELETE,
         (PSID)&PhSeInteractiveSid
         );
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 

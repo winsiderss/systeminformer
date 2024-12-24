@@ -57,6 +57,7 @@
 #include <phnativeinl.h>
 #include <phintrin.h>
 #include <circbuf.h>
+#include <ntintsafe.h>
 
 #ifndef PH_NATIVE_STRING_CONVERSION
 #define PH_NATIVE_STRING_CONVERSION 1
@@ -1532,6 +1533,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 {
     NTSTATUS status;
     SIZE_T i;
+    ULONG inputBytes;
     ULONG unicodeBytes;
     BOOLEAN copied;
 
@@ -1549,12 +1551,22 @@ BOOLEAN PhCopyStringZFromMultiByte(
         i = strlen(InputBuffer);
     }
 
+    status = RtlSizeTToULong(i, &inputBytes);
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = SIZE_MAX;
+
+        return FALSE;
+    }
+
     // Determine the length of the output string.
 
     status = RtlMultiByteToUnicodeSize(
         &unicodeBytes,
         InputBuffer,
-        (ULONG)i
+        inputBytes
         );
 
     if (!NT_SUCCESS(status))
@@ -1574,7 +1586,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
             unicodeBytes,
             NULL,
             InputBuffer,
-            (ULONG)i
+            inputBytes
             );
 
         if (NT_SUCCESS(status))
@@ -1610,6 +1622,7 @@ BOOLEAN PhCopyStringZFromUtf8(
 {
     NTSTATUS status;
     SIZE_T i;
+    ULONG inputBytes;
     ULONG unicodeBytes;
     BOOLEAN copied;
 
@@ -1627,6 +1640,16 @@ BOOLEAN PhCopyStringZFromUtf8(
         i = strlen(InputBuffer);
     }
 
+    status = RtlSizeTToULong(i, &inputBytes);
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = SIZE_MAX;
+
+        return FALSE;
+    }
+
     // Determine the length of the output string.
 
     status = RtlUTF8ToUnicodeN(
@@ -1634,7 +1657,7 @@ BOOLEAN PhCopyStringZFromUtf8(
         0,
         &unicodeBytes,
         InputBuffer,
-        (ULONG)i
+        inputBytes
         );
 
     if (!NT_SUCCESS(status))
@@ -1654,7 +1677,7 @@ BOOLEAN PhCopyStringZFromUtf8(
             unicodeBytes,
             NULL,
             InputBuffer,
-            (ULONG)i
+            inputBytes
             );
 
         if (NT_SUCCESS(status))
@@ -3878,12 +3901,18 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
 {
     NTSTATUS status;
     PPH_STRING string;
+    ULONG bufferLength;
     ULONG unicodeBytes;
+
+    status = RtlSizeTToULong(Length, &bufferLength);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
 
     status = RtlMultiByteToUnicodeSize(
         &unicodeBytes,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3895,7 +3924,7 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
         (ULONG)string->Length,
         NULL,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3935,12 +3964,18 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
 {
     NTSTATUS status;
     PPH_BYTES bytes;
+    ULONG bufferLength;
     ULONG multiByteLength;
+
+    status = RtlSizeTToULong(Length, &bufferLength);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
 
     status = RtlUnicodeToMultiByteSize(
         &multiByteLength,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3952,7 +3987,7 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
         (ULONG)bytes->Length,
         NULL,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))

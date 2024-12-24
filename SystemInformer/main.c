@@ -260,7 +260,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError2(NULL, L"Unable to initialize the main window.", L"%s", L"");
+        PhShowStatus(NULL, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
         return 1;
     }
 
@@ -999,8 +999,8 @@ BOOLEAN PhInitializeComPolicy(
         PhLengthSid(&administratorsSid);
 
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);

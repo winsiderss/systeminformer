@@ -230,6 +230,22 @@ PhIsDarkModeAllowedForWindow(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetWindowRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT WindowRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetClientRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );

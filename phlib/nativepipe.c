@@ -99,8 +99,8 @@ NTSTATUS PhCreatePipeEx(
     {
         if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
         {
-            RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-            RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+            PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
             objectAttributes.SecurityDescriptor = &securityDescriptor;
         }
@@ -167,7 +167,7 @@ NTSTATUS PhCreatePipeEx(
 CleanupExit:
     if (pipeAcl)
     {
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+        PhFree(pipeAcl);
     }
 
     NtClose(pipeDirectoryHandle);
@@ -215,8 +215,8 @@ NTSTATUS PhCreateNamedPipe(
 
     if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
     {
-        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+        PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
         objectAttributes.SecurityDescriptor = &securityDescriptor;
     }

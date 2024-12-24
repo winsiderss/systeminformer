@@ -6134,7 +6134,8 @@ NTSTATUS PhEnumHandlesGeneric(
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
-        ULONG i, count = 0, numberOfHandles = 0;
+        ULONG i, numberOfHandles = 0;
+        ULONG firstIndex = 0, lastIndex = 0;
 
         if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
         {
@@ -6144,29 +6145,54 @@ NTSTATUS PhEnumHandlesGeneric(
 
                 if (handle->UniqueProcessId == ProcessId)
                 {
+                    if (numberOfHandles == 0)
+                        firstIndex = i;
+                    lastIndex = i;
                     numberOfHandles++;
                 }
             }
 
-            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
-            convertedHandles->NumberOfHandles = numberOfHandles;
-
-            for (i = 0; i < handles->NumberOfHandles; i++)
+            if (numberOfHandles)
             {
-                PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+                convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
+                convertedHandles->NumberOfHandles = numberOfHandles;
 
-                if (handle->UniqueProcessId == ProcessId)
+                if (lastIndex == firstIndex + numberOfHandles - 1) // consecutive
                 {
-                    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[count++];
+                    memcpy(
+                        &convertedHandles->Handles[0],
+                        &handles->Handles[firstIndex],
+                        (lastIndex - firstIndex + 1) * sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX)
+                        );
 
-                    memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                    *Handles = convertedHandles;
                 }
+                else
+                {
+                    for (i = 0; i < handles->NumberOfHandles; i++)
+                    {
+                        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+
+                        if (handle->UniqueProcessId == ProcessId)
+                        {
+                            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[i++];
+
+                            memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                        }
+                    }
+
+                    *Handles = convertedHandles;
+                }
+            }
+            else
+            {
+                status = STATUS_NOT_FOUND;
             }
 
             PhFree(handles);
-
-            *Handles = convertedHandles;
         }
+
+        return status;
     }
 
     return status;
@@ -13786,7 +13812,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 
         // Allocate a large buffer and copy all entries.
 
-        while ((status = NtPssCaptureVaSpaceBulk(
+        while ((status = NtPssCaptureVaSpaceBulk_Import()(
             ProcessHandle,
             BaseAddress,
             buffer,
