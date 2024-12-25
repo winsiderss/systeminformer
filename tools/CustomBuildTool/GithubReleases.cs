@@ -112,7 +112,7 @@ namespace CustomBuildTool
                 }
 
                 {
-                    var result = Task.Run(responseMessage.Content.ReadAsStringAsync).GetAwaiter().GetResult();
+                    var result = responseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
                     if (string.IsNullOrWhiteSpace(result))
                     {

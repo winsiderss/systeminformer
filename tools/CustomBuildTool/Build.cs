@@ -1047,8 +1047,8 @@ namespace CustomBuildTool
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {
-            if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
-                return null;
+            //if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
+            //    return null;
 
             GithubRelease mirror = null;
 
