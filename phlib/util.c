@@ -4946,7 +4946,7 @@ NTSTATUS PhCreateProcessAsUser(
         InitializeObjectAttributes(
             &objectAttributes,
             NULL,
-            OBJ_EXCLUSIVE,
+            0,
             NULL,
             NULL
             );
