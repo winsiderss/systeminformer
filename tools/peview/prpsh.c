@@ -313,9 +313,9 @@ INT CALLBACK PvpPropSheetProc(
             context = PhAllocateZero(sizeof(PV_PROPSHEETCONTEXT));
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
+            PhSetWindowProcedure(hwndDlg, PvpPropSheetWndProc);
 
             if (MinimumSize.left == -1)
             {
