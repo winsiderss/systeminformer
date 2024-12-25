@@ -243,6 +243,18 @@ INT WINAPI wWinMain(
     }
 #endif
 
+    // Set the default timer resolution.
+    {
+        if (WindowsVersion > WINDOWS_11)
+        {
+            PhSetProcessPowerThrottlingState(
+                NtCurrentProcess(),
+                PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                0  // Disable synthetic timer resolution. 
+                );
+        }
+    }
+
     // Set the default priority.
     {
         UCHAR priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
