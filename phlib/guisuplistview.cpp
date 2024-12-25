@@ -218,7 +218,7 @@ LONG PhFindIListViewItemByParam(
     LVFINDINFO findInfo;
 
     itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = 0;
+    itemIndex.iGroup = -1;
 
     findInfo.flags = LVFI_PARAM;
     findInfo.lParam = reinterpret_cast<LPARAM>(Param);
