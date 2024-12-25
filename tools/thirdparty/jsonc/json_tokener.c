@@ -332,7 +332,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
      * If the function is called with len == -1 then strlen is called to check
      * the string length is less than INT32_MAX (2GB)
      */
-    if ((len < -1) || (len == -1 && strlen(str) > INT32_MAX))
+    if ((len == -1 && strlen(str) > INT32_MAX))
     {
         tok->err = json_tokener_error_size;
         return NULL;
