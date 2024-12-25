@@ -500,6 +500,44 @@ PhFindStringRefSiKeyValuePairs(
     return FALSE;
 }
 
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhIndexStringSiKeyValuePairs(
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PWSTR *String
+    )
+{
+    if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
+    {
+        *String = (PWSTR)KeyValuePairs[Integer].Key;
+        return TRUE;
+    }
+
+    return PhFindStringSiKeyValuePairs(KeyValuePairs, SizeOfKeyValuePairs, Integer, String);
+}
+
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhIndexStringRefSiKeyValuePairs(
+    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PPH_STRINGREF* String
+    )
+{
+    if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
+    {
+        *String = (PPH_STRINGREF)KeyValuePairs[Integer].Key;
+        return TRUE;
+    }
+
+    return PhFindStringRefSiKeyValuePairs(KeyValuePairs, SizeOfKeyValuePairs, Integer, String);
+}
+
 #define GUID_VERSION_MAC 1
 #define GUID_VERSION_DCE 2
 #define GUID_VERSION_MD5 3
