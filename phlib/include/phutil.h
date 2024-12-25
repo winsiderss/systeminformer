@@ -37,7 +37,15 @@ typedef struct _PH_SCALABLE_INTEGER_PAIR
             LONG Y;
         };
     };
-    LONG Scale;
+    union
+    {
+        PH_INTEGER_PAIR Padding;
+        struct
+        {
+            LONG Scale;
+            LONG Spare;
+        };
+    };
 } PH_SCALABLE_INTEGER_PAIR, *PPH_SCALABLE_INTEGER_PAIR;
 
 typedef struct _PH_RECTANGLE
