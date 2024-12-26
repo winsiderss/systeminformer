@@ -8808,8 +8808,7 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    if (!InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength))
-        return STATUS_NO_MEMORY;
+    InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength);
 
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
@@ -8820,7 +8819,8 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes[AttributeCount]);
+    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes);
+    attributeListLength += sizeof(PROC_THREAD_ATTRIBUTE) * AttributeCount;
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
     *AttributeList = attributeList;
