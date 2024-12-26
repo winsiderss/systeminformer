@@ -4979,11 +4979,12 @@ NTSTATUS PhpUnloadDriver(
         if (disposition == REG_CREATED_NEW_KEY)
         {
             static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
+            ULONG regValue = 0;
 
             // Set up the required values.
-            PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
-            PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
-            PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &(ULONG){ 0 }, sizeof(ULONG));
+            PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
+            PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
+            PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
             PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, imagePath.Buffer, (ULONG)imagePath.Length + sizeof(UNICODE_NULL));
         }
 

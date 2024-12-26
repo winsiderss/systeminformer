@@ -599,7 +599,4 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
     return Timeout;
 }
 
-#define PhTimeoutFromMillisecondsEx(Milliseconds) \
-    &(LARGE_INTEGER) { .QuadPart = -(LONGLONG)UInt32x32To64(((ULONG)(Milliseconds)), PH_TIMEOUT_MS) }
-
 #endif

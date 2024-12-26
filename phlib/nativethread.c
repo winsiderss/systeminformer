@@ -1449,7 +1449,7 @@ NTSTATUS PhGetThreadIsFiber(
  * Causes the calling thread to yield execution to another thread that is ready to run on the current processor. The operating system selects the next thread to be executed.
  *
  * \remarks The operating system will not switch execution to another processor, even if that processor is idle or is running a thread of lower priority.
- * 
+ *
  * \return If calling the SwitchToThread function caused the operating system to switch execution to another thread, the return value is nonzero.
  * \rthere are no other threads ready to execute, the operating system does not switch execution to another thread, and the return value is zero.
  */
@@ -2280,6 +2280,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     HANDLE powerRequestHandle = NULL;
     PVOID getConsoleCP = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+    LARGE_INTEGER timeout;
 
     status = PhGetProcessRuntimeLibrary(
         ProcessHandle,
@@ -2326,7 +2327,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhWaitForSingleObject(threadHandle, PhTimeoutFromMillisecondsEx(5000));
+    status = PhWaitForSingleObject(threadHandle, PhTimeoutFromMilliseconds(&timeout, 5000));
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2399,7 +2400,7 @@ NTSTATUS PhFlushProcessHeapsRemote(
         &rtlFlushHeaps,
         NULL
         );
-  
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -2679,6 +2680,7 @@ NTSTATUS PhSetProcessTimerResolutionRemote(
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+    LARGE_INTEGER timeout;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -2775,7 +2777,7 @@ NTSTATUS PhSetProcessTimerResolutionRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2806,6 +2808,7 @@ NTSTATUS PhSetProcessTimerResolutionRemote2(
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+    LARGE_INTEGER timeout;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -2902,7 +2905,7 @@ NTSTATUS PhSetProcessTimerResolutionRemote2(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2936,6 +2939,7 @@ NTSTATUS PhSetHandleInformationRemote(
     HANDLE powerRequestHandle = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
     THREAD_BASIC_INFORMATION basicInformation;
+    LARGE_INTEGER timeout;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -3032,7 +3036,7 @@ NTSTATUS PhSetHandleInformationRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(5000));
+    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;

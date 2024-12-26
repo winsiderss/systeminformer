@@ -1276,7 +1276,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         {
                             entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
                         }
-                            
+
                         else
                         {
                             entry->Target = PhFormatString(
@@ -1593,6 +1593,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
                     _In_opt_ PLARGE_INTEGER Timeout
                     ) = NULL;
+                LARGE_INTEGER timeout;
 
                 if (PhBeginInitOnce(&initOnce))
                 {
@@ -1619,7 +1620,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                     }
                     else
@@ -1640,7 +1641,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                         PhDereferenceObject(clientName);
                     }

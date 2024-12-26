@@ -321,6 +321,8 @@ BOOLEAN PhHeapInitialization(
 
     if (!PhHeapHandle)
     {
+        static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
+
         PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
@@ -336,7 +338,7 @@ BOOLEAN PhHeapInitialization(
         RtlSetHeapInformation(
             PhHeapHandle,
             HeapCompatibilityInformation,
-            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            &heapCompatibility,
             sizeof(ULONG)
             );
     }

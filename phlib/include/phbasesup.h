@@ -1754,7 +1754,7 @@ PhGetStringOrDefault(
  *
  * \param String A pointer to a string object.
  */
-//_Check_return_ 
+//_Check_return_
 //_Success_(((String != NULL && String->Length != 0) && return == 1))
 //_When_(String != NULL && String->Length != 0 && return == 1, _At_(String, _Post_valid_ _Post_notnull_))
 //FORCEINLINE

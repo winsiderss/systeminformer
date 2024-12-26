@@ -84,6 +84,7 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
+        ULONG regValue;
         PH_FORMAT format[7];
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
@@ -115,8 +116,9 @@ NTSTATUS SetupCreateUninstallKey(
         PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
         PhSetValueKeyZ(keyHandle, L"UninstallString", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
-        PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
-        PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
+        regValue = TRUE;
+        PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &regValue, sizeof(ULONG));
+        PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &regValue, sizeof(ULONG));
 
         NtClose(keyHandle);
     }

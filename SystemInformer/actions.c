@@ -2376,7 +2376,7 @@ BOOLEAN PhUiRestartProcess(
     processHandle = NULL;
 
     // Start the process.
-    // 
+    //
     // Use the existing process as the parent, and restarting the process will inherit most of the process configuration from itself (dmex)
 
     status = PhOpenProcess(
@@ -2920,7 +2920,7 @@ BOOLEAN PhUiSetEcoModeProcess(
                     PhSetProcessPriorityClass(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
 
                     //
-                    // Turn PROCESS_EXECUTION_SPEED throttling on. 
+                    // Turn PROCESS_EXECUTION_SPEED throttling on.
                     //
                     status = PhSetProcessPowerThrottlingState(
                         processHandle,
@@ -4097,7 +4097,7 @@ static NTSTATUS PhpCheckServiceStatus(
         }
         else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
         {
-            // Service doesn't report progress. 
+            // Service doesn't report progress.
         }
     }
 
@@ -6304,6 +6304,7 @@ BOOLEAN PhUiFlushHeapProcesses(
 {
     BOOLEAN success = TRUE;
     ULONG i;
+    LARGE_INTEGER timeout;
 
     for (i = 0; i < NumberOfProcesses; i++)
     {
@@ -6319,7 +6320,7 @@ BOOLEAN PhUiFlushHeapProcesses(
 
         if (NT_SUCCESS(status))
         {
-            status = PhFlushProcessHeapsRemote(processHandle, PhTimeoutFromMillisecondsEx(4000));
+            status = PhFlushProcessHeapsRemote(processHandle, PhTimeoutFromMilliseconds(&timeout, 4000));
             NtClose(processHandle);
         }
 

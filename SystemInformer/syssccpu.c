@@ -1946,6 +1946,7 @@ BOOLEAN PhIsCoreParked(
     )
 {
     static ULONG initialBufferSize = 0;
+    static HANDLE processHandle = NULL;
     NTSTATUS status;
     ULONG returnLength;
     BOOLEAN isParked;
@@ -1976,7 +1977,7 @@ BOOLEAN PhIsCoreParked(
 
     status = NtQuerySystemInformationEx(
         SystemCpuSetInformation,
-        &(HANDLE){NULL},
+        &processHandle,
         sizeof(HANDLE),
         cpuSetInfo,
         returnLength,
@@ -1992,7 +1993,7 @@ BOOLEAN PhIsCoreParked(
 
         status = NtQuerySystemInformationEx(
             SystemCpuSetInformation,
-            &(HANDLE){NULL},
+            &processHandle,
             sizeof(HANDLE),
             cpuSetInfo,
             returnLength,

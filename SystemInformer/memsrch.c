@@ -94,6 +94,7 @@ PVOID PhAllocateForMemorySearch(
     _In_ SIZE_T Size
     )
 {
+    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     PVOID memory;
 
     PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
@@ -116,7 +117,7 @@ PVOID PhAllocateForMemorySearch(
         RtlSetHeapInformation(
             PhMemorySearchHeap,
             HeapCompatibilityInformation,
-            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            &heapCompatibility,
             sizeof(ULONG)
             );
 

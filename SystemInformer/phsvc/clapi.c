@@ -22,6 +22,7 @@ NTSTATUS PhSvcConnectToServer(
     _In_opt_ SIZE_T PortSectionSize
     )
 {
+    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     NTSTATUS status;
     HANDLE sectionHandle;
     LARGE_INTEGER sectionSize;
@@ -110,7 +111,7 @@ NTSTATUS PhSvcConnectToServer(
     RtlSetHeapInformation(
         PhSvcClPortHeap,
         HeapCompatibilityInformation,
-        &(ULONG){ HEAP_COMPATIBILITY_LFH },
+        &heapCompatibility,
         sizeof(ULONG)
         );
 

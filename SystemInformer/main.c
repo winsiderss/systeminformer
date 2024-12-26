@@ -250,7 +250,7 @@ INT WINAPI wWinMain(
             PhSetProcessPowerThrottlingState(
                 NtCurrentProcess(),
                 PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
-                0  // Disable synthetic timer resolution. 
+                0  // Disable synthetic timer resolution.
                 );
         }
     }
@@ -1078,7 +1078,9 @@ BOOLEAN PhInitializeTimerPolicy(
     VOID
     )
 {
-    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &(BOOL){ FALSE }, sizeof(BOOL));
+    static BOOL timerSuppression = FALSE;
+
+    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &timerSuppression, sizeof(BOOL));
 
     return TRUE;
 }

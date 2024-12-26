@@ -5404,6 +5404,7 @@ NTSTATUS PhShellExecuteEx(
     )
 {
     SHELLEXECUTEINFO info;
+    LARGE_INTEGER timeout;
 
     memset(&info, 0, sizeof(SHELLEXECUTEINFO));
     info.cbSize = sizeof(SHELLEXECUTEINFO);
@@ -5431,7 +5432,7 @@ NTSTATUS PhShellExecuteEx(
             {
                 if (info.hProcess)
                 {
-                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMillisecondsEx(Timeout));
+                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMilliseconds(&timeout, Timeout));
                 }
             }
         }
@@ -8655,6 +8656,10 @@ NTSTATUS PhCreateProcessRedirection(
     HANDLE inputReadHandle = NULL;
     HANDLE inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
+    HANDLE handleList[2];
+#if defined(PH_BUILD_MSIX)
+    ULONG appPolicy;
+#endif
     PROCESS_BASIC_INFORMATION basicInfo;
 
     status = PhCreatePipeEx(
@@ -8683,11 +8688,14 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
@@ -8698,20 +8706,25 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    appPolicy = PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY,
-        &(ULONG){ PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE },
+        &appPolicy,
         sizeof(ULONG)
         );
 
