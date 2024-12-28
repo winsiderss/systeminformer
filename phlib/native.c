@@ -1956,6 +1956,29 @@ NTSTATUS PhTraceControl(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+
+    status = NtTraceControl(
+        TraceInformationClass,
+        InputBuffer,
+        InputBufferLength,
+        OutputBuffer,
+        OutputBufferLength,
+        ReturnLength
+        );
+
+    return status;
+}
+
+NTSTATUS PhTraceControlVariableSize(
+    _In_ ETWTRACECONTROLCODE TraceInformationClass,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
     _Out_writes_bytes_opt_(*OutputBufferLength) PVOID* OutputBuffer,
     _Out_opt_ PULONG OutputBufferLength
     )
