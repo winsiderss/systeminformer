@@ -560,6 +560,9 @@ typedef struct _PROCESS_PRIORITY_CLASS_EX
     BOOLEAN Foreground;
 } PROCESS_PRIORITY_CLASS_EX, *PPROCESS_PRIORITY_CLASS_EX;
 
+/**
+ * The PROCESS_FOREGROUND_BACKGROUND structure is used to manage the the priority class of a process, specifically whether it runs in the foreground or background.
+ */
 typedef struct _PROCESS_FOREGROUND_BACKGROUND
 {
     BOOLEAN Foreground;
@@ -576,48 +579,56 @@ typedef struct _PROCESS_FOREGROUND_BACKGROUND
 #define DRIVE_CDROM       5
 #define DRIVE_RAMDISK     6
 
+/**
+ * The PROCESS_DEVICEMAP_INFORMATION structure contains information about a process's device map.
+ */
 typedef struct _PROCESS_DEVICEMAP_INFORMATION
 {
     union
     {
         struct
         {
-            HANDLE DirectoryHandle; // needs DIRECTORY_TRAVERSE access
+            HANDLE DirectoryHandle; // A handle to a directory object that can be set as the new device map for the process. This handle must have DIRECTORY_TRAVERSE access.
         } Set;
         struct
         {
-            ULONG DriveMap; // bit mask
-            UCHAR DriveType[32]; // DRIVE_* WinBase.h
+            ULONG DriveMap;         // A bitmask that indicates which drive letters are currently in use in the process's device map.
+            UCHAR DriveType[32];    // A value that indicates the type of each drive (e.g., local disk, network drive, etc.). // DRIVE_* WinBase.h
         } Query;
     };
 } PROCESS_DEVICEMAP_INFORMATION, *PPROCESS_DEVICEMAP_INFORMATION;
 
 #define PROCESS_LUID_DOSDEVICES_ONLY 0x00000001
 
+/**
+ * The _PROCESS_DEVICEMAP_INFORMATION_EX structure contains information about a process's device map.
+ */
 typedef struct _PROCESS_DEVICEMAP_INFORMATION_EX
 {
     union
     {
         struct
         {
-            HANDLE DirectoryHandle; // needs DIRECTORY_TRAVERSE access
+            HANDLE DirectoryHandle; // A handle to a directory object that can be set as the new device map for the process. This handle must have DIRECTORY_TRAVERSE access.
         } Set;
         struct
         {
-            ULONG DriveMap; // bit mask
-            UCHAR DriveType[32]; // DRIVE_* WinBase.h
+            ULONG DriveMap;         // A bitmask that indicates which drive letters are currently in use in the process's device map.
+            UCHAR DriveType[32];    // A value that indicates the type of each drive (e.g., local disk, network drive, etc.). // DRIVE_* WinBase.h
         } Query;
     };
     ULONG Flags; // PROCESS_LUID_DOSDEVICES_ONLY
 } PROCESS_DEVICEMAP_INFORMATION_EX, *PPROCESS_DEVICEMAP_INFORMATION_EX;
 
+/**
+ * The PROCESS_SESSION_INFORMATION structure is used to store information about the session ID of a process.
+ */
 typedef struct _PROCESS_SESSION_INFORMATION
 {
     ULONG SessionId;
 } PROCESS_SESSION_INFORMATION, *PPROCESS_SESSION_INFORMATION;
 
 #define PROCESS_HANDLE_EXCEPTIONS_ENABLED 0x00000001
-
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_DISABLED 0x00000000
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_ENABLED 0x00000001
 
