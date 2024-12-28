@@ -1227,7 +1227,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
     PGUID traceGuidList = NULL;
     ULONG traceGuidListLength = 0;
 
-    status = PhTraceControl(
+    status = PhTraceControlVariableSize(
         EtwEnumTraceGuidList,
         NULL,
         0,
@@ -1242,7 +1242,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
             GUID providerGuid = traceGuidList[i];
             PETW_TRACE_GUID_INFO traceGuidInfo;
 
-            status = PhTraceControl(
+            status = PhTraceControlVariableSize(
                 EtwGetTraceGuidInfo,
                 &providerGuid,
                 sizeof(GUID),
