@@ -364,16 +364,16 @@ typedef enum _THREADINFOCLASS
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // Use with both ProcessPagePriority and ThreadPagePriority
 typedef struct _PAGE_PRIORITY_INFORMATION
 {
     ULONG PagePriority;
 } PAGE_PRIORITY_INFORMATION, *PPAGE_PRIORITY_INFORMATION;
-#endif
 
+//
 // Process information structures
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
+//
 
 typedef struct _PROCESS_BASIC_INFORMATION
 {
@@ -387,7 +387,7 @@ typedef struct _PROCESS_BASIC_INFORMATION
 
 typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 {
-    SIZE_T Size; // set to sizeof structure on input
+    _In_ SIZE_T Size;
     union
     {
         PROCESS_BASIC_INFORMATION BasicInfo;
@@ -1270,9 +1270,9 @@ typedef struct _SCHEDULER_SHARED_DATA_SLOT_INFORMATION
 
 typedef struct _THREAD_TEB_INFORMATION
 {
-    PVOID TebInformation; // buffer to place data in
-    ULONG TebOffset; // offset in TEB to begin reading from
-    ULONG BytesToRead; // number of bytes to read
+    _Inout_bytecount_(BytesToRead) PVOID TebInformation; // Buffer to write data into.
+    _In_ ULONG TebOffset;                                // Offset in TEB to begin reading from.
+    _In_ ULONG BytesToRead;                              // Number of bytes to read.
 } THREAD_TEB_INFORMATION, *PTHREAD_TEB_INFORMATION;
 
 /**
@@ -1300,15 +1300,15 @@ typedef struct _COUNTER_READING
 typedef struct _THREAD_PERFORMANCE_DATA
 {
     USHORT Size;                                    // The size of the structure.
-    USHORT Version;                                 // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
+    USHORT Version;                                 // The version of the structure. Must be set to \ref THREAD_PERFORMANCE_DATA_VERSION.
     PROCESSOR_NUMBER ProcessorNumber;               // The processor number that identifies where the thread is running.
     ULONG ContextSwitches;                          // The number of context switches that occurred from the time profiling was enabled.
     ULONG HwCountersCount;                          // The number of array elements in the HwCounters array that contain hardware counter data.
     ULONG64 UpdateCount;                            // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
-    ULONG64 WaitReasonBitMap;                       // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
+    ULONG64 WaitReasonBitMap;                       // A bitmask of \ref KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
     ULONG64 HardwareCounters;                       // A bitmask of hardware counters used to collect counter data.
     COUNTER_READING CycleTime;                      // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
-    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The COUNTER_READING structure that contains hardware counter data.
+    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The \ref COUNTER_READING structure that contains hardware counter data.
 } THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
 
 #ifndef THREAD_PROFILING_FLAG_DISPATCH
@@ -1331,7 +1331,7 @@ typedef struct _THREAD_PROFILING_INFORMATION
     // performance counters that you configured. Set to zero if you are not collecting hardware counter data.
     // If you set a bit for a hardware counter that has not been configured, the counter value that is read for that counter is zero.
     ULONG64 HardwareCounters;
-    // To receive thread profiling data such as context switch count, set this parameter to THREAD_PROFILING_FLAG_DISPATCH.
+    // To receive thread profiling data such as context switch count, set this parameter to \ref THREAD_PROFILING_FLAG_DISPATCH.
     ULONG Flags;
     // Enable or disable thread profiling on the specified thread.
     ULONG Enable;
