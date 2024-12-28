@@ -208,6 +208,9 @@ BOOLEAN ToolbarAddGraph(
         graphCreateParams.Callback = Graph->GraphCallback;
         graphCreateParams.Context = Graph;
 
+        LONG width = PhGetDpi(145, SystemInformer_GetWindowDpi());
+        LONG height = RebarHeight;
+
         if (Graph->GraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
@@ -225,7 +228,7 @@ BOOLEAN ToolbarAddGraph(
             PhAddItemSimpleHashtable(PhpToolbarGraphHashtable, Graph->GraphHandle, Graph);
 
             if (!RebarBandExists(Graph->GraphId))
-                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, PhGetDpi(145, SystemInformer_GetWindowDpi()), RebarHeight); // height: 85
+                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, width, height); // height: 85
 
             if (!IsWindowVisible(Graph->GraphHandle))
                 ShowWindow(Graph->GraphHandle, SW_SHOW);

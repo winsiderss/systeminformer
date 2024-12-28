@@ -543,6 +543,7 @@ VOID EtInitializeListImages(
 }
 
 static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_DIRECTORY_ENUM_CONTEXT Context
@@ -575,6 +576,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_OBJECT_CONTEXT Context
@@ -680,14 +682,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
 
         if (entry->EtObjectType == EtObjectSymLink)
         {
-            PPH_STRING fullPath;
             PPH_STRING linkTarget;
             PPH_STRING driveLetter;
 
-            fullPath = PH_AUTO(EtGetObjectFullPath(entry->BaseDirectory, entry->Name));
-
-            if (!PhIsNullOrEmptyString(fullPath) &&
-                NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &fullPath->sr)))
+            if (NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, RootDirectory, &entry->Name->sr)))
             {
                 PhMoveReference(&entry->Target, linkTarget);
 
@@ -764,6 +762,7 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
 
             // enumerate \??
             EtEnumDirectoryObjectsCallback(
+                nullptr,
                 &EtObjectManagerUserDirectoryObject,
                 &DirectoryObjectType,
                 &enumContext
