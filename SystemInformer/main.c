@@ -454,6 +454,7 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
 }
 
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PVOID Context
@@ -474,7 +475,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        Context,
+        RootDirectory,
         NULL
         );
 
@@ -554,11 +555,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    HANDLE directoryHandle;
-
-    directoryHandle = PhGetNamespaceHandle();
-
-    PhEnumDirectoryObjects(directoryHandle, PhpPreviousInstancesCallback, directoryHandle);
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, nullptr);
 }
 
 VOID PhInitializeCommonControls(
