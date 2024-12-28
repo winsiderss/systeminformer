@@ -799,6 +799,9 @@ PhGetWindowText(
     _In_ HWND WindowHandle
     );
 
+#define PhaGetWindowText(WindowHandle) \
+    PH_AUTO_T(PH_STRING, PhGetWindowText(WindowHandle))
+
 #define PH_GET_WINDOW_TEXT_INTERNAL 0x1
 #define PH_GET_WINDOW_TEXT_LENGTH_ONLY 0x2
 

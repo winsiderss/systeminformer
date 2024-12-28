@@ -1025,7 +1025,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     )
 {
     PhFreeVirtualMemory(NtCurrentProcess(), Memory, MEM_RELEASE);
@@ -1086,7 +1086,7 @@ PVOID PhAllocatePageAligned(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePageAligned(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     )
 {
     _aligned_free(Memory);
@@ -1147,15 +1147,81 @@ NTSTATUS PhFreeVirtualMemory(
     _In_ ULONG FreeType
     )
 {
-    PVOID baseAddress = BaseAddress;
-    SIZE_T allocationSize = 0;
+    NTSTATUS status;
+    PVOID regionAddress = BaseAddress;
+    SIZE_T regionSize = 0;
 
-    return NtFreeVirtualMemory(
+    status = NtFreeVirtualMemory(
         ProcessHandle,
-        &baseAddress,
-        &allocationSize,
+        &regionAddress,
+        &regionSize,
         FreeType
         );
+
+    //if (status == STATUS_INVALID_PAGE_PROTECTION)
+    //{
+    //    if (RtlFlushSecureMemoryCache(regionAddress, regionSize))
+    //    {
+    //        status = NtFreeVirtualMemory(
+    //            ProcessHandle,
+    //            &regionAddress,
+    //            &regionSize,
+    //            FreeType
+    //            );
+    //    }
+    //}
+
+    return status;
+}
+
+NTSTATUS PhProtectVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG NewProtection,
+    _Out_opt_ PULONG OldProtection
+    )
+{
+    NTSTATUS status;
+    PVOID regionAddress = BaseAddress;
+    SIZE_T regionSize = RegionSize;
+    ULONG oldProtection = 0;
+
+    status = NtProtectVirtualMemory(
+        ProcessHandle,
+        &regionAddress,
+        &regionSize,
+        NewProtection,
+        &oldProtection
+        );
+
+    if (NT_SUCCESS(status) && OldProtection)
+    {
+        *OldProtection = oldProtection;
+        return STATUS_SUCCESS;
+    }
+
+    //if (status == STATUS_INVALID_PAGE_PROTECTION)
+    //{
+    //    if (RtlFlushSecureMemoryCache(regionAddress, regionSize))
+    //    {
+    //        status = NtProtectVirtualMemory(
+    //            ProcessHandle,
+    //            &regionAddress,
+    //            &regionSize,
+    //            NewProtection,
+    //            &oldProtection
+    //            );
+    //
+    //        if (NT_SUCCESS(status) && OldProtection)
+    //        {
+    //            *OldProtection = oldProtection;
+    //            return STATUS_SUCCESS;
+    //        }
+    //    }
+    //}
+
+    return status;
 }
 
 /**
@@ -4988,21 +5054,6 @@ VOID PhDeleteArray(
     )
 {
     PhFree(Array->Items);
-}
-
-/**
- * Obtains a copy of the array constructed by an array object and frees resources used by the
- * object.
- *
- * \param Array An array object.
- *
- * \return The array buffer.
- */
-PVOID PhFinalArrayItems(
-    _Inout_ PPH_ARRAY Array
-    )
-{
-    return Array->Items;
 }
 
 /**

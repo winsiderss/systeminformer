@@ -1568,6 +1568,7 @@ NTSTATUS PhGetProcessRuntimeLibrary(
  * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
  * and PROCESS_VM_WRITE access.
  * \param FileName The file name of the DLL to inject.
+ * \param LoadDllUsingApcThread Queues an APC (Asynchronous Procedure Call) when calling LoadLibraryW.
  * \param Timeout The timeout, in milliseconds, for the process to load the DLL.
  *
  * \remarks If the process does not load the DLL before the timeout expires it may crash. Choose the
@@ -1577,7 +1578,7 @@ NTSTATUS PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN LoadDllUsingApcThread,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     )
 {
     NTSTATUS status;
@@ -1737,14 +1738,14 @@ CleanupExit:
 NTSTATUS PhUnloadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     )
 {
     NTSTATUS status;
     HANDLE threadHandle;
     HANDLE powerRequestHandle = NULL;
     THREAD_BASIC_INFORMATION basicInfo;
-    PVOID threadStart;
+    PVOID freeLibrary = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
     status = PhGetProcessRuntimeLibrary(
@@ -1757,12 +1758,11 @@ NTSTATUS PhUnloadDllProcess(
         return status;
 
     // No point trying to set the load count on Windows 8 and higher, because NT now uses a DAG of
-    // loader nodes.
+    // loader nodes. (wj32)
     if (WindowsVersion < WINDOWS_8)
     {
 #ifdef _WIN64
         BOOLEAN isWow64 = FALSE;
-        BOOLEAN isModule32 = FALSE;
 #endif
         status = PhSetProcessModuleLoadCount(
             ProcessHandle,
@@ -1772,6 +1772,7 @@ NTSTATUS PhUnloadDllProcess(
 
 #ifdef _WIN64
         PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
         if (isWow64 && status == STATUS_DLL_NOT_FOUND)
         {
             // The DLL might be 32-bit.
@@ -1780,9 +1781,6 @@ NTSTATUS PhUnloadDllProcess(
                 BaseAddress,
                 1
                 );
-
-            if (NT_SUCCESS(status))
-                isModule32 = TRUE;
         }
 #endif
         if (!NT_SUCCESS(status))
@@ -1791,9 +1789,9 @@ NTSTATUS PhUnloadDllProcess(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &runtimeLibrary->NtdllFileName,
-        "LdrUnloadDll",
-        &threadStart,
+        &runtimeLibrary->Kernel32FileName,
+        "FreeLibrary",
+        &freeLibrary,
         NULL
         );
 
@@ -1816,7 +1814,7 @@ NTSTATUS PhUnloadDllProcess(
         0,
         0,
         0,
-        threadStart,
+        freeLibrary,
         BaseAddress,
         &threadHandle,
         NULL
@@ -2075,7 +2073,7 @@ CleanupExit:
 NTSTATUS PhTerminateProcessAlternative(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     )
 {
     NTSTATUS status;
@@ -2153,12 +2151,24 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
 {
     NTSTATUS status;
     PS_SYSTEM_DLL_INIT_BLOCK ldrSystemDllInitBlock = { 0 };
+    PVOID ldrSystemDllInitBlockAddress;
+
+    status = PhGetProcedureAddressRemoteZ(
+        ProcessHandle,
+        L"\\SystemRoot\\System32\\ntdll.dll",
+        "LdrSystemDllInitBlock",
+        &ldrSystemDllInitBlockAddress,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     status = NtReadVirtualMemory(
         ProcessHandle,
-        &LdrSystemDllInitBlock,
+        ldrSystemDllInitBlockAddress,
         &ldrSystemDllInitBlock,
-        RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap),
+        PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1,
         NULL
         );
 
@@ -2280,7 +2290,6 @@ NTSTATUS PhGetProcessConsoleCodePage(
     HANDLE powerRequestHandle = NULL;
     PVOID getConsoleCP = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
-    LARGE_INTEGER timeout;
 
     status = PhGetProcessRuntimeLibrary(
         ProcessHandle,
@@ -2327,7 +2336,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhWaitForSingleObject(threadHandle, PhTimeoutFromMilliseconds(&timeout, 5000));
+    status = PhWaitForSingleObject(threadHandle, 5000);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2808,7 +2817,6 @@ NTSTATUS PhSetProcessTimerResolutionRemote2(
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
-    LARGE_INTEGER timeout;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -2905,7 +2913,7 @@ NTSTATUS PhSetProcessTimerResolutionRemote2(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
+    status = PhWaitForSingleObject(threadHandle, 5000);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2939,7 +2947,6 @@ NTSTATUS PhSetHandleInformationRemote(
     HANDLE powerRequestHandle = NULL;
     PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
     THREAD_BASIC_INFORMATION basicInformation;
-    LARGE_INTEGER timeout;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -3036,7 +3043,7 @@ NTSTATUS PhSetHandleInformationRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 5000));
+    status = PhWaitForSingleObject(threadHandle, 5000);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;

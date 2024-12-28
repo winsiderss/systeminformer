@@ -5404,7 +5404,6 @@ NTSTATUS PhShellExecuteEx(
     )
 {
     SHELLEXECUTEINFO info;
-    LARGE_INTEGER timeout;
 
     memset(&info, 0, sizeof(SHELLEXECUTEINFO));
     info.cbSize = sizeof(SHELLEXECUTEINFO);
@@ -5432,7 +5431,7 @@ NTSTATUS PhShellExecuteEx(
             {
                 if (info.hProcess)
                 {
-                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMilliseconds(&timeout, Timeout));
+                    PhWaitForSingleObject(info.hProcess, Timeout);
                 }
             }
         }
@@ -9273,14 +9272,14 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
     )
 {
-    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL;
+    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhLoadLibrary(L"gdi32.dll"))
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
         {
             D3DKMTQueryVidPnExclusiveOwnership_I = PhGetDllBaseProcedureAddress(baseAddress, "D3DKMTQueryVidPnExclusiveOwnership", 0);
         }

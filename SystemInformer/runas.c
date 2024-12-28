@@ -2330,10 +2330,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
             success = TRUE;
         }
 
-        if (parentDirectory)
-        {
-            PhDereferenceObject(parentDirectory);
-        }
+        PhClearReference(&parentDirectory);
     }
 
     PhClearReference(&executeString);

@@ -3092,10 +3092,12 @@ BOOLEAN PhUiLoadDllProcess(
 
     if (NT_SUCCESS(status))
     {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(processHandle, &fileName->sr, FALSE, &timeout);
+        status = PhLoadDllProcess(
+            processHandle,
+            &fileName->sr,
+            FALSE,
+            5000
+            );
 
         NtClose(processHandle);
     }
@@ -5801,13 +5803,10 @@ BOOLEAN PhUiUnloadModule(
 
             if (NT_SUCCESS(status))
             {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
                 status = PhUnloadDllProcess(
                     processHandle,
                     Module->BaseAddress,
-                    &timeout
+                    5000
                     );
 
                 NtClose(processHandle);

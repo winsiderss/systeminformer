@@ -312,7 +312,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     );
 
 PHLIBAPI
@@ -334,7 +334,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePageAligned(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     );
 
 PHLIBAPI
@@ -2860,16 +2860,6 @@ typedef struct _PH_ARRAY
     PVOID Items;
 } PH_ARRAY, *PPH_ARRAY;
 
-FORCEINLINE
-PVOID
-PhItemArray(
-    _In_ PPH_ARRAY Array,
-    _In_ SIZE_T Index
-    )
-{
-    return PTR_ADD_OFFSET(Array->Items, Index * Array->ItemSize);
-}
-
 PHLIBAPI
 VOID
 NTAPI
@@ -2886,12 +2876,24 @@ PhDeleteArray(
     _Inout_ PPH_ARRAY Array
     );
 
-PHLIBAPI
+FORCEINLINE
 PVOID
-NTAPI
+PhItemArray(
+    _In_ PPH_ARRAY Array,
+    _In_ SIZE_T Index
+    )
+{
+    return PTR_ADD_OFFSET(Array->Items, Index * Array->ItemSize);
+}
+
+FORCEINLINE
+PVOID
 PhFinalArrayItems(
     _Inout_ PPH_ARRAY Array
-    );
+    )
+{
+    return Array->Items;
+}
 
 FORCEINLINE
 SIZE_T

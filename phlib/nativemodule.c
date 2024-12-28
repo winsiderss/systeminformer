@@ -1047,104 +1047,6 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     return context.Status;
 }
 
-typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
-{
-    PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback;
-    PVOID Context;
-} PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
-
-NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG_PTR NumberOfEntries,
-    _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
-    )
-{
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    MEMORY_IMAGE_INFORMATION imageInformation;
-    PVOID baseAddress = NULL;
-    PPH_STRING fileName;
-
-    for (ULONG_PTR i = 0; i < NumberOfEntries; i++)
-    {
-        PMEMORY_WORKING_SET_BLOCK workingSetBlock = &WorkingSetBlock[i];
-        PVOID virtualAddress = (PVOID)(workingSetBlock->VirtualPage << PAGE_SHIFT);
-
-        if (virtualAddress < baseAddress)
-            continue;
-
-        status = PhGetProcessMappedImageInformation(
-            ProcessHandle,
-            virtualAddress,
-            &imageInformation
-            );
-
-        if (
-            !NT_SUCCESS(status) ||
-            !imageInformation.ImageBase ||
-            imageInformation.ImageNotExecutable ||
-            imageInformation.ImagePartialMap
-            )
-        {
-            continue;
-        }
-
-        status = PhGetProcessMappedFileName(
-            ProcessHandle,
-            imageInformation.ImageBase,
-            &fileName
-            );
-
-        if (!NT_SUCCESS(status))
-            continue;
-
-        status = Parameters->Callback(
-            ProcessHandle,
-            virtualAddress,
-            imageInformation.ImageBase,
-            imageInformation.SizeOfImage,
-            fileName,
-            Parameters->Context
-            );
-
-        PhDereferenceObject(fileName);
-
-        if (!NT_SUCCESS(status))
-            break;
-
-        baseAddress = PTR_ADD_OFFSET(imageInformation.ImageBase, imageInformation.SizeOfImage);
-    }
-
-    if (status == STATUS_NO_MORE_ENTRIES)
-    {
-        status = STATUS_SUCCESS;
-    }
-
-    return status;
-}
-
-NTSTATUS PhEnumProcessModulesLimited(
-    _In_ HANDLE ProcessHandle,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    NTSTATUS status;
-    PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS parameters;
-
-    memset(&parameters, 0, sizeof(parameters));
-    parameters.Callback = Callback;
-    parameters.Context = Context;
-
-    status = PhEnumVirtualMemoryPages(
-        ProcessHandle,
-        PhEnumProcessModulesLimitedCallback,
-        &parameters
-        );
-
-    return status;
-}
-
 typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_HASHTABLE BaseAddressHashtable;
@@ -1489,11 +1391,12 @@ VOID PhpEnumGenericMappedFilesAndImages(
     enumParameters.BaseAddressHashtable = BaseAddressHashtable;
     enumParameters.Callback = Callback;
     enumParameters.Context = Context;
-    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
+
+    baseAddress = (PVOID)0;
 
     if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
         ProcessHandle,
-        NULL,
+        baseAddress,
         FALSE,
         PhpEnumGenericMappedFilesAndImagesBulk,
         &enumParameters
@@ -1501,8 +1404,6 @@ VOID PhpEnumGenericMappedFilesAndImages(
     {
         return;
     }
-
-    baseAddress = (PVOID)0;
 
     if (!NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
@@ -1782,6 +1683,139 @@ CleanupExit:
     return status;
 }
 
+typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
+{
+    PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback;
+    PPH_HASHTABLE BaseAddressHashtable;
+    PVOID Context;
+} PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
+
+NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
+    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    MEMORY_IMAGE_INFORMATION imageInformation;
+    PVOID baseAddress = NULL;
+    PPH_STRING fileName;
+
+    for (ULONG_PTR i = 0; i < NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_BLOCK workingSetBlock = &WorkingSetBlock[i];
+        PVOID virtualAddress = (PVOID)(workingSetBlock->VirtualPage << PAGE_SHIFT);
+
+        if (virtualAddress < baseAddress)
+            continue;
+
+        status = PhGetProcessMappedImageInformation(
+            ProcessHandle,
+            virtualAddress,
+            &imageInformation
+            );
+
+        if (
+            !NT_SUCCESS(status) ||
+            !imageInformation.ImageBase ||
+            imageInformation.ImageNotExecutable ||
+            imageInformation.ImagePartialMap
+            )
+        {
+            continue;
+        }
+
+        if (PhFindEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase))
+            continue;
+
+        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase);
+
+        status = PhGetProcessMappedFileName(
+            ProcessHandle,
+            imageInformation.ImageBase,
+            &fileName
+            );
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        status = Parameters->Callback(
+            ProcessHandle,
+            virtualAddress,
+            imageInformation.ImageBase,
+            imageInformation.SizeOfImage,
+            fileName,
+            Parameters->Context
+            );
+
+        PhDereferenceObject(fileName);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        baseAddress = PTR_ADD_OFFSET(imageInformation.ImageBase, imageInformation.SizeOfImage);
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumProcessModulesLimited(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS limitedParameters;
+    PPH_HASHTABLE baseAddressHashtable;
+
+    baseAddressHashtable = PhCreateHashtable(
+        sizeof(PVOID),
+        PhpBaseAddressHashtableEqualFunction,
+        PhpBaseAddressHashtableHashFunction,
+        100
+        );
+
+    memset(&limitedParameters, 0, sizeof(PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS));
+    limitedParameters.BaseAddressHashtable = baseAddressHashtable;
+    limitedParameters.Callback = Callback;
+    limitedParameters.Context = Context;
+
+    status = PhEnumVirtualMemoryPages(
+        ProcessHandle,
+        PhEnumProcessModulesLimitedCallback,
+        &limitedParameters
+        );
+
+    //if (!NT_SUCCESS(status))
+    //{
+    //    PH_ENUM_MAPPED_MODULES_PARAMETERS mappedParameters;
+    //
+    //    memset(&mappedParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
+    //    mappedParameters.BaseAddressHashtable = baseAddressHashtable;
+    //    mappedParameters.Callback = Callback;
+    //    mappedParameters.Context = Context;
+    //
+    //    status = PhEnumVirtualMemoryBulk(
+    //        ProcessHandle,
+    //        nullptr,
+    //        FALSE,
+    //        PhpEnumGenericMappedFilesAndImagesBulk,
+    //        &mappedParameters
+    //        );
+    //}
+
+    PhDereferenceObject(baseAddressHashtable);
+
+    return status;
+}
+
 NTSTATUS PhEnumProcessEnclaveModules(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID EnclaveAddress,
@@ -1844,9 +1878,11 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     fullDllName = NULL;
 
     if (Entry->DllBase)
+    {
         PhGetProcessMappedFileName(ProcessHandle, Entry->DllBase, &fileName);
+    }
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
     {
         fullDllName = PhAllocate(Entry->FullDllName.Length);
 
@@ -1857,6 +1893,7 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
             Entry->FullDllName.Length,
             NULL
             );
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
@@ -1868,6 +1905,7 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
         OBJ_NAME_PATH_SEPARATOR,
         FALSE
         );
+
     if (index != SIZE_MAX)
     {
         name = PhCreateStringEx(
@@ -1881,9 +1919,9 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     }
 
     *Name = name;
-    name = NULL;
-
     *FileName = fileName;
+
+    name = NULL;
     fileName = NULL;
 
 CleanupExit:
