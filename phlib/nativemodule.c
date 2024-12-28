@@ -12,23 +12,27 @@
 
 #include <ph.h>
 #include <apiimport.h>
-#include <mapldr.h>
 
-typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
+_Function_class_(PHP_ENUM_PROCESS_MODULES_CALLBACK)
+typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
+typedef PHP_ENUM_PROCESS_MODULES_CALLBACK* PPHP_ENUM_PROCESS_MODULES_CALLBACK;
 
-typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
+_Function_class_(PHP_ENUM_PROCESS_MODULES32_CALLBACK)
+typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES32_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ ULONG AddressOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
+typedef PHP_ENUM_PROCESS_MODULES32_CALLBACK* PPHP_ENUM_PROCESS_MODULES32_CALLBACK;
+
 
 /**
  * Enumerates the modules loaded by the kernel.
@@ -211,15 +215,13 @@ NTSTATUS PhGetKernelFileNameEx(
 
     if (FileName)
     {
-        if (WindowsVersion >= WINDOWS_10)
-        {
-            static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
-            *FileName = PhCreateString2(&kernelFileName);
-        }
-        else
-        {
-            *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-        }
+        //if (WindowsVersion >= WINDOWS_10)
+        //{
+        //    static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+        //    *FileName = PhCreateString2(&kernelFileName);
+        //}
+
+        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
     }
 
     if (WindowsVersion >= WINDOWS_10_22H2)
@@ -242,7 +244,6 @@ PPH_STRING PhGetSecureKernelFileName(
 {
     static PH_STRINGREF secureKernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\securekernel.exe");
     static PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
-
     PPH_STRING fileName = NULL;
     PPH_STRING kernelFileName;
 
@@ -251,13 +252,17 @@ PPH_STRING PhGetSecureKernelFileName(
         PH_STRINGREF baseName;
 
         if (PhGetBasePath(&kernelFileName->sr, &baseName, NULL))
+        {
             fileName = PhConcatStringRef2(&baseName, &secureKernelPathPart);
+        }
 
         PhDereferenceObject(kernelFileName);
     }
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
+    {
         fileName = PhCreateString2(&secureKernelFileName);
+    }
 
     return fileName;
 }
@@ -379,7 +384,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 {
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
     NTSTATUS status;
-    BOOLEAN cont;
+    BOOLEAN result;
     PPH_STRING mappedFileName = NULL;
     PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer = NULL;
@@ -400,8 +405,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         if (indexOfLastBackslash != SIZE_MAX)
         {
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(UNICODE_NULL)));
-            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, indexOfLastBackslash * sizeof(WCHAR) + sizeof(UNICODE_NULL));
+            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)(indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL));
             Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
         }
         else
@@ -445,7 +450,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_SUB_OFFSET(baseDllNameOriginal, fullDllNameOriginal));
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, (baseDllNameOriginal - fullDllNameOriginal));
         }
         else
         {
@@ -492,7 +497,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     }
 
     // Execute the callback.
-    cont = parameters->Callback(Entry, parameters->Context);
+    result = parameters->Callback(Entry, parameters->Context);
 
     if (mappedFileName)
     {
@@ -506,7 +511,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             PhFree(baseDllNameBuffer);
     }
 
-    return cont;
+    return result;
 }
 
 /**
@@ -1897,7 +1902,14 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        fileName = PhCreateStringEx(fullDllName, Entry->FullDllName.Length);
+        if (!(Entry->FullDllName.Length & 1)) // validate the string length
+        {
+            fileName = PhCreateStringEx(fullDllName, Entry->FullDllName.Length);
+        }
+        else
+        {
+            goto CleanupExit;
+        }
     }
 
     index = PhFindLastCharInStringRef(
