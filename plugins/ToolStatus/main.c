@@ -1840,7 +1840,7 @@ VOID NTAPI MenuItemCallback(
 
                     SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
 
-                    if (!(rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS))
+                    if (!FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
                     {
                         // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
                         // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
@@ -1852,7 +1852,7 @@ VOID NTAPI MenuItemCallback(
                         ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
                     }
 
-                    if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+                    if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
                     {
                         ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }
