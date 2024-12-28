@@ -1763,7 +1763,7 @@ VOID NTAPI LoadCallback(
     MaxInitializationDelay = __max(0, __min(MaxInitializationDelay, 5));
 
     MainWindowHookProc = SystemInformer_GetWindowProcedure();
-    SystemInformer_SetWindowProcedure(MainWindowProc);
+    SystemInformer_SetWindowProcedure(MainWindowCallbackProc);
 
     UpdateCachedSettings();
 
