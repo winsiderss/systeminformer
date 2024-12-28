@@ -16,18 +16,11 @@
 #define PH_SETTINGS_PRIVATE
 #include <phsettings.h>
 
-#define PH_UPDATE_SETTING(Name) \
-    (PhCs##Name = PhGetIntegerSetting(TEXT(#Name)))
-
 VOID PhAddDefaultSettings(
     VOID
     )
 {
-#ifdef _DEBUG
-    PhpAddIntegerSetting(L"ReleaseChannel", L"3"); // PhDeveloperChannel
-#else
     PhpAddIntegerSetting(L"ReleaseChannel", L"0"); // PhReleaseChannel
-#endif
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
@@ -141,7 +134,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
     PhpAddStringSetting(L"IconSettings", L"");
-    PhpAddIntegerSetting(L"IconNotifyMask", L"18c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_DEVICE_ARRIVED | PH_NOTIFY_DEVICE_REMOVED
+    PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
@@ -393,85 +386,85 @@ VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    PH_UPDATE_SETTING(ForceNoParent);
-    PH_UPDATE_SETTING(HighlightingDuration);
-    PH_UPDATE_SETTING(PropagateCpuUsage);
-    PH_UPDATE_SETTING(ScrollToNewProcesses);
-    PH_UPDATE_SETTING(ScrollToRemovedProcesses);
-    PH_UPDATE_SETTING(ShowCpuBelow001);
-    PH_UPDATE_SETTING(UpdateInterval);
+    PH_GET_INTEGER_CACHED_SETTING(ForceNoParent);
+    PH_GET_INTEGER_CACHED_SETTING(HighlightingDuration);
+    PH_GET_INTEGER_CACHED_SETTING(PropagateCpuUsage);
+    PH_GET_INTEGER_CACHED_SETTING(ScrollToNewProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ScrollToRemovedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ShowCpuBelow001);
+    PH_GET_INTEGER_CACHED_SETTING(UpdateInterval);
 
-    PH_UPDATE_SETTING(ColorNew);
-    PH_UPDATE_SETTING(ColorRemoved);
-    PH_UPDATE_SETTING(UseColorOwnProcesses);
-    PH_UPDATE_SETTING(ColorOwnProcesses);
-    PH_UPDATE_SETTING(UseColorSystemProcesses);
-    PH_UPDATE_SETTING(ColorSystemProcesses);
-    PH_UPDATE_SETTING(UseColorServiceProcesses);
-    PH_UPDATE_SETTING(ColorServiceProcesses);
-    PH_UPDATE_SETTING(UseColorBackgroundProcesses);
-    PH_UPDATE_SETTING(ColorBackgroundProcesses);
-    PH_UPDATE_SETTING(UseColorJobProcesses);
-    PH_UPDATE_SETTING(ColorJobProcesses);
-    PH_UPDATE_SETTING(UseColorWow64Processes);
-    PH_UPDATE_SETTING(ColorWow64Processes);
-    PH_UPDATE_SETTING(UseColorDebuggedProcesses);
-    PH_UPDATE_SETTING(ColorDebuggedProcesses);
-    PH_UPDATE_SETTING(UseColorHandleFiltered);
-    PH_UPDATE_SETTING(ColorHandleFiltered);
-    PH_UPDATE_SETTING(UseColorElevatedProcesses);
-    PH_UPDATE_SETTING(ColorElevatedProcesses);
-    PH_UPDATE_SETTING(UseColorUIAccessProcesses);
-    PH_UPDATE_SETTING(ColorUIAccessProcesses);
-    PH_UPDATE_SETTING(UseColorPicoProcesses);
-    PH_UPDATE_SETTING(ColorPicoProcesses);
-    PH_UPDATE_SETTING(UseColorImmersiveProcesses);
-    PH_UPDATE_SETTING(ColorImmersiveProcesses);
-    PH_UPDATE_SETTING(UseColorSuspended);
-    PH_UPDATE_SETTING(ColorSuspended);
-    PH_UPDATE_SETTING(UseColorDotNet);
-    PH_UPDATE_SETTING(ColorDotNet);
-    PH_UPDATE_SETTING(UseColorPacked);
-    PH_UPDATE_SETTING(ColorPacked);
-    PH_UPDATE_SETTING(UseColorLowImageCoherency);
-    PH_UPDATE_SETTING(ColorLowImageCoherency);
-    PH_UPDATE_SETTING(UseColorPartiallySuspended);
-    PH_UPDATE_SETTING(ColorPartiallySuspended);
-    PH_UPDATE_SETTING(UseColorGuiThreads);
-    PH_UPDATE_SETTING(ColorGuiThreads);
-    PH_UPDATE_SETTING(UseColorRelocatedModules);
-    PH_UPDATE_SETTING(ColorRelocatedModules);
-    PH_UPDATE_SETTING(UseColorProtectedHandles);
-    PH_UPDATE_SETTING(ColorProtectedHandles);
-    PH_UPDATE_SETTING(UseColorProtectedInheritHandles);
-    PH_UPDATE_SETTING(ColorProtectedInheritHandles);
-    PH_UPDATE_SETTING(UseColorInheritHandles);
-    PH_UPDATE_SETTING(ColorInheritHandles);
-    PH_UPDATE_SETTING(ColorProtectedProcess);
-    PH_UPDATE_SETTING(UseColorProtectedProcess);
-    PH_UPDATE_SETTING(ColorEfficiencyMode);
-    PH_UPDATE_SETTING(UseColorEfficiencyMode);
-    PH_UPDATE_SETTING(UseColorServiceDisabled);
-    PH_UPDATE_SETTING(ColorServiceDisabled);
-    PH_UPDATE_SETTING(UseColorServiceStop);
-    PH_UPDATE_SETTING(ColorServiceStop);
-    PH_UPDATE_SETTING(UseColorUnknown);
-    PH_UPDATE_SETTING(ColorUnknown);
+    PH_GET_INTEGER_CACHED_SETTING(ColorNew);
+    PH_GET_INTEGER_CACHED_SETTING(ColorRemoved);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorOwnProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorOwnProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorSystemProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorSystemProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorServiceProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorServiceProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorBackgroundProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorBackgroundProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorJobProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorJobProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorWow64Processes);
+    PH_GET_INTEGER_CACHED_SETTING(ColorWow64Processes);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorDebuggedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorDebuggedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorHandleFiltered);
+    PH_GET_INTEGER_CACHED_SETTING(ColorHandleFiltered);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorElevatedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorElevatedProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorUIAccessProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorUIAccessProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorPicoProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPicoProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorImmersiveProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(ColorImmersiveProcesses);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorSuspended);
+    PH_GET_INTEGER_CACHED_SETTING(ColorSuspended);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorDotNet);
+    PH_GET_INTEGER_CACHED_SETTING(ColorDotNet);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorPacked);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPacked);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorLowImageCoherency);
+    PH_GET_INTEGER_CACHED_SETTING(ColorLowImageCoherency);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorPartiallySuspended);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPartiallySuspended);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorGuiThreads);
+    PH_GET_INTEGER_CACHED_SETTING(ColorGuiThreads);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorRelocatedModules);
+    PH_GET_INTEGER_CACHED_SETTING(ColorRelocatedModules);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorProtectedHandles);
+    PH_GET_INTEGER_CACHED_SETTING(ColorProtectedHandles);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorProtectedInheritHandles);
+    PH_GET_INTEGER_CACHED_SETTING(ColorProtectedInheritHandles);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorInheritHandles);
+    PH_GET_INTEGER_CACHED_SETTING(ColorInheritHandles);
+    PH_GET_INTEGER_CACHED_SETTING(ColorProtectedProcess);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorProtectedProcess);
+    PH_GET_INTEGER_CACHED_SETTING(ColorEfficiencyMode);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorEfficiencyMode);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorServiceDisabled);
+    PH_GET_INTEGER_CACHED_SETTING(ColorServiceDisabled);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorServiceStop);
+    PH_GET_INTEGER_CACHED_SETTING(ColorServiceStop);
+    PH_GET_INTEGER_CACHED_SETTING(UseColorUnknown);
+    PH_GET_INTEGER_CACHED_SETTING(ColorUnknown);
 
-    PH_UPDATE_SETTING(GraphShowText);
-    PH_UPDATE_SETTING(GraphColorMode);
-    PH_UPDATE_SETTING(ColorCpuKernel);
-    PH_UPDATE_SETTING(ColorCpuUser);
-    PH_UPDATE_SETTING(ColorIoReadOther);
-    PH_UPDATE_SETTING(ColorIoWrite);
-    PH_UPDATE_SETTING(ColorPrivate);
-    PH_UPDATE_SETTING(ColorPhysical);
+    PH_GET_INTEGER_CACHED_SETTING(GraphShowText);
+    PH_GET_INTEGER_CACHED_SETTING(GraphColorMode);
+    PH_GET_INTEGER_CACHED_SETTING(ColorCpuKernel);
+    PH_GET_INTEGER_CACHED_SETTING(ColorCpuUser);
+    PH_GET_INTEGER_CACHED_SETTING(ColorIoReadOther);
+    PH_GET_INTEGER_CACHED_SETTING(ColorIoWrite);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPrivate);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPhysical);
 
-    PH_UPDATE_SETTING(ColorPowerUsage);
-    PH_UPDATE_SETTING(ColorTemperature);
-    PH_UPDATE_SETTING(ColorFanRpm);
+    PH_GET_INTEGER_CACHED_SETTING(ColorPowerUsage);
+    PH_GET_INTEGER_CACHED_SETTING(ColorTemperature);
+    PH_GET_INTEGER_CACHED_SETTING(ColorFanRpm);
 
-    PH_UPDATE_SETTING(ImageCoherencyScanLevel);
+    PH_GET_INTEGER_CACHED_SETTING(ImageCoherencyScanLevel);
 
     PhCsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     PhCsEnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
