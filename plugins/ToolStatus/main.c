@@ -1376,13 +1376,13 @@ LRESULT CALLBACK MainWindowProc(
                             TargetingCurrentWindow = hungWindow;
                     }
 
-                    threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
+                    PhGetWindowClientId(TargetingCurrentWindow, &clientId);
 
-                    if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
+                    if (clientId.UniqueThread && clientId.UniqueProcess && clientId.UniqueProcess != NtCurrentProcessId())
                     {
                         PPH_PROCESS_NODE processNode;
 
-                        processNode = PhFindProcessNode(UlongToHandle(processId));
+                        processNode = PhFindProcessNode(clientId.UniqueProcess);
 
                         if (processNode)
                         {
@@ -1397,11 +1397,11 @@ LRESULT CALLBACK MainWindowProc(
                                 PPH_PROCESS_PROPCONTEXT propContext;
                                 PPH_PROCESS_ITEM processItem;
 
-                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
                                 {
                                     if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
                                     {
-                                        PhSetSelectThreadIdProcessPropContext(propContext, UlongToHandle(threadId));
+                                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
                                         PhShowProcessProperties(propContext);
                                         PhDereferenceObject(propContext);
                                     }
@@ -1418,7 +1418,7 @@ LRESULT CALLBACK MainWindowProc(
                             {
                                 PPH_PROCESS_ITEM processItem;
 
-                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
                                 {
                                     PhUiTerminateProcesses(WindowHandle, &processItem, 1);
                                     PhDereferenceObject(processItem);
