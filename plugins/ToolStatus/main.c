@@ -780,7 +780,7 @@ VOID ToggleSearchFocus(
     SetSearchFocus(hWnd, GetFocus() != SearchboxHandle);
 }
 
-LRESULT CALLBACK MainWindowProc(
+LRESULT CALLBACK MainWindowCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
