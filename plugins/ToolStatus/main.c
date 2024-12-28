@@ -886,7 +886,7 @@ LRESULT CALLBACK MainWindowProc(
                         goto DefaultWndProc;
                     }
 
-                    if (GetFocus() == SearchboxHandle)
+                    if (SearchboxHandle && (GetFocus() == SearchboxHandle))
                     {
                         SendMessage(SearchboxHandle, WM_KEYDOWN, VK_ESCAPE, 0);
                         SetSearchFocus(WindowHandle, FALSE);
@@ -901,7 +901,7 @@ LRESULT CALLBACK MainWindowProc(
                 goto DefaultWndProc;
             case ID_SEARCH_TAB:
                 // handle tab when the searchbox is focused
-                if (GetFocus() == SearchboxHandle)
+                if (SearchboxHandle && (GetFocus() == SearchboxHandle))
                     SetSearchFocus(WindowHandle, FALSE);
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
@@ -1006,7 +1006,7 @@ LRESULT CALLBACK MainWindowProc(
                                 PPH_EMENU_ITEM menuItem;
                                 LONG dpiValue;
 
-                                dpiValue = PhGetWindowDpi(WindowHandle);
+                                dpiValue = SystemInformer_GetWindowDpi();
 
                                 // Add toolbar buttons to the context menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
@@ -1304,8 +1304,7 @@ LRESULT CALLBACK MainWindowProc(
             {
                 POINT cursorPos;
                 HWND windowOverMouse;
-                ULONG processId;
-                ULONG threadId;
+                CLIENT_ID clientId;
 
                 GetCursorPos(&cursorPos);
                 windowOverMouse = WindowFromPoint(cursorPos);
@@ -1320,10 +1319,10 @@ LRESULT CALLBACK MainWindowProc(
 
                     if (windowOverMouse)
                     {
-                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+                        PhGetWindowClientId(windowOverMouse, &clientId);
 
                         // Draw a rectangle over the current window (but not if it's one of our own).
-                        if (UlongToHandle(processId) != NtCurrentProcessId())
+                        if (clientId.UniqueProcess != NtCurrentProcessId())
                         {
                             DrawWindowBorderForTargeting(windowOverMouse);
                             TargetingCurrentWindowDraw = TRUE;
@@ -1345,8 +1344,7 @@ LRESULT CALLBACK MainWindowProc(
         {
             if (TargetingWindow)
             {
-                ULONG processId;
-                ULONG threadId;
+                CLIENT_ID clientId;
 
                 TargetingCompleted = TRUE;
 
