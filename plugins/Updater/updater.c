@@ -432,34 +432,12 @@ PPH_STRING UpdateWindowsString(
 {
     PPH_STRING buildString = NULL;
     PPH_STRING fileName;
-    PH_MAPPED_IMAGE mappedImage;
-    USHORT imageMachine = 0;
-    ULONG timeDateStamp = 0;
-    ULONG sizeOfImage = 0;
     PVOID imageBase;
     ULONG imageSize;
     PVOID versionInfo;
 
     if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
     {
-        if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage)))
-        {
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-            {
-                imageMachine = mappedImage.NtHeaders32->FileHeader.Machine;
-                timeDateStamp = mappedImage.NtHeaders32->FileHeader.TimeDateStamp;
-                sizeOfImage = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
-            }
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-            {
-                imageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
-            }
-
-            PhUnloadMappedImage(&mappedImage);
-        }
-
         if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
         {
             VS_FIXEDFILEINFO* rootBlock;
@@ -686,7 +664,7 @@ BOOLEAN QueryUpdateData(
 
     if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
     {
-        PPH_STRING jsonStringUtf16 = PhConvertUtf8ToUtf16Ex(jsonString->Buffer, jsonString->Length);
+        PPH_STRING jsonStringUtf16 = PhConvertBytesToUtf16(jsonString);
         PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringUtf16->sr);
         PhDereferenceObject(jsonStringUtf16);
     }
