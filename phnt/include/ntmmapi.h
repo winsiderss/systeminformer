@@ -7,32 +7,36 @@
 #ifndef _NTMMAPI_H
 #define _NTMMAPI_H
 
-// Protection constants
+//
+// Memory Protection Constants
+//
 
-#define PAGE_NOACCESS 0x01
-#define PAGE_READONLY 0x02
-#define PAGE_READWRITE 0x04
-#define PAGE_WRITECOPY 0x08
-#define PAGE_EXECUTE 0x10
-#define PAGE_EXECUTE_READ 0x20
-#define PAGE_EXECUTE_READWRITE 0x40
-#define PAGE_EXECUTE_WRITECOPY 0x80
-#define PAGE_GUARD 0x100
-#define PAGE_NOCACHE 0x200
-#define PAGE_WRITECOMBINE 0x400
+#define PAGE_NOACCESS 0x01              // Disables all access to the committed region of pages. An attempt to read from, write to, or execute the committed region results in an access violation.
+#define PAGE_READONLY 0x02              // Enables read-only access to the committed region of pages. An attempt to write or execute the committed region results in an access violation.
+#define PAGE_READWRITE 0x04             // Enables read-only or read/write access to the committed region of pages.
+#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object. 
+#define PAGE_EXECUTE 0x10               // Enables execute access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READ 0x20          // Enables execute or read-only access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READWRITE 0x40     // Enables execute, read-only, or read/write access to the committed region of pages.
+#define PAGE_EXECUTE_WRITECOPY 0x80     // Enables execute, read-only, or copy-on-write access to a mapped view of a file mapping object.
+#define PAGE_GUARD 0x100                // Pages in the region become guard pages. Any attempt to access a guard page causes the system to raise a STATUS_GUARD_PAGE_VIOLATION exception.
+#define PAGE_NOCACHE 0x200              // Sets all pages to be non-cachable. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
+#define PAGE_WRITECOMBINE 0x400         // Sets all pages to be write-combined. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000
-#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000
-#define PAGE_TARGETS_NO_UPDATE      0x40000000
-#define PAGE_TARGETS_INVALID        0x40000000
-#define PAGE_ENCLAVE_UNVALIDATED    0x20000000
+#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object. 
+#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000 // Pages in the region contain a thread control structure (TCS) from the Intel Software Guard Extensions programming model.
+#define PAGE_TARGETS_NO_UPDATE      0x40000000 // Pages in the region will not update the CFG bitmap when the protection changes. The default behavior for VirtualProtect is to mark all locations as valid call targets for CFG.
+#define PAGE_TARGETS_INVALID        0x40000000 // Pages in the region are excluded from the CFG bitmap as valid targets. Any indirect call to locations in those pages will terminate the process using the __fastfail intrinsic.
+#define PAGE_ENCLAVE_UNVALIDATED    0x20000000 // Pages in the region are excluded from measurement with the EEXTEND instruction of the Intel Software Guard Extensions programming model.
 #define PAGE_ENCLAVE_NO_CHANGE      0x20000000
 #define PAGE_ENCLAVE_MASK           0x10000000
 #define PAGE_ENCLAVE_DECOMMIT       (PAGE_ENCLAVE_MASK | 0)
 #define PAGE_ENCLAVE_SS_FIRST       (PAGE_ENCLAVE_MASK | 1)
 #define PAGE_ENCLAVE_SS_REST        (PAGE_ENCLAVE_MASK | 2)
 
-// Region and section constants
+//
+// Memory Region and Section Constants
+//
 
 #define MEM_COMMIT 0x00001000
 #define MEM_RESERVE 0x00002000
@@ -151,19 +155,29 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_READWRITE 30
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_COPYONWRITE 31
 
+/**
+ * The MEMORY_WORKING_SET_BLOCK structure contains working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_block
+ */
 typedef struct _MEMORY_WORKING_SET_BLOCK
 {
-    ULONG_PTR Protection : 5;
-    ULONG_PTR ShareCount : 3;
-    ULONG_PTR Shared : 1;
-    ULONG_PTR Node : 3;
+    ULONG_PTR Protection : 5;       // The protection attributes of the page. This member can be one of above MEMORY_BLOCK_* values.
+    ULONG_PTR ShareCount : 3;       // The number of processes that share this page. The maximum value of this member is 7.
+    ULONG_PTR Shared : 1;           // If this bit is 1, the page is sharable; otherwise, the page is not sharable.
+    ULONG_PTR Node : 3;             // The NUMA node where the physical memory should reside.
 #ifdef _WIN64
-    ULONG_PTR VirtualPage : 52;
+    ULONG_PTR VirtualPage : 52;     // The address of the page in the virtual address space.
 #else
-    ULONG VirtualPage : 20;
+    ULONG VirtualPage : 20;         // The address of the page in the virtual address space.
 #endif
 } MEMORY_WORKING_SET_BLOCK, *PMEMORY_WORKING_SET_BLOCK;
 
+/**
+ * The MEMORY_WORKING_SET_INFORMATION structure contains working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_information
+ */
 typedef struct _MEMORY_WORKING_SET_INFORMATION
 {
     ULONG_PTR NumberOfEntries;
@@ -211,58 +225,63 @@ typedef enum _MEMORY_WORKING_SET_EX_LOCATION
     MemoryLocationReserved
 } MEMORY_WORKING_SET_EX_LOCATION;
 
-// private
-typedef struct _MEMORY_WORKING_SET_EX_BLOCK
+/**
+ * The MEMORY_WORKING_SET_EX_BLOCK structure contains extended working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block
+ */
+typedef union _MEMORY_WORKING_SET_EX_BLOCK
 {
+    ULONG_PTR Flags;
     union
     {
         struct
         {
-            ULONG_PTR Valid : 1;
-            ULONG_PTR ShareCount : 3;
-            ULONG_PTR Win32Protection : 11;
-            ULONG_PTR Shared : 1;
-            ULONG_PTR Node : 6;
-            ULONG_PTR Locked : 1;
-            ULONG_PTR LargePage : 1;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Valid : 1;                    // If this bit is 1, the subsequent members are valid; otherwise they should be ignored.
+            ULONG_PTR ShareCount : 3;               // The number of processes that share this page. The maximum value of this member is 7.
+            ULONG_PTR Win32Protection : 11;         // The memory protection attributes of the page.
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
+            ULONG_PTR Node : 6;                     // The NUMA node. The maximum value of this member is 63.
+            ULONG_PTR Locked : 1;                   // If this bit is 1, the virtual page is locked in physical memory.
+            ULONG_PTR LargePage : 1;                // If this bit is 1, the page is a large page.
+            ULONG_PTR Priority : 3;                 // The memory priority attributes of the page.
             ULONG_PTR Reserved : 3;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
-            ULONG_PTR Win32GraphicsProtection : 4; // 19H1
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
         struct
         {
-            ULONG_PTR Valid : 1;
+            ULONG_PTR Valid : 1;                    // If this bit is 0, the subsequent members are valid; otherwise they should be ignored.
             ULONG_PTR Reserved0 : 14;
-            ULONG_PTR Shared : 1;
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
             ULONG_PTR Reserved1 : 5;
             ULONG_PTR PageTable : 1;
-            ULONG_PTR Location : 2;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Location : 2;                 // The memory location of the page.  MEMORY_WORKING_SET_EX_LOCATION
+            ULONG_PTR Priority : 3;                 // The memory priority of the page.
             ULONG_PTR ModifiedList : 1;
             ULONG_PTR Reserved2 : 2;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
 #endif
         } Invalid;
     };
-} MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
+} MEMORY_WORKING_SET_EX_BLOCK, * PMEMORY_WORKING_SET_EX_BLOCK;
 
-// private
+/**
+ * The MEMORY_WORKING_SET_EX_INFORMATION structure contains extended working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_information
+ */
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
-    PVOID VirtualAddress;
-    union
-    {
-        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
-        ULONG_PTR Long;
-    } u1;
+    PVOID VirtualAddress;                             // The virtual address.
+    MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;    // The attributes of the page at VirtualAddress.
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
 // private
@@ -677,7 +696,9 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x7f
 
+//
 // Virtual memory
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -692,7 +713,7 @@ NtAllocateVirtualMemory(
     _In_ ULONG_PTR ZeroBits,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
@@ -792,8 +813,8 @@ NtProtectVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _In_ ULONG NewProtect,
-    _Out_ PULONG OldProtect
+    _In_ ULONG NewProtection,
+    _Out_ PULONG OldProtection
     );
 
 NTSYSCALLAPI
@@ -986,7 +1007,7 @@ NtMapViewOfSection(
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
@@ -1060,8 +1081,7 @@ NtAreMappedFilesTheSame(
 #define MEMORY_PARTITION_QUERY_ACCESS 0x0001
 #define MEMORY_PARTITION_MODIFY_ACCESS 0x0002
 #define MEMORY_PARTITION_ALL_ACCESS \
-    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | \
-     MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
+    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
