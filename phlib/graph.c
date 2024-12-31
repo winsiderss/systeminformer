@@ -1378,8 +1378,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
             }
 
-            InvalidateRect(hwnd, NULL, TRUE);
-            UpdateWindow(hwnd);
+            InvalidateRect(hwnd, NULL, FALSE);
         }
         return TRUE;
     case GCM_SETCALLBACK:
