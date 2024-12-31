@@ -614,7 +614,8 @@ PhMultiplyDivide(
     _In_ CONST ULONG Denominator
     )
 {
-    return UInt32Div32To64((UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), Denominator), 2)), Denominator);
+    //return (((ULONG64)Number * (ULONG64)Numerator + (ULONG64)Denominator / 2) / (ULONG64)Denominator);
+    return UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), UInt32Div32To64(Denominator, 2)), Denominator);
 }
 
 FORCEINLINE
