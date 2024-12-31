@@ -25,8 +25,7 @@ namespace CustomBuildTool
         public static string BuildLongVersion = string.Empty;
         public static string BuildSourceLink = string.Empty;
         public const string BuildVersionMajor = "3";
-        public const string BuildVersionMinor = "1";
-        public static string BuildVersionRevision = "0";
+        public const string BuildVersionMinor = "2";
 
         public static bool InitializeBuildEnvironment()
         {
@@ -68,12 +67,6 @@ namespace CustomBuildTool
                 Build.BuildCommitHash = buildsource;
             if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
                 Build.BuildCommitBranch = buildbranch;
-
-            if (Win32.GetEnvironmentVariable("SYSTEM_REVISION", out string build_revision))
-            {
-                if (ushort.TryParse(build_revision, out _))
-                    Build.BuildVersionRevision = build_revision;
-            }
 
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
@@ -164,6 +157,11 @@ namespace CustomBuildTool
         public static string BuildVersionBuild
         {
             get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}"; }
+        }
+
+        public static string BuildVersionRevision
+        {
+            get { return $"{TimeStart.Hour:D2}{TimeStart.Minute:D2}"; }
         }
 
         public static string BuildUpdated
@@ -1031,7 +1029,13 @@ namespace CustomBuildTool
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService-SF]", ConsoleColor.Red);
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
+                        return false;
+                    }
+
+                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
                         return false;
                     }
                 }
