@@ -1235,6 +1235,7 @@ LdrRemoveDllDirectory(
 #endif
 
 // rev
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -1244,6 +1245,7 @@ LdrShutdownProcess(
     );
 
 // rev
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
