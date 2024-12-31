@@ -71,6 +71,7 @@ PhIsExecutingInWow64(
     VOID
     );
 
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 VOID
 NTAPI

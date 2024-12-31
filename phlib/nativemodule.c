@@ -405,9 +405,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         if (indexOfLastBackslash != SIZE_MAX)
         {
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, indexOfLastBackslash * sizeof(WCHAR) + sizeof(UNICODE_NULL));
-            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)(indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL));
-            Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
+            Entry->BaseDllName.Buffer = Entry->FullDllName.Buffer + indexOfLastBackslash + 1;
+            Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
+            Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length + sizeof(UNICODE_NULL);
         }
         else
         {

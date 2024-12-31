@@ -444,7 +444,7 @@ _InterlockedReadPointer(
     _Inout_ _Interlocked_operand_ volatile PVOID *Base
     )
 {
-    return _InterlockedCompareExchangePointer(Base, nullptr, nullptr);
+    return _InterlockedCompareExchangePointer(Base, NULL, NULL);
 }
 
 FORCEINLINE
@@ -614,7 +614,7 @@ PhMultiplyDivide(
     _In_ CONST ULONG Denominator
     )
 {
-    return (ULONG)(((ULONG64)Number * (ULONG64)Numerator + Denominator / 2) / (ULONG64)Denominator);
+    return UInt32Div32To64((UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), Denominator), 2)), Denominator);
 }
 
 FORCEINLINE

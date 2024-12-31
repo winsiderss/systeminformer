@@ -46,7 +46,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_TOKEN_ATTRIBUTES attributes = { 0 };
+    static PH_TOKEN_ATTRIBUTES attributes = { nullptr };
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -107,14 +107,6 @@ NTSTATUS PhOpenProcess(
 
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
-
-#ifdef _DEBUG
-    if (ProcessId == NtCurrentProcessId())
-    {
-        *ProcessHandle = NtCurrentProcess();
-        return STATUS_SUCCESS;
-    }
-#endif
 
     level = KsiLevel();
 
@@ -13849,6 +13841,11 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 {
     NTSTATUS status;
 
+    if (PhIsExecutingInWow64())
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+
     if (!NtPssCaptureVaSpaceBulk_Import())
     {
         return STATUS_NOT_SUPPORTED;
@@ -13974,7 +13971,7 @@ NTSTATUS PhEnumVirtualMemoryPages(
     _In_opt_ PVOID Context
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     PMEMORY_WORKING_SET_INFORMATION pageInfo;
 
     status = PhGetProcessWorkingSetInformation(

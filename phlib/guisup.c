@@ -501,6 +501,35 @@ HWND PhGetShellWindow(
     return GetShellWindow();
 }
 
+BOOLEAN PhSetChildWindowNoActivate(
+    _In_ HWND WindowHandle,
+    _In_ HANDLE ThreadId
+    )
+{
+    typedef ULONG (WINAPI* SetChildWindowNoActivate)(
+        _In_ HWND WindowHandle
+        );
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, nullptr, 2005);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!SetChildWindowNoActivate_I)
+        return FALSE;
+
+    return !!SetChildWindowNoActivate_I(WindowHandle);
+}
+
 BOOLEAN PhCheckWindowThreadDesktop(
     _In_ HWND WindowHandle,
     _In_ HANDLE ThreadId

@@ -16,9 +16,6 @@
 #include <lsasup.h>
 #include <mapldr.h>
 
-#define PHNT_NATIVE_METHODS 0
-#define PH_NATIVE_WINDOWS_RUNTIME_STRING 1
-
 /**
  * Opens a thread.
  *
@@ -149,35 +146,35 @@ NTSTATUS PhOpenThreadProcess(
     THREAD_BASIC_INFORMATION basicInfo;
     KPH_LEVEL level;
 
-    status = STATUS_UNSUCCESSFUL;
-
     level = KsiLevel();
 
-    if ((level == KphLevelMax) ||
-        ((level >= KphLevelMed) &&
-         ((DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)))
+    if (level == KphLevelMax || (level >= KphLevelMed && FlagOn(DesiredAccess, KPH_PROCESS_READ_ACCESS) == DesiredAccess))
     {
         status = KphOpenThreadProcess(
             ThreadHandle,
             DesiredAccess,
             ProcessHandle
             );
+
+        if (NT_SUCCESS(status))
+            return status;
     }
 
-    if (NT_SUCCESS(status))
-        return status;
-
-    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
+    status = PhGetThreadBasicInformation(
         ThreadHandle,
         &basicInfo
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
 
-    return PhOpenProcess(
+    status = PhOpenProcessClientId(
         ProcessHandle,
         DesiredAccess,
-        basicInfo.ClientId.UniqueProcess
+        &basicInfo.ClientId
         );
+
+    return status;
 }
 
 NTSTATUS PhTerminateThread(

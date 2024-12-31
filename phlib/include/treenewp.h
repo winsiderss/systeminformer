@@ -824,7 +824,8 @@ VOID PhTnpProcessDragSelect(
 // Double buffering
 
 VOID PhTnpCreateBufferedContext(
-    _In_ PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
     );
 
 VOID PhTnpDestroyBufferedContext(
