@@ -191,6 +191,7 @@ namespace CustomBuildTool
                 if (ProgramArgs.ContainsKey("-msix-build"))
                     flags |= BuildFlags.BuildMsix;
 
+                Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 

@@ -41,9 +41,19 @@ namespace CustomBuildTool
                 return false;
             }
 
-            Build.TimeStart = DateTime.UtcNow;
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
+
+            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
+            if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
+            {
+                var timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
+                Build.TimeStart = DateTime.Parse(timestamp);
+            }
+            else
+            {
+                Build.TimeStart = DateTime.UtcNow;
+            }
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
@@ -149,6 +159,11 @@ namespace CustomBuildTool
             }
         }
 
+        public static void WriteTimeStampFile()
+        {
+            Utils.WriteAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt", Build.TimeStart.ToString("o"));
+        }
+
         public static string BuildTimeSpan()
         {
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
@@ -161,7 +176,7 @@ namespace CustomBuildTool
 
         public static string BuildVersionRevision
         {
-            // Remove leading zeros or the value is interpreted as octal. 
+            // Remove leading zeros or the value is interpreted as octal.
             get { return $"{TimeStart.Hour}{TimeStart.Minute}".TrimStart('0'); }
         }
 
@@ -1588,8 +1603,8 @@ namespace CustomBuildTool
                     );
 
                 if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.bak", 
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, 
+                    "SystemInformer\\SystemInformer.bak",
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
                     &sourceFile))
                 {
                     using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.def"))
