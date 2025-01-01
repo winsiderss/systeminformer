@@ -161,7 +161,8 @@ namespace CustomBuildTool
 
         public static string BuildVersionRevision
         {
-            get { return $"{TimeStart.Hour:D2}{TimeStart.Minute:D2}"; }
+            // Remove leading zeros or the value is interpreted as octal. 
+            get { return $"{TimeStart.Hour}{TimeStart.Minute}".TrimStart('0'); }
         }
 
         public static string BuildUpdated
