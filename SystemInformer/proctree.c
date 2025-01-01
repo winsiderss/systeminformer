@@ -5286,6 +5286,9 @@ BOOLEAN PhGetSelectedProcessItems(
     }
     else
     {
+        *NumberOfProcesses = 0;
+        *Processes = NULL;
+        PhDeleteArray(&array);
         return FALSE;
     }
 }
