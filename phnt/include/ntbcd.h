@@ -571,7 +571,7 @@ NTSTATUS
 NTAPI
 BcdCopyObjects(
     _In_ HANDLE BcdStoreHandle,
-    _In_ BCD_OBJECT_DESCRIPTION Characteristics,
+    _In_ PBCD_OBJECT_DESCRIPTION Characteristics,
     _In_ BCD_COPY_FLAGS BcdCopyFlags,
     _In_ HANDLE TargetStoreHandle
     );
