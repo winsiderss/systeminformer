@@ -181,7 +181,7 @@ typedef struct _MEMORY_WORKING_SET_BLOCK
 typedef struct _MEMORY_WORKING_SET_INFORMATION
 {
     ULONG_PTR NumberOfEntries;
-    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[1];
+    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[ANYSIZE_ARRAY];
 } MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
 
 // private
@@ -271,7 +271,7 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
 #endif
         } Invalid;
     };
-} MEMORY_WORKING_SET_EX_BLOCK, * PMEMORY_WORKING_SET_EX_BLOCK;
+} MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
 
 /**
  * The MEMORY_WORKING_SET_EX_INFORMATION structure contains extended working set information for a process.

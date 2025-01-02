@@ -10208,7 +10208,7 @@ NTSTATUS
 NTAPI 
 RtlProcessFlsData(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPVOID FlsData
+    _Out_ PVOID* FlsData
     );
 #endif
 
