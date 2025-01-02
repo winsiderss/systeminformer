@@ -896,7 +896,7 @@ NTSTATUS PhRunAsExecuteParentCommand(
     }
 
     status = PhSetDesktopWinStaAccess(WindowHandle);
-    
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -1134,7 +1134,7 @@ VOID PhRunAsExecuteCommmand(
             createInfo.DesktopName = PhGetString(desktopName);
 
         status = PhSetDesktopWinStaAccess(Context->WindowHandle);
-        
+
         if (!NT_SUCCESS(status))
             goto CleanupAsUserExit;
 
@@ -2076,7 +2076,7 @@ NTSTATUS PhInvokeRunAsService(
     ULONG flags;
 
     status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
-    
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2330,10 +2330,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
             success = TRUE;
         }
 
-        if (parentDirectory)
-        {
-            PhDereferenceObject(parentDirectory);
-        }
+        PhClearReference(&parentDirectory);
     }
 
     PhClearReference(&executeString);
@@ -2507,7 +2504,7 @@ NTSTATUS RunAsCreateProcessThread(
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-        &(HANDLE){ processHandle },
+        &processHandle,
         sizeof(HANDLE)
         );
 

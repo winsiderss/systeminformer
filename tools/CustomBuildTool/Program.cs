@@ -108,9 +108,9 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
             }
-            else if (ProgramArgs.ContainsKey("-azure-sign"))
+            else if (ProgramArgs.TryGetValue("-azure-sign", out string Path))
             {
-                if (!EntraKeyVault.SignFiles(ProgramArgs["-Path"], ProgramArgs["-SearchPattern"]))
+                if (!EntraKeyVault.SignFiles(Path))
                     Environment.Exit(1);
             }
             else if (ProgramArgs.TryGetValue("-kph-sign", out string SignArg))
@@ -191,6 +191,7 @@ namespace CustomBuildTool
                 if (ProgramArgs.ContainsKey("-msix-build"))
                     flags |= BuildFlags.BuildMsix;
 
+                Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 

@@ -12,23 +12,27 @@
 
 #include <ph.h>
 #include <apiimport.h>
-#include <mapldr.h>
 
-typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
+_Function_class_(PHP_ENUM_PROCESS_MODULES_CALLBACK)
+typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
+typedef PHP_ENUM_PROCESS_MODULES_CALLBACK* PPHP_ENUM_PROCESS_MODULES_CALLBACK;
 
-typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
+_Function_class_(PHP_ENUM_PROCESS_MODULES32_CALLBACK)
+typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES32_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ ULONG AddressOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
+typedef PHP_ENUM_PROCESS_MODULES32_CALLBACK* PPHP_ENUM_PROCESS_MODULES32_CALLBACK;
+
 
 /**
  * Enumerates the modules loaded by the kernel.
@@ -211,15 +215,13 @@ NTSTATUS PhGetKernelFileNameEx(
 
     if (FileName)
     {
-        if (WindowsVersion >= WINDOWS_10)
-        {
-            static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
-            *FileName = PhCreateString2(&kernelFileName);
-        }
-        else
-        {
-            *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-        }
+        //if (WindowsVersion >= WINDOWS_10)
+        //{
+        //    static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+        //    *FileName = PhCreateString2(&kernelFileName);
+        //}
+
+        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
     }
 
     if (WindowsVersion >= WINDOWS_10_22H2)
@@ -242,7 +244,6 @@ PPH_STRING PhGetSecureKernelFileName(
 {
     static PH_STRINGREF secureKernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\securekernel.exe");
     static PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
-
     PPH_STRING fileName = NULL;
     PPH_STRING kernelFileName;
 
@@ -251,13 +252,17 @@ PPH_STRING PhGetSecureKernelFileName(
         PH_STRINGREF baseName;
 
         if (PhGetBasePath(&kernelFileName->sr, &baseName, NULL))
+        {
             fileName = PhConcatStringRef2(&baseName, &secureKernelPathPart);
+        }
 
         PhDereferenceObject(kernelFileName);
     }
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
+    {
         fileName = PhCreateString2(&secureKernelFileName);
+    }
 
     return fileName;
 }
@@ -379,7 +384,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 {
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
     NTSTATUS status;
-    BOOLEAN cont;
+    BOOLEAN result;
     PPH_STRING mappedFileName = NULL;
     PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer = NULL;
@@ -400,9 +405,9 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         if (indexOfLastBackslash != SIZE_MAX)
         {
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(UNICODE_NULL)));
+            Entry->BaseDllName.Buffer = Entry->FullDllName.Buffer + indexOfLastBackslash + 1;
             Entry->BaseDllName.Length = Entry->FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
-            Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length;
+            Entry->BaseDllName.MaximumLength = Entry->BaseDllName.Length + sizeof(UNICODE_NULL);
         }
         else
         {
@@ -445,7 +450,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, PTR_SUB_OFFSET(baseDllNameOriginal, fullDllNameOriginal));
+            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, (baseDllNameOriginal - fullDllNameOriginal));
         }
         else
         {
@@ -492,7 +497,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     }
 
     // Execute the callback.
-    cont = parameters->Callback(Entry, parameters->Context);
+    result = parameters->Callback(Entry, parameters->Context);
 
     if (mappedFileName)
     {
@@ -506,7 +511,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             PhFree(baseDllNameBuffer);
     }
 
-    return cont;
+    return result;
 }
 
 /**
@@ -1047,104 +1052,6 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     return context.Status;
 }
 
-typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
-{
-    PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback;
-    PVOID Context;
-} PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
-
-NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG_PTR NumberOfEntries,
-    _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
-    )
-{
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    MEMORY_IMAGE_INFORMATION imageInformation;
-    PVOID baseAddress = NULL;
-    PPH_STRING fileName;
-
-    for (ULONG_PTR i = 0; i < NumberOfEntries; i++)
-    {
-        PMEMORY_WORKING_SET_BLOCK workingSetBlock = &WorkingSetBlock[i];
-        PVOID virtualAddress = (PVOID)(workingSetBlock->VirtualPage << PAGE_SHIFT);
-
-        if (virtualAddress < baseAddress)
-            continue;
-
-        status = PhGetProcessMappedImageInformation(
-            ProcessHandle,
-            virtualAddress,
-            &imageInformation
-            );
-
-        if (
-            !NT_SUCCESS(status) ||
-            !imageInformation.ImageBase ||
-            imageInformation.ImageNotExecutable ||
-            imageInformation.ImagePartialMap
-            )
-        {
-            continue;
-        }
-
-        status = PhGetProcessMappedFileName(
-            ProcessHandle,
-            imageInformation.ImageBase,
-            &fileName
-            );
-
-        if (!NT_SUCCESS(status))
-            continue;
-
-        status = Parameters->Callback(
-            ProcessHandle,
-            virtualAddress,
-            imageInformation.ImageBase,
-            imageInformation.SizeOfImage,
-            fileName,
-            Parameters->Context
-            );
-
-        PhDereferenceObject(fileName);
-
-        if (!NT_SUCCESS(status))
-            break;
-
-        baseAddress = PTR_ADD_OFFSET(imageInformation.ImageBase, imageInformation.SizeOfImage);
-    }
-
-    if (status == STATUS_NO_MORE_ENTRIES)
-    {
-        status = STATUS_SUCCESS;
-    }
-
-    return status;
-}
-
-NTSTATUS PhEnumProcessModulesLimited(
-    _In_ HANDLE ProcessHandle,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    NTSTATUS status;
-    PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS parameters;
-
-    memset(&parameters, 0, sizeof(parameters));
-    parameters.Callback = Callback;
-    parameters.Context = Context;
-
-    status = PhEnumVirtualMemoryPages(
-        ProcessHandle,
-        PhEnumProcessModulesLimitedCallback,
-        &parameters
-        );
-
-    return status;
-}
-
 typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_HASHTABLE BaseAddressHashtable;
@@ -1489,11 +1396,12 @@ VOID PhpEnumGenericMappedFilesAndImages(
     enumParameters.BaseAddressHashtable = BaseAddressHashtable;
     enumParameters.Callback = Callback;
     enumParameters.Context = Context;
-    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
+
+    baseAddress = (PVOID)0;
 
     if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
         ProcessHandle,
-        NULL,
+        baseAddress,
         FALSE,
         PhpEnumGenericMappedFilesAndImagesBulk,
         &enumParameters
@@ -1501,8 +1409,6 @@ VOID PhpEnumGenericMappedFilesAndImages(
     {
         return;
     }
-
-    baseAddress = (PVOID)0;
 
     if (!NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
@@ -1782,6 +1688,139 @@ CleanupExit:
     return status;
 }
 
+typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
+{
+    PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback;
+    PPH_HASHTABLE BaseAddressHashtable;
+    PVOID Context;
+} PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
+
+NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
+    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    MEMORY_IMAGE_INFORMATION imageInformation;
+    PVOID baseAddress = NULL;
+    PPH_STRING fileName;
+
+    for (ULONG_PTR i = 0; i < NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_BLOCK workingSetBlock = &WorkingSetBlock[i];
+        PVOID virtualAddress = (PVOID)(workingSetBlock->VirtualPage << PAGE_SHIFT);
+
+        if (virtualAddress < baseAddress)
+            continue;
+
+        status = PhGetProcessMappedImageInformation(
+            ProcessHandle,
+            virtualAddress,
+            &imageInformation
+            );
+
+        if (
+            !NT_SUCCESS(status) ||
+            !imageInformation.ImageBase ||
+            imageInformation.ImageNotExecutable ||
+            imageInformation.ImagePartialMap
+            )
+        {
+            continue;
+        }
+
+        if (PhFindEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase))
+            continue;
+
+        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase);
+
+        status = PhGetProcessMappedFileName(
+            ProcessHandle,
+            imageInformation.ImageBase,
+            &fileName
+            );
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        status = Parameters->Callback(
+            ProcessHandle,
+            virtualAddress,
+            imageInformation.ImageBase,
+            imageInformation.SizeOfImage,
+            fileName,
+            Parameters->Context
+            );
+
+        PhDereferenceObject(fileName);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        baseAddress = PTR_ADD_OFFSET(imageInformation.ImageBase, imageInformation.SizeOfImage);
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumProcessModulesLimited(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS limitedParameters;
+    PPH_HASHTABLE baseAddressHashtable;
+
+    baseAddressHashtable = PhCreateHashtable(
+        sizeof(PVOID),
+        PhpBaseAddressHashtableEqualFunction,
+        PhpBaseAddressHashtableHashFunction,
+        100
+        );
+
+    memset(&limitedParameters, 0, sizeof(PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS));
+    limitedParameters.BaseAddressHashtable = baseAddressHashtable;
+    limitedParameters.Callback = Callback;
+    limitedParameters.Context = Context;
+
+    status = PhEnumVirtualMemoryPages(
+        ProcessHandle,
+        PhEnumProcessModulesLimitedCallback,
+        &limitedParameters
+        );
+
+    //if (!NT_SUCCESS(status))
+    //{
+    //    PH_ENUM_MAPPED_MODULES_PARAMETERS mappedParameters;
+    //
+    //    memset(&mappedParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
+    //    mappedParameters.BaseAddressHashtable = baseAddressHashtable;
+    //    mappedParameters.Callback = Callback;
+    //    mappedParameters.Context = Context;
+    //
+    //    status = PhEnumVirtualMemoryBulk(
+    //        ProcessHandle,
+    //        nullptr,
+    //        FALSE,
+    //        PhpEnumGenericMappedFilesAndImagesBulk,
+    //        &mappedParameters
+    //        );
+    //}
+
+    PhDereferenceObject(baseAddressHashtable);
+
+    return status;
+}
+
 NTSTATUS PhEnumProcessEnclaveModules(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID EnclaveAddress,
@@ -1844,9 +1883,11 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     fullDllName = NULL;
 
     if (Entry->DllBase)
+    {
         PhGetProcessMappedFileName(ProcessHandle, Entry->DllBase, &fileName);
+    }
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
     {
         fullDllName = PhAllocate(Entry->FullDllName.Length);
 
@@ -1857,10 +1898,18 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
             Entry->FullDllName.Length,
             NULL
             );
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        fileName = PhCreateStringEx(fullDllName, Entry->FullDllName.Length);
+        if (!(Entry->FullDllName.Length & 1)) // validate the string length
+        {
+            fileName = PhCreateStringEx(fullDllName, Entry->FullDllName.Length);
+        }
+        else
+        {
+            goto CleanupExit;
+        }
     }
 
     index = PhFindLastCharInStringRef(
@@ -1868,6 +1917,7 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
         OBJ_NAME_PATH_SEPARATOR,
         FALSE
         );
+
     if (index != SIZE_MAX)
     {
         name = PhCreateStringEx(
@@ -1881,9 +1931,9 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     }
 
     *Name = name;
-    name = NULL;
-
     *FileName = fileName;
+
+    name = NULL;
     fileName = NULL;
 
 CleanupExit:

@@ -127,6 +127,7 @@ VOID PhpChooseColor(
     {
         Context->SelectedColor = chooseColor.rgbResult;
         InvalidateRect(hwnd, NULL, TRUE);
+        UpdateWindow(hwnd);
     }
 }
 

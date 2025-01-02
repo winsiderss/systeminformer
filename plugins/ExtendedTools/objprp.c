@@ -411,7 +411,6 @@ VOID EtHandlePropertiesWindowInitialized(
         // Show creation time
         if (EtObjectManagerTimeCached.QuadPart != 0)
         {
-            PPH_STRING startTimeString;
             SYSTEMTIME startTimeFields;
 
             EtListViewRowCache[OBJECT_GENERAL_INDEX_CREATIONTIME] = PhAddListViewGroupItem(
@@ -423,9 +422,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 );
 
             PhLargeIntegerToLocalSystemTime(&startTimeFields, &EtObjectManagerTimeCached);
-            startTimeString = PhaFormatDateTime(&startTimeFields);
-
-            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_CREATIONTIME], 1, startTimeString->Buffer);
+            PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_CREATIONTIME], 1, PhaFormatDateTime(&startTimeFields)->Buffer);
         }
 
         // Remove irrelevant information if we couldn't open real object
@@ -466,7 +463,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, 4, L"Granted access", NULL);
 
             PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
-            PhSetListViewSubItem(context->ListViewHandle, origNameIndex, 1, PhGetString(context->HandleItem->ObjectName));
+            PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ETWORIGINALNAME], 1, PhGetString(context->HandleItem->ObjectName));
             PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
             PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
             PhSetListViewSubItem(context->ListViewHandle, context->ListViewRowCache[PH_PLUGIN_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
@@ -648,7 +645,7 @@ VOID EtHandlePropertiesWindowInitialized(
 
             if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName))
             {
-                if (!PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &pathPart, &stationName))
+                if (!PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &stationName))
                     stationName = context->HandleItem->ObjectName->sr;
                 stationType = PH_AUTO(EtGetWindowStationType(&stationName));
                 PhSetListViewSubItem(context->ListViewHandle, EtListViewRowCache[OBJECT_GENERAL_INDEX_WINSTATYPE], 1, PhGetString(stationType));
@@ -757,7 +754,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, L"Default NP Charge", NULL);
 
             if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
-                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
+                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, OBJ_NAME_PATH_SEPARATOR, &firstPart, &typeName))
             {
                 typeIndex = PhGetObjectTypeNumber(&typeName);
 
@@ -895,7 +892,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 OBJECT_GENERAL_CATEGORY_SESSION, OBJECT_GENERAL_INDEX_SESSIONLASTINPUT, L"Last input time", NULL);
 
             if (!PhIsNullOrEmptyString(context->HandleItem->ObjectName) &&
-                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, L'\\', &firstPart, &sessionName) &&
+                PhSplitStringRefAtLastChar(&context->HandleItem->ObjectName->sr, OBJ_NAME_PATH_SEPARATOR, &firstPart, &sessionName) &&
                 (sessionId = EtSessionIdFromObjectName(&sessionName)) != ULONG_MAX)
             {
                 if (WinStationQueryInformationW(
@@ -1260,7 +1257,7 @@ static NTSTATUS NTAPI EtpSearchHandleFunction(
 
     if (NT_SUCCESS(PhGetHandleInformation(
         handleContext->ProcessHandle,
-        (HANDLE)handleContext->HandleInfo->HandleValue,
+        handleContext->HandleInfo->HandleValue,
         handleContext->HandleInfo->ObjectTypeIndex,
         NULL,
         NULL,
@@ -1323,7 +1320,7 @@ VOID EtpEnumObjectHandles(
         PH_STRINGREF typeName;
         ULONG typeIndex;
 
-        if (PhSplitStringRefAtLastChar(&Context->HandleItem->ObjectName->sr, L'\\', &firstPart, &typeName))
+        if (PhSplitStringRefAtLastChar(&Context->HandleItem->ObjectName->sr, OBJ_NAME_PATH_SEPARATOR, &firstPart, &typeName))
             if ((typeIndex = PhGetObjectTypeNumber(&typeName)) != ULONG_MAX)
                 findBySameTypeIndex = typeIndex;
     }
@@ -1342,7 +1339,7 @@ VOID EtpEnumObjectHandles(
 
         PPH_STRING objectName;
         BOOLEAN objectNameMatched;
-        BOOLEAN useWorkQueue = KsiLevel() < KphLevelMed && (isDevice || isTypeObject && PhEndsWithString2(Context->HandleItem->ObjectName, L"File", TRUE));
+        BOOLEAN useWorkQueue = KsiLevel() < KphLevelMed && (isDevice || isTypeObject && (Context->HandleItem->TypeIndex == EtFileTypeIndex));
 
         if (useWorkQueue)
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
@@ -1474,14 +1471,14 @@ VOID EtpEnumObjectHandles(
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = searchResults->Items[i];
 
             // Skip Object Manager own handles
-            if ((HANDLE)handleInfo->UniqueProcessId == NtCurrentProcessId() &&
+            if (handleInfo->UniqueProcessId == NtCurrentProcessId() &&
                 PhFindItemList(EtObjectManagerOwnHandles, (PVOID)handleInfo->HandleValue) != ULONG_MAX)
             {
                 continue;
             }
 
             entry = PhAllocateZero(sizeof(ET_HANDLE_ENTRY));
-            entry->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
+            entry->ProcessId = handleInfo->UniqueProcessId;
             entry->HandleItem = PhCreateHandleItem(handleInfo);
             entry->OwnHandle = handleInfo->Object == Context->HandleItem->Object;
 

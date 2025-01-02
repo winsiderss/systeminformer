@@ -178,7 +178,7 @@
   
                 var subjectInfo = new SIGNER_SUBJECT_INFO();
                 subjectInfo.cbSize = (uint)sizeof(SIGNER_SUBJECT_INFO);
-                subjectInfo.pdwIndex = (uint*)NativeMemory.AllocZeroed((nuint)sizeof(IntPtr));
+                subjectInfo.pdwIndex = (uint*)NativeMemory.AllocZeroed((nuint)IntPtr.Size);
                 subjectInfo.dwSubjectChoice = SIGNER_SUBJECT_CHOICE.SIGNER_SUBJECT_FILE;
                 subjectInfo.Anonymous.pSignerFileInfo = &fileInfo;
 
@@ -205,7 +205,7 @@
                 signatureInfo.Anonymous.pAttrAuthcode = &signatureAuthcode;
 
                 var signCallbackInfo = new SIGNER_DIGEST_SIGN_INFO();
-                signCallbackInfo.cbSize = (uint)Marshal.SizeOf<SIGNER_DIGEST_SIGN_INFO>();
+                signCallbackInfo.cbSize = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO);
                 signCallbackInfo.dwDigestSignChoice = (uint)SIGNER_DIGEST_CHOICE.DIGEST_SIGN;
                 signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign = this.SigningCallback;
                 //signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx = this.SigningCallbackEx;

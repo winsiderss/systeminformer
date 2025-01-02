@@ -25,8 +25,7 @@ namespace CustomBuildTool
         public static string BuildLongVersion = string.Empty;
         public static string BuildSourceLink = string.Empty;
         public const string BuildVersionMajor = "3";
-        public const string BuildVersionMinor = "1";
-        public static string BuildVersionRevision = "0";
+        public const string BuildVersionMinor = "2";
 
         public static bool InitializeBuildEnvironment()
         {
@@ -42,9 +41,19 @@ namespace CustomBuildTool
                 return false;
             }
 
-            Build.TimeStart = DateTime.UtcNow;
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
+
+            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
+            if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
+            {
+                var timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
+                Build.TimeStart = DateTime.Parse(timestamp);
+            }
+            else
+            {
+                Build.TimeStart = DateTime.UtcNow;
+            }
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
@@ -68,12 +77,6 @@ namespace CustomBuildTool
                 Build.BuildCommitHash = buildsource;
             if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
                 Build.BuildCommitBranch = buildbranch;
-
-            if (Win32.GetEnvironmentVariable("SYSTEM_REVISION", out string build_revision))
-            {
-                if (ushort.TryParse(build_revision, out _))
-                    Build.BuildVersionRevision = build_revision;
-            }
 
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
@@ -156,6 +159,11 @@ namespace CustomBuildTool
             }
         }
 
+        public static void WriteTimeStampFile()
+        {
+            Utils.WriteAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt", Build.TimeStart.ToString("o"));
+        }
+
         public static string BuildTimeSpan()
         {
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
@@ -164,6 +172,12 @@ namespace CustomBuildTool
         public static string BuildVersionBuild
         {
             get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}"; }
+        }
+
+        public static string BuildVersionRevision
+        {
+            // Remove leading zeros or the value is interpreted as octal.
+            get { return $"{TimeStart.Hour}{TimeStart.Minute}".TrimStart('0'); }
         }
 
         public static string BuildUpdated
@@ -1031,7 +1045,13 @@ namespace CustomBuildTool
 
                     if (string.IsNullOrWhiteSpace(httpResult))
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService-SF]", ConsoleColor.Red);
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
+                        return false;
+                    }
+
+                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
                         return false;
                     }
                 }
@@ -1047,8 +1067,8 @@ namespace CustomBuildTool
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {
-            if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
-                return null;
+            //if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
+            //    return null;
 
             GithubRelease mirror = null;
 
@@ -1583,8 +1603,8 @@ namespace CustomBuildTool
                     );
 
                 if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.bak", 
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, 
+                    "SystemInformer\\SystemInformer.bak",
+                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
                     &sourceFile))
                 {
                     using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.def"))

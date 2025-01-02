@@ -13,22 +13,29 @@
 #ifndef PH_SETTINGS_H
 #define PH_SETTINGS_H
 
-_User_set_
+//
+// Application Typedefs
+//
+
+EXTERN_C
 VOID
 NTAPI
 PhAddDefaultSettings(
     VOID
     );
 
-_User_set_
+EXTERN_C
 VOID
 NTAPI
 PhUpdateCachedSettings(
     VOID
     );
 
+//
 // Cached settings
+//
 
+#pragma push_macro("EXT")
 #undef EXT
 
 #ifdef PH_SETTINGS_PRIVATE
@@ -132,6 +139,9 @@ EXT BOOLEAN PhCsEnableGraphMaxText;
 EXT BOOLEAN PhCsEnableAvxSupport;
 EXT BOOLEAN PhCsEnableHandleSnapshot;
 
-#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
+#pragma pop_macro("EXT")
+
+#define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), (PhCs##Name) = (Value)))
 
 #endif

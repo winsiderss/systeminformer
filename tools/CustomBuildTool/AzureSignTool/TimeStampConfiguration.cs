@@ -3,7 +3,7 @@
     /// <summary>
     /// Contains configuration for timestamping authenticode signatures.
     /// </summary>
-    public class TimeStampConfiguration
+    public struct TimeStampConfiguration
     {
         /// <summary>
         /// The URL to the timestamp authority.
@@ -38,7 +38,7 @@
             Type = type;
         }
 
-        private TimeStampConfiguration()
+        public TimeStampConfiguration()
         {
             Type = null;
         }

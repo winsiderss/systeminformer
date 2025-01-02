@@ -4946,7 +4946,7 @@ NTSTATUS PhCreateProcessAsUser(
         InitializeObjectAttributes(
             &objectAttributes,
             NULL,
-            OBJ_EXCLUSIVE,
+            0,
             NULL,
             NULL
             );
@@ -5431,7 +5431,7 @@ NTSTATUS PhShellExecuteEx(
             {
                 if (info.hProcess)
                 {
-                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMillisecondsEx(Timeout));
+                    PhWaitForSingleObject(info.hProcess, Timeout);
                 }
             }
         }
@@ -8655,6 +8655,10 @@ NTSTATUS PhCreateProcessRedirection(
     HANDLE inputReadHandle = NULL;
     HANDLE inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
+    HANDLE handleList[2];
+#if defined(PH_BUILD_MSIX)
+    ULONG appPolicy;
+#endif
     PROCESS_BASIC_INFORMATION basicInfo;
 
     status = PhCreatePipeEx(
@@ -8683,11 +8687,14 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
@@ -8698,20 +8705,25 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    appPolicy = PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY,
-        &(ULONG){ PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE },
+        &appPolicy,
         sizeof(ULONG)
         );
 
@@ -8808,8 +8820,7 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    if (!InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength))
-        return STATUS_NO_MEMORY;
+    InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength);
 
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
@@ -8820,7 +8831,8 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes[AttributeCount]);
+    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes);
+    attributeListLength += sizeof(PROC_THREAD_ATTRIBUTE) * AttributeCount;
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
     *AttributeList = attributeList;
@@ -9260,14 +9272,14 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
     )
 {
-    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL;
+    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhLoadLibrary(L"gdi32.dll"))
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
         {
             D3DKMTQueryVidPnExclusiveOwnership_I = PhGetDllBaseProcedureAddress(baseAddress, "D3DKMTQueryVidPnExclusiveOwnership", 0);
         }

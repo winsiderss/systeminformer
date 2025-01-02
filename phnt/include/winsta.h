@@ -1051,6 +1051,8 @@ WinStationEnumerateProcesses(
     _Out_ PVOID *Processes
     );
 
+#define WINSTATION_PROCESS_LEVEL 0
+
 // rev
 NTSYSAPI
 BOOLEAN

@@ -1319,9 +1319,9 @@ VOID PhCreateSearchControlEx(
     context->CaseButton.Active = !!PhGetIntegerSetting(context->CaseSetting);
 
     // Subclass the Edit control window procedure.
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+    context->DefaultWindowProc = PhGetWindowProcedure(WindowHandle);
     PhSetWindowContext(WindowHandle, SHRT_MAX, context);
-    SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
+    PhSetWindowProcedure(WindowHandle, PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
     PhpSearchControlThemeChanged(context, WindowHandle);

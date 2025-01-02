@@ -594,7 +594,7 @@ PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN LoadDllUsingApcThread,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     );
 
 PHLIBAPI
@@ -603,7 +603,7 @@ NTAPI
 PhUnloadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     );
 
 PHLIBAPI
@@ -620,6 +620,18 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhTraceControl(
+    _In_ ETWTRACECONTROLCODE TraceInformationClass,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTraceControlVariableSize(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
@@ -2242,6 +2254,7 @@ PhOpenDirectoryObject(
 /**
  * A callback function passed to PhEnumDirectoryObjects() and called for each directory object.
  *
+ * \param RootDirectory The handle to the current object directory.
  * \param Name The name of the object.
  * \param TypeName The name of the object's type.
  * \param Context A user-defined value passed to PhEnumDirectoryObjects().
@@ -2249,6 +2262,7 @@ PhOpenDirectoryObject(
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_opt_ PVOID Context
@@ -3691,7 +3705,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDestroyExecutionRequiredRequest(
-    _In_ HANDLE PowerRequestHandle
+    _In_opt_ _Post_ptr_invalid_ HANDLE PowerRequestHandle
     );
 
 PHLIBAPI

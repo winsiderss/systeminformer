@@ -728,6 +728,17 @@ PhSetIListViewSubItem(
 PHLIBAPI
 VOID
 NTAPI
+PhSetIListViewGroupSubItem(
+    _In_ IListView* ListView,
+    _In_ LONG GroupId,
+    _In_ LONG Index,
+    _In_ LONG SubItemIndex,
+    _In_ PCWSTR Text
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhRedrawListViewItems(
     _In_ HWND ListViewHandle
     );
@@ -798,6 +809,9 @@ NTAPI
 PhGetWindowText(
     _In_ HWND WindowHandle
     );
+
+#define PhaGetWindowText(WindowHandle) \
+    PH_AUTO_T(PH_STRING, PhGetWindowText(WindowHandle))
 
 #define PH_GET_WINDOW_TEXT_INTERNAL 0x1
 #define PH_GET_WINDOW_TEXT_LENGTH_ONLY 0x2
@@ -967,6 +981,9 @@ PhGetListViewInterface(
 
     return listviewInterface;
 }
+
+#define PhDestroyListViewInterface(ListViewClass) \
+    if (ListViewClass) IListView_Release((struct IListView*)(ListViewClass));
 
 PHLIBAPI
 VOID

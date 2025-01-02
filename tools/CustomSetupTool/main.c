@@ -521,7 +521,7 @@ INT WINAPI wWinMain(
     {
         PROCESS_BASIC_INFORMATION processInfo;
 
-        PhWaitForSingleObject(context->SubProcessHandle, NULL);
+        PhWaitForSingleObject(context->SubProcessHandle, 0);
         PhGetProcessBasicInformation(context->SubProcessHandle, &processInfo);
 
         context->ErrorCode = WIN32_FROM_NTSTATUS(processInfo.ExitStatus);

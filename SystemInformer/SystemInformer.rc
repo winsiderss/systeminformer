@@ -1120,7 +1120,7 @@ BEGIN
     RTEXT           "Static",IDC_ZLISTFREE_V,302,21,49,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZLISTMODIFIED_V,298,31,53,8,SS_ENDELLIPSIS
     LTEXT           "Free",IDC_STATIC,242,21,16,8
-    LTEXT           "Modified no-write",IDC_STATIC,242,41,56,8
+    LTEXT           "Modified no-write",IDC_STATIC,242,41,60,8
     RTEXT           "Static",IDC_ZLISTMODIFIEDNOWRITE_V,303,41,48,8,SS_ENDELLIPSIS
     LTEXT           "Standby",IDC_STATIC,242,61,28,8
     LTEXT           "Priority 0",IDC_STATIC,251,71,30,8
@@ -1149,7 +1149,7 @@ BEGIN
     LTEXT           "Page reads delta",IDC_STATIC,120,96,58,8
     LTEXT           "Mapped writes delta",IDC_STATIC,120,116,68,8
     RTEXT           "Static",IDC_ZPAGINGMAPPEDWRITESDELTA_V,191,116,31,8,SS_ENDELLIPSIS
-    LTEXT           "Modified pagefile",IDC_STATIC,242,51,55,8
+    LTEXT           "Modified pagefile",IDC_STATIC,242,51,60,8
     RTEXT           "Static",IDC_ZLISTMODIFIEDPAGEFILE_V,303,51,48,8,SS_ENDELLIPSIS
     PUSHBUTTON      "&More",IDC_MORE,242,152,50,14
     RTEXT           "Static",IDC_ZPHYSICALRESERVED_V,157,31,65,8,SS_ENDELLIPSIS

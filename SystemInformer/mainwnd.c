@@ -1749,11 +1749,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiReduceWorkingSetProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiReduceWorkingSetProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_MISCELLANEOUS_RUNAS:
@@ -1805,11 +1807,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM* processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhUiFlushHeapProcesses(WindowHandle, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiFlushHeapProcesses(WindowHandle, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_PRIORITY_REALTIME:
@@ -1822,11 +1826,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhMwpExecuteProcessPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhMwpExecuteProcessPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_IOPRIORITY_VERYLOW:
@@ -1837,11 +1843,13 @@ VOID PhMwpOnCommand(
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            PhReferenceObjects(processes, numberOfProcesses);
-            PhMwpExecuteProcessIoPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
-            PhDereferenceObjects(processes, numberOfProcesses);
-            PhFree(processes);
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhMwpExecuteProcessIoPriorityCommand(WindowHandle, Id, processes, numberOfProcesses);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
         }
         break;
     case ID_MISCELLANEOUS_ECOMODE:

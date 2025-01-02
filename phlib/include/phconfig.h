@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2025
  *
  */
 
@@ -17,15 +17,11 @@
 extern "C" {
 #endif
 
-#define _User_set_
-
-extern _User_set_ PVOID PhInstanceHandle;
-extern _User_set_ PCWSTR PhApplicationName;
-extern PVOID PhHeapHandle;
-extern RTL_OSVERSIONINFOEXW PhOsVersion;
-extern ULONG WindowsVersion;
-extern PCWSTR WindowsVersionString;
-extern PCWSTR WindowsVersionName;
+EXTERN_C PVOID PhInstanceHandle;
+EXTERN_C PCWSTR PhApplicationName;
+EXTERN_C PVOID PhHeapHandle;
+EXTERN_C RTL_OSVERSIONINFOEXW PhOsVersion;
+EXTERN_C ULONG WindowsVersion;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
@@ -75,6 +71,7 @@ PhIsExecutingInWow64(
     VOID
     );
 
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 VOID
 NTAPI

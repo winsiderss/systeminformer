@@ -976,9 +976,7 @@ VOID PhShowProcessContextMenu(
     PPH_PROCESS_ITEM *processes;
     ULONG numberOfProcesses;
 
-    PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-
-    if (numberOfProcesses != 0)
+    if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
     {
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
@@ -1025,9 +1023,9 @@ VOID PhShowProcessContextMenu(
         }
 
         PhDestroyEMenu(menu);
-    }
 
-    PhFree(processes);
+        PhFree(processes);
+    }
 }
 
 VOID NTAPI PhMwpProcessAddedHandler(

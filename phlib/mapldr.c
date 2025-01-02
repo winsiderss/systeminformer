@@ -424,6 +424,24 @@ typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
     PPH_STRING FileName;
 } PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
 
+static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ImageSize,
+    _In_ PPH_STRING FileName,
+    _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
+    )
+{
+    if (PhEqualString(FileName, Context->FileName, TRUE))
+    {
+        Context->DllBase = ImageBase;
+        return STATUS_NO_MORE_ENTRIES;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
@@ -510,6 +528,15 @@ NTSTATUS PhGetProcedureAddressRemote(
 
             PhDereferenceObject(remoteFileName);
         }
+    }
+
+    if (!context.DllBase)
+    {
+        status = PhEnumProcessModulesLimited(
+            ProcessHandle, 
+            PhpGetProcedureAddressRemoteLimitedCallback,
+            &context
+            );
     }
 
     if (!context.DllBase)

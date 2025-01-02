@@ -243,6 +243,18 @@ INT WINAPI wWinMain(
     }
 #endif
 
+    // Set the default timer resolution.
+    {
+        if (WindowsVersion > WINDOWS_11)
+        {
+            PhSetProcessPowerThrottlingState(
+                NtCurrentProcess(),
+                PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                0  // Disable synthetic timer resolution.
+                );
+        }
+    }
+
     // Set the default priority.
     {
         UCHAR priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
@@ -442,6 +454,7 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
 }
 
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PVOID Context
@@ -462,7 +475,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        Context,
+        RootDirectory,
         NULL
         );
 
@@ -542,11 +555,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    HANDLE directoryHandle;
-
-    directoryHandle = PhGetNamespaceHandle();
-
-    PhEnumDirectoryObjects(directoryHandle, PhpPreviousInstancesCallback, directoryHandle);
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, nullptr);
 }
 
 VOID PhInitializeCommonControls(
@@ -1066,7 +1075,9 @@ BOOLEAN PhInitializeTimerPolicy(
     VOID
     )
 {
-    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &(BOOL){ FALSE }, sizeof(BOOL));
+    static BOOL timerSuppression = FALSE;
+
+    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &timerSuppression, sizeof(BOOL));
 
     return TRUE;
 }

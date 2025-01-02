@@ -54,7 +54,9 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
 
     HANDLE SearchThreadHandle;
 
+    BOOLEAN SearchAll;
     BOOLEAN SearchStop;
+
     PPH_STRING SearchTypeString;
     ULONG_PTR SearchMatchHandle;
     PPH_LIST SearchResults;
@@ -850,9 +852,8 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhUpperString(bestObjectName);
         upperTypeName = PhUpperString(typeName);
 
-        if (((MatchSearchString(context, &upperObjectName->sr) ||
-              MatchSearchString(context, &upperBestObjectName->sr)) &&
-             MatchTypeString(context, &upperTypeName->sr)) ||
+        if (((context->SearchAll || MatchSearchString(context, &upperObjectName->sr) || MatchSearchString(context, &upperBestObjectName->sr)) &&
+            MatchTypeString(context, &upperTypeName->sr)) ||
             PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->Object) ||
             PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->HandleValue))
         {
@@ -898,27 +899,23 @@ typedef struct _SEARCH_MODULE_CONTEXT
 
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PSEARCH_MODULE_CONTEXT Context
     )
 {
-    PSEARCH_MODULE_CONTEXT moduleContext = Context;
-    PPH_HANDLE_SEARCH_CONTEXT context;
+    PPH_HANDLE_SEARCH_CONTEXT context = Context->WindowContext;
     PPH_STRING filenameWin32;
     PPH_STRING upperFileName;
     PPH_STRING upperOriginalFileName;
-
-    if (!moduleContext)
-        return TRUE;
-
-    context = moduleContext->WindowContext;
 
     filenameWin32 = PhGetFileName(Module->FileName);
     upperFileName = PhUpperString(filenameWin32);
     upperOriginalFileName = PhUpperString(Module->FileName);
 
-    if ((MatchSearchString(context, &upperFileName->sr) ||
-         MatchSearchString(context, &upperOriginalFileName->sr)) ||
-         PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
+    if ((
+        context->SearchAll ||
+        MatchSearchString(context, &upperFileName->sr) ||
+        MatchSearchString(context, &upperOriginalFileName->sr)) ||
+        PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PCWSTR typeName;
@@ -937,7 +934,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         }
 
         searchResult = PhAllocateZero(sizeof(PHP_OBJECT_SEARCH_RESULT));
-        searchResult->ProcessId = moduleContext->ProcessId;
+        searchResult->ProcessId = Context->ProcessId;
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
@@ -969,13 +966,17 @@ NTSTATUS PhpFindObjectsThreadStart(
     ULONG i;
 
     // Refuse to search with no filter.
-    if (!context->SearchMatchHandle)
-        goto Exit;
+    if (!context->SearchMatchHandle && !context->SearchAll)
+    {
+        goto CleanupExit;
+    }
 
-    if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
+    status = PhEnumHandlesEx(&handles);
+
+    if (NT_SUCCESS(status))
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static ULONG fileObjectTypeIndex = ULONG_MAX;
+        static USHORT fileObjectTypeIndex = USHRT_MAX;
 
         BOOLEAN useWorkQueue = FALSE;
         PH_WORK_QUEUE workQueue;
@@ -988,7 +989,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                fileObjectTypeIndex = PhGetObjectTypeNumberZ(L"File");
+                fileObjectTypeIndex = (USHORT)PhGetObjectTypeNumberZ(L"File");
                 PhEndInitOnce(&initOnce);
             }
         }
@@ -996,7 +997,6 @@ NTSTATUS PhpFindObjectsThreadStart(
         for (i = 0; i < handles->NumberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
-            PVOID *processHandlePtr;
             HANDLE processHandle;
 
             // Don't continue if the user requested cancellation.
@@ -1005,42 +1005,17 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             // Open a handle to the process if we don't already have one.
 
-            processHandlePtr = PhFindItemSimpleHashtable(
-                processHandleHashtable,
-                handleInfo->UniqueProcessId
-                );
-
-            if (processHandlePtr)
+            if (!(processHandle = PhFindItemSimpleHashtable2(processHandleHashtable, handleInfo->UniqueProcessId)))
             {
-                processHandle = *processHandlePtr;
-            }
-            else
-            {
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION,
-                    handleInfo->UniqueProcessId
-                )))
+                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, handleInfo->UniqueProcessId)))
                 {
-                    PhAddItemSimpleHashtable(
-                        processHandleHashtable,
-                        handleInfo->UniqueProcessId,
-                        processHandle
-                        );
+                    PhAddItemSimpleHashtable(processHandleHashtable, handleInfo->UniqueProcessId, processHandle);
                 }
                 else
                 {
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_QUERY_INFORMATION,
-                        handleInfo->UniqueProcessId
-                    )))
+                    if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, handleInfo->UniqueProcessId)))
                     {
-                        PhAddItemSimpleHashtable(
-                            processHandleHashtable,
-                            handleInfo->UniqueProcessId,
-                            processHandle
-                            );
+                        PhAddItemSimpleHashtable(processHandleHashtable, handleInfo->UniqueProcessId, processHandle);
                     }
                     else
                     {
@@ -1049,11 +1024,11 @@ NTSTATUS PhpFindObjectsThreadStart(
                 }
             }
 
-            if (useWorkQueue && handleInfo->ObjectTypeIndex == (USHORT)fileObjectTypeIndex)
+            if (useWorkQueue && handleInfo->ObjectTypeIndex == fileObjectTypeIndex)
             {
                 PSEARCH_HANDLE_CONTEXT searchHandleContext;
 
-                searchHandleContext = PhAllocate(sizeof(SEARCH_HANDLE_CONTEXT));
+                searchHandleContext = PhAllocateZero(sizeof(SEARCH_HANDLE_CONTEXT));
                 searchHandleContext->WindowContext = context;
                 searchHandleContext->NeedToFree = TRUE;
                 searchHandleContext->HandleInfo = handleInfo;
@@ -1086,7 +1061,12 @@ NTSTATUS PhpFindObjectsThreadStart(
             i = 0;
 
             while (PhEnumHashtable(processHandleHashtable, &entry, &i))
-                NtClose(entry->Value);
+            {
+                if (entry->Value)
+                {
+                    NtClose(entry->Value);
+                }
+            }
         }
 
         PhDereferenceObject(processHandleHashtable);
@@ -1094,7 +1074,7 @@ NTSTATUS PhpFindObjectsThreadStart(
     }
 
     if (context->SearchStop)
-        goto Exit;
+        goto CleanupExit;
 
     if (PhEqualString2(context->SearchTypeString, L"File", TRUE) ||
         PhEqualString2(context->SearchTypeString, L"Everything", FALSE))
@@ -1126,7 +1106,7 @@ NTSTATUS PhpFindObjectsThreadStart(
         }
     }
 
-Exit:
+CleanupExit:
     PostMessage(context->WindowHandle, WM_PH_SEARCH_FINISHED, status, 0);
 
     PhDereferenceObject(context);
@@ -1139,6 +1119,15 @@ VOID PhpFindObjectsDeleteProcedure(
     )
 {
     PPH_HANDLE_SEARCH_CONTEXT context = Object;
+
+    if (context->SearchResults)
+    {
+        for (ULONG i = 0; i < context->SearchResults->Count; i++)
+            PhFree(context->SearchResults->Items[i]);
+
+        PhClearList(context->SearchResults);
+        PhClearReference(&context->SearchResults);
+    }
 
     PhClearReference(&context->SearchTypeString);
 }
@@ -1271,14 +1260,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             PhpDeleteHandleObjectTree(context);
 
-            if (context->SearchResults)
-            {
-                for (ULONG i = 0; i < context->SearchResults->Count; i++)
-                    PhFree(context->SearchResults->Items[i]);
-
-                PhClearList(context->SearchResults);
-            }
-
             if (context->WindowText)
                 PhDereferenceObject(context->WindowText);
             if (context->TypeWindowFont)
@@ -1339,6 +1320,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (!context->SearchThreadHandle)
                     {
+                        // Setup search parameters.
+
+                        context->SearchAll = !!PhIsNullOrEmptyString(PhaGetWindowText(context->SearchWindowHandle));
                         PhMoveReference(&context->SearchTypeString, PhGetWindowText(context->TypeWindowHandle));
 
                         // Clean up previous results.
@@ -1387,7 +1371,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_CLOSE, L"C&lose\bDel", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_GOTOOWNINGPROCESS, L"Go to owning &process", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_GOTOOWNINGPROCESS, L"Go to &process...", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_PROPERTIES, L"Prope&rties", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_OBJECT_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
@@ -1494,6 +1478,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                         }
                                     }
 
+                                    NtClose(processHandle);
+
                                     if (critical && strict)
                                     {
                                         if (!PhShowConfirmMessage(
@@ -1504,12 +1490,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                             TRUE
                                             ))
                                         {
-                                            NtClose(processHandle);
                                             continue;
                                         }
                                     }
-
-                                    NtClose(processHandle);
                                 }
                             }
 

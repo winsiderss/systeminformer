@@ -543,6 +543,7 @@ VOID EtInitializeListImages(
 }
 
 static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_DIRECTORY_ENUM_CONTEXT Context
@@ -575,6 +576,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_OBJECT_CONTEXT Context
@@ -680,14 +682,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
 
         if (entry->EtObjectType == EtObjectSymLink)
         {
-            PPH_STRING fullPath;
             PPH_STRING linkTarget;
             PPH_STRING driveLetter;
 
-            fullPath = PH_AUTO(EtGetObjectFullPath(entry->BaseDirectory, entry->Name));
-
-            if (!PhIsNullOrEmptyString(fullPath) &&
-                NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &fullPath->sr)))
+            if (NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, RootDirectory, &entry->Name->sr)))
             {
                 PhMoveReference(&entry->Target, linkTarget);
 
@@ -764,6 +762,7 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
 
             // enumerate \??
             EtEnumDirectoryObjectsCallback(
+                nullptr,
                 &EtObjectManagerUserDirectoryObject,
                 &DirectoryObjectType,
                 &enumContext
@@ -1276,7 +1275,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         {
                             entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
                         }
-                            
+
                         else
                         {
                             entry->Target = PhFormatString(
@@ -1593,6 +1592,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
                     _In_opt_ PLARGE_INTEGER Timeout
                     ) = NULL;
+                LARGE_INTEGER timeout;
 
                 if (PhBeginInitOnce(&initOnce))
                 {
@@ -1619,7 +1619,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                     }
                     else
@@ -1640,7 +1640,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                         PhDereferenceObject(clientName);
                     }

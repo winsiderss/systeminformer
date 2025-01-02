@@ -395,7 +395,6 @@ EXPORTS
     PhExtractIcon
     PhExtractIconEx
     PhFillMemoryUlong
-    PhFinalArrayItems
     PhFinalBytesBuilderBytes
     PhFinalStringBuilderString
     PhFindCharInStringRef

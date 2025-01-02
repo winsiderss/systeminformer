@@ -46,6 +46,7 @@ BOOLEAN PhHttpSocketCreate(
     )
 {
     PPH_HTTP_CONTEXT httpContext;
+    ULONG httpOptions;
 
     httpContext = PhAllocate(sizeof(PH_HTTP_CONTEXT));
     memset(httpContext, 0, sizeof(PH_HTTP_CONTEXT));
@@ -66,35 +67,43 @@ BOOLEAN PhHttpSocketCreate(
 
     if (WindowsVersion < WINDOWS_8_1)
     {
+        httpOptions = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_SECURE_PROTOCOLS,
-            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 },
+            &httpOptions,
             sizeof(ULONG)
             );
     }
     else
     {
+        httpOptions = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
+
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_SECURE_PROTOCOLS,
-            &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+            &httpOptions,
             sizeof(ULONG)
             );
+
+        httpOptions = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
         WinHttpSetOption(
             httpContext->SessionHandle,
             WINHTTP_OPTION_DECOMPRESSION,
-            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
+            &httpOptions,
             sizeof(ULONG)
             );
 
         if (WindowsVersion >= WINDOWS_10)
         {
+            httpOptions = WINHTTP_PROTOCOL_FLAG_HTTP2;
+
             WinHttpSetOption(
                 httpContext->SessionHandle,
                 WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-                &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
+                &httpOptions,
                 sizeof(ULONG)
                 );
         }
@@ -102,10 +111,12 @@ BOOLEAN PhHttpSocketCreate(
         if (WindowsVersion >= WINDOWS_11)
         {
 #ifdef WINHTTP_OPTION_DISABLE_GLOBAL_POOLING
+            httpOptions = TRUE;
+
             WinHttpSetOption(
                 httpContext->SessionHandle,
                 WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
-                &(ULONG){ TRUE },
+                &httpOptions,
                 sizeof(ULONG)
                 );
 #endif
@@ -114,10 +125,12 @@ BOOLEAN PhHttpSocketCreate(
         if (WindowsVersion >= WINDOWS_11)
         {
 #ifdef WINHTTP_OPTION_TLS_FALSE_START
+            httpOptions = TRUE;
+
             WinHttpSetOption(
                 httpContext->SessionHandle,
                 WINHTTP_OPTION_TLS_FALSE_START,
-                &(ULONG){ TRUE },
+                &httpOptions,
                 sizeof(ULONG)
                 );
 #endif
@@ -247,6 +260,7 @@ BOOLEAN PhHttpSocketBeginRequest(
     )
 {
     ULONG httpFlags = 0;
+    //ULONG httpOptions;
 
     PhMapFlags1(
         &httpFlags,
@@ -280,17 +294,21 @@ BOOLEAN PhHttpSocketBeginRequest(
 
     PhHttpSocketSetFeature(HttpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
     //
+    // httpOptions = WINHTTP_DISABLE_KEEP_ALIVE;
+    //
     //WinHttpSetOption(
     //    HttpContext->RequestHandle,
     //    WINHTTP_OPTION_DISABLE_FEATURE,
-    //    &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE },
+    //    &httpOptions,
     //    sizeof(ULONG)
     //    );
+    //
+    // httpOptions = WINHTTP_PROTOCOL_FLAG_HTTP2;
     //
     //WinHttpSetOption(
     //    HttpContext->RequestHandle,
     //    WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-    //    &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
+    //    &httpOptions,
     //    sizeof(ULONG)
     //    );
 
@@ -970,6 +988,7 @@ HINTERNET PhCreateDohConnectionHandle(
     static HINTERNET httpSessionHandle = NULL;
     static HINTERNET httpConnectionHandle = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    ULONG httpOptions;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -983,35 +1002,43 @@ HINTERNET PhCreateDohConnectionHandle(
         {
             if (WindowsVersion < WINDOWS_8_1)
             {
+                httpOptions = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+
                 WinHttpSetOption(
                     httpSessionHandle,
                     WINHTTP_OPTION_SECURE_PROTOCOLS,
-                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 },
+                    &httpOptions,
                     sizeof(ULONG)
                     );
             }
             else
             {
+                httpOptions = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
+
                 WinHttpSetOption(
                     httpSessionHandle,
                     WINHTTP_OPTION_SECURE_PROTOCOLS,
-                    &(ULONG){ WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3 },
+                    &httpOptions,
                     sizeof(ULONG)
                     );
+
+                httpOptions = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
                 WinHttpSetOption(
                     httpSessionHandle,
                     WINHTTP_OPTION_DECOMPRESSION,
-                    &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
+                    &httpOptions,
                     sizeof(ULONG)
                     );
 
                 if (WindowsVersion >= WINDOWS_10)
                 {
+                    httpOptions = WINHTTP_PROTOCOL_FLAG_HTTP2;
+
                     WinHttpSetOption(
                         httpSessionHandle,
                         WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
-                        &(ULONG){ WINHTTP_PROTOCOL_FLAG_HTTP2 },
+                        &httpOptions,
                         sizeof(ULONG)
                         );
                 }
@@ -1019,10 +1046,12 @@ HINTERNET PhCreateDohConnectionHandle(
                 if (WindowsVersion >= WINDOWS_11)
                 {
 #ifdef WINHTTP_OPTION_DISABLE_GLOBAL_POOLING
+                    httpOptions = TRUE;
+
                     WinHttpSetOption(
                         httpSessionHandle,
                         WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
-                        &(ULONG){ TRUE },
+                        &httpOptions,
                         sizeof(ULONG)
                         );
 #endif
@@ -1032,20 +1061,24 @@ HINTERNET PhCreateDohConnectionHandle(
                 if (WindowsVersion >= WINDOWS_11)
                 {
 #ifdef WINHTTP_OPTION_TLS_FALSE_START
+                    httpOptions = TRUE;
+
                     WinHttpSetOption(
                         httpSessionHandle,
                         WINHTTP_OPTION_TLS_FALSE_START,
-                        &(ULONG){ TRUE },
+                        &httpOptions,
                         sizeof(ULONG)
                         );
 #endif
                 }
             }
 
+            httpOptions = 1;
+
             WinHttpSetOption(
                 httpSessionHandle,
                 WINHTTP_OPTION_MAX_CONNS_PER_SERVER,
-                &(ULONG){ 1 }, // HACK
+                &httpOptions, // HACK
                 sizeof(ULONG)
                 );
 
@@ -1082,6 +1115,7 @@ HINTERNET PhCreateDohRequestHandle(
 {
     static PCWSTR httpAcceptTypes[2] = { L"application/dns-message", NULL };
     HINTERNET httpRequestHandle;
+    ULONG httpOptions;
 
     if (!(httpRequestHandle = WinHttpOpenRequest(
         HttpConnectionHandle,
@@ -1106,10 +1140,12 @@ HINTERNET PhCreateDohRequestHandle(
     if (WindowsVersion <= WINDOWS_8)
     {
         // Winhttp on Windows 7 doesn't correctly validate the certificate CN for connections using an IP address. (dmex)
+        httpOptions = SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
+
         WinHttpSetOption(
             httpRequestHandle,
             WINHTTP_OPTION_SECURITY_FLAGS,
-            &(ULONG){ SECURITY_FLAG_IGNORE_CERT_CN_INVALID },
+            &httpOptions,
             sizeof(ULONG)
             );
     }
@@ -1714,6 +1750,7 @@ PDNS_RECORD PhDnsQuery3(
     DNS_ADDR_ARRAY dnsQueryServerList;
     DNS_CUSTOM_SERVER dnsCustomServerList;
     DNS_QUERY_REQUEST3 dnsQueryRequest;
+    LARGE_INTEGER timeout;
 
     status = PhDnsAllocateQueryContext(&dnsQueryContext);
 
@@ -1767,7 +1804,7 @@ PDNS_RECORD PhDnsQuery3(
     if (NtWaitForSingleObject(
         dnsQueryContext->QueryCompletedEvent,
         FALSE,
-        PhTimeoutFromMillisecondsEx(5000)
+        PhTimeoutFromMilliseconds(&timeout, 5000)
         ) == WAIT_TIMEOUT)
     {
         DnsCancelQuery_I(&dnsQueryContext->QueryCancelContext);
@@ -1775,7 +1812,7 @@ PDNS_RECORD PhDnsQuery3(
         NtWaitForSingleObject(
             dnsQueryContext->QueryCompletedEvent,
             FALSE,
-            PhTimeoutFromMillisecondsEx(-MINLONGLONG)
+            PhTimeoutFromMilliseconds(&timeout, -MINLONGLONG)
             );
     }
 

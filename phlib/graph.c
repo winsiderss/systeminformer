@@ -682,21 +682,25 @@ static VOID PhpDeleteBufferedContext(
     _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
-    if (Context->BufferedContext)
+    if (Context->BufferedContext && Context->BufferedOldBitmap)
     {
-        // The original bitmap must be selected back into the context, otherwise the bitmap can't be
-        // deleted.
         SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
         Context->BufferedOldBitmap = NULL;
+    }
 
+    if (Context->BufferedBitmap)
+    {
         DeleteBitmap(Context->BufferedBitmap);
         Context->BufferedBitmap = NULL;
+    }
 
+    if (Context->BufferedContext)
+    {
         DeleteDC(Context->BufferedContext);
         Context->BufferedContext = NULL;
-
-        Context->BufferedBits = NULL;
     }
+
+    Context->BufferedBits = NULL;
 }
 
 static VOID PhpCreateBufferedContext(
@@ -727,19 +731,25 @@ static VOID PhpDeleteFadeOutContext(
     _In_ PPHP_GRAPH_CONTEXT Context
     )
 {
-    if (Context->FadeOutContext)
+    if (Context->FadeOutContext && Context->FadeOutOldBitmap)
     {
         SelectBitmap(Context->FadeOutContext, Context->FadeOutOldBitmap);
         Context->FadeOutOldBitmap = NULL;
+    }
 
+    if (Context->FadeOutBitmap)
+    {
         DeleteBitmap(Context->FadeOutBitmap);
         Context->FadeOutBitmap = NULL;
+    }
 
+    if (Context->FadeOutContext)
+    {
         DeleteDC(Context->FadeOutContext);
         Context->FadeOutContext = NULL;
-
-        Context->FadeOutBits = NULL;
     }
+
+    Context->FadeOutBits = NULL;
 }
 
 static VOID PhpCreateFadeOutContext(
@@ -1368,8 +1378,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
             }
 
-            InvalidateRect(hwnd, NULL, TRUE);
-            UpdateWindow(hwnd);
+            InvalidateRect(hwnd, NULL, FALSE);
         }
         return TRUE;
     case GCM_SETCALLBACK:

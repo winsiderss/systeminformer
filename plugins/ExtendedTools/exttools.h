@@ -85,6 +85,7 @@ EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
 EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
 EXTERN_C BOOLEAN EtNpuFahrenheitEnabled;
+EXTERN_C ULONG EtSampleCount;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;

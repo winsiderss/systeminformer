@@ -823,7 +823,7 @@ NTSTATUS PhGetSectionFileName(
     SIZE_T viewSize;
     PVOID viewBase;
 
-    viewSize = 1;
+    viewSize = PAGE_SIZE;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
