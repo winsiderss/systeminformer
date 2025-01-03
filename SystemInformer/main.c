@@ -732,12 +732,12 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         TASKDIALOG_BUTTON buttons[6] =
         {
-            { 1, L"Full\nA complete dump of the process, rarely needed most of the time." },
-            { 2, L"Normal\nFor most purposes, this dump file is the most useful." },
-            { 3, L"Minimal\nA very limited dump with limited data." },
-            { 4, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
-            { 5, L"Ignore" },  // \nTry ignore the exception and continue.";
-            { 6, L"Exit" }, // \nTerminate the program.";
+            { 101, L"Full\nA complete dump of the process, rarely needed most of the time." },
+            { 102, L"Normal\nFor most purposes, this dump file is the most useful." },
+            { 103, L"Minimal\nA very limited dump with limited data." },
+            { 104, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
+            { 105, L"Ignore" },  // \nTry ignore the exception and continue.";
+            { 106, L"Exit" }, // \nTerminate the program.";
         };
 
         if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
@@ -757,7 +757,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         config.pszMainInstruction = L"System Informer has crashed :(";
         config.cButtons = RTL_NUMBER_OF(buttons);
         config.pButtons = buttons;
-        config.nDefaultButton = 6;
+        config.nDefaultButton = 106;
         config.cxWidth = 250;
         config.pszContent = PhGetString(message);
 #ifdef DEBUG
@@ -768,16 +768,16 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         {
             switch (result)
             {
-            case 1:
+            case 101:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeFull);
                 break;
-            case 2:
+            case 102:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeNormal);
                 break;
-            case 3:
+            case 103:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
                 break;
-            case 4:
+            case 104:
                 {
                     PhShellProcessHacker(
                         NULL,
@@ -790,7 +790,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                         );
                 }
                 break;
-            case 5:
+            case 105:
                 {
                     return EXCEPTION_CONTINUE_EXECUTION;
                 }
@@ -806,7 +806,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                 L"Do you want to create a minidump on the Desktop?"
                 ) == IDYES)
             {
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
             }
         }
     }
