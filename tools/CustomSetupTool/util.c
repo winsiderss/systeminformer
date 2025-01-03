@@ -103,7 +103,7 @@ NTSTATUS SetupCreateUninstallKey(
         string = PhFormat(format, RTL_NUMBER_OF(format), 10);
         PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, L"https://systeminformer.sourceforge.io/");
+        PhInitializeStringRef(&value, L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
         PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
