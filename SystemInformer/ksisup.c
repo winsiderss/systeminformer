@@ -262,155 +262,6 @@ VOID PhShowKsiStatus(
     }
 }
 
-VOID KsiAppendVersionStringBuilder(
-    _In_ PPH_STRING_BUILDER StringBuilder
-    )
-{
-    ULONG majorVersion;
-    ULONG minorVersion;
-    ULONG buildVersion;
-    SIZE_T returnLength;
-    WCHAR formatBuffer[255] = { L'0', L'.', L'0', L'.', L'0', UNICODE_NULL };
-    PH_FORMAT format[5];
-
-    majorVersion = PhOsVersion.dwMajorVersion;
-    minorVersion = PhOsVersion.dwMinorVersion;
-    buildVersion = PhOsVersion.dwBuildNumber;
-
-    PhInitFormatU(&format[0], majorVersion);
-    PhInitFormatC(&format[1], L'.');
-    PhInitFormatU(&format[2], minorVersion);
-    PhInitFormatC(&format[3], L'.');
-    PhInitFormatU(&format[4], buildVersion);
-
-    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
-    {
-        PH_STRINGREF string;
-
-        string.Length = returnLength - sizeof(UNICODE_NULL);
-        string.Buffer = formatBuffer;
-
-        PhAppendStringBuilder(StringBuilder, &string);
-    }
-
-    PhAppendStringBuilder2(StringBuilder, L" ");
-
-    // Windows 7, Windows Server 2008 R2
-    if (majorVersion == 6 && minorVersion == 1)
-    {
-        PhAppendStringBuilder2(StringBuilder, L"Windows");
-        PhAppendStringBuilder2(StringBuilder, L" ");
-        PhAppendStringBuilder2(StringBuilder, L"7");
-    }
-    // Windows 8, Windows Server 2012
-    else if (majorVersion == 6 && minorVersion == 2)
-    {
-        PhAppendStringBuilder2(StringBuilder, L"Windows");
-        PhAppendStringBuilder2(StringBuilder, L" ");
-        PhAppendStringBuilder2(StringBuilder, L"8");
-    }
-    // Windows 8.1, Windows Server 2012 R2
-    else if (majorVersion == 6 && minorVersion == 3)
-    {
-        PhAppendStringBuilder2(StringBuilder, L"Windows");
-        PhAppendStringBuilder2(StringBuilder, L" ");
-        PhAppendStringBuilder2(StringBuilder, L"8.1");
-    }
-    // Windows 10, Windows Server 2016
-    else if (majorVersion == 10 && minorVersion == 0)
-    {
-        PhAppendStringBuilder2(StringBuilder, L"Windows");
-        PhAppendStringBuilder2(StringBuilder, L" ");
-
-        if (buildVersion > 26100)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"Insider Preview");
-        }
-        else if (buildVersion >= 26100)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"11 24H2");
-        }
-        else if (buildVersion >= 22631)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"11 23H2");
-        }
-        else if (buildVersion >= 22621)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"11 22H2");
-        }
-        else if (buildVersion >= 22000)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"11");
-        }
-        else if (buildVersion >= 19045)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 22H2");
-        }
-        else if (buildVersion >= 19044)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 21H2");
-        }
-        else if (buildVersion >= 19043)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 21H1");
-        }
-        else if (buildVersion >= 19042)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 20H2");
-        }
-        else if (buildVersion >= 19041)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 20H1");
-        }
-        else if (buildVersion >= 18363)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 19H2");
-        }
-        else if (buildVersion >= 18362)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 19H1");
-        }
-        else if (buildVersion >= 17763)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RS5");
-        }
-        else if (buildVersion >= 17134)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RS4");
-        }
-        else if (buildVersion >= 16299)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RS3");
-        }
-        else if (buildVersion >= 15063)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RS2");
-        }
-        else if (buildVersion >= 14393)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RS1");
-        }
-        else if (buildVersion >= 10586)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 TH2");
-        }
-        else if (buildVersion >= 10240)
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10 RTM");
-        }
-        else
-        {
-            PhAppendStringBuilder2(StringBuilder, L"10");
-        }
-    }
-    else
-    {
-        PhAppendStringBuilder2(StringBuilder, L"Ancient");
-    }
-
-    PhAppendStringBuilder2(StringBuilder, L"\r\n");
-}
-
 PPH_STRING PhGetKsiMessage(
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
@@ -468,7 +319,12 @@ PPH_STRING PhGetKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
     }
 
-    KsiAppendVersionStringBuilder(&stringBuilder);
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"%ls %ls\r\n",
+        WindowsVersionName,
+        WindowsVersionString
+        );
 
     PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
     PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));

@@ -22,6 +22,8 @@ EXTERN_C PCWSTR PhApplicationName;
 EXTERN_C PVOID PhHeapHandle;
 EXTERN_C RTL_OSVERSIONINFOEXW PhOsVersion;
 EXTERN_C ULONG WindowsVersion;
+EXTERN_C PCWSTR WindowsVersionString;
+EXTERN_C PCWSTR WindowsVersionName;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
@@ -47,7 +49,7 @@ EXTERN_C ULONG WindowsVersion;
 #define WINDOWS_11 114 // October, 2021
 #define WINDOWS_11_22H2 115 // September, 2022
 #define WINDOWS_11_23H2 116 // October, 2023
-#define WINDOWS_11_24H2 117 // TBA
+#define WINDOWS_11_24H2 117 // October, 2024
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
