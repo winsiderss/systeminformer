@@ -19,9 +19,8 @@
 
 EXTERN_C_START
 
-#define KPH_SERVICE_NAME TEXT("SystemInformer")
-#define KPH_OBJECT_PATH  TEXT("\\Driver")
-#define KPH_OBJECT_NAME  TEXT("\\SystemInformer")
+#define KPH_SERVICE_NAME TEXT("KSystemInformer")
+#define KPH_OBJECT_NAME  TEXT("\\Driver\\KSystemInformer")
 #define KPH_PORT_NAME    TEXT("\\KSystemInformer")
 
 #ifdef DEBUG
