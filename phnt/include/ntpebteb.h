@@ -131,7 +131,7 @@ typedef struct _WER_MEMORY
 typedef struct _WER_GATHER
 {
     PVOID Next;
-    USHORT Flags;    
+    USHORT Flags;
     union
     {
       WER_FILE File;
