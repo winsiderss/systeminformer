@@ -1360,18 +1360,19 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY32 config32 = NULL;
+        ULONG config32Length = 0;
 
         status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config32,
-            NULL
+            &config32Length
             );
 
         if (NT_SUCCESS(status))
         {
-            if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
+            if (RTL_CONTAINS_FIELD(config32, min(config32->Size, config32Length), GuardFlags))
             {
                 guardFlags = config32->GuardFlags;
             }
@@ -1386,18 +1387,19 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     else
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY64 config64 = NULL;
+        ULONG config64Length = 0;
 
         status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config64,
-            NULL
+            &config64Length
             );
 
         if (NT_SUCCESS(status))
         {
-            if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
+            if (RTL_CONTAINS_FIELD(config64, min(config64->Size, config64Length), GuardFlags))
             {
                 guardFlags = config64->GuardFlags;
             }

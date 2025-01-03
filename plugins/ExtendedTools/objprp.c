@@ -1438,7 +1438,7 @@ VOID EtpEnumObjectHandles(
                     }
                 }
 
-                if (handleInfo->Object == Context->HandleItem->Object || objectNameMatched)
+                if ((handleInfo->Object && handleInfo->Object == Context->HandleItem->Object) || objectNameMatched)
                 {
                     if (useWorkQueue) PhAcquireQueuedLockExclusive(&searchResultsLock);
                     PhAddItemList(searchResults, handleInfo);
