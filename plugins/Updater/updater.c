@@ -685,9 +685,9 @@ BOOLEAN QueryUpdateDataWithFailover(
 {
     static PWSTR Servers[] =
     {
-        L"systeminformer.sourceforge.io",
         L"system-informer.com",
-        L"systeminformer.com"
+        L"systeminformer.com",
+        L"systeminformer.sourceforge.io",
     };
 
     for (ULONG i = 0; i < ARRAYSIZE(Servers); i++)
