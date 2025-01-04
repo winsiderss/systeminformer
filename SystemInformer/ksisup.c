@@ -33,12 +33,14 @@ typedef struct _KSI_SUPPORT_DATA
 } KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
 
 static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
-static BOOLEAN KsiEnableLoadNative = FALSE;
-static BOOLEAN KsiEnableLoadFilter = FALSE;
 static PPH_STRING KsiKernelFileName = NULL;
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;
+// N.B. These are necessary for consistency between load and unload.
+static BOOLEAN KsiEnableLoadNative = FALSE;
+static BOOLEAN KsiEnableLoadFilter = FALSE;
+static PPH_STRING KsiServiceName = NULL;
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
@@ -821,7 +823,6 @@ VOID KsiConnect(
     PBYTE signature = NULL;
     ULONG signatureLength;
     PPH_STRING ksiFileName = NULL;
-    PPH_STRING ksiServiceName = NULL;
     KPH_CONFIG_PARAMETERS config = { 0 };
     PPH_STRING objectName = NULL;
     PPH_STRING portName = NULL;
@@ -891,8 +892,6 @@ VOID KsiConnect(
         goto CleanupExit;
     }
 
-    if (!(ksiServiceName = PhGetKsiServiceName()))
-        goto CleanupExit;
     if (!(ksiFileName = PhGetKsiDirectory()))
         goto CleanupExit;
 
@@ -917,7 +916,7 @@ VOID KsiConnect(
         PhClearReference(&altitude);
 
     config.FileName = &ksiFileName->sr;
-    config.ServiceName = &ksiServiceName->sr;
+    config.ServiceName = &KsiServiceName->sr;
     config.ObjectName = &objectName->sr;
     config.PortName = (portName ? &portName->sr : NULL);
     config.Altitude = (altitude ? &altitude->sr : NULL);
@@ -934,10 +933,9 @@ VOID KsiConnect(
     config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
     config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(L"KsiDynDataNoEmbedded");
-    config.Callback = KsiCommsCallback;
-
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
+    config.Callback = KsiCommsCallback;
 
     status = KphConnect(&config);
 
@@ -1076,7 +1074,6 @@ CleanupExit:
     PhClearReference(&objectName);
     PhClearReference(&portName);
     PhClearReference(&altitude);
-    PhClearReference(&ksiServiceName);
     PhClearReference(&ksiFileName);
     PhClearReference(&tempDriverDir);
 
@@ -1249,6 +1246,7 @@ VOID PhInitializeKsi(
     KphInitialize();
     PhInformerInitialize();
 
+    KsiServiceName = PhGetKsiServiceName();
     KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
     KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
 
@@ -1263,7 +1261,6 @@ NTSTATUS PhCleanupKsi(
     )
 {
     NTSTATUS status;
-    PPH_STRING ksiServiceName;
     KPH_CONFIG_PARAMETERS config = { 0 };
     BOOLEAN shouldUnload;
 
@@ -1295,10 +1292,7 @@ NTSTATUS PhCleanupKsi(
     if (!shouldUnload)
         return STATUS_SUCCESS;
 
-    if (!(ksiServiceName = PhGetKsiServiceName()))
-        return STATUS_UNSUCCESSFUL;
-
-    config.ServiceName = &ksiServiceName->sr;
+    config.ServiceName = &KsiServiceName->sr;
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);

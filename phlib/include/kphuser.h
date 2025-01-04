@@ -38,10 +38,9 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_opt_ PPH_STRINGREF Altitude;
     _In_ ULONG FsSupportedFeatures;
     _In_ KPH_PARAMETER_FLAGS Flags;
-    _In_opt_ PKPH_COMMS_CALLBACK Callback;
-
     _In_ BOOLEAN EnableNativeLoad;
     _In_ BOOLEAN EnableFilterLoad;
+    _In_opt_ PKPH_COMMS_CALLBACK Callback;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 
 PHLIBAPI
