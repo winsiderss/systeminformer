@@ -1821,7 +1821,6 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
         {
             PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
         }
         break;
     case WM_KEYDOWN:
@@ -2396,7 +2395,6 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
         {
             PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
         }
         break;
     case WM_NOTIFY:
