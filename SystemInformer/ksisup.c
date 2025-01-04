@@ -359,8 +359,9 @@ PPH_STRING PhpGetKsiMessage(
     return messageString;
 }
 
-VOID PhpShowKsiMessage(
+LONG PhpShowKsiMessage(
     _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
     _In_opt_ PCWSTR Icon,
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
@@ -369,18 +370,19 @@ VOID PhpShowKsiMessage(
     _In_ va_list ArgPtr
     )
 {
+    LONG result;
     PPH_STRING errorMessage;
 
     if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
-        return;
+        return INT_ERROR;
 
     errorMessage = PhpGetKsiMessage(Status, Force, Format, ArgPtr);
 
     if (Force)
     {
-        PhShowMessage2(
+        result = PhShowMessage2(
             WindowHandle,
-            TD_OK_BUTTON,
+            Buttons,
             Icon,
             Title,
             PhGetString(errorMessage)
@@ -388,13 +390,18 @@ VOID PhpShowKsiMessage(
     }
     else
     {
-        if (PhShowMessageOneTime(
+        BOOLEAN checked;
+
+        result = PhShowMessageOneTime2(
             WindowHandle,
-            TD_OK_BUTTON,
+            Buttons,
             Icon,
             Title,
+            &checked,
             PhGetString(errorMessage)
-            ))
+            );
+
+        if (checked)
         {
             PhEnableKsiWarnings = FALSE;
             PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
@@ -402,6 +409,8 @@ VOID PhpShowKsiMessage(
     }
 
     PhClearReference(&errorMessage);
+
+    return result;
 }
 
 PPH_STRING PhGetKsiMessage(
@@ -421,6 +430,28 @@ PPH_STRING PhGetKsiMessage(
     return message;
 }
 
+LONG PhShowKsiMessage2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    LONG result;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    result = PhpShowKsiMessage(WindowHandle, Buttons, Icon, Status, Force, Title, Format, argptr);
+    va_end(argptr);
+
+    return result;
+ }
+
+
 VOID PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR Icon,
@@ -434,7 +465,7 @@ VOID PhShowKsiMessageEx(
     va_list argptr;
 
     va_start(argptr, Format);
-    PhpShowKsiMessage(WindowHandle, Icon, Status, Force, Title, Format, argptr);
+    PhpShowKsiMessage(WindowHandle, TD_OK_BUTTON, Icon, Status, Force, Title, Format, argptr);
     va_end(argptr);
 }
 
@@ -449,7 +480,7 @@ VOID PhShowKsiMessage(
     va_list argptr;
 
     va_start(argptr, Format);
-    PhpShowKsiMessage(WindowHandle, Icon, 0, TRUE, Title, Format, argptr);
+    PhpShowKsiMessage(WindowHandle, TD_OK_BUTTON, Icon, 0, TRUE, Title, Format, argptr);
     va_end(argptr);
 }
 
