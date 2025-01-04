@@ -787,25 +787,30 @@ LONG PhShowMessage2(
     }
 }
 
-BOOLEAN PhShowMessageOneTime(
+BOOLEAN PhpShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
     _In_opt_ PCWSTR Icon,
     _In_opt_ PCWSTR Title,
+    _Out_opt_ PLONG Result,
+    _Out_opt_ PBOOLEAN Checked,
     _In_ PCWSTR Format,
-    ...
+    _In_ va_list ArgPtr
     )
 {
     ULONG result;
-    va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     BOOLEAN checked = FALSE;
     ULONG buttonsFlags;
 
-    va_start(argptr, Format);
-    message = PhFormatString_V(Format, argptr);
-    va_end(argptr);
+    if (Result)
+        *Result = INT_ERROR;
+
+    if (Checked)
+        *Checked = FALSE;
+
+    message = PhFormatString_V(Format, ArgPtr);
 
     if (!message)
         return FALSE;
@@ -836,13 +841,59 @@ BOOLEAN PhShowMessageOneTime(
         ))
     {
         PhDereferenceObject(message);
-        return !!checked;
+
+        if (Result)
+            *Result = result;
+
+        if (Checked)
+            *Checked = !!checked;
+
+        return TRUE;
     }
     else
     {
         PhDereferenceObject(message);
         return FALSE;
     }
+}
+
+BOOLEAN PhShowMessageOneTime(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    BOOLEAN checked;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowMessageOneTime(WindowHandle, Buttons, Icon, Title, NULL, &checked, Format, argptr);
+    va_end(argptr);
+
+    return checked;
+}
+
+LONG PhShowMessageOneTime2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _Out_opt_ PBOOLEAN Checked,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    LONG result;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowMessageOneTime(WindowHandle, Buttons, Icon, Title, &result, Checked, Format, argptr);
+    va_end(argptr);
+
+    return result;
 }
 
 _Success_(return)
