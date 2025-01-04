@@ -262,14 +262,13 @@ VOID PhShowKsiStatus(
     }
 }
 
-PPH_STRING PhGetKsiMessage(
+PPH_STRING PhpGetKsiMessage(
     _In_opt_ NTSTATUS Status,
     _In_ BOOLEAN Force,
     _In_ PCWSTR Format,
-    ...
+    _In_ va_list ArgPtr
     )
 {
-    va_list argptr;
     PPH_STRING versionString;
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
@@ -284,9 +283,7 @@ PPH_STRING PhGetKsiMessage(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    va_start(argptr, Format);
-    PhAppendFormatStringBuilder_V(&stringBuilder, Format, argptr);
-    va_end(argptr);
+    PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
     PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
 
     if (Status != 0)
@@ -375,7 +372,7 @@ VOID PhpShowKsiMessage(
     if (!Force && !PhEnableKsiWarnings || PhStartupParameters.PhSvc)
         return;
 
-    errorMessage = PhGetKsiMessage(Status, Force, Format, ArgPtr);
+    errorMessage = PhpGetKsiMessage(Status, Force, Format, ArgPtr);
 
     if (Force)
     {
@@ -403,6 +400,23 @@ VOID PhpShowKsiMessage(
     }
 
     PhClearReference(&errorMessage);
+}
+
+PPH_STRING PhGetKsiMessage(
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    PPH_STRING message;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    message = PhpGetKsiMessage(Status, Force, Format, argptr);
+    va_end(argptr);
+
+    return message;
 }
 
 VOID PhShowKsiMessageEx(
