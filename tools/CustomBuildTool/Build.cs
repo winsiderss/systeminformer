@@ -161,7 +161,8 @@ namespace CustomBuildTool
 
         public static void WriteTimeStampFile()
         {
-            Utils.WriteAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt", Build.TimeStart.ToString("o"));
+            Utils.CreateOutputDirectory();
+            Utils.WriteAllText($"{BuildOutputFolder}\\systeminformer-build-timestamp.txt", TimeStart.ToString("o"));
         }
 
         public static string BuildTimeSpan()
