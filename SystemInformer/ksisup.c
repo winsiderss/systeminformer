@@ -844,6 +844,21 @@ NTSTATUS KsiCreateTemporaryDriverFile(
     return status;
 }
 
+VOID KsiCreateRandomizedName(
+    _In_ PWSTR Prefix,
+    _Out_ PPH_STRING* Name
+    )
+{
+    ULONG length;
+    WCHAR buffer[13];
+
+    length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
+
+    PhGenerateRandomAlphaString(buffer, length);
+
+    *Name = PhConcatStrings2(Prefix, buffer);
+}
+
 VOID KsiConnect(
     _In_opt_ HWND WindowHandle
     )
@@ -1023,6 +1038,77 @@ VOID KsiConnect(
                 PhDereferenceObject(tempFileName);
             }
         }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PPH_STRING randomServiceName;
+        PPH_STRING randomPortName;
+        PPH_STRING randomObjectName;
+
+        //
+        // Malware might be blocking the driver load. Offer the user a chance
+        // to try again with a different method.
+        //
+        if (PhShowKsiMessage2(
+            WindowHandle,
+            TD_YES_BUTTON | TD_NO_BUTTON,
+            TD_ERROR_ICON,
+            status,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"Try again with alternate driver load method?"
+            ) != IDYES)
+        {
+            goto CleanupExit;
+        }
+
+        KsiCreateRandomizedName(L"", &randomServiceName);
+        KsiCreateRandomizedName(L"\\", &randomPortName);
+        KsiCreateRandomizedName(L"\\Driver\\", &randomObjectName);
+
+        config.EnableNativeLoad = TRUE;
+        config.EnableFilterLoad = FALSE;
+        config.ServiceName = &randomServiceName->sr;
+        config.PortName = &randomPortName->sr;
+        config.ObjectName = &randomObjectName->sr;
+
+        KsiEnableLoadNative = TRUE;
+        KsiEnableLoadFilter = FALSE;
+        PhDereferenceObject(KsiServiceName);
+        KsiServiceName = PhReferenceObject(randomServiceName);
+
+        status = KphConnect(&config);
+
+        if (NT_SUCCESS(status))
+        {
+            //
+            // N.B. These settings **must** be persisted to allow subsequent
+            // clients to successfully connect or unload the natively loaded
+            // driver.
+            //
+            PhSetIntegerSetting(L"KsiEnableLoadNative", TRUE);
+            PhSetIntegerSetting(L"KsiEnableLoadFilter", FALSE);
+            PhSetStringSetting2(L"KsiServiceName", &randomServiceName->sr);
+            PhSetStringSetting2(L"KsiPortName", &randomPortName->sr);
+            PhSetStringSetting2(L"KsiObjectName", &randomObjectName->sr);
+
+            if (!PhIsNullOrEmptyString(PhSettingsFileName))
+                PhSaveSettings(&PhSettingsFileName->sr);
+
+            PhShowKsiMessage(
+                WindowHandle,
+                TD_INFORMATION_ICON,
+                L"Kernel driver loaded",
+                L"The kernel driver was successfully loaded using an alternate "
+                L"method. The settings used to load the driver have been saved. "
+                L"You can revert these settings in the advanced options."
+                );
+        }
+
+        PhDereferenceObject(randomServiceName);
+        PhDereferenceObject(randomPortName);
+        PhDereferenceObject(randomObjectName);
     }
 
     if (!NT_SUCCESS(status))
