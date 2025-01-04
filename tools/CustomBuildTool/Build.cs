@@ -161,7 +161,8 @@ namespace CustomBuildTool
 
         public static void WriteTimeStampFile()
         {
-            Utils.WriteAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt", Build.TimeStart.ToString("o"));
+            Utils.CreateOutputDirectory();
+            Utils.WriteAllText($"{BuildOutputFolder}\\systeminformer-build-timestamp.txt", TimeStart.ToString("o"));
         }
 
         public static string BuildTimeSpan()
@@ -1356,8 +1357,8 @@ namespace CustomBuildTool
                     {
                         ["documents"] = new JsonObject
                         {
-                            ["\\*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*",
-                            [$"{Path.Join([Build.BuildWorkingFolder, "\\"])}*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*"
+                            ["*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*",
+                            [$"{Path.Join([Build.BuildWorkingFolder, "\\"])}*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*"
                         }
                     };
 

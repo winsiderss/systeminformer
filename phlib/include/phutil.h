@@ -329,6 +329,19 @@ PhShowMessageOneTime(
     ...
     );
 
+PHLIBAPI
+LONG
+NTAPI
+PhShowMessageOneTime2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _Out_opt_ PBOOLEAN Checked,
+    _In_ PCWSTR Format,
+    ...
+    );
+
 typedef struct _TASKDIALOGCONFIG TASKDIALOGCONFIG, *PTASKDIALOGCONFIG;
 
 // TDM_NAVIGATE_PAGE is not thread safe and accelerator keys crash the process

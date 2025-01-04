@@ -372,7 +372,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
     PhpAddIntegerSetting(L"KsiUnloadOnExit", L"1");
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
-    PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"0");
+    PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"1");
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
     PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
     PhpAddStringSetting(L"KsiPreviousTemporaryDriverFile", L"");
