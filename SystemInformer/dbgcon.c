@@ -29,6 +29,8 @@
 #include <procprv.h>
 #include <srvprv.h>
 #include <thrdprv.h>
+#include <io.h>
+#include <fcntl.h>
 
 typedef struct _STRING_TABLE_ENTRY
 {
@@ -84,6 +86,10 @@ VOID PhShowDebugConsole(
         _wfreopen(L"CONOUT$", L"w", stdout);
         _wfreopen(L"CONOUT$", L"w", stderr);
         _wfreopen(L"CONIN$", L"r", stdin);
+
+        _setmode(_fileno(stdout), _O_U8TEXT);
+        _setmode(_fileno(stderr), _O_U8TEXT);
+        _setmode(_fileno(stdin), _O_U8TEXT);
 
         SetConsoleCP(CP_UTF8);
         SetConsoleOutputCP(CP_UTF8);
