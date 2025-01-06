@@ -2593,7 +2593,16 @@ VOID PhMwpSaveSettings(
     PhMwpSaveWindowState(WindowHandle);
 
     if (!PhIsNullOrEmptyString(PhSettingsFileName))
-        PhSaveSettings(&PhSettingsFileName->sr);
+    {
+        NTSTATUS status;
+
+        status = PhSaveSettings(&PhSettingsFileName->sr);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(nullptr, L"Unable to save application settings.", status, 0);
+        }
+    }
 }
 
 VOID PhMwpSaveWindowState(
