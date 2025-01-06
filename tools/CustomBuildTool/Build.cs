@@ -1479,58 +1479,43 @@ namespace CustomBuildTool
 
         public static void ReflowExportDefinitions(bool ReleaseBuild)
         {
+            List<int> ordinals = [];
             StringBuilder output = new StringBuilder();
-            int total = 0; // ushort.MaxValue
 
+            if (File.Exists("SystemInformer\\SystemInformer-original.def"))
+                return;
+
+            File.Copy(
+                "SystemInformer\\SystemInformer.def",
+                "SystemInformer\\SystemInformer-original.def",
+                true
+                );
+
+            using (var fileHandle = PInvoke.CreateFile(
+                "SystemInformer\\SystemInformer-original.def",
+                (uint)GENERIC_ACCESS_RIGHTS.GENERIC_WRITE,
+                FILE_SHARE_MODE.FILE_SHARE_NONE,
+                null,
+                FILE_CREATION_DISPOSITION.OPEN_EXISTING,
+                FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL,
+                null))
             {
                 WIN32_FILE_ATTRIBUTE_DATA sourceFile;
 
-                File.Copy(
-                    "SystemInformer\\SystemInformer.def",
-                    "SystemInformer\\SystemInformer.bak",
-                    true
-                    );
-
-                if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.def",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &sourceFile))
+                if (PInvoke.GetFileAttributesEx("SystemInformer\\SystemInformer.def", GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &sourceFile))
                 {
-                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.bak"))
-                    {
-                        PInvoke.SetFileTime(
-                            fs.SafeFileHandle,
-                            sourceFile.ftCreationTime,
-                            sourceFile.ftLastAccessTime,
-                            sourceFile.ftLastWriteTime
-                            );
-                    }
+                    PInvoke.SetFileTime(
+                        fileHandle,
+                        sourceFile.ftCreationTime,
+                        sourceFile.ftLastAccessTime,
+                        sourceFile.ftLastWriteTime
+                        );
                 }
             }
 
             var content = File.ReadAllText("SystemInformer\\SystemInformer.def");
             var lines = content.Split("\r\n");
-
-            foreach (var line in lines)
-            {
-                if (line.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
-                {
-                    total++;
-                }
-            }
-
-            //using (var reader = File.OpenText("SystemInformer\\SystemInformer.def"))
-            //{
-            //    while (reader.ReadLine() is { } line)
-            //    {
-            //        if (line.Contains('@', StringComparison.OrdinalIgnoreCase))
-            //        {
-            //            total++;
-            //        }
-            //    }
-            //}
-
-            List<int> ordinals = new List<int>();
+            int total = lines.Length; // lines.Count(line => line.StartsWith("    ", StringComparison.OrdinalIgnoreCase));
 
             if (ReleaseBuild)
             {
@@ -1551,37 +1536,44 @@ namespace CustomBuildTool
                     ordinals.Add(1000 + ordinals.Count + 1);
                 }
             }
+
             foreach (string line in lines)
             {
                 var span = line.AsSpan();
 
-                if (span.IsEmpty || span.IsWhiteSpace())
+                if (span.IsWhiteSpace())
                 {
                     output.Append(span);
-                    output.Append(Environment.NewLine);
+                    output.AppendLine();
                 }
                 else
                 {
                     if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
                     {
+                        var data_offset = span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase);
                         var ordinal = ordinals[0]; ordinals.RemoveAt(0);
 
-                        output.Append(line.Replace("DATA", ""));
-                        output.Append(" @");
-                        output.Append(ordinal);
-                        output.Append(" NONAME");
-
-                        if (span.EndsWith("DATA", StringComparison.OrdinalIgnoreCase))
+                        if (data_offset != -1)
                         {
-                            output.Append(" DATA");
+                            output.Append(span.Slice(0, data_offset));
+                            output.Append(" @");
+                            output.Append(ordinal);
+                            output.Append(" NONAME DATA");
+                        }
+                        else
+                        {
+                            output.Append(span);
+                            output.Append(" @");
+                            output.Append(ordinal);
+                            output.Append(" NONAME");
                         }
 
-                        output.Append(Environment.NewLine);
+                        output.AppendLine();
                     }
                     else
                     {
                         output.Append(span);
-                        output.Append(Environment.NewLine);
+                        output.AppendLine();
                     }
                 }
             }
@@ -1593,18 +1585,18 @@ namespace CustomBuildTool
 
         public static void RestoreExportDefinitions()
         {
-            if (File.Exists("SystemInformer\\SystemInformer.bak"))
+            if (File.Exists("SystemInformer\\SystemInformer-original.def"))
             {
                 WIN32_FILE_ATTRIBUTE_DATA sourceFile;
 
                 File.Copy(
-                    "SystemInformer\\SystemInformer.bak",
+                    "SystemInformer\\SystemInformer-original.def",
                     "SystemInformer\\SystemInformer.def",
                     true
                     );
 
                 if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.bak",
+                    "SystemInformer\\SystemInformer-original.def",
                     GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
                     &sourceFile))
                 {
