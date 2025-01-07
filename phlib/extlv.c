@@ -46,6 +46,7 @@ typedef struct _PH_EXTLV_CONTEXT
     // Misc.
 
     LONG EnableRedraw;
+    LONG WindowDpi;
     HCURSOR Cursor;
     IListView* ListViewClass;
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
@@ -377,6 +378,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_INIT:
         {
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+
             PhSetHeaderSortIcon(PhGetExtendedListViewHeader(context), context->SortColumn, context->SortOrder);
 
             // Fix tooltips showing behind Always On Top windows.
@@ -587,6 +590,61 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
 
             return result;
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            LONG listviewDpi;
+            LVCOLUMN lvColumn;
+            ULONG i;
+
+            i = 0;
+            lvColumn.mask = LVCF_WIDTH;
+            listviewDpi = PhGetWindowDpi(WindowHandle);
+
+            if (context->WindowDpi == 0)
+                break;
+
+            // Workaround the ListView using incorrect widths for header columns by re-setting the width. (dmex)
+            // Note: This resets the width a second time after the header control has already set the width.
+
+            ExtendedListView_SetRedraw(WindowHandle, FALSE);
+
+            while (TRUE)
+            {
+                if (context->ListViewClass)
+                {
+                    if (SUCCEEDED(IListView_GetColumn(context->ListViewClass, i, &lvColumn)))
+                    {
+                        lvColumn.cx = PhMultiplyDivideSigned(lvColumn.cx, listviewDpi, context->WindowDpi);
+
+                        IListView_SetColumn(context->ListViewClass, i, &lvColumn);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    if (CallWindowProc(oldWndProc, WindowHandle, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
+                    {
+                        lvColumn.cx = PhMultiplyDivideSigned(lvColumn.cx, listviewDpi, context->WindowDpi);
+
+                        CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMN, i, (WPARAM)&lvColumn);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                i++;
+            }
+
+            ExtendedListView_SetRedraw(WindowHandle, TRUE);
+
+            context->WindowDpi = listviewDpi;
         }
         break;
     }
