@@ -3204,6 +3204,7 @@ RtlCreateUserProcessEx(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -3383,6 +3384,7 @@ RtlCreateUserThread(
     );
 
 #if (PHNT_VERSION >= PHNT_WINXP)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
