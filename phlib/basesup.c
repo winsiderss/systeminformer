@@ -53,10 +53,9 @@
 
 #include <phbase.h>
 #include <phintrnl.h>
-#include <phnative.h>
-#include <phnativeinl.h>
 #include <phintrin.h>
 #include <circbuf.h>
+#include <thirdparty.h>
 #include <ntintsafe.h>
 
 #ifndef PH_NATIVE_STRING_CONVERSION
@@ -6154,6 +6153,18 @@ ULONG PhHashStringRefEx(
             }
 
             return hash;
+        }
+    case PH_STRING_HASH_XXH32:
+        {
+            if (IgnoreCase)
+            {
+                NOTHING;
+            }
+
+            if (String->Length == 0)
+                return 0;
+
+            return PhHashStringRefXXH32(String, 0);
         }
     }
 

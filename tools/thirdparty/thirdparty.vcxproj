@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{60F7AED7-5094-41B2-A2C9-545398060C83}</ProjectGuid>
     <RootNamespace>thirdparty</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -223,6 +224,7 @@
     <ClCompile Include="tlsh\tlsh_impl.cpp" />
     <ClCompile Include="tlsh\tlsh_util.cpp" />
     <ClCompile Include="tlsh\tlsh_wrapper.cpp" />
+    <ClCompile Include="xxhash\xxhashwrapper.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours\detours.h" />
@@ -275,6 +277,8 @@
     <ClInclude Include="tlsh\tlsh_win_version.h" />
     <ClInclude Include="tlsh\tlsh_wrapper.h" />
     <ClInclude Include="tlsh\win_version.h" />
+    <ClInclude Include="xxhash\xxhashwrapper.h" />
+    <ClInclude Include="xxhash\xxhash.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -6544,7 +6544,7 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
 typedef struct _PHP_PIPE_NAME_HASH
 {
-    PPH_STRINGREF Name;
+    ULONG NameHash;
     ULONG Found;
 } PHP_PIPE_NAME_HASH, *PPHP_PIPE_NAME_HASH;
 
@@ -6560,10 +6560,7 @@ static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     objectName.Length = Information->FileNameLength;
     objectName.Buffer = Information->FileName;
 
-    if (
-        PhHashStringRefEx(context->Name, FALSE, PH_STRING_HASH_X65599) ==
-        PhHashStringRefEx(&objectName, FALSE, PH_STRING_HASH_X65599)
-        )
+    if (PhHashStringRefEx(&objectName, FALSE, PH_STRING_HASH_XXH32) == context->NameHash)
     {
         context->Found = TRUE;
         return FALSE;
@@ -6603,7 +6600,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         SIZE_T returnLength;
         OBJECT_ATTRIBUTES objectAttributes;
         UNICODE_STRING objectName;
-        PH_STRINGREF objectNameSr;
+        PH_STRINGREF objectNameStringRef;
         PH_FORMAT format[2];
         WCHAR formatBuffer[0x80];
 
@@ -6621,10 +6618,10 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
         {
-            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-            objectNameSr.Buffer = formatBuffer;
+            objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameStringRef.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameSr, &objectName);
+            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
         }
         else
         {
@@ -6665,10 +6662,10 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
         {
-            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-            objectNameSr.Buffer = formatBuffer;
+            objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameStringRef.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameSr, &objectName);
+            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
         }
         else
         {
@@ -6711,10 +6708,10 @@ NTSTATUS PhGetProcessIsDotNetEx(
         {
             PHP_PIPE_NAME_HASH context;
 
-            objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-            objectNameSr.Buffer = formatBuffer;
-            PhStringRefToUnicodeString(&objectNameSr, &objectName);
-            context.Name = &objectNameSr;
+            objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
+            objectNameStringRef.Buffer = formatBuffer;
+            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
+            context.NameHash = PhHashStringRefEx(&objectNameStringRef, FALSE, PH_STRING_HASH_XXH32);
             context.Found = FALSE;
 
             status = PhEnumDirectoryNamedPipe(
