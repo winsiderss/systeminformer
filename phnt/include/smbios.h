@@ -23,12 +23,12 @@ typedef struct RAW_SMBIOS_DATA
 #define SMBIOS_INVALID_STRING  ((UCHAR)0)
 #define SMBIOS_STRING_TABLE(x) (PVOID)((ULONG_PTR)x + x->Length)
 
-#define SMBIOS_PROBE_STATUS_OTHER                      ((UCHAR)1)
-#define SMBIOS_PROBE_STATUS_UNKNOWN                    ((UCHAR)2)
-#define SMBIOS_PROBE_STATUS_OK                         ((UCHAR)3)
-#define SMBIOS_PROBE_STATUS_NON_CRITICAL               ((UCHAR)4)
-#define SMBIOS_PROBE_STATUS_CRITICAL                   ((UCHAR)5)
-#define SMBIOS_PROBE_STATUS_NON_RECOVERABLE            ((UCHAR)6)
+#define SMBIOS_PROBE_STATUS_OTHER                     ((UCHAR)1)
+#define SMBIOS_PROBE_STATUS_UNKNOWN                   ((UCHAR)2)
+#define SMBIOS_PROBE_STATUS_OK                        ((UCHAR)3)
+#define SMBIOS_PROBE_STATUS_NON_CRITICAL              ((UCHAR)4)
+#define SMBIOS_PROBE_STATUS_CRITICAL                  ((UCHAR)5)
+#define SMBIOS_PROBE_STATUS_NON_RECOVERABLE           ((UCHAR)6)
 
 #define SMBIOS_MEMORY_ERROR_TYPE_OTHER                ((UCHAR)1)
 #define SMBIOS_MEMORY_ERROR_TYPE_UNKNOWN              ((UCHAR)2)
@@ -677,9 +677,9 @@ typedef struct _SMBIOS_PROCESSOR_INFORMATION
 #define SMBIOS_PROCESSOR_FAMILY_USE_2ND_FIELD 254
 // 255 RESERVED
 // 256-511 - Available for assignment, except for:
-#define SMBIOS_PROCESSOR_FAMILY_ARMv7 256
-#define SMBIOS_PROCESSOR_FAMILY_ARMv8 257
-#define SMBIOS_PROCESSOR_FAMILY_ARMv9 258
+#define SMBIOS_PROCESSOR_FAMILY_ARMV7 256
+#define SMBIOS_PROCESSOR_FAMILY_ARMV8 257
+#define SMBIOS_PROCESSOR_FAMILY_ARMV9 258
 // 259 - Reserved for future use by ARM
 #define SMBIOS_PROCESSOR_FAMILY_SH_3 260
 #define SMBIOS_PROCESSOR_FAMILY_SH_4 261
@@ -1552,18 +1552,18 @@ typedef struct _SMBIOS_MEMORY_DEVICE_INFORMATION
         USHORT Value;
     } Size;
 
-    UCHAR FormFactor;    // SMBIOS_MEMORY_DEVICE_FORM_FACTOR_*
+    UCHAR FormFactor;        // SMBIOS_MEMORY_DEVICE_FORM_FACTOR_*
     UCHAR DeviceSet;
-    UCHAR DeviceLocator; // string
-    UCHAR BankLocator;   // string
-    UCHAR MemoryType;    // SMBIOS_MEMORY_DEVICE_TYPE_*
-    USHORT TypeDetail;   // SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_*
+    UCHAR DeviceLocator;     // string
+    UCHAR BankLocator;       // string
+    UCHAR MemoryType;        // SMBIOS_MEMORY_DEVICE_TYPE_*
+    USHORT TypeDetail;       // SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_*
     USHORT Speed;
     // 2.3+
-    UCHAR Manufacturer;  // string
-    UCHAR SerialNumber;  // string
-    UCHAR AssetTag;      // string
-    UCHAR PartNumber;    // string
+    UCHAR Manufacturer;      // string
+    UCHAR SerialNumber;      // string
+    UCHAR AssetTag;          // string
+    UCHAR PartNumber;        // string
     // 2.6+
     struct
     {
@@ -1584,9 +1584,9 @@ typedef struct _SMBIOS_MEMORY_DEVICE_INFORMATION
     USHORT MaximumVoltage;
     USHORT ConfiguredVoltage;
     // 3.2+
-    UCHAR Technology;      // SMBIOS_MEMORY_DEVICE_TECHNOLOGY_*
+    UCHAR Technology;        // SMBIOS_MEMORY_DEVICE_TECHNOLOGY_*
     USHORT ModeCapabilities; // SMBIOS_MEMORY_DEVICE_MODE_*
-    UCHAR FirmwareVersion; // string
+    UCHAR FirmwareVersion;   // string
     USHORT ModuleManufacturerID;
     USHORT ModuleProductID;
     USHORT SubsystemControllerManufacturerID;
@@ -2630,11 +2630,11 @@ typedef struct _SMBIOS_INACTIVE
     SMBIOS_HEADER Header;
 } SMBIOS_INACTIVE, *PSMBIOS_INACTIVE;
 
-#define SMBIOS_END_OF_TABLE_TYPE ((UCHAR)127)
-
 //
 // End-of-Table (Type 127)
 //
+
+#define SMBIOS_END_OF_TABLE_TYPE ((UCHAR)127)
 
 typedef struct _SMBIOS_END_OF_TABLE
 {
