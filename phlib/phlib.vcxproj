@@ -324,6 +324,7 @@
     <ClCompile Include="extlv.c" />
     <ClCompile Include="fastlock.c" />
     <ClCompile Include="filepool.c" />
+    <ClCompile Include="firmware.c" />
     <ClCompile Include="format.c" />
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
@@ -378,6 +379,7 @@
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
     <ClInclude Include="include\phconsole.h" />
+    <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
     <ClInclude Include="include\user.h" />
     <ClInclude Include="include\cpysave.h" />

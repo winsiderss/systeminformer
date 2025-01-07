@@ -203,6 +203,9 @@
     <ClCompile Include="guisuplistview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="firmware.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -419,6 +422,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phconsole.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phfirmware.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
