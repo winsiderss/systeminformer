@@ -95,12 +95,6 @@ typedef struct _SMBIOS_HEADER
     USHORT Handle;
 } SMBIOS_HEADER, *PSMBIOS_HEADER;
 
-typedef struct _SMBIOS_GENERIC
-{
-    SMBIOS_HEADER;
-    CHAR Data[ANYSIZE_ARRAY];
-} SMBIOS_GENERIC, *PSMBIOS_GENERIC;
-
 //
 // Platform Firmware Information (Type 0)
 //
