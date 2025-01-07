@@ -203,14 +203,14 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(GetStringWidth)(THIS_ PCWSTR pString, PLONG pWidth) PURE;
     STDMETHOD(GetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* pColumn) PURE;
     STDMETHOD(SetColumn)(THIS_ ULONG columnIndex, LVCOLUMNW* const pColumn) PURE;
-    STDMETHOD(GetColumnOrderArray)(THIS_ ULONG numberOfColumns, PLONG pColumns) PURE;
-    STDMETHOD(SetColumnOrderArray)(THIS_ ULONG numberOfColumns, LONG const* pColumns) PURE;
+    STDMETHOD(GetColumnOrderArray)(THIS_ ULONG numberOfColumns, _Out_ PVOID* pColumns) PURE;
+    STDMETHOD(SetColumnOrderArray)(THIS_ ULONG numberOfColumns, _In_ PVOID pColumns) PURE;
     STDMETHOD(GetHeaderControl)(THIS_ HWND* HeaderWindowHandle) PURE;
     STDMETHOD(InsertColumn)(THIS_ ULONG insertAt, LVCOLUMNW* const pColumn, PLONG pColumnIndex) PURE;
     STDMETHOD(DeleteColumn)(THIS_ ULONG columnIndex) PURE;
     STDMETHOD(CreateDragImage)(THIS_ LONG itemIndex, POINT const* pUpperLeft, HIMAGELIST* pHImageList) PURE;
     STDMETHOD(GetViewRect)(THIS_ RECT* pRectangle) PURE;
-    STDMETHOD(GetClientRect)(THIS_ BOOL unknown, RECT* pClientRectangle) PURE;
+    STDMETHOD(GetClientRect)(THIS_ BOOL StyleAndClientRect, RECT* pClientRectangle) PURE;
     STDMETHOD(GetColumnWidth)(THIS_ ULONG columnIndex, PLONG pWidth) PURE;
     STDMETHOD(SetColumnWidth)(THIS_ ULONG columnIndex, ULONG width) PURE;
     STDMETHOD(GetCallbackMask)(THIS_ ULONG* pMask) PURE;
@@ -236,12 +236,12 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     STDMETHOD(SetWorkAreas)(THIS_ LONG numberOfWorkAreas, RECT const* pWorkAreas) PURE;
     STDMETHOD(GetWorkAreaCount)(THIS_ PLONG pNumberOfWorkAreas) PURE;
     STDMETHOD(ResetEmptyText)(THIS) PURE;
-    STDMETHOD(EnableGroupView)(THIS_ BOOL Eable) PURE;
+    STDMETHOD(EnableGroupView)(THIS_ BOOL Enable) PURE;
     STDMETHOD(IsGroupViewEnabled)(THIS_ PBOOL IsEnabled) PURE;
     STDMETHOD(SortGroups)(THIS_ PFNLVGROUPCOMPARE pComparisonFunction, PVOID lParam) PURE;
-    STDMETHOD(GetGroupInfo)(THIS_ ULONG unknown1, ULONG groupID, LVGROUP* pGroup) PURE;
-    STDMETHOD(SetGroupInfo)(THIS_ ULONG unknown, ULONG groupID, LVGROUP* const pGroup) PURE;
-    STDMETHOD(GetGroupRect)(THIS_ BOOL unknown, ULONG groupID, ULONG rectangleType, RECT* pRectangle) PURE;
+    STDMETHOD(GetGroupInfo)(THIS_ BOOL GetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* pGroup) PURE;
+    STDMETHOD(SetGroupInfo)(THIS_ BOOL SetGroupInfoByIndex, LONG GroupIDOrIndex, LVGROUP* const pGroup) PURE;
+    STDMETHOD(GetGroupRect)(THIS_ BOOL GetGroupRectByIndex, LONG GroupIDOrIndex, ULONG rectangleType, RECT* pRectangle) PURE;
     STDMETHOD(GetGroupState)(THIS_ LONG groupID, ULONG mask, ULONG* pState) PURE;
     STDMETHOD(HasGroup)(THIS_ LONG groupID, BOOL* pHasGroup) PURE;
     STDMETHOD(InsertGroup)(THIS_ LONG insertAt, LVGROUP* const pGroup, PLONG pGroupID) PURE;
@@ -494,12 +494,12 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
     ((This)->lpVtbl->IsGroupViewEnabled(This, pIsEnabled))
 #define IListView_SortGroups(This, pComparisonFunction, lParam) \
     ((This)->lpVtbl->SortGroups(This, pComparisonFunction, lParam))
-#define IListView_GetGroupInfo(This, unknown1, unknown2, pGroup) \
-    ((This)->lpVtbl->GetGroupInfo(This, unknown1, unknown2, pGroup))
-#define IListView_SetGroupInfo(This, unknown, groupID, pGroup) \
-    ((This)->lpVtbl->SetGroupInfo(This, unknown, groupID, pGroup))
-#define IListView_GetGroupRect(This, unknown, groupID, rectangleType, pRectangle) \
-    ((This)->lpVtbl->GetGroupRect(This, unknown, groupID, rectangleType, pRectangle))
+#define IListView_GetGroupInfo(This, GetGroupInfoByIndex, GroupIDOrIndex, pGroup) \
+    ((This)->lpVtbl->GetGroupInfo(This, GetGroupInfoByIndex, GroupIDOrIndex, pGroup))
+#define IListView_SetGroupInfo(This, SetGroupInfoByIndex, GroupIDOrIndex, pGroup) \
+    ((This)->lpVtbl->SetGroupInfo(This, SetGroupInfoByIndex, GroupIDOrIndex, pGroup))
+#define IListView_GetGroupRect(This, GetGroupRectByIndex, GroupIDOrIndex, rectangleType, pRectangle) \
+    ((This)->lpVtbl->GetGroupRect(This, GetGroupRectByIndex, GroupIDOrIndex, rectangleType, pRectangle))
 #define IListView_GetGroupState(This, groupID, mask, pState) \
     ((This)->lpVtbl->GetGroupState(This, groupID, mask, pState))
 #define IListView_HasGroup(This, groupID, pHasGroup) \
