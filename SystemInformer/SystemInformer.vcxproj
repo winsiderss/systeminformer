@@ -51,6 +51,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
+    <SpectreMitigation>false</SpectreMitigation>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -79,6 +80,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
+    <SpectreMitigation>false</SpectreMitigation>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
@@ -87,6 +89,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
+    <SpectreMitigation>false</SpectreMitigation>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
