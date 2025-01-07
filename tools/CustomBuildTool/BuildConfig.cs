@@ -87,6 +87,7 @@ namespace CustomBuildTool
             "phnt.h",
             "phnt_ntdef.h",
             "phnt_windows.h",
+            "smbios.h",
             "subprocesstag.h",
             "winsta.h"
         ];
