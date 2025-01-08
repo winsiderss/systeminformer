@@ -147,7 +147,7 @@ VOID EtHandlePropertiesInitializing(
         }
 
         // Object Manager
-        if (EtObjectManagerDialogHandle && context->OwnerPlugin == PluginInstance)
+        if (EtObjectManagerDialogHandle)
         {
             page = EtpCommonCreatePage(
                 context,
@@ -905,23 +905,20 @@ VOID EtHandlePropertiesWindowUninitializing(
 {
     PPH_PLUGIN_HANDLE_PROPERTIES_WINDOW_CONTEXT context = Parameter;
 
-    if (context->OwnerPlugin == PluginInstance)
+    if (context->HandleItem->Handle && context->ProcessId == NtCurrentProcessId())
     {
-        if (context->HandleItem->Handle && context->ProcessId == NtCurrentProcessId())
-        {
-            PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
-            PhDereferenceObject(EtObjectManagerOwnHandles);
+        PhRemoveItemList(EtObjectManagerOwnHandles, PhFindItemList(EtObjectManagerOwnHandles, context->HandleItem->Handle));
+        PhDereferenceObject(EtObjectManagerOwnHandles);
 
-            NtClose(context->HandleItem->Handle);
-        }
-
-        PhRemoveItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow);
-        PhDereferenceObject(EtObjectManagerPropWindows);
-
-        PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
-
-        PhDereferenceObject(context->HandleItem);
+        NtClose(context->HandleItem->Handle);
     }
+
+    //PhRemoveItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow);
+    //PhDereferenceObject(EtObjectManagerPropWindows);
+
+    PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
+
+    PhDereferenceObject(context->HandleItem);
 }
 
 static HPROPSHEETPAGE EtpCommonCreatePage(
