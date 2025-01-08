@@ -4761,7 +4761,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowProcessContextMenu(hwnd, contextMenu);
+            PhShowProcessContextMenu(PhMainWndHandle, contextMenu);
         }
         return TRUE;
     case TreeNewNodeExpanding:
