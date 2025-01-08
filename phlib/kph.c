@@ -910,6 +910,56 @@ NTSTATUS KphQueryInformationObject(
     return status;
 }
 
+NTSTATUS KphQueryObjectThreadName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ThreadName
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize;
+    ULONG returnLength;
+    PTHREAD_NAME_INFORMATION buffer;
+
+    returnLength = 0;
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = KphQueryInformationObject(
+        ProcessHandle,
+        Handle,
+        KphObjectThreadNameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(returnLength);
+
+        status = KphQueryInformationObject(
+            ProcessHandle,
+            Handle,
+            KphObjectThreadNameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
 NTSTATUS KphQueryObjectSectionMappingsInfo(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,

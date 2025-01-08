@@ -469,7 +469,6 @@ VOID PhpProcessItemDeleteProcedure(
     }
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
-    if (processItem->FileNameWin32) PhDereferenceObject(processItem->FileNameWin32);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);

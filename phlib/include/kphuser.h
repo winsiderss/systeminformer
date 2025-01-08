@@ -240,6 +240,15 @@ KphQueryInformationObject(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphQueryObjectThreadName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ThreadName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphQueryObjectSectionMappingsInfo(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,

@@ -95,7 +95,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HWND ListViewHandle;
     HWND ParentWindow;
     HANDLE ProcessId;
-    PVOID ListViewClass;
+    IListView* ListViewClass;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
     INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
