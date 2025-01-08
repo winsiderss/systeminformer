@@ -4700,6 +4700,17 @@ PhFormat(
     _In_opt_ SIZE_T InitialCapacity
     );
 
+FORCEINLINE
+PPH_STRING
+PhaFormat(
+    _In_reads_(Count) PPH_FORMAT Format,
+    _In_ ULONG Count,
+    _In_opt_ SIZE_T InitialCapacity
+    )
+{
+    return PH_AUTO_T(PH_STRING, PhFormat(Format, Count, InitialCapacity));
+}
+
 PHLIBAPI
 BOOLEAN
 NTAPI
