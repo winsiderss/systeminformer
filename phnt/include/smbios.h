@@ -988,11 +988,33 @@ C_ASSERT(sizeof(SMBIOS_MEMORY_MODULE_INFORMATION) == 0xC);
 
 #define SMBIOS_CACHE_INFORMATION_TYPE ((UCHAR)7)
 
+typedef union _SMBIOS_CACHE_USHORT
+{
+    struct
+    {
+        USHORT Size : 15;
+        USHORT Granularity : 1; // 0 = 1K, 1 = 64K
+    };
+
+    USHORT Value;
+} SMBIOS_CACHE_USHORT;
+
+typedef union _SMBIOS_CACHE_ULONG
+{
+    struct
+    {
+        ULONG Size : 31;
+        ULONG Granularity : 1; // 0 = 1K, 1 = 64K
+    };
+
+    ULONG Value;
+} SMBIOS_CACHE_ULONG;
+
 typedef struct _SMBIOS_CACHE_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.0+
-    UCHAR SocketDesign;          // string
+    UCHAR Designation;          // string
 
     union
     {
@@ -1010,18 +1032,18 @@ typedef struct _SMBIOS_CACHE_INFORMATION
         USHORT Value;
     } Configuration;
 
-    USHORT MaximumSize;
-    USHORT InstalledSize;
+    SMBIOS_CACHE_USHORT MaximumSize;
+    SMBIOS_CACHE_USHORT InstalledSize;
     USHORT SupportedSRAM;         // SMBIOS_CACHE_SUPPORTED_SRAM_*
     USHORT CurrentSRAM;           // SMBIOS_CACHE_SUPPORTED_SRAM_*
     // 2.1+
-    UCHAR CacheSpeed;
+    UCHAR Speed;
     UCHAR ErrorCorrectionType;    // SMBIOS_CACHE_ERROR_CORRECTION_*
     UCHAR SystemCacheType;        // SMBIOS_CACHE_SYSTEM_CACHE_*
     UCHAR Associativity;          // SMBIOS_CACHE_ASSOCIATIVITY_*
     // 3.1+
-    ULONG MaximumSize2;
-    ULONG InstalledSize2;
+    SMBIOS_CACHE_ULONG MaximumSize2;
+    SMBIOS_CACHE_ULONG InstalledSize2;
 } SMBIOS_CACHE_INFORMATION, *PSMBIOS_CACHE_INFORMATION;
 
 C_ASSERT(sizeof(SMBIOS_CACHE_INFORMATION) == 0x1B);
