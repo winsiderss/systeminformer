@@ -1163,7 +1163,7 @@ VOID NTAPI PhpFindObjectsSearchControlCallback(
     context->SearchMatchHandle = MatchHandle;
 }
 
-INT_PTR CALLBACK PhpFindObjectsDlgProc(
+INT_PTR CALLBACK PhFindObjectsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1190,6 +1190,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhSetApplicationWindowIcon(hwndDlg);
+
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
@@ -1197,7 +1199,11 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->TypeWindowFont = PhDuplicateFont(PhApplicationFont);
             context->WindowText = PhGetWindowText(hwndDlg);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
             PhRegisterDialog(hwndDlg);
             PhCreateSearchControl(
@@ -1210,12 +1216,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhpPopulateObjectTypes(context);
             PhpInitializeHandleObjectTree(context);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
-            PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
-
             context->MinimumSize.left = 0;
             context->MinimumSize.top = 0;
             context->MinimumSize.right = 300;
@@ -1225,7 +1225,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             if (PhGetIntegerPairSetting(L"FindObjWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);
+                PhCenterWindow(hwndDlg, (HWND)lParam);
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
@@ -1683,7 +1683,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
-
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             if ((NTSTATUS)wParam == STATUS_INSUFFICIENT_RESOURCES)
@@ -1722,8 +1721,8 @@ NTSTATUS PhpFindObjectsDialogThreadStart(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_FINDOBJECTS),
         NULL,
-        PhpFindObjectsDlgProc,
-        NULL
+        PhFindObjectsDlgProc,
+        Parameter
         );
 
     PhSetEvent(&PhFindObjectsInitializedEvent);
@@ -1755,14 +1754,14 @@ NTSTATUS PhpFindObjectsDialogThreadStart(
 }
 
 VOID PhShowFindObjectsDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     )
 {
     if (!PhFindObjectsThreadHandle)
     {
-        if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, NULL)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, ParentWindowHandle)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
+            PhShowStatus(ParentWindowHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
             return;
         }
 

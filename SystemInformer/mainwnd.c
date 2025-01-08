@@ -997,7 +997,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_FINDHANDLESORDLLS:
         {
-            PhShowFindObjectsDialog();
+            PhShowFindObjectsDialog(WindowHandle);
         }
         break;
     case ID_HACKER_OPTIONS:
@@ -1061,7 +1061,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_VIEW_HIDESIGNEDPROCESSES:
         {
-            PhMwpToggleSignedProcessTreeFilter();
+            PhMwpToggleSignedProcessTreeFilter(WindowHandle);
         }
         break;
     case ID_VIEW_HIDEMICROSOFTPROCESSES:
@@ -1762,21 +1762,25 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->QueryHandle)
+            if (processItem)
             {
-                NTSTATUS status;
-                PPH_STRING fileNameWin32;
+                //PPH_STRING fileNameWin32;
+                //
+                //fileNameWin32 = PhGetFileName(processItem->FileName);
+                //
+                //if (!PhIsNullOrEmptyString(fileNameWin32))
+                //{
+                //    PhSetStringSetting2(L"RunAsProgram", &fileNameWin32->sr);
+                //    PhDereferenceObject(fileNameWin32);
+                //
+                //    PhShowRunAsDialog(WindowHandle, NULL);
+                //}
+                //else
+                //{
+                //    PhShowStatus(WindowHandle, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                //}
 
-                if (NT_SUCCESS(status = PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
-                {
-                    PhSetStringSetting2(L"RunAsProgram", &fileNameWin32->sr);
-                    PhShowRunAsDialog(WindowHandle, NULL);
-                    PhDereferenceObject(fileNameWin32);
-                }
-                else
-                {
-                    PhShowStatus(WindowHandle, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
-                }
+                PhShowRunAsDialog(WindowHandle, NULL);
             }
         }
         break;
@@ -4338,8 +4342,6 @@ VOID PhMwpInvokeUpdateWindowFont(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
-        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
-
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }
@@ -4350,10 +4352,8 @@ VOID PhMwpInvokeUpdateWindowFont(
     }
 
     PhTreeWindowFont = newFont;
-
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
-    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0); // notify plugins of font change. (dmex)
 
     if (oldFont) DeleteFont(oldFont);
 }
@@ -4375,8 +4375,6 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
-        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
-
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }

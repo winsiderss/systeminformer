@@ -463,7 +463,7 @@ PhShowChooseProcessDialog(
 // findobj
 
 VOID PhShowFindObjectsDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // gdihndl
