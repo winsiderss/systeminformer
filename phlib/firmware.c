@@ -129,27 +129,27 @@ NTSTATUS PhEnumSMBIOS(
     _In_opt_ PVOID Context
     )
 {
-    NTSTATUS status;
-    ULONG length;
-    PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS status;
+    static ULONG length;
+    static PSYSTEM_FIRMWARE_TABLE_INFORMATION info;
 
-    length = 1024;
-    info = PhAllocateZero(length);
-
-    info->ProviderSignature = 'RSMB';
-    info->TableID = 0;
-    info->Action = SystemFirmwareTableGet;
-    info->TableBufferLength = length - sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION);
-
-    status = NtQuerySystemInformation(
-        SystemFirmwareTableInformation,
-        info,
-        length,
-        &length
-        );
-    if (status == STATUS_BUFFER_TOO_SMALL)
+    if (PhBeginInitOnce(&initOnce))
     {
-        PhFree(info);
+        SYSTEM_FIRMWARE_TABLE_INFORMATION initInfo;
+
+        initInfo.ProviderSignature = 'RSMB';
+        initInfo.TableID = 0;
+        initInfo.Action = SystemFirmwareTableGet;
+        initInfo.TableBufferLength = 0;
+
+        NtQuerySystemInformation(
+            SystemFirmwareTableInformation,
+            &initInfo,
+            sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION),
+            &length
+            );
+
         info = PhAllocateZero(length);
 
         info->ProviderSignature = 'RSMB';
@@ -163,6 +163,8 @@ NTSTATUS PhEnumSMBIOS(
             length,
             &length
             );
+
+        PhEndInitOnce(&initOnce);
     }
 
     if (NT_SUCCESS(status))
@@ -173,8 +175,6 @@ NTSTATUS PhEnumSMBIOS(
             Context
             );
     }
-
-    PhFree(info);
 
     return status;
 }
