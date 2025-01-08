@@ -1645,10 +1645,8 @@ VOID EtShowFirmwareDialog(
 #define PH_OBJ_KERNEL_ACCESS_ONLY                0x00010000L
 
 extern HWND EtObjectManagerDialogHandle;
-extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
 extern HICON EtObjectManagerPropIcon;
-extern PPH_HASHTABLE EtObjectManagerPropWindows;
 extern BOOLEAN EtObjectManagerShowHandlesPage;
 
 extern ULONG EtAlpcPortTypeIndex;
