@@ -1954,6 +1954,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
                     if (NT_SUCCESS(PhOpenProcess(
                         &processHandle,
                         (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+                        handleInfo->UniqueProcessId
                         )))
                     {
                         PhAddItemSimpleHashtable(
