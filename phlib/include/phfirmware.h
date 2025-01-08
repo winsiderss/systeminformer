@@ -16,6 +16,12 @@
 
 EXTERN_C_START
 
+#define PH_SMBIOS_CONTAINS_FIELD(Entry, Item, Field) \
+    (RTL_CONTAINS_FIELD(&(Entry)->Item, (Entry)->Header.Length, Field))
+#define PH_SMBIOS_CONTAINS_STRING(Entry, Item, Field) \
+    (PH_SMBIOS_CONTAINS_FIELD(Entry, Item, Field) && \
+     (Entry)->Item.Field != SMBIOS_INVALID_STRING)
+
 typedef union _PH_SMBIOS_ENTRY
 {
     SMBIOS_HEADER Header;
@@ -88,12 +94,6 @@ PhEnumSMBIOS(
     _In_ PPH_ENUM_SMBIOS_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
-
-#define PH_SMBIOS_CONTAINS_FIELD(Entry, Item, Field) \
-    (RTL_CONTAINS_FIELD(&(Entry)->Item, (Entry)->Header.Length, Field))
-#define PH_SMBIOS_CONTAINS_STRING(Entry, Item, Field) \
-    (PH_SMBIOS_CONTAINS_FIELD(Entry, Item, Field) && \
-     (Entry)->Item.Field != SMBIOS_INVALID_STRING)
 
 PHLIBAPI
 NTSTATUS
