@@ -603,10 +603,9 @@
 #define IDC_ZMEMTYPE_V                  1448
 #define IDC_ZMEMTECHNOLOGY_V            1449
 #define IDC_ZMEMSPEED_V                 1450
-#define IDC_ZMEMVOLTAGE_V               1451
-#define IDC_ZL1CACHE_V                  1452
-#define IDC_ZL2CACHE_V                  1453
-#define IDC_ZL3CACHE_V                  1454
+#define IDC_ZL1CACHE_V                  1451
+#define IDC_ZL2CACHE_V                  1452
+#define IDC_ZL3CACHE_V                  1453
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_DUMP_MINIMAL         40002
 #define ID_PROCESS_DUMP_LIMITED         40003

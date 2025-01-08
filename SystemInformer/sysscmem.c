@@ -125,7 +125,6 @@ static UCHAR MemoryFormFactor;
 static UCHAR MemoryTechnology;
 static UCHAR MemoryType;
 static ULONG MemorySpeed;
-static USHORT MemoryVoltage;
 
 _Function_class_(PH_ENUM_SMBIOS_CALLBACK)
 BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
@@ -139,7 +138,6 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     UCHAR formFactor = 0;
     UCHAR memoryType = 0;
     UCHAR technology = 0;
-    USHORT voltage = 0;
     ULONG speed = 0;
 
     if (Entry->Header.Type != SMBIOS_MEMORY_DEVICE_INFORMATION_TYPE)
@@ -165,11 +163,6 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
             speed = Entry->MemoryDevice.ExtendedSpeed;
     }
 
-    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ConfiguredVoltage))
-        voltage = Entry->MemoryDevice.ConfiguredVoltage;
-    if (voltage == 0 && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, MaximumVoltage))
-        voltage = Entry->MemoryDevice.MaximumVoltage;
-
     MemorySlotsTotal++;
     if (Entry->MemoryDevice.Size.Value)
         MemorySlotsUsed++;
@@ -178,7 +171,6 @@ BOOLEAN NTAPI PhpSipMemorySMBIOSCallback(
     MemoryType = max(MemoryType, memoryType);
     MemoryTechnology = max(MemoryTechnology, technology);
     MemorySpeed = max(MemorySpeed, speed);
-    MemoryVoltage = max(MemoryVoltage, voltage);
 
     return FALSE;
 }
@@ -201,7 +193,6 @@ BOOLEAN PhSipMemorySectionCallback(
             MemoryFormFactor = 0;
             MemoryType = 0;
             MemorySpeed = 0;
-            MemoryVoltage = 0;
             PhEnumSMBIOS(PhpSipMemorySMBIOSCallback, NULL);
         }
         return TRUE;
@@ -1016,10 +1007,6 @@ VOID PhSipUpdateMemoryPanel(
         PhInitFormatU(&format[0], MemorySpeed);
         PhInitFormatS(&format[1], L" MT/s");
         PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 10)->Buffer);
-
-        PhInitFormatF(&format[0], (FLOAT)MemoryVoltage / 1000, 2);
-        PhInitFormatS(&format[1], L" V");
-        PhSetDialogItemText(MemoryPanel, IDC_ZMEMVOLTAGE_V, PhaFormat(format, 2, 10)->Buffer);
     }
 
     // Commit charge
