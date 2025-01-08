@@ -148,6 +148,7 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceSession.cpp" />
     <ClCompile Include="reparse.c" />
+    <ClCompile Include="smbios.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="tpm.c" />
     <ClCompile Include="tpm_editor.c" />

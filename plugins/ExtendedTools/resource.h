@@ -161,6 +161,7 @@
 #define IDI_UNKNOWN                     4012
 #define IDC_OBJMGR_LIST                 4013
 #define IDC_OBJMGR_TREE                 4014
+#define ID_SMBIOS                       5000
 #define ID_FIRMWARE                     5001
 #define IDD_FIRMWARE                    5002
 #define IDD_FIRMWARE_EDITVAR            5003
@@ -171,6 +172,8 @@
 #define IDC_FIRMWARE_BYTESPERROW        5008
 #define IDC_FIRMWARE_BOOT_LIST          5009
 #define IDC_FIRMWARE_BOOT_REFRESH       5010
+#define IDD_SMBIOS                      5011
+#define IDC_SMBIOS_INFO                 5012
 #define ID_PIPE_ENUM                    6000
 #define IDD_PIPEDIALOG                  6001
 #define IDC_ATOMLIST                    6002
@@ -208,7 +211,7 @@
 
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        172

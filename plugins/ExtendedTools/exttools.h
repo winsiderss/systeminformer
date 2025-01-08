@@ -161,6 +161,10 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_TPM_WINDOW_POSITION (PLUGIN_NAME L".TpmWindowPosition")
 #define SETTING_NAME_TPM_WINDOW_SIZE (PLUGIN_NAME L".TpmWindowSize")
 #define SETTING_NAME_TPM_LISTVIEW_COLUMNS (PLUGIN_NAME L".TpmListViewColumns")
+#define SETTING_NAME_SMBIOS_WINDOW_POSITION (PLUGIN_NAME L".SMBIOSWindowPosition")
+#define SETTING_NAME_SMBIOS_WINDOW_SIZE (PLUGIN_NAME L".SMBIOSWindowSize")
+#define SETTING_NAME_SMBIOS_INFO_COLUMNS (PLUGIN_NAME L".SMBIOSListViewColumns")
+#define SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES (PLUGIN_NAME L".SMBIOSShowUndefinedTypes")
 
 VOID EtLoadSettings(
     VOID
@@ -1740,6 +1744,12 @@ NTSTATUS EtTpmRead(
 VOID EtShowTpmEditDialog(
     _In_ HWND ParentWindowHandle,
     _In_ TPM_NV_INDEX Index
+    );
+
+// smbios
+
+VOID EtShowSMBIOSDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 #endif

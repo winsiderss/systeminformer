@@ -174,6 +174,11 @@ VOID NTAPI MenuItemCallback(
             EtShowPipeEnumDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_SMBIOS:
+        {
+            EtShowSMBIOSDialog(menuItem->OwnerWindow);
+        }
+        break;
     case ID_FIRMWARE:
         {
             EtShowFirmwareDialog(menuItem->OwnerWindow);
@@ -244,6 +249,9 @@ VOID NTAPI MainMenuInitializingCallback(
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
+#ifdef DEBUG // WIP(jxy-s)
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SMBIOS, L"SM&BIOS", NULL), ULONG_MAX);
+#endif
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
@@ -1338,6 +1346,10 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_TPM_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TPM_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_TPM_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_SIZE, L"@96|490,340" },
+                { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES, L"0" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
