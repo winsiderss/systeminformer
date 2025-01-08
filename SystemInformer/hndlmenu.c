@@ -188,6 +188,26 @@ VOID PhShowHandleObjectProperties1(
         {
             targetProcessItem = PhReferenceProcessItem(processId);
 
+            if (!targetProcessItem)
+            {
+                NTSTATUS status;
+
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    processId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    targetProcessItem = PhCreateProcessItemFromHandle(
+                        processId,
+                        processHandle,
+                        TRUE
+                        );
+                }
+            }
+
             if (targetProcessItem)
             {
                 SystemInformer_ShowProcessProperties(targetProcessItem);
@@ -357,6 +377,26 @@ VOID PhShowHandleObjectProperties1(
         if (clientId.UniqueProcess)
         {
             targetProcessItem = PhReferenceProcessItem(clientId.UniqueProcess);
+
+            if (!targetProcessItem)
+            {
+                NTSTATUS status;
+
+                status = PhOpenProcessClientId(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    &clientId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    targetProcessItem = PhCreateProcessItemFromHandle(
+                        clientId.UniqueProcess,
+                        processHandle,
+                        TRUE
+                        );
+                }
+            }
 
             if (targetProcessItem)
             {

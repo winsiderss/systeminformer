@@ -632,7 +632,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PULONG length;
 
@@ -710,7 +710,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
 ULONG PvpStringsMinimumLengthDialog(
     _In_ HWND WindowHandle,
     _In_ ULONG CurrentMinimumLength
-)
+    )
 {
     ULONG length;
 

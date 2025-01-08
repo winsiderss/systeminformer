@@ -2941,7 +2941,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
                 break;
             case PHPRTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(processItem->FileNameWin32);
+                getCellText->Text = PhGetStringRef(processItem->FileName);
                 break;
             case PHPRTLC_COMMANDLINE:
                 getCellText->Text = PhGetStringRef(processItem->CommandLine);
@@ -4761,7 +4761,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowProcessContextMenu(contextMenu);
+            PhShowProcessContextMenu(hwnd, contextMenu);
         }
         return TRUE;
     case TreeNewNodeExpanding:
@@ -5304,7 +5304,7 @@ PPH_PROCESS_NODE PhGetSelectedProcessNode(
     {
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
-        if (node->Node.Selected)
+        if (node->Node.Visible && node->Node.Selected)
         {
             processNode = node;
             break;
@@ -5314,7 +5314,8 @@ PPH_PROCESS_NODE PhGetSelectedProcessNode(
     return processNode;
 }
 
-VOID PhGetSelectedProcessNodes(
+_Success_(return)
+BOOLEAN PhGetSelectedProcessNodes(
     _Out_ PPH_PROCESS_NODE **Nodes,
     _Out_ PULONG NumberOfNodes
     )
@@ -5332,10 +5333,22 @@ VOID PhGetSelectedProcessNodes(
             PhAddItemArray(&array, &node);
     }
 
-    *NumberOfNodes = (ULONG)PhFinalArrayCount(&array);
-    *Nodes = PhFinalArrayItems(&array);
+    if (PhFinalArrayCount(&array))
+    {
+        *NumberOfNodes = (ULONG)PhFinalArrayCount(&array);
+        *Nodes = PhFinalArrayItems(&array);
+        return TRUE;
+    }
+    else
+    {
+        *NumberOfNodes = 0;
+        *Nodes = NULL;
+        PhDeleteArray(&array);
+        return FALSE;
+    }
 }
 
+_Success_(return)
 BOOLEAN PhGetProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_SERVICE_ITEM** Services,

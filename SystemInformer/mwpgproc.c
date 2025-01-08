@@ -265,7 +265,7 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 }
 
 VOID PhMwpToggleSignedProcessTreeFilter(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     if (!SignedFilterEntry)
@@ -273,7 +273,7 @@ VOID PhMwpToggleSignedProcessTreeFilter(
         if (!PhEnableProcessQueryStage2)
         {
             PhShowInformation2(
-                PhMainWndHandle,
+                WindowHandle,
                 NULL,
                 L"This filter cannot function because digital signature checking is not enabled.\r\n%s",
                 L"Enable it in Options > General and restart System Informer."
@@ -969,6 +969,7 @@ PPH_EMENU PhpCreateProcessMenu(
 }
 
 VOID PhShowProcessContextMenu(
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
 {
@@ -993,7 +994,7 @@ VOID PhShowProcessContextMenu(
 
         if (PhPluginsEnabled)
         {
-            PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
+            PhPluginInitializeMenuInfo(&menuInfo, menu, WindowHandle, 0);
             menuInfo.u.Process.Processes = processes;
             menuInfo.u.Process.NumberOfProcesses = numberOfProcesses;
 
@@ -1002,7 +1003,7 @@ VOID PhShowProcessContextMenu(
 
         item = PhShowEMenu(
             menu,
-            PhMainWndHandle,
+            WindowHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
             ContextMenu->Location.x,
@@ -1019,7 +1020,7 @@ VOID PhShowProcessContextMenu(
                 handled = PhPluginTriggerEMenuItem(&menuInfo, item);
 
             if (!handled)
-                SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+                SendMessage(WindowHandle, WM_COMMAND, item->Id, 0);
         }
 
         PhDestroyEMenu(menu);

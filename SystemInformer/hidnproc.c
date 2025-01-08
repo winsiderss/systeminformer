@@ -571,13 +571,15 @@ BOOLEAN NTAPI PhpZombieProcessesCallback(
 
     if (entry->FileName)
         PhReferenceObject(entry->FileName);
-    if (entry->FileNameWin32)
-        PhReferenceObject(entry->FileNameWin32);
 
     PhAddItemList(ProcessesList, entry);
 
-    lvItemIndex = PhAddListViewItem(PhZombieProcessesListViewHandle, MAXINT,
-        PhGetStringOrDefault(entry->FileNameWin32, L"(unknown)"), entry);
+    lvItemIndex = PhAddListViewItem(
+        PhZombieProcessesListViewHandle,
+        MAXINT,
+        PhGetStringOrDefault(PH_AUTO(PhGetFileName(entry->FileName)), L"(unknown)"),
+        entry
+        );
     PhPrintUInt32(pidString, HandleToUlong(entry->ProcessId));
     PhSetListViewSubItem(PhZombieProcessesListViewHandle, lvItemIndex, 1, pidString);
 
@@ -596,53 +598,12 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
 {
     NTSTATUS status;
     PPH_PROCESS_ITEM processItem;
-    PPH_PROCESS_ITEM idleProcessItem;
     HANDLE processHandle;
-    PROCESS_BASIC_INFORMATION basicInfo;
-    KERNEL_USER_TIMES times;
-    UCHAR priorityClass;
-    PROCESS_HANDLE_INFORMATION handleInfo;
-    HANDLE processHandle2;
-    LONG dpiValue;
 
     if (Entry->Type == NormalProcess)
     {
-        processItem = PhReferenceProcessItem(Entry->ProcessId);
-
-        if (processItem)
+        if (processItem = PhReferenceProcessItem(Entry->ProcessId))
             return processItem;
-    }
-
-    processItem = PhCreateProcessItem(Entry->ProcessId);
-
-    // Mark the process as terminated if necessary.
-    if (Entry->Type == TerminatedProcess)
-        processItem->State |= PH_PROCESS_ITEM_REMOVED;
-
-    // We need a process record. Just use the record of System Idle Process.
-    if (idleProcessItem = PhReferenceProcessItem(SYSTEM_IDLE_PROCESS_ID))
-    {
-        processItem->Record = idleProcessItem->Record;
-        PhReferenceProcessRecord(processItem->Record);
-    }
-    else
-    {
-        PhDereferenceObject(processItem);
-        return NULL;
-    }
-
-    // Set up the file name and process name.
-
-    PhSwapReference(&processItem->FileName, Entry->FileName);
-    PhSwapReference(&processItem->FileNameWin32, Entry->FileNameWin32);
-
-    if (processItem->FileName)
-    {
-        processItem->ProcessName = PhGetBaseName(processItem->FileName);
-    }
-    else
-    {
-        processItem->ProcessName = PhCreateString(L"Unknown");
     }
 
     if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
@@ -664,97 +625,19 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
 
     if (NT_SUCCESS(status))
     {
-        // Basic information and not-so-dynamic information
-
-        processItem->QueryHandle = processHandle;
-
-        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
+        if (processItem = PhCreateProcessItemFromHandle(
+            Entry->ProcessId,
+            processHandle,
+            Entry->Type == TerminatedProcess
+            ))
         {
-            processItem->ParentProcessId = basicInfo.InheritedFromUniqueProcessId;
-            processItem->BasePriority = basicInfo.BasePriority;
+            return processItem;
         }
 
-        PhGetProcessSessionId(processHandle, &processItem->SessionId);
-
-        //PhPrintUInt32(processItem->ParentProcessIdString, HandleToUlong(processItem->ParentProcessId));
-        //PhPrintUInt32(processItem->SessionIdString, processItem->SessionId);
-
-        if (NT_SUCCESS(PhGetProcessTimes(processHandle, &times)))
-        {
-            processItem->CreateTime = times.CreateTime;
-            processItem->KernelTime = times.KernelTime;
-            processItem->UserTime = times.UserTime;
-        }
-
-        // TODO: Token information?
-
-        if (NT_SUCCESS(PhGetProcessPriorityClass(processHandle, &priorityClass)))
-        {
-            processItem->PriorityClass = priorityClass;
-        }
-
-        if (NT_SUCCESS(PhGetProcessHandleCount(processHandle, &handleInfo)))
-        {
-            processItem->NumberOfHandles = handleInfo.HandleCount;
-        }
+        NtClose(processHandle);
     }
 
-    // Stage 1
-    // Some copy and paste magic here...
-
-    if (processItem->FileName)
-    {
-        dpiValue = PhGetWindowDpi(WindowHandle);
-
-        // Small icon, large icon.
-        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, processItem->ProcessId, processItem->PackageFullName, dpiValue))
-        {
-            processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
-            processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
-        }
-
-        // Version info.
-        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
-    }
-
-    // Command line
-
-    status = PhOpenProcess(
-        &processHandle2,
-        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-        Entry->ProcessId
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        PPH_STRING commandLine;
-        SIZE_T i;
-
-        if (NT_SUCCESS(status = PhGetProcessCommandLine(processHandle2, &commandLine)))
-        {
-            // Some command lines (e.g. from taskeng.exe) have nulls in them.
-            // Since Windows can't display them, we'll replace them with
-            // spaces.
-            for (i = 0; i < commandLine->Length / sizeof(WCHAR); i++)
-            {
-                if (commandLine->Buffer[i] == UNICODE_NULL)
-                    commandLine->Buffer[i] = ' ';
-            }
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            processItem->CommandLine = commandLine;
-        }
-
-        NtClose(processHandle2);
-    }
-
-    // TODO: Other stage 1 tasks.
-
-    PhSetEvent(&processItem->Stage1Event);
-
-    return processItem;
+    return nullptr;
 }
 
 NTSTATUS PhpEnumZombieProcessesBruteForce(
@@ -811,7 +694,6 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 )))
             {
                 entry.FileName = fileName;
-                entry.FileNameWin32 = PhGetFileName(fileName);
 
                 if (times.ExitTime.QuadPart != 0)
                     entry.Type = TerminatedProcess;
@@ -823,7 +705,6 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileNameWin32);
                 PhDereferenceObject(entry.FileName);
             }
 
@@ -837,7 +718,6 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
             {
                 entry.ProcessId = UlongToHandle(pid);
                 entry.FileName = fileName;
-                entry.FileNameWin32 = PhGetFileName(fileName);
 
                 if (PhFindItemList(pids, UlongToHandle(pid)) != ULONG_MAX)
                     entry.Type = NormalProcess;
@@ -847,7 +727,6 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileNameWin32);
                 PhDereferenceObject(entry.FileName);
             }
         }
@@ -859,7 +738,6 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
         {
             entry.ProcessId = UlongToHandle(pid);
             entry.FileName = NULL;
-            entry.FileNameWin32 = NULL;
             entry.Type = UnknownProcess;
 
             if (!Callback(&entry, Context))
@@ -913,7 +791,6 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             )))
         {
             entry.FileName = fileName;
-            entry.FileNameWin32 = PhGetFileName(fileName);
 
             if (times.ExitTime.QuadPart != 0)
                 entry.Type = TerminatedProcess;
@@ -925,7 +802,6 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             if (context && !context->Callback(&entry, context->Context))
                 cont = FALSE;
 
-            PhDereferenceObject(entry.FileNameWin32);
             PhDereferenceObject(entry.FileName);
         }
 
@@ -935,7 +811,6 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
     if (!NT_SUCCESS(status))
     {
         entry.FileName = NULL;
-        entry.FileNameWin32 = NULL;
         entry.Type = UnknownProcess;
 
         if (context && !context->Callback(&entry, context->Context))
@@ -1015,7 +890,6 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                 if (NT_SUCCESS(PhGetProcessImageFileName(ProcessHandle, &fileName)))
                 {
                     entry.FileName = fileName;
-                    entry.FileNameWin32 = PhGetFileName(fileName);
                     entry.Type = ZombieProcess;
 
                     if (basicInfo.IsProcessDeleting)
@@ -1024,13 +898,11 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                     if (!context->Callback(&entry, Context))
                         goto CleanupExit;
 
-                    PhDereferenceObject(entry.FileNameWin32);
                     PhDereferenceObject(entry.FileName);
                 }
                 else
                 {
                     entry.FileName = NULL;
-                    entry.FileNameWin32 = NULL;
                     entry.Type = UnknownProcess;
 
                     if (!context->Callback(&entry, Context))
@@ -1139,7 +1011,6 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                             PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
                             process.FileName = fileName;
-                            process.FileNameWin32 = PhGetFileName(fileName);
                             process.Type = ZombieProcess;
 
                             if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1151,13 +1022,11 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                             if (!Callback(&process, Context))
                                 break;
 
-                            PhDereferenceObject(process.FileNameWin32);
                             PhDereferenceObject(process.FileName);
                         }
                         else
                         {
                             process.FileName = NULL;
-                            process.FileNameWin32 = NULL;
                             process.Type = UnknownProcess;
 
                             if (!Callback(&process, Context))
@@ -1180,19 +1049,16 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                 if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                 {
                     process.FileName = fileName;
-                    process.FileNameWin32 = PhGetFileName(fileName);
                     process.Type = ZombieProcess;
 
                     if (!Callback(&process, Context))
                         break;
 
-                    PhDereferenceObject(process.FileNameWin32);
                     PhDereferenceObject(process.FileName);
                 }
                 else
                 {
                     process.FileName = NULL;
-                    process.FileNameWin32 = NULL;
                     process.Type = UnknownProcess;
 
                     if (!Callback(&process, Context))
@@ -1279,7 +1145,6 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                     PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
                                     process.FileName = fileName;
-                                    process.FileNameWin32 = PhGetFileName(fileName);
                                     process.Type = ZombieProcess;
 
                                     if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1291,13 +1156,11 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                     if (!Callback(&process, Context))
                                         break;
 
-                                    PhDereferenceObject(process.FileNameWin32);
                                     PhDereferenceObject(process.FileName);
                                 }
                                 else
                                 {
                                     process.FileName = NULL;
-                                    process.FileNameWin32 = NULL;
                                     process.Type = UnknownProcess;
 
                                     if (!Callback(&process, Context))
@@ -1320,19 +1183,16 @@ NTSTATUS PhpEnumEtwGuidHandles(
                         if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                         {
                             process.FileName = fileName;
-                            process.FileNameWin32 = PhGetFileName(fileName);
                             process.Type = ZombieProcess;
 
                             if (!Callback(&process, Context))
                                 break;
 
-                            PhDereferenceObject(process.FileNameWin32);
                             PhDereferenceObject(process.FileName);
                         }
                         else
                         {
                             process.FileName = NULL;
-                            process.FileNameWin32 = NULL;
                             process.Type = UnknownProcess;
 
                             if (!Callback(&process, Context))
@@ -1421,7 +1281,6 @@ NTSTATUS PhpEnumNtdllHandles(
                                 PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
                                 process.FileName = fileName;
-                                process.FileNameWin32 = PhGetFileName(fileName);
                                 process.Type = ZombieProcess;
 
                                 if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1433,13 +1292,11 @@ NTSTATUS PhpEnumNtdllHandles(
                                 if (!Callback(&process, Context))
                                     break;
 
-                                PhDereferenceObject(process.FileNameWin32);
                                 PhDereferenceObject(process.FileName);
                             }
                             else
                             {
                                 process.FileName = NULL;
-                                process.FileNameWin32 = NULL;
                                 process.Type = UnknownProcess;
 
                                 if (!Callback(&process, Context))
@@ -1462,19 +1319,16 @@ NTSTATUS PhpEnumNtdllHandles(
                     if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                     {
                         process.FileName = fileName;
-                        process.FileNameWin32 = PhGetFileName(fileName);
                         process.Type = ZombieProcess;
 
                         if (!Callback(&process, Context))
                             break;
 
-                        PhDereferenceObject(process.FileNameWin32);
                         PhDereferenceObject(process.FileName);
                     }
                     else
                     {
                         process.FileName = NULL;
-                        process.FileNameWin32 = NULL;
                         process.Type = UnknownProcess;
 
                         if (!Callback(&process, Context))

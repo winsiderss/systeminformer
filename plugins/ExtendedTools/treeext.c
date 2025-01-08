@@ -670,9 +670,6 @@ VOID EtProcessTreeNewMessage(
         FLOAT decimal = 0;
         ULONG64 number = 0;
 
-        if (ProcessesUpdatedCount != 3)
-            return;
-
         switch (message->SubId)
         {
         case ETPRTNC_DISKREADS:
@@ -1358,6 +1355,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
     static INetFwMgr* manager = NULL;
     ET_FIREWALL_STATUS result;
     PPH_PROCESS_ITEM processItem;
+    PPH_STRING imageFileName;
     BSTR imageFileNameBStr;
     BSTR localAddressBStr;
     VARIANT allowed;
@@ -1377,15 +1375,16 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
     if (!processItem)
         return FirewallUnknownStatus;
 
-    if (!processItem->FileNameWin32)
+    if (!processItem->FileName)
     {
         PhDereferenceObject(processItem);
         return FirewallUnknownStatus;
     }
 
     result = FirewallUnknownStatus;
+    imageFileName = PhGetFileName(processItem->FileName);
 
-    if (imageFileNameBStr = SysAllocStringLen(processItem->FileNameWin32->Buffer, (ULONG)processItem->FileNameWin32->Length / sizeof(WCHAR)))
+    if (imageFileNameBStr = SysAllocStringLen(imageFileName->Buffer, (ULONG)imageFileName->Length / sizeof(WCHAR)))
     {
         localAddressBStr = NULL;
 
@@ -1428,6 +1427,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
         SysFreeString(imageFileNameBStr);
     }
 
+    PhDereferenceObject(imageFileName);
     PhDereferenceObject(processItem);
 
     return result;

@@ -780,44 +780,41 @@ NTSTATUS PhRunAsExecutionAlias(
     _In_ PPH_STRING Command
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PPH_STRING commandString;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     PPH_STRING fullFileName = NULL;
+    PPH_STRING commandString = NULL;
     PH_STRINGREF fileName;
     PH_STRINGREF arguments;
 
-    if (!(commandString = PhExpandEnvironmentStrings(&Command->sr)))
-        commandString = PhCreateString2(&Command->sr);
+    commandString = PhExpandEnvironmentStrings(&Command->sr);
+
+    if (PhIsNullOrEmptyString(commandString))
+    {
+        PhMoveReference(&fullFileName, PhCreateString2(&Command->sr));
+    }
 
     PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
 
     if (PhIsNullOrEmptyString(fullFileName))
+    {
         PhMoveReference(&fullFileName, PhCreateString2(&fileName));
-
-    if (PhIsNullOrEmptyString(fullFileName))
-    {
-        if (fullFileName) PhDereferenceObject(fullFileName);
-        if (commandString) PhDereferenceObject(commandString);
-        status = STATUS_NOT_IMPLEMENTED;
-        goto CleanupExit;
     }
 
-    // NOTE: The CreateProcess function will ignore PROC_THREAD_ATTRIBUTE_PARENT_PROCESS when redirecting execution
-    // of the filename via execution alias. The new process incorrectly inherits our elevated process token
-    // instead of using the non-elevated parent process. To work around the issue we execute the alias using the
-    // WdcRunTaskAsInteractiveUser function and also skip resetting the token and current directory. (dmex)
-
-    if (!PhIsAppExecutionAliasTarget(fullFileName))
+    if (!PhIsNullOrEmptyString(fullFileName))
     {
-        if (fullFileName) PhDereferenceObject(fullFileName);
-        if (commandString) PhDereferenceObject(commandString);
-        status = STATUS_NOT_IMPLEMENTED;
-        goto CleanupExit;
+        // NOTE: The CreateProcess function will ignore PROC_THREAD_ATTRIBUTE_PARENT_PROCESS when redirecting execution
+        // of the filename via execution alias. The new process incorrectly inherits our elevated process token
+        // instead of using the non-elevated parent process. To work around the issue we execute the alias using the
+        // WdcRunTaskAsInteractiveUser function and also skip resetting the token and current directory. (dmex)
+
+        if (PhIsAppExecutionAliasTarget(fullFileName))
+        {
+            status = STATUS_SUCCESS;
+        }
     }
 
-CleanupExit:
-    if (fullFileName) PhDereferenceObject(fullFileName);
-    if (commandString) PhDereferenceObject(commandString);
+    PhClearReference(&fullFileName);
+    PhClearReference(&commandString);
 
     return status;
 }
@@ -1177,11 +1174,9 @@ VOID PhRunAsExecuteCommmand(
     {
         if (ProcessId)
         {
-            if (NT_SUCCESS(PhRunAsExecutionAlias(program)))
-            {
-                status = STATUS_SUCCESS;
-            }
-            else
+            status = PhRunAsExecutionAlias(program);
+
+            if (!NT_SUCCESS(status))
             {
                 status = PhRunAsExecuteParentCommand(
                     Context->WindowHandle,
@@ -1223,7 +1218,8 @@ VOID PhRunAsExecuteCommmand(
                 PhShowError2(
                     Context->WindowHandle,
                     L"Unable to start the program.",
-                    L"Unable to start the execution alias with custom tokens."
+                    L"%s",
+                    L"Unable to start the execution alias with a process token."
                     );
             }
             else

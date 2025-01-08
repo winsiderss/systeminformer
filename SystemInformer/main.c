@@ -164,8 +164,6 @@ INT WINAPI wWinMain(
         }
         else
         {
-            AllowSetForegroundWindow(ASFW_ANY);
-
             if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
             {
                 PhActivatePreviousInstance();
@@ -495,12 +493,15 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
+        PROCESS_BASIC_INFORMATION basicInfo;
         PH_TOKEN_USER tokenUser;
         ULONG attempts = 50;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
             goto CleanupExit;
-        if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, objectInfo.ClientId.UniqueProcess)))
+        if (!NT_SUCCESS(PhOpenProcessClientId(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &objectInfo.ClientId)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
             goto CleanupExit;
         if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             goto CleanupExit;
@@ -509,6 +510,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
+        AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
         PhConsoleSetForeground(processHandle, TRUE);
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)

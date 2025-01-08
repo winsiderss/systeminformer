@@ -540,4 +540,11 @@ PhDuplicateProcessInformation(
     );
 // end_phapppub
 
+PPH_PROCESS_ITEM
+PhCreateProcessItemFromHandle(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN TerminatedProcess
+    );
+
 #endif
