@@ -2191,7 +2191,7 @@ NtCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ ULONG Count
+    _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
 NTSYSCALLAPI
