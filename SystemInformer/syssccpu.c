@@ -16,6 +16,13 @@
 #include <sysinfop.h>
 #include <procprv.h>
 #include <phsettings.h>
+#include <phfirmware.h>
+
+typedef struct _PH_CPU_CACHE_CALLBACK_CONTEXT
+{
+    USHORT Handle;
+    PULONG64 CacheSize;
+} PH_CPU_CACHE_CALLBACK_CONTEXT, *PPH_CPU_CACHE_CALLBACK_CONTEXT;
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -53,6 +60,97 @@ static HWND CpuPanelCoresLabel;
 static HWND CpuPanelSocketsLabel;
 static HWND CpuPanelLogicalLabel;
 static HWND CpuPanelLatencyLabel;
+static ULONG64 CpuL1CacheSize;
+static ULONG64 CpuL2CacheSize;
+static ULONG64 CpuL3CacheSize;
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI PhpSipCpuCacheSBIOSCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_CPU_CACHE_CALLBACK_CONTEXT context;
+    ULONG64 size;
+
+    assert(Context);
+
+    context = Context;
+
+    if (context->Handle != Entry->Header.Handle)
+        return FALSE;
+
+    assert(Entry->Header.Type == SMBIOS_CACHE_INFORMATION_TYPE);
+
+    size = 0;
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
+    {
+        if (Entry->Cache.InstalledSize.Value == MAXUSHORT &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
+        {
+            if (Entry->Cache.InstalledSize2.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
+        }
+        else
+        {
+            if (Entry->Cache.InstalledSize.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
+        }
+    }
+
+    *context->CacheSize = size;
+
+    return TRUE;
+}
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_CPU_CACHE_CALLBACK_CONTEXT cacheContext;
+
+    if (Entry->Header.Type != SMBIOS_PROCESSOR_INFORMATION_TYPE)
+        return FALSE;
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L1CacheHandle) &&
+        Entry->Processor.L1CacheHandle != SMBIOS_INVALID_HANDLE)
+    {
+        cacheContext.Handle = Entry->Processor.L1CacheHandle;
+        cacheContext.CacheSize = &CpuL1CacheSize;
+        PhEnumSMBIOS(PhpSipCpuCacheSBIOSCallback, &cacheContext);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L2CacheHandle) &&
+        Entry->Processor.L2CacheHandle != SMBIOS_INVALID_HANDLE)
+    {
+        cacheContext.Handle = Entry->Processor.L2CacheHandle;
+        cacheContext.CacheSize = &CpuL2CacheSize;
+        PhEnumSMBIOS(PhpSipCpuCacheSBIOSCallback, &cacheContext);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L3CacheHandle) &&
+        Entry->Processor.L3CacheHandle != SMBIOS_INVALID_HANDLE)
+    {
+        cacheContext.Handle = Entry->Processor.L3CacheHandle;
+        cacheContext.CacheSize = &CpuL3CacheSize;
+        PhEnumSMBIOS(PhpSipCpuCacheSBIOSCallback, &cacheContext);
+    }
+
+    return TRUE;
+}
 
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -66,6 +164,10 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoCreate:
         {
             CpuSection = Section;
+            CpuL1CacheSize = 0;
+            CpuL2CacheSize = 0;
+            CpuL3CacheSize = 0;
+            PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, NULL);
         }
         return TRUE;
     case SysInfoDestroy:
@@ -1031,6 +1133,15 @@ VOID PhSipUpdateCpuPanel(
     PH_FORMAT format[5];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
+
+    // Hardware
+
+    if (CpuTicked == 0)
+    {
+        PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, PhaFormatSize(CpuL1CacheSize, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, PhaFormatSize(CpuL2CacheSize, ULONG_MAX)->Buffer);
+        PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer);
+    }
 
     if (CurrentPerformanceDistribution && PreviousPerformanceDistribution)
     {
