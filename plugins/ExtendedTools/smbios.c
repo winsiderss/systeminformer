@@ -10,7 +10,9 @@
  */
 
 #include "exttools.h"
-#include "phfirmware.h"
+
+#include <phfirmware.h>
+#include <secedit.h>
 
 typedef struct _SMBIOS_WINDOW_CONTEXT
 {
@@ -21,37 +23,155 @@ typedef struct _SMBIOS_WINDOW_CONTEXT
 
     BOOLEAN ShowUndefinedTypes;
 
-    ULONG Groups;
-    ULONG Index;
+    ULONG GroupCounter;
+    ULONG IndexCounter;
 } SMBIOS_WINDOW_CONTEXT, *PSMBIOS_WINDOW_CONTEXT;
 
-#define ET_SMBIOS_GROUP(g)                                                     \
-ULONG group = Context->Groups++;                                               \
-ULONG index;                                                                   \
-WCHAR buffer[PH_INT64_STR_LEN_1];                                              \
-PhAddListViewGroup(Context->ListViewHandle, group, g);
+ULONG EtAddSMBIOSGroup(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ PWSTR Name
+    )
+{
+    ULONG group = Context->GroupCounter++;
+    PhAddListViewGroup(Context->ListViewHandle, group, Name);
+    return group;
+}
 
-#define ET_SMBIOS_ITEM(n, s)                                                   \
-index = Context->Index++;                                                      \
-PhAddListViewGroupItem(Context->ListViewHandle, group, index, n, NULL);        \
-PhSetListViewSubItem(Context->ListViewHandle, index, 1, s);
+VOID EtAddSMBIOSItem(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_ PWSTR Value
+    )
+{
+    ULONG index = Context->IndexCounter++;
+    PhAddListViewGroupItem(Context->ListViewHandle, Group, index, Name, NULL);
+    PhSetListViewSubItem(Context->ListViewHandle, index, 1, Value);
+}
 
-#define ET_SMBIOS_ITEM_UINT32(n, v)                                            \
-PhPrintUInt32(buffer, v);                                                      \
-ET_SMBIOS_ITEM(n, buffer)
+VOID EtAddSMBIOSUInt32(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_ ULONG Value
+    )
+{
+    WCHAR buffer[PH_INT32_STR_LEN_1];
 
-#define ET_SMBIOS_ITEM_UINT32IX(n, v)                                          \
-PhPrintUInt32IX(buffer, v);                                                    \
-ET_SMBIOS_ITEM(n, buffer)
+    PhPrintUInt32(buffer, Value);
+    EtAddSMBIOSItem(Context, Group, Name, buffer);
+}
+
+VOID EtAddSMBIOSUInt32IX(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_ ULONG Value
+    )
+{
+    WCHAR buffer[PH_PTR_STR_LEN_1];
+
+    PhPrintUInt32IX(buffer, Value);
+    EtAddSMBIOSItem(Context, Group, Name, buffer);
+}
+
+VOID EtAddSMBIOSString(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR Index
+    )
+{
+    PPH_STRING string;
+
+    PhGetSMBIOSString(EnumHandle, Index, &string);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
+VOID EtAddSMBIOSSize(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_ ULONG64 Size
+    )
+{
+    PPH_STRING string;
+
+    string = PhFormatSize(Size, ULONG_MAX);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
+VOID EtAddSMBIOSFlags(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PWSTR Name,
+    _In_opt_ const PH_ACCESS_ENTRY* EntriesLow,
+    _In_ ULONG CountLow,
+    _In_opt_ const PH_ACCESS_ENTRY* EntriesHigh,
+    _In_ ULONG CountHigh,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format[4];
+    PPH_STRING string;
+    PPH_STRING low;
+    PPH_STRING high;
+
+    if (EntriesLow && CountLow)
+        low = PhGetAccessString((ULONG)Value, (PPH_ACCESS_ENTRY)EntriesLow, CountLow);
+    else
+        low = PhReferenceEmptyString();
+
+    if (EntriesHigh && CountHigh)
+        high = PhGetAccessString((ULONG)(Value >> 32), (PPH_ACCESS_ENTRY)EntriesHigh, CountHigh);
+    else
+        high = PhReferenceEmptyString();
+
+    if (low->Length && high->Length)
+    {
+        PhInitFormatSR(&format[0], low->sr);
+        PhInitFormatS(&format[1], L", ");
+        PhInitFormatSR(&format[2], high->sr);
+        string = PhFormat(format, 3, 10);
+    }
+    else if (low->Length)
+    {
+        string = PhReferenceObject(low);
+    }
+    else
+    {
+        string = PhReferenceObject(high);
+    }
+
+    PhInitFormatSR(&format[0], string->sr);
+    PhInitFormatS(&format[1], L" (0x");
+    PhInitFormatI64X(&format[2], Value);
+    PhInitFormatS(&format[3], L")");
+
+    PhMoveReference(&string, PhFormat(format, 4, 10));
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+
+    PhDereferenceObject(low);
+    PhDereferenceObject(high);
+}
+
+#define ET_SMBIOS_GROUP(n)              ULONG group = EtAddSMBIOSGroup(Context, n)
+#define ET_SMBIOS_UINT32(n, v)          EtAddSMBIOSUInt32(Context, group, n, v)
+#define ET_SMBIOS_UINT32IX(n, v)        EtAddSMBIOSUInt32IX(Context, group, n, v)
+#define ET_SMBIOS_STRING(n, v)          EtAddSMBIOSString(Context, group, n, EnumHandle, v)
+#define ET_SMBIOS_SIZE(n, v)            EtAddSMBIOSSize(Context, group, n, v)
+#define ET_SMBIOS_FLAG(x, n)            { TEXT(#x), x, FALSE, FALSE, n }
+#define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), NULL, 0, v)
+#define ET_SMBIOS_FLAGS64(n, v, fl, fh) EtAddSMBIOSFlags(Context, group, n, fl, RTL_NUMBER_OF(fl), fh, RTL_NUMBER_OF(fh), v)
 
 #ifdef DEBUG // WIP(jxy-s)
-#define ET_SMBIOS_TODO()                                                       \
-    ET_SMBIOS_ITEM(L"TODO", L"")                                               \
-    DBG_UNREFERENCED_LOCAL_VARIABLE(buffer)
+#define ET_SMBIOS_TODO() EtAddSMBIOSItem(Context, group, L"TODO", L"")
 #else
-#define ET_SMBIOS_TODO()                                                       \
-    DBG_UNREFERENCED_LOCAL_VARIABLE(index);                                    \
-    DBG_UNREFERENCED_LOCAL_VARIABLE(buffer)
+#define ET_SMBIOS_TODO() DBG_UNREFERENCED_LOCAL_VARIABLE(group)
 #endif
 
 VOID EtSMBIOSFirmware(
@@ -539,9 +659,9 @@ VOID EtSMBIOSUndefinedType(
         PhInitFormatU(&format[1], Entry->Header.Type);
         type = PhFormat(format, 2, 10);
 
-        ET_SMBIOS_GROUP(type->Buffer);
-        ET_SMBIOS_ITEM_UINT32(L"Length", Entry->Header.Length);
-        ET_SMBIOS_ITEM_UINT32IX(L"Handle", Entry->Header.Handle);
+        ET_SMBIOS_GROUP(PhGetString(type));
+        ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+        ET_SMBIOS_UINT32(L"Length", Entry->Header.Length);
 
         PhDereferenceObject(type);
     }
