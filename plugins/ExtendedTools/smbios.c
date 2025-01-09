@@ -903,7 +903,6 @@ VOID EtSMBIOSMemoryController(
         ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_DIMM, L"DIMM"),
         ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_BURST_EDO, L"Burst EDO"),
         ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_SDRAM, L"SDRAM"),
-        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_RESERVED, L"Reserved"),
     };
 
     ET_SMBIOS_GROUP(L"Memory controller");
@@ -1006,8 +1005,113 @@ VOID EtSMBIOSMemoryModule(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_ACCESS_ENTRY types[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_STANDARD, L"Standard"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_FAST_PAGE_MODE, L"Fast-page mode"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_EDO, L"EDO"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_PARITY, L"Parity"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_ECC, L"ECC"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_SIMM, L"SIMM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_DIMM, L"DIMM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_BURST_EDO, L"Burst EDO"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_SDRAM, L"SDRAM"),
+    };
+
     ET_SMBIOS_GROUP(L"Memory module");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryModule, SocketDesignation))
+        ET_SMBIOS_STRING(L"Socket designation", Entry->MemoryModule.SocketDesignation);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, BankConnections))
+        ET_SMBIOS_UINT32IX(L"Bank connections", Entry->MemoryModule.BankConnections);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, CurrentSpeed))
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->MemoryModule.CurrentSpeed);
+        PhInitFormatS(&format[1], L" ns");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Current speed", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, MemoryType))
+        ET_SMBIOS_FLAGS(L"Memory type", Entry->MemoryModule.MemoryType, types);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, InstalledSize))
+    {
+        PPH_STRING string;
+
+        if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_DETERMINABLE)
+            string = PhCreateString(L"Not determinable");
+        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_ENABLED)
+            string = PhCreateString(L"Not enabled");
+        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_INSTALLED)
+            string = PhCreateString(L"Not installed");
+        else
+            string = PhFormatSize(1ULL << Entry->MemoryModule.InstalledSize.Size, ULONG_MAX);
+
+        if (Entry->MemoryModule.InstalledSize.DoubleBank)
+            PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L", double-bank"));
+
+        EtAddSMBIOSItem(Context, group, L"Installed size", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, EnabledSize))
+    {
+        PPH_STRING string;
+
+        if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_DETERMINABLE)
+            string = PhCreateString(L"Not determinable");
+        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_ENABLED)
+            string = PhCreateString(L"Not enabled");
+        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_INSTALLED)
+            string = PhCreateString(L"Not installed");
+        else
+            string = PhFormatSize(1ULL << Entry->MemoryModule.EnabledSize.Size, ULONG_MAX);
+
+        if (Entry->MemoryModule.EnabledSize.DoubleBank)
+            PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L", double-bank"));
+
+        EtAddSMBIOSItem(Context, group, L"Enabled size", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, ErrorStatus) &&
+        Entry->MemoryModule.ErrorStatus.Value != 0)
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        if (Entry->MemoryModule.ErrorStatus.UncorrectableErrors)
+            PhAppendStringBuilder2(&sb, L"Uncorrectable errors");
+        if (Entry->MemoryModule.ErrorStatus.CorrectableErrors)
+            PhAppendStringBuilder2(&sb, L"Correctable errors");
+        if (Entry->MemoryModule.ErrorStatus.SeeEventLog)
+            PhAppendStringBuilder2(&sb, L"See event log");
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        EtAddSMBIOSItem(Context, group, L"Error status", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSCache(
