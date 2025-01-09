@@ -49,6 +49,16 @@ VOID EtAddSMBIOSItem(
     PhSetListViewSubItem(Context->ListViewHandle, index, 1, Value);
 }
 
+VOID EtAddSMBIOSBoolean(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN Value
+    )
+{
+    EtAddSMBIOSItem(Context, Group, Name, Value ? L"true" : L"false");
+}
+
 VOID EtAddSMBIOSUInt32(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
@@ -177,6 +187,7 @@ VOID EtAddSMBIOSEnum(
 }
 
 #define ET_SMBIOS_GROUP(n)              ULONG group = EtAddSMBIOSGroup(Context, n)
+#define ET_SMBIOS_BOOLEAN(n, v)         EtAddSMBIOSBoolean(Context, group, n, v)
 #define ET_SMBIOS_UINT32(n, v)          EtAddSMBIOSUInt32(Context, group, n, v)
 #define ET_SMBIOS_UINT32IX(n, v)        EtAddSMBIOSUInt32IX(Context, group, n, v)
 #define ET_SMBIOS_STRING(n, v)          EtAddSMBIOSString(Context, group, n, EnumHandle, v)
