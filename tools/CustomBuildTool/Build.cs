@@ -172,13 +172,13 @@ namespace CustomBuildTool
 
         public static string BuildVersionBuild
         {
-            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}"; }
+            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}".TrimStart('0'); }
         }
 
         public static string BuildVersionRevision
         {
             // Remove leading zeros or the value is interpreted as octal.
-            get { return $"{TimeStart.Hour}{TimeStart.Minute}".TrimStart('0'); }
+            get { return $"{TimeStart.Hour}{TimeStart.Minute:D2}".TrimStart('0'); }
         }
 
         public static string BuildUpdated
@@ -1371,7 +1371,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void CleanupBuildEnvironment()
+        public static bool CleanupBuildEnvironment()
         {
             try
             {
@@ -1475,6 +1475,8 @@ namespace CustomBuildTool
             {
                 Program.PrintColorMessage($"[Cleanup] {ex}", ConsoleColor.Red);
             }
+
+            return true;
         }
 
         public static void ReflowExportDefinitions(bool ReleaseBuild)
@@ -1611,7 +1613,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                File.Delete("SystemInformer\\SystemInformer.bak");
+                File.Delete("SystemInformer\\SystemInformer-original.def");
             }
         }
 
