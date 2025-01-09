@@ -296,7 +296,7 @@ typedef struct _SMBIOS_CHASSIS_INFORMATION
 
     UCHAR Version;            // string
     UCHAR SerialNumber;       // string
-    UCHAR AssestTag;          // string
+    UCHAR AssetTag;           // string
     // 2.1+
     UCHAR BootUpState;        // SMBIOS_CHASSIS_STATE_*
     UCHAR PowerSupplyState;   // SMBIOS_CHASSIS_STATE_*
@@ -401,12 +401,12 @@ typedef struct _SMBIOS_PROCESSOR_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.0+
-    UCHAR Designation;     // string
-    UCHAR Type;            // SMBIOS_PROCESSOR_TYPE_*
-    UCHAR Family;          // SMBIOS_PROCESSOR_FAMILY_*
-    UCHAR Manufacturer;    // string
+    UCHAR SocketDesignation; // string
+    UCHAR Type;              // SMBIOS_PROCESSOR_TYPE_*
+    UCHAR Family;            // SMBIOS_PROCESSOR_FAMILY_*
+    UCHAR Manufacturer;      // string
     ULONGLONG Identifier;
-    UCHAR Version;         // string
+    UCHAR Version;           // string
 
     union
     {
@@ -414,7 +414,7 @@ typedef struct _SMBIOS_PROCESSOR_INFORMATION
         {
             UCHAR Capable5000mV : 1; // 5V
             UCHAR Capable3500mV : 1; // 3.3V
-            UCHAR Capable3900mV : 1; // 2.9V
+            UCHAR Capable2900mV : 1; // 2.9V
             UCHAR Reserved : 4;
             UCHAR Mode : 1;          // 0 = Legacy Mode
         };
@@ -838,7 +838,7 @@ C_ASSERT(sizeof(SMBIOS_PROCESSOR_INFORMATION) == 0x33);
 
 #define SMBIOS_PROCESSOR_FLAG_RESERVED                  ((USHORT)0x0001)
 #define SMBIOS_PROCESSOR_FLAG_UNKNOWN                   ((USHORT)0x0002)
-#define SMBIOS_PROCESSOR_FLAG_64_BIT                    ((USHORT)0x0004)
+#define SMBIOS_PROCESSOR_FLAG_64_BIT_CAPABLE            ((USHORT)0x0004)
 #define SMBIOS_PROCESSOR_FLAG_MILT_CORE                 ((USHORT)0x0008)
 #define SMBIOS_PROCESSOR_FLAG_HARDWARE_THREADED         ((USHORT)0x0010)
 #define SMBIOS_PROCESSOR_FLAG_EXECUTE_PROTECTION        ((USHORT)0x0020)
@@ -872,7 +872,7 @@ typedef struct _SMBIOS_MEMORY_CONTROLLER_INFORMATION
         {
             UCHAR Requires5000mV : 1; // 5V
             UCHAR Requires3500mV : 1; // 3.3V
-            UCHAR Requires3900mV : 1; // 2.9V
+            UCHAR Requires2900mV : 1; // 2.9V
             UCHAR Reserved : 5;
         };
 
@@ -1014,7 +1014,7 @@ typedef struct _SMBIOS_CACHE_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.0+
-    UCHAR Designation;          // string
+    UCHAR SocketDesignation;      // string
 
     union
     {
@@ -1117,15 +1117,15 @@ C_ASSERT(sizeof(SMBIOS_PORT_CONNECTOR_INFORMATION) == 0x9);
 #define SMBIOS_PORT_CONNECTOR_TYPE_CENTRONICS              ((UCHAR)1)
 #define SMBIOS_PORT_CONNECTOR_TYPE_MINI_CENTRONICS         ((UCHAR)2)
 #define SMBIOS_PORT_CONNECTOR_TYPE_PROPRIETARY             ((UCHAR)3)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_MIN_MALE          ((UCHAR)4)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_MIN_FEMALE        ((UCHAR)5)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_MIN_MALE          ((UCHAR)6)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_MIN_FEMALE        ((UCHAR)7)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_MIN_MALE           ((UCHAR)8)
-#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_MIN_FEMALE         ((UCHAR)9)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_PIN_MALE          ((UCHAR)4)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_PIN_FEMALE        ((UCHAR)5)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_PIN_MALE          ((UCHAR)6)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_PIN_FEMALE        ((UCHAR)7)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_PIN_MALE           ((UCHAR)8)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_PIN_FEMALE         ((UCHAR)9)
 #define SMBIOS_PORT_CONNECTOR_TYPE_RJ_11                   ((UCHAR)10)
 #define SMBIOS_PORT_CONNECTOR_TYPE_RJ_54                   ((UCHAR)11)
-#define SMBIOS_PORT_CONNECTOR_TYPE_50_MIN_MINI_SCSI        ((UCHAR)12)
+#define SMBIOS_PORT_CONNECTOR_TYPE_50_PIN_MINI_SCSI        ((UCHAR)12)
 #define SMBIOS_PORT_CONNECTOR_TYPE_MINI_DIN                ((UCHAR)13)
 #define SMBIOS_PORT_CONNECTOR_TYPE_MICRO_DIN               ((UCHAR)14)
 #define SMBIOS_PORT_CONNECTOR_TYPE_PS2                     ((UCHAR)15)
