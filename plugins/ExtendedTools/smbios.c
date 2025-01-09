@@ -478,8 +478,144 @@ VOID EtSMBIOSChassis(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR chassisTypes[] =
+    {
+        SIP(L"Other", SMBIOS_CHASSIS_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_CHASSIS_TYPE_UNKNOWN),
+        SIP(L"Desktop", SMBIOS_CHASSIS_TYPE_DESKTOP),
+        SIP(L"Low-profile desktop", SMBIOS_CHASSIS_TYPE_LOW_PROFILE_DESKTOP),
+        SIP(L"Pizza box", SMBIOS_CHASSIS_TYPE_PIZZA_BOX),
+        SIP(L"Mini tower", SMBIOS_CHASSIS_TYPE_MINI_TOWER),
+        SIP(L"Tower", SMBIOS_CHASSIS_TYPE_TOWER),
+        SIP(L"Portable", SMBIOS_CHASSIS_TYPE_PORTABLE),
+        SIP(L"Laptop", SMBIOS_CHASSIS_TYPE_LAPTOP),
+        SIP(L"Notebook", SMBIOS_CHASSIS_TYPE_NOTEBOOK),
+        SIP(L"Hand held", SMBIOS_CHASSIS_TYPE_HAND_HELD),
+        SIP(L"Docking station", SMBIOS_CHASSIS_TYPE_DOCKING_STATION),
+        SIP(L"All-in-one", SMBIOS_CHASSIS_TYPE_ALL_IN_ONE),
+        SIP(L"Sub notebook", SMBIOS_CHASSIS_TYPE_SUB_NOTEBOOK),
+        SIP(L"Space saving", SMBIOS_CHASSIS_TYPE_SPACE_SAVING),
+        SIP(L"Lunch box", SMBIOS_CHASSIS_TYPE_LUNCH_BOX),
+        SIP(L"Main server", SMBIOS_CHASSIS_TYPE_MAIN_SERVER),
+        SIP(L"Expansion", SMBIOS_CHASSIS_TYPE_EXPANSION),
+        SIP(L"Sub chassis", SMBIOS_CHASSIS_TYPE_SUB),
+        SIP(L"Bus expansion", SMBIOS_CHASSIS_TYPE_BUS_EXPANSION),
+        SIP(L"Peripheral", SMBIOS_CHASSIS_TYPE_PERIPHERAL),
+        SIP(L"RAID", SMBIOS_CHASSIS_TYPE_RAID),
+        SIP(L"Rack mount", SMBIOS_CHASSIS_TYPE_RACK_MOUNT),
+        SIP(L"Sealed-case", SMBIOS_CHASSIS_TYPE_SEALED_CASE_PC),
+        SIP(L"Multi-system", SMBIOS_CHASSIS_TYPE_MULTI_SYSTEM),
+        SIP(L"Compact PCI", SMBIOS_CHASSIS_TYPE_COMPACT_PCI),
+        SIP(L"Advanced TCA", SMBIOS_CHASSIS_TYPE_ADVANCED_TCA),
+        SIP(L"Blade", SMBIOS_CHASSIS_TYPE_BLADE),
+        SIP(L"Blade enclosure", SMBIOS_CHASSIS_TYPE_BLADE_ENCLOSURE),
+        SIP(L"Tablet", SMBIOS_CHASSIS_TYPE_TABLET),
+        SIP(L"Convertible", SMBIOS_CHASSIS_TYPE_CONVERTIBLE),
+        SIP(L"Detachable", SMBIOS_CHASSIS_TYPE_DETACHABLE),
+        SIP(L"Gateway", SMBIOS_CHASSIS_TYPE_IOT_GATEWAY),
+        SIP(L"Embedded", SMBIOS_CHASSIS_TYPE_EMBEDDED_PC),
+        SIP(L"Mini", SMBIOS_CHASSIS_TYPE_MINI_PC),
+        SIP(L"Sick", SMBIOS_CHASSIS_TYPE_STICK_PC),
+    };
+
+    static const PH_KEY_VALUE_PAIR chassisStates[] =
+    {
+        SIP(L"Other", SMBIOS_CHASSIS_STATE_OTHER),
+        SIP(L"Unknown", SMBIOS_CHASSIS_STATE_UNKNOWN),
+        SIP(L"Safe", SMBIOS_CHASSIS_STATE_SAFE),
+        SIP(L"Warning", SMBIOS_CHASSIS_STATE_WARNING),
+        SIP(L"Critical", SMBIOS_CHASSIS_STATE_CRITICAL),
+        SIP(L"Non-recoverable", SMBIOS_CHASSIS_STATE_NON_RECOVERABLE),
+    };
+
+    static const PH_KEY_VALUE_PAIR securityStates[] =
+    {
+        SIP(L"Other", SMBIOS_CHASSIS_SECURITY_STATE_OTHER),
+        SIP(L"Unknown", SMBIOS_CHASSIS_SECURITY_STATE_UNKNOWN),
+        SIP(L"None", SMBIOS_CHASSIS_SECURITY_STATE_NONE),
+        SIP(L"Locked out", SMBIOS_CHASSIS_SECURITY_STATE_LOCKED_OUT),
+        SIP(L"Enabled", SMBIOS_CHASSIS_SECURITY_STATE_ENABLED),
+    };
+
     ET_SMBIOS_GROUP(L"Chassis");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Chassis, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->Chassis.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, Chassis))
+    {
+        ET_SMBIOS_ENUM(L"Type", Entry->Chassis.Chassis.Type, chassisTypes);
+        ET_SMBIOS_BOOLEAN(L"Locked", !!Entry->Chassis.Chassis.Locked);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Chassis, Version))
+        ET_SMBIOS_STRING(L"Version", Entry->Chassis.Version);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Chassis, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->Chassis.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Chassis, AssetTag))
+        ET_SMBIOS_STRING(L"Asset tag", Entry->Chassis.AssetTag);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, BootUpState))
+        ET_SMBIOS_ENUM(L"Boot-up state", Entry->Chassis.BootUpState, chassisStates);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, PowerSupplyState))
+        ET_SMBIOS_ENUM(L"Power supply state", Entry->Chassis.PowerSupplyState, chassisStates);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, ThermalState))
+        ET_SMBIOS_ENUM(L"Thermal state", Entry->Chassis.ThermalState, chassisStates);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, SecurityState))
+        ET_SMBIOS_ENUM(L"Security state", Entry->Chassis.SecurityState, securityStates);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, OEMDefined) &&
+        Entry->Chassis.OEMDefined != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"OEM defined", Entry->Chassis.OEMDefined);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, Height) &&
+        Entry->Chassis.Height != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->Chassis.Height);
+        PhInitFormatC(&format[1], L'U');
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Height", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, NumberOfPowerCords) &&
+        Entry->Chassis.NumberOfPowerCords != 0)
+    {
+        ET_SMBIOS_UINT32(L"Number of power cords", Entry->Chassis.NumberOfPowerCords);
+    }
+
+    // TODO contained elements - SMBIOS_CHASSIS_CONTAINED_ELEMENT
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, ElementLength))
+        return;
+
+    // PSMBIOS_CHASSIS_INFORMATION_EX
+
+    ULONG length;
+    PSMBIOS_CHASSIS_INFORMATION_EX extended = NULL;
+
+    length = RTL_SIZEOF_THROUGH_FIELD(SMBIOS_CHASSIS_INFORMATION, ElementLength);
+    length += Entry->Chassis.ElementCount * Entry->Chassis.ElementLength;
+
+    if (Entry->Header.Length <= length)
+        return;
+
+    extended = PTR_ADD_OFFSET(Entry, length);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_CHASSIS_INFORMATION_EX, SKUNumber)))
+        ET_SMBIOS_STRING(L"SKU number", extended->SKUNumber);
 }
 
 VOID EtSMBIOSProcessor(
