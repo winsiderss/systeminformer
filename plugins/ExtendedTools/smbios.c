@@ -318,8 +318,56 @@ VOID EtSMBIOSSystem(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    const PH_KEY_VALUE_PAIR wakeUpTimes[] =
+    {
+        SIP(L"Reserved", SMBIOS_SYSTEM_WAKE_UP_TYPE_RESERVED),
+        SIP(L"Other", SMBIOS_SYSTEM_WAKE_UP_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_WAKE_UP_UNKNOWN),
+        SIP(L"APM timer", SMBIOS_SYSTEM_WAKE_UP_APM_TIMER),
+        SIP(L"Modem ring", SMBIOS_SYSTEM_WAKE_UP_MODEM_RING),
+        SIP(L"LAN remote", SMBIOS_SYSTEM_WAKE_UP_LAN_REMOTE),
+        SIP(L"Power switch", SMBIOS_SYSTEM_WAKE_UP_POWER_SWITCH),
+        SIP(L"PCI PME", SMBIOS_SYSTEM_WAKE_UP_PCI_PME),
+        SIP(L"AC power restored", SMBIOS_SYSTEM_WAKE_UP_AC_POWER_RESTORED),
+    };
+
     ET_SMBIOS_GROUP(L"System");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->System.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
+        ET_SMBIOS_STRING(L"Product name", Entry->System.ProductName);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
+        ET_SMBIOS_STRING(L"Product name", Entry->System.ProductName);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Version))
+        ET_SMBIOS_STRING(L"Version", Entry->System.Version);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->System.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, System, UniqueID))
+    {
+        PPH_STRING string;
+
+        string = PhFormatGuid(&Entry->System.UniqueID);
+        EtAddSMBIOSItem(Context, group, L"UUID", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, System, WakeUpType))
+        ET_SMBIOS_ENUM(L"Wake-up type", Entry->System.WakeUpType, wakeUpTimes);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, SKUNumber))
+        ET_SMBIOS_STRING(L"SKU number", Entry->System.SKUNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Family))
+        ET_SMBIOS_STRING(L"Family", Entry->System.Family);
+
 }
 
 VOID EtSMBIOSBaseboard(
