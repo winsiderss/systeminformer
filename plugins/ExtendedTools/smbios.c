@@ -29,7 +29,7 @@ typedef struct _SMBIOS_WINDOW_CONTEXT
 
 ULONG EtAddSMBIOSGroup(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
-    _In_ PWSTR Name
+    _In_ PCWSTR Name
     )
 {
     ULONG group = Context->GroupCounter++;
@@ -40,8 +40,8 @@ ULONG EtAddSMBIOSGroup(
 VOID EtAddSMBIOSItem(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
-    _In_ PWSTR Value
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Value
     )
 {
     ULONG index = Context->IndexCounter++;
@@ -52,7 +52,7 @@ VOID EtAddSMBIOSItem(
 VOID EtAddSMBIOSUInt32(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Value
     )
 {
@@ -65,7 +65,7 @@ VOID EtAddSMBIOSUInt32(
 VOID EtAddSMBIOSUInt32IX(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG Value
     )
 {
@@ -78,7 +78,7 @@ VOID EtAddSMBIOSUInt32IX(
 VOID EtAddSMBIOSString(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG_PTR EnumHandle,
     _In_ UCHAR Index
     )
@@ -93,7 +93,7 @@ VOID EtAddSMBIOSString(
 VOID EtAddSMBIOSSize(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ ULONG64 Size
     )
 {
@@ -107,7 +107,7 @@ VOID EtAddSMBIOSSize(
 VOID EtAddSMBIOSFlags(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_opt_ const PH_ACCESS_ENTRY* EntriesLow,
     _In_ ULONG CountLow,
     _In_opt_ const PH_ACCESS_ENTRY* EntriesHigh,
@@ -159,6 +159,23 @@ VOID EtAddSMBIOSFlags(
     PhDereferenceObject(high);
 }
 
+VOID EtAddSMBIOSEnum(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PCWSTR Name,
+    _In_ PPCH_KEY_VALUE_PAIR Values,
+    _In_ ULONG SizeOfValues,
+    _In_ ULONG Value
+    )
+{
+    PCWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(Values, SizeOfValues, Value, &string))
+        EtAddSMBIOSItem(Context, Group, Name, string);
+    else
+        EtAddSMBIOSItem(Context, Group, Name, L"Undefined");
+}
+
 #define ET_SMBIOS_GROUP(n)              ULONG group = EtAddSMBIOSGroup(Context, n)
 #define ET_SMBIOS_UINT32(n, v)          EtAddSMBIOSUInt32(Context, group, n, v)
 #define ET_SMBIOS_UINT32IX(n, v)        EtAddSMBIOSUInt32IX(Context, group, n, v)
@@ -167,6 +184,7 @@ VOID EtAddSMBIOSFlags(
 #define ET_SMBIOS_FLAG(x, n)            { TEXT(#x), x, FALSE, FALSE, n }
 #define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), NULL, 0, v)
 #define ET_SMBIOS_FLAGS64(n, v, fl, fh) EtAddSMBIOSFlags(Context, group, n, fl, RTL_NUMBER_OF(fl), fh, RTL_NUMBER_OF(fh), v)
+#define ET_SMBIOS_ENUM(n, v, e)         EtAddSMBIOSEnum(Context, group, n, e, sizeof(e), v);
 
 #ifdef DEBUG // WIP(jxy-s)
 #define ET_SMBIOS_TODO() EtAddSMBIOSItem(Context, group, L"TODO", L"")
