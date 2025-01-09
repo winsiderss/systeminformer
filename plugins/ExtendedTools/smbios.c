@@ -624,8 +624,223 @@ VOID EtSMBIOSProcessor(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR processorTypes[] =
+    {
+        SIP(L"Other", SMBIOS_PROCESSOR_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_PROCESSOR_TYPE_UNKNOWN),
+        SIP(L"Central", SMBIOS_PROCESSOR_TYPE_CENTRAL),
+        SIP(L"Math", SMBIOS_PROCESSOR_TYPE_MATH),
+        SIP(L"DSP", SMBIOS_PROCESSOR_TYPE_DSP),
+        SIP(L"Video", SMBIOS_PROCESSOR_TYPE_VIDEO),
+    };
+
+    static const PH_KEY_VALUE_PAIR processorStatus[] =
+    {
+        SIP(L"Unknown", SMBIOS_PROCESSOR_STATUS_UNKNOWN),
+        SIP(L"Enabled", SMBIOS_PROCESSOR_STATUS_ENABLED),
+        SIP(L"Disabled by user", SMBIOS_PROCESSOR_STATUS_DISABLED_BY_USER),
+        SIP(L"Disabled by firmware", SMBIOS_PROCESSOR_STATUS_DISABLED_BY_FIRMWARE),
+        SIP(L"Idle", SMBIOS_PROCESSOR_STATUS_IDLE),
+        SIP(L"Other", SMBIOS_PROCESSOR_STATUS_OTHER),
+    };
+
+    static const PH_ACCESS_ENTRY characteristics[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_64_BIT_CAPABLE, L"64-bit capable"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_MILT_CORE, L"Multi-core"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_HARDWARE_THREADED, L"Hardware threaded"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_EXECUTE_PROTECTION, L"Execute protection"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_ENHANCED_VIRTUALIZATION, L"Enhanced virtualization"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_POWER_PERFORMANCE_CONTROL, L"Power performance control"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_128_BIT_CAPABLE, L"128-bit capable"),
+        ET_SMBIOS_FLAG(SMBIOS_PROCESSOR_FLAG_ARM64_SOC, L"ARM64 SOC"),
+    };
+
     ET_SMBIOS_GROUP(L"Processor");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, SocketDesignation))
+        ET_SMBIOS_STRING(L"Socket designation", Entry->Processor.SocketDesignation);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->Processor.Type, processorTypes);
+
+    //if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Family)
+    //    ET_SMBIOS_ENUM(L"Family", Entry->Processor.Family, processorFamilies);
+    //    ET_SMBIOS_ENUM(L"Family", Entry->Processor.Family2, processorFamilies);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->Processor.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Identifier))
+    {
+        PH_FORMAT format;
+        PPH_STRING string;
+
+        PhInitFormatI64X(&format, Entry->Processor.Identifier);
+        string = PhFormat(&format, 1, 10);
+        EtAddSMBIOSItem(Context, group, L"Identifier", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, Version))
+        ET_SMBIOS_STRING(L"Version", Entry->Processor.Version);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Voltage))
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        if (Entry->Processor.Voltage.Capable2900mV)
+            PhAppendStringBuilder2(&sb, L"2.9V, ");
+        if (Entry->Processor.Voltage.Capable3500mV)
+            PhAppendStringBuilder2(&sb, L"3.5V, ");
+        if (Entry->Processor.Voltage.Capable5000mV)
+            PhAppendStringBuilder2(&sb, L"5V, ");
+        if (!Entry->Processor.Voltage.Mode)
+            PhAppendStringBuilder2(&sb, L"legacy");
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        if (string->Length)
+            EtAddSMBIOSItem(Context, group, L"Voltage", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, ExternalClock) &&
+        Entry->Processor.ExternalClock != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->Processor.ExternalClock);
+        PhInitFormatS(&format[1], L" MHz");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"External clock", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, MaxSpeed) &&
+        Entry->Processor.MaxSpeed != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->Processor.MaxSpeed);
+        PhInitFormatS(&format[1], L" MHz");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Max speed", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, CurrentSpeed) &&
+        Entry->Processor.CurrentSpeed != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->Processor.CurrentSpeed);
+        PhInitFormatS(&format[1], L" MHz");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Current speed", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Status))
+    {
+        ET_SMBIOS_BOOLEAN(L"Populated", !!Entry->Processor.Status.Populated);
+        ET_SMBIOS_ENUM(L"Status", Entry->Processor.Status.Status, processorStatus);
+    }
+
+    //if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Upgrade))
+    //    ET_SMBIOS_ENUM(L"Upgrade", Entry->Processor.Upgrade, processorUpgrade);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L1CacheHandle))
+        ET_SMBIOS_UINT32IX(L"L1 cache handle", Entry->Processor.L1CacheHandle);
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L2CacheHandle))
+        ET_SMBIOS_UINT32IX(L"L2 cache handle", Entry->Processor.L2CacheHandle);
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L3CacheHandle))
+        ET_SMBIOS_UINT32IX(L"L3 cache handle", Entry->Processor.L3CacheHandle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->Processor.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, AssetTag))
+        ET_SMBIOS_STRING(L"Asset tag", Entry->Processor.AssetTag);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, PartNumber))
+        ET_SMBIOS_STRING(L"Part number", Entry->Processor.PartNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Characteristics))
+        ET_SMBIOS_FLAGS(L"Characteristics", Entry->Processor.Characteristics, characteristics);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, SocketType))
+        ET_SMBIOS_STRING(L"Socket type", Entry->Processor.SocketType);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, CoreCount))
+    {
+        if (Entry->Processor.CoreCount == 0)
+        {
+            NOTHING; // undefined
+        }
+        else if (Entry->Processor.CoreCount == UCHAR_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, CoreCount2))
+                ET_SMBIOS_UINT32(L"Core count", Entry->Processor.CoreCount2);
+        }
+        else
+        {
+            ET_SMBIOS_UINT32(L"Core count", Entry->Processor.CoreCount);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, CoresEnabled))
+    {
+        if (Entry->Processor.CoresEnabled == 0)
+        {
+            NOTHING; // undefined
+        }
+        else if (Entry->Processor.CoresEnabled == UCHAR_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, CoresEnabled2))
+                ET_SMBIOS_UINT32(L"Cores enabled", Entry->Processor.CoresEnabled2);
+        }
+        else
+        {
+            ET_SMBIOS_UINT32(L"Cores enabled", Entry->Processor.CoresEnabled);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, ThreadCount))
+    {
+        if (Entry->Processor.ThreadCount == 0)
+        {
+            NOTHING; // undefined
+        }
+        else if (Entry->Processor.ThreadCount == UCHAR_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, ThreadCount2))
+                ET_SMBIOS_UINT32(L"Thread count", Entry->Processor.ThreadCount2);
+        }
+        else
+        {
+            ET_SMBIOS_UINT32(L"Thread count", Entry->Processor.ThreadCount2);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, ThreadsEnabled))
+        ET_SMBIOS_UINT32(L"Threads enabled", Entry->Processor.ThreadsEnabled);
 }
 
 VOID EtSMBIOSMemoryController(
