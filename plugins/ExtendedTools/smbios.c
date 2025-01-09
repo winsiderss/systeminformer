@@ -849,8 +849,155 @@ VOID EtSMBIOSMemoryController(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR errorDetections[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_UNKNOWN),
+        SIP(L"None", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_NONE),
+        SIP(L"8-bit parity", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_8_BIT_PARITY),
+        SIP(L"32-bit ECC", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_32_BIT_ECC),
+        SIP(L"64-bit ECC", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_64_BIT_ECC),
+        SIP(L"128-bit ECC", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_128_BIT_ECC),
+        SIP(L"CRC", SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_CRC),
+    };
+
+    static const PH_KEY_VALUE_PAIR errorCorrections[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_UNKNOWN),
+        SIP(L"Single-bit", SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_SINGLE_BIT),
+        SIP(L"Double-bit", SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_DOUBLE_BIT),
+        SIP(L"Scrubbing", SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_SCRUBBING),
+    };
+
+    static const PH_KEY_VALUE_PAIR interleave[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_UNKNOWN),
+        SIP(L"One-way", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_ONE_WAY),
+        SIP(L"Two-way", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_TWO_WAY),
+        SIP(L"Four-way", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_FOUR_WAY),
+        SIP(L"Eight-way", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_EIGHT_WAY),
+        SIP(L"Sixteen-way", SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_SIXTEEN_WAY),
+    };
+
+    static const PH_ACCESS_ENTRY speeds[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_CONTROLLER_SPEEDS_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_CONTROLLER_SPEEDS_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_CONTROLLER_SPEEDS_70NS, L"70ns"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_CONTROLLER_SPEEDS_60NS, L"60ns"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_CONTROLLER_SPEEDS_50NS, L"50ns"),
+    };
+
+    static const PH_ACCESS_ENTRY supportedTypes[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_STANDARD, L"Standard"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_FAST_PAGE_MODE, L"Fast-page mode"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_EDO, L"EDO"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_PARITY, L"Parity"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_ECC, L"ECC"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_SIMM, L"SIMM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_DIMM, L"DIMM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_BURST_EDO, L"Burst EDO"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_SDRAM, L"SDRAM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_MODULE_TYPE_RESERVED, L"Reserved"),
+    };
+
     ET_SMBIOS_GROUP(L"Memory controller");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, ErrorDetectionMethod))
+        ET_SMBIOS_ENUM(L"Error detection method", Entry->MemoryController.ErrorDetectionMethod, errorDetections);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, ErrorCorrectionCapabilities))
+        ET_SMBIOS_ENUM(L"Error correction capabilities", Entry->MemoryController.ErrorCorrectionCapabilities, errorCorrections);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, SupportedInterleave))
+        ET_SMBIOS_ENUM(L"Supported interleave", Entry->MemoryController.SupportedInterleave, interleave);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, MaximumModuleSize))
+        ET_SMBIOS_SIZE(L"Maximum module size", 1ULL < Entry->MemoryController.MaximumModuleSize);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, SupportedSpeeds))
+        ET_SMBIOS_FLAGS(L"Supported speeds", Entry->MemoryController.SupportedSpeeds, speeds);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, SupportedTypes))
+        ET_SMBIOS_FLAGS(L"Supported types", Entry->MemoryController.SupportedTypes, supportedTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, ModuleVoltage))
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        if (Entry->MemoryController.ModuleVoltage.Requires2900mV)
+            PhAppendStringBuilder2(&sb, L"2.9V, ");
+        if (Entry->MemoryController.ModuleVoltage.Requires3500mV)
+            PhAppendStringBuilder2(&sb, L"3.5V, ");
+        if (Entry->MemoryController.ModuleVoltage.Requires5000mV)
+            PhAppendStringBuilder2(&sb, L"5V, ");
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        if (string->Length)
+            EtAddSMBIOSItem(Context, group, L"Module voltage", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, NumberOfSlots) &&
+        Entry->MemoryController.NumberOfSlots > 0)
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        for (ULONG i = 0; i < Entry->MemoryController.NumberOfSlots; i++)
+        {
+            WCHAR buffer[PH_PTR_STR_LEN_1];
+
+            PhPrintUInt32IX(buffer, Entry->MemoryController.SlotHandles[i]);
+            PhAppendStringBuilder2(&sb, buffer);
+            PhAppendStringBuilder2(&sb, L", ");
+        }
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        EtAddSMBIOSItem(Context, group, L"Handles", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryController, NumberOfSlots))
+        return;
+
+    // SMBIOS_MEMORY_CONTROLLER_INFORMATION_EX
+
+    ULONG length;
+    PSMBIOS_MEMORY_CONTROLLER_INFORMATION_EX extended = NULL;
+
+    length = RTL_SIZEOF_THROUGH_FIELD(SMBIOS_MEMORY_CONTROLLER_INFORMATION, NumberOfSlots);
+    length += RTL_FIELD_SIZE(SMBIOS_MEMORY_CONTROLLER_INFORMATION, SlotHandles) * Entry->MemoryController.NumberOfSlots;
+
+    if (Entry->Header.Length <= length)
+        return;
+
+    extended = PTR_ADD_OFFSET(Entry, length);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_MEMORY_CONTROLLER_INFORMATION_EX, EnabledErrorCorrectionCapabilities)))
+        ET_SMBIOS_ENUM(L"Enabled error correction capabilities", extended->EnabledErrorCorrectionCapabilities, errorCorrections);
 }
 
 VOID EtSMBIOSMemoryModule(
