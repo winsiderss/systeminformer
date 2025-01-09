@@ -1120,8 +1120,160 @@ VOID EtSMBIOSCache(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR locations[] =
+    {
+        SIP(L"Internal", SMBIO_CACHE_LOCATION_INTERNAL),
+        SIP(L"External", SMBIO_CACHE_LOCATION_EXTERNAL),
+        SIP(L"Reserved", SMBIO_CACHE_LOCATION_RESERVED),
+        SIP(L"Unknown", SMBIO_CACHE_LOCATION_UNKNOWN),
+    };
+
+    static const PH_KEY_VALUE_PAIR modes[] =
+    {
+        SIP(L"Write through", SMBIOS_CACHE_MODE_WRITE_THROUGH),
+        SIP(L"Write back", SMBIOS_CACHE_MODE_WRITE_BACK),
+        SIP(L"Write with memory address", SMBIOS_CACHE_MODE_VARIES_WITH_MEMORY_ADDRESS),
+        SIP(L"Unknown", SMBIOS_CACHE_MODE_UNKNOWN),
+    };
+
+    static const PH_ACCESS_ENTRY supportSRAM[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_NON_BURST, L"Non-burst"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_BURST, L"Burst"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_PIPELINE_BURST, L"Pipeline burst"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_SYNCHRONOUS, L"Synchronous"),
+        ET_SMBIOS_FLAG(SMBIOS_CACHE_SUPPORTED_SRAM_ASYNCHRONOUS, L"Asynchronous"),
+    };
+
+    static const PH_KEY_VALUE_PAIR errorCorrection[] =
+    {
+        SIP(L"Other", SMBIOS_CACHE_ERROR_CORRECTION_OTHER),
+        SIP(L"Unknown", SMBIOS_CACHE_ERROR_CORRECTION_UNKNOWN),
+        SIP(L"None", SMBIOS_CACHE_ERROR_CORRECTION_NONE),
+        SIP(L"Parity", SMBIOS_CACHE_ERROR_CORRECTION_PARITY),
+        SIP(L"Single-bit ECC", SMBIOS_CACHE_ERROR_CORRECTION_SINGLE_BIT_ECC),
+        SIP(L"Multi-bit ECC", SMBIOS_CACHE_ERROR_CORRECTION_MULTI_BIT_ECC),
+    };
+
+    static const PH_KEY_VALUE_PAIR systemCache[] =
+    {
+        SIP(L"Other", SMBIOS_CACHE_SYSTEM_CACHE_OTHER),
+        SIP(L"Unknown", SMBIOS_CACHE_SYSTEM_CACHE_UNKNOWN),
+        SIP(L"Instruction", SMBIOS_CACHE_SYSTEM_CACHE_INSTRUCTION),
+        SIP(L"Data", SMBIOS_CACHE_SYSTEM_CACHE_DATA),
+        SIP(L"Unified", SMBIOS_CACHE_SYSTEM_CACHE_UNIFIED),
+    };
+
+    static const PH_KEY_VALUE_PAIR associativity[] =
+    {
+        SIP(L"Other", SMBIOS_CACHE_ASSOCIATIVITY_OTHER),
+        SIP(L"Unknown", SMBIOS_CACHE_ASSOCIATIVITY_UNKNOWN),
+        SIP(L"Direct mapped", SMBIOS_CACHE_ASSOCIATIVITY_DIRECT_MAPPED),
+        SIP(L"2-way", SMBIOS_CACHE_ASSOCIATIVITY_2_WAY),
+        SIP(L"4-way", SMBIOS_CACHE_ASSOCIATIVITY_4_WAY),
+        SIP(L"Full", SMBIOS_CACHE_ASSOCIATIVITY_FULL),
+        SIP(L"8-way", SMBIOS_CACHE_ASSOCIATIVITY_8_WAY),
+        SIP(L"16-way", SMBIOS_CACHE_ASSOCIATIVITY_16_WAY),
+        SIP(L"12-way", SMBIOS_CACHE_ASSOCIATIVITY_12_WAY),
+        SIP(L"24-way", SMBIOS_CACHE_ASSOCIATIVITY_24_WAY),
+        SIP(L"32-way", SMBIOS_CACHE_ASSOCIATIVITY_32_WAY),
+        SIP(L"48-way", SMBIOS_CACHE_ASSOCIATIVITY_48_WAY),
+        SIP(L"64-way", SMBIOS_CACHE_ASSOCIATIVITY_64_WAY),
+        SIP(L"20-way", SMBIOS_CACHE_ASSOCIATIVITY_20_WAY),
+    };
+
     ET_SMBIOS_GROUP(L"Cache");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Cache, SocketDesignation))
+        ET_SMBIOS_STRING(L"Socket designation", Entry->Cache.SocketDesignation);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration))
+    {
+        ET_SMBIOS_UINT32(L"Level", Entry->Cache.Configuration.Level);
+        ET_SMBIOS_BOOLEAN(L"Socketed", !!Entry->Cache.Configuration.Socketed);
+        ET_SMBIOS_ENUM(L"Location", Entry->Cache.Configuration.Location, locations);
+        ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->Cache.Configuration.Location);
+        ET_SMBIOS_ENUM(L"Mode", Entry->Cache.Configuration.Mode, modes);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, MaximumSize))
+    {
+        ULONG64 size;
+
+        if (Entry->Cache.MaximumSize.Value == MAXUSHORT &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, MaximumSize2))
+        {
+            if (Entry->Cache.MaximumSize2.Granularity)
+                size = (ULONG64)Entry->Cache.MaximumSize2.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.MaximumSize2.Size * 0x400;
+        }
+        else
+        {
+            if (Entry->Cache.MaximumSize.Granularity)
+                size = (ULONG64)Entry->Cache.MaximumSize.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.MaximumSize.Size * 0x400;
+        }
+
+        ET_SMBIOS_SIZE(L"Maximum size", size);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
+    {
+        ULONG64 size;
+
+        if (Entry->Cache.InstalledSize.Value == MAXUSHORT &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
+        {
+            if (Entry->Cache.InstalledSize2.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
+        }
+        else
+        {
+            if (Entry->Cache.InstalledSize.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
+        }
+
+        ET_SMBIOS_SIZE(L"Installed size", size);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, SupportedSRAM))
+        ET_SMBIOS_FLAGS(L"Supported SRAM", Entry->Cache.SupportedSRAM, supportSRAM);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, CurrentSRAM))
+        ET_SMBIOS_FLAGS(L"Current SRAM", Entry->Cache.CurrentSRAM, supportSRAM);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Speed) &&
+        Entry->Cache.Speed != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->Cache.Speed);
+        PhInitFormatS(&format[1], L" ns");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Speed", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, ErrorCorrectionType))
+        ET_SMBIOS_ENUM(L"Error correction type", Entry->Cache.ErrorCorrectionType, errorCorrection);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, SystemCacheType))
+        ET_SMBIOS_ENUM(L"System cache type", Entry->Cache.SystemCacheType, systemCache);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Associativity))
+        ET_SMBIOS_ENUM(L"Associativity", Entry->Cache.Associativity, associativity);
 }
 
 VOID EtSMBIOSPortConnector(
