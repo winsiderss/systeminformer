@@ -56,8 +56,8 @@ namespace CustomBuildTool
                     process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
                     process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
 
-                    process.OutputDataReceived += (_, e) => { output.Append(e.Data); };
-                    process.ErrorDataReceived += (_, e) => { error.Append(e.Data); };
+                    process.OutputDataReceived += (_, e) => { output.AppendLine(e.Data); };
+                    process.ErrorDataReceived += (_, e) => { error.AppendLine(e.Data); };
 
                     process.Start();
                     process.BeginOutputReadLine();
@@ -76,8 +76,7 @@ namespace CustomBuildTool
 
             if (FixNewLines)
             {
-                //OutputString = OutputString.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
-                OutputString = OutputString.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+                OutputString = OutputString.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
             }
 
             return exitcode;
@@ -209,7 +208,7 @@ namespace CustomBuildTool
                     File.Copy(SourceFile, DestinationFile, true);
 
                     SetFileTime(
-                        DestinationFile, 
+                        DestinationFile,
                         sourceFile.CreationTimeUtc.ToFileTimeUtc(),
                         sourceFile.LastWriteTimeUtc.ToFileTimeUtc()
                         );
@@ -479,6 +478,6 @@ namespace CustomBuildTool
             {
                 PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
             }
-        }        
+        }
     }
 }

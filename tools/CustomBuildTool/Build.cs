@@ -1435,7 +1435,7 @@ namespace CustomBuildTool
                                 }
                                 catch (Exception ex)
                                 {
-                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                                 }
                             }
                         }
@@ -1465,7 +1465,7 @@ namespace CustomBuildTool
                             }
                             catch (Exception ex)
                             {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                             }
                         }
                     }
