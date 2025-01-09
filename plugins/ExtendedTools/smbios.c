@@ -376,8 +376,89 @@ VOID EtSMBIOSBaseboard(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_ACCESS_ENTRY features[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_BASEBOARD_FEATURE_HOSTING_BOARD, L"Hosting"),
+        ET_SMBIOS_FLAG(SMBIOS_BASEBOARD_FEATURE_REQUIRES_DAUGHTER_BOARD, L"Daughter"),
+        ET_SMBIOS_FLAG(SMBIOS_BASEBOARD_FEATURE_REMOVABLE_BOARD, L"Removable"),
+        ET_SMBIOS_FLAG(SMBIOS_BASEBOARD_FEATURE_REPLACEABLE_BOARD, L"Replaceable"),
+        ET_SMBIOS_FLAG(SMBIOS_BASEBOARD_FEATURE_HOT_SWAP_BOARD, L"Hot swappable"),
+    };
+
+    static const PH_KEY_VALUE_PAIR boardTypes[] =
+    {
+        SIP(L"Unknown", SMBIOS_BASEBOARD_TYPE_UNKNOWN),
+        SIP( L"Other", SMBIOS_BASEBOARD_TYPE_OTHER),
+        SIP(L"Server blade", SMBIOS_BASEBOARD_TYPE_SERVER_BLADE),
+        SIP(L"Connectivity switch", SMBIOS_BASEBOARD_TYPE_CONNECTIVITY_SWITCH),
+        SIP(L"System management module", SMBIOS_BASEBOARD_TYPE_SYSTEM_MANAGEMENT_MODULE),
+        SIP(L"Processor module", SMBIOS_BASEBOARD_TYPE_PROCESSOR_MODULE),
+        SIP(L"I/O module", SMBIOS_BASEBOARD_TYPE_IO_MODULE),
+        SIP(L"Memory module", SMBIOS_BASEBOARD_TYPE_MEMORY_MODULE),
+        SIP(L"Daughter board", SMBIOS_BASEBOARD_TYPE_DAUGHTER_BOARD),
+        SIP(L"Motherboard", SMBIOS_BASEBOARD_TYPE_MOTHERBOARD),
+        SIP(L"Processor memory module", SMBIOS_BASEBOARD_TYPE_PROCESSOR_MEMORY_MODULE),
+        SIP(L"Processor I/O module", SMBIOS_BASEBOARD_TYPE_PROCESSOR_IO_MODULE),
+        SIP(L"Interconnect", SMBIOS_BASEBOARD_TYPE_INTERCONNECT),
+    };
+
     ET_SMBIOS_GROUP(L"Baseboard");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->Baseboard.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Product))
+        ET_SMBIOS_STRING(L"Product", Entry->Baseboard.Product);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Version))
+        ET_SMBIOS_STRING(L"Version", Entry->Baseboard.Version);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->Baseboard.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, AssetTag))
+        ET_SMBIOS_STRING(L"Asset tag", Entry->Baseboard.AssetTag);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Baseboard, Features))
+        ET_SMBIOS_FLAGS(L"Features", Entry->Baseboard.Features, features);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Location))
+        ET_SMBIOS_STRING(L"Location", Entry->Baseboard.Location);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Baseboard, ChassisHandle))
+        ET_SMBIOS_UINT32IX(L"Chassis handle", Entry->Baseboard.ChassisHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Baseboard, BoardType))
+        ET_SMBIOS_ENUM(L"Board type", Entry->Baseboard.BoardType, boardTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Baseboard, NumberOfHandles) &&
+        Entry->Baseboard.NumberOfHandles > 0)
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        for (ULONG i = 0; i < Entry->Baseboard.NumberOfHandles; i++)
+        {
+            WCHAR buffer[PH_PTR_STR_LEN_1];
+
+            PhPrintUInt32IX(buffer, Entry->Baseboard.Handles[i]);
+            PhAppendStringBuilder2(&sb, buffer);
+            PhAppendStringBuilder2(&sb, L", ");
+        }
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        EtAddSMBIOSItem(Context, group, L"Handles", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSChassis(
