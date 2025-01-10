@@ -79,10 +79,14 @@ VOID EtAddSMBIOSUInt32IX(
     _In_ ULONG Value
     )
 {
-    WCHAR buffer[PH_PTR_STR_LEN_1];
+    PH_FORMAT format[2];
+    PPH_STRING string;
 
-    PhPrintUInt32IX(buffer, Value);
-    EtAddSMBIOSItem(Context, Group, Name, buffer);
+    PhInitFormatS(&format[0], L"0x");
+    PhInitFormatX(&format[1], Value);
+    string = PhFormat(format, 2, 10);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
 }
 
 VOID EtAddSMBIOSUInt64(
@@ -106,11 +110,12 @@ VOID EtAddSMBIOSUInt64IX(
     _In_ ULONG64 Value
     )
 {
-    PH_FORMAT format;
+    PH_FORMAT format[2];
     PPH_STRING string;
 
-    PhInitFormatI64X(&format, Value);
-    string = PhFormat(&format, 1, 0);
+    PhInitFormatS(&format[0], L"0x");
+    PhInitFormatI64X(&format[1], Value);
+    string = PhFormat(format, 2, 10);
     EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
     PhDereferenceObject(string);
 }
