@@ -1758,7 +1758,17 @@ VOID EtSMBIOSFirmwareLanguage(
     )
 {
     ET_SMBIOS_GROUP(L"Firmware language");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareLanguage, InstallableLanguages))
+        ET_SMBIOS_UINT32(L"Number of languages available", Entry->FirmwareLanguage.InstallableLanguages);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareLanguage, Flags))
+        ET_SMBIOS_BOOLEAN(L"Abbreviated format", !!Entry->FirmwareLanguage.Flags.AbbreviatedFormat);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareLanguage, CurrentLanguage))
+        ET_SMBIOS_STRING(L"Current language", Entry->FirmwareLanguage.CurrentLanguage);
 }
 
 VOID EtSMBIOSGroupAssociation(
