@@ -1391,9 +1391,253 @@ VOID EtSMBIOSSystemSlot(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR slotTypes[] =
+    {
+        SIP(L"Other", SMBIOS_SYSTEM_SLOT_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_SLOT_TYPE_UNKNOWN),
+        SIP(L"ISA", SMBIOS_SYSTEM_SLOT_TYPE_ISA),
+        SIP(L"MCA", SMBIOS_SYSTEM_SLOT_TYPE_MCA),
+        SIP(L"EISA", SMBIOS_SYSTEM_SLOT_TYPE_EISA),
+        SIP(L"PCI", SMBIOS_SYSTEM_SLOT_TYPE_PCI),
+        SIP(L"PCMCIA", SMBIOS_SYSTEM_SLOT_TYPE_PCMCIA),
+        SIP(L"VL-VESA", SMBIOS_SYSTEM_SLOT_TYPE_VL_VESA),
+        SIP(L"Proprietary", SMBIOS_SYSTEM_SLOT_TYPE_PROPRIETARY),
+        SIP(L"Processor card slot", SMBIOS_SYSTEM_SLOT_TYPE_PROCESSOR_CARD_SLOT),
+        SIP(L"Memory card slot", SMBIOS_SYSTEM_SLOT_TYPE_PROPRIETARY_MEMORY_CARD_SLOT),
+        SIP(L"Riser card slot", SMBIOS_SYSTEM_SLOT_TYPE_IO_RISER_CARD_SLOT),
+        SIP(L"NuBus", SMBIOS_SYSTEM_SLOT_TYPE_NUBUS),
+        SIP(L"PCI - 66MHz capable", SMBIOS_SYSTEM_SLOT_TYPE_PCI_66MHZ_CAPABLE ),
+        SIP(L"AGP", SMBIOS_SYSTEM_SLOT_TYPE_AGP),
+        SIP(L"AGP 2X", SMBIOS_SYSTEM_SLOT_TYPE_AGP_2X),
+        SIP(L"AGP 4X", SMBIOS_SYSTEM_SLOT_TYPE_AGP_4X),
+        SIP(L"PCI-X", SMBIOS_SYSTEM_SLOT_TYPE_PCI_X),
+        SIP(L"AGP 8X", SMBIOS_SYSTEM_SLOT_TYPE_AGP_8X),
+        SIP(L"M.2 socket 1-DP (A)", SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_1_DP_MECHANICAL_KEY_A),
+        SIP(L"M.2 socket 1-SD (E)", SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_1_SD_MECHANICAL_KEY_E),
+        SIP(L"M.2 socket 2 (B)", SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_2_MECHANICAL_KEY_B),
+        SIP(L"M.2 socket 3 (M)", SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_3_MECHANICAL_KEY_M),
+        SIP(L"MXM type I", SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_I),
+        SIP(L"MXM type II", SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_II),
+        SIP(L"MXM type III (standard)", SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_III_STANDARD_CONNECTOR),
+        SIP(L"MXM type III (HE)", SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_III_HE_CONNECTOR),
+        SIP(L"MXM type IV", SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_IV),
+        SIP(L"MXM 3.0 type A", SMBIOS_SYSTEM_SLOT_TYPE_MXM_3_0_TYPE_A),
+        SIP(L"MXM 3.0 type B", SMBIOS_SYSTEM_SLOT_TYPE_MXM_3_0_TYPE_B),
+        SIP(L"PCI express gen 2 SFF-8639 (U.2)", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_SFF_8639_U_2),
+        SIP(L"PCI express gen 3 SFF-8639 (U.2)", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_SFF_8639_U_2),
+        SIP(L"PCI express mini 52-pin (CEM spec. 2.0) with keep-outs", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_52_PIN_CEM_2_0_WITH_KEEP_OUTS),
+        SIP(L"PCI express mini 52-pin (CEM spec. 2.0) without keep-outs", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_52_PIN_CEM_2_0_WITHOUT_KEEP_OUTS),
+        SIP(L"PCI Express Mini 76-pin (CEM spec. 2.0)", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_76_PIN_CEM_2_0),
+        SIP(L"PCI express gen 4 SFF-8639 (U.2)", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_SFF_8639_U_2),
+        SIP(L"PCI express gen 5 SFF-8639 (U.2)", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_SFF_8639_U_2),
+        SIP(L"OCP NIC 3.0 (SFF)", SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_3_0_SMALL_FORM_FACTOR_SFF),
+        SIP(L"OCP NIC 3.0 (LFF)", SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_3_0_LARGE_FORM_FACTOR_LFF),
+        SIP(L"OCP NIC prior to 3.0", SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_PRIOR_TO_3_0),
+        SIP(L"CXL flexbus 1.0", SMBIOS_SYSTEM_SLOT_TYPE_CXL_FLEXBUS_1_0),
+        SIP(L"PC-98/C20", SMBIOS_SYSTEM_SLOT_TYPE_PC_98_C20),
+        SIP(L"PC-98/C24", SMBIOS_SYSTEM_SLOT_TYPE_PC_98_C24),
+        SIP(L"PC-98/E", SMBIOS_SYSTEM_SLOT_TYPE_PC_98_E),
+        SIP(L"PC-98/Local bus", SMBIOS_SYSTEM_SLOT_TYPE_PC_98_LOCAL_BUS),
+        SIP(L"PC-98/Card", SMBIOS_SYSTEM_SLOT_TYPE_PC_98_CARD),
+        SIP(L"PCI express", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS),
+        SIP(L"PCI express x1", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X1),
+        SIP(L"PCI express x2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X2),
+        SIP(L"PCI express x4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X4),
+        SIP(L"PCI express x8", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X8),
+        SIP(L"PCI express x16", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X16),
+        SIP(L"PCI express gen 2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2),
+        SIP(L"PCI express gen 2 x1", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X1),
+        SIP(L"PCI express gen 2 x2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X2),
+        SIP(L"PCI express gen 2 x4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X4),
+        SIP(L"PCI express gen 2 x8", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X8),
+        SIP(L"PCI express gen 2 x16", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X16),
+        SIP(L"PCI express gen 3", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3),
+        SIP(L"PCI express gen 3 x1", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X1),
+        SIP(L"PCI express gen 3 x2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X2),
+        SIP(L"PCI express gen 3 x4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X4),
+        SIP(L"PCI express gen 3 x8", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X8),
+        SIP(L"PCI express gen 3 x16", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X16),
+        SIP(L"PCI express gen 4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4),
+        SIP(L"PCI express gen 4 x1", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X1),
+        SIP(L"PCI express gen 4 x2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X2),
+        SIP(L"PCI express gen 4 x4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X4),
+        SIP(L"PCI express gen 4 x8", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X8),
+        SIP(L"PCI express gen 4 x16", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X16),
+        SIP(L"PCI express gen 5", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5),
+        SIP(L"PCI express gen 5 x1", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X1),
+        SIP(L"PCI express gen 5 x2", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X2),
+        SIP(L"PCI express gen 5 x4", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X4),
+        SIP(L"PCI express gen 5 x8", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X8),
+        SIP(L"PCI express gen 5 x16", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X16),
+        SIP(L"PCI express gen 6", SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_6),
+        SIP(L"EDSFF E1.S, E1.L", SMBIOS_SYSTEM_SLOT_TYPE_EDSFF_E1_S_E1_L),
+        SIP(L"EDSFF E3.S, E3.L", SMBIOS_SYSTEM_SLOT_TYPE_EDSFF_E3_S_E3_L),
+    };
+
+    static const PH_KEY_VALUE_PAIR busWidths[] =
+    {
+        SIP(L"Other", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_UNKNOWN),
+        SIP(L"8 bit", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_8_BIT),
+        SIP(L"16 bit", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_16_BIT),
+        SIP(L"32 bit", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_32_BIT),
+        SIP(L"64 bit", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_64_BIT),
+        SIP(L"128 bit", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_128_BIT),
+        SIP(L"1x or 1x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_1X_OR_1X),
+        SIP(L"2x or 2x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_2X_OR_2X),
+        SIP(L"4x or 4x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_4X_OR_4X),
+        SIP(L"8x or 8x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_8X_OR_8X),
+        SIP(L"12x or 12x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_12X_OR_12X),
+        SIP(L"16x or 16x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_16X_OR_16X),
+        SIP(L"32x or 32x", SMBIOS_SYSTEM_SLOT_BUS_WIDTH_32X_OR_32X),
+    };
+
+    static const PH_KEY_VALUE_PAIR slotUsages[] =
+    {
+        SIP(L"Other", SMBIOS_SYSTEM_SLOT_USAGE_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_SLOT_USAGE_UNKNOWN),
+        SIP(L"Available", SMBIOS_SYSTEM_SLOT_USAGE_AVAILABLE),
+        SIP(L"In use", SMBIOS_SYSTEM_SLOT_USAGE_IN_USE),
+        SIP(L"Unavailable", SMBIOS_SYSTEM_SLOT_USAGE_UNAVAILABLE),
+    };
+
+    static const PH_KEY_VALUE_PAIR slotLengths[] =
+    {
+        SIP(L"Other", SMBIOS_SYSTEM_SLOT_LENGTH_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_SLOT_LENGTH_UNKNOWN),
+        SIP(L"Short", SMBIOS_SYSTEM_SLOT_LENGTH_SHORT),
+        SIP(L"Long", SMBIOS_SYSTEM_SLOT_LENGTH_LONG),
+        SIP(L"2.5\" drive", SMBIOS_SYSTEM_SLOT_LENGTH_2_5_DRIVE),
+        SIP(L"3.4\" drive", SMBIOS_SYSTEM_SLOT_LENGTH_3_4_DRIVE),
+    };
+
+    static const PH_ACCESS_ENTRY slotFlags[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_5000MV, L"5 V"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_3300MV, L"3.3 V"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_SHARED, L"Shared"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_CARD_16, L"Card-16"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_CARD_BUS, L"CardBus"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_CARD_ZOOM_VIDEO, L"Zoom video"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_CARD_MODEN_RING_RESUME, L"Modem ring resume"),
+    };
+
+    static const PH_ACCESS_ENTRY slotFlags2[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_PME_SIGNAL, L"PME signal"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_HOT_PLUG, L"Hot-plug"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_SMBUS_SIGNAL, L"SMBus signal"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_PCIE_BIFURCATION, L"PCIE Bifurcation"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_SURPRISE_REMOVAL, L"Surprise removal"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_1, L"Flexbus CLX 1"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_2, L"Flexbus CLX 2"),
+        ET_SMBIOS_FLAG(SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_4, L"Flexbus CLX 4"),
+    };
+
+    static const PH_KEY_VALUE_PAIR slotHeights[] =
+    {
+        SIP(L"Not applicable", SMBIOS_SYSTEM_SLOT_HEIGHT_NOT_APPLICABLE),
+        SIP(L"Other", SMBIOS_SYSTEM_SLOT_HEIGHT_OTHER),
+        SIP(L"Unknown", SMBIOS_SYSTEM_SLOT_HEIGHT_UNKNOWN),
+        SIP(L"Full height", SMBIOS_SYSTEM_SLOT_HEIGHT_FULL_HEIGHT),
+        SIP(L"Low profile", SMBIOS_SYSTEM_SLOT_HEIGHT_LOW_PROFILE),
+    };
+
     ET_SMBIOS_GROUP(L"System slot");
 
-    ET_SMBIOS_TODO();
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemSlot, SocketDesignation))
+        ET_SMBIOS_STRING(L"Slot designation", Entry->SystemSlot.SocketDesignation);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->SystemSlot.Type, slotTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, BusWidth))
+        ET_SMBIOS_ENUM(L"Bus width", Entry->SystemSlot.BusWidth, busWidths);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, CurrentUsage))
+        ET_SMBIOS_ENUM(L"Current usage", Entry->SystemSlot.CurrentUsage, slotUsages);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Length))
+        ET_SMBIOS_ENUM(L"Length", Entry->SystemSlot.Length, slotLengths);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Identifier))
+        ET_SMBIOS_UINT32IX(L"Identifier", Entry->SystemSlot.Identifier);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Characteristics))
+        ET_SMBIOS_FLAGS(L"Characteristics", Entry->SystemSlot.Characteristics, slotFlags);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Characteristics2))
+        ET_SMBIOS_FLAGS(L"Characteristics 2", Entry->SystemSlot.Characteristics2, slotFlags);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, SegmentGroup))
+        ET_SMBIOS_UINT32(L"Segment group", Entry->SystemSlot.SegmentGroup);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, DeviceFunctionNumber));
+    {
+        ET_SMBIOS_UINT32(L"Device number", Entry->SystemSlot.DeviceFunctionNumber.DeviceNumber);
+        ET_SMBIOS_UINT32(L"Function number", Entry->SystemSlot.DeviceFunctionNumber.FunctionNumber);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, BusWidthBase))
+        ET_SMBIOS_UINT32(L"Bus width base", Entry->SystemSlot.BusWidthBase);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, PeerGroupingCount) &&
+        Entry->SystemSlot.PeerGroupingCount > 0)
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        for (ULONG i = 0; i < Entry->SystemSlot.PeerGroupingCount; i++)
+        {
+            WCHAR buffer[PH_INT32_STR_LEN_1];
+
+            PhPrintUInt32(buffer, Entry->SystemSlot.PeerGroups[i]);
+            PhAppendStringBuilder2(&sb, buffer);
+            PhAppendStringBuilder2(&sb, L", ");
+        }
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        EtAddSMBIOSItem(Context, group, L"Peer groups", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, PeerGroupingCount))
+        return;
+
+    // SMBIOS_SYSTEM_SLOT_INFORMATION_EX
+
+    ULONG length;
+    PSMBIOS_SYSTEM_SLOT_INFORMATION_EX extended;
+
+    length = RTL_SIZEOF_THROUGH_FIELD(SMBIOS_SYSTEM_SLOT_INFORMATION, PeerGroupingCount);
+    length += RTL_FIELD_SIZE(SMBIOS_SYSTEM_SLOT_INFORMATION, PeerGroups) * Entry->SystemSlot.PeerGroupingCount;
+
+    if (Entry->Header.Length <= length)
+        return;
+
+    extended = PTR_ADD_OFFSET(Entry, length);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_SYSTEM_SLOT_INFORMATION_EX, Information)))
+        ET_SMBIOS_UINT32(L"Information", extended->Information);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_SYSTEM_SLOT_INFORMATION_EX, PhysicalWidth)))
+        ET_SMBIOS_UINT32(L"Physical width", extended->PhysicalWidth);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_SYSTEM_SLOT_INFORMATION_EX, Pitch)))
+        ET_SMBIOS_UINT32(L"Physical width", extended->Pitch);
+
+    if (Entry->Header.Length >= (length + RTL_SIZEOF_THROUGH_FIELD(SMBIOS_SYSTEM_SLOT_INFORMATION_EX, Height)))
+        ET_SMBIOS_ENUM(L"Height", extended->Height, slotHeights);
 }
 
 VOID EtSMBIOSOuBoardDevice(
