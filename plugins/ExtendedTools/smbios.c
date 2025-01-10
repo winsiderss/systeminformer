@@ -1689,8 +1689,32 @@ VOID EtSMBIOSOemString(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
-    ET_SMBIOS_GROUP(L"OEM string");
-    ET_SMBIOS_TODO();
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, OEMString, Count))
+        return;
+
+    ET_SMBIOS_GROUP(L"OEM strings");
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+    ET_SMBIOS_UINT32(L"Number of strings", Entry->OEMString.Count);
+
+    for (UCHAR i = 0; i < Entry->OEMString.Count; i++)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING name;
+        PPH_STRING string;
+
+        if (!NT_SUCCESS(PhGetSMBIOSString(EnumHandle, i + 1, &string)))
+            break;
+
+        PhInitFormatS(&format[0], L"String #");
+        PhInitFormatU(&format[1], i + 1);
+
+        name = PhFormat(format, 2, 10);
+
+        EtAddSMBIOSItem(Context, group, PhGetString(name), PhGetString(string));
+
+        PhDereferenceObject(string);
+        PhDereferenceObject(name);
+    }
 }
 
 VOID EtSMBIOSSystemConfigurationOption(
