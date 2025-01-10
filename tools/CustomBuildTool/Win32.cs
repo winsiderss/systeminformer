@@ -501,6 +501,9 @@ namespace CustomBuildTool
             CreationTime = 0;
             LastWriteDateTime = 0;
 
+            if (!File.Exists(FileName))
+                return;
+
             using (var fs = File.OpenRead(FileName))
             {
                 if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
