@@ -1654,8 +1654,33 @@ VOID EtSMBIOSOuBoardDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
-    ET_SMBIOS_GROUP(L"Board device");
-    ET_SMBIOS_TODO();
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_ON_BOARD_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_ON_BOARD_DEVICE_TYPE_UNKNOWN),
+        SIP(L"Video", SMBIOS_ON_BOARD_DEVICE_TYPE_VIDEO),
+        SIP(L"Controller", SMBIOS_ON_BOARD_DEVICE_TYPE_SCSI_CONTROLLER),
+        SIP(L"Ethernet", SMBIOS_ON_BOARD_DEVICE_TYPE_ETHERNET),
+        SIP(L"Token ring", SMBIOS_ON_BOARD_DEVICE_TYPE_TOKEN_RING),
+        SIP(L"Sound", SMBIOS_ON_BOARD_DEVICE_TYPE_SOUND),
+        SIP(L"PATA controller", SMBIOS_ON_BOARD_DEVICE_TYPE_PATA_CONTROLLER),
+        SIP(L"SATA controller", SMBIOS_ON_BOARD_DEVICE_TYPE_SATA_CONTROLLER),
+        SIP(L"SAS controller", SMBIOS_ON_BOARD_DEVICE_TYPE_SAS_CONTROLLER),
+    };
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, OnBoardDevice, Devices))
+        return;
+
+    ULONG count = (Entry->Header.Length - sizeof(SMBIOS_HEADER)) / 2;
+    for (ULONG i = 0; i < count; i++)
+    {
+        ET_SMBIOS_GROUP(L"On board device");
+
+        ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+        ET_SMBIOS_STRING(L"Description", Entry->OnBoardDevice.Devices[i].Description);
+        ET_SMBIOS_ENUM(L"Type", Entry->OnBoardDevice.Devices[i].Device.Type, types);
+        ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->OnBoardDevice.Devices[i].Device.Enabled);
+    }
 }
 
 VOID EtSMBIOSOemString(
