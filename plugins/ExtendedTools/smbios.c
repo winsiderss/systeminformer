@@ -403,9 +403,6 @@ VOID EtSMBIOSSystem(
     if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
         ET_SMBIOS_STRING(L"Product name", Entry->System.ProductName);
 
-    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
-        ET_SMBIOS_STRING(L"Product name", Entry->System.ProductName);
-
     if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Version))
         ET_SMBIOS_STRING(L"Version", Entry->System.Version);
 
