@@ -130,9 +130,15 @@ VOID EtAddSMBIOSString(
 {
     PPH_STRING string;
 
-    PhGetSMBIOSString(EnumHandle, Index, &string);
-    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
-    PhDereferenceObject(string);
+    if (NT_SUCCESS(PhGetSMBIOSString(EnumHandle, Index, &string)))
+    {
+        EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        EtAddSMBIOSItem(Context, Group, Name, L"INVALID STRING INDEX");
+    }
 }
 
 VOID EtAddSMBIOSSize(
