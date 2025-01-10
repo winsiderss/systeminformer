@@ -85,6 +85,36 @@ VOID EtAddSMBIOSUInt32IX(
     EtAddSMBIOSItem(Context, Group, Name, buffer);
 }
 
+VOID EtAddSMBIOSUInt64(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PCWSTR Name,
+    _In_ ULONG64 Value
+    )
+{
+    PPH_STRING string;
+
+    string = PhFormatUInt64(Value, FALSE);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
+VOID EtAddSMBIOSUInt64IX(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PCWSTR Name,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format;
+    PPH_STRING string;
+
+    PhInitFormatI64X(&format, Value);
+    string = PhFormat(&format, 1, 0);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
 VOID EtAddSMBIOSString(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
@@ -110,6 +140,24 @@ VOID EtAddSMBIOSSize(
     PPH_STRING string;
 
     string = PhFormatSize(Size, ULONG_MAX);
+    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
+VOID EtAddSMBIOSUInt32Units(
+    _In_ PSMBIOS_WINDOW_CONTEXT Context,
+    _In_ ULONG Group,
+    _In_ PCWSTR Name,
+    _In_ ULONG Value,
+    _In_ PCWSTR Suffix
+    )
+{
+    PH_FORMAT format[2];
+    PPH_STRING string;
+
+    PhInitFormatU(&format[0], Value);
+    PhInitFormatS(&format[1], Suffix);
+    string = PhFormat(format, 2, 10);
     EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
     PhDereferenceObject(string);
 }
@@ -190,8 +238,11 @@ VOID EtAddSMBIOSEnum(
 #define ET_SMBIOS_BOOLEAN(n, v)         EtAddSMBIOSBoolean(Context, group, n, v)
 #define ET_SMBIOS_UINT32(n, v)          EtAddSMBIOSUInt32(Context, group, n, v)
 #define ET_SMBIOS_UINT32IX(n, v)        EtAddSMBIOSUInt32IX(Context, group, n, v)
+#define ET_SMBIOS_UINT64(n, v)          EtAddSMBIOSUInt64(Context, group, n, v)
+#define ET_SMBIOS_UINT64IX(n, v)        EtAddSMBIOSUInt64IX(Context, group, n, v)
 #define ET_SMBIOS_STRING(n, v)          EtAddSMBIOSString(Context, group, n, EnumHandle, v)
 #define ET_SMBIOS_SIZE(n, v)            EtAddSMBIOSSize(Context, group, n, v)
+#define ET_SMBIOS_UINT32_UINTS(n, v, u) EtAddSMBIOSUInt32Units(Context, group, n, v, u)
 #define ET_SMBIOS_FLAG(x, n)            { TEXT(#x), x, FALSE, FALSE, n }
 #define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), NULL, 0, v)
 #define ET_SMBIOS_FLAGS64(n, v, fl, fh) EtAddSMBIOSFlags(Context, group, n, fl, RTL_NUMBER_OF(fl), fh, RTL_NUMBER_OF(fh), v)
@@ -580,14 +631,7 @@ VOID EtSMBIOSChassis(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, Height) &&
         Entry->Chassis.Height != 0)
     {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->Chassis.Height);
-        PhInitFormatC(&format[1], L'U');
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"Height", PhGetString(string));
-        PhDereferenceObject(string);
+        ET_SMBIOS_UINT32_UINTS(L"Height", Entry->Chassis.Height, L"U");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, NumberOfPowerCords) &&
@@ -675,15 +719,7 @@ VOID EtSMBIOSProcessor(
         ET_SMBIOS_STRING(L"Manufacturer", Entry->Processor.Manufacturer);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Identifier))
-    {
-        PH_FORMAT format;
-        PPH_STRING string;
-
-        PhInitFormatI64X(&format, Entry->Processor.Identifier);
-        string = PhFormat(&format, 1, 10);
-        EtAddSMBIOSItem(Context, group, L"Identifier", PhGetString(string));
-        PhDereferenceObject(string);
-    }
+        ET_SMBIOS_UINT64IX(L"Identifier", Entry->Processor.Identifier);
 
     if (PH_SMBIOS_CONTAINS_STRING(Entry, Processor, Version))
         ET_SMBIOS_STRING(L"Version", Entry->Processor.Version);
@@ -718,43 +754,19 @@ VOID EtSMBIOSProcessor(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, ExternalClock) &&
         Entry->Processor.ExternalClock != 0)
     {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->Processor.ExternalClock);
-        PhInitFormatS(&format[1], L" MHz");
-
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"External clock", PhGetString(string));
-        PhDereferenceObject(string);
+        ET_SMBIOS_UINT32_UINTS(L"External clock", Entry->Processor.ExternalClock, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, MaxSpeed) &&
         Entry->Processor.MaxSpeed != 0)
     {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->Processor.MaxSpeed);
-        PhInitFormatS(&format[1], L" MHz");
-
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"Max speed", PhGetString(string));
-        PhDereferenceObject(string);
+        ET_SMBIOS_UINT32_UINTS(L"Max speed", Entry->Processor.MaxSpeed, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, CurrentSpeed) &&
         Entry->Processor.CurrentSpeed != 0)
     {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->Processor.CurrentSpeed);
-        PhInitFormatS(&format[1], L" MHz");
-
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"Current speed", PhGetString(string));
-        PhDereferenceObject(string);
+        ET_SMBIOS_UINT32_UINTS(L"Current speed", Entry->Processor.CurrentSpeed, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Status))
@@ -1031,17 +1043,7 @@ VOID EtSMBIOSMemoryModule(
         ET_SMBIOS_UINT32IX(L"Bank connections", Entry->MemoryModule.BankConnections);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, CurrentSpeed))
-    {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->MemoryModule.CurrentSpeed);
-        PhInitFormatS(&format[1], L" ns");
-
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"Current speed", PhGetString(string));
-        PhDereferenceObject(string);
-    }
+        ET_SMBIOS_UINT32_UINTS(L"Current speed", Entry->MemoryModule.CurrentSpeed, L" ns");
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, MemoryType))
         ET_SMBIOS_FLAGS(L"Memory type", Entry->MemoryModule.MemoryType, types);
@@ -1255,15 +1257,7 @@ VOID EtSMBIOSCache(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Speed) &&
         Entry->Cache.Speed != 0)
     {
-        PH_FORMAT format[2];
-        PPH_STRING string;
-
-        PhInitFormatU(&format[0], Entry->Cache.Speed);
-        PhInitFormatS(&format[1], L" ns");
-
-        string = PhFormat(format, 2, 10);
-        EtAddSMBIOSItem(Context, group, L"Speed", PhGetString(string));
-        PhDereferenceObject(string);
+        ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->Cache.Speed, L" ns");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, ErrorCorrectionType))
