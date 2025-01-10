@@ -521,24 +521,10 @@ namespace CustomBuildTool
 
             // Copy the resource header and prefix types with PHAPP
             {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
-                WIN32_FILE_ATTRIBUTE_DATA destinationFile;
+                Win32.GetFileTime("SystemInformer\\resource.h", out long sourceCreationTime, out long sourceWriteTime);
+                Win32.GetFileTime("sdk\\include\\phappresource.h", out long destCreationTime, out long destWriteTime);
 
-                PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\resource.h",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &sourceFile);
-
-                PInvoke.GetFileAttributesEx(
-                    "sdk\\include\\phappresource.h",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &destinationFile
-                    );
-
-                if (
-                    sourceFile.ftCreationTime.FileTimeToDateTime() != destinationFile.ftCreationTime.FileTimeToDateTime() ||
-                    sourceFile.ftLastWriteTime.FileTimeToDateTime() != destinationFile.ftLastWriteTime.FileTimeToDateTime()
-                    )
+                if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
                 {
                     string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
 
@@ -547,20 +533,8 @@ namespace CustomBuildTool
                         // Update resource headers with SDK definition
                         string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                        Utils.WriteAllText(
-                            "sdk\\include\\phappresource.h",
-                            sdkContent
-                            );
-
-                        using (var fs = File.OpenWrite("sdk\\include\\phappresource.h"))
-                        {
-                            PInvoke.SetFileTime(
-                                fs.SafeFileHandle,
-                                sourceFile.ftCreationTime,
-                                sourceFile.ftLastAccessTime,
-                                sourceFile.ftLastWriteTime
-                                );
-                        }
+                        Utils.WriteAllText("sdk\\include\\phappresource.h", sdkContent);
+                        Win32.SetFileTime("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime);
                     }
                 }
             }

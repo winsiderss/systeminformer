@@ -469,14 +469,45 @@ namespace CustomBuildTool
             long LastWriteDateTime
             )
         {
-            FILE_BASIC_INFO basicInfo;
+            FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
 
-            basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
-            basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
-
-            using (var fs = File.OpenWrite(FileName))
+            using (var fs = new FileStream(
+                FileName,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite | FileShare.Delete,
+                0,
+                FileOptions.None
+                ))
             {
-                PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, 0, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
+                if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+
+                basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
+                basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
+
+                PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
+            }
+        }
+
+        public static void GetFileTime(
+            string FileName,
+            out long CreationTime,
+            out long LastWriteDateTime
+            )
+        {
+            FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
+
+            CreationTime = 0;
+            LastWriteDateTime = 0;
+
+            using (var fs = File.OpenRead(FileName))
+            {
+                if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+
+                CreationTime = basicInfo.CreationTime;
+                LastWriteDateTime = basicInfo.LastWriteTime;
             }
         }
     }
