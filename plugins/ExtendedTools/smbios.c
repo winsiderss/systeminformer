@@ -1807,8 +1807,78 @@ VOID EtSMBIOSPhysicalMemoryArray(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR locations[] =
+    {
+        SIP(L"Other", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_OTHER),
+        SIP(L"Unknown", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_UNKNOWN),
+        SIP(L"Motherboard", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_MOTHERBOARD),
+        SIP(L"ISA", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_ISA),
+        SIP(L"EISA", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_EISA),
+        SIP(L"PCI", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PCI),
+        SIP(L"MCA", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_MCA),
+        SIP(L"PCMCIA", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PCMCIA),
+        SIP(L"Proprietary", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PROPRIETARY),
+        SIP(L"NuBus", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_NUBUS),
+        SIP(L"PC-98/C20", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_C20),
+        SIP(L"PC-98/C24", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_C24),
+        SIP(L"PC-98/E", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_E),
+        SIP(L"PC-98/Local bus", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_LOCAL_BUS),
+        SIP(L"CXL", SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_CXL),
+    };
+
+    static const PH_KEY_VALUE_PAIR uses[] =
+    {
+        SIP(L"Other", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_OTHER),
+        SIP(L"Unknown", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_UNKNOWN),
+        SIP(L"System", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_SYSTEM),
+        SIP(L"Video", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_VIDEO),
+        SIP(L"Flash", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_FLASH),
+        SIP(L"Non-volatile", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_NON_VOLATILE),
+        SIP(L"Cache", SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_CACHE),
+    };
+
+    static const PH_KEY_VALUE_PAIR corrections[] =
+    {
+        SIP(L"Other", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_OTHER),
+        SIP(L"Unknown", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_UNKNOWN),
+        SIP(L"None", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_NONE),
+        SIP(L"Parity", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_PARITY),
+        SIP(L"Single-bit ECC", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_SINGLE_BIT_ECC),
+        SIP(L"Multi-bit ECC", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_MULTI_BIT_ECC),
+        SIP(L"CRC", SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_CRC),
+    };
+
     ET_SMBIOS_GROUP(L"Physical memory array");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, Location))
+        ET_SMBIOS_ENUM(L"Location", Entry->PhysicalMemoryArray.Location, locations);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, Use))
+        ET_SMBIOS_ENUM(L"Use", Entry->PhysicalMemoryArray.Use, uses);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, ErrorCorrection))
+        ET_SMBIOS_ENUM(L"Error correction", Entry->PhysicalMemoryArray.ErrorCorrection, corrections);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, MaximumCapacity))
+    {
+        if (Entry->PhysicalMemoryArray.MaximumCapacity == 0x80000000 &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, ExtendedMaximumCapacity))
+        {
+            ET_SMBIOS_SIZE(L"Maximum capacity", Entry->PhysicalMemoryArray.ExtendedMaximumCapacity);
+        }
+        else
+        {
+            ET_SMBIOS_SIZE(L"Maximum capacity", (ULONG64)Entry->PhysicalMemoryArray.MaximumCapacity * 1024);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, ErrorInformationHandle))
+        ET_SMBIOS_UINT32IX(L"Error information handle", Entry->PhysicalMemoryArray.ErrorInformationHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PhysicalMemoryArray, NumberOfMemoryDevices))
+        ET_SMBIOS_UINT32(L"Number of memory devices", Entry->PhysicalMemoryArray.NumberOfMemoryDevices);
 }
 
 VOID EtSMBIOSMemoryDevice(
