@@ -1206,15 +1206,15 @@ typedef struct _SMBIOS_SYSTEM_SLOT_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.0+
-    UCHAR Designation;      // string
-    UCHAR Type;             // SMBIOS_SYSTEM_SLOT_TYPE_*
-    UCHAR BusWidth;         // SMBIOS_SYSTEM_SLOT_BUS_WIDTH_*
-    UCHAR CurrentUsage;     // SMBIOS_SYSTEM_SLOT_USAGE_*
-    UCHAR Length;           // SMBIOS_SYSTEM_SLOT_LENGTH_*
+    UCHAR SocketDesignation; // string
+    UCHAR Type;              // SMBIOS_SYSTEM_SLOT_TYPE_*
+    UCHAR BusWidth;          // SMBIOS_SYSTEM_SLOT_BUS_WIDTH_*
+    UCHAR CurrentUsage;      // SMBIOS_SYSTEM_SLOT_USAGE_*
+    UCHAR Length;            // SMBIOS_SYSTEM_SLOT_LENGTH_*
     USHORT Identifier;
-    UCHAR Characteristics;  // SMBIOS_SYSTEM_SLOT_FLAG_*
+    UCHAR Characteristics;   // SMBIOS_SYSTEM_SLOT_FLAG_*
     // 2.1+
-    UCHAR Characteristics2; // SMBIOS_SYSTEM_SLOT_FLAG_2_*
+    UCHAR Characteristics2;  // SMBIOS_SYSTEM_SLOT_FLAG_2_*
     // 2.6+
     USHORT SegmentGroup;
     UCHAR BusNumber;
@@ -1233,7 +1233,7 @@ typedef struct _SMBIOS_SYSTEM_SLOT_INFORMATION
     // 3.2+
     UCHAR BusWidthBase;
     UCHAR PeerGroupingCount;
-    UCHAR PeetGroups[ANYSIZE_ARRAY];
+    UCHAR PeerGroups[ANYSIZE_ARRAY];
     // 3.4+
     // SMBIOS_SYSTEM_SLOT_INFORMATION_EX
 } SMBIOS_SYSTEM_SLOT_INFORMATION, *PSMBIOS_SYSTEM_SLOT_INFORMATION;
@@ -1336,7 +1336,7 @@ typedef struct _SMBIOS_SYSTEM_SLOT_INFORMATION_EX
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_64_BIT                                       ((UCHAR)6)
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_128_BIT                                      ((UCHAR)7)
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_1X_OR_1X                                     ((UCHAR)8)
-#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_2X_OR_3X                                     ((UCHAR)9)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_2X_OR_2X                                     ((UCHAR)9)
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_4X_OR_4X                                     ((UCHAR)10)
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_8X_OR_8X                                     ((UCHAR)11)
 #define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_12X_OR_12X                                   ((UCHAR)12)
@@ -1398,22 +1398,22 @@ typedef struct _SMBIOS_ON_BOARD_DEVICE_ENTRY
 
         UCHAR Value;
     } Device;
+    UCHAR Description; // string
 } SMBIOS_ON_BOARD_DEVICE_ENTRY, *PSMBIOS_ON_BOARD_DEVICE_ENTRY;
 
 typedef struct _SMBIOS_ON_BOARD_DEVICE_INFORMATION
 {
     SMBIOS_HEADER Header;
     SMBIOS_ON_BOARD_DEVICE_ENTRY Devices[ANYSIZE_ARRAY]; // (Header.Length - 4) / 2
-    // UCHAR Description; // string
 } SMBIOS_ON_BOARD_DEVICE_INFORMATION, *PSMBIOS_ON_BOARD_DEVICE_INFORMATION;
 
-C_ASSERT(sizeof(SMBIOS_ON_BOARD_DEVICE_INFORMATION) == 0x5);
+C_ASSERT(sizeof(SMBIOS_ON_BOARD_DEVICE_INFORMATION) == 0x6);
 
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_OTHER           ((UCHAR)1)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_UNKNOWN         ((UCHAR)2)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_VIDEO           ((UCHAR)3)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_SCSI_CONTROLLER ((UCHAR)4)
-#define SMBIOS_ON_BOARD_DEVICE_TYPE_EATHERNET       ((UCHAR)5)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_ETHERNET        ((UCHAR)5)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_TOKEN_RING      ((UCHAR)6)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_SOUND           ((UCHAR)7)
 #define SMBIOS_ON_BOARD_DEVICE_TYPE_PATA_CONTROLLER ((UCHAR)8)
