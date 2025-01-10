@@ -1453,45 +1453,42 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static void ReflowExportDefinitions(bool ReleaseBuild)
+        private static readonly string ExportHeader = @"/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2008-2016
+ *     dmex    2017-2024
+ *
+ *
+ * This file was automatically generated.
+ *
+ * Do not link at runtime. Use the SystemInformer.def.h header file instead.
+ *
+ */
+
+#pragma once
+
+#ifndef _PH_EXPORT_DEF_H
+#define _PH_EXPORT_DEF_H
+";
+
+        private static readonly string ExportFooter = @"
+#endif _PH_EXPORT_DEF_H
+";
+
+        public static void ExportDefinitions(bool ReleaseBuild)
         {
             List<int> ordinals = [];
             StringBuilder output = new StringBuilder();
-
-            if (File.Exists("SystemInformer\\SystemInformer-original.def"))
-                return;
-
-            File.Copy(
-                "SystemInformer\\SystemInformer.def",
-                "SystemInformer\\SystemInformer-original.def",
-                true
-                );
-
-            using (var fileHandle = PInvoke.CreateFile(
-                "SystemInformer\\SystemInformer-original.def",
-                (uint)GENERIC_ACCESS_RIGHTS.GENERIC_WRITE,
-                FILE_SHARE_MODE.FILE_SHARE_NONE,
-                null,
-                FILE_CREATION_DISPOSITION.OPEN_EXISTING,
-                FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL,
-                null))
-            {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
-
-                if (PInvoke.GetFileAttributesEx("SystemInformer\\SystemInformer.def", GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &sourceFile))
-                {
-                    PInvoke.SetFileTime(
-                        fileHandle,
-                        sourceFile.ftCreationTime,
-                        sourceFile.ftLastAccessTime,
-                        sourceFile.ftLastWriteTime
-                        );
-                }
-            }
+            StringBuilder output_header = new StringBuilder();
 
             var content = File.ReadAllText("SystemInformer\\SystemInformer.def");
             var lines = content.Split("\r\n");
-            int total = lines.Length; // lines.Count(line => line.StartsWith("    ", StringComparison.OrdinalIgnoreCase));
+            int total = lines.Length;
 
             if (ReleaseBuild)
             {
@@ -1513,6 +1510,8 @@ namespace CustomBuildTool
                 }
             }
 
+            output_header.AppendLine(ExportHeader);
+
             foreach (string line in lines)
             {
                 var span = line.AsSpan();
@@ -1526,25 +1525,18 @@ namespace CustomBuildTool
                 {
                     if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
                     {
-                        var data_offset = span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase);
                         var ordinal = ordinals[0]; ordinals.RemoveAt(0);
+                        var name_end = span.Slice(4).IndexOf(' ');
+                        if (name_end == -1)
+                            name_end = span.Slice(4).Length;
+                        var name = span.Slice(4, name_end).ToString();
 
-                        if (data_offset != -1)
-                        {
-                            output.Append(span.Slice(0, data_offset));
-                            output.Append(" @");
-                            output.Append(ordinal);
-                            output.Append(" NONAME DATA");
-                        }
+                        if (span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase) != -1)
+                            output.AppendLine(string.Format("    {0,-55} @{1,-5} NONAME DATA", name, ordinal));
                         else
-                        {
-                            output.Append(span);
-                            output.Append(" @");
-                            output.Append(ordinal);
-                            output.Append(" NONAME");
-                        }
+                            output.AppendLine(string.Format("    {0,-55} @{1,-5} NONAME", name, ordinal));
 
-                        output.AppendLine();
+                        output_header.AppendLine(string.Format("#define EXPORT_{0,-55} {1}", name.ToUpper(), ordinal));
                     }
                     else
                     {
@@ -1554,42 +1546,21 @@ namespace CustomBuildTool
                 }
             }
 
+            output_header.AppendLine(ExportFooter);
+
             string export_content = output.ToString().TrimEnd();
+            string export_header = output_header.ToString().TrimEnd();
+            string export_backup = string.Empty;
+            if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
+                export_backup = File.ReadAllText("SystemInformer\\SystemInformer.def.bak");
 
-            Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
-        }
-
-        public static void RestoreExportDefinitions()
-        {
-            if (File.Exists("SystemInformer\\SystemInformer-original.def"))
+            // Only write to the file if it has changed.
+            if (content != export_content || export_backup != export_content)
             {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
-
-                File.Copy(
-                    "SystemInformer\\SystemInformer-original.def",
-                    "SystemInformer\\SystemInformer.def",
-                    true
-                    );
-
-                if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer-original.def",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &sourceFile))
-                {
-                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.def"))
-                    {
-                        PInvoke.SetFileTime(
-                            fs.SafeFileHandle,
-                            sourceFile.ftCreationTime,
-                            sourceFile.ftLastAccessTime,
-                            sourceFile.ftLastWriteTime
-                            );
-                    }
-                }
-
-                File.Delete("SystemInformer\\SystemInformer-original.def");
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def.h", export_header);
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def.bak", export_content);
             }
         }
-
     }
 }

@@ -481,7 +481,7 @@ namespace CustomBuildTool
                 ))
             {
                 if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
                 basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
                 basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
@@ -504,7 +504,7 @@ namespace CustomBuildTool
             using (var fs = File.OpenRead(FileName))
             {
                 if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
                 CreationTime = basicInfo.CreationTime;
                 LastWriteDateTime = basicInfo.LastWriteTime;

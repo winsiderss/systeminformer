@@ -133,19 +133,12 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(false);
 
-                try
-                {
-                    Build.ReflowExportDefinitions(false);
+                Build.ExportDefinitions(false);
 
-                    if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                        return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
-                        return;
-                }
-                finally
-                {
-                    Build.RestoreExportDefinitions();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                    return;
+                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                    return;
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
@@ -165,19 +158,12 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
-                try
-                {
-                    Build.ReflowExportDefinitions(false);
+                Build.ExportDefinitions(false);
 
-                    if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug))
-                        return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
-                        return;
-                }
-                finally
-                {
-                    Build.RestoreExportDefinitions();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug))
+                    return;
+                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
+                    return;
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Debug))
                     Environment.Exit(1);
@@ -195,19 +181,12 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                try
-                {
-                    Build.ReflowExportDefinitions(true);
+                Build.ExportDefinitions(true);
 
-                    if (!Build.BuildSolution("SystemInformer.sln", flags))
-                        return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                        return;
-                }
-                finally
-                {
-                    Build.RestoreExportDefinitions();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    return;
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                    return;
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
             }
@@ -253,19 +232,12 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                try
-                {
-                    Build.ReflowExportDefinitions(true);
+                Build.ExportDefinitions(true);
 
-                    if (!Build.BuildSolution("SystemInformer.sln", flags))
-                        return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                        return;
-                }
-                finally
-                {
-                    Build.RestoreExportDefinitions();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    return;
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                    return;
 
                 if (!Build.CopyDebugEngineFiles(flags))
                     Environment.Exit(1);
@@ -282,19 +254,12 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
-                try
-                {
-                    Build.ReflowExportDefinitions(false);
+                Build.ExportDefinitions(false);
 
-                    if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                        return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
-                        return;
-                }
-                finally
-                {
-                    Build.RestoreExportDefinitions();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                    return;
+                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                    return;
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
