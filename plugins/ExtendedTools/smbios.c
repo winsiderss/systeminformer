@@ -1778,7 +1778,17 @@ VOID EtSMBIOSGroupAssociation(
     )
 {
     ET_SMBIOS_GROUP(L"Group association");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, GroupAssociation, Name))
+        ET_SMBIOS_STRING(L"Name", Entry->GroupAssociation.Name);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, GroupAssociation, ItemType))
+        ET_SMBIOS_UINT32(L"Item type", Entry->GroupAssociation.ItemType);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, GroupAssociation, ItemHandle))
+        ET_SMBIOS_UINT32IX(L"Item handle", Entry->GroupAssociation.ItemHandle);
 }
 
 VOID EtSMBIOSSystemEventLog(
