@@ -61,8 +61,8 @@ typedef union _HV_PARTITION_PRIVILEGE_MASK
         UINT64 Reserved9 : 10;
     };
 
-    UINT64 High;
-    UINT64 Low;
+    UINT32 High;
+    UINT32 Low;
 } HV_PARTITION_PRIVILEGE_MASK, *PHV_PARTITION_PRIVILEGE_MASK;
 
 #if defined(_M_IX86) || defined(_M_AMD64)
@@ -135,7 +135,7 @@ BOOLEAN PhHypervisorIsPresent(
 
     PhCpuId(&cpuid, 1, 0);
 
-    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
+    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-discovery
     if (cpuid.ECX & 0x80000000)
         return TRUE;
 
@@ -148,7 +148,7 @@ BOOLEAN PhVCpuIsMicrosoftHyperV(
 {
     PH_CPUID cpuid;
 
-    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
+    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-cpuid-leaf-range---0x40000000
     PhCpuId(&cpuid, 0x40000000, 0);
 
     // Microsoft Hv
@@ -163,7 +163,10 @@ VOID PhGetHvPartitionPrivilegeMask(
     )
 {
     PH_CPUID cpuid;
+
+    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-feature-identification---0x40000003
     PhCpuId(&cpuid, 0x40000003, 0);
+
     Mask->Low = cpuid.EAX;
     Mask->High = cpuid.EBX;
 }
