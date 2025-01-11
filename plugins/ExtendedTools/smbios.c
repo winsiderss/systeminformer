@@ -3082,8 +3082,45 @@ VOID EtSMBIOSMemoryChannel(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_CHANNEL_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_CHANNEL_TYPE_UNKNOWN),
+        SIP(L"Rambus", SMBIOS_MEMORY_CHANNEL_TYPE_RAMBUS),
+        SIP(L"SyncLink", SMBIOS_MEMORY_CHANNEL_TYPE_SYNC_LINK),
+    };
+
     ET_SMBIOS_GROUP(L"Memory channel");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryChannel, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->MemoryChannel.Type, types);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryChannel, MaximumLoad))
+        ET_SMBIOS_UINT32(L"Maximum load", Entry->MemoryChannel.MaximumLoad);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryChannel, Count))
+    {
+        for (UCHAR i = 0; i < Entry->MemoryChannel.Count; i++)
+        {
+            PH_FORMAT format[3];
+            PPH_STRING name;
+
+            PhInitFormatS(&format[0], L"Channel #");
+            PhInitFormatU(&format[1], i + 1);
+            PhInitFormatS(&format[2], L" handle");
+
+            name = PhFormat(format, 3, 20);
+            ET_SMBIOS_UINT32IX(PhGetString(name), Entry->MemoryChannel.Entries[i].Handle);
+            PhDereferenceObject(name);
+
+            PhInitFormatS(&format[2], L" load");
+            name = PhFormat(format, 3, 20);
+            ET_SMBIOS_UINT32(PhGetString(name), Entry->MemoryChannel.Entries[i].Load);
+            PhDereferenceObject(name);
+        }
+    }
 }
 
 VOID EtSMBIOSIPMIDevice(
