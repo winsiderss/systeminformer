@@ -312,7 +312,7 @@ VOID EtSMBIOSFirmware(
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_AGP_SUPPORTED, L"AGP"),
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_I20_BOOT_SUPPORTED, L"I20 boot"),
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_LS_120_BOOT_SUPPORTED, L"LS-120 boot"),
-        ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_ZIP_BOOT_SUPPORTED, L"Zip boot"),
+        ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_ZIP_BOOT_SUPPORTED, L"ZIP boot"),
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_1394_BOOT_SUPPORTED, L"1394 boot"),
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_SMART_BATTERY_SUPPORTED, L"Smart battery"),
         ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_FLAG_2_BIOS_BOOT_SUPPORTED, L"BIOS boot"),
@@ -1887,8 +1887,348 @@ VOID EtSMBIOSMemoryDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR formFactors[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_UNKNOWN),
+        SIP(L"SIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SIMM),
+        SIP(L"SIP", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SIP),
+        SIP(L"Chip", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_CHIP),
+        SIP(L"DIP", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIP),
+        SIP(L"ZIP", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_ZIP),
+        SIP(L"Proprietary", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_PROPRIETARY),
+        SIP(L"DIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIMM),
+        SIP(L"TSOP", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_TSOP),
+        SIP(L"Row of chips", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_ROW_OF_CHIPS),
+        SIP(L"RIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_RIMM),
+        SIP(L"SODIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SODIMM),
+        SIP(L"SRIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SRIMM),
+        SIP(L"FB-DIMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_FB_DIMM),
+        SIP(L"Die", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIE),
+        SIP(L"CAMM", SMBIOS_MEMORY_DEVICE_FORM_FACTOR_CAMM),
+    };
+
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_DEVICE_TYPE_UNKNOWN),
+        SIP(L"DRAM", SMBIOS_MEMORY_DEVICE_TYPE_DRAM),
+        SIP(L"EDRAM", SMBIOS_MEMORY_DEVICE_TYPE_EDRAM),
+        SIP(L"VRAM", SMBIOS_MEMORY_DEVICE_TYPE_VRAM),
+        SIP(L"SRAM", SMBIOS_MEMORY_DEVICE_TYPE_SRAM),
+        SIP(L"RAM", SMBIOS_MEMORY_DEVICE_TYPE_RAM),
+        SIP(L"ROM", SMBIOS_MEMORY_DEVICE_TYPE_ROM),
+        SIP(L"FLASH", SMBIOS_MEMORY_DEVICE_TYPE_FLASH),
+        SIP(L"EEPROM", SMBIOS_MEMORY_DEVICE_TYPE_EEPROM),
+        SIP(L"FEPROM", SMBIOS_MEMORY_DEVICE_TYPE_FEPROM),
+        SIP(L"EPROM", SMBIOS_MEMORY_DEVICE_TYPE_EPROM),
+        SIP(L"CDRAM", SMBIOS_MEMORY_DEVICE_TYPE_CDRAM),
+        SIP(L"3DRAM", SMBIOS_MEMORY_DEVICE_TYPE_3DRAM),
+        SIP(L"SDRAM", SMBIOS_MEMORY_DEVICE_TYPE_SDRAM),
+        SIP(L"SGRAM", SMBIOS_MEMORY_DEVICE_TYPE_SGRAM),
+        SIP(L"RDRAM", SMBIOS_MEMORY_DEVICE_TYPE_RDRAM),
+        SIP(L"DDR", SMBIOS_MEMORY_DEVICE_TYPE_DDR),
+        SIP(L"DDR2", SMBIOS_MEMORY_DEVICE_TYPE_DDR2),
+        SIP(L"DDR2-FM-DIMM", SMBIOS_MEMORY_DEVICE_TYPE_DDR2_FB_DIMM),
+        SIP(L"DDR3", SMBIOS_MEMORY_DEVICE_TYPE_DDR3),
+        SIP(L"FBD2", SMBIOS_MEMORY_DEVICE_TYPE_FBD2),
+        SIP(L"DDR4", SMBIOS_MEMORY_DEVICE_TYPE_DDR4),
+        SIP(L"LPDDR", SMBIOS_MEMORY_DEVICE_TYPE_LPDDR),
+        SIP(L"LPDDR2", SMBIOS_MEMORY_DEVICE_TYPE_LPDDR2),
+        SIP(L"LPDDR3", SMBIOS_MEMORY_DEVICE_TYPE_LPDDR3),
+        SIP(L"LPDDR4", SMBIOS_MEMORY_DEVICE_TYPE_LPDDR4),
+        SIP(L"Local non-volatile", SMBIOS_MEMORY_DEVICE_TYPE_LOCAL_NON_VOLATILE),
+        SIP(L"HBM", SMBIOS_MEMORY_DEVICE_TYPE_HBM),
+        SIP(L"HBM2", SMBIOS_MEMORY_DEVICE_TYPE_HBM2),
+        SIP(L"DDR5", SMBIOS_MEMORY_DEVICE_TYPE_DDR5),
+        SIP(L"LPDDR5", SMBIOS_MEMORY_DEVICE_TYPE_LPDDR5),
+        SIP(L"HBM3", SMBIOS_MEMORY_DEVICE_TYPE_HBM3),
+    };
+
+    static const PH_ACCESS_ENTRY typeDetails[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_RESERVED, L"Reserved"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_FAST_PAGED, L"Fast-paged"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_STATIC_COL, L"Static column"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_PSEUDO_STATIC, L"Pseudo-static"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_RAMBUS, L"RAMBUS"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_SYNCHRONOUS, L"Synchronous"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_CMOS, L"CMOS"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_EDO, L"EDO"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_WINDOW_DRAM, L"Window DRAM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_CACHE_DRAM, L"Cache DRAM"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_NON_VOLATILE, L"Non-volatile"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_BUFFERED, L"Buffered"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_UNBUFFERED, L"Unbuffered"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_LRDIMM, L"LRDIMM"),
+    };
+
+    static const PH_KEY_VALUE_PAIR technologies[] =
+    {
+        SIP(L"Other", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_OTHER),
+        SIP(L"Unknown", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_UNKNOWN),
+        SIP(L"DRAM", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_DRAM),
+        SIP(L"NVDIMM-N", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_N),
+        SIP(L"NVDIMM-F", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_F),
+        SIP(L"NVDIMM-P", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_P),
+        SIP(L"Intel Optane", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_INTEL_OPTANE),
+        SIP(L"MRDIMM", SMBIOS_MEMORY_DEVICE_TECHNOLOGY_MRDIMM),
+    };
+
+    static const PH_ACCESS_ENTRY deviceModes[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_RESERVED, L"Reserved"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_OTHER, L"Other"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_UNKNOWN, L"Unknown"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_VOLATILE, L"Volatile"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_BYTE_ACCESSIBLE_PERSISTENT, L"Byte-accessible persistent"),
+        ET_SMBIOS_FLAG(SMBIOS_MEMORY_DEVICE_MODE_BLOCK_ACCESSIBLE_PERSISTENT, L"Block-accessible persistent"),
+    };
+
     ET_SMBIOS_GROUP(L"Memory device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, PhysicalArrayHandle))
+        ET_SMBIOS_UINT32IX(L"Physical array handle", Entry->MemoryDevice.PhysicalArrayHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, MemoryErrorInformationHandle))
+        ET_SMBIOS_UINT32IX(L"Memory error information handle", Entry->MemoryDevice.MemoryErrorInformationHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, TotalWidth) &&
+        Entry->MemoryDevice.TotalWidth != MAXUSHORT)
+    {
+        ET_SMBIOS_UINT32(L"Total width", Entry->MemoryDevice.TotalWidth);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, DataWidth) &&
+        Entry->MemoryDevice.DataWidth != MAXUSHORT)
+    {
+        ET_SMBIOS_UINT32(L"Data width", Entry->MemoryDevice.DataWidth);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Size))
+    {
+        if (Entry->MemoryDevice.Size.Value == 0)
+        {
+            NOTHING; // not installed
+        }
+        else if (Entry->MemoryDevice.Size.Value == 0x7FFF) // extended size
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedSize))
+            {
+                ET_SMBIOS_SIZE(L"Size", (ULONG64)Entry->MemoryDevice.ExtendedSize * 1024 * 1024);
+            }
+        }
+        else
+        {
+            if (Entry->MemoryDevice.Size.Granularity) // kilobytes
+            {
+                ET_SMBIOS_SIZE(L"Size", Entry->MemoryDevice.Size.Size * 1024);
+            }
+            else // megabytes
+            {
+                ET_SMBIOS_SIZE(L"Size", (ULONG64)Entry->MemoryDevice.Size.Size * 1024 * 1024);
+            }
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, FormFactor))
+        ET_SMBIOS_ENUM(L"Form factor", Entry->MemoryDevice.FormFactor, formFactors);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, DeviceSet) &&
+        Entry->MemoryDevice.DeviceSet != 0 &&
+        Entry->MemoryDevice.DeviceSet != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32(L"Device set", Entry->MemoryDevice.DeviceSet);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, DeviceLocator))
+        ET_SMBIOS_STRING(L"Device locator", Entry->MemoryDevice.DeviceLocator);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, BankLocator))
+        ET_SMBIOS_STRING(L"Bank locator", Entry->MemoryDevice.BankLocator);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, MemoryType))
+        ET_SMBIOS_ENUM(L"Memory type", Entry->MemoryDevice.MemoryType, types);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, TypeDetail) &&
+        Entry->MemoryDevice.TypeDetail != 0)
+    {
+        ET_SMBIOS_FLAGS(L"Type detail", Entry->MemoryDevice.TypeDetail, typeDetails);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Speed) &&
+        Entry->MemoryDevice.Speed != 0)
+    {
+        if (Entry->MemoryDevice.Speed == MAXUSHORT)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedSpeed))
+            {
+                ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->MemoryDevice.ExtendedSpeed, L" MT/s");
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->MemoryDevice.Speed, L" MT/s");
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ConfiguredSpeed) &&
+        Entry->MemoryDevice.ConfiguredSpeed != 0)
+    {
+        if (Entry->MemoryDevice.ConfiguredSpeed == MAXUSHORT)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedConfiguredSpeed))
+            {
+                ET_SMBIOS_UINT32_UINTS(L"Configured speed", Entry->MemoryDevice.ExtendedConfiguredSpeed, L" MT/s");
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT32_UINTS(L"Configured speed", Entry->MemoryDevice.ConfiguredSpeed, L" MT/s");
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->MemoryDevice.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->MemoryDevice.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, AssetTag))
+        ET_SMBIOS_STRING(L"Asset tag", Entry->MemoryDevice.AssetTag);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, PartNumber))
+        ET_SMBIOS_STRING(L"Part number", Entry->MemoryDevice.PartNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Attributes))
+    {
+        if (Entry->MemoryDevice.Attributes.Rank != 0)
+            ET_SMBIOS_UINT32(L"Rank", Entry->MemoryDevice.Attributes.Rank);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, MinimumVoltage) &&
+        Entry->MemoryDevice.MinimumVoltage != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->MemoryDevice.MinimumVoltage / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Minimum voltage", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, MaximumVoltage) &&
+        Entry->MemoryDevice.MaximumVoltage != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->MemoryDevice.MaximumVoltage / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Maximum voltage", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ConfiguredVoltage) &&
+        Entry->MemoryDevice.ConfiguredVoltage != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->MemoryDevice.ConfiguredVoltage / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Configured voltage", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, Technology))
+        ET_SMBIOS_ENUM(L"Technology", Entry->MemoryDevice.Technology, technologies);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ModeCapabilities))
+        ET_SMBIOS_FLAGS(L"Mode capabilities", Entry->MemoryDevice.ModeCapabilities, deviceModes);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, MemoryDevice, FirmwareVersion))
+        ET_SMBIOS_STRING(L"Firmware version", Entry->MemoryDevice.FirmwareVersion);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ModuleManufacturerID) &&
+        Entry->MemoryDevice.ModuleManufacturerID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Module manufacturer ID", Entry->MemoryDevice.ModuleManufacturerID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ModuleProductID) &&
+        Entry->MemoryDevice.ModuleProductID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Module product ID", Entry->MemoryDevice.ModuleProductID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, SubsystemControllerManufacturerID) &&
+        Entry->MemoryDevice.SubsystemControllerManufacturerID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Subsystem controller manufacturer ID", Entry->MemoryDevice.SubsystemControllerManufacturerID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, SubsystemControllerProductID) &&
+        Entry->MemoryDevice.SubsystemControllerProductID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Subsystem controller product ID", Entry->MemoryDevice.SubsystemControllerProductID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, NonVolatileSize) &&
+        Entry->MemoryDevice.NonVolatileSize != 0 &&
+        Entry->MemoryDevice.NonVolatileSize != ULONG64_MAX)
+    {
+        ET_SMBIOS_SIZE(L"Non-volatile size", Entry->MemoryDevice.NonVolatileSize);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, VolatileSize) &&
+        Entry->MemoryDevice.VolatileSize != 0 &&
+        Entry->MemoryDevice.VolatileSize != ULONG64_MAX)
+    {
+        ET_SMBIOS_SIZE(L"Volatile size", Entry->MemoryDevice.VolatileSize);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, LogicalSize) &&
+        Entry->MemoryDevice.LogicalSize != 0 &&
+        Entry->MemoryDevice.LogicalSize != ULONG64_MAX)
+    {
+        ET_SMBIOS_SIZE(L"Logical size", Entry->MemoryDevice.LogicalSize);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, PMIC0ManufacturerID) &&
+        Entry->MemoryDevice.PMIC0ManufacturerID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"PMIC0 manufacturer ID", Entry->MemoryDevice.PMIC0ManufacturerID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, PMIC0Revision) &&
+        Entry->MemoryDevice.PMIC0Revision != 0xFF00)
+    {
+        ET_SMBIOS_UINT32IX(L"PMIC0 revision", Entry->MemoryDevice.PMIC0Revision);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, RCDManufacturerID) &&
+        Entry->MemoryDevice.RCDManufacturerID != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"RCD manufacturer ID", Entry->MemoryDevice.RCDManufacturerID);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, RCDRevision) &&
+        Entry->MemoryDevice.RCDRevision != 0xFF00)
+    {
+        ET_SMBIOS_UINT32IX(L"RCD revision", Entry->MemoryDevice.RCDRevision);
+    }
 }
 
 VOID EtSMBIOS32BitMemoryError(
