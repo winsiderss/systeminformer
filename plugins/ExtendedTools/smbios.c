@@ -3650,8 +3650,91 @@ VOID EtSMBIOSMCHInterface(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR interfaceTypes[] =
+    {
+        SIP(L"Network interface", SMBIOS_MCHI_TYPE_NETWORK_INTERFACE),
+        SIP(L"OEM defined", SMBIOS_MCHI_TYPE_OEM_DEFINED)
+    };
+
+    static const PH_KEY_VALUE_PAIR protocolTypes[] =
+    {
+        SIP(L"Reserved 0", SMBIOS_MCHI_PROTOCOL_TYPE_RESERVED_0),
+        SIP(L"Reserved 1", SMBIOS_MCHI_PROTOCOL_TYPE_RESERVED_1),
+        SIP(L"IPMI", SMBIOS_MCHI_PROTOCOL_TYPE_IPMI),
+        SIP(L"MCTP", SMBIOS_MCHI_PROTOCOL_TYPE_MCTP),
+        SIP(L"Refresh over IP", SMBIOS_MCHI_PROTOCOL_TYPE_REFRESH_OVER_IP),
+        SIP(L"OEM defined", SMBIOS_MCHI_PROTOCOL_TYPE_OEM_DEFINED),
+    };
+
     ET_SMBIOS_GROUP(L"Management controller host interface");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MCHInterface, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->MCHInterface.Type, interfaceTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MCHInterface, Length))
+    {
+        PPH_STRING data;
+
+        data = PhBufferToHexString(Entry->MCHInterface.Data, Entry->MCHInterface.Length);
+        EtAddSMBIOSItem(Context, group, L"Data", PhGetString(data));
+        PhDereferenceObject(data);
+    }
+
+    // SMBIOS_MCHI_PROTOCOL_RECORDS
+
+    PVOID end;
+    PVOID pointer;
+    PSMBIOS_MCHI_PROTOCOL_RECORDS records;
+    PSMBIOS_MCHI_PROTOCOL_RECORD record;
+
+    end = PTR_ADD_OFFSET(Entry, Entry->Header.Length);
+    pointer = PTR_ADD_OFFSET(Entry->MCHInterface.Data, Entry->MCHInterface.Length);
+
+    if (pointer >= end)
+        return;
+
+    records = pointer;
+    pointer = PTR_ADD_OFFSET(pointer, sizeof(SMBIOS_MCHI_PROTOCOL_RECORDS));
+
+    if (pointer >= end)
+        return;
+
+    record = records->Records;
+
+    for (UCHAR i = 0; i < records->Count; i++)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING name;
+
+        PhInitFormatC(&format[0], L'#');
+        PhInitFormatU(&format[1], i + 1);
+
+        PhInitFormatS(&format[2], L" Protocol type");
+        name = PhFormat(format, 3, 20);
+        ET_SMBIOS_ENUM(PhGetString(name), record->Type, protocolTypes);
+        PhDereferenceObject(name);
+
+        if (record->Length > 0)
+        {
+            PPH_STRING data;
+
+            // TODO format data by protocol type instead of hex buffer
+            data = PhBufferToHexString(record->Data, record->Length);
+
+            PhInitFormatS(&format[2], L" Data");
+            name = PhFormat(format, 3, 20);
+            EtAddSMBIOSItem(Context, group, PhGetString(name), PhGetString(data));
+            PhDereferenceObject(name);
+
+            PhDereferenceObject(data);
+        }
+
+        pointer = PTR_ADD_OFFSET(pointer, record->Length);
+        pointer = PTR_ADD_OFFSET(pointer, FIELD_OFFSET(SMBIOS_MCHI_PROTOCOL_RECORD, Length));
+        record = pointer;
+    }
 }
 
 VOID EtSMBIOSTPMDevice(
