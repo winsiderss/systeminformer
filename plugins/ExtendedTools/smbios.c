@@ -2491,8 +2491,113 @@ VOID EtSMBIOSPortableBattery(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR chemistry[] =
+    {
+        SIP(L"Other", SMBIO_PORTABLE_BATTERY_CHEMISTRY_OTHER),
+        SIP(L"Unknown", SMBIO_PORTABLE_BATTERY_CHEMISTRY_UNKNOWN),
+        SIP(L"Lead acid", SMBIO_PORTABLE_BATTERY_CHEMISTRY_LEAD_ACID),
+        SIP(L"Nickel cadmium", SMBIO_PORTABLE_BATTERY_CHEMISTRY_NICKEL_CADMIUM),
+        SIP(L"Nickel metal", SMBIO_PORTABLE_BATTERY_CHEMISTRY_NICKEL_METAL),
+        SIP(L"Lithium-ion", SMBIO_PORTABLE_BATTERY_CHEMISTRY_LITHIUM_ION),
+        SIP(L"Zinc air", SMBIO_PORTABLE_BATTERY_CHEMISTRY_ZINC_AIR),
+        SIP(L"Lithium polymer", SMBIO_PORTABLE_BATTERY_CHEMISTRY_LITHIUM_POLYMER),
+    };
+
     ET_SMBIOS_GROUP(L"Portable battery");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, Location))
+        ET_SMBIOS_STRING(L"Location", Entry->PortableBattery.Location);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->PortableBattery.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, ManufactureDate))
+        ET_SMBIOS_STRING(L"Manufacture date", Entry->PortableBattery.ManufactureDate);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->PortableBattery.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, DeviceName))
+        ET_SMBIOS_STRING(L"Device name", Entry->PortableBattery.DeviceName);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, DeviceChemistry))
+        ET_SMBIOS_ENUM(L"Device chemistry", Entry->PortableBattery.DeviceChemistry, chemistry);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, DesignCapacity) &&
+        Entry->PortableBattery.DesignCapacity != 0)
+    {
+        ULONG multiplier;
+        ULONG capacity;
+
+        if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, DesignCapacityMultiplier))
+            multiplier = Entry->PortableBattery.DesignCapacityMultiplier;
+        else
+            multiplier = 1;
+
+        capacity = (ULONG)Entry->PortableBattery.DesignCapacity * multiplier;
+
+        ET_SMBIOS_UINT32_UINTS(L"Design capacity", capacity, L" mWh");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, DesignVoltage) &&
+        Entry->PortableBattery.DesignVoltage != 0)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->PortableBattery.DesignVoltage / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Design voltage", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, SBDSVersionNumber))
+        ET_SMBIOS_STRING(L"SBDS version number", Entry->PortableBattery.SBDSVersionNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, MaximumError) &&
+        Entry->PortableBattery.MaximumError != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32_UINTS(L"Maximum error", Entry->PortableBattery.MaximumError, L"%");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, SBDSSerialNumber) &&
+        !PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, SerialNumber))
+    {
+        ET_SMBIOS_UINT32IX(L"SBDS serial number", Entry->PortableBattery.SBDSSerialNumber);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, SBDSManufactureDate) &&
+        !PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, ManufactureDate))
+    {
+        PH_FORMAT format[5];
+        ULONG day;
+        ULONG month;
+        ULONG year;
+        PPH_STRING string;
+
+        day = Entry->PortableBattery.ManufactureDate & 0x1F;
+        month = (Entry->PortableBattery.ManufactureDate & 0x1E0) >> 5;
+        year = 1980 + ((Entry->PortableBattery.ManufactureDate & 0xFE00) >> 9);
+
+        PhInitFormatU(&format[0], year);
+        PhInitFormatC(&format[1], L'-');
+        PhInitFormatU(&format[2], month);
+        PhInitFormatC(&format[3], L'-');
+        PhInitFormatU(&format[4], day);
+
+        string = PhFormat(format, 5, 10);
+        EtAddSMBIOSItem(Context, group, L"SBDS Manufacture date", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, SBDSDeviceChemistry))
+        ET_SMBIOS_STRING(L"SBDS device chemistry", Entry->PortableBattery.SBDSDeviceChemistry);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, OEMSpecific))
+        ET_SMBIOS_UINT32IX(L"OEM specific", Entry->PortableBattery.OEMSpecific);
 }
 
 VOID EtSMBIOSSystemReset(
