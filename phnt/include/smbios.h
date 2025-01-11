@@ -2122,13 +2122,13 @@ typedef struct _SMBIOS_TEMPERATURE_PROBE_INFORMATION
         UCHAR Value;
     } LocationAndStatus;
 
-    USHORT MaximumValue;
-    USHORT MinimumValue;
+    SHORT MaximumValue;
+    SHORT MinimumValue;
     USHORT Resolution;
     USHORT Tolerance;
     USHORT Accuracy;
     ULONG OEMDefined;
-    USHORT NominalValue;
+    SHORT NominalValue;
 } SMBIOS_TEMPERATURE_PROBE_INFORMATION, *PSMBIOS_TEMPERATURE_PROBE_INFORMATION;
 
 C_ASSERT(sizeof(SMBIOS_TEMPERATURE_PROBE_INFORMATION) == 0x16);
