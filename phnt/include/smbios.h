@@ -2653,7 +2653,7 @@ typedef struct _SMBIOS_TPM_DEVICE_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.6+
-    UCHAR VentorID[4];
+    UCHAR VendorID[4];
     UCHAR MajorSpecVersion;
     UCHAR MinorSpecVersion;
     ULONG FirmwareVersion1;
