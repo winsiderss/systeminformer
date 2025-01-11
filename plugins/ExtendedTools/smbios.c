@@ -3031,7 +3031,20 @@ VOID EtSMBIOSManagementDeviceComponent(
     )
 {
     ET_SMBIOS_GROUP(L"Management device component");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, ManagementDeviceComponent, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->ManagementDeviceComponent.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceComponent, ManagementDeviceHandle))
+        ET_SMBIOS_UINT32IX(L"Management device handle", Entry->ManagementDeviceComponent.ManagementDeviceHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceComponent, ComponentHandle))
+        ET_SMBIOS_UINT32IX(L"Component handle", Entry->ManagementDeviceComponent.ComponentHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceComponent, ThresholdHandle))
+        ET_SMBIOS_UINT32IX(L"Threshold handle", Entry->ManagementDeviceComponent.ThresholdHandle);
 }
 
 VOID EtSMBIOSManagementDeviceThreshold(
@@ -3041,7 +3054,26 @@ VOID EtSMBIOSManagementDeviceThreshold(
     )
 {
     ET_SMBIOS_GROUP(L"Management device threshold");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, LowerThresholdNonCritical))
+        ET_SMBIOS_UINT32(L"Lower threshold non-critical", Entry->ManagementDeviceThreshold.LowerThresholdNonCritical);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, UpperThresholdNonCritical))
+        ET_SMBIOS_UINT32(L"Upper threshold non-critical", Entry->ManagementDeviceThreshold.UpperThresholdNonCritical);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, LowerThresholdCritical))
+        ET_SMBIOS_UINT32(L"Lower threshold critical", Entry->ManagementDeviceThreshold.LowerThresholdCritical);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, UpperThresholdCritical))
+        ET_SMBIOS_UINT32(L"Upper threshold critical", Entry->ManagementDeviceThreshold.UpperThresholdCritical);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, LowerThresholdNonRecoverable))
+        ET_SMBIOS_UINT32(L"Lower threshold non-recoverable", Entry->ManagementDeviceThreshold.LowerThresholdNonRecoverable);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDeviceThreshold, UpperThresholdNonRecoverable))
+        ET_SMBIOS_UINT32(L"Upper threshold non-recoverable", Entry->ManagementDeviceThreshold.UpperThresholdNonRecoverable);
 }
 
 VOID EtSMBIOSMemoryChannel(
