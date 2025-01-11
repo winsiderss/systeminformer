@@ -2720,7 +2720,7 @@ typedef struct _SMBIOS_FIRMWARE_INVENTORY_INFORMATION
     // 3.5+
     UCHAR ComponentName;          // string
     UCHAR Version;                // string
-    UCHAR Format;
+    UCHAR VersionFormat;
     UCHAR Identifier;             // string
     UCHAR IdentifierFormat;
     UCHAR ReleaseDate;            // string
