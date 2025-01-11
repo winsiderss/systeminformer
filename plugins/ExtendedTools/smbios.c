@@ -2715,8 +2715,116 @@ VOID EtSMBIOSVoltageProbe(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR locations[] =
+    {
+        SIP(L"Other", SMBIOS_VOLTAGE_PROBE_LOCATION_OTHER),
+        SIP(L"Unknown", SMBIOS_VOLTAGE_PROBE_LOCATION_UNKNOWN),
+        SIP(L"Processor", SMBIOS_VOLTAGE_PROBE_LOCATION_PROCESSOR),
+        SIP(L"Disk", SMBIOS_VOLTAGE_PROBE_LOCATION_DISK),
+        SIP(L"Peripheral bay", SMBIOS_VOLTAGE_PROBE_LOCATION_PERIPHERAL_BAY),
+        SIP(L"System management module", SMBIOS_VOLTAGE_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE),
+        SIP(L"Motherboard", SMBIOS_VOLTAGE_PROBE_LOCATION_MOTHERBOARD),
+        SIP(L"Memory module", SMBIOS_VOLTAGE_PROBE_LOCATION_MEMORY_MODULE),
+        SIP(L"Processor module", SMBIOS_VOLTAGE_PROBE_LOCATION_PROCESSOR_MODULE),
+        SIP(L"Power unit", SMBIOS_VOLTAGE_PROBE_LOCATION_POWER_UNIT),
+        SIP(L"Add-in card", SMBIOS_VOLTAGE_PROBE_LOCATION_ADD_IN_CARD),
+    };
+
     ET_SMBIOS_GROUP(L"Voltage probe");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, VoltageProbe, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->VoltageProbe.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, LocationAndStatus))
+    {
+        ET_SMBIOS_ENUM(L"Location", Entry->VoltageProbe.LocationAndStatus.Location, locations);
+        ET_SMBIOS_ENUM(L"Status", Entry->VoltageProbe.LocationAndStatus.Status, EtSMBIOSProbeStatus);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, MaximumValue) &&
+        Entry->VoltageProbe.MaximumValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->VoltageProbe.MaximumValue / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Maximum value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, MinimumValue) &&
+        Entry->VoltageProbe.MinimumValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->VoltageProbe.MinimumValue / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Minimum value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, Resolution) &&
+        Entry->VoltageProbe.Resolution != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->VoltageProbe.Resolution / 10, 1);
+        PhInitFormatS(&format[1], L" mV");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Resolution", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, Tolerance) &&
+        Entry->VoltageProbe.Tolerance != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatF(&format[1], (FLOAT)Entry->VoltageProbe.Tolerance / 1000, 2);
+        PhInitFormatS(&format[2], L" V");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Tolerance", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, Accuracy) &&
+        Entry->VoltageProbe.Accuracy != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatF(&format[1], (FLOAT)Entry->VoltageProbe.Accuracy / 100, 3);
+        PhInitFormatS(&format[2], L"%");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Accuracy", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, OEMDefined))
+        ET_SMBIOS_UINT32IX(L"OEM defined", Entry->VoltageProbe.OEMDefined);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, VoltageProbe, NominalValue) &&
+        Entry->VoltageProbe.NominalValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->VoltageProbe.NominalValue / 1000, 2);
+        PhInitFormatS(&format[1], L" V");
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Nominal value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSCoolingDevice(
