@@ -2327,7 +2327,44 @@ VOID EtSMBIOSMemoryArrayMappedAddress(
     )
 {
     ET_SMBIOS_GROUP(L"Memory array mapped address");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, StartingAddress))
+    {
+        if (Entry->MemoryArrayMappedAddress.StartingAddress == ULONG_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, ExtendedStartingAddress))
+            {
+                ET_SMBIOS_UINT64IX(L"Starting address", Entry->MemoryArrayMappedAddress.ExtendedStartingAddress);
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT64IX(L"Starting address", (ULONG64)Entry->MemoryArrayMappedAddress.StartingAddress * 1024);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, EndingAddress))
+    {
+        if (Entry->MemoryArrayMappedAddress.EndingAddress == ULONG_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, ExtendedEndingAddress))
+            {
+                ET_SMBIOS_UINT64IX(L"Ending address", Entry->MemoryArrayMappedAddress.ExtendedEndingAddress);
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT64IX(L"Ending address", (ULONG64)Entry->MemoryArrayMappedAddress.EndingAddress * 1024);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, ArrayHandle))
+        ET_SMBIOS_UINT32IX(L"Array handle", Entry->MemoryArrayMappedAddress.ArrayHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryArrayMappedAddress, PartitionWidth))
+        ET_SMBIOS_UINT32(L"Partition width", Entry->MemoryArrayMappedAddress.PartitionWidth);
 }
 
 VOID EtSMBIOSMemoryDeviceMappedAddress(
@@ -2337,7 +2374,65 @@ VOID EtSMBIOSMemoryDeviceMappedAddress(
     )
 {
     ET_SMBIOS_GROUP(L"Memory device mapped address");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, StartingAddress))
+    {
+        if (Entry->MemoryDeviceMappedAddress.StartingAddress == ULONG_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, ExtendedStartingAddress))
+            {
+                ET_SMBIOS_UINT64IX(L"Starting address", Entry->MemoryDeviceMappedAddress.ExtendedStartingAddress);
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT64IX(L"Starting address", (ULONG64)Entry->MemoryDeviceMappedAddress.StartingAddress * 1024);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, EndingAddress))
+    {
+        if (Entry->MemoryDeviceMappedAddress.EndingAddress == ULONG_MAX)
+        {
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, ExtendedEndingAddress))
+            {
+                ET_SMBIOS_UINT64IX(L"Ending address", Entry->MemoryDeviceMappedAddress.ExtendedEndingAddress);
+            }
+        }
+        else
+        {
+            ET_SMBIOS_UINT64IX(L"Ending address", (ULONG64)Entry->MemoryDeviceMappedAddress.EndingAddress * 1024);
+        }
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, DeviceHandle))
+        ET_SMBIOS_UINT32IX(L"Device handle", Entry->MemoryDeviceMappedAddress.DeviceHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, ArrayMappedAddressHandle))
+        ET_SMBIOS_UINT32IX(L"Array mapped address handle", Entry->MemoryDeviceMappedAddress.ArrayMappedAddressHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, PartitionRowPosition) &&
+        Entry->MemoryDeviceMappedAddress.PartitionRowPosition != 0 &&
+        Entry->MemoryDeviceMappedAddress.PartitionRowPosition != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32(L"Partition row position", Entry->MemoryDeviceMappedAddress.PartitionRowPosition);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, InterleavePosition) &&
+        Entry->MemoryDeviceMappedAddress.InterleavePosition != 0 &&
+        Entry->MemoryDeviceMappedAddress.InterleavePosition != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32(L"Interleave position", Entry->MemoryDeviceMappedAddress.InterleavePosition);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDeviceMappedAddress, InterleavedDataDepth) &&
+        Entry->MemoryDeviceMappedAddress.InterleavedDataDepth != 0 &&
+        Entry->MemoryDeviceMappedAddress.InterleavedDataDepth != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32(L"Interleave data depth", Entry->MemoryDeviceMappedAddress.InterleavedDataDepth);
+    }
 }
 
 VOID EtSMBIOSBuiltInPointingDevice(
