@@ -2521,8 +2521,8 @@ C_ASSERT(sizeof(SMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION) == 0x16);
 typedef struct _SMBIOS_ADDITIONAL_ENTRY
 {
     UCHAR Length;
-    USHORT Handle;
-    UCHAR Offset;
+    USHORT ReferencedHandle;
+    UCHAR ReferencedOffset;
     UCHAR String; // string
     UCHAR Value[ANYSIZE_ARRAY];
 } SMBIOS_ADDITIONAL_ENTRY, *PSMBIOS_ADDITIONAL_ENTRY;
