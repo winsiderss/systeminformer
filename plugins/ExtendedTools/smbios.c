@@ -222,55 +222,24 @@ VOID EtAddSMBIOSFlags(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
     _In_ PCWSTR Name,
-    _In_opt_ const PH_ACCESS_ENTRY* EntriesLow,
-    _In_ ULONG CountLow,
-    _In_opt_ const PH_ACCESS_ENTRY* EntriesHigh,
-    _In_ ULONG CountHigh,
-    _In_ ULONG64 Value
+    _In_opt_ const PH_ACCESS_ENTRY* Entries,
+    _In_ ULONG Count,
+    _In_ ULONG Value
     )
 {
     PH_FORMAT format[4];
     PPH_STRING string;
-    PPH_STRING low;
-    PPH_STRING high;
 
-    if (EntriesLow && CountLow)
-        low = PhGetAccessString((ULONG)Value, (PPH_ACCESS_ENTRY)EntriesLow, CountLow);
-    else
-        low = PhReferenceEmptyString();
-
-    if (EntriesHigh && CountHigh)
-        high = PhGetAccessString((ULONG)(Value >> 32), (PPH_ACCESS_ENTRY)EntriesHigh, CountHigh);
-    else
-        high = PhReferenceEmptyString();
-
-    if (low->Length && high->Length)
-    {
-        PhInitFormatSR(&format[0], low->sr);
-        PhInitFormatS(&format[1], L", ");
-        PhInitFormatSR(&format[2], high->sr);
-        string = PhFormat(format, 3, 10);
-    }
-    else if (low->Length)
-    {
-        string = PhReferenceObject(low);
-    }
-    else
-    {
-        string = PhReferenceObject(high);
-    }
+    string = PhGetAccessString(Value, (PPH_ACCESS_ENTRY)Entries, Count);
 
     PhInitFormatSR(&format[0], string->sr);
     PhInitFormatS(&format[1], L" (0x");
-    PhInitFormatI64X(&format[2], Value);
+    PhInitFormatX(&format[2], Value);
     PhInitFormatS(&format[3], L")");
 
     PhMoveReference(&string, PhFormat(format, 4, 10));
     EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
     PhDereferenceObject(string);
-
-    PhDereferenceObject(low);
-    PhDereferenceObject(high);
 }
 
 VOID EtAddSMBIOSEnum(
@@ -300,8 +269,7 @@ VOID EtAddSMBIOSEnum(
 #define ET_SMBIOS_SIZE(n, v)            EtAddSMBIOSSize(Context, group, n, v)
 #define ET_SMBIOS_UINT32_UNITS(n, v, u) EtAddSMBIOSUInt32Units(Context, group, n, v, u)
 #define ET_SMBIOS_FLAG(x, n)            { TEXT(#x), x, FALSE, FALSE, n }
-#define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), NULL, 0, v)
-#define ET_SMBIOS_FLAGS64(n, v, fl, fh) EtAddSMBIOSFlags(Context, group, n, fl, RTL_NUMBER_OF(fl), fh, RTL_NUMBER_OF(fh), v)
+#define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), v)
 #define ET_SMBIOS_ENUM(n, v, e)         EtAddSMBIOSEnum(Context, group, n, e, sizeof(e), v);
 
 #ifdef DEBUG // WIP(jxy-s)
@@ -405,7 +373,7 @@ VOID EtSMBIOSFirmware(
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Firmware, Characteristics))
-        ET_SMBIOS_FLAGS(L"Characteristics", Entry->Firmware.Characteristics, characteristics);
+        ET_SMBIOS_FLAGS(L"Characteristics", (ULONG)Entry->Firmware.Characteristics, characteristics);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Firmware, Characteristics2))
         ET_SMBIOS_FLAGS(L"Characteristics extended", Entry->Firmware.Characteristics2, characteristics2);
