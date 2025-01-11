@@ -3419,8 +3419,90 @@ VOID EtSMBIOSFirmwareInventory(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_ACCESS_ENTRY flags[] =
+    {
+        ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_INVENTORY_FLAG_UPDATABLE, L"Updatable"),
+        ET_SMBIOS_FLAG(SMBIOS_FIRMWARE_INVENTORY_FLAG_WRITE_PROTECTED, L"Write protected"),
+    };
+
+    static const PH_KEY_VALUE_PAIR states[] =
+    {
+        SIP(L"Other", SMBIOS_FIRMWARE_INVENTORY_STATE_OTHER),
+        SIP(L"Unknown", SMBIOS_FIRMWARE_INVENTORY_STATE_UNKNOWN),
+        SIP(L"Disabled", SMBIOS_FIRMWARE_INVENTORY_STATE_DISABLED),
+        SIP(L"Enabled", SMBIOS_FIRMWARE_INVENTORY_STATE_ENABLED),
+        SIP(L"Absent", SMBIOS_FIRMWARE_INVENTORY_STATE_ABSENT),
+        SIP(L"Standby (offline)", SMBIOS_FIRMWARE_INVENTORY_STATE_STANDBY_OFFLINE),
+        SIP(L"Standby (spare)", SMBIOS_FIRMWARE_INVENTORY_STATE_STANDBY_SPARE),
+        SIP(L"Offline", SMBIOS_FIRMWARE_INVENTORY_STATE_OFFLINE),
+    };
+
     ET_SMBIOS_GROUP(L"Firmware inventory");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, ComponentName))
+        ET_SMBIOS_STRING(L"Component name", Entry->FirmwareInventory.ComponentName);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, Version))
+        ET_SMBIOS_STRING(L"Version", Entry->FirmwareInventory.Version);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, VersionFormat))
+        ET_SMBIOS_UINT32(L"Version format", Entry->FirmwareInventory.VersionFormat);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, Identifier))
+        ET_SMBIOS_STRING(L"Identifier", Entry->FirmwareInventory.Identifier);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, IdentifierFormat))
+        ET_SMBIOS_UINT32(L"Version format", Entry->FirmwareInventory.VersionFormat);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, ReleaseDate))
+        ET_SMBIOS_STRING(L"Release date", Entry->FirmwareInventory.ReleaseDate);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->FirmwareInventory.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, FirmwareInventory, LowestSupportedVersion))
+        ET_SMBIOS_STRING(L"Lowest supported version", Entry->FirmwareInventory.LowestSupportedVersion);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, ImageSize) &&
+        Entry->FirmwareInventory.ImageSize != ULONG64_MAX)
+    {
+        ET_SMBIOS_SIZE(L"Image size", Entry->FirmwareInventory.ImageSize);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, Characteristics))
+        ET_SMBIOS_FLAGS(L"Characteristics", Entry->FirmwareInventory.Characteristics, flags);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, State))
+        ET_SMBIOS_ENUM(L"State", Entry->FirmwareInventory.State, states);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, FirmwareInventory, AssociatedComponents) &&
+        Entry->FirmwareInventory.AssociatedComponents > 0)
+    {
+        PH_STRING_BUILDER sb;
+        PPH_STRING string;
+
+        PhInitializeStringBuilder(&sb, 10);
+
+        for (UCHAR i = 0; i < Entry->FirmwareInventory.AssociatedComponents; i++)
+        {
+            WCHAR buffer[PH_PTR_STR_LEN_1];
+
+            PhPrintUInt32IX(buffer, Entry->FirmwareInventory.AssociatedComponentHandles[i]);
+            PhAppendStringBuilder2(&sb, buffer);
+            PhAppendStringBuilder2(&sb, L", ");
+        }
+
+        if (PhEndsWithString2(sb.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        string = PhFinalStringBuilderString(&sb);
+
+        EtAddSMBIOSItem(Context, group, L"Associated component handles", PhGetString(string));
+
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSStringProperty(
