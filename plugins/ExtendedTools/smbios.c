@@ -529,6 +529,7 @@ VOID EtSMBIOSBaseboard(
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
             PhPrintUInt32IX(buffer, Entry->Baseboard.Handles[i]);
+            PhAppendStringBuilder2(&sb, L"0x");
             PhAppendStringBuilder2(&sb, buffer);
             PhAppendStringBuilder2(&sb, L", ");
         }
@@ -998,6 +999,7 @@ VOID EtSMBIOSMemoryController(
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
             PhPrintUInt32IX(buffer, Entry->MemoryController.SlotHandles[i]);
+            PhAppendStringBuilder2(&sb, L"0x");
             PhAppendStringBuilder2(&sb, buffer);
             PhAppendStringBuilder2(&sb, L", ");
         }
@@ -3490,6 +3492,7 @@ VOID EtSMBIOSFirmwareInventory(
             WCHAR buffer[PH_PTR_STR_LEN_1];
 
             PhPrintUInt32IX(buffer, Entry->FirmwareInventory.AssociatedComponentHandles[i]);
+            PhAppendStringBuilder2(&sb, L"0x");
             PhAppendStringBuilder2(&sb, buffer);
             PhAppendStringBuilder2(&sb, L", ");
         }
