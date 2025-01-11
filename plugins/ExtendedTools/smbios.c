@@ -3088,7 +3088,17 @@ VOID EtSMBIOSOutOfBandRemoteAccess(
     )
 {
     ET_SMBIOS_GROUP(L"Out-of-band remote access");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, OutOfBandRemoteAccess, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->OutOfBandRemoteAccess.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OutOfBandRemoteAccess, Connections))
+    {
+        ET_SMBIOS_BOOLEAN(L"Inbound enabled", !!Entry->OutOfBandRemoteAccess.Connections.InboundEnabled);
+        ET_SMBIOS_BOOLEAN(L"Outbound enabled", !!Entry->OutOfBandRemoteAccess.Connections.InboundEnabled);
+    }
 }
 
 VOID EtSMBIOSSystemBoot(
