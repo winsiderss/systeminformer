@@ -27,6 +27,51 @@ typedef struct _SMBIOS_WINDOW_CONTEXT
     ULONG IndexCounter;
 } SMBIOS_WINDOW_CONTEXT, *PSMBIOS_WINDOW_CONTEXT;
 
+static const PH_KEY_VALUE_PAIR EtSMBIOSProbeStatus[] =
+{
+    SIP(L"Other", SMBIOS_PROBE_STATUS_OTHER),
+    SIP(L"Unknown", SMBIOS_PROBE_STATUS_UNKNOWN),
+    SIP(L"Ok", SMBIOS_PROBE_STATUS_OK),
+    SIP(L"Non-critical", SMBIOS_PROBE_STATUS_NON_CRITICAL),
+    SIP(L"Critical", SMBIOS_PROBE_STATUS_CRITICAL),
+    SIP(L"Non-recoverable", SMBIOS_PROBE_STATUS_NON_RECOVERABLE),
+};
+
+static const PH_KEY_VALUE_PAIR EtSMBIOSMemoryErrorTypes[] =
+{
+    SIP(L"Other", SMBIOS_MEMORY_ERROR_TYPE_OTHER),
+    SIP(L"Unknown", SMBIOS_MEMORY_ERROR_TYPE_UNKNOWN),
+    SIP(L"Ok", SMBIOS_MEMORY_ERROR_TYPE_OK),
+    SIP(L"Bad read", SMBIOS_MEMORY_ERROR_TYPE_BAD_READ),
+    SIP(L"Parity", SMBIOS_MEMORY_ERROR_TYPE_PARITY),
+    SIP(L"Single-bit", SMBIOS_MEMORY_ERROR_TYPE_SINGLE_BIT),
+    SIP(L"Double-bit", SMBIOS_MEMORY_ERROR_TYPE_DOUBLE_BIT),
+    SIP(L"Multi-bit", SMBIOS_MEMORY_ERROR_TYPE_MULTI_BIT),
+    SIP(L"Nibble", SMBIOS_MEMORY_ERROR_TYPE_NIBBLE),
+    SIP(L"Checksum", SMBIOS_MEMORY_ERROR_TYPE_CHECKSUM),
+    SIP(L"CRC", SMBIOS_MEMORY_ERROR_TYPE_CRC),
+    SIP(L"Corrected singled-bit", SMBIOS_MEMORY_ERROR_TYPE_CORRECTED_SINGLE_BIT),
+    SIP(L"Corrected", SMBIOS_MEMORY_ERROR_TYPE_CORRECTED),
+    SIP(L"Uncorrectable", SMBIOS_MEMORY_ERROR_TYPE_UNCORRECTABLE),
+};
+
+static const PH_KEY_VALUE_PAIR EtSMBIOSMemoryErrorGranularities[] =
+{
+    SIP(L"Other", SMBIOS_MEMORY_ERROR_GRANULARITY_OTHER),
+    SIP(L"Unknown", SMBIOS_MEMORY_ERROR_GRANULARITY_UNKNOWN),
+    SIP(L"Device", SMBIOS_MEMORY_ERROR_GRANULARITY_DEVICE),
+    SIP(L"Partition", SMBIOS_MEMORY_ERROR_GRANULARITY_PARTITION),
+};
+
+static const PH_KEY_VALUE_PAIR EtSMBIOSMemoryErrorOperations[] =
+{
+    SIP(L"Other", SMBIOS_MEMORY_ERROR_OPERATION_OTHER),
+    SIP(L"Unknown", SMBIOS_MEMORY_ERROR_OPERATION_UNKNOWN),
+    SIP(L"Read", SMBIOS_MEMORY_ERROR_OPERATION_READ),
+    SIP(L"Write", SMBIOS_MEMORY_ERROR_OPERATION_WRITE),
+    SIP(L"Partial write", SMBIOS_MEMORY_ERROR_OPERATION_PARTIAL_WRITE),
+};
+
 ULONG EtAddSMBIOSGroup(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ PCWSTR Name
@@ -2238,7 +2283,41 @@ VOID EtSMBIOS32BitMemoryError(
     )
 {
     ET_SMBIOS_GROUP(L"32-bit memory error");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->MemoryError32.Type, EtSMBIOSMemoryErrorTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, Granularity))
+        ET_SMBIOS_ENUM(L"Granularity", Entry->MemoryError32.Granularity, EtSMBIOSMemoryErrorGranularities);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, Operation))
+        ET_SMBIOS_ENUM(L"Operation", Entry->MemoryError32.Operation, EtSMBIOSMemoryErrorOperations);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, VendorSyndrome) &&
+        Entry->MemoryError32.VendorSyndrome != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Vendor syndrome", Entry->MemoryError32.VendorSyndrome);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, ArrayErrorAddress) &&
+        Entry->MemoryError32.ArrayErrorAddress != 0x80000000)
+    {
+        ET_SMBIOS_UINT32IX(L"Array error address", Entry->MemoryError32.ArrayErrorAddress);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, DeviceErrorAddress) &&
+        Entry->MemoryError32.DeviceErrorAddress != 0x80000000)
+    {
+        ET_SMBIOS_UINT32IX(L"Device error address", Entry->MemoryError32.DeviceErrorAddress);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, ErrorResolution) &&
+        Entry->MemoryError32.ErrorResolution != 0x80000000)
+    {
+        ET_SMBIOS_UINT32IX(L"Error resolution", Entry->MemoryError32.ErrorResolution);
+    }
 }
 
 VOID EtSMBIOSMemoryArrayMappedAddress(
@@ -2378,7 +2457,42 @@ VOID EtSMBIOS64BitMemoryError(
     )
 {
     ET_SMBIOS_GROUP(L"64-bit memory error");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->MemoryError32.Type, EtSMBIOSMemoryErrorTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, Granularity))
+        ET_SMBIOS_ENUM(L"Granularity", Entry->MemoryError64.Granularity, EtSMBIOSMemoryErrorGranularities);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, Operation))
+        ET_SMBIOS_ENUM(L"Operation", Entry->MemoryError64.Operation, EtSMBIOSMemoryErrorOperations);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError32, VendorSyndrome) &&
+        Entry->MemoryError64.VendorSyndrome != 0)
+    {
+        ET_SMBIOS_UINT32IX(L"Vendor syndrome", Entry->MemoryError64.VendorSyndrome);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, ArrayErrorAddress) &&
+        Entry->MemoryError32.ArrayErrorAddress != 0x8000000000000000)
+    {
+        ET_SMBIOS_UINT64IX(L"Array error address", Entry->MemoryError64.ArrayErrorAddress);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, DeviceErrorAddress) &&
+        Entry->MemoryError32.DeviceErrorAddress != 0x8000000000000000)
+    {
+        ET_SMBIOS_UINT64IX(L"Device error address", Entry->MemoryError64.DeviceErrorAddress);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryError64, ErrorResolution) &&
+        Entry->MemoryError64.ErrorResolution != 0x80000000)
+    {
+        ET_SMBIOS_UINT32IX(L"Error resolution", Entry->MemoryError64.ErrorResolution);
+    }
+
 }
 
 VOID EtSMBIOSManagementDevice(
