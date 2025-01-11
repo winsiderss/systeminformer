@@ -2981,8 +2981,47 @@ VOID EtSMBIOSManagementDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR deviceTypes[] =
+    {
+        SIP(L"Other", SMBIOS_MANAGEMENT_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_MANAGEMENT_DEVICE_TYPE_UNKNOWN),
+        SIP(L"LM75", SMBIOS_MANAGEMENT_DEVICE_TYPE_LM75),
+        SIP(L"LM78", SMBIOS_MANAGEMENT_DEVICE_TYPE_LM78),
+        SIP(L"LM79", SMBIOS_MANAGEMENT_DEVICE_TYPE_LM79),
+        SIP(L"LM80", SMBIOS_MANAGEMENT_DEVICE_TYPE_LM80),
+        SIP(L"LM81", SMBIOS_MANAGEMENT_DEVICE_TYPE_LM81),
+        SIP(L"ADM9240", SMBIOS_MANAGEMENT_DEVICE_TYPE_ADM9240),
+        SIP(L"DS1780", SMBIOS_MANAGEMENT_DEVICE_TYPE_DS1780),
+        SIP(L"1617", SMBIOS_MANAGEMENT_DEVICE_TYPE_1617),
+        SIP(L"GL518SM", SMBIOS_MANAGEMENT_DEVICE_TYPE_GL518SM),
+        SIP(L"W83781D", SMBIOS_MANAGEMENT_DEVICE_TYPE_W83781D),
+        SIP(L"HT82H791", SMBIOS_MANAGEMENT_DEVICE_TYPE_HT82H791),
+    };
+
+    static const PH_KEY_VALUE_PAIR addressTypes[] =
+    {
+        SIP(L"Other", SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_UNKNOWN),
+        SIP(L"I/O port", SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_IO_PORT),
+        SIP(L"Memory", SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_MEMORY),
+        SIP(L"SM bus", SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_SMBUS),
+    };
+
     ET_SMBIOS_GROUP(L"Management device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, ManagementDevice, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->ManagementDevice.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDevice, DeviceType))
+        ET_SMBIOS_ENUM(L"Device type", Entry->ManagementDevice.DeviceType, deviceTypes);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDevice, Address))
+        ET_SMBIOS_UINT32IX(L"Address", Entry->ManagementDevice.Address);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ManagementDevice, AddressType))
+        ET_SMBIOS_ENUM(L"Address type", Entry->ManagementDevice.AddressType, addressTypes);
 }
 
 VOID EtSMBIOSManagementDeviceComponent(
