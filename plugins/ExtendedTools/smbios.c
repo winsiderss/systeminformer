@@ -2685,7 +2685,28 @@ VOID EtSMBIOSSystemPowerControls(
     )
 {
     ET_SMBIOS_GROUP(L"System power controls");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (Entry->Header.Length >= sizeof(SMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION))
+    {
+        PH_FORMAT format[9];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->SystemPowerControls.Month);
+        PhInitFormatC(&format[1], L'-');
+        PhInitFormatU(&format[2], Entry->SystemPowerControls.Day);
+        PhInitFormatC(&format[3], L' ');
+        PhInitFormatU(&format[4], Entry->SystemPowerControls.Hour);
+        PhInitFormatC(&format[5], L':');
+        PhInitFormatU(&format[6], Entry->SystemPowerControls.Minute);
+        PhInitFormatC(&format[7], L':');
+        PhInitFormatU(&format[8], Entry->SystemPowerControls.Second);
+
+        string = PhFormat(format, 9, 20);
+        EtAddSMBIOSItem(Context, group, L"Next scheduled power-on", PhGetString(string));
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSVoltageProbe(
