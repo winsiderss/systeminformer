@@ -3306,8 +3306,53 @@ VOID EtSMBIOSOnboardDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_ONBOARD_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_ONBOARD_DEVICE_TYPE_UNKNOWN),
+        SIP(L"Video", SMBIOS_ONBOARD_DEVICE_TYPE_VIDEO),
+        SIP(L"SCSI", SMBIOS_ONBOARD_DEVICE_TYPE_SCSI),
+        SIP(L"Ethernet", SMBIOS_ONBOARD_DEVICE_TYPE_ETHERNET),
+        SIP(L"Token ring", SMBIOS_ONBOARD_DEVICE_TYPE_TOKEN_RING),
+        SIP(L"Sound", SMBIOS_ONBOARD_DEVICE_TYPE_SOUND),
+        SIP(L"PATA", SMBIOS_ONBOARD_DEVICE_TYPE_PATA),
+        SIP(L"SATA", SMBIOS_ONBOARD_DEVICE_TYPE_SATA),
+        SIP(L"SAS", SMBIOS_ONBOARD_DEVICE_TYPE_SAS),
+        SIP(L"Wireless LAN", SMBIOS_ONBOARD_DEVICE_TYPE_WIRELESS_LAN),
+        SIP(L"Bluetooth", SMBIOS_ONBOARD_DEVICE_TYPE_BLUETOOTH),
+        SIP(L"WWAN", SMBIOS_ONBOARD_DEVICE_TYPE_WWAN),
+        SIP(L"eMMC", SMBIOS_ONBOARD_DEVICE_TYPE_EMMC),
+        SIP(L"NVMe", SMBIOS_ONBOARD_DEIVCE_TYPE_NVME),
+        SIP(L"UFS", SMBIOS_ONBOARD_DEVICE_TYPE_UFS),
+    };
+
     ET_SMBIOS_GROUP(L"Onboard device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, OnboardDevice, ReferenceDesignation))
+        ET_SMBIOS_STRING(L"Reference designation", Entry->OnboardDevice.ReferenceDesignation);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OnboardDevice, DeviceType))
+    {
+        ET_SMBIOS_ENUM(L"Type", Entry->OnboardDevice.DeviceType.Type, types);
+        ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->OnboardDevice.DeviceType.Enabled);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OnboardDevice, DeviceTypeInstance))
+        ET_SMBIOS_UINT32(L"Device type instance", Entry->OnboardDevice.DeviceTypeInstance);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OnboardDevice, SegmentGroupNumber))
+        ET_SMBIOS_UINT32(L"Segment group number", Entry->OnboardDevice.SegmentGroupNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OnboardDevice, BusNumber))
+        ET_SMBIOS_UINT32(L"Bus number", Entry->OnboardDevice.BusNumber);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, OnboardDevice, DeviceFunctionNumber))
+    {
+        ET_SMBIOS_UINT32(L"Function number", Entry->OnboardDevice.DeviceFunctionNumber.FunctionNumber);
+        ET_SMBIOS_UINT32(L"Device number", Entry->OnboardDevice.DeviceFunctionNumber.DeviceNumber);
+    }
 }
 
 VOID EtSMBIOSMCHInterface(
