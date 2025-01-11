@@ -3371,8 +3371,68 @@ VOID EtSMBIOSTPMDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    UCHAR major;
+
+    static const PH_ACCESS_ENTRY characteristics[] =
+    {
+        ET_SMBIOS_FLAG((ULONG)SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_FIRMWARE_UPDATE, L"Configurable via firmware update"),
+        ET_SMBIOS_FLAG((ULONG)SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_SOFTWARE_UPDATE, L"Configurable via software update"),
+        ET_SMBIOS_FLAG((ULONG)SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_PROPRIETARY_UPDATE, L"Configurable via proprietary update"),
+    };
+
     ET_SMBIOS_GROUP(L"TPM device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, VendorID))
+    {
+        WCHAR vendor[5];
+
+        vendor[0] = (WCHAR)Entry->TPMDevice.VendorID[0];
+        vendor[1] = (WCHAR)Entry->TPMDevice.VendorID[1];
+        vendor[2] = (WCHAR)Entry->TPMDevice.VendorID[2];
+        vendor[3] = (WCHAR)Entry->TPMDevice.VendorID[3];
+        vendor[4] = UNICODE_NULL;
+
+        EtAddSMBIOSItem(Context, group, L"Vendor ID", vendor);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, MajorSpecVersion))
+    {
+        major = Entry->TPMDevice.MajorSpecVersion;
+        ET_SMBIOS_UINT32(L"Major version", Entry->TPMDevice.MajorSpecVersion);
+    }
+    else
+    {
+        major = 0;
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, MinorSpecVersion))
+        ET_SMBIOS_UINT32(L"Minor version", Entry->TPMDevice.MinorSpecVersion);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, FirmwareVersion1))
+    {
+        ULONG64 version;
+
+        version = Entry->TPMDevice.FirmwareVersion1;
+
+        if (major >= 2)
+            version <<= 32;
+
+        if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, FirmwareVersion2))
+            version |= Entry->TPMDevice.FirmwareVersion2;
+
+        ET_SMBIOS_UINT64IX(L"Firmware version", version);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, TPMDevice, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->TPMDevice.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, Characteristics))
+        ET_SMBIOS_FLAGS(L"Characteristics", (ULONG)Entry->TPMDevice.Characteristics, characteristics);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, OEMDefined))
+        ET_SMBIOS_UINT32IX(L"OEM defined", Entry->TPMDevice.OEMDefined);
 }
 
 VOID EtSMBIOSProcessorAdditional(
