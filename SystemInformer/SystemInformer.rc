@@ -1031,15 +1031,17 @@ BEGIN
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,82,NOT WS_VISIBLE
 END
 
-IDD_SYSINFO_CPUPANEL DIALOGEX 0, 0, 413, 86
+IDD_SYSINFO_CPUPANEL DIALOGEX 0, 0, 506, 86
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Utilization:",IDC_STATIC,0,3,34,8
+    LTEXT           "Utilization:",IDC_STATIC,6,3,34,8
     LTEXT           "Speed:",IDC_STATIC,108,3,24,8
-    LTEXT           "Static",IDC_UTILIZATION,40,0,62,15
+    LTEXT           "Virtualization:",IDC_STATIC,247,3,60,8
+    LTEXT           "Static",IDC_UTILIZATION,46,0,60,15
     LTEXT           "Static",IDC_SPEED,137,0,100,15
+    LTEXT           "Static",IDC_VIRTUALIZATION,296,0,500,15
     GROUPBOX        "System",IDC_STATIC,0,17,97,55
     LTEXT           "Processes",IDC_STATIC,7,28,33,8
     LTEXT           "Threads",IDC_STATIC,7,38,27,8

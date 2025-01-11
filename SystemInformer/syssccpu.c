@@ -48,6 +48,7 @@ static PH_UINT64_DELTA DpcsDelta;
 static PH_UINT32_DELTA SystemCallsDelta;
 static HWND CpuPanelUtilizationLabel;
 static HWND CpuPanelSpeedLabel;
+static HWND CpuVirtualizationLabel;
 static HWND CpuPanelProcessesLabel;
 static HWND CpuPanelThreadsLabel;
 static HWND CpuPanelHandlesLabel;
@@ -563,6 +564,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
         {
             CpuPanelUtilizationLabel = GetDlgItem(hwndDlg, IDC_UTILIZATION);
             CpuPanelSpeedLabel = GetDlgItem(hwndDlg, IDC_SPEED);
+            CpuVirtualizationLabel = GetDlgItem(hwndDlg, IDC_VIRTUALIZATION);
             CpuPanelProcessesLabel = GetDlgItem(hwndDlg, IDC_ZPROCESSES_V);
             CpuPanelThreadsLabel = GetDlgItem(hwndDlg, IDC_ZTHREADS_V);
             CpuPanelHandlesLabel = GetDlgItem(hwndDlg, IDC_ZHANDLES_V);
@@ -578,6 +580,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
 
             SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
             SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(CpuVirtualizationLabel, CpuSection->Parameters->MediumFont, FALSE);
         }
         break;
     case WM_COMMAND:
@@ -1141,6 +1144,27 @@ VOID PhSipUpdateCpuPanel(
         PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, PhaFormatSize(CpuL1CacheSize, ULONG_MAX)->Buffer);
         PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, PhaFormatSize(CpuL2CacheSize, ULONG_MAX)->Buffer);
         PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer);
+
+        switch (PhGetVirtualStatus())
+        {
+        case PhVirtualStatusVirtualMachine:
+            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Virtual machine");
+            break;
+        case PhVirtualStatusEnabledHyperV:
+        case PhVirtualStatusEnabledFirmware:
+            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Enabled");
+            break;
+        case PhVirtualStatusDiabledWithHyperVSupport:
+            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Disabled (Hyper-V support: Yes)");
+            break;
+        case PhVirtualStatusDiabledWithoutHyperVSupport:
+            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Disabled (Hyper-V support: No)");
+            break;
+        case PhVirtualStatusNotCapable:
+        default:
+            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Not capable");
+            break;
+        }
     }
 
     if (CurrentPerformanceDistribution && PreviousPerformanceDistribution)
