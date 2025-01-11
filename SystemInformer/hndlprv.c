@@ -413,10 +413,8 @@ VOID PhHandleProviderUpdate(
 
                 if (tempHashtableValue)
                 {
-#if 0 // TODO(jxy-s) enable this on the next driver release
-                    // Also compare the object pointers to make sure a
-                    // different object wasn't re-opened with the same
-                    // handle value.
+                    // Also compare the object pointers to make sure a different object wasn't
+                    // re-opened with the same handle value.
                     if (KsiLevel() >= KphLevelMed && handleProvider->ProcessHandle)
                     {
                         found = NT_SUCCESS(KphCompareObjects(
@@ -427,9 +425,6 @@ VOID PhHandleProviderUpdate(
                     }
                     // This isn't 100% accurate as pool addresses may be re-used, but it works well.
                     else if (handleItem->Object && handleItem->Object == (*tempHashtableValue)->Object)
-#else
-                    if (handleItem->Object && handleItem->Object == (*tempHashtableValue)->Object)
-#endif
                     {
                         found = TRUE;
                     }
