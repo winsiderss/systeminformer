@@ -281,6 +281,11 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
             return PhVirtualStatusNotCapable;
         }
     }
+    else
+    {
+        //return PhVirtualStatusUnknown;
+        return PhVirtualStatusNotCapable;
+    }
 
     if (USER_SHARED_DATA->ProcessorFeatures[PF_VIRT_FIRMWARE_ENABLED])
     {
