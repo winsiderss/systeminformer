@@ -16,6 +16,24 @@
 
 EXTERN_C_START
 
+typedef enum _PH_VIRTUAL_STATUS
+{
+    PhVirtualStatusNotCapable = 0,
+    PhVirtualStatusVirtualMachine = 1,
+    PhVirtualStatusEnabledHyperV = 2,
+    PhVirtualStatusEnabledFirmware = 3,
+    //PhVirtualStatusUnknown = 4,
+    PhVirtualStatusDiabledWithHyperVSupport = 5,
+    PhVirtualStatusDiabledWithoutHyperVSupport = 6,
+} PH_VIRTUAL_STATUS, *PPH_VIRTUAL_STATUS;
+
+PHLIBAPI
+PH_VIRTUAL_STATUS
+NTAPI
+PhGetVirtualStatus(
+    VOID
+    );
+
 #define PH_SMBIOS_CONTAINS_FIELD(Entry, Item, Field) \
     (RTL_CONTAINS_FIELD(&(Entry)->Item, (Entry)->Header.Length, Field))
 #define PH_SMBIOS_CONTAINS_STRING(Entry, Item, Field) \

@@ -14,6 +14,294 @@
 #include <phfirmware.h>
 #include <ntintsafe.h>
 
+// https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/datatypes/hv_partition_privilege_mask
+typedef union _HV_PARTITION_PRIVILEGE_MASK
+{
+    struct
+    {
+        // Access to virtual MSRs
+        UINT64 AccessVpRunTimeReg : 1;
+        UINT64 AccessPartitionReferenceCounter : 1;
+        UINT64 AccessSynicRegs : 1;
+        UINT64 AccessSyntheticTimerRegs : 1;
+        UINT64 AccessIntrCtrlRegs : 1;
+        UINT64 AccessHypercallMsrs : 1;
+        UINT64 AccessVpIndex : 1;
+        UINT64 AccessResetReg : 1;
+        UINT64 AccessStatsReg : 1;
+        UINT64 AccessPartitionReferenceTsc : 1;
+        UINT64 AccessGuestIdleReg : 1;
+        UINT64 AccessFrequencyRegs : 1;
+        UINT64 AccessDebugRegs : 1;
+        UINT64 AccessReenlightenmentControls : 1;
+        UINT64 Reserved1 : 18;
+
+        // Access to hypercalls
+        UINT64 CreatePartitions : 1;
+        UINT64 AccessPartitionId : 1;
+        UINT64 AccessMemoryPool : 1;
+        UINT64 Reserved2 : 1;
+        UINT64 PostMessages : 1;
+        UINT64 SignalEvents : 1;
+        UINT64 CreatePort : 1;
+        UINT64 ConnectPort : 1;
+        UINT64 AccessStats : 1;
+        UINT64 Reserved3 : 2;
+        UINT64 Debugging : 1;
+        UINT64 CpuManagement : 1;
+        UINT64 Reserved4 : 1;
+        UINT64 Reserved5 : 1;
+        UINT64 Reserved6 : 1;
+        UINT64 AccessVSM : 1;
+        UINT64 AccessVpRegisters : 1;
+        UINT64 Reserved7 : 1;
+        UINT64 Reserved8 : 1;
+        UINT64 EnableExtendedHypercalls : 1;
+        UINT64 StartVirtualProcessor : 1;
+        UINT64 Reserved9 : 10;
+    };
+
+    UINT64 High;
+    UINT64 Low;
+} HV_PARTITION_PRIVILEGE_MASK, *PHV_PARTITION_PRIVILEGE_MASK;
+
+#if defined(_M_IX86) || defined(_M_AMD64)
+typedef union _PH_CPUID
+{
+    struct
+    {
+        ULONG EAX;
+        ULONG EBX;
+        ULONG ECX;
+        ULONG EDX;
+    };
+
+    struct
+    {
+        ULONG64 High;
+        ULONG64 Low;
+    };
+
+    INT32 Data[4];
+} PH_CPUID, *PPH_CPUID;
+
+VOID PhCpuId(
+    _Out_ PPH_CPUID CpuId,
+    _In_ ULONG Function,
+    _In_ ULONG SubFunction
+    )
+{
+    CpuId->High = 0;
+    CpuId->Low = 0;
+    CpuIdEx(CpuId->Data, Function, SubFunction);
+}
+
+BOOLEAN PhCpuIsIntel(
+    VOID
+    )
+{
+    PH_CPUID cpuid;
+
+    PhCpuId(&cpuid, 0, 0);
+
+    // GenuineIntel
+    if (cpuid.EBX == 'uneG' && cpuid.EDX == 'Ieni' && cpuid.ECX == 'letn')
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhCpuIsAMD(
+    VOID
+    )
+{
+    PH_CPUID cpuid;
+
+    PhCpuId(&cpuid, 0, 0);
+
+    // AuthenticAMD
+    if (cpuid.EBX == 'htuA' && cpuid.EDX == 'itne' && cpuid.ECX == 'DMAc')
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhHypervisorIsPresent(
+    VOID
+    )
+{
+
+    PH_CPUID cpuid;
+
+    PhCpuId(&cpuid, 1, 0);
+
+    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
+    if (cpuid.ECX & 0x80000000)
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhCpuIsMicrosoftHyperV(
+    VOID
+    )
+{
+    PH_CPUID cpuid;
+
+    // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery
+    PhCpuId(&cpuid, 0x40000000, 0);
+
+    // Microsoft Hv
+    if (cpuid.EBX == 'rciM' && cpuid.ECX == 'foso' && cpuid.EDX == 'vH t')
+        return TRUE;
+
+    return FALSE;
+}
+
+VOID PhGetHvPartitionPrivilegeMask(
+    _Out_ PHV_PARTITION_PRIVILEGE_MASK Mask
+    )
+{
+    PH_CPUID cpuid;
+    PhCpuId(&cpuid, 0x40000003, 0);
+    Mask->Low = cpuid.EAX;
+    Mask->High = cpuid.EBX;
+}
+#endif
+
+NTSTATUS PhGetHypervisorVendorId(
+    _Out_ PULONG VendorId
+    )
+{
+    NTSTATUS status;
+    SYSTEM_HYPERVISOR_DETAIL_INFORMATION info;
+
+    *VendorId = 0;
+
+    if (!NT_SUCCESS(status = NtQuerySystemInformation(
+        SystemHypervisorDetailInformation,
+        &info,
+        sizeof(info),
+        NULL
+        )))
+        return status;
+
+    *VendorId = info.HvVendorAndMaxFunction.Data[1];
+
+    return STATUS_SUCCESS;
+}
+
+PH_VIRTUAL_STATUS PhGetVirtualStatus(
+    VOID
+    )
+{
+#if defined(_ARM64_)
+    ULONG vendorId;
+
+    if (NT_SUCCESS(PhGetHypervisorVendorId(&vendorId)))
+    {
+        if (vendorId == 'MOCQ')
+        {
+            if (USER_SHARED_DATA->QcSlIsSupported)
+            {
+                return PhVirtualStatusEnabledFirmware;
+            }
+            else
+            {
+                return PhVirtualStatusNotCapable;
+            }
+        }
+        else
+        {
+            SYSTEM_HYPERVISOR_DETAIL_INFORMATION info;
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemHypervisorDetailInformation,
+                &info,
+                sizeof(info),
+                NULL
+                )))
+            {
+                if (info.HvFeatures.Data[1] && 0x1000)
+                {
+                    return PhVirtualStatusEnabledHyperV;
+                }
+            }
+
+            return PhVirtualStatusVirtualMachine;
+        }
+    }
+
+    if (USER_SHARED_DATA->ArchStartedInEl2 || USER_SHARED_DATA->QcSlIsSupported)
+    {
+        return PhVirtualStatusEnabledFirmware;
+    }
+
+    return PhVirtualStatusNotCapable;
+#else
+    if (PhHypervisorIsPresent())
+    {
+        if (PhCpuIsMicrosoftHyperV())
+        {
+            HV_PARTITION_PRIVILEGE_MASK mask;
+
+            PhGetHvPartitionPrivilegeMask(&mask);
+
+            if (mask.AccessVpRunTimeReg)
+            {
+                return PhVirtualStatusEnabledHyperV;
+            }
+            else
+            {
+                return PhVirtualStatusVirtualMachine;
+            }
+        }
+        else
+        {
+            return PhVirtualStatusVirtualMachine;
+        }
+    }
+
+    if (PhCpuIsIntel())
+    {
+        PH_CPUID cpuid;
+
+        PhCpuId(&cpuid, 1, 0);
+
+        // Virtual Machine Extensions (VMX)
+        if (!(cpuid.ECX & 0x20))
+        {
+            return PhVirtualStatusNotCapable;
+        }
+    }
+    else if (PhCpuIsAMD())
+    {
+        PH_CPUID cpuid;
+
+        PhCpuId(&cpuid, 0x80000001, 0);
+
+        // Secure Virtual Machine (SVM)
+        if (!(cpuid.ECX & 0x2))
+        {
+            return PhVirtualStatusNotCapable;
+        }
+    }
+
+    if (USER_SHARED_DATA->ProcessorFeatures[PF_VIRT_FIRMWARE_ENABLED])
+    {
+        return PhVirtualStatusEnabledFirmware;
+    }
+
+    if (USER_SHARED_DATA->ProcessorFeatures[PF_SECOND_LEVEL_ADDRESS_TRANSLATION] &&
+        USER_SHARED_DATA->ProcessorFeatures[PF_NX_ENABLED])
+    {
+        return PhVirtualStatusDiabledWithHyperVSupport;
+    }
+
+    return PhVirtualStatusDiabledWithoutHyperVSupport;
+#endif
+}
+
 typedef struct _PH_SMBIOS_STRINGREF
 {
     USHORT Length;
