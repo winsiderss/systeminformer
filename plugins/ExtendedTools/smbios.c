@@ -2657,8 +2657,25 @@ VOID EtSMBIOSHardwareSecurity(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR settings[] =
+    {
+        SIP(L"Disabled", SMBIOS_HARDWARE_SECURITY_SETTING_DISABLED),
+        SIP(L"Enabled", SMBIOS_HARDWARE_SECURITY_SETTING_ENABLED),
+        SIP(L"Not implemented", SMBIOS_HARDWARE_SECURITY_SETTING_NOT_IMPLEMENTED),
+        SIP(L"Unknown", SMBIOS_HARDWARE_SECURITY_SETTING_UNKNOWN),
+    };
+
     ET_SMBIOS_GROUP(L"Hardware security");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, HardwareSecurity, HardwareSecuritySettings))
+    {
+        ET_SMBIOS_ENUM(L"Front panel reset", Entry->HardwareSecurity.HardwareSecuritySettings.FrontPanelReset, settings);
+        ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.AdministratorPassword, settings);
+        ET_SMBIOS_ENUM(L"Administrator password", Entry->HardwareSecurity.HardwareSecuritySettings.KeyboardPassword, settings);
+        ET_SMBIOS_ENUM(L"Power-on password", Entry->HardwareSecurity.HardwareSecuritySettings.PowerOnPassword, settings);
+    }
 }
 
 VOID EtSMBIOSSystemPowerControls(
