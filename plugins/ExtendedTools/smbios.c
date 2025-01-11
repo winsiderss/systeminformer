@@ -3700,8 +3700,69 @@ VOID EtSMBIOSProcessorAdditional(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"x86", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_X86),
+        SIP(L"x64", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_X64),
+        SIP(L"IA-64", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_IA64),
+        SIP(L"ARM 32", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_ARM32),
+        SIP(L"ARM 64", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_ARM64),
+        SIP(L"RISC-V 32", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV32),
+        SIP(L"RISC-V 64", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV64),
+        SIP(L"RISC-V 128", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV128),
+        SIP(L"LoongArch 32", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_LOONGARCH32),
+        SIP(L"LoongArch 64", SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_LOONGARCH64),
+    };
+
     ET_SMBIOS_GROUP(L"Processor additional");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ProcessorAdditional, Handle))
+        ET_SMBIOS_UINT32IX(L"Associated handle", Entry->ProcessorAdditional.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ProcessorAdditional, Blocks))
+    {
+        ULONG count;
+        PVOID end;
+        PSMBIOS_PROCESSOR_SPECIFIC_BLOCK block;
+
+        count = 0;
+        end = PTR_ADD_OFFSET(Entry, Entry->Header.Length);
+        block = Entry->ProcessorAdditional.Blocks;
+
+        while ((ULONG_PTR)block < (ULONG_PTR)end)
+        {
+            PH_FORMAT format[3];
+            PPH_STRING name;
+
+            PhInitFormatC(&format[0], L'#');
+            PhInitFormatU(&format[1], ++count);
+
+            PhInitFormatS(&format[2], L" Type");
+            name = PhFormat(format, 3, 20);
+            ET_SMBIOS_ENUM(PhGetString(name), block->Type, types);
+            PhDereferenceObject(name);
+
+            if (block->Length > 0)
+            {
+                PPH_STRING data;
+
+                // TODO format data by processor type instead of hex buffer
+                data = PhBufferToHexString(block->Data, block->Length);
+
+                PhInitFormatS(&format[2], L" Data");
+                name = PhFormat(format, 3, 20);
+                EtAddSMBIOSItem(Context, group, PhGetString(name), PhGetString(data));
+                PhDereferenceObject(name);
+
+                PhDereferenceObject(data);
+            }
+
+            block = PTR_ADD_OFFSET(block, block->Length);
+            block = PTR_ADD_OFFSET(block, FIELD_OFFSET(SMBIOS_PROCESSOR_SPECIFIC_BLOCK, Data));
+        }
+    }
 }
 
 VOID EtSMBIOSFirmwareInventory(
