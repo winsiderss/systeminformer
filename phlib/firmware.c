@@ -61,8 +61,8 @@ typedef union _HV_PARTITION_PRIVILEGE_MASK
         UINT64 Reserved9 : 10;
     };
 
-    UINT32 High;
-    UINT32 Low;
+    UINT32 LowPart;
+    UINT32 HighPart;
 } HV_PARTITION_PRIVILEGE_MASK, *PHV_PARTITION_PRIVILEGE_MASK;
 
 #if defined(_M_IX86) || defined(_M_AMD64)
@@ -78,8 +78,8 @@ typedef union _PH_CPUID
 
     struct
     {
-        ULONG64 High;
-        ULONG64 Low;
+        ULONG64 LowPart;
+        ULONG64 HighPart;
     };
 
     INT32 Data[4];
@@ -91,8 +91,8 @@ VOID PhCpuId(
     _In_ ULONG SubFunction
     )
 {
-    CpuId->High = 0;
-    CpuId->Low = 0;
+    CpuId->LowPart = 0;
+    CpuId->HighPart = 0;
     CpuIdEx(CpuId->Data, Function, SubFunction);
 }
 
@@ -167,8 +167,8 @@ VOID PhGetHvPartitionPrivilegeMask(
     // https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/feature-discovery#hypervisor-feature-identification---0x40000003
     PhCpuId(&cpuid, 0x40000003, 0);
 
-    Mask->Low = cpuid.EAX;
-    Mask->High = cpuid.EBX;
+    Mask->LowPart = cpuid.EAX;
+    Mask->HighPart = cpuid.EBX;
 }
 #endif
 
