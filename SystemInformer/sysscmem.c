@@ -981,32 +981,43 @@ VOID PhSipUpdateMemoryPanel(
 
     if (MemoryTicked == 0)
     {
-        PH_FORMAT format[3];
-        PCWSTR string;
-
-        PhInitFormatU(&format[0], MemorySlotsUsed);
-        PhInitFormatS(&format[1], L" of ");
-        PhInitFormatU(&format[2], MemorySlotsTotal);
-        PhSetDialogItemText(MemoryPanel, IDC_ZMEMSLOTS_V, PhaFormat(format, 3, 10)->Buffer);
-
-        if (PhFindStringSiKeyValuePairs(MemoryFormFactors, sizeof(MemoryFormFactors), MemoryFormFactor, &string))
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMFORMFACTOR_V, string);
+        if (PhGetVirtualStatus() == PhVirtualStatusVirtualMachine)
+        {
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMSLOTS_V, L"N/A");
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMFORMFACTOR_V, L"N/A");
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTYPE_V, L"N/A");
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, L"N/A");
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, L"N/A");
+        }
         else
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMFORMFACTOR_V, L"Undefined");
+        {
+            PH_FORMAT format[3];
+            PCWSTR string;
 
-        if (PhFindStringSiKeyValuePairs(MemoryTypes, sizeof(MemoryTypes), MemoryType, &string))
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTYPE_V, string);
-        else
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTYPE_V, L"Undefined");
+            PhInitFormatU(&format[0], MemorySlotsUsed);
+            PhInitFormatS(&format[1], L" of ");
+            PhInitFormatU(&format[2], MemorySlotsTotal);
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMSLOTS_V, PhaFormat(format, 3, 10)->Buffer);
 
-        if (PhFindStringSiKeyValuePairs(MemoryTechnologies, sizeof(MemoryTechnologies), MemoryTechnology, &string))
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, string);
-        else
-            PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, L"Undefined");
+            if (PhFindStringSiKeyValuePairs(MemoryFormFactors, sizeof(MemoryFormFactors), MemoryFormFactor, &string))
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMFORMFACTOR_V, string);
+            else
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMFORMFACTOR_V, L"Undefined");
 
-        PhInitFormatU(&format[0], MemorySpeed);
-        PhInitFormatS(&format[1], L" MT/s");
-        PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 10)->Buffer);
+            if (PhFindStringSiKeyValuePairs(MemoryTypes, sizeof(MemoryTypes), MemoryType, &string))
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMTYPE_V, string);
+            else
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMTYPE_V, L"Undefined");
+
+            if (PhFindStringSiKeyValuePairs(MemoryTechnologies, sizeof(MemoryTechnologies), MemoryTechnology, &string))
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, string);
+            else
+                PhSetDialogItemText(MemoryPanel, IDC_ZMEMTECHNOLOGY_V, L"Undefined");
+
+            PhInitFormatU(&format[0], MemorySpeed);
+            PhInitFormatS(&format[1], L" MT/s");
+            PhSetDialogItemText(MemoryPanel, IDC_ZMEMSPEED_V, PhaFormat(format, 2, 10)->Buffer);
+        }
     }
 
     // Commit charge

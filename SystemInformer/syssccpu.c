@@ -1141,14 +1141,13 @@ VOID PhSipUpdateCpuPanel(
 
     if (CpuTicked == 0)
     {
-        PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, PhaFormatSize(CpuL1CacheSize, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, PhaFormatSize(CpuL2CacheSize, ULONG_MAX)->Buffer);
-        PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer);
+        BOOLEAN virtualMachine = FALSE;
 
         switch (PhGetVirtualStatus())
         {
         case PhVirtualStatusVirtualMachine:
             PhSetWindowText(CpuVirtualizationLabel, L"Virtual machine");
+            virtualMachine = TRUE;
             break;
         case PhVirtualStatusEnabledHyperV:
         case PhVirtualStatusEnabledFirmware:
@@ -1164,6 +1163,19 @@ VOID PhSipUpdateCpuPanel(
         default:
             PhSetWindowText(CpuVirtualizationLabel, L"Not capable");
             break;
+        }
+
+        if (virtualMachine)
+        {
+            PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, L"N/A");
+            PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, L"N/A");
+            PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, L"N/A");
+        }
+        else
+        {
+            PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, PhaFormatSize(CpuL1CacheSize, ULONG_MAX)->Buffer);
+            PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, PhaFormatSize(CpuL2CacheSize, ULONG_MAX)->Buffer);
+            PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer);
         }
     }
 
