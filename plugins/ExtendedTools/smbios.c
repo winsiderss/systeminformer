@@ -272,12 +272,6 @@ VOID EtAddSMBIOSEnum(
 #define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), v)
 #define ET_SMBIOS_ENUM(n, v, e)         EtAddSMBIOSEnum(Context, group, n, e, sizeof(e), v);
 
-#ifdef DEBUG // WIP(jxy-s)
-#define ET_SMBIOS_TODO() EtAddSMBIOSItem(Context, group, L"TODO", L"")
-#else
-#define ET_SMBIOS_TODO() DBG_UNREFERENCED_LOCAL_VARIABLE(group)
-#endif
-
 VOID EtSMBIOSFirmware(
     _In_ ULONG_PTR EnumHandle,
     _In_ PPH_SMBIOS_ENTRY Entry,
