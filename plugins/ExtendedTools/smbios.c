@@ -3203,8 +3203,91 @@ VOID EtSMBIOSSystemPowerSupply(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR rangeSwitching[] =
+    {
+        SIP(L"Other", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_OTHER),
+        SIP(L"Unknown", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_UNKNOWN),
+        SIP(L"Manual", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_MANUAL),
+        SIP(L"Auto-switch", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_AUTO_SWITCH),
+        SIP(L"Wide range", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_WIDE_RANGE),
+        SIP(L"Not applicable", SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_NOT_APPLICABLE),
+    };
+
+    static const PH_KEY_VALUE_PAIR powerSupplyStatus[] =
+    {
+        SIP(L"Other", SMBIOS_POWER_SUPPLY_STATUS_OTHER),
+        SIP(L"Unknown", SMBIOS_POWER_SUPPLY_STATUS_UNKNOWN),
+        SIP(L"Ok", SMBIOS_POWER_SUPPLY_STATUS_OK),
+        SIP(L"Non-critical", SMBIOS_POWER_SUPPLY_STATUS_NON_CRITICAL),
+        SIP(L"Critical", SMBIOS_POWER_SUPPLY_STATUS_CRITICAL),
+    };
+
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_POWER_SUPPLY_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_POWER_SUPPLY_TYPE_UNKNOWN),
+        SIP(L"Linear", SMBIOS_POWER_SUPPLY_TYPE_LINEAR),
+        SIP(L"Switching", SMBIOS_POWER_SUPPLY_TYPE_SWITCHING),
+        SIP(L"Battery", SMBIOS_POWER_SUPPLY_TYPE_BATTERY),
+        SIP(L"UPS", SMBIOS_POWER_SUPPLY_TYPE_UPS),
+        SIP(L"Converter", SMBIOS_POWER_SUPPLY_TYPE_CONVERTER),
+        SIP(L"Regulator", SMBIOS_POWER_SUPPLY_TYPE_REGULATOR),
+    };
+
     ET_SMBIOS_GROUP(L"System power supply");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, PowerUnitGroup) &&
+        Entry->SystemPowerSupply.PowerUnitGroup != 0)
+    {
+        ET_SMBIOS_UINT32(L"Power unit group", Entry->SystemPowerSupply.PowerUnitGroup);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, Location))
+        ET_SMBIOS_STRING(L"Location", Entry->SystemPowerSupply.Location);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, DeviceName))
+        ET_SMBIOS_STRING(L"Device name", Entry->SystemPowerSupply.DeviceName);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, Manufacturer))
+        ET_SMBIOS_STRING(L"Manufacturer", Entry->SystemPowerSupply.Manufacturer);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, SerialNumber))
+        ET_SMBIOS_STRING(L"Serial number", Entry->SystemPowerSupply.SerialNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, AssetTag))
+        ET_SMBIOS_STRING(L"Asset tag", Entry->SystemPowerSupply.AssetTag);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, ModelPartNumber))
+        ET_SMBIOS_STRING(L"Model part number", Entry->SystemPowerSupply.ModelPartNumber);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, SystemPowerSupply, Revision))
+        ET_SMBIOS_STRING(L"Revision", Entry->SystemPowerSupply.Revision);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, MaxPowerCapacity) &&
+        Entry->SystemPowerSupply.MaxPowerCapacity != 0x8000)
+    {
+        ET_SMBIOS_UINT32_UNITS(L"Max power capacity", Entry->SystemPowerSupply.MaxPowerCapacity, L" W");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, Characteristics))
+    {
+        ET_SMBIOS_BOOLEAN(L"Hot-swappable", !!Entry->SystemPowerSupply.Characteristics.HostSwappable);
+        ET_SMBIOS_BOOLEAN(L"Present", !!Entry->SystemPowerSupply.Characteristics.Present);
+        ET_SMBIOS_ENUM(L"Range switching", Entry->SystemPowerSupply.Characteristics.RangeSwitching, rangeSwitching);
+        ET_SMBIOS_ENUM(L"Status", Entry->SystemPowerSupply.Characteristics.Status, powerSupplyStatus);
+        ET_SMBIOS_ENUM(L"Type", Entry->SystemPowerSupply.Characteristics.Type, types);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, InputVoltageProbeHandle))
+        ET_SMBIOS_UINT64IX(L"Input voltage probe handle", Entry->SystemPowerSupply.InputVoltageProbeHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, CoolingDeviceHandle))
+        ET_SMBIOS_UINT64IX(L"Cooling device handle", Entry->SystemPowerSupply.CoolingDeviceHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemPowerSupply, InputCurrentProbeHandle))
+        ET_SMBIOS_UINT64IX(L"Input current handle", Entry->SystemPowerSupply.InputCurrentProbeHandle);
 }
 
 VOID EtSMBIOSAdditionalInformation(
