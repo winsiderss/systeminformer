@@ -1010,7 +1010,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     {
                         PhLoadSymbolProviderOptions(symbolProvider);
                         PhLoadSymbolProviderModules(symbolProvider, context->ProcessId);
-   
+
                         symbol = PhGetSymbolFromAddress(
                             symbolProvider,
                             basicInfo.StartRoutine,
@@ -2182,7 +2182,7 @@ VOID EtpOpenDesktopSecurity(
         context->HandleItem->Handle
         )))
     {
-        if (NtCompareObjects((HANDLE)OpenContext->CurrentWinStation, (HANDLE)hWinStation) == STATUS_NOT_SAME_OBJECT)
+        if (PhCompareObjects((HANDLE)OpenContext->CurrentWinStation, (HANDLE)hWinStation) == STATUS_NOT_SAME_OBJECT)
             OpenContext->DesktopWinStation = hWinStation;
         else
             CloseWindowStation(hWinStation);
@@ -2252,7 +2252,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                 )))
             {
                 HWINSTA currentStation = GetProcessWindowStation();
-                NTSTATUS status = NtCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
+                NTSTATUS status = PhCompareObjects((HANDLE)currentStation, (HANDLE)hWinStation);
                 if (status == STATUS_NOT_SAME_OBJECT)
                     SetProcessWindowStation(hWinStation);
                 EnumDesktops(hWinStation, EtpEnumDesktopsCallback, (LPARAM)context);
