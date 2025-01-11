@@ -16,7 +16,7 @@
 
 typedef struct _PH_SMBIOS_STRINGREF
 {
-    UCHAR Length;
+    USHORT Length;
     PSTR Buffer;
 } PH_SMBIOS_STRINGREF, *PPH_SMBIOS_STRINGREF;
 
@@ -37,7 +37,7 @@ NTSTATUS PhpParseSMBIOS(
     PSTR pointer;
     PSTR string;
     UCHAR nulls;
-    UCHAR length;
+    USHORT length;
     UCHAR count;
 
     *Next = NULL;
@@ -58,7 +58,7 @@ NTSTATUS PhpParseSMBIOS(
     {
         if (*pointer++ != ANSI_NULL)
         {
-            if (!NT_SUCCESS(status = RtlUInt8Add(length, 1, &length)))
+            if (!NT_SUCCESS(status = RtlUShortAdd(length, 1, &length)))
                 return status;
 
             nulls = 0;
