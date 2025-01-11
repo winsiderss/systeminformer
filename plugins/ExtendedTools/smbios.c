@@ -3830,7 +3830,8 @@ VOID EtSMBIOSInactive(
     )
 {
     ET_SMBIOS_GROUP(L"Inactive");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
 }
 
 VOID EtSMBIOSUndefinedType(
