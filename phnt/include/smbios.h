@@ -1884,7 +1884,19 @@ typedef struct _SMBIOS_PORTABLE_BATTERY_INFORMATION
     UCHAR MaximumError;
     // 2.2+
     USHORT SBDSSerialNumber;
-    USHORT SBDSManufactureDate;
+
+    union
+    {
+        struct
+        {
+            USHORT Day : 5;
+            USHORT Month : 4;
+            USHORT Year : 7;  // Biased by 1980
+        };
+
+        USHORT Value;
+    } SBDSManufactureDate;
+
     UCHAR SBDSDeviceChemistry;  // string
     UCHAR DesignCapacityMultiplier;
     ULONG OEMSpecific;
@@ -2388,7 +2400,18 @@ typedef struct _SMBIOS_IPMI_DEVICE_INFORMATION
     SMBIOS_HEADER Header;
     // 2.3+
     UCHAR Type; // SMBIOS_IPMI_INTERFACE_TYPE_*
-    UCHAR SpecificationRevision;
+
+    union
+    {
+        struct
+        {
+            UCHAR Minor : 4;
+            UCHAR Major : 4;
+        };
+
+        UCHAR Value;
+    } SpecificationRevision;
+
     UCHAR I2CTargetAddress;
     UCHAR NVStorageDeviceAddress;
     ULONGLONG BaseAddress;
