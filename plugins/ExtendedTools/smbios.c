@@ -3129,8 +3129,68 @@ VOID EtSMBIOSIPMIDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Unknown", SMBIOS_IPMI_INTERFACE_TYPE_UNKONWN),
+        SIP(L"KCS", SMBIOS_IPMI_INTERFACE_TYPE_KCS),
+        SIP(L"SMIC", SMBIOS_IPMI_INTERFACE_TYPE_SMIC),
+        SIP(L"BT", SMBIOS_IPMI_INTERFACE_TYPE_BT),
+        SIP(L"SSIF", SMBIOS_IPMI_INTERFACE_TYPE_SSIF),
+    };
+
+    static const PH_KEY_VALUE_PAIR spacings[] =
+    {
+        SIP(L"Successive", SMBIOS_IPMI_REGISTER_SPACING_SUCCESSIVE),
+        SIP(L"32-bit", SMBIOS_IPMI_REGISTER_SPACING_32_BIT),
+        SIP(L"16-bit", SMBIOS_IPMI_REGISTER_SPACING_16_BIT),
+    };
+
     ET_SMBIOS_GROUP(L"IPMI device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, Type))
+        ET_SMBIOS_ENUM(L"Type", Entry->IPMIDevice.Type, types);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, SpecificationRevision)) // TODO breakout
+        ET_SMBIOS_UINT32IX(L"Specification revision", Entry->IPMIDevice.SpecificationRevision);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, I2CTargetAddress))
+        ET_SMBIOS_UINT32IX(L"I2C target address", Entry->IPMIDevice.I2CTargetAddress);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, NVStorageDeviceAddress) &&
+        Entry->IPMIDevice.NVStorageDeviceAddress != UCHAR_MAX)
+    {
+        ET_SMBIOS_UINT32IX(L"NV storage address", Entry->IPMIDevice.NVStorageDeviceAddress);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, BaseAddress))
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatI64X(&format[0], Entry->IPMIDevice.BaseAddress & ~1ULL);
+        if (Entry->IPMIDevice.BaseAddress & 1)
+            PhInitFormatS(&format[1], L", I/O space");
+        else
+            PhInitFormatS(&format[1], L", memory-mapped");
+
+        string = PhFormat(format, 2, 20);
+        EtAddSMBIOSItem(Context, group, L"Base address", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, Info))
+    {
+        EtAddSMBIOSItem(Context, group, L"Trigger mode", Entry->IPMIDevice.Info.InterruptTriggerMode ? L"Level" : L"Edge");
+        EtAddSMBIOSItem(Context, group, L"Polarity", Entry->IPMIDevice.Info.InterruptPolarity ? L"Active high" : L"Active low");
+        EtAddSMBIOSItem(Context, group, L"Interrupt info", Entry->IPMIDevice.Info.InterruptInfo ? L"Specified" : L"Not specified");
+        EtAddSMBIOSItem(Context, group, L"LS-bit for address", Entry->IPMIDevice.Info.LSBAddress ? L"1" : L"0");
+        ET_SMBIOS_ENUM(L"Register spacing", Entry->IPMIDevice.Info.RegisterSpacing, spacings);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, InterruptNumber))
+        ET_SMBIOS_UINT32(L"Interrupt #", Entry->IPMIDevice.InterruptNumber);
 }
 
 VOID EtSMBIOSSystemPowerSupply(
