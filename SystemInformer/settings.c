@@ -249,7 +249,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddStringSetting(L"SysInfoWindowSection", L"");
-    PhpAddScalableIntegerPairSetting(L"SysInfoWindowSize", L"@96|620,590");
+    PhpAddScalableIntegerPairSetting(L"SysInfoWindowSize", L"@96|900,590");
     PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
     PhpAddIntegerSetting(L"TaskmgrWindowState", L"0");
     PhpAddIntegerSetting(L"ThinRows", L"0");
