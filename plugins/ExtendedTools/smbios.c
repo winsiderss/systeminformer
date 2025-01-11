@@ -2833,8 +2833,61 @@ VOID EtSMBIOSCoolingDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_COOLING_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_COOLING_DEVICE_TYPE_UNKNOWN),
+        SIP(L"Fan", SMBIOS_COOLING_DEVICE_TYPE_FAN),
+        SIP(L"Centrifugal blower", SMBIOS_COOLING_DEVICE_TYPE_CENTRIFUGAL_BLOWER),
+        SIP(L"Chip fan", SMBIOS_COOLING_DEVICE_TYPE_CHIP_FAN),
+        SIP(L"Cabinet fan", SMBIOS_COOLING_DEVICE_TYPE_CABINET_FAN),
+        SIP(L"Power supply fan", SMBIOS_COOLING_DEVICE_TYPE_POWER_SUPPLY_FAN),
+        SIP(L"Heat pipe", SMBIOS_COOLING_DEVICE_TYPE_HEAT_PIPE),
+        SIP(L"Integrated refrigeration", SMBIOS_COOLING_DEVICE_TYPE_INTEGRATED_REFRIGERATION),
+        SIP(L"Active cooling", SMBIOS_COOLING_DEVICE_TYPE_ACTIVE_COOLING),
+        SIP(L"Passive cooling", SMBIOS_COOLING_DEVICE_TYPE_PASSIVE_COOLING),
+    };
+
+    static const PH_KEY_VALUE_PAIR deviceStatus[] =
+    {
+        SIP(L"Other", SMBIOS_COOLING_DEVICE_STATUS_OTHER),
+        SIP(L"Unknown", SMBIOS_COOLING_DEVICE_STATUS_UNKNOWN),
+        SIP(L"Ok", SMBIOS_COOLING_DEVICE_STATUS_OK),
+        SIP(L"Non-critical", SMBIOS_COOLING_DEVICE_STATUS_NON_CRITICAL),
+        SIP(L"Critical", SMBIOS_COOLING_DEVICE_STATUS_CRITICAL),
+        SIP(L"Non-recoverable", SMBIOS_COOLING_DEVICE_STATUS_NON_RECOVERABLE),
+    };
+
     ET_SMBIOS_GROUP(L"Cooling device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, CoolingDevice, TemperatureProbeHandle))
+        ET_SMBIOS_UINT32IX(L"Temperature probe handle", Entry->CoolingDevice.TemperatureProbeHandle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, CoolingDevice, DeviceTypeAndStatus))
+    {
+        ET_SMBIOS_ENUM(L"Type", Entry->CoolingDevice.DeviceTypeAndStatus.DeviceType, types);
+        ET_SMBIOS_ENUM(L"Status", Entry->CoolingDevice.DeviceTypeAndStatus.Status, deviceStatus);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, CoolingDevice, CoolingUnitGroup) &&
+        Entry->CoolingDevice.CoolingUnitGroup != 0)
+    {
+        ET_SMBIOS_UINT32(L"Cooling unit group", Entry->CoolingDevice.CoolingUnitGroup);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, CoolingDevice, OEMDefined))
+        ET_SMBIOS_UINT32IX(L"OEM defined", Entry->CoolingDevice.OEMDefined);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, CoolingDevice, NominalSpeed) &&
+        Entry->CoolingDevice.NominalSpeed != 0x8000)
+    {
+        ET_SMBIOS_UINT32_UNITS(L"Nominal speed", Entry->CoolingDevice.NominalSpeed, L" rpm");
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, CoolingDevice, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->CoolingDevice.Description);
 }
 
 VOID EtSMBIOSTemperatureProbe(
