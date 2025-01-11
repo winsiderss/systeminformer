@@ -3502,7 +3502,61 @@ VOID EtSMBIOSAdditionalInformation(
     )
 {
     ET_SMBIOS_GROUP(L"Additional information");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, AdditionalInformation, Count))
+    {
+        PVOID end;
+        PSMBIOS_ADDITIONAL_ENTRY entry;
+
+        ET_SMBIOS_UINT32(L"Count", Entry->AdditionalInformation.Count);
+
+        end = PTR_ADD_OFFSET(Entry, Entry->Header.Length);
+        entry = Entry->AdditionalInformation.Entries;
+
+        for (UCHAR i = 0; i < Entry->AdditionalInformation.Count; i++)
+        {
+            PH_FORMAT format[3];
+            PPH_STRING name;
+
+            PhInitFormatC(&format[0], L'#');
+            PhInitFormatU(&format[1], i + 1);
+
+            PhInitFormatS(&format[2], L" Referenced handle");
+            name = PhFormat(format, 3, 20);
+            ET_SMBIOS_UINT32IX(PhGetString(name), entry->ReferencedHandle);
+            PhDereferenceObject(name);
+
+            if (entry->String != SMBIOS_INVALID_STRING)
+            {
+                PhInitFormatS(&format[2], L" String");
+                name = PhFormat(format, 3, 20);
+                ET_SMBIOS_STRING(PhGetString(name), entry->String);
+                PhDereferenceObject(name);
+            }
+
+            if (entry->Length > FIELD_OFFSET(SMBIOS_ADDITIONAL_ENTRY, Value))
+            {
+                ULONG length;
+                PPH_STRING value;
+
+                length = entry->Length - FIELD_OFFSET(SMBIOS_ADDITIONAL_ENTRY, Value);
+                value = PhBufferToHexString(entry->Value, length);
+
+                PhInitFormatS(&format[2], L" Value");
+                name = PhFormat(format, 3, 20);
+                EtAddSMBIOSItem(Context, group, PhGetString(name), PhGetString(value));
+                PhDereferenceObject(name);
+
+                PhDereferenceObject(value);
+            }
+
+            entry = PTR_ADD_OFFSET(entry, entry->Length);
+            if ((ULONG_PTR)entry >= (ULONG_PTR)end)
+                break;
+        }
+    }
 }
 
 VOID EtSMBIOSOnboardDevice(
