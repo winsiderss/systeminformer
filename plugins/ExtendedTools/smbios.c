@@ -2606,8 +2606,49 @@ VOID EtSMBIOSSystemReset(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR watchdog[] =
+    {
+        SIP(L"Reserved", SMBIOS_SYSTEM_RESET_WATCHDOG_RESERVED),
+        SIP(L"Operating system", SMBIOS_SYSTEM_RESET_WATCHDOG_OPERATING_SYSTEM),
+        SIP(L"System utilities", SMBIOS_SYSTEM_RESET_WATCHDOG_SYSTEM_UTILITES),
+        SIP(L"Do not reboot", SMBIOS_SYSTEM_RESET_WATCHDOG_DO_NOT_REBOOT),
+    };
+
     ET_SMBIOS_GROUP(L"System reset");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, Capabilities))
+    {
+        ET_SMBIOS_BOOLEAN(L"User enabled", !!Entry->SystemReset.Capabilities.UserEnabled);
+        ET_SMBIOS_ENUM(L"Watchdog reset", Entry->SystemReset.Capabilities.WatchdogReset, watchdog);
+        ET_SMBIOS_ENUM(L"Watchdog action", Entry->SystemReset.Capabilities.WatchdogAction, watchdog);
+        ET_SMBIOS_BOOLEAN(L"Watchdog exists", !!Entry->SystemReset.Capabilities.WatchdogExists);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, ResetCount) &&
+        Entry->SystemReset.ResetCount != 0x0FFFF)
+    {
+        ET_SMBIOS_UINT32(L"Reset count", Entry->SystemReset.ResetCount);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, ResetLimit) &&
+        Entry->SystemReset.ResetLimit != 0x0FFFF)
+    {
+        ET_SMBIOS_UINT32(L"Reset limit", Entry->SystemReset.ResetLimit);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, TimerInterval) &&
+        Entry->SystemReset.TimerInterval != 0x0FFFF)
+    {
+        ET_SMBIOS_UINT32_UINTS(L"Timer interval", Entry->SystemReset.TimerInterval, L" minutes");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, Timeout) &&
+        Entry->SystemReset.Timeout != 0x0FFFF)
+    {
+        ET_SMBIOS_UINT32_UINTS(L"Timeout", Entry->SystemReset.TimerInterval, L" minutes");
+    }
 }
 
 VOID EtSMBIOSHardwareSecurity(
