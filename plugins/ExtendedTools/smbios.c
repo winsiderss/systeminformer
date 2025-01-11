@@ -3803,8 +3803,24 @@ VOID EtSMBIOSStringProperty(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR identifiers[] =
+    {
+        SIP(L"Reserved", SMBIOS_STRING_PROPERTY_ID_RESERVED),
+        SIP(L"UEFI device path", SMBIOS_STRING_PROPERTY_ID_UEIF_DEVICE_PATH),
+    };
+
     ET_SMBIOS_GROUP(L"String property");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, StringProperty, Identifier))
+        ET_SMBIOS_UINT32(L"Identifier", Entry->StringProperty.Identifier);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, StringProperty, String))
+        ET_SMBIOS_STRING(L"String", Entry->StringProperty.String);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, StringProperty, ParentHandle))
+        ET_SMBIOS_UINT32IX(L"Parent handle", Entry->StringProperty.ParentHandle);
 }
 
 VOID EtSMBIOSInactive(
