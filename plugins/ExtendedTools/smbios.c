@@ -1813,7 +1813,37 @@ VOID EtSMBIOSSystemEventLog(
     )
 {
     ET_SMBIOS_GROUP(L"System event log");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    // TODO parse the logs, just dumping the meta data for now
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, AreaLength))
+        ET_SMBIOS_UINT32(L"Area length", Entry->EventLog.AreaLength);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, HeaderStartOffset))
+        ET_SMBIOS_UINT32IX(L"Header start offset", Entry->EventLog.HeaderStartOffset);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, DataStartOffset))
+        ET_SMBIOS_UINT32IX(L"Data start off", Entry->EventLog.DataStartOffset);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, AccessMethod))
+        ET_SMBIOS_UINT32(L"Access method", Entry->EventLog.AccessMethod);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, Status))
+    {
+        ET_SMBIOS_BOOLEAN(L"Full", !!Entry->EventLog.Status.Full);
+        ET_SMBIOS_BOOLEAN(L"Valid", !!Entry->EventLog.Status.Valid);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, ChangeToken))
+        ET_SMBIOS_UINT32(L"Change token", Entry->EventLog.ChangeToken);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, NumberOfDescriptors))
+        ET_SMBIOS_UINT32(L"Number of descriptors", Entry->EventLog.NumberOfDescriptors);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, EventLog, LengthOfDescriptors))
+        ET_SMBIOS_UINT32(L"Length of descriptors", Entry->EventLog.LengthOfDescriptors);
 }
 
 VOID EtSMBIOSPhysicalMemoryArray(
