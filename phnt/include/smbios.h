@@ -2757,9 +2757,9 @@ typedef struct _SMBIOS_STRING_PROPERTY
 {
     SMBIOS_HEADER Header;
     // 3.5+
-    USHORT Identifier; // SMBIOS_STRING_PROPERTY_ID_*
-    UCHAR Value;       // string
-    USHORT Handle;
+    USHORT Identifier;   // SMBIOS_STRING_PROPERTY_ID_*
+    UCHAR String;        // string
+    USHORT ParentHandle;
 } SMBIOS_STRING_PROPERTY, *PSMBIOS_STRING_PROPERTY;
 
 C_ASSERT(sizeof(SMBIOS_STRING_PROPERTY) == 0x9);
