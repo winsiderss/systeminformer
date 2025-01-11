@@ -2573,20 +2573,13 @@ VOID EtSMBIOSPortableBattery(
         !PH_SMBIOS_CONTAINS_STRING(Entry, PortableBattery, ManufactureDate))
     {
         PH_FORMAT format[5];
-        ULONG day;
-        ULONG month;
-        ULONG year;
         PPH_STRING string;
 
-        day = Entry->PortableBattery.ManufactureDate & 0x1F;
-        month = (Entry->PortableBattery.ManufactureDate & 0x1E0) >> 5;
-        year = 1980 + ((Entry->PortableBattery.ManufactureDate & 0xFE00) >> 9);
-
-        PhInitFormatU(&format[0], year);
+        PhInitFormatU(&format[0], 1980 + Entry->PortableBattery.SBDSManufactureDate.Year);
         PhInitFormatC(&format[1], L'-');
-        PhInitFormatU(&format[2], month);
+        PhInitFormatU(&format[2], Entry->PortableBattery.SBDSManufactureDate.Month);
         PhInitFormatC(&format[3], L'-');
-        PhInitFormatU(&format[4], day);
+        PhInitFormatU(&format[4], Entry->PortableBattery.SBDSManufactureDate.Day);
 
         string = PhFormat(format, 5, 10);
         EtAddSMBIOSItem(Context, group, L"SBDS Manufacture date", PhGetString(string));
@@ -3152,8 +3145,19 @@ VOID EtSMBIOSIPMIDevice(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, Type))
         ET_SMBIOS_ENUM(L"Type", Entry->IPMIDevice.Type, types);
 
-    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, SpecificationRevision)) // TODO breakout
-        ET_SMBIOS_UINT32IX(L"Specification revision", Entry->IPMIDevice.SpecificationRevision);
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, SpecificationRevision))
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatU(&format[0], Entry->IPMIDevice.SpecificationRevision.Major);
+        PhInitFormatC(&format[1], L'.');
+        PhInitFormatU(&format[2], Entry->IPMIDevice.SpecificationRevision.Minor);
+
+        string = PhFormat(format, 3, 10);
+        EtAddSMBIOSItem(Context, group, L"Specification revision", PhGetString(string));
+        PhDereferenceObject(string);
+    }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, IPMIDevice, I2CTargetAddress))
         ET_SMBIOS_UINT32IX(L"I2C target address", Entry->IPMIDevice.I2CTargetAddress);
