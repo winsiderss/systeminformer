@@ -2859,8 +2859,126 @@ VOID EtSMBIOSTemperatureProbe(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR locations[] =
+    {
+        SIP(L"Other", SMBIOS_TEMPERATURE_PROBE_LOCATION_OTHER),
+        SIP(L"Unknown", SMBIOS_TEMPERATURE_PROBE_LOCATION_UNKNOWN),
+        SIP(L"Processor", SMBIOS_TEMPERATURE_PROBE_LOCATION_PROCESSOR),
+        SIP(L"Disk", SMBIOS_TEMPERATURE_PROBE_LOCATION_DISK),
+        SIP(L"Peripheral bay", SMBIOS_TEMPERATURE_PROBE_LOCATION_PERIPHERAL_BAY),
+        SIP(L"System management module", SMBIOS_TEMPERATURE_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE),
+        SIP(L"Motherboard", SMBIOS_TEMPERATURE_PROBE_LOCATION_MOTHERBOARD),
+        SIP(L"Memory module", SMBIOS_TEMPERATURE_PROBE_LOCATION_MEMORY_MODULE),
+        SIP(L"Processor module", SMBIOS_TEMPERATURE_PROBE_LOCATION_PROCESSOR_MODULE),
+        SIP(L"Power unit", SMBIOS_TEMPERATURE_PROBE_LOCATION_POWER_UNIT),
+        SIP(L"Add-in card", SMBIOS_TEMPERATURE_PROBE_LOCATION_ADD_IN_CARD),
+        SIP(L"Front panel board", SMBIOS_TEMPERATURE_PROBE_LOCATION_FRONT_PANEL_BOARD),
+        SIP(L"Back panel board", SMBIOS_TEMPERATURE_PROBE_LOCATION_BACK_PANEL_BOARD),
+        SIP(L"Power system board", SMBIOS_TEMPERATURE_PROBE_LOCATION_POWER_SYSTEM_BOARD),
+        SIP(L"Drive back plane", SMBIOS_TEMPERATURE_PROBE_LOCATION_DRIVE_BACK_PLANE),
+    };
+
     ET_SMBIOS_GROUP(L"Temperature probe");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, TemperatureProbe, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->TemperatureProbe.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, LocationAndStatus))
+    {
+        ET_SMBIOS_ENUM(L"Location", Entry->TemperatureProbe.LocationAndStatus.Location, locations);
+        ET_SMBIOS_ENUM(L"Status", Entry->TemperatureProbe.LocationAndStatus.Status, EtSMBIOSProbeStatus);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MaximumValue) &&
+        Entry->TemperatureProbe.MaximumValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->TemperatureProbe.MaximumValue / 10, 1);
+        PhInitFormatS(&format[1], L" C");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Maximum value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, MinimumValue) &&
+        Entry->TemperatureProbe.MinimumValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->TemperatureProbe.MinimumValue / 10, 1);
+        PhInitFormatS(&format[1], L" C");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Minimum value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, Resolution) &&
+        Entry->TemperatureProbe.Resolution != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->TemperatureProbe.Resolution / 1000, 3);
+        PhInitFormatS(&format[1], L" C");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Resolution", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, Tolerance) &&
+        Entry->TemperatureProbe.Tolerance != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatF(&format[1], (FLOAT)Entry->TemperatureProbe.Tolerance / 10, 1);
+        PhInitFormatS(&format[2], L" C");
+
+        string = PhFormat(format, 3, 10);
+        EtAddSMBIOSItem(Context, group, L"Tolerance", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, Accuracy) &&
+        Entry->TemperatureProbe.Tolerance != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatF(&format[1], (FLOAT)Entry->TemperatureProbe.Accuracy / 100, 2);
+        PhInitFormatS(&format[2], L"%");
+
+        string = PhFormat(format, 3, 10);
+        EtAddSMBIOSItem(Context, group, L"Accuracy", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, OEMDefined))
+        ET_SMBIOS_UINT32IX(L"OEM define", Entry->TemperatureProbe.OEMDefined);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TemperatureProbe, NominalValue) &&
+        Entry->TemperatureProbe.NominalValue != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->TemperatureProbe.NominalValue / 10, 1);
+        PhInitFormatS(&format[1], L" C");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Nominal value", PhGetString(string));
+        PhDereferenceObject(string);
+    }
 }
 
 VOID EtSMBIOSElectricalCurrentProbe(
