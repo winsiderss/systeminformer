@@ -298,7 +298,7 @@ VOID EtAddSMBIOSEnum(
 #define ET_SMBIOS_UINT64IX(n, v)        EtAddSMBIOSUInt64IX(Context, group, n, v)
 #define ET_SMBIOS_STRING(n, v)          EtAddSMBIOSString(Context, group, n, EnumHandle, v)
 #define ET_SMBIOS_SIZE(n, v)            EtAddSMBIOSSize(Context, group, n, v)
-#define ET_SMBIOS_UINT32_UINTS(n, v, u) EtAddSMBIOSUInt32Units(Context, group, n, v, u)
+#define ET_SMBIOS_UINT32_UNITS(n, v, u) EtAddSMBIOSUInt32Units(Context, group, n, v, u)
 #define ET_SMBIOS_FLAG(x, n)            { TEXT(#x), x, FALSE, FALSE, n }
 #define ET_SMBIOS_FLAGS(n, v, f)        EtAddSMBIOSFlags(Context, group, n, f, RTL_NUMBER_OF(f), NULL, 0, v)
 #define ET_SMBIOS_FLAGS64(n, v, fl, fh) EtAddSMBIOSFlags(Context, group, n, fl, RTL_NUMBER_OF(fl), fh, RTL_NUMBER_OF(fh), v)
@@ -684,7 +684,7 @@ VOID EtSMBIOSChassis(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, Height) &&
         Entry->Chassis.Height != 0)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Height", Entry->Chassis.Height, L"U");
+        ET_SMBIOS_UINT32_UNITS(L"Height", Entry->Chassis.Height, L"U");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Chassis, NumberOfPowerCords) &&
@@ -807,19 +807,19 @@ VOID EtSMBIOSProcessor(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, ExternalClock) &&
         Entry->Processor.ExternalClock != 0)
     {
-        ET_SMBIOS_UINT32_UINTS(L"External clock", Entry->Processor.ExternalClock, L" MHz");
+        ET_SMBIOS_UINT32_UNITS(L"External clock", Entry->Processor.ExternalClock, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, MaxSpeed) &&
         Entry->Processor.MaxSpeed != 0)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Max speed", Entry->Processor.MaxSpeed, L" MHz");
+        ET_SMBIOS_UINT32_UNITS(L"Max speed", Entry->Processor.MaxSpeed, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, CurrentSpeed) &&
         Entry->Processor.CurrentSpeed != 0)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Current speed", Entry->Processor.CurrentSpeed, L" MHz");
+        ET_SMBIOS_UINT32_UNITS(L"Current speed", Entry->Processor.CurrentSpeed, L" MHz");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, Status))
@@ -1096,7 +1096,7 @@ VOID EtSMBIOSMemoryModule(
         ET_SMBIOS_UINT32IX(L"Bank connections", Entry->MemoryModule.BankConnections);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, CurrentSpeed))
-        ET_SMBIOS_UINT32_UINTS(L"Current speed", Entry->MemoryModule.CurrentSpeed, L" ns");
+        ET_SMBIOS_UINT32_UNITS(L"Current speed", Entry->MemoryModule.CurrentSpeed, L" ns");
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryModule, MemoryType))
         ET_SMBIOS_FLAGS(L"Memory type", Entry->MemoryModule.MemoryType, types);
@@ -1310,7 +1310,7 @@ VOID EtSMBIOSCache(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Speed) &&
         Entry->Cache.Speed != 0)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->Cache.Speed, L" ns");
+        ET_SMBIOS_UINT32_UNITS(L"Speed", Entry->Cache.Speed, L" ns");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, ErrorCorrectionType))
@@ -2112,12 +2112,12 @@ VOID EtSMBIOSMemoryDevice(
         {
             if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedSpeed))
             {
-                ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->MemoryDevice.ExtendedSpeed, L" MT/s");
+                ET_SMBIOS_UINT32_UNITS(L"Speed", Entry->MemoryDevice.ExtendedSpeed, L" MT/s");
             }
         }
         else
         {
-            ET_SMBIOS_UINT32_UINTS(L"Speed", Entry->MemoryDevice.Speed, L" MT/s");
+            ET_SMBIOS_UINT32_UNITS(L"Speed", Entry->MemoryDevice.Speed, L" MT/s");
         }
     }
 
@@ -2128,12 +2128,12 @@ VOID EtSMBIOSMemoryDevice(
         {
             if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedConfiguredSpeed))
             {
-                ET_SMBIOS_UINT32_UINTS(L"Configured speed", Entry->MemoryDevice.ExtendedConfiguredSpeed, L" MT/s");
+                ET_SMBIOS_UINT32_UNITS(L"Configured speed", Entry->MemoryDevice.ExtendedConfiguredSpeed, L" MT/s");
             }
         }
         else
         {
-            ET_SMBIOS_UINT32_UINTS(L"Configured speed", Entry->MemoryDevice.ConfiguredSpeed, L" MT/s");
+            ET_SMBIOS_UINT32_UNITS(L"Configured speed", Entry->MemoryDevice.ConfiguredSpeed, L" MT/s");
         }
     }
 
@@ -2538,7 +2538,7 @@ VOID EtSMBIOSPortableBattery(
 
         capacity = (ULONG)Entry->PortableBattery.DesignCapacity * multiplier;
 
-        ET_SMBIOS_UINT32_UINTS(L"Design capacity", capacity, L" mWh");
+        ET_SMBIOS_UINT32_UNITS(L"Design capacity", capacity, L" mWh");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, DesignVoltage) &&
@@ -2560,7 +2560,7 @@ VOID EtSMBIOSPortableBattery(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, MaximumError) &&
         Entry->PortableBattery.MaximumError != UCHAR_MAX)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Maximum error", Entry->PortableBattery.MaximumError, L"%");
+        ET_SMBIOS_UINT32_UNITS(L"Maximum error", Entry->PortableBattery.MaximumError, L"%");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, PortableBattery, SBDSSerialNumber) &&
@@ -2641,13 +2641,13 @@ VOID EtSMBIOSSystemReset(
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, TimerInterval) &&
         Entry->SystemReset.TimerInterval != 0x0FFFF)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Timer interval", Entry->SystemReset.TimerInterval, L" minutes");
+        ET_SMBIOS_UINT32_UNITS(L"Timer interval", Entry->SystemReset.TimerInterval, L" minutes");
     }
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemReset, Timeout) &&
         Entry->SystemReset.Timeout != 0x0FFFF)
     {
-        ET_SMBIOS_UINT32_UINTS(L"Timeout", Entry->SystemReset.TimerInterval, L" minutes");
+        ET_SMBIOS_UINT32_UNITS(L"Timeout", Entry->SystemReset.TimerInterval, L" minutes");
     }
 }
 
