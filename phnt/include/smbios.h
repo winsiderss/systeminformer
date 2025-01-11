@@ -2548,13 +2548,13 @@ typedef struct _SMBIOS_ONBOARD_DEVICE_INFORMATION
 {
     SMBIOS_HEADER Header;
     // 2.6+
-    UCHAR Designation; // string
+    UCHAR ReferenceDesignation; // string
 
     union
     {
         struct
         {
-            UCHAR Type : 7; // SMBIOS_ONBOARD_DEVICE_TYPE_*
+            UCHAR Type : 7;     // SMBIOS_ONBOARD_DEVICE_TYPE_*
             UCHAR Enabled : 1;
         };
 
