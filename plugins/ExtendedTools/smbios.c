@@ -1593,7 +1593,7 @@ VOID EtSMBIOSSystemSlot(
         ET_SMBIOS_FLAGS(L"Characteristics", Entry->SystemSlot.Characteristics, slotFlags);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, Characteristics2))
-        ET_SMBIOS_FLAGS(L"Characteristics 2", Entry->SystemSlot.Characteristics2, slotFlags);
+        ET_SMBIOS_FLAGS(L"Characteristics 2", Entry->SystemSlot.Characteristics2, slotFlags2);
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, SystemSlot, SegmentGroup))
         ET_SMBIOS_UINT32(L"Segment group", Entry->SystemSlot.SegmentGroup);
