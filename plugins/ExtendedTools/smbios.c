@@ -2987,8 +2987,98 @@ VOID EtSMBIOSElectricalCurrentProbe(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR locations[] =
+    {
+        SIP(L"Other", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_OTHER),
+        SIP(L"Unknown", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_UNKNOWN),
+        SIP(L"Processor", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PROCESSOR),
+        SIP(L"Disk", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_DISK),
+        SIP(L"Peripheral bay", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PERIPHERAL_BAY),
+        SIP(L"System management module", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE),
+        SIP(L"Motherboard", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_MOTHERBOARD),
+        SIP(L"Memory module", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_MEMORY_MODULE),
+        SIP(L"Processor module", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PROCESSOR_MODULE),
+        SIP(L"Power unit", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_POWER_UNIT),
+        SIP(L"Add-in card", SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_ADD_IN_CARD),
+    };
+
     ET_SMBIOS_GROUP(L"Electrical current probe");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, ElectricalCurrentProbe, Description))
+        ET_SMBIOS_STRING(L"Description", Entry->ElectricalCurrentProbe.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, LocationAndStatus))
+    {
+        ET_SMBIOS_ENUM(L"Location", Entry->ElectricalCurrentProbe.LocationAndStatus.Location, locations);
+        ET_SMBIOS_ENUM(L"Status", Entry->ElectricalCurrentProbe.LocationAndStatus.Status, EtSMBIOSProbeStatus);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, MaximumValue) &&
+        Entry->ElectricalCurrentProbe.MaximumValue != 0x8000)
+    {
+        ET_SMBIOS_UINT32_UNITS(L"Maximum value", Entry->ElectricalCurrentProbe.MaximumValue, L" mA");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, MinimumValue) &&
+        Entry->ElectricalCurrentProbe.MinimumValue != 0x8000)
+    {
+        ET_SMBIOS_UINT32_UNITS(L"Minimum value", Entry->ElectricalCurrentProbe.MinimumValue, L" mA");
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, Resolution) &&
+        Entry->ElectricalCurrentProbe.Resolution != 0x8000)
+    {
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatF(&format[0], (FLOAT)Entry->ElectricalCurrentProbe.Resolution / 10, 1);
+        PhInitFormatS(&format[1], L" mA");
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Resolution", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, Tolerance) &&
+        Entry->ElectricalCurrentProbe.Tolerance != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatU(&format[1], Entry->ElectricalCurrentProbe.Tolerance);
+        PhInitFormatS(&format[2], L" mA");
+
+        string = PhFormat(format, 3, 10);
+        EtAddSMBIOSItem(Context, group, L"Resolution", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, Accuracy) &&
+        Entry->ElectricalCurrentProbe.Accuracy != 0x8000)
+    {
+        PH_FORMAT format[3];
+        PPH_STRING string;
+
+        PhInitFormatS(&format[0], L"+/- ");
+        PhInitFormatF(&format[1], (FLOAT)Entry->ElectricalCurrentProbe.Accuracy / 1000, 3);
+        PhInitFormatS(&format[2], L"%");
+
+        string = PhFormat(format, 3, 10);
+        EtAddSMBIOSItem(Context, group, L"Accuracy", PhGetString(string));
+        PhDereferenceObject(string);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, OEMDefined))
+        ET_SMBIOS_UINT64IX(L"OEM defined", Entry->ElectricalCurrentProbe.OEMDefined);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, ElectricalCurrentProbe, NominalValue) &&
+        Entry->ElectricalCurrentProbe.NominalValue != 0x8000)
+    {
+        ET_SMBIOS_UINT32_UNITS(L"Nominal value", Entry->ElectricalCurrentProbe.NominalValue, L" mA");
+    }
 }
 
 VOID EtSMBIOSOutOfBandRemoteAccess(
