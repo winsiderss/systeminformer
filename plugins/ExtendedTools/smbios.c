@@ -2441,8 +2441,48 @@ VOID EtSMBIOSBuiltInPointingDevice(
     _In_ PSMBIOS_WINDOW_CONTEXT Context
     )
 {
+    static const PH_KEY_VALUE_PAIR types[] =
+    {
+        SIP(L"Other", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_OTHER),
+        SIP(L"Unknown", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_UNKNOWN),
+        SIP(L"Mouse", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_MOUSE),
+        SIP(L"Track ball", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TRACK_BALL),
+        SIP(L"Track point", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TRACK_POINT),
+        SIP(L"Glide point", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_GLIDE_POINT),
+        SIP(L"Touch pad", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TOUCH_PAD),
+        SIP(L"Touch screen", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TOUCH_SCREEN),
+        SIP(L"Optical sensor", SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_OPTICAL_SENSOR),
+    };
+
+    static const PH_KEY_VALUE_PAIR interfaces[] =
+    {
+        SIP(L"Other", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_OTHER),
+        SIP(L"Unknown", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_UNKNOWN),
+        SIP(L"Serial", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_SERIAL),
+        SIP(L"PS/2", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_PS2),
+        SIP(L"Infrared", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_INFRARED),
+        SIP(L"HP-HIL", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_HP_HIL),
+        SIP(L"Bus mouse", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_BUS_MOUSE),
+        SIP(L"Apple desktop bus", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_ADB),
+        SIP(L"Bus mouse DB-9", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_DB_9),
+        SIP(L"Bus mouse micro-DIN", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_MICRO_DIN),
+        SIP(L"USB", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_USB),
+        SIP(L"I2C", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_I2C),
+        SIP(L"SPI", SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_SPI),
+    };
+
     ET_SMBIOS_GROUP(L"Built-in pointing device");
-    ET_SMBIOS_TODO();
+
+    ET_SMBIOS_UINT32IX(L"Handle", Entry->Header.Handle);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, BuiltInPointingDevice, PointerType))
+        ET_SMBIOS_ENUM(L"Type", Entry->BuiltInPointingDevice.PointerType, types);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, BuiltInPointingDevice, PointerInterface))
+        ET_SMBIOS_ENUM(L"Interface", Entry->BuiltInPointingDevice.PointerInterface, interfaces);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, BuiltInPointingDevice, PointerButtons))
+        ET_SMBIOS_UINT32(L"Number of buttons", Entry->BuiltInPointingDevice.PointerButtons);
 }
 
 VOID EtSMBIOSPortableBattery(
