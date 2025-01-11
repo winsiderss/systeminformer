@@ -1148,21 +1148,21 @@ VOID PhSipUpdateCpuPanel(
         switch (PhGetVirtualStatus())
         {
         case PhVirtualStatusVirtualMachine:
-            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Virtual machine");
+            PhSetWindowText(CpuVirtualizationLabel, L"Virtual machine");
             break;
         case PhVirtualStatusEnabledHyperV:
         case PhVirtualStatusEnabledFirmware:
-            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Enabled");
+            PhSetWindowText(CpuVirtualizationLabel, L"Enabled");
             break;
-        case PhVirtualStatusDiabledWithHyperVSupport:
-            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Disabled (Hyper-V support: Yes)");
+        case PhVirtualStatusDiabledWithHyperV:
+            PhSetWindowText(CpuVirtualizationLabel, L"Disabled / Hyper-V");
             break;
-        case PhVirtualStatusDiabledWithoutHyperVSupport:
-            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Disabled (Hyper-V support: No)");
+        case PhVirtualStatusDiabled:
+            PhSetWindowText(CpuVirtualizationLabel, L"Disabled");
             break;
         case PhVirtualStatusNotCapable:
         default:
-            PhSetDialogItemText(CpuPanel, IDC_VIRTUALIZATION, L"Not capable");
+            PhSetWindowText(CpuVirtualizationLabel, L"Not capable");
             break;
         }
     }

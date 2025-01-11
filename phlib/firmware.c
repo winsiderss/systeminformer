@@ -142,7 +142,7 @@ BOOLEAN PhHypervisorIsPresent(
     return FALSE;
 }
 
-BOOLEAN PhCpuIsMicrosoftHyperV(
+BOOLEAN PhVCpuIsMicrosoftHyperV(
     VOID
     )
 {
@@ -206,10 +206,8 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
             {
                 return PhVirtualStatusEnabledFirmware;
             }
-            else
-            {
-                return PhVirtualStatusNotCapable;
-            }
+
+            return PhVirtualStatusNotCapable;
         }
         else
         {
@@ -241,7 +239,7 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
 #else
     if (PhHypervisorIsPresent())
     {
-        if (PhCpuIsMicrosoftHyperV())
+        if (PhVCpuIsMicrosoftHyperV())
         {
             HV_PARTITION_PRIVILEGE_MASK mask;
 
@@ -251,15 +249,9 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
             {
                 return PhVirtualStatusEnabledHyperV;
             }
-            else
-            {
-                return PhVirtualStatusVirtualMachine;
-            }
         }
-        else
-        {
-            return PhVirtualStatusVirtualMachine;
-        }
+
+        return PhVirtualStatusVirtualMachine;
     }
 
     if (PhCpuIsIntel())
@@ -295,10 +287,10 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
     if (USER_SHARED_DATA->ProcessorFeatures[PF_SECOND_LEVEL_ADDRESS_TRANSLATION] &&
         USER_SHARED_DATA->ProcessorFeatures[PF_NX_ENABLED])
     {
-        return PhVirtualStatusDiabledWithHyperVSupport;
+        return PhVirtualStatusDiabledWithHyperV;
     }
 
-    return PhVirtualStatusDiabledWithoutHyperVSupport;
+    return PhVirtualStatusDiabled;
 #endif
 }
 
