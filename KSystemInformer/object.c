@@ -2664,6 +2664,7 @@ NTSTATUS KphCompareObjects(
 {
     NTSTATUS status;
     PEPROCESS process;
+    KPROCESSOR_MODE accessMode;
     KAPC_STATE apcState;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -2685,10 +2686,21 @@ NTSTATUS KphCompareObjects(
         goto Exit;
     }
 
+    if (process == PsInitialSystemProcess)
+    {
+        FirstObjectHandle = MakeKernelHandle(FirstObjectHandle);
+        SecondObjectHandle = MakeKernelHandle(SecondObjectHandle);
+        accessMode = KernelMode;
+    }
+    else
+    {
+        accessMode = AccessMode;
+    }
+
     KeStackAttachProcess(process, &apcState);
     status = KphpCompareObjects(FirstObjectHandle,
                                 SecondObjectHandle,
-                                AccessMode);
+                                accessMode);
     KeUnstackDetachProcess(&apcState);
 
 Exit:
