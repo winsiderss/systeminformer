@@ -223,7 +223,7 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
                 NULL
                 )))
             {
-                if (info.HvFeatures.Data[1] && 0x1000)
+                if (info.HvFeatures.Data[1] & 0x1000)
                 {
                     return PhVirtualStatusEnabledHyperV;
                 }
