@@ -11792,7 +11792,7 @@ NTSTATUS PhGetProcessSequenceNumber(
     }
     else
     {
-        ULONGLONG sequenceNumber;
+        ULONGLONG sequenceNumber = 0;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -11828,6 +11828,7 @@ NTSTATUS PhGetProcessSequenceNumber(
                 )
             {
                 status = STATUS_SUCCESS;
+            }
 
             if (NT_SUCCESS(status))
             {
