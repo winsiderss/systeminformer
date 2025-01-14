@@ -251,6 +251,13 @@ ULONG NTAPI GetCurrentProcessId_Stub(
     return HandleToUlong(NtCurrentProcessId());
 }
 
+HANDLE NTAPI GetCurrentProcess_Stub(
+    VOID
+    )
+{
+    return NtCurrentProcess();
+}
+
 HANDLE NTAPI GetProcessHeap_Stub(
     VOID
     )
@@ -294,6 +301,48 @@ PSLIST_ENTRY NTAPI InterlockedFlushSList_Stub(
     return RtlInterlockedFlushSList(ListHead);
 }
 
+BOOL WINAPI QueryPerformanceCounter_Stub(
+    _Out_ LARGE_INTEGER* lpPerformanceCount
+    )
+{
+    return !!RtlQueryPerformanceCounter(lpPerformanceCount);
+}
+
+VOID WINAPI EnterCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlEnterCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI LeaveCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlLeaveCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI DeleteCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlDeleteCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI AcquireSRWLockExclusive_Stub(
+    _Inout_ PSRWLOCK SRWLock
+    )
+{
+    RtlAcquireSRWLockExclusive(SRWLock);
+}
+
+VOID WINAPI ReleaseSRWLockExclusive_Stub(
+    _Inout_ PSRWLOCK SRWLock
+    )
+{
+    RtlReleaseSRWLockExclusive(SRWLock);
+}
+
 DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
@@ -301,11 +350,18 @@ DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcess = GetCurrentProcess_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_QueryPerformanceCounter = QueryPerformanceCounter_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_EnterCriticalSection = EnterCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_LeaveCriticalSection = LeaveCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_DeleteCriticalSection = DeleteCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_AcquireSRWLockExclusive = AcquireSRWLockExclusive_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_ReleaseSRWLockExclusive = ReleaseSRWLockExclusive_Stub;
 
 #endif
