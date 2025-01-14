@@ -1590,7 +1590,7 @@ namespace CustomBuildTool
             StringBuilder output = new StringBuilder();
             StringBuilder output_header = new StringBuilder();
 
-            var content = File.ReadAllText("SystemInformer\\SystemInformer.def");
+            var content = Utils.ReadAllText("SystemInformer\\SystemInformer.def");
             var lines = content.Split("\r\n");
             int total = lines.Length;
 
@@ -1636,11 +1636,11 @@ namespace CustomBuildTool
                         var name = span.Slice(4, name_end).ToString();
 
                         if (span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase) != -1)
-                            output.AppendLine(string.Format("    {0,-55} @{1,-5} NONAME DATA", name, ordinal));
+                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME DATA");
                         else
-                            output.AppendLine(string.Format("    {0,-55} @{1,-5} NONAME", name, ordinal));
+                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME");
 
-                        output_header.AppendLine(string.Format("#define EXPORT_{0,-55} {1}", name.ToUpper(), ordinal));
+                        output_header.AppendLine($"#define EXPORT_{name.ToUpper(),-55} {ordinal}");
                     }
                     else
                     {
@@ -1655,11 +1655,14 @@ namespace CustomBuildTool
             string export_content = output.ToString().TrimEnd();
             string export_header = output_header.ToString().TrimEnd();
             string export_backup = string.Empty;
+
             if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
-                export_backup = File.ReadAllText("SystemInformer\\SystemInformer.def.bak");
+            {
+                export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
+            }
 
             // Only write to the file if it has changed.
-            if (content != export_content || export_backup != export_content)
+            if (!string.Equals(content, export_content, StringComparison.OrdinalIgnoreCase) || !string.Equals(export_backup, export_content, StringComparison.OrdinalIgnoreCase))
             {
                 Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
                 Utils.WriteAllText("SystemInformer\\SystemInformer.def.h", export_header);
