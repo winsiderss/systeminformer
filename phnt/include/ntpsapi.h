@@ -1428,8 +1428,13 @@ typedef struct _PROCESS_TEB_VALUE_INFORMATION
 
 // end_private
 
+/**
+ * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
+ *
+ * @return LOGICAL If TRUE, the process exception port is valid.
+ */
 NTSYSCALLAPI
-NTSTATUS
+LOGICAL
 NTAPI
 NtQueryPortInformationProcess(
     VOID
@@ -1437,7 +1442,9 @@ NtQueryPortInformationProcess(
 
 #endif
 
+//
 // Thread information structures
+//
 
 typedef struct _THREAD_BASIC_INFORMATION
 {
@@ -1626,7 +1633,6 @@ typedef struct _THREAD_UMS_INFORMATION
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
-    // A Unicode string that specifies the description of the thread.
     UNICODE_STRING ThreadName;
 } THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
@@ -1652,7 +1658,6 @@ typedef struct _RTL_WORK_ON_BEHALF_TICKET_EX
 } RTL_WORK_ON_BEHALF_TICKET_EX, *PRTL_WORK_ON_BEHALF_TICKET_EX;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 typedef enum _SUBSYSTEM_INFORMATION_TYPE
 {
     SubsystemInformationTypeWin32,
@@ -3252,7 +3257,9 @@ NtCreateThreadEx(
 
 #endif
 
+//
 // Job objects
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -3653,7 +3660,9 @@ NtRevertContainerImpersonation(
 
 #endif
 
+//
 // Reserve objects
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
