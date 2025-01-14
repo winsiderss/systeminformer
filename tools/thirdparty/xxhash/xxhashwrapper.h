@@ -34,25 +34,25 @@ PhXXH128ToInteger(
 EXTERN_C
 ULONG
 PhHashStringRefXXH32(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG Seed
     );
 
 EXTERN_C
 ULONG64 PhHashStringRefXXH64(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed
     );
 
 EXTERN_C
 ULONG64 PhHashStringRefXXH3_64(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed
     );
 
 EXTERN_C
 BOOLEAN PhHashStringRefXXH3_128(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed,
     _Out_ PULARGE_INTEGER_128 LargeInteger
     );

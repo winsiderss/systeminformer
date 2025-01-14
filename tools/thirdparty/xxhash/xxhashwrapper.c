@@ -72,7 +72,7 @@ ULONG64 PhXXH128ToInteger(
 }
 
 ULONG PhHashStringRefXXH32(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG Seed
     )
 {    
@@ -80,7 +80,7 @@ ULONG PhHashStringRefXXH32(
 }
 
 ULONG64 PhHashStringRefXXH64(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed
     )
 {    
@@ -88,7 +88,7 @@ ULONG64 PhHashStringRefXXH64(
 }
 
 ULONG64 PhHashStringRefXXH3_64(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed
     )
 {
@@ -96,7 +96,7 @@ ULONG64 PhHashStringRefXXH3_64(
 }
 
 BOOLEAN PhHashStringRefXXH3_128(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed,
     _Out_ PULARGE_INTEGER_128 LargeInteger
     )

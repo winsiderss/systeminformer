@@ -138,7 +138,7 @@ typedef struct record_info_s {
 // 64 leads us to allocating 4 KiB on a 64bit system.
 #define MMDB_POOL_INIT_SIZE 64
 
-static int map_file(MMDB_s *const mmdb, PPH_STRINGREF filename);
+static int map_file(MMDB_s *const mmdb, PPCH_STRINGREF filename);
 static const uint8_t *find_metadata(const uint8_t *file_content,
                                     ssize_t file_size,
                                     uint32_t *metadata_size);
@@ -241,7 +241,7 @@ static char *bytes_to_hex(uint8_t const *bytes, uint32_t size);
         (p) = NULL;                                                            \
     }
 
-int MMDB_open(PPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
+int MMDB_open(PPCH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
     int status = MMDB_SUCCESS;
 
     mmdb->file_content = NULL;
@@ -364,7 +364,7 @@ static LPWSTR utf8_to_utf16(const char *utf8_str) {
     return utf16_str;
 }
 
-static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modified for NTAPI
+static int map_file(MMDB_s* const mmdb, PPCH_STRINGREF filename) // dmex: modified for NTAPI
 {
     NTSTATUS status;
     HANDLE fileHandle;
@@ -376,9 +376,8 @@ static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modifie
     SIZE_T viewSize;
     PVOID viewBase;
 
-    fileName.Length = (USHORT)filename->Length;
-    fileName.MaximumLength = (USHORT)filename->Length + sizeof(UNICODE_NULL);
-    fileName.Buffer = filename->Buffer;
+    if (!PhStringRefToUnicodeString(filename, &fileName))
+        return MMDB_FILE_OPEN_ERROR;
 
     InitializeObjectAttributes(
         &objectAttributes,

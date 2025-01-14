@@ -203,7 +203,7 @@ typedef struct MMDB_search_node_s {
 } MMDB_search_node_s;
 
 extern int
-MMDB_open(PPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb);
+MMDB_open(PPCH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb);
 extern MMDB_lookup_result_s MMDB_lookup_string(const MMDB_s *const mmdb,
                                                const char *const ipstr,
                                                int *const gai_error,
