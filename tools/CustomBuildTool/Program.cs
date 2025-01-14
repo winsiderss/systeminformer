@@ -221,9 +221,7 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildChecksumsFile())
                 //    Environment.Exit(1);
-                //if (!Build.BuildDeployUploadArtifacts())
-                //    Environment.Exit(1);
-                if (!Build.BuildDeployUpdateConfig())
+                if (!Build.BuildUpdateServerConfig())
                     Environment.Exit(1);
             }
             else if (ProgramArgs.ContainsKey("-msix-build"))
