@@ -14,11 +14,15 @@
 #include <phconsole.h>
 #include <phintrnl.h>
 
+VOID PhInitializeRuntimeInformation(
+    VOID
+    );
+
 VOID PhInitializeSystemInformation(
     VOID
     );
 
-VOID PhInitializeWindowsVersion(
+VOID PhInitializeWindowsInformation(
     VOID
     );
 
@@ -54,7 +58,8 @@ NTSTATUS PhInitializePhLib(
     PhApplicationName = ApplicationName;
     PhInstanceHandle = ImageBaseAddress;
 
-    PhInitializeWindowsVersion();
+    PhInitializeRuntimeInformation();
+    PhInitializeWindowsInformation();
     PhInitializeSystemInformation();
 
     if (!PhHeapInitialization())
@@ -94,6 +99,19 @@ BOOLEAN PhIsExecutingInWow64(
 #endif
 }
 
+VOID PhInitializeRuntimeInformation(
+    VOID
+    )
+{
+#ifdef _X86_
+    // Enable SSE2 CRT support.
+    _set_SSE2_enable(1);
+#endif
+
+    // Enable UTF8 CRT support.
+    //_wsetlocale(LC_ALL, L".UTF8");
+}
+
 VOID PhInitializeSystemInformation(
     VOID
     )
@@ -128,7 +146,7 @@ VOID PhInitializeSystemInformation(
     PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
 }
 
-VOID PhInitializeWindowsVersion(
+VOID PhInitializeWindowsInformation(
     VOID
     )
 {
@@ -321,7 +339,7 @@ BOOLEAN PhHeapInitialization(
 
     if (!PhHeapHandle)
     {
-        static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
+        const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_LFH;
 
         PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
@@ -338,7 +356,7 @@ BOOLEAN PhHeapInitialization(
         RtlSetHeapInformation(
             PhHeapHandle,
             HeapCompatibilityInformation,
-            &heapCompatibility,
+            &defaultHeapCompatibilityMode,
             sizeof(ULONG)
             );
     }
