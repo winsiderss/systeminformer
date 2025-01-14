@@ -209,6 +209,7 @@ LONG PhFindListViewItemByParam(
 
 LONG PhFindIListViewItemByParam(
     _In_ IListView* ListView,
+    _In_ LONG GroupIndex,
     _In_ LONG StartIndex,
     _In_opt_ PVOID Param
     )
@@ -218,7 +219,7 @@ LONG PhFindIListViewItemByParam(
     LVFINDINFO findInfo;
 
     itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = -1;
+    itemIndex.iGroup = GroupIndex;
 
     findInfo.flags = LVFI_PARAM;
     findInfo.lParam = reinterpret_cast<LPARAM>(Param);
@@ -420,25 +421,6 @@ VOID PhSetIListViewSubItem(
     item.mask = LVIF_TEXT;
     item.iItem = Index;
     item.iSubItem = SubItemIndex;
-    item.pszText = const_cast<PWSTR>(Text);
-
-    ListView->SetItem(&item);
-}
-
-VOID PhSetIListViewGroupSubItem(
-    _In_ IListView* ListView,
-    _In_ LONG GroupId,
-    _In_ LONG Index,
-    _In_ LONG SubItemIndex,
-    _In_ PCWSTR Text
-    )
-{
-    LVITEM item;
-
-    item.mask = LVIF_TEXT | LVIF_GROUPID;
-    item.iItem = Index;
-    item.iSubItem = SubItemIndex;
-    item.iGroupId = GroupId;
     item.pszText = const_cast<PWSTR>(Text);
 
     ListView->SetItem(&item);
