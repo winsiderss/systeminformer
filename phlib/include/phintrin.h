@@ -56,7 +56,11 @@ PhPopulationCount32(
     _In_ ULONG Value
     )
 {
+#ifdef _ARM64_
     return _CountOneBits(Value);
+#else
+    return (ULONG)_mm_popcnt_u32(Value);
+#endif
 }
 
 #ifdef _WIN64
@@ -66,7 +70,11 @@ PhPopulationCount64(
     _In_ ULONG64 Value
     )
 {
+#ifdef _ARM64_
     return _CountOneBits64(Value);
+#else
+    return (ULONG64)_mm_popcnt_u64(Value);
+#endif
 }
 #endif
 
