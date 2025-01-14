@@ -448,14 +448,21 @@ NTSTATUS PhGetEtwObjectName(
     NTSTATUS status;
     KPH_ETWREG_BASIC_INFORMATION basicInfo;
 
-    status = KphQueryInformationObject(
-        ProcessHandle,
-        Handle,
-        KphObjectEtwRegBasicInformation,
-        &basicInfo,
-        sizeof(KPH_ETWREG_BASIC_INFORMATION),
-        NULL
-        );
+    if (KsiLevel() >= KphLevelMed)
+    {
+        status = KphQueryInformationObject(
+            ProcessHandle,
+            Handle,
+            KphObjectEtwRegBasicInformation,
+            &basicInfo,
+            sizeof(KPH_ETWREG_BASIC_INFORMATION),
+            NULL
+            );
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
 
     if (NT_SUCCESS(status))
     {
