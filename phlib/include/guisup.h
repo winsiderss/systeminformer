@@ -215,6 +215,21 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhDrawThemeTextEx(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ LONG cchText,
+    _In_ ULONG TextFlags,
+    _Inout_ LPRECT Rect,
+    _In_opt_ const PVOID Options // DTTOPTS*
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -645,6 +660,7 @@ LONG
 NTAPI
 PhFindIListViewItemByParam(
     _In_ IListView* ListView,
+    _In_ LONG GroupIndex,
     _In_ LONG StartIndex,
     _In_opt_ PVOID Param
     );
@@ -720,17 +736,6 @@ VOID
 NTAPI
 PhSetIListViewSubItem(
     _In_ IListView* ListView,
-    _In_ LONG Index,
-    _In_ LONG SubItemIndex,
-    _In_ PCWSTR Text
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhSetIListViewGroupSubItem(
-    _In_ IListView* ListView,
-    _In_ LONG GroupId,
     _In_ LONG Index,
     _In_ LONG SubItemIndex,
     _In_ PCWSTR Text
