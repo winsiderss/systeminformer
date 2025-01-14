@@ -56,23 +56,7 @@ PhPopulationCount32(
     _In_ ULONG Value
     )
 {
-#ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    uint32_t count = 0;
-    uint8x8_t input_val, count8x8_val;
-    uint16x4_t count16x4_val;
-    uint32x2_t count32x2_val;
-
-    input_val = vld1_u8((uint8_t*)&Value);
-    count8x8_val = vcnt_u8(input_val);
-    count16x4_val = vpaddl_u8(count8x8_val);
-    count32x2_val = vpaddl_u16(count16x4_val);
-
-    vst1_u32(&count, count32x2_val);
-    return count;
-#else
-    return (ULONG)_mm_popcnt_u32(Value);
-#endif
+    return _CountOneBits(Value);
 }
 
 #ifdef _WIN64
@@ -82,24 +66,7 @@ PhPopulationCount64(
     _In_ ULONG64 Value
     )
 {
-#ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    uint64_t count = 0;
-    uint8x8_t input_val, count8x8_val;
-    uint16x4_t count16x4_val;
-    uint32x2_t count32x2_val;
-    uint64x1_t count64x1_val;
-
-    input_val = vld1_u8((uint8_t*)&Value);
-    count8x8_val = vcnt_u8(input_val);
-    count16x4_val = vpaddl_u8(count8x8_val);
-    count32x2_val = vpaddl_u16(count16x4_val);
-    count64x1_val = vpaddl_u32(count32x2_val);
-    vst1_u64(&count, count64x1_val);
-    return (ULONG64)count;
-#else
-    return (ULONG64)_mm_popcnt_u64(Value);
-#endif
+    return _CountOneBits64(Value);
 }
 #endif
 
