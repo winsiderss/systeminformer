@@ -28,8 +28,8 @@ namespace CustomBuildTool
 
         private const UInt32 Version = 15;
 
-        private static readonly byte[] SessionTokenPublicKey = new byte[]
-        {
+        private static readonly byte[] SessionTokenPublicKey =
+        [
             0x52, 0x53, 0x41, 0x31, 0x00, 0x10, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
             0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x01, 0x00, 0x01, 0xDE, 0x4C, 0x64, 0xCA, 0x4E, 0xEA, 0x1C, 0x06, 0xBD,
@@ -75,22 +75,22 @@ namespace CustomBuildTool
             0xB0, 0x80, 0x19, 0xB8, 0x79, 0x20, 0x8C, 0xCB, 0xA3, 0xE3, 0x53, 0x4E,
             0x8B, 0x2E, 0xC1, 0x9C, 0x0A, 0x53, 0x1A, 0x14, 0x65, 0x71, 0xC4, 0x66,
             0x4A, 0x82, 0x8A, 0xF3, 0x67, 0x50, 0xFA, 0xB7, 0x3A, 0x25, 0x61
-        };
+        ];
 
-        private enum Class
+        private enum ClassType : ushort
         {
             Ntoskrnl = 0,
             Ntkrla57 = 1,
             Lxcore = 2,
         };
 
-        private static Class ClassFromString(string input)
+        private static ClassType ClassFromString(string input)
         {
             switch (input)
             {
-                case "ntoskrnl.exe": return Class.Ntoskrnl;
-                case "ntkrla57.exe": return Class.Ntkrla57;
-                case "lxcore.sys": return Class.Lxcore;
+                case "ntoskrnl.exe": return ClassType.Ntoskrnl;
+                case "ntkrla57.exe": return ClassType.Ntkrla57;
+                case "lxcore.sys": return ClassType.Lxcore;
                 default: throw new Exception($"invalid file name {input}");
             }
         }
@@ -105,18 +105,18 @@ namespace CustomBuildTool
             }
         }
 
-        private static string DynConfigC =
-$@"
-#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG){Version})
-#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG){SessionTokenPublicKey.Length})
-#define KPH_DYN_CLASS_NTOSKRNL                  ((USHORT){(UInt16)Class.Ntoskrnl})
-#define KPH_DYN_CLASS_NTKRLA57                  ((USHORT){(UInt16)Class.Ntkrla57})
-#define KPH_DYN_CLASS_LXCORE                    ((USHORT){(UInt16)Class.Lxcore})
+        private static readonly string DynConfigC =
+$$"""
+#define KPH_DYN_CONFIGURATION_VERSION           ((ULONG){{DynData.Version}})
+#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH ((ULONG){{DynData.SessionTokenPublicKey.Length}})
+#define KPH_DYN_CLASS_NTOSKRNL                  ((USHORT){{(UInt16)ClassType.Ntoskrnl}})
+#define KPH_DYN_CLASS_NTKRLA57                  ((USHORT){{(UInt16)ClassType.Ntkrla57}})
+#define KPH_DYN_CLASS_LXCORE                    ((USHORT){{(UInt16)ClassType.Lxcore}})
 
 #include <pshpack1.h>
 
 typedef struct _KPH_DYN_KERNEL_FIELDS
-{{
+{
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
     USHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
     USHORT EreGuidEntry;                 // dt nt!_ETW_REG_ENTRY GuidEntry
@@ -148,7 +148,7 @@ typedef struct _KPH_DYN_KERNEL_FIELDS
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
     USHORT EpSectionObject;              // dt nt!_EPROCESS SectionObject
-}} KPH_DYN_KERNEL_FIELDS, *PKPH_DYN_KERNEL_FIELDS;
+} KPH_DYN_KERNEL_FIELDS, *PKPH_DYN_KERNEL_FIELDS;
 
 typedef KPH_DYN_KERNEL_FIELDS KPH_DYN_NTOSKRNL_FIELDS;
 typedef PKPH_DYN_KERNEL_FIELDS PKPH_DYN_NTOSKRNL_FIELDS;
@@ -156,40 +156,41 @@ typedef KPH_DYN_KERNEL_FIELDS KPH_DYN_NTKRLA57_FIELDS;
 typedef PKPH_DYN_KERNEL_FIELDS PKPH_DYN_NTKRLA57_FIELDS;
 
 typedef struct _KPH_DYN_LXCORE_FIELDS
-{{
+{
     USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
-}} KPH_DYN_LXCORE_FIELDS, *PKPH_DYN_LXCORE_FIELDS;
+} KPH_DYN_LXCORE_FIELDS, *PKPH_DYN_LXCORE_FIELDS;
 
 typedef struct _KPH_DYN_FIELDS
-{{
+{
     ULONG FieldsId;
     USHORT Length;
     BYTE Fields[ANYSIZE_ARRAY];
-}} KPH_DYN_FIELDS, *PKPH_DYN_FIELDS;
+} KPH_DYN_FIELDS, *PKPH_DYN_FIELDS;
 
 typedef struct _KPH_DYN_DATA
-{{
+{
     USHORT Class;
     USHORT Machine;
     ULONG TimeDateStamp;
     ULONG SizeOfImage;
     ULONG Offset;
-}} KPH_DYN_DATA, *PKPH_DYN_DATA;
+} KPH_DYN_DATA, *PKPH_DYN_DATA;
 
 typedef struct _KPH_DYN_CONFIG
-{{
+{
     ULONG Version;
     BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     ULONG Count;
     KPH_DYN_DATA Data[ANYSIZE_ARRAY];
     // BYTE Fields[ANYSIZE_ARRAY];
-}} KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
+} KPH_DYN_CONFIG, *PKPH_DYN_CONFIG;
 
-#include <poppack.h>";
+#include <poppack.h>
+""";
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct DynDataEntry
@@ -419,9 +420,19 @@ typedef struct _KPH_DYN_CONFIG
             var dataNodes = dyn?.SelectNodes("data");
             var fieldsNodes = dyn?.SelectNodes("fields");
 
+            if (dataNodes == null)
+                return null;
+            if (fieldsNodes == null)
+                return null;
+
             foreach (XmlNode field in fieldsNodes)
             {
-                fieldsMap.Add(UInt32.Parse(field.Attributes?.GetNamedItem("id")?.Value), field);
+                var name = field.Attributes?.GetNamedItem("id")?.Value;
+
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
+                fieldsMap.Add(UInt32.Parse(name), field);
             }
 
             foreach (XmlNode data in dataNodes)
@@ -432,6 +443,11 @@ typedef struct _KPH_DYN_CONFIG
                 var timestamp = data.Attributes?.GetNamedItem("timestamp")?.Value;
                 var size = data.Attributes?.GetNamedItem("size")?.Value;
                 var dynClass = ClassFromString(file);
+
+                if (string.IsNullOrEmpty(timestamp))
+                    continue;
+                if (string.IsNullOrEmpty(size))
+                    continue;
 
                 entry.Class = (UInt16)dynClass;
                 entry.Machine = MachineFromString(arch);
@@ -447,34 +463,56 @@ typedef struct _KPH_DYN_CONFIG
 
                     switch (dynClass)
                     {
-                        case Class.Ntoskrnl:
-                        case Class.Ntkrla57:
+                    case ClassType.Ntoskrnl:
+                    case ClassType.Ntkrla57:
                         {
                             var fieldsData = new DynFieldsKernel();
-                            foreach (XmlNode field in fieldsMap[fieldId].SelectNodes("field"))
+                            var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
+
+                            if (fieldNodes == null)
+                                continue;
+
+                            foreach (XmlNode field in fieldNodes)
                             {
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
+                               
+                                if (string.IsNullOrEmpty(name))
+                                    continue;
+
                                 var member = typeof(DynFieldsKernel).GetField(name);
+
                                 member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
                             }
+
                             fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
-                            break;
                         }
-                        case Class.Lxcore:
+                        break;
+                    case ClassType.Lxcore:
                         {
-                            var fieldsData = new DynFieldsLxcore();
-                            foreach (XmlNode field in fieldsMap[fieldId].SelectNodes("field"))
+                            var fieldsData = new DynFieldsLxcore();   
+                            var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
+
+                            if (fieldNodes == null)
+                                continue;
+
+                            foreach (XmlNode field in fieldNodes)
                             {
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
+                               
+                                if (string.IsNullOrEmpty(name))
+                                    continue;
+
                                 var member = typeof(DynFieldsLxcore).GetField(name);
+
                                 member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
                             }
+
                             fieldsWirter.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref fieldsData, 1)));
-                            break;
                         }
-                        default:
+                        break;
+                    default:
                         {
                             throw new Exception($"invalid class {dynClass}");
                         }
@@ -487,7 +525,7 @@ typedef struct _KPH_DYN_CONFIG
             }
 
             using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            using (var writer = new BinaryWriter(stream, Utils.UTF8NoBOM, true))
             {
                 //
                 // Write the version, session token public key, and count first,

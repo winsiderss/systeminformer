@@ -930,20 +930,38 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDeployUpdateConfig()
+        public static bool BuildUpdateServerConfig()
         {
             if (!Build.BuildCanary)
                 return true;
             if (Build.BuildToolsDebug)
                 return true;
-            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
-                return false;
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
-                return false;
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
-                return false;
 
-            Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {Build.BuildShortVersion}", ConsoleColor.Cyan);
+            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
+            {
+                Program.PrintColorMessage("BUILD_BUILDID not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
+            {
+                Program.PrintColorMessage("BUILD_SF_API not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
+            {
+                Program.PrintColorMessage("BUILD_SF_KEY not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostCfUrl))
+            {
+                Program.PrintColorMessage("BUILD_CF_API not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_KEY", out string buildPostCfApiKey))
+            {
+                Program.PrintColorMessage("BUILD_CF_KEY not found.", ConsoleColor.Red);
+                return false;
+            }
 
             if (!GetBuildDeployInfo("release", out BuildDeployInfo release))
                 return false;
@@ -954,93 +972,86 @@ namespace CustomBuildTool
             //if (!GetBuildDeployInfo("developer", out BuildDeployInfo developer))
             //    return false;
 
-            GithubRelease githubMirrorUpload = BuildDeployUploadGithubConfig();
-
-            if (githubMirrorUpload == null)
-                return false;
-
-            string canaryBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
-            string canarySetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
-
-            string releaseBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
-            string releaseSetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
-
-            if (string.IsNullOrWhiteSpace(canaryBinziplink) ||
-                string.IsNullOrWhiteSpace(canarySetupexelink) ||
-                string.IsNullOrWhiteSpace(releaseBinziplink) ||
-                string.IsNullOrWhiteSpace(releaseSetupexelink))
+            if (!BuildUpdateGithubServer(out var BuildUploadInfo))
             {
-                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUpdateGithubServer failed.", ConsoleColor.Red);
                 return false;
             }
 
-            try
+            if (!BuildUploadServerConfig(
+                buildBuildId, 
+                buildPostSfUrl, 
+                buildPostSfApiKey, 
+                BuildUploadInfo.Item1, 
+                BuildUploadInfo.Item2, 
+                BuildUploadInfo.Item3, 
+                BuildUploadInfo.Item4, 
+                release, 
+                canary
+                ))
             {
-                BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
-                {
-                    BuildUpdated = Build.BuildUpdated,
-                    BuildDisplay = Build.BuildShortVersion,
-                    BuildVersion = Build.BuildLongVersion,
-                    BuildCommit = Build.BuildCommitHash,
-                    BuildId = buildBuildId,
-                    BinUrl = canaryBinziplink,
-                    BinLength = canary.BinFileLength.ToString(),
-                    BinHash = canary.BinHash,
-                    BinSig = canary.BinSig,
-                    SetupUrl = canarySetupexelink,
-                    SetupLength = canary.SetupFileLength.ToString(),
-                    SetupHash = canary.SetupHash,
-                    SetupSig = canary.SetupSig,
-                    ReleaseBinUrl = releaseBinziplink,
-                    ReleaseBinLength = release.BinFileLength.ToString(),
-                    ReleaseBinHash = release.BinHash,
-                    ReleaseBinSig = release.BinSig,
-                    ReleaseSetupUrl = releaseSetupexelink,
-                    ReleaseSetupLength = release.SetupFileLength.ToString(),
-                    ReleaseSetupHash = release.SetupHash,
-                    ReleaseSetupSig = release.SetupSig,
-                };
-
-                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
-
-                if (buildPostString.LongLength == 0)
-                    return false;
-
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, buildPostSfUrl))
-                {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    requestMessage.Headers.Add("X-ApiKey", buildPostSfApiKey);
-                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                    requestMessage.Version = HttpVersion.Version20;
-
-                    requestMessage.Content = new ByteArrayContent(buildPostString);
-                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                    var httpResult = HttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(httpResult))
-                    {
-                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
-                        return false;
-                    }
-
-                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
-                        return false;
-                    }
-                }
+                Program.PrintColorMessage("BuildUploadServerConfig-SF failed.", ConsoleColor.Red);
+                return false;
             }
-            catch (Exception ex)
+
+            if (!BuildUploadServerConfig(
+                buildBuildId,
+                buildPostCfUrl,
+                buildPostCfApiKey,
+                BuildUploadInfo.Item1,
+                BuildUploadInfo.Item2,
+                BuildUploadInfo.Item3,
+                BuildUploadInfo.Item4,
+                release,
+                canary
+                ))
             {
-                Program.PrintColorMessage($"[UpdateBuildWebService-SF] {ex}", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUploadServerConfig-CF failed.", ConsoleColor.Red);
                 return false;
             }
 
             return true;
         }
 
-        public static GithubRelease BuildDeployUploadGithubConfig()
+        private static bool BuildUpdateGithubServer(out Tuple<string, string, string, string> BuildUploadInfo)
+        {
+            BuildUploadInfo = null;
+
+            if (!Build.BuildCanary)
+                return true;
+            if (Build.BuildToolsDebug)
+                return true;
+
+            GithubRelease githubMirrorUpload = BuildUploadFilesToGithub();
+
+            if (githubMirrorUpload == null)
+                return false;
+
+            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
+            string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
+            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
+            string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
+
+            if (string.IsNullOrWhiteSpace(canaryBinlink) ||
+                string.IsNullOrWhiteSpace(canarySetuplink) ||
+                string.IsNullOrWhiteSpace(releaseBinlink) ||
+                string.IsNullOrWhiteSpace(releaseSetuplink))
+            {
+                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                return false;
+            }
+
+            BuildUploadInfo = new Tuple<string, string, string, string>(
+                canaryBinlink,
+                canarySetuplink,
+                releaseBinlink,
+                releaseSetuplink
+                );
+
+            return true;
+        }
+
+        private static GithubRelease BuildUploadFilesToGithub()
         {
             //if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
             //    return null;
@@ -1119,6 +1130,101 @@ namespace CustomBuildTool
             }
 
             return mirror;
+        }
+
+        private static bool BuildUploadServerConfig(
+            string BuildBuildId,
+            string BuildPostUrl,
+            string BuildPostKey,
+            string CanaryBinLink,
+            string CanarySetupLink,
+            string ReleaseBinLink,
+            string ReleaseSetupLink,
+            BuildDeployInfo Release,
+            BuildDeployInfo Canary
+            )
+        {
+            if (!Build.BuildCanary)
+                return true;
+            if (Build.BuildToolsDebug)
+                return true;
+
+            if (string.IsNullOrWhiteSpace(BuildBuildId) ||
+                string.IsNullOrWhiteSpace(BuildPostUrl) ||
+                string.IsNullOrWhiteSpace(BuildPostKey) ||
+                string.IsNullOrWhiteSpace(CanaryBinLink) ||
+                string.IsNullOrWhiteSpace(CanarySetupLink) ||
+                string.IsNullOrWhiteSpace(ReleaseBinLink) ||
+                string.IsNullOrWhiteSpace(ReleaseSetupLink))
+            {
+                Program.PrintColorMessage("BuildUpdateServerConfig invalid args.", ConsoleColor.Red);
+                return false;
+            }
+
+            try
+            {
+                BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
+                {
+                    BuildUpdated = Build.BuildUpdated,
+                    BuildDisplay = Build.BuildShortVersion,
+                    BuildVersion = Build.BuildLongVersion,
+                    BuildCommit = Build.BuildCommitHash,
+                    BuildId = BuildBuildId,
+                    BinUrl = CanaryBinLink,
+                    BinLength = Canary.BinFileLength.ToString(),
+                    BinHash = Canary.BinHash,
+                    BinSig = Canary.BinSig,
+                    SetupUrl = CanarySetupLink,
+                    SetupLength = Canary.SetupFileLength.ToString(),
+                    SetupHash = Canary.SetupHash,
+                    SetupSig = Canary.SetupSig,
+                    ReleaseBinUrl = ReleaseBinLink,
+                    ReleaseBinLength = Release.BinFileLength.ToString(),
+                    ReleaseBinHash = Release.BinHash,
+                    ReleaseBinSig = Release.BinSig,
+                    ReleaseSetupUrl = ReleaseSetupLink,
+                    ReleaseSetupLength = Release.SetupFileLength.ToString(),
+                    ReleaseSetupHash = Release.SetupHash,
+                    ReleaseSetupSig = Release.SetupSig,
+                };
+
+                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
+
+                if (buildPostString.LongLength == 0)
+                    return false;
+
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildPostUrl))
+                {
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Add("X-ApiKey", BuildPostKey);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                    requestMessage.Version = HttpVersion.Version20;
+
+                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var httpResult = HttpClient.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(httpResult))
+                    {
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
+                        return false;
+                    }
+
+                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[UpdateBuildWebService-SF] {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
         }
 
         private static void BuildMsixPackageManifest(BuildFlags Flags)
@@ -1356,91 +1462,89 @@ namespace CustomBuildTool
                     Program.PrintColorMessage(output, ConsoleColor.DarkGray);
                 }
 
+                if (Directory.Exists(BuildOutputFolder)) // output
                 {
-                    if (Directory.Exists(BuildOutputFolder)) // output
+                    Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildOutputFolder, true);
+                }
+
+                if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
+                {
+                    Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
+                }
+
+                //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                //{
+                //    string sourceFile = BuildOutputFolder + file.FileName;
+                //
+                //    Win32.DeleteFile(sourceFile);
+                //}
+                //
+                //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                //{
+                //    if (Directory.Exists(folder))
+                //        Directory.Delete(folder, true);
+                //}
+
+                var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string folder in project_folders)
+                {
+                    string path = Path.GetFullPath(folder);
+                    var name = Path.GetFileName(path.AsSpan());
+
+                    if (
+                        name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("obj", StringComparison.OrdinalIgnoreCase)
+                        )
                     {
-                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildOutputFolder, true);
-                    }
-
-                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
-                    {
-                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
-                    }
-
-                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                    //{
-                    //    string sourceFile = BuildOutputFolder + file.FileName;
-                    //
-                    //    Win32.DeleteFile(sourceFile);
-                    //}
-                    //
-                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                    //{
-                    //    if (Directory.Exists(folder))
-                    //        Directory.Delete(folder, true);
-                    //}
-
-                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string folder in project_folders)
-                    {
-                        string path = Path.GetFullPath(folder);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (
-                            name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
-                            name.Equals("obj", StringComparison.OrdinalIgnoreCase)
-                            )
-                        {
-                            if (Directory.Exists(path))
-                            {
-                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
-
-                                try
-                                {
-                                    Directory.Delete(path, true);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-                                }
-                            }
-                        }
-                    }
-
-                    // Delete files with abs
-
-                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string file in res_files)
-                    {
-                        string path = Path.GetFullPath(file);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                        if (Directory.Exists(path))
                         {
                             Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
 
                             try
                             {
-                                Win32.DeleteFile(path);
+                                Directory.Delete(path, true);
                             }
                             catch (Exception ex)
                             {
                                 Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                             }
+                        }
+                    }
+                }
+
+                // Delete files with abs
+
+                var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string file in res_files)
+                {
+                    string path = Path.GetFullPath(file);
+                    var name = Path.GetFileName(path.AsSpan());
+
+                    if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                        try
+                        {
+                            Win32.DeleteFile(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                         }
                     }
                 }
