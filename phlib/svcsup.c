@@ -15,7 +15,7 @@
 #include <svcsup.h>
 #include <mapldr.h>
 
-static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
+static CONST PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
 static CONST PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
@@ -345,7 +345,7 @@ NTSTATUS PhOpenServiceKey(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HANDLE servicesKeyHandle = NULL;
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -906,25 +906,13 @@ BOOLEAN PhGetServiceTriggerInfo(
     return FALSE;
 }
 
-PPH_STRINGREF PhGetServiceStateString(
+PPCH_STRINGREF PhGetServiceStateString(
     _In_ ULONG ServiceState
     )
 {
-    switch (ServiceState)
-    {
-    case SERVICE_STOPPED:
-    case SERVICE_START_PENDING:
-    case SERVICE_STOP_PENDING:
-    case SERVICE_RUNNING:
-    case SERVICE_CONTINUE_PENDING:
-    case SERVICE_PAUSE_PENDING:
-    case SERVICE_PAUSED:
-        return PhpServiceStatePairs[ServiceState - 1].Key;
-    }
+    PPCH_STRINGREF string;
 
-    PPH_STRINGREF string;
-
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceStatePairs,
         sizeof(PhpServiceStatePairs),
         ServiceState,
@@ -937,11 +925,11 @@ PPH_STRINGREF PhGetServiceStateString(
     return &PhpServiceUnknownString;
 }
 
-PPH_STRINGREF PhGetServiceTypeString(
+PPCH_STRINGREF PhGetServiceTypeString(
     _In_ ULONG ServiceType
     )
 {
-    PPH_STRINGREF string;
+    PPCH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
         PhpServiceTypePairs,
@@ -973,23 +961,13 @@ ULONG PhGetServiceTypeInteger(
         return ULONG_MAX;
 }
 
-PPH_STRINGREF PhGetServiceStartTypeString(
+PPCH_STRINGREF PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
     )
 {
-    switch (ServiceStartType)
-    {
-    case SERVICE_BOOT_START:
-    case SERVICE_SYSTEM_START:
-    case SERVICE_AUTO_START:
-    case SERVICE_DEMAND_START:
-    case SERVICE_DISABLED:
-        return PhpServiceStartTypePairs[ServiceStartType].Key;
-    }
+    PPCH_STRINGREF string;
 
-    PPH_STRINGREF string;
-
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceStartTypePairs,
         sizeof(PhpServiceStartTypePairs),
         ServiceStartType,
@@ -1019,22 +997,13 @@ ULONG PhGetServiceStartTypeInteger(
         return ULONG_MAX;
 }
 
-PPH_STRINGREF PhGetServiceErrorControlString(
+PPCH_STRINGREF PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl
     )
 {
-    switch (ServiceErrorControl)
-    {
-    case SERVICE_ERROR_IGNORE:
-    case SERVICE_ERROR_NORMAL:
-    case SERVICE_ERROR_SEVERE:
-    case SERVICE_ERROR_CRITICAL:
-        return PhpServiceErrorControlPairs[ServiceErrorControl].Key;
-    }
+    PPCH_STRINGREF string;
 
-    PPH_STRINGREF string;
-
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceErrorControlPairs,
         sizeof(PhpServiceErrorControlPairs),
         ServiceErrorControl,
@@ -1174,7 +1143,7 @@ PPH_STRING PhGetServiceKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
 
     return PhConcatStringRef2(&servicesKeyName, ServiceName);
 }
@@ -1183,8 +1152,8 @@ PPH_STRING PhGetServiceParametersKeyName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"\\Parameters");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"\\Parameters");
 
     return PhConcatStringRef3(&servicesKeyName, ServiceName, &parametersKeyName);
 }

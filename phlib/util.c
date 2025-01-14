@@ -2448,12 +2448,12 @@ BOOLEAN PhGetFileVersionInfoKey(
 _Success_(return)
 BOOLEAN PhGetFileVersionVarFileInfoValue(
     _In_ PVOID VersionInfo,
-    _In_ PPH_STRINGREF KeyName,
+    _In_ PPCH_STRINGREF KeyName,
     _Out_opt_ PVOID* Buffer,
     _Out_opt_ PULONG BufferLength
     )
 {
-    static PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
+    static CONST PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
     PVS_VERSION_INFO_STRUCT32 varfileBlockInfo;
     PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
 
@@ -2509,7 +2509,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
     _In_ PVOID VersionInfo
     )
 {
-    static PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
+    static CONST PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
     PLANGANDCODEPAGE codePage;
     ULONG codePageLength;
 
@@ -2574,10 +2574,10 @@ PPH_STRING PhGetFileVersionInfoString(
 PPH_STRING PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRINGREF KeyName
+    _In_ PPCH_STRINGREF KeyName
     )
 {
-    static PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
+    static CONST PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
     PVS_VERSION_INFO_STRUCT32 blockStringInfo;
     PVS_VERSION_INFO_STRUCT32 blockLangInfo;
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
@@ -2643,7 +2643,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 PPH_STRING PhGetFileVersionInfoStringEx(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRINGREF KeyName
+    _In_ PPCH_STRINGREF KeyName
     )
 {
     PPH_STRING string;
@@ -2673,9 +2673,9 @@ VOID PhpGetImageVersionInfoFields(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF companyName = PH_STRINGREF_INIT(L"CompanyName");
-    static PH_STRINGREF fileDescription = PH_STRINGREF_INIT(L"FileDescription");
-    static PH_STRINGREF productName = PH_STRINGREF_INIT(L"ProductName");
+    static CONST PH_STRINGREF companyName = PH_STRINGREF_INIT(L"CompanyName");
+    static CONST PH_STRINGREF fileDescription = PH_STRINGREF_INIT(L"FileDescription");
+    static CONST PH_STRINGREF productName = PH_STRINGREF_INIT(L"ProductName");
 
     ImageVersionInfo->CompanyName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &companyName);
     ImageVersionInfo->FileDescription = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileDescription);
@@ -2716,7 +2716,7 @@ VOID PhpGetImageVersionVersionStringEx(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF fileVersion = PH_STRINGREF_INIT(L"FileVersion");
+    static CONST PH_STRINGREF fileVersion = PH_STRINGREF_INIT(L"FileVersion");
     VS_FIXEDFILEINFO* rootBlock;
     PPH_STRING versionString;
 
@@ -3362,7 +3362,7 @@ PPH_STRING PhGetSystemDirectory(
     VOID
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     static PPH_STRING cachedSystemDirectory = NULL;
     PPH_STRING systemDirectory;
     PH_STRINGREF systemRootString;
@@ -3388,7 +3388,7 @@ PPH_STRING PhGetSystemDirectoryWin32(
     _In_opt_ PPH_STRINGREF AppendPath
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     PH_STRINGREF systemRootString;
 
     PhGetSystemRoot(&systemRootString);
@@ -3684,7 +3684,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
 }
 
 PPH_STRING PhGetApplicationDirectoryFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3721,7 +3721,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 }
 
 PPH_STRING PhGetLocalAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PPCH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3739,7 +3739,7 @@ PPH_STRING PhGetLocalAppDataDirectory(
 }
 
 PPH_STRING PhGetRoamingAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PPCH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -7788,7 +7788,7 @@ NTSTATUS PhGetFileData(
         NULL,
         &isb,
         buffer,
-        PAGE_SIZE,
+        sizeof(buffer),
         NULL,
         NULL
         )))

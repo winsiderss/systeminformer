@@ -36,7 +36,7 @@ BOOLEAN (NTAPI *PKPH_COMMS_CALLBACK)(
 
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
-    _In_ PPH_STRINGREF PortName,
+    _In_ PPCH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
 

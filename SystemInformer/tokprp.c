@@ -53,7 +53,7 @@ typedef enum _PH_PROCESS_TOKEN_INDEX
 
 typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
 {
-    PH_PROCESS_TOKEN_CATEGORY ItemCategory;
+    PH_PROCESS_TOKEN_CATEGORY GroupId;
     PSID_AND_ATTRIBUTES TokenGroup;
     PLUID_AND_ATTRIBUTES TokenPrivilege;
     PH_PROCESS_TOKEN_FLAG ItemFlag;
@@ -72,6 +72,7 @@ typedef struct _PHP_TOKEN_GROUP_RESOLVE_CONTEXT
     HWND ListViewHandle;
     IListView* ListView;
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM LvItem;
+    LONG GroupId;
     LONG ItemIndex;
     PSID TokenGroupSid;
 } PHP_TOKEN_GROUP_RESOLVE_CONTEXT, *PPHP_TOKEN_GROUP_RESOLVE_CONTEXT;
@@ -582,18 +583,18 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
 
     if (PhEnableThemeSupport)
     {
-        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
             return PhGetDangerousFlagColorDark(entry->ItemFlagState);
-        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        else if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
             return PhGetPrivilegeAttributesColorDark(entry->TokenPrivilege->Attributes);
         else
             return PhGetGroupAttributesColorDark(entry->TokenGroup->Attributes);
     }
     else
     {
-        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
             return PhGetDangerousFlagColor(entry->ItemFlagState);
-        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        else if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
             return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
         else
             return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
@@ -734,14 +735,6 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     PPH_STRING sidString;
     SID_NAME_USE sidUse;
 
-#ifdef DEBUG
-    assert(PhFindIListViewItemByParam(
-        context->ListView,
-        INT_ERROR,
-        context->LvItem
-        ) == context->ItemIndex);
-#endif
-
     if (context->ItemIndex != INT_ERROR)
     {
         if (sidString = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
@@ -831,12 +824,12 @@ VOID PhpUpdateSidsFromTokenGroups(
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
         lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-        lvitem->ItemCategory = Restricted ? PH_PROCESS_TOKEN_CATEGORY_RESTRICTED : PH_PROCESS_TOKEN_CATEGORY_GROUPS;
+        lvitem->GroupId = Restricted ? PH_PROCESS_TOKEN_CATEGORY_RESTRICTED : PH_PROCESS_TOKEN_CATEGORY_GROUPS;
         lvitem->TokenGroup = &Groups->Groups[i];
 
         lvitem->ItemIndex = PhAddIListViewGroupItem(
             TokenPageContext->ListViewClass,
-            lvitem->ItemCategory,
+            lvitem->GroupId,
             MAXINT,
             L"Resolving...",
             lvitem
@@ -873,6 +866,7 @@ VOID PhpUpdateSidsFromTokenGroups(
             tokenGroupResolve->ListViewHandle = TokenPageContext->ListViewHandle;
             tokenGroupResolve->ListView = TokenPageContext->ListViewClass;
             tokenGroupResolve->LvItem = lvitem;
+            tokenGroupResolve->GroupId = lvitem->GroupId;
             tokenGroupResolve->ItemIndex = lvitem->ItemIndex;
             tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, PhLengthSid(Groups->Groups[i].Sid));
 
@@ -940,7 +934,7 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
         PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
 
         lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-        lvitem->ItemCategory = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
+        lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
         lvitem->TokenPrivilege = PhAllocateZero(sizeof(LUID_AND_ATTRIBUTES));
         lvitem->TokenPrivilege->Luid = Privileges[i].LocalValue;
         lvitem->TokenPrivilege->Attributes = SE_PRIVILEGE_REMOVED;
@@ -985,7 +979,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
             PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
             lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-            lvitem->ItemCategory = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
+            lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
             lvitem->TokenPrivilege = &privileges->Privileges[i];
 
             privilegeDisplayName = NULL;
@@ -1029,12 +1023,12 @@ VOID PhpUpdateTokenDangerousFlagItem(
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
 
     lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
-    lvitem->ItemCategory = PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS;
+    lvitem->GroupId = PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS;
     lvitem->ItemFlag = Flag;
     lvitem->ItemFlagState = State;
 
     // Name
-    lvitem->ItemIndex = PhAddIListViewGroupItem(ListView, lvitem->ItemCategory, MAXINT, Name, lvitem);
+    lvitem->ItemIndex = PhAddIListViewGroupItem(ListView, lvitem->GroupId, MAXINT, Name, lvitem);
     // Status
     PhSetIListViewSubItem(ListView, lvitem->ItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, State ? L"Enabled (modified)" : L"Disabled (modified)");
     // Description
@@ -1229,16 +1223,16 @@ LONG NTAPI PhpTokenStatusColumnCompareFunction(
     ULONG value1;
     ULONG value2;
 
-    if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+    if (item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
         value1 = PhpGetTokenPrivilegeSortingIndex(item1->TokenPrivilege->Attributes);
-    else if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+    else if (item1->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
         value1 = PhpGetTokenGroupSortingIndex(item1->TokenGroup->Attributes);
     else
         value1 = 0;
 
-    if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+    if (item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
         value2 = PhpGetTokenPrivilegeSortingIndex(item2->TokenPrivilege->Attributes);
-    else if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+    else if (item2->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
         value2 = PhpGetTokenGroupSortingIndex(item2->TokenGroup->Attributes);
     else
         value2 = 0;
@@ -1518,7 +1512,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     for (i = 0; i < numberOfItems; i++)
                     {
-                        if (listViewItems[i]->ItemCategory != PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+                        if (listViewItems[i]->GroupId != PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
                         {
                             listViewGroupItemsValid = FALSE;
                             break;
@@ -1685,7 +1679,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     for (i = 0; i < numberOfItems; i++)
                     {
-                        if (listViewItems[i]->ItemCategory != PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+                        if (listViewItems[i]->GroupId != PH_PROCESS_TOKEN_CATEGORY_GROUPS)
                         {
                             listViewGroupItemsValid = FALSE;
                             break;
@@ -1819,7 +1813,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         break;
                     }
 
-                    if ((listViewItems[0]->ItemCategory != PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS) ||
+                    if ((listViewItems[0]->GroupId != PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS) ||
                         (listViewItems[0]->ItemFlag != PH_PROCESS_TOKEN_FLAG_UIACCESS))
                     {
                         PhFree(listViewItems);
@@ -2170,12 +2164,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 {
                     BOOLEAN hasMixedCategories = FALSE;
                     BOOLEAN hasRemovedItems = FALSE;
-                    PH_PROCESS_TOKEN_CATEGORY currentCategory = listviewItems[0]->ItemCategory;
+                    PH_PROCESS_TOKEN_CATEGORY currentCategory = listviewItems[0]->GroupId;
                     ULONG i;
 
                     for (i = 0; i < numberOfItems; i++)
                     {
-                        if (listviewItems[i]->ItemCategory != currentCategory)
+                        if (listviewItems[i]->GroupId != currentCategory)
                         {
                             hasMixedCategories = TRUE;
                             break;
@@ -3952,7 +3946,7 @@ PPH_STRING PhpGetTokenFolderPath(
     _In_ HANDLE TokenHandle
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\");
     PPH_STRING profileFolderPath = NULL;
     PPH_STRING profileKeyPath = NULL;
     PPH_STRING tokenUserSid;

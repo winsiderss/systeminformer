@@ -859,7 +859,7 @@ NTSTATUS
 NTAPI
 PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF AttributeName,
+    _In_ PPCH_STRINGREF AttributeName,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
     );
 
@@ -868,7 +868,7 @@ BOOLEAN
 NTAPI
 PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF AttributeName
+    _In_ PPCH_STRINGREF AttributeName
     );
 
 PHLIBAPI
@@ -1733,7 +1733,8 @@ PhUnloadDriver(
     _In_opt_ PCWSTR Name
     );
 
-typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)(
+typedef _Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
+NTSTATUS NTAPI PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress,
     _In_ PVOID ImageBase,
@@ -1741,6 +1742,7 @@ typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)(
     _In_ PPH_STRING FileName,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK* PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
@@ -1767,8 +1769,6 @@ PhEnumProcessModulesRundown(
     _In_opt_ PVOID Context
     );
 
-#define PH_ENUM_PROCESS_MODULES_LIMIT 0x800
-
 /**
  * A callback function passed to PhEnumProcessModules() and called for each process module.
  *
@@ -1777,13 +1777,16 @@ PhEnumProcessModulesRundown(
  *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
-typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
+typedef _Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_PROCESS_MODULES_CALLBACK(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_PROCESS_MODULES_CALLBACK* PPH_ENUM_PROCESS_MODULES_CALLBACK;
 
 #define PH_ENUM_PROCESS_MODULES_DONT_RESOLVE_WOW64_FS 0x1
 #define PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME 0x2
+#define PH_ENUM_PROCESS_MODULES_LIMIT 0x800
 
 typedef struct _PH_ENUM_PROCESS_MODULES_PARAMETERS
 {
@@ -2605,7 +2608,7 @@ PhCreateKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName,
+    _In_ PPCH_STRINGREF ObjectName,
     _In_ ULONG Attributes,
     _In_ ULONG CreateOptions,
     _Out_opt_ PULONG Disposition
@@ -2638,7 +2641,7 @@ PhOpenKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName,
+    _In_ PPCH_STRINGREF ObjectName,
     _In_ ULONG Attributes
     );
 
@@ -2838,7 +2841,7 @@ NTSTATUS
 NTAPI
 PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -2851,7 +2854,7 @@ NTSTATUS
 NTAPI
 PhCreateFileEx(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
@@ -4202,7 +4205,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFilterConnectCommunicationPort(
-    _In_ PPH_STRINGREF PortName,
+    _In_ PPCH_STRINGREF PortName,
     _In_ ULONG Options,
     _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
     _In_ USHORT SizeOfContext,

@@ -14,7 +14,7 @@
 #include <svcsup.h>
 #include <kphuser.h>
 
-static PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
+static CONST PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
 static PH_FREE_LIST KphMessageFreeList;
 
 VOID KphInitialize(
@@ -31,7 +31,7 @@ NTSTATUS KphConnect(
     NTSTATUS status;
     SC_HANDLE serviceHandle;
     BOOLEAN created = FALSE;
-    PPH_STRINGREF portName;
+    PPCH_STRINGREF portName;
 
     portName = (Config->PortName ? Config->PortName : &KphDefaultPortName);
 
@@ -391,8 +391,8 @@ NTSTATUS KsiLoadUnloadService(
     )
 {
 #ifdef _WIN64
-    static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
+    static CONST PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
     PPH_STRING fullServiceFileName;

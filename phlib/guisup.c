@@ -3149,8 +3149,8 @@ BOOLEAN PhGetSystemResourcesFileName(
     _Out_ PPH_STRING* ResourceFileName
     )
 {
-    static PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemResources\\");
-    static PH_STRINGREF extensionName = PH_STRINGREF_INIT(L".mun");
+    static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemResources\\");
+    static CONST PH_STRINGREF extensionName = PH_STRINGREF_INIT(L".mun");
     PPH_STRING fileName;
     PH_STRINGREF directoryPart;
     PH_STRINGREF fileNamePart;
@@ -4537,7 +4537,7 @@ BOOLEAN PhRecentListAddCommand(
     _In_ PPH_STRINGREF Command
     )
 {
-    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
+    static CONST PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
     BOOLEAN status;
     HANDLE listHandle;
     PPH_STRING command;

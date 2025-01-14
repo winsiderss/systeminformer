@@ -13,26 +13,15 @@
 #include <ph.h>
 #include <apiimport.h>
 
-_Function_class_(PHP_ENUM_PROCESS_MODULES_CALLBACK)
-typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES_CALLBACK)(
+typedef _Function_class_(PH_ENUM_MODULES_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_MODULES_CALLBACK(
     _In_ HANDLE ProcessHandle,
-    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PVOID Entry,
     _In_ PVOID AddressOfEntry,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     );
-typedef PHP_ENUM_PROCESS_MODULES_CALLBACK* PPHP_ENUM_PROCESS_MODULES_CALLBACK;
-
-_Function_class_(PHP_ENUM_PROCESS_MODULES32_CALLBACK)
-typedef BOOLEAN (NTAPI PHP_ENUM_PROCESS_MODULES32_CALLBACK)(
-    _In_ HANDLE ProcessHandle,
-    _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
-    _In_ ULONG AddressOfEntry,
-    _In_opt_ PVOID Context1,
-    _In_opt_ PVOID Context2
-    );
-typedef PHP_ENUM_PROCESS_MODULES32_CALLBACK* PPHP_ENUM_PROCESS_MODULES32_CALLBACK;
-
+typedef PH_ENUM_MODULES_CALLBACK* PPH_ENUM_MODULES_CALLBACK;
 
 /**
  * Enumerates the modules loaded by the kernel.
@@ -158,7 +147,7 @@ PPH_STRING PhGetKernelFileName(
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return NULL;
 
-    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+    return PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
 }
 
 /**
@@ -215,13 +204,7 @@ NTSTATUS PhGetKernelFileNameEx(
 
     if (FileName)
     {
-        //if (WindowsVersion >= WINDOWS_10)
-        //{
-        //    static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
-        //    *FileName = PhCreateString2(&kernelFileName);
-        //}
-
-        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+        *FileName = PhConvertUtf8ToUtf16((PCSTR)modules->Modules[0].FullPathName);
     }
 
     if (WindowsVersion >= WINDOWS_10_22H2)
@@ -242,8 +225,8 @@ PPH_STRING PhGetSecureKernelFileName(
     VOID
     )
 {
-    static PH_STRINGREF secureKernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\securekernel.exe");
-    static PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32\\");
+    static CONST PH_STRINGREF secureKernelPathPart = PH_STRINGREF_INIT(L"\\securekernel.exe");
     PPH_STRING fileName = NULL;
     PPH_STRING kernelFileName;
 
@@ -261,7 +244,15 @@ PPH_STRING PhGetSecureKernelFileName(
 
     if (PhIsNullOrEmptyString(fileName))
     {
-        fileName = PhCreateString2(&secureKernelFileName);
+        PH_STRINGREF systemRootString;
+
+        PhGetNtSystemRoot(&systemRootString);
+
+        fileName = PhConcatStringRef3(
+            &systemRootString,
+            &system32String,
+            &secureKernelPathPart
+            );
     }
 
     return fileName;
@@ -269,7 +260,7 @@ PPH_STRING PhGetSecureKernelFileName(
 
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
-    _In_ PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    _In_ PPH_ENUM_MODULES_CALLBACK Callback,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -630,7 +621,7 @@ NTSTATUS PhSetProcessModuleLoadCount(
 
 NTSTATUS PhpEnumProcessModules32(
     _In_ HANDLE ProcessHandle,
-    _In_ PPHP_ENUM_PROCESS_MODULES32_CALLBACK Callback,
+    _In_ PPH_ENUM_MODULES_CALLBACK Callback,
     _In_opt_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -700,12 +691,12 @@ NTSTATUS PhpEnumProcessModules32(
         i <= PH_ENUM_PROCESS_MODULES_LIMIT
         )
     {
-        ULONG addressOfEntry;
+        PVOID addressOfEntry;
 
-        addressOfEntry = PtrToUlong(CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks));
+        addressOfEntry = CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks);
         status = NtReadVirtualMemory(
             ProcessHandle,
-            UlongToPtr(addressOfEntry),
+            addressOfEntry,
             &currentEntry,
             dataTableEntrySize,
             NULL
@@ -738,12 +729,12 @@ NTSTATUS PhpEnumProcessModules32(
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
-    _In_ ULONG AddressOfEntry,
+    _In_ PVOID AddressOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32\\");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32\\");
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
@@ -787,9 +778,9 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         if (indexOfLastBackslash != SIZE_MAX)
         {
-            nativeEntry.BaseDllName.Buffer = PTR_ADD_OFFSET(nativeEntry.FullDllName.Buffer, PTR_ADD_OFFSET(indexOfLastBackslash * sizeof(WCHAR), sizeof(WCHAR)));
-            nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(WCHAR);
-            nativeEntry.BaseDllName.MaximumLength = nativeEntry.BaseDllName.Length;
+            nativeEntry.BaseDllName.Buffer = nativeEntry.FullDllName.Buffer + indexOfLastBackslash + 1;
+            nativeEntry.BaseDllName.Length = nativeEntry.FullDllName.Length - (USHORT)indexOfLastBackslash * sizeof(WCHAR) - sizeof(UNICODE_NULL);
+            nativeEntry.BaseDllName.MaximumLength = nativeEntry.BaseDllName.Length + sizeof(UNICODE_NULL);
         }
         else
         {
@@ -990,7 +981,7 @@ NTSTATUS PhEnumProcessModules32Ex(
 BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
-    _In_ ULONG AddressOfEntry,
+    _In_ PVOID AddressOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
@@ -1001,7 +992,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
     {
         context->Status = NtWriteVirtualMemory(
             ProcessHandle,
-            UlongToPtr(AddressOfEntry + FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount)),
+            PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ObsoleteLoadCount)),
             &context->LoadCount,
             sizeof(USHORT),
             NULL
@@ -1192,7 +1183,7 @@ VOID PhpRtlModulesToGenericModules(
         else
         {
             moduleInfo.Name = PhConvertUtf8ToUtf16(&module->FullPathName[module->OffsetToFileName]);
-            moduleInfo.FileName = PhConvertUtf8ToUtf16(module->FullPathName);
+            moduleInfo.FileName = PhConvertUtf8ToUtf16((PCSTR)module->FullPathName);
         }
 
         result = Callback(&moduleInfo, Context);
@@ -1351,10 +1342,10 @@ NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
 
                     if (!PhFindEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase))
                     {
-                        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase);
-
                         if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, Parameters->LastAllocationBase, &fileName)))
                         {
+                            PhAddEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase);
+
                             if (!PhpCallbackMappedFileOrImage(
                                 Parameters->LastAllocationBase,
                                 Parameters->AllocationSize,

@@ -1954,8 +1954,8 @@ LONG PhCompareStringZNatural(
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
  */
 LONG PhCompareStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PPCH_STRINGREF String1,
+    _In_ PPCH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -2025,8 +2025,8 @@ LONG PhCompareStringRef(
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
  */
 BOOLEAN PhEqualStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PPCH_STRINGREF String1,
+    _In_ PPCH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -2172,7 +2172,7 @@ CompareCharacters:
  * \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindCharInStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     )
@@ -2270,7 +2270,7 @@ ULONG_PTR PhFindCharInStringRef(
  * \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindLastCharInStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     )
@@ -2376,8 +2376,8 @@ ULONG_PTR PhFindLastCharInStringRef(
  * \a SubString was not found, -1 is returned.
  */
 ULONG_PTR PhFindStringInStringRef(
-    _In_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF SubString,
+    _In_ PPCH_STRINGREF String,
+    _In_ PPCH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -3209,8 +3209,8 @@ PPH_STRING PhConcatStrings2(
  * \param String2 The second string.
  */
 PPH_STRING PhConcatStringRef2(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2
+    _In_ PPCH_STRINGREF String1,
+    _In_ PPCH_STRINGREF String2
     )
 {
     PPH_STRING string;
@@ -3241,9 +3241,9 @@ PPH_STRING PhConcatStringRef2(
  * \param String3 The third string.
  */
 PPH_STRING PhConcatStringRef3(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
-    _In_ PPH_STRINGREF String3
+    _In_ PPCH_STRINGREF String1,
+    _In_ PPCH_STRINGREF String2,
+    _In_ PPCH_STRINGREF String3
     )
 {
     PPH_STRING string;
@@ -3276,10 +3276,10 @@ PPH_STRING PhConcatStringRef3(
  * \param String4 The forth string.
  */
 PPH_STRING PhConcatStringRef4(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
-    _In_ PPH_STRINGREF String3,
-    _In_ PPH_STRINGREF String4
+    _In_ PPCH_STRINGREF String1,
+    _In_ PPCH_STRINGREF String2,
+    _In_ PPCH_STRINGREF String3,
+    _In_ PPCH_STRINGREF String4
     )
 {
     PPH_STRING string;
@@ -6056,7 +6056,7 @@ ULONG PhHashBytes(
  * \param IgnoreCase TRUE for a case-insensitive hash function, otherwise FALSE.
  */
 ULONG PhHashStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -6087,7 +6087,7 @@ ULONG PhHashStringRef(
 }
 
 ULONG PhHashStringRefEx(
-    _In_ PPH_STRINGREF String,
+    _In_ PPCH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase,
     _In_ PH_STRING_HASH HashAlgorithm
     )

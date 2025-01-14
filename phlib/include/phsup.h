@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <locale.h>
 #include <inttypes.h>
 #include <math.h>
 #include <malloc.h>

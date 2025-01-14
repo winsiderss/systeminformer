@@ -2506,7 +2506,7 @@ NTSTATUS PhGetTokenSecurityAttributes(
 
 NTSTATUS PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF AttributeName,
+    _In_ PPCH_STRINGREF AttributeName,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
     )
 {
@@ -2569,7 +2569,7 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
 BOOLEAN PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF AttributeName
+    _In_ PPCH_STRINGREF AttributeName
     )
 {
     NTSTATUS status;
@@ -2596,7 +2596,7 @@ BOOLEAN PhDoesTokenSecurityAttributeExist(
 
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
-    _In_ PPH_STRINGREF AttributeName
+    _In_ PPCH_STRINGREF AttributeName
     )
 {
     for (ULONG i = 0; i < Attributes->AttributeCount; i++)
@@ -2619,7 +2619,7 @@ BOOLEAN PhGetTokenIsFullTrustPackage(
     _In_ HANDLE TokenHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     BOOLEAN tokenIsAppContainer = FALSE;
 
     if (NT_SUCCESS(PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName)))
@@ -2705,7 +2705,7 @@ NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     _Out_ PBOOLEAN IsLessPrivilegedAppContainer
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
 
     if (PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName))
         *IsLessPrivilegedAppContainer = TRUE;
@@ -2770,8 +2770,8 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
     _In_ HANDLE TokenHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"!");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"!");
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING applicationUserModelId = NULL;
 
@@ -2807,7 +2807,7 @@ PPH_STRING PhGetTokenPackageFullName(
     _In_ HANDLE TokenHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageFullName = NULL;
 
@@ -5010,7 +5010,7 @@ NTSTATUS PhpUnloadDriver(
     _In_ PPH_STRING ServiceKeyName
     )
 {
-    static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
     UNICODE_STRING fullServiceKeyNameUs;
@@ -5037,7 +5037,7 @@ NTSTATUS PhpUnloadDriver(
     {
         if (disposition == REG_CREATED_NEW_KEY)
         {
-            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
+            static CONST PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
             ULONG regValue = 0;
 
             // Set up the required values.
@@ -6458,14 +6458,14 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     _In_ PVOID Context
     )
 {
-    static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
-    static PH_STRINGREF clrcoreString = PH_STRINGREF_INIT(L"coreclr.dll");
-    static PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
-    static PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
-    static PH_STRINGREF mscorlibString = PH_STRINGREF_INIT(L"mscorlib.dll");
-    static PH_STRINGREF mscorlibNiString = PH_STRINGREF_INIT(L"mscorlib.ni.dll");
-    static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
-    static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
+    static CONST PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
+    static CONST PH_STRINGREF clrcoreString = PH_STRINGREF_INIT(L"coreclr.dll");
+    static CONST PH_STRINGREF mscorwksString = PH_STRINGREF_INIT(L"mscorwks.dll");
+    static CONST PH_STRINGREF mscorsvrString = PH_STRINGREF_INIT(L"mscorsvr.dll");
+    static CONST PH_STRINGREF mscorlibString = PH_STRINGREF_INIT(L"mscorlib.dll");
+    static CONST PH_STRINGREF mscorlibNiString = PH_STRINGREF_INIT(L"mscorlib.ni.dll");
+    static CONST PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
+    static CONST PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
     PH_STRINGREF baseDllName;
 
     PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
@@ -6478,7 +6478,7 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     {
         PH_STRINGREF fileName;
         PH_STRINGREF systemRoot;
-        PPH_STRINGREF frameworkPart;
+        PPCH_STRINGREF frameworkPart;
 
 #ifdef _WIN64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
@@ -7491,9 +7491,9 @@ VOID PhUpdateMupDevicePrefixes(
     VOID
     )
 {
-    static PH_STRINGREF orderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order");
-    static PH_STRINGREF servicesStringPart = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF networkProviderStringPart = PH_STRINGREF_INIT(L"\\NetworkProvider");
+    static CONST PH_STRINGREF orderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order");
+    static CONST PH_STRINGREF servicesStringPart = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF networkProviderStringPart = PH_STRINGREF_INIT(L"\\NetworkProvider");
 
     HANDLE orderKeyHandle;
     PPH_STRING providerOrder = NULL;
@@ -8541,7 +8541,7 @@ VOID PhpInitializePredefineKeys(
     VOID
     )
 {
-    static UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
+    static CONST UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
     NTSTATUS status;
     PH_TOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
@@ -8690,7 +8690,7 @@ NTSTATUS PhCreateKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName,
+    _In_ PPCH_STRINGREF ObjectName,
     _In_ ULONG Attributes,
     _In_ ULONG CreateOptions,
     _Out_opt_ PULONG Disposition
@@ -8745,7 +8745,7 @@ NTSTATUS PhOpenKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName,
+    _In_ PPCH_STRINGREF ObjectName,
     _In_ ULONG Attributes
     )
 {
@@ -9514,7 +9514,7 @@ NTSTATUS PhCreateFileWin32ExAlt(
  */
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -9620,7 +9620,7 @@ NTSTATUS PhCreateFile(
  */
 NTSTATUS PhCreateFileEx(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
@@ -11802,7 +11802,11 @@ NTSTATUS PhGetProcessSequenceNumber(
             NULL
             );
 
-        if (status == STATUS_INVALID_INFO_CLASS)
+        if (NT_SUCCESS(status))
+        {
+            *SequenceNumber = sequenceNumber;
+        }
+        else if (status == STATUS_INVALID_INFO_CLASS && WindowsVersion >= WINDOWS_10)
         {
             PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
 
@@ -11818,25 +11822,17 @@ NTSTATUS PhGetProcessSequenceNumber(
                 NULL
                 );
 
-            if (status == STATUS_BUFFER_OVERFLOW)
+            if (
+                status == STATUS_BUFFER_OVERFLOW &&
+                RTL_CONTAINS_FIELD(&telemetryInfo, telemetryInfo.HeaderSize, ProcessSequenceNumber)
+                )
+            {
                 status = STATUS_SUCCESS;
 
             if (NT_SUCCESS(status))
             {
-                if (RTL_CONTAINS_FIELD(&telemetryInfo, telemetryInfo.HeaderSize, ProcessSequenceNumber))
-                {
-                    sequenceNumber = telemetryInfo.ProcessSequenceNumber;
-                }
-                else
-                {
-                    status = STATUS_INVALID_INFO_CLASS;
-                }
+                *SequenceNumber = telemetryInfo.ProcessSequenceNumber;
             }
-        }
-
-        if (NT_SUCCESS(status))
-        {
-            *SequenceNumber = sequenceNumber;
         }
     }
 

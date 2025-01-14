@@ -1316,12 +1316,6 @@ BOOLEAN PhUiLogoffSession(
     return FALSE;
 }
 
-typedef struct _PH_PLUGIN_IS_DANGEROUS_PROCESS
-{
-    HANDLE ProcessId;
-    BOOLEAN DangerousProcess;
-} PH_PLUGIN_IS_DANGEROUS_PROCESS, *PPH_PLUGIN_IS_DANGEROUS_PROCESS;
-
 /**
  * Determines if a process is a system process.
  *
@@ -1352,8 +1346,8 @@ BOOLEAN PhIsDangerousProcess(
     if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
-    PhMoveReference(&fileName, PhGetFileName(fileName));
     hash = PhHashStringRefEx(&fileName->sr, TRUE, PH_STRING_HASH_X65599);
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
     PhDereferenceObject(fileName);
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(DangerousProcesses); i++)
@@ -2624,9 +2618,9 @@ BOOLEAN PhUiDebugProcess(
     _In_ PPH_PROCESS_ITEM Process
     )
 {
-    static PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+    static CONST PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #ifdef _WIN64
-    static PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+    static CONST PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #endif
     NTSTATUS status;
     BOOLEAN cont = FALSE;

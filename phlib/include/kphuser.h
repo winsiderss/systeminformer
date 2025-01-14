@@ -34,7 +34,7 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF FileName;
     _In_ PPH_STRINGREF ServiceName;
     _In_ PPH_STRINGREF ObjectName;
-    _In_opt_ PPH_STRINGREF PortName;
+    _In_opt_ PPCH_STRINGREF PortName;
     _In_opt_ PPH_STRINGREF Altitude;
     _In_ ULONG FsSupportedFeatures;
     _In_ KPH_PARAMETER_FLAGS Flags;

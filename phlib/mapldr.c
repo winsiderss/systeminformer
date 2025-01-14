@@ -27,8 +27,8 @@
  */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
+    _In_opt_ PPCH_STRINGREF FullDllName,
+    _In_opt_ PPCH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY result = NULL;
@@ -1011,8 +1011,8 @@ PVOID PhGetLoaderEntryAddressDllBase(
 }
 
 PVOID PhGetLoaderEntryDllBase(
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
+    _In_opt_ PPCH_STRINGREF FullDllName,
+    _In_opt_ PPCH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY entry;
@@ -1127,9 +1127,6 @@ PVOID PhGetDllProcedureAddress(
 
     if (!(baseAddress = PhGetLoaderEntryDllBase(NULL, &baseDllName)))
         return NULL;
-
-    //if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
-    //    return NULL;
 
     return PhGetDllBaseProcedureAddress(
         baseAddress,

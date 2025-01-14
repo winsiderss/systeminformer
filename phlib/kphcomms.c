@@ -185,6 +185,9 @@ Exit:
     }
 
     PhReleaseRundownProtection(&KphpCommsRundown);
+
+    // Start the next asynchronous I/O operation
+    TpStartAsyncIoOperation(Io);
 }
 
 static VOID KphpTpSetPoolThreadBasePriority(
@@ -227,7 +230,7 @@ static VOID KphpTpSetPoolThreadBasePriority(
  */
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
-    _In_ PPH_STRINGREF PortName,
+    _In_ PPCH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     )
 {

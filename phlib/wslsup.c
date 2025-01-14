@@ -30,7 +30,7 @@ BOOLEAN PhGetWslDistributionFromPath(
     _Out_opt_ PPH_STRING *LxssFileName
     )
 {
-    static PH_STRINGREF lxssKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Lxss");
+    static CONST PH_STRINGREF lxssKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Lxss");
     PPH_STRING lxssDistributionName = NULL;
     PPH_STRING lxssDistroPath = NULL;
     PPH_STRING lxssFileName = NULL;

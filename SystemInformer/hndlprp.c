@@ -486,13 +486,13 @@ VOID PhpUpdateHandleGeneral(
     ULONG numberOfAccessEntries;
     WCHAR string[PH_INT64_STR_LEN_1];
 
-    PhSetIListViewGroupSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
-    PhSetIListViewGroupSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
+    PhSetIListViewSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+    PhSetIListViewSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
 
     if (Context->HandleItem->Object)
     {
         PhPrintPointer(string, Context->HandleItem->Object);
-        PhSetIListViewGroupSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_BASICINFO, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, string);
+        PhSetIListViewSubItem(Context->ListViewClass, PH_HANDLE_GENERAL_INDEX_OBJECT, 1, string);
     }
 
     if (PhGetAccessEntries(
@@ -1749,7 +1749,7 @@ VOID PhpUpdateHandleGeneral(
             if (exitStatus != STATUS_PENDING)
             {
                 PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.ExitTime);
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME], 1, PhaFormatDateTime(&time)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, 1, PhaFormatDateTime(&time)->Buffer);
             }
         }
 

@@ -679,7 +679,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 break;
             case PHSVTLC_TYPE:
                 {
-                    PPH_STRINGREF string;
+                    PPCH_STRINGREF string;
 
                     string = PhGetServiceTypeString(serviceItem->Type);
                     getCellText->Text.Buffer = string->Buffer;
@@ -688,7 +688,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 break;
             case PHSVTLC_STATUS:
                 {
-                    PPH_STRINGREF string;
+                    PPCH_STRINGREF string;
 
                     string = PhGetServiceStateString(serviceItem->State);
                     getCellText->Text.Buffer = string->Buffer;
@@ -698,7 +698,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             case PHSVTLC_STARTTYPE:
                 {
                     PH_FORMAT format[2];
-                    PPH_STRINGREF string;
+                    PPCH_STRINGREF string;
                     PWSTR additional = NULL;
                     SIZE_T returnLength;
 
@@ -736,7 +736,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 break;
             case PHSVTLC_ERRORCONTROL:
                 {
-                    PPH_STRINGREF string;
+                    PPCH_STRINGREF string;
 
                     string = PhGetServiceErrorControlString(serviceItem->ErrorControl);
                     getCellText->Text.Buffer = string->Buffer;

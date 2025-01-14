@@ -761,7 +761,7 @@ VOID PhpProcessQueryStage1(
 
         if (PhEnableCycleCpuUsage && processId == INTERRUPTS_PROCESS_ID)
         {
-            static PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
+            static CONST PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
             PhMoveReference(&Data->VersionInfo.FileDescription, PhCreateString2(&descriptionText));
         }
     }

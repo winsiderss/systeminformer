@@ -1329,7 +1329,7 @@ VOID PhCreateSearchControlEx(
 
 BOOLEAN PhSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PPH_STRINGREF Text
+    _In_ PPCH_STRINGREF Text
     )
 {
     PPH_SEARCHCONTROL_CONTEXT context;
@@ -1401,7 +1401,7 @@ BOOLEAN PhSearchControlMatchPointer(
 
     context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
 
-    if (!context || !context->UseSearchPointer)
+    if (!Pointer || !context || !context->UseSearchPointer)
         return FALSE;
 
     return ((ULONG64)Pointer == context->SearchPointer);

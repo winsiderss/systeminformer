@@ -126,7 +126,7 @@ static HWND ContainerControl = NULL;
 static BOOLEAN RestartRequired = FALSE;
 
 // General
-static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+static CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
 static HFONT CurrentFontInstance = NULL;
 static HFONT CurrentFontMonospaceInstance = NULL;
@@ -134,7 +134,7 @@ static PPH_STRING NewFontSelection = NULL;
 static PPH_STRING NewFontMonospaceSelection = NULL;
 
 // Advanced
-static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+static CONST PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 static PPH_STRING OldTaskMgrDebugger = NULL;
 static HWND WindowHandleForElevate = NULL;
 
