@@ -223,7 +223,7 @@ void sha256_update( sha256_context *ctx, uint8 *input, uint32 length )
     }
 }
 
-static uint8 sha256_padding[64] =
+static const uint8 sha256_padding[64] =
 {
  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
