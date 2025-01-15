@@ -24,28 +24,24 @@ namespace CustomBuildTool
         /// </summary>
         public static Dictionary<string, string> ParseArgs(string[] args)
         {
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var dict = new Dictionary<string, string>(args.Length, StringComparer.OrdinalIgnoreCase);
             string argPending = null;
 
             foreach (string s in args)
             {
                 if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
                 {
-                    dict.TryAdd(s, string.Empty);
-
+                    dict[s] = string.Empty;
                     argPending = s;
+                }
+                else if (!string.IsNullOrEmpty(argPending))
+                {
+                    dict[argPending] = s;
+                    argPending = null;
                 }
                 else
                 {
-                    if (argPending != null)
-                    {
-                        dict[argPending] = s;
-                        argPending = null;
-                    }
-                    else
-                    {
-                        dict.TryAdd(string.Empty, s);
-                    }
+                    dict[string.Empty] = s;
                 }
             }
 
