@@ -548,7 +548,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, processItem->ProtectionString->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(processItem->ProtectionString));
 
             // Image type
 
