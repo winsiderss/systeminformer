@@ -1069,11 +1069,11 @@ VOID EtSMBIOSMemoryModule(
     {
         PPH_STRING string;
 
-        if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_DETERMINABLE)
+        if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_DETERMINABLE)
             string = PhCreateString(L"Not determinable");
-        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_ENABLED)
+        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_ENABLED)
             string = PhCreateString(L"Not enabled");
-        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_INSTALLED)
+        else if (Entry->MemoryModule.InstalledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_INSTALLED)
             string = PhCreateString(L"Not installed");
         else
             string = PhFormatSize(1ULL << Entry->MemoryModule.InstalledSize.Size, ULONG_MAX);
@@ -1090,11 +1090,11 @@ VOID EtSMBIOSMemoryModule(
     {
         PPH_STRING string;
 
-        if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_DETERMINABLE)
+        if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_DETERMINABLE)
             string = PhCreateString(L"Not determinable");
-        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_ENABLED)
+        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_ENABLED)
             string = PhCreateString(L"Not enabled");
-        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_INSTALLED)
+        else if (Entry->MemoryModule.EnabledSize.Size == SMBIOS_MEMORY_MODULE_SIZE_VALUE_NOT_INSTALLED)
             string = PhCreateString(L"Not installed");
         else
             string = PhFormatSize(1ULL << Entry->MemoryModule.EnabledSize.Size, ULONG_MAX);
