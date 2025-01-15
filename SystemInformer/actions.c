@@ -3739,7 +3739,7 @@ VOID PhShowServiceProgressDialogStatusPage(
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = PhpUiServiceProgressDialogCallbackProc;
-    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", verb, L" ", object, L"...")->Buffer;
+    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", PhGetString(verb), L" ", object, L"...")->Buffer;
     config.cxWidth = 200;
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
