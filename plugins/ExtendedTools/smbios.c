@@ -1224,7 +1224,7 @@ VOID EtSMBIOSCache(
 
         ET_SMBIOS_BOOLEAN(L"Socketed", !!Entry->Cache.Configuration.Socketed);
         ET_SMBIOS_ENUM(L"Location", Entry->Cache.Configuration.Location, locations);
-        ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->Cache.Configuration.Location);
+        ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->Cache.Configuration.Enabled);
         ET_SMBIOS_ENUM(L"Mode", Entry->Cache.Configuration.Mode, modes);
     }
 
