@@ -1212,7 +1212,16 @@ VOID EtSMBIOSCache(
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration))
     {
-        ET_SMBIOS_UINT32(L"Level", Entry->Cache.Configuration.Level);
+        PH_FORMAT format[2];
+        PPH_STRING string;
+
+        PhInitFormatC(&format[0], L'L');
+        PhInitFormatU(&format[1], Entry->Cache.Configuration.Level + 1);
+
+        string = PhFormat(format, 2, 10);
+        EtAddSMBIOSItem(Context, group, L"Level", PhGetString(string));
+        PhDereferenceObject(string);
+
         ET_SMBIOS_BOOLEAN(L"Socketed", !!Entry->Cache.Configuration.Socketed);
         ET_SMBIOS_ENUM(L"Location", Entry->Cache.Configuration.Location, locations);
         ET_SMBIOS_BOOLEAN(L"Enabled", !!Entry->Cache.Configuration.Location);
