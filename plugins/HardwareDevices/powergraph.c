@@ -155,31 +155,19 @@ VOID RaplDeviceUpdateGraphs(
 {
     Context->ProcessorGraphState.Valid = FALSE;
     Context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->ProcessorGraphHandle, 1);
-    Graph_Draw(Context->ProcessorGraphHandle);
-    Graph_UpdateTooltip(Context->ProcessorGraphHandle);
-    InvalidateRect(Context->ProcessorGraphHandle, NULL, FALSE);
+    Graph_Update(Context->ProcessorGraphHandle);
 
     Context->CoreGraphState.Valid = FALSE;
     Context->CoreGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->CoreGraphHandle, 1);
-    Graph_Draw(Context->CoreGraphHandle);
-    Graph_UpdateTooltip(Context->CoreGraphHandle);
-    InvalidateRect(Context->CoreGraphHandle, NULL, FALSE);
+    Graph_Update(Context->CoreGraphHandle);
 
     Context->DimmGraphState.Valid = FALSE;
     Context->DimmGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->DimmGraphHandle, 1);
-    Graph_Draw(Context->DimmGraphHandle);
-    Graph_UpdateTooltip(Context->DimmGraphHandle);
-    InvalidateRect(Context->DimmGraphHandle, NULL, FALSE);
+    Graph_Update(Context->DimmGraphHandle);
 
     Context->TotalGraphState.Valid = FALSE;
     Context->TotalGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->TotalGraphHandle, 1);
-    Graph_Draw(Context->TotalGraphHandle);
-    Graph_UpdateTooltip(Context->TotalGraphHandle);
-    InvalidateRect(Context->TotalGraphHandle, NULL, FALSE);
+    Graph_Update(Context->TotalGraphHandle);
 }
 
 VOID RaplDeviceUpdatePanel(
