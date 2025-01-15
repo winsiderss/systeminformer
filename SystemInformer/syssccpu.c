@@ -106,7 +106,7 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
         CpuL2CacheSize += size;
         break;
     case 2:
-        CpuL2CacheSize += size;
+        CpuL3CacheSize += size;
         break;
     }
 
