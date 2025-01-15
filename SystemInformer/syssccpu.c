@@ -73,8 +73,11 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
     if (Entry->Header.Type != SMBIOS_CACHE_INFORMATION_TYPE)
         return FALSE;
 
-    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration))
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration) ||
+        !Entry->Cache.Configuration.Enabled)
+    {
         return FALSE;
+    }
 
     size = 0;
 
