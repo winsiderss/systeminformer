@@ -3269,7 +3269,7 @@ PPH_STRING PhGetBaseName(
 
 PPH_STRING PhGetBaseNameChangeExtension(
     _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF FileExtension
+    _In_ PPCH_STRINGREF FileExtension
     )
 {
     ULONG_PTR indexOfBackslash;
