@@ -11,12 +11,44 @@
  */
 
 #include <kph.h>
+#include <search.h>
 
 #include <trace.h>
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+
+/**
+ * \brief Performs a binary search of a sorted array.
+ *
+ * \param[in] Key Pointer to the key to search for.
+ * \param[in] Base Pointer to the base of the search data.
+ * \param[in] NumberOfElements Number of elements in the array.
+ * \param[in] SizeOfElement Size of each element in the array.
+ * \param[in] Callback Comparison callback.
+ * \param[in] Context Optional context for the callback.
+ *
+ * \return Pointer to the found element, NULL if not found.
+ */
+_Must_inspect_result_
+_Success_(return != NULL)
+PVOID KphBinarySearch(
+    _In_ PCVOID Key,
+    _In_reads_bytes_(NumberOfElements * SizeOfElement) PCVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_BINARY_SEARCH_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    return bsearch_s(Key,
+                     Base,
+                     NumberOfElements,
+                     SizeOfElement,
+                     Callback,
+                     Context);
+}
 
 /**
  * \brief Searches memory for a given pattern.
@@ -30,6 +62,7 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
  * pattern is not found.
  */
 _Must_inspect_result_
+_Success_(return != NULL)
 PVOID KphSearchMemory(
     _In_reads_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength,

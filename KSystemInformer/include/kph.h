@@ -96,6 +96,7 @@
     _When_(((timeout != NULL) && (timeout->QuadPart == 0)),                    \
            _IRQL_requires_max_(DISPATCH_LEVEL))
 
+typedef const void* PCVOID;
 #ifndef MAX_PATH
 #define MAX_PATH 260
 #endif
@@ -1039,7 +1040,30 @@ BOOLEAN KphEqualMemory(
     return (memcmp(Buffer1, Buffer2, Length) == 0);
 }
 
+typedef
+_Function_class_(KPH_BINARY_SEARCH_CALLBACK)
+INT
+KSIAPI
+KPH_BINARY_SEARCH_CALLBACK(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID Key,
+    _In_ PCVOID Element
+    );
+typedef KPH_BINARY_SEARCH_CALLBACK* PKPH_BINARY_SEARCH_CALLBACK;
+
 _Must_inspect_result_
+_Success_(return != NULL)
+PVOID KphBinarySearch(
+    _In_ PCVOID Key,
+    _In_reads_bytes_(NumberOfElements * SizeOfElement) PCVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_BINARY_SEARCH_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+_Must_inspect_result_
+_Success_(return != NULL)
 PVOID KphSearchMemory(
     _In_reads_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength,
