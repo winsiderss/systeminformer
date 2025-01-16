@@ -247,7 +247,7 @@ void sha256_finish( sha256_context *ctx, uint8 digest[32] )
     last = ctx->total[0] & 0x3F;
     padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
-    sha256_update( ctx, sha256_padding, padn );
+    sha256_update( ctx, (uint8 *) sha256_padding, padn );
     sha256_update( ctx, msglen, 8 );
 
     PUT_UINT32( ctx->state[0], digest,  0 );
