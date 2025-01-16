@@ -34,7 +34,7 @@ PVOID KphObpDecodeObject(
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
-#if (defined _M_X64) || (defined _M_ARM64)
+#if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObDecodeShift != ULONG_MAX)
     {
         LONG_PTR object;
@@ -66,7 +66,7 @@ ULONG KphObpGetHandleAttributes(
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
-#if (defined _M_X64) || (defined _M_ARM64)
+#if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObAttributesShift != ULONG_MAX)
     {
         return (ULONG)(HandleTableEntry->Value >> Dyn->ObAttributesShift) & 0x3;
