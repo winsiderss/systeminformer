@@ -419,6 +419,36 @@ NTSTATUS PhQueryObjectBasicInformation(
     return PhGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
+NTSTATUS PhQueryCloseHandle(
+    _In_ _Post_ptr_invalid_ HANDLE Handle
+    )
+{
+    NTSTATUS status;
+    OBJECT_HANDLE_FLAG_INFORMATION objectInfo = { 0 };
+
+    status = NtQueryObject(
+        Handle,
+        ObjectHandleFlagInformation,
+        &objectInfo,
+        sizeof(objectInfo),
+        nullptr
+        );
+
+    if (NT_SUCCESS(status) && objectInfo.ProtectFromClose)
+    {
+        objectInfo.ProtectFromClose = FALSE;
+        NtSetInformationObject(
+            Handle,
+            ObjectHandleFlagInformation,
+            &objectInfo,
+            sizeof(objectInfo)
+            );
+    }
+
+    status = NtClose(Handle);
+    return status;
+}
+
 NTSTATUS PhCompareObjects(
     _In_ HANDLE FirstObjectHandle,
     _In_ HANDLE SecondObjectHandle
@@ -606,7 +636,7 @@ PPH_STRING PhGetEtwPublisherName(
             publisherName = NULL;
         }
 
-        NtClose(keyHandle);
+        PhQueryCloseHandle(keyHandle);
     }
 
     PhDereferenceObject(keyName);
@@ -932,7 +962,7 @@ PPH_STRING PhStdGetClientIdNameEx(
         if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
             isProcessTerminated = TRUE;
 
-        NtClose(processHandle);
+        PhQueryCloseHandle(processHandle);
     }
 
     PhInitializeStringRef(&threadNameRef, L"unnamed thread");
@@ -958,7 +988,7 @@ PPH_STRING PhStdGetClientIdNameEx(
                 threadNameRef.Buffer = threadName->Buffer;
             }
 
-            NtClose(threadHandle);
+            PhQueryCloseHandle(threadHandle);
         }
     }
 
@@ -1100,7 +1130,7 @@ NTSTATUS PhpGetBestObjectName(
                     PhDereferenceObject(driverName);
                 }
 
-                NtClose(fileObjectDriver.DriverHandle);
+                PhQueryCloseHandle(fileObjectDriver.DriverHandle);
             }
         }
     }
@@ -1160,7 +1190,7 @@ NTSTATUS PhpGetBestObjectName(
             bestObjectName = PhFinalStringBuilderString(&sb);
         }
 
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"Key", TRUE))
     {
@@ -1209,7 +1239,7 @@ NTSTATUS PhpGetBestObjectName(
                 goto CleanupExit;
 
             status = PhGetProcessBasicInformation(dupHandle, &basicInfo);
-            NtClose(dupHandle);
+            PhQueryCloseHandle(dupHandle);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -1332,7 +1362,7 @@ NTSTATUS PhpGetBestObjectName(
         }
 
         if (dupHandle)
-            NtClose(dupHandle);
+            PhQueryCloseHandle(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"Thread", TRUE))
     {
@@ -1375,7 +1405,7 @@ NTSTATUS PhpGetBestObjectName(
                 goto CleanupExit;
 
             status = PhGetThreadBasicInformation(dupHandle, &basicInfo);
-            NtClose(dupHandle);
+            PhQueryCloseHandle(dupHandle);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -1405,7 +1435,7 @@ NTSTATUS PhpGetBestObjectName(
             goto CleanupExit;
 
         status = PhGetEnlistmentBasicInformation(dupHandle, &basicInfo);
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
 
         if (NT_SUCCESS(status))
         {
@@ -1436,7 +1466,7 @@ NTSTATUS PhpGetBestObjectName(
             &guid,
             &description
             );
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
 
         if (NT_SUCCESS(status))
         {
@@ -1498,7 +1528,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"TmTx", TRUE))
     {
@@ -1546,7 +1576,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"Token", TRUE))
     {
@@ -1590,7 +1620,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        NtClose(dupHandle);
+        PhQueryCloseHandle(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"ALPC Port", TRUE))
     {
