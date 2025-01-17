@@ -763,17 +763,23 @@ NTSTATUS PhGetThreadApartmentState(
 
     if (isWow64)
     {
+        ULONG oletlsDataAddress32 = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
-            &oletlsDataAddress,
+            &oletlsDataAddress32,
             sizeof(ULONG),
             NULL
             );
+
+        oletlsBaseAddress = UlongToPtr(oletlsDataAddress32);
     }
     else
 #endif
     {
+        ULONG_PTR oletlsDataAddress = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
@@ -781,9 +787,11 @@ NTSTATUS PhGetThreadApartmentState(
             sizeof(ULONG_PTR),
             NULL
             );
+
+        oletlsBaseAddress = (PVOID)oletlsDataAddress;
     }
 
-    if (NT_SUCCESS(status) && oletlsDataAddress)
+    if (NT_SUCCESS(status) && oletlsBaseAddress)
     {
         PVOID apartmentStateOffset;
 
@@ -792,11 +800,11 @@ NTSTATUS PhGetThreadApartmentState(
 
 #ifdef _WIN64
         if (isWow64)
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
         else
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0x14);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0x14);
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
 #endif
 
         status = NtReadVirtualMemory(
@@ -846,6 +854,8 @@ NTSTATUS PhGetThreadApartmentCallState(
 
     if (isWow64)
     {
+        ULONG oletlsDataAddress32 = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
@@ -853,10 +863,14 @@ NTSTATUS PhGetThreadApartmentCallState(
             sizeof(ULONG),
             NULL
             );
+
+        oletlsBaseAddress = UlongToPtr(oletlsDataAddress32);
     }
     else
 #endif
     {
+        ULONG_PTR oletlsDataAddress = 0;
+
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
@@ -864,9 +878,10 @@ NTSTATUS PhGetThreadApartmentCallState(
             sizeof(ULONG_PTR),
             NULL
             );
+
     }
 
-    if (NT_SUCCESS(status) && oletlsDataAddress)
+    if (NT_SUCCESS(status) && oletlsBaseAddress)
     {
         typedef enum _CALL_STATE_TYPE
         {
@@ -925,7 +940,7 @@ NTSTATUS PhGetThreadApartmentCallState(
         {
             NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(oletlsDataAddress, outgoingCallDataOffset),
+                PTR_ADD_OFFSET(oletlsBaseAddress, outgoingCallDataOffset),
                 &outgoingCallData,
                 sizeof(tagOutgoingCallData),
                 NULL
@@ -936,7 +951,7 @@ NTSTATUS PhGetThreadApartmentCallState(
         {
             NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(oletlsDataAddress, incomingCallDataOffset),
+                PTR_ADD_OFFSET(oletlsBaseAddress, incomingCallDataOffset),
                 &incomingCallData,
                 sizeof(tagIncomingCallData),
                 NULL
@@ -947,7 +962,7 @@ NTSTATUS PhGetThreadApartmentCallState(
         {
             NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(oletlsDataAddress, outgoingActivationDataOffset),
+                PTR_ADD_OFFSET(oletlsBaseAddress, outgoingActivationDataOffset),
                 &outgoingActivationData,
                 sizeof(tagOutgoingActivationData),
                 NULL

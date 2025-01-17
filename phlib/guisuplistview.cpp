@@ -207,28 +207,28 @@ LONG PhFindListViewItemByParam(
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
 }
 
-LONG PhFindIListViewItemByParam(
-    _In_ IListView* ListView,
-    _In_ LONG GroupIndex,
-    _In_ LONG StartIndex,
-    _In_opt_ PVOID Param
-    )
-{
-    LVITEMINDEX itemIndex;
-    LVITEMINDEX nextItemIndex;
-    LVFINDINFO findInfo;
-
-    itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = GroupIndex;
-
-    findInfo.flags = LVFI_PARAM;
-    findInfo.lParam = reinterpret_cast<LPARAM>(Param);
-
-    if (SUCCEEDED(ListView->FindItem(itemIndex, &findInfo, &nextItemIndex)))
-        return nextItemIndex.iItem;
-
-    return INT_ERROR;
-}
+//LONG PhFindIListViewItemByParam(
+//    _In_ IListView* ListView,
+//    _In_ LONG GroupIndex,
+//    _In_ LONG StartIndex,
+//    _In_opt_ PVOID Param
+//    )
+//{
+//    LVITEMINDEX itemIndex;
+//    LVITEMINDEX nextItemIndex;
+//    LVFINDINFO findInfo;
+//
+//    itemIndex.iItem = StartIndex;
+//    itemIndex.iGroup = GroupIndex;
+//
+//    findInfo.flags = LVFI_PARAM;
+//    findInfo.lParam = reinterpret_cast<LPARAM>(Param);
+//
+//    if (SUCCEEDED(ListView->FindItem(itemIndex, &findInfo, &nextItemIndex)))
+//        return nextItemIndex.iItem;
+//
+//    return INT_ERROR;
+//}
 
 _Success_(return)
 BOOLEAN PhGetListViewItemImageIndex(

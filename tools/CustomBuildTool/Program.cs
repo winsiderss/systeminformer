@@ -20,6 +20,8 @@ namespace CustomBuildTool
             if (!Build.InitializeBuildEnvironment())
                 return;
 
+            Build.ExportDefinitions(false);
+
             ProgramArgs = Utils.ParseArgs(args);
 
             if (ProgramArgs.ContainsKey("-cleanup"))
@@ -133,8 +135,6 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(false);
 
-                Build.ExportDefinitions(false);
-
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
                     return;
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
@@ -158,8 +158,6 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
-                Build.ExportDefinitions(false);
-
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug))
                     return;
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
@@ -181,12 +179,19 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                Build.ExportDefinitions(true);
+                try
+                {
+                    Build.ExportDefinitions(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
-                    return;
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                    return;
+                    if (!Build.BuildSolution("SystemInformer.sln", flags))
+                        return;
+                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                        return;
+                }
+                finally
+                {
+                    Build.ExportDefinitionsRevert();
+                }
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
             }
@@ -230,12 +235,19 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                Build.ExportDefinitions(true);
+                try
+                {
+                    Build.ExportDefinitions(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
-                    return;
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                    return;
+                    if (!Build.BuildSolution("SystemInformer.sln", flags))
+                        return;
+                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                        return;
+                }
+                finally
+                {
+                    Build.ExportDefinitionsRevert();
+                }
 
                 if (!Build.CopyDebugEngineFiles(flags))
                     Environment.Exit(1);
@@ -251,8 +263,6 @@ namespace CustomBuildTool
             else
             {
                 Build.SetupBuildEnvironment(true);
-
-                Build.ExportDefinitions(false);
 
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
                     return;

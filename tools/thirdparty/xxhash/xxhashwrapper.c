@@ -28,7 +28,7 @@
 
 #include "xxhash.h"
 
-ULONG PhXXH32ToInteger(
+ULONG PhHashXXH32ToInteger(
     _In_ ULONG Hash
     )
 {
@@ -41,11 +41,11 @@ ULONG PhXXH32ToInteger(
     return value;
 }
 
-ULONG64 PhXXH64ToInteger(
-    _In_ ULONG64 Hash
+ULONGLONG PhHashXXH64ToInteger(
+    _In_ ULONGLONG Hash
     )
 {
-    ULONG64 value = 0;
+    ULONGLONG value = 0;
 
     XXH64_canonical_t cano;
     XXH64_canonicalFromHash(&cano, Hash);
@@ -54,11 +54,11 @@ ULONG64 PhXXH64ToInteger(
     return value;
 }
 
-ULONG64 PhXXH128ToInteger(
+ULONGLONG PhXXH128ToInteger(
     _In_ PULARGE_INTEGER_128 Hash
     )
 {
-    ULONG64 value = 0;
+    ULONGLONG value = 0;
     XXH128_hash_t hash;
 
     hash.low64 = Hash->QuadPart[0];
@@ -71,28 +71,31 @@ ULONG64 PhXXH128ToInteger(
     return value;
 }
 
-ULONG PhHashStringRefXXH32(
-    _In_ PPCH_STRINGREF String,
+ULONG PhHashXXH32(
+    _In_reads_bytes_(InputLength) const void* InputBuffer,
+    _In_ SIZE_T InputLength,
     _In_ ULONG Seed
     )
 {    
-    return XXH32(String->Buffer, String->Length, Seed);
+    return XXH32(InputBuffer, InputLength, Seed);
 }
 
-ULONG64 PhHashStringRefXXH64(
-    _In_ PPCH_STRINGREF String,
-    _In_ ULONG64 Seed
+ULONGLONG PhHashXXH64(
+    _In_reads_bytes_(InputLength) const void* InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ ULONGLONG Seed
     )
 {    
-    return XXH64(String->Buffer, String->Length, Seed);
+    return XXH64(InputBuffer, InputLength, Seed);
 }
 
-ULONG64 PhHashStringRefXXH3_64(
-    _In_ PPCH_STRINGREF String,
-    _In_ ULONG64 Seed
+ULONGLONG PhHashXXH3_64(
+    _In_reads_bytes_(InputLength) const void* InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ ULONGLONG Seed
     )
 {
-    return XXH3_64bits_withSeed(String->Buffer, String->Length, Seed);
+    return XXH3_64bits_withSeed(InputBuffer, InputLength, Seed);
 }
 
 BOOLEAN PhHashStringRefXXH3_128(

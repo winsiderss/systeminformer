@@ -631,7 +631,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHNETLC_PROCESS:
-                getCellText->Text = PhGetStringRef(node->ProcessNameText);
+                {
+                    getCellText->Text = PhGetStringRef(node->ProcessNameText);
+                }
                 break;
             case PHNETLC_PID:
                 {
@@ -676,7 +678,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_PROTOCOL:
                 {
-                    PPH_STRINGREF protocolType;
+                    PPCH_STRINGREF protocolType;
 
                     if (protocolType = PhGetProtocolTypeName(networkItem->ProtocolType))
                     {
@@ -693,7 +695,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 {
                     if (FlagOn(networkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
                     {
-                        PPH_STRINGREF stateName;
+                        PPCH_STRINGREF stateName;
 
                         if (stateName = PhGetTcpStateName(networkItem->State))
                         {
@@ -930,8 +932,8 @@ VOID PhpUpdateNetworkItemProcessName(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_STRINGREF processNameUnknown = PH_STRINGREF_INIT(L"Unknown process");
-    static PH_STRINGREF processNameWaiting = PH_STRINGREF_INIT(L"Waiting connections");
+    static CONST PH_STRINGREF processNameUnknown = PH_STRINGREF_INIT(L"Unknown process");
+    static CONST PH_STRINGREF processNameWaiting = PH_STRINGREF_INIT(L"Waiting connections");
     static PPH_STRING cachedNameUnknown = NULL;
     static PPH_STRING cachedNameWaiting = NULL;
 

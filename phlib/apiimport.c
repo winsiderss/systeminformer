@@ -163,6 +163,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateThreadStateChange);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeThreadState);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtAllocateVirtualMemoryEx);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);

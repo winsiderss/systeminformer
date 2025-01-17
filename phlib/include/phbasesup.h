@@ -2559,7 +2559,7 @@ FORCEINLINE
 PPH_BYTES
 NTAPI
 PhConvertStringRefToUtf8(
-    _In_ PPH_STRINGREF String
+    _In_ PPCH_STRINGREF String
     )
 {
     return PhConvertUtf16ToUtf8Ex(String->Buffer, String->Length);
@@ -2636,7 +2636,7 @@ VOID
 NTAPI
 PhAppendStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PPH_STRINGREF String
+    _In_ PPCH_STRINGREF String
     )
 {
     PhAppendStringBuilderEx(

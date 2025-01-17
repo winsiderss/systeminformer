@@ -12295,9 +12295,9 @@ NTSTATUS PhSetSystemEnvironmentBootToFirmware(
     VOID
     )
 {
-    static const GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
-    static UNICODE_STRING OsIndicationsSupportedName = RTL_CONSTANT_STRING(L"OsIndicationsSupported");
-    static UNICODE_STRING OsIndicationsName = RTL_CONSTANT_STRING(L"OsIndications");
+    static CONST GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
+    static CONST UNICODE_STRING OsIndicationsSupportedName = RTL_CONSTANT_STRING(L"OsIndicationsSupported");
+    static CONST UNICODE_STRING OsIndicationsName = RTL_CONSTANT_STRING(L"OsIndications");
     const ULONG64 EFI_OS_INDICATIONS_BOOT_TO_FW_UI = 0x0000000000000001ULL;
     ULONG osIndicationsLength = sizeof(ULONG64);
     ULONG osIndicationsAttributes = 0;

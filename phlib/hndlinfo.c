@@ -2001,7 +2001,7 @@ CleanupExit:
 
     if (!ksienabled && objectHandle && ProcessHandle != NtCurrentProcess())
     {
-        NtClose(objectHandle);
+        PhQueryCloseHandle(objectHandle);
     }
 
     PhClearReference(&typeName);

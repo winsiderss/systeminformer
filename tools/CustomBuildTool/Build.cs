@@ -1669,5 +1669,27 @@ namespace CustomBuildTool
                 Utils.WriteAllText("SystemInformer\\SystemInformer.def.bak", export_content);
             }
         }
+
+        public static void ExportDefinitionsRevert()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                try
+                {
+                    if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
+                    {
+                        string export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
+
+                        Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_backup);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
+                }
+
+                Thread.Sleep(10000);
+            }
+        }
     }
 }

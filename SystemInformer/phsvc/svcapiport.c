@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <phsvc.h>
+#include <verify.h>
 
 NTSTATUS PhSvcApiRequestThreadStart(
     _In_ PVOID Parameter
@@ -183,6 +184,44 @@ NTSTATUS PhSvcApiRequestThreadStart(
     PhDeleteAutoPool(&autoPool);
 }
 
+BOOLEAN PhSvcHandleVerify(
+    _In_ PPCH_STRINGREF FileName
+    )
+{
+    BOOLEAN status = FALSE;
+    HANDLE fileHandle;
+
+    if (NT_SUCCESS(PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        VERIFY_RESULT result;
+        PH_VERIFY_FILE_INFO info;
+
+        memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+        info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+        info.FileHandle = fileHandle;
+
+        if (NT_SUCCESS(PhVerifyFileEx(&info, &result, nullptr, nullptr)))
+        {
+            if (result == VrTrusted)
+            {
+                status = TRUE;
+            }
+        }
+
+        NtClose(fileHandle);
+    }
+
+    return status;
+}
+
 VOID PhSvcHandleConnectionRequest(
     _In_ PPORT_MESSAGE PortMessage
     )
@@ -204,9 +243,23 @@ VOID PhSvcHandleConnectionRequest(
     {
         clientId.UniqueProcess = (HANDLE)message64->h.ClientId.UniqueProcess;
         clientId.UniqueThread = (HANDLE)message64->h.ClientId.UniqueThread;
+
+#if defined(PH_BUILD_API)
+        PPH_STRING remoteFileName;
+
+        remoteFileName = NULL;
+        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
+        PH_AUTO(remoteFileName);
+
+        if (!remoteFileName || !PhSvcHandleVerify(&remoteFileName->sr))
+        {
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+        }
+#endif // PH_BUILD_API
     }
     else
     {
+#if defined(DEBUG)
         PPH_STRING referenceFileName;
         PPH_STRING remoteFileName;
 
@@ -227,6 +280,19 @@ VOID PhSvcHandleConnectionRequest(
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
+#endif // DEBUG
+#if defined(PH_BUILD_API)
+        PPH_STRING remoteFileName;
+
+        remoteFileName = NULL;
+        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
+        PH_AUTO(remoteFileName);
+
+        if (!remoteFileName || !PhSvcHandleVerify(&remoteFileName->sr))
+        {
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+        }
+#endif // PH_BUILD_API
     }
 
     client = PhSvcCreateClient(&clientId);

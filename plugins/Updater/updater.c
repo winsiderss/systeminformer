@@ -842,7 +842,7 @@ NTSTATUS UpdateDownloadThread(
     ULONG64 timeBitsPerSecond;
     LARGE_INTEGER allocationSize;
     ULONG bytesDownloaded = 0;
-    ULONG totalDownloaded = 0;
+    ULONG_PTR totalDownloaded = 0;
     PPH_STRING string;
     IO_STATUS_BLOCK isb;
     PBYTE httpBuffer = NULL;
@@ -1017,7 +1017,7 @@ NTSTATUS UpdateDownloadThread(
         PhQuerySystemTime(&timeNow);
 
         // Calculate the number of ticks
-        totalDownloaded += (ULONG)isb.Information;
+        totalDownloaded += isb.Information;
         timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
         timeBitsPerSecond = timeTicks ? totalDownloaded / timeTicks : 0;
 

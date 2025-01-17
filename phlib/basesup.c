@@ -6156,15 +6156,15 @@ ULONG PhHashStringRefEx(
         }
     case PH_STRING_HASH_XXH32:
         {
+            if (String->Length == 0)
+                return 0;
+
             if (IgnoreCase)
             {
                 NOTHING;
             }
 
-            if (String->Length == 0)
-                return 0;
-
-            return PhHashStringRefXXH32(String, 0);
+            return PhHashXXH32(String->Buffer, String->Length, 0);
         }
     }
 

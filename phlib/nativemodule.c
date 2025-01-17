@@ -1079,6 +1079,15 @@ PVOID PhGetRtlModuleBase(
     return DllBase;
 }
 
+BOOLEAN PhIsRtlModuleBase(
+    _In_ PVOID DllBase
+    )
+{
+    if (WindowsVersion >= WINDOWS_11_24H2)
+        return DllBase >= PTR_SUB_OFFSET(ULONG64_MAX, USHRT_MAX);
+    return FALSE;
+}
+
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PENUM_GENERIC_PROCESS_MODULES_CONTEXT Context

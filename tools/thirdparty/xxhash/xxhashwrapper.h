@@ -15,43 +15,53 @@ EXTERN_C_START
 
 EXTERN_C
 ULONG
-PhXXH32ToInteger(
+PhHashXXH32ToInteger(
     _In_ ULONG Hash
     );
 
 EXTERN_C
-ULONG64
-PhXXH64ToInteger(
-    _In_ ULONG64 Hash
+ULONGLONG
+PhHashXXH64ToInteger(
+    _In_ ULONGLONG Hash
     );
 
 EXTERN_C
-ULONG64
+ULONGLONG
 PhXXH128ToInteger(
     _In_ PULARGE_INTEGER_128 Hash
     );
 
 EXTERN_C
 ULONG
-PhHashStringRefXXH32(
-    _In_ PPCH_STRINGREF String,
-    _In_ ULONG Seed
+NTAPI
+PhHashXXH32(
+    _In_reads_bytes_(InputLength) PCVOID InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ ULONG InputSeed
     );
 
 EXTERN_C
-ULONG64 PhHashStringRefXXH64(
-    _In_ PPCH_STRINGREF String,
-    _In_ ULONG64 Seed
+ULONGLONG
+NTAPI
+PhHashXXH64(
+    _In_reads_bytes_(InputLength) PCVOID InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ ULONGLONG InputSeed
     );
 
 EXTERN_C
-ULONG64 PhHashStringRefXXH3_64(
-    _In_ PPCH_STRINGREF String,
-    _In_ ULONG64 Seed
+ULONGLONG
+NTAPI
+PhHashXXH3_64(
+    _In_reads_bytes_(InputLength) PCVOID InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ ULONGLONG Seed
     );
 
 EXTERN_C
-BOOLEAN PhHashStringRefXXH3_128(
+BOOLEAN
+NTAPI
+PhHashStringRefXXH3_128(
     _In_ PPCH_STRINGREF String,
     _In_ ULONG64 Seed,
     _Out_ PULARGE_INTEGER_128 LargeInteger

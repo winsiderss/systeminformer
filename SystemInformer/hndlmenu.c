@@ -60,6 +60,8 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to t&hread", EnableShortcut), NULL, NULL), indexInParent);
     }
+
+    PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent);
 }
 
 static NTSTATUS PhpDuplicateHandleFromProcessItem(

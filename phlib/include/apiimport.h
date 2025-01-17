@@ -30,6 +30,8 @@ PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
 PH_DECLARE_IMPORT(NtChangeProcessState);
+PH_DECLARE_IMPORT(NtCreateThreadStateChange);
+PH_DECLARE_IMPORT(NtChangeThreadState);
 PH_DECLARE_IMPORT(NtCopyFileChunk);
 PH_DECLARE_IMPORT(NtAllocateVirtualMemoryEx);
 PH_DECLARE_IMPORT(NtCompareObjects);

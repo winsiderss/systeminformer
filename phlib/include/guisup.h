@@ -655,16 +655,6 @@ PhFindListViewItemByParam(
     _In_opt_ PVOID Param
     );
 
-PHLIBAPI
-LONG
-NTAPI
-PhFindIListViewItemByParam(
-    _In_ IListView* ListView,
-    _In_ LONG GroupIndex,
-    _In_ LONG StartIndex,
-    _In_opt_ PVOID Param
-    );
-
 _Success_(return)
 PHLIBAPI
 BOOLEAN

@@ -2491,12 +2491,6 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status = PhInitializeProcThreadAttributeList(&attributeList, 1)))
         goto CleanupExit;
 
-    PROC_THREAD_ATTRIBUTE extended;
-    extended.Attribute = PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS;
-    extended.Size = sizeof(ULONG);
-    extended.Value = (ULONG_PTR)EXTENDED_PROCESS_CREATION_FLAG_FORCELUA;
-    attributeList->ExtendedFlagsAttribute = &extended;
-
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
@@ -2571,22 +2565,16 @@ static VOID PhpRunFileSetImageList(
 {
     if (Context->ImageListHandle)
     {
-        PhImageListSetIconSize(
-            Context->ImageListHandle,
-            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi)
-            );
+        PhImageListDestroy(Context->ImageListHandle);
+        Context->ImageListHandle = NULL;
     }
-    else
-    {
-        Context->ImageListHandle = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
-            ILC_MASK | ILC_COLOR32,
-            1,
-            1
-            );
-    }
+
+    Context->ImageListHandle = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
+        ILC_MASK | ILC_COLOR32,
+        1, 1
+        );
 
     if (Context->ImageListHandle)
     {
@@ -2612,17 +2600,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PHP_RUNFILEDLG));
-
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetDialogContext(hwndDlg, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
+        context = PhGetDialogContext(hwndDlg);
     }
 
     if (!context)
@@ -2670,6 +2652,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveDialogContext(hwndDlg);
+
             PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
 
             PhImageListDestroy(context->ImageListHandle);
