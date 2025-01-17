@@ -1681,7 +1681,7 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
 
     switch (uMsg)
     {
-        case WM_NCDESTROY:
+    case WM_NCDESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
@@ -1691,7 +1691,7 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
         {
             switch (wParam & 0xFFF0)
             {
-                case SC_CLOSE:
+            case SC_CLOSE:
                 {
                     PostMessage(hwnd, WM_CLOSE, 0, 0);
                 }
@@ -1737,7 +1737,7 @@ INT CALLBACK PhpGeneralPropSheetProc(
 {
     switch (uMsg)
     {
-        case PSCB_INITIALIZED:
+    case PSCB_INITIALIZED:
         {
             PhSetWindowContext(hwndDlg, 0xF, (PVOID)PhGetWindowProcedure(hwndDlg));
             PhSetWindowProcedure(hwndDlg, PhpGeneralPropSheetWndProc);
@@ -1807,21 +1807,6 @@ BOOLEAN PhModalPropertySheet(
 
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
-        {
-            HWND pageWindowHandle;
-
-            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
-            {
-                if (SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
-                {
-                    processed = TRUE;
-                }
-            }
-
-            //DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
-        }
 
         if (!processed)
         {
