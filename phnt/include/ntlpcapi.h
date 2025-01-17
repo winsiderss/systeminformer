@@ -168,7 +168,9 @@ typedef struct _REMOTE_PORT_VIEW64
     ULONGLONG ViewBase;
 } REMOTE_PORT_VIEW64, *PREMOTE_PORT_VIEW64;
 
+//
 // Port creation
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -192,7 +194,9 @@ NtCreateWaitablePort(
     _In_opt_ ULONG MaxPoolUsage
     );
 
+//
 // Port connection (client)
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -223,7 +227,9 @@ NtSecureConnectPort(
     _Inout_opt_ PULONG ConnectionInformationLength
     );
 
+//
 // Port connection (server)
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -252,7 +258,9 @@ NtCompleteConnectPort(
     _In_ HANDLE PortHandle
     );
 
+//
 // General
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -648,7 +656,9 @@ typedef struct _ALPC_MESSAGE_HANDLE_INFORMATION
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+//
 // System calls
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -922,7 +932,9 @@ NtAlpcOpenSenderThread(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+//
 // Support functions
+//
 
 NTSYSAPI
 ULONG
