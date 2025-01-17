@@ -100,7 +100,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
     TokenIsRestricted, // q: ULONG // 40
     TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-    TokenPrivateNameSpace, // q; s: ULONG  (requires SeTcbPrivilege) // since THRESHOLD
+    TokenPrivateNameSpace, // q; s: ULONG (requires SeTcbPrivilege) // since THRESHOLD
     TokenSingletonAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
     TokenBnoIsolation, // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
     TokenChildProcessFlags, // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
@@ -153,7 +153,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
 #define TokenSecurityAttributes 39 // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
 #define TokenIsRestricted 40 // q: ULONG // 40
 #define TokenProcessTrustLevel 41 // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-#define TokenPrivateNameSpace 42// q; s: ULONG  (requires SeTcbPrivilege) // since THRESHOLD
+#define TokenPrivateNameSpace 42// q; s: ULONG (requires SeTcbPrivilege) // since THRESHOLD
 #define TokenSingletonAttributes 43 // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
 #define TokenBnoIsolation 44 // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
 #define TokenChildProcessFlags 45 // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
@@ -298,7 +298,9 @@ typedef struct _TOKEN_PROCESS_TRUST_LEVEL
     PSID TrustLevelSid;
 } TOKEN_PROCESS_TRUST_LEVEL, *PTOKEN_PROCESS_TRUST_LEVEL;
 
+//
 // Tokens
+//
 
 NTSYSCALLAPI
 NTSTATUS
