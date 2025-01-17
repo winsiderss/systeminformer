@@ -5007,7 +5007,8 @@ NTSTATUS PhGetDriverServiceKeyName(
 }
 
 NTSTATUS PhpUnloadDriver(
-    _In_ PPH_STRING ServiceKeyName
+    _In_ PPCH_STRINGREF ServiceKeyName,
+    _In_ PPCH_STRINGREF DriverFileName
     )
 {
     static CONST PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
@@ -5017,7 +5018,7 @@ NTSTATUS PhpUnloadDriver(
     HANDLE serviceKeyHandle;
     ULONG disposition;
 
-    fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, &ServiceKeyName->sr);
+    fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, ServiceKeyName);
 
     if (!PhStringRefToUnicodeString(&fullServiceKeyName->sr, &fullServiceKeyNameUs))
     {
@@ -5037,14 +5038,13 @@ NTSTATUS PhpUnloadDriver(
     {
         if (disposition == REG_CREATED_NEW_KEY)
         {
-            static CONST PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
             ULONG regValue = 0;
 
             // Set up the required values.
             PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
             PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
             PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
-            PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, imagePath.Buffer, (ULONG)imagePath.Length + sizeof(UNICODE_NULL));
+            PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, DriverFileName->Buffer, (ULONG)DriverFileName->Length + sizeof(UNICODE_NULL));
         }
 
         status = NtUnloadDriver(&fullServiceKeyNameUs);
@@ -5077,7 +5077,8 @@ NTSTATUS PhpUnloadDriver(
  */
 NTSTATUS PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PCWSTR Name
+    _In_opt_ PPCH_STRINGREF Name,
+    _In_opt_ PPCH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -5096,13 +5097,17 @@ NTSTATUS PhUnloadDriver(
 
     if ((level == KphLevelMax) && BaseAddress)
     {
-        if (NT_SUCCESS(PhOpenDriverByBaseAddress(
-            &driverHandle,
-            BaseAddress
-            )))
+        extern BOOLEAN PhIsRtlModuleBase(_In_ PVOID DllBase);
+        if (!PhIsRtlModuleBase(BaseAddress))
         {
-            PhGetDriverServiceKeyName(driverHandle, &serviceKeyName);
-            NtClose(driverHandle);
+            if (NT_SUCCESS(PhOpenDriverByBaseAddress(
+                &driverHandle,
+                BaseAddress
+                )))
+            {
+                PhGetDriverServiceKeyName(driverHandle, &serviceKeyName);
+                NtClose(driverHandle);
+            }
         }
     }
 
@@ -5112,7 +5117,7 @@ NTSTATUS PhUnloadDriver(
     {
         PPH_STRING name;
 
-        name = PhCreateString(Name);
+        name = PhCreateString2(Name);
 
         // Remove the extension if it is present.
         if (PhEndsWithString2(name, L".sys", TRUE))
@@ -5129,7 +5134,7 @@ NTSTATUS PhUnloadDriver(
     if (!serviceKeyName)
         return STATUS_OBJECT_NAME_NOT_FOUND;
 
-    status = PhpUnloadDriver(serviceKeyName);
+    status = PhpUnloadDriver(&serviceKeyName->sr, FileName);
     PhDereferenceObject(serviceKeyName);
 
     return status;

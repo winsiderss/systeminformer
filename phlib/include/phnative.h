@@ -1730,7 +1730,8 @@ NTSTATUS
 NTAPI
 PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PCWSTR Name
+    _In_opt_ PPCH_STRINGREF Name,
+    _In_opt_ PPCH_STRINGREF FileName
     );
 
 typedef _Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
