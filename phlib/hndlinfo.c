@@ -1120,7 +1120,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             JOB_OBJECT_QUERY,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1202,7 +1202,7 @@ NTSTATUS PhpGetBestObjectName(
                 &dupHandle,
                 PROCESS_QUERY_LIMITED_INFORMATION,
                 0,
-                DUPLICATE_SAME_ATTRIBUTES
+                0
                 );
 
             if (!NT_SUCCESS(status))
@@ -1275,7 +1275,7 @@ NTSTATUS PhpGetBestObjectName(
                 &dupHandle,
                 SECTION_QUERY | SECTION_MAP_READ,
                 0,
-                DUPLICATE_SAME_ATTRIBUTES
+                0
                 );
 
             if (!NT_SUCCESS(status))
@@ -1368,7 +1368,7 @@ NTSTATUS PhpGetBestObjectName(
                 &dupHandle,
                 THREAD_QUERY_LIMITED_INFORMATION,
                 0,
-                DUPLICATE_SAME_ATTRIBUTES
+                0
                 );
 
             if (!NT_SUCCESS(status))
@@ -1398,7 +1398,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             ENLISTMENT_QUERY_INFORMATION,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1425,7 +1425,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             RESOURCEMANAGER_QUERY_INFORMATION,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1466,7 +1466,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             TRANSACTIONMANAGER_QUERY_INFORMATION,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1513,7 +1513,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             TRANSACTION_QUERY_INFORMATION,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1561,7 +1561,7 @@ NTSTATUS PhpGetBestObjectName(
             &dupHandle,
             TOKEN_QUERY,
             0,
-            DUPLICATE_SAME_ATTRIBUTES
+            0
             );
 
         if (!NT_SUCCESS(status))
@@ -1848,7 +1848,7 @@ NTSTATUS PhGetHandleInformationEx(
             &objectHandle,
             0,
             0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+            DUPLICATE_SAME_ACCESS
             );
 
         if (!NT_SUCCESS(status))

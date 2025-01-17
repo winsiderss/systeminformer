@@ -303,7 +303,7 @@ VOID PhCreateTokenDialog(
         &tokenHandle,
         0,
         0,
-        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        DUPLICATE_SAME_ACCESS
         )))
     {
         PhShowStatus(NULL, L"Unable to duplicate the token.", status, 0);

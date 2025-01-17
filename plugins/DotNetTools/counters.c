@@ -128,7 +128,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
         &legacyPrivateBlockMutexHandle,
         GENERIC_ALL,
         0,
-        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        DUPLICATE_SAME_ACCESS
         )))
     {
         goto CleanupExit;
@@ -289,7 +289,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
         &legacyPrivateBlockMutexHandle,
         GENERIC_ALL,
         0,
-        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        DUPLICATE_SAME_ACCESS
         )))
     {
         goto CleanupExit;
