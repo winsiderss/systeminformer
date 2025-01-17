@@ -179,7 +179,7 @@
     <ClCompile Include="strsrch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ntuser.c">
+    <ClCompile Include="nativeuser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nativemodule.c">

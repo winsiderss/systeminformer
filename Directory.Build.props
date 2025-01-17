@@ -35,21 +35,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
@@ -57,7 +54,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -65,7 +61,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
@@ -73,7 +68,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
@@ -92,6 +86,7 @@
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>false</WholeProgramOptimization>
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
@@ -119,6 +114,7 @@
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>false</WholeProgramOptimization>
           <IntrinsicFunctions>true</IntrinsicFunctions>
       </ClCompile>
       <Link>
@@ -146,6 +142,7 @@
           <FloatingPointModel>Precise</FloatingPointModel>
           <FunctionLevelLinking>true</FunctionLevelLinking>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>false</WholeProgramOptimization>
           <IntrinsicFunctions>true</IntrinsicFunctions>
           <GuardSignedReturns>true</GuardSignedReturns>
       </ClCompile>
@@ -167,7 +164,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-          <Optimization>Full</Optimization>
+          <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
           <FloatingPointModel>Precise</FloatingPointModel>
@@ -176,13 +173,13 @@
           <SpectreMitigation>Spectre</SpectreMitigation>
           <IntelJCCErratum>true</IntelJCCErratum>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
           <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
       <Link>
           <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions) $(ExternalLinkerOptions)</AdditionalOptions>
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
-          <Optimization>Disabled</Optimization>
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
@@ -202,7 +199,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-          <Optimization>Full</Optimization>
+          <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
           <FloatingPointModel>Precise</FloatingPointModel>
@@ -212,6 +209,7 @@
           <IntelJCCErratum>true</IntelJCCErratum>
           <GuardEHContMetadata>true</GuardEHContMetadata>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
           <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
@@ -237,7 +235,7 @@
           <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-          <Optimization>Full</Optimization>
+          <Optimization>MaxSpeed</Optimization>
           <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
           <CallingConvention>StdCall</CallingConvention>
           <FloatingPointModel>Precise</FloatingPointModel>
@@ -245,6 +243,7 @@
           <IntrinsicFunctions>true</IntrinsicFunctions>
           <GuardSignedReturns>true</GuardSignedReturns>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
           <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
           <ControlFlowGuard>Guard</ControlFlowGuard>
       </ClCompile>
