@@ -3728,6 +3728,22 @@ PhThawProcess(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeThread(
+    _Out_ PHANDLE FreezeHandle,
+    _In_ HANDLE ThreadId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawThread(
+    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ThreadId
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsProcessExecutionRequired(

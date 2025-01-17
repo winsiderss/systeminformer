@@ -872,7 +872,7 @@ PhGetThreadPowerThrottlingState(
         &powerThrottlingState,
         sizeof(powerThrottlingState),
         NULL
-    );
+        );
 
     if (NT_SUCCESS(status))
     {
@@ -1377,12 +1377,32 @@ PhGetThreadGroupAffinity(
     _Out_ PGROUP_AFFINITY GroupAffinity
     )
 {
+    ULONG returnLength;
+
     return NtQueryInformationThread(
         ThreadHandle,
         ThreadGroupInformation,
         GroupAffinity,
         sizeof(GROUP_AFFINITY),
-        NULL
+        &returnLength
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadIndexInformation(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_INDEX_INFORMATION ThreadIndex
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIndexInformation,
+        ThreadIndex,
+        sizeof(THREAD_INDEX_INFORMATION),
+        &returnLength
         );
 }
 

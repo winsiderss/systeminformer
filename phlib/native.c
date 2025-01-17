@@ -12577,6 +12577,103 @@ NTSTATUS PhThawProcess(
     return status;
 }
 
+NTSTATUS PhFreezeThread(
+    _Out_ PHANDLE FreezeHandle,
+    _In_ HANDLE ThreadId
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE threadHandle;
+    HANDLE stateHandle;
+
+    if (!(NtCreateThreadStateChange_Import() && NtChangeThreadState_Import()))
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhOpenThread(
+        &threadHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ThreadId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateThreadStateChange_Import()(
+        &stateHandle,
+        STATECHANGE_SET_ATTRIBUTES,
+        &objectAttributes,
+        threadHandle,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(threadHandle);
+        return status;
+    }
+
+    status = NtChangeThreadState_Import()(
+        stateHandle,
+        threadHandle,
+        ThreadStateChangeResume,
+        NULL,
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FreezeHandle = stateHandle;
+    }
+
+    NtClose(threadHandle);
+
+    return status;
+}
+
+NTSTATUS PhThawThread(
+    _In_ HANDLE FreezeHandle,
+    _In_ HANDLE ThreadId
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+
+    if (!NtChangeThreadState_Import())
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_INFORMATION | THREAD_SUSPEND_RESUME,
+        ThreadId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtChangeThreadState_Import()(
+        FreezeHandle,
+        threadHandle,
+        ThreadStateChangeResume,
+        NULL,
+        0,
+        0
+        );
+
+    NtClose(threadHandle);
+
+    return status;
+}
+
 // Process execution request support
 
 static PH_INITONCE PhExecutionRequestInitOnce = PH_INITONCE_INIT;
