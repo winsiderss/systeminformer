@@ -19,6 +19,7 @@ static CONST PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown"
 
 static CONST PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
+    SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"Stopped"), SERVICE_STOPPED),
     SIP(SREF(L"Start pending"), SERVICE_START_PENDING),
     SIP(SREF(L"Stop pending"), SERVICE_STOP_PENDING),

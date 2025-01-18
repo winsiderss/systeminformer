@@ -259,9 +259,11 @@ VOID PhSvcHandleConnectionRequest(
     }
     else
     {
+#if defined(DEBUG) || defined(PH_BUILD_API)
+        PPH_STRING remoteFileName;
+#endif
 #if defined(DEBUG)
         PPH_STRING referenceFileName;
-        PPH_STRING remoteFileName;
 
         clientId = message->h.ClientId;
 
@@ -282,8 +284,6 @@ VOID PhSvcHandleConnectionRequest(
         }
 #endif // DEBUG
 #if defined(PH_BUILD_API)
-        PPH_STRING remoteFileName;
-
         remoteFileName = NULL;
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
