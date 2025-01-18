@@ -5826,7 +5826,7 @@ BOOLEAN PhUiUnloadModule(
         break;
 
     case PH_MODULE_TYPE_KERNEL_MODULE:
-        status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
+        status = PhUnloadDriver(Module->BaseAddress, &Module->Name->sr, &Module->FileName->sr);
 
         if (!NT_SUCCESS(status))
         {
@@ -5844,7 +5844,7 @@ BOOLEAN PhUiUnloadModule(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallUnloadDriver(Module->BaseAddress, Module->Name->Buffer)))
+                    if (NT_SUCCESS(status = PhSvcCallUnloadDriver(Module->BaseAddress, Module->Name->Buffer, Module->FileName->Buffer)))
                         success = TRUE;
                     else
                         PhShowStatus(WindowHandle, PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer, status, 0);
