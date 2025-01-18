@@ -753,7 +753,7 @@ NTSTATUS PhGetThreadApartmentState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    ULONG_PTR oletlsDataAddress = 0;
+    typeof(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = nullptr;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -1058,7 +1058,7 @@ NTSTATUS PhGetThreadSocketState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    HANDLE winsockHandleAddress;
+    typeof(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = nullptr;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
