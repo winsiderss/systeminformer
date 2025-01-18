@@ -1012,6 +1012,7 @@ EXPORTS
     PhSetIntegerPairStringRefSetting
     PhSetIntegerStringRefSetting
     PhSetScalableIntegerPairStringRefSetting
+    PhSetScalableIntegerPairStringRefSetting2
     PhSetStringRefSetting
     PhUpdateCachedSettings
 
