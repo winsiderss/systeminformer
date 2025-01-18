@@ -3268,7 +3268,7 @@ PPH_STRING PhGetBaseName(
 }
 
 PPH_STRING PhGetBaseNameChangeExtension(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PPCH_STRINGREF FileName,
     _In_ PPCH_STRINGREF FileExtension
     )
 {
@@ -8539,6 +8539,7 @@ NTSTATUS PhCreateProcessClone(
     NTSTATUS status;
     HANDLE processHandle;
     HANDLE cloneProcessHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     status = PhOpenProcess(
         &processHandle,
@@ -8549,10 +8550,18 @@ NTSTATUS PhCreateProcessClone(
     if (!NT_SUCCESS(status))
         return status;
 
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     status = NtCreateProcessEx(
         &cloneProcessHandle,
         PROCESS_ALL_ACCESS,
-        NULL,
+        &objectAttributes,
         processHandle,
         PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED,
         NULL,
