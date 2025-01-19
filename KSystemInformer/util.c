@@ -51,6 +51,26 @@ PVOID KphBinarySearch(
 }
 
 /**
+ * \brief Performs a quick sort of an array.
+ *
+ * \param[in] Base Pointer to the base of the array to sort.
+ * \param[in] NumberOfElements Number of elements in the array.
+ * \param[in] SizeOfElement Size of each element in the array.
+ * \param[in] Callback Comparison callback.
+ * \param[in] Context Optional context for the callback.
+ */
+VOID KphQuickSort(
+    _Inout_updates_bytes_(NumberOfElements * SizeOfElement) PVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_QUICK_SORT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    qsort_s(Base, NumberOfElements, SizeOfElement, Callback, Context);
+}
+
+/**
  * \brief Searches memory for a given pattern.
  *
  * \param[in] Buffer The memory to search.

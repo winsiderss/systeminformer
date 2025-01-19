@@ -1062,6 +1062,25 @@ PVOID KphBinarySearch(
     _In_opt_ PVOID Context
     );
 
+typedef
+_Function_class_(KPH_QUICK_SORT_CALLBACK)
+INT
+KSIAPI
+KPH_QUICK_SORT_CALLBACK(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID LeftElement,
+    _In_ PCVOID RightElement
+    );
+typedef KPH_QUICK_SORT_CALLBACK* PKPH_QUICK_SORT_CALLBACK;
+
+VOID KphQuickSort(
+    _Inout_updates_bytes_(NumberOfElements * SizeOfElement) PVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_QUICK_SORT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 _Must_inspect_result_
 _Success_(return != NULL)
 PVOID KphSearchMemory(
