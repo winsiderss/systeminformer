@@ -456,6 +456,66 @@ VOID KphFree(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Return_allocatesMem_size_(NumberOfBytes)
+FORCEINLINE
+PVOID KphpAllocateNPagedA(
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag,
+    _Out_writes_bytes_(SizeOfStack) PBYTE Stack,
+    _In_ ULONG SizeOfStack
+    )
+{
+    if (NumberOfBytes <= SizeOfStack)
+    {
+        RtlZeroMemory(Stack, SizeOfStack);
+        return Stack;
+    }
+
+    return KphAllocateNPaged(NumberOfBytes, Tag);
+}
+
+#define KphAllocateNPagedA(NumberOfBytes, Tag, Stack)                          \
+    KphpAllocateNPagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
+
+_IRQL_requires_max_(APC_LEVEL)
+_Return_allocatesMem_size_(NumberOfBytes)
+FORCEINLINE
+PVOID KphpAllocatePagedA(
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag,
+    _Out_writes_bytes_(SizeOfStack) PBYTE Stack,
+    _In_ ULONG SizeOfStack
+    )
+{
+    if (NumberOfBytes <= SizeOfStack)
+    {
+        RtlZeroMemory(Stack, SizeOfStack);
+        return Stack;
+    }
+
+    return KphAllocatePaged(NumberOfBytes, Tag);
+}
+
+#define KphAllocatePagedA(NumberOfBytes, Tag, Stack)                           \
+    KphpAllocatePagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+FORCEINLINE
+VOID KphpFreeA(
+    _FreesMem_ PVOID Memory,
+    _In_ ULONG Tag,
+    _In_ PBYTE Stack
+    )
+{
+    if (Memory != Stack)
+    {
+        KphFree(Memory, Tag);
+    }
+}
+
+#define KphFreeA(Memory, Tag, Stack) KphpFreeA(Memory, Tag, Stack)
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphInitializeNPagedLookaside(
     _Out_ PNPAGED_LOOKASIDE_LIST Lookaside,
     _In_ SIZE_T Size,
