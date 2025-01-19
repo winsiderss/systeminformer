@@ -2448,7 +2448,7 @@ BOOLEAN PhGetFileVersionInfoKey(
 _Success_(return)
 BOOLEAN PhGetFileVersionVarFileInfoValue(
     _In_ PVOID VersionInfo,
-    _In_ PPCH_STRINGREF KeyName,
+    _In_ PCPH_STRINGREF KeyName,
     _Out_opt_ PVOID* Buffer,
     _Out_opt_ PULONG BufferLength
     )
@@ -2574,7 +2574,7 @@ PPH_STRING PhGetFileVersionInfoString(
 PPH_STRING PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPCH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     )
 {
     static CONST PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
@@ -2643,7 +2643,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 PPH_STRING PhGetFileVersionInfoStringEx(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPCH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     )
 {
     PPH_STRING string;
@@ -3268,8 +3268,8 @@ PPH_STRING PhGetBaseName(
 }
 
 PPH_STRING PhGetBaseNameChangeExtension(
-    _In_ PPCH_STRINGREF FileName,
-    _In_ PPCH_STRINGREF FileExtension
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileExtension
     )
 {
     ULONG_PTR indexOfBackslash;
@@ -3684,7 +3684,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
 }
 
 PPH_STRING PhGetApplicationDirectoryFileName(
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3721,7 +3721,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 }
 
 PPH_STRING PhGetLocalAppDataDirectory(
-    _In_opt_ PPCH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3739,7 +3739,7 @@ PPH_STRING PhGetLocalAppDataDirectory(
 }
 
 PPH_STRING PhGetRoamingAppDataDirectory(
-    _In_opt_ PPCH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {

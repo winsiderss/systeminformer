@@ -859,7 +859,7 @@ NTSTATUS
 NTAPI
 PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
-    _In_ PPCH_STRINGREF AttributeName,
+    _In_ PCPH_STRINGREF AttributeName,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
     );
 
@@ -868,7 +868,7 @@ BOOLEAN
 NTAPI
 PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PPCH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName
     );
 
 PHLIBAPI
@@ -1730,8 +1730,8 @@ NTSTATUS
 NTAPI
 PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PPCH_STRINGREF Name,
-    _In_opt_ PPCH_STRINGREF FileName
+    _In_opt_ PCPH_STRINGREF Name,
+    _In_opt_ PCPH_STRINGREF FileName
     );
 
 typedef _Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
@@ -2609,7 +2609,7 @@ PhCreateKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPCH_STRINGREF ObjectName,
+    _In_ PCPH_STRINGREF ObjectName,
     _In_ ULONG Attributes,
     _In_ ULONG CreateOptions,
     _Out_opt_ PULONG Disposition
@@ -2642,7 +2642,7 @@ PhOpenKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPCH_STRINGREF ObjectName,
+    _In_ PCPH_STRINGREF ObjectName,
     _In_ ULONG Attributes
     );
 
@@ -2842,7 +2842,7 @@ NTSTATUS
 NTAPI
 PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -2855,7 +2855,7 @@ NTSTATUS
 NTAPI
 PhCreateFileEx(
     _Out_ PHANDLE FileHandle,
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
@@ -4222,7 +4222,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFilterConnectCommunicationPort(
-    _In_ PPCH_STRINGREF PortName,
+    _In_ PCPH_STRINGREF PortName,
     _In_ ULONG Options,
     _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
     _In_ USHORT SizeOfContext,

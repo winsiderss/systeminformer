@@ -230,7 +230,7 @@ static VOID KphpTpSetPoolThreadBasePriority(
  */
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
-    _In_ PPCH_STRINGREF PortName,
+    _In_ PCPH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     )
 {

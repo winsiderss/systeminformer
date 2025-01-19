@@ -678,7 +678,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_PROTOCOL:
                 {
-                    PPCH_STRINGREF protocolType;
+                    PCPH_STRINGREF protocolType;
 
                     if (protocolType = PhGetProtocolTypeName(networkItem->ProtocolType))
                     {
@@ -695,7 +695,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 {
                     if (FlagOn(networkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
                     {
-                        PPCH_STRINGREF stateName;
+                        PCPH_STRINGREF stateName;
 
                         if (stateName = PhGetTcpStateName(networkItem->State))
                         {

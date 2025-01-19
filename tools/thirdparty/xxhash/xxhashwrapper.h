@@ -62,7 +62,7 @@ EXTERN_C
 BOOLEAN
 NTAPI
 PhHashStringRefXXH3_128(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG64 Seed,
     _Out_ PULARGE_INTEGER_128 LargeInteger
     );

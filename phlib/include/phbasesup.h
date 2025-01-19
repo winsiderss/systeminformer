@@ -985,7 +985,7 @@ typedef struct _PH_STRINGREF
     /** The buffer containing the contents of the string. */
     PWCH Buffer;
 } PH_STRINGREF, *PPH_STRINGREF;
-typedef const PH_STRINGREF* PPCH_STRINGREF;
+typedef const PH_STRINGREF* PCPH_STRINGREF;
 
 typedef struct _PH_BYTESREF
 {
@@ -994,7 +994,7 @@ typedef struct _PH_BYTESREF
     /** The buffer containing the contents of the string. */
     PCH Buffer;
 } PH_BYTESREF, *PPH_BYTESREF;
-typedef const PH_BYTESREF* PPCH_BYTESREF;
+typedef const PH_BYTESREF* PCPH_BYTESREF;
 
 typedef struct _PH_RELATIVE_BYTESREF
 {
@@ -1072,7 +1072,7 @@ PhInitializeBufferStringRef(
 FORCEINLINE
 BOOLEAN
 PhStringRefToUnicodeString(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_ PUNICODE_STRING UnicodeString
     )
 {
@@ -1098,8 +1098,8 @@ PHLIBAPI
 LONG
 NTAPI
 PhCompareStringRef(
-    _In_ PPCH_STRINGREF String1,
-    _In_ PPCH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -1107,8 +1107,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhEqualStringRef(
-    _In_ PPCH_STRINGREF String1,
-    _In_ PPCH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -1116,7 +1116,7 @@ PHLIBAPI
 ULONG_PTR
 NTAPI
 PhFindCharInStringRef(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     );
@@ -1125,7 +1125,7 @@ PHLIBAPI
 ULONG_PTR
 NTAPI
 PhFindLastCharInStringRef(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     );
@@ -1134,15 +1134,15 @@ PHLIBAPI
 ULONG_PTR
 NTAPI
 PhFindStringInStringRef(
-    _In_ PPCH_STRINGREF String,
-    _In_ PPCH_STRINGREF SubString,
+    _In_ PCPH_STRINGREF String,
+    _In_ PCPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     );
 
 FORCEINLINE
 ULONG_PTR
 PhFindStringInStringRefZ(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ PCWSTR SubString,
     _In_ BOOLEAN IgnoreCase
     )
@@ -1250,8 +1250,8 @@ PhEqualStringRef2(
 FORCEINLINE
 BOOLEAN
 PhStartsWithStringRef(
-    _In_ PPCH_STRINGREF String,
-    _In_ PPCH_STRINGREF Prefix,
+    _In_ PCPH_STRINGREF String,
+    _In_ PCPH_STRINGREF Prefix,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1415,7 +1415,7 @@ PhReferenceEmptyString(
 FORCEINLINE
 PPH_STRING
 PhCreateString2(
-    _In_ PPCH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     if (String->Length == 0)
@@ -1590,33 +1590,33 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef2(
-    _In_ PPCH_STRINGREF String1,
-    _In_ PPCH_STRINGREF String2
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef3(
-    _In_ PPCH_STRINGREF String1,
-    _In_ PPCH_STRINGREF String2,
-    _In_ PPCH_STRINGREF String3
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String3
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef4(
-    _In_ PPCH_STRINGREF String1,
-    _In_ PPCH_STRINGREF String2,
-    _In_ PPCH_STRINGREF String3,
-    _In_ PPCH_STRINGREF String4
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String3,
+    _In_ PCPH_STRINGREF String4
     );
 
 FORCEINLINE
 PPH_STRING
 PhConcatStringRefZ(
-    _In_ PPCH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String1,
     _In_ PCWSTR String2
     )
 {
@@ -2559,7 +2559,7 @@ FORCEINLINE
 PPH_BYTES
 NTAPI
 PhConvertStringRefToUtf8(
-    _In_ PPCH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     return PhConvertUtf16ToUtf8Ex(String->Buffer, String->Length);
@@ -2636,7 +2636,7 @@ VOID
 NTAPI
 PhAppendStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PPCH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     PhAppendStringBuilderEx(
@@ -3616,7 +3616,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhHashStringRef(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -3632,7 +3632,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhHashStringRefEx(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase,
     _In_ PH_STRING_HASH HashAlgorithm
     );
@@ -3690,7 +3690,7 @@ typedef struct _PH_KEY_VALUE_PAIR
     PVOID Value;
 } PH_KEY_VALUE_PAIR, *PPH_KEY_VALUE_PAIR;
 
-typedef CONST PH_KEY_VALUE_PAIR *PPCH_KEY_VALUE_PAIR;
+typedef CONST PH_KEY_VALUE_PAIR *PCPH_KEY_VALUE_PAIR;
 
 PHLIBAPI
 PPH_HASHTABLE

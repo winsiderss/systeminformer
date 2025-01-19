@@ -427,7 +427,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PCWSTR String,
     _Out_ PULONG Integer
@@ -449,7 +449,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairsStringRef(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PPH_STRINGREF String,
     _Out_ PULONG Integer
@@ -481,7 +481,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
     _Out_ PWSTR *String
@@ -503,17 +503,17 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringRefSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PPCH_STRINGREF* String
+    _Out_ PCPH_STRINGREF* String
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
-            *String = (PPCH_STRINGREF)KeyValuePairs[i].Key;
+            *String = (PCPH_STRINGREF)KeyValuePairs[i].Key;
             return TRUE;
         }
     }
@@ -525,7 +525,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhIndexStringSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
     _Out_ PWSTR *String
@@ -544,15 +544,15 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhIndexStringRefSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PPCH_STRINGREF* String
+    _Out_ PCPH_STRINGREF* String
     )
 {
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
     {
-        *String = (PPCH_STRINGREF)KeyValuePairs[Integer].Key;
+        *String = (PCPH_STRINGREF)KeyValuePairs[Integer].Key;
         return TRUE;
     }
 
@@ -933,7 +933,7 @@ NTAPI
 PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPCH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     );
 
 typedef struct _PH_IMAGE_VERSION_INFO
@@ -1038,8 +1038,8 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetBaseNameChangeExtension(
-    _In_ PPCH_STRINGREF FileName,
-    _In_ PPCH_STRINGREF FileExtension
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileExtension
     );
 
 FORCEINLINE
@@ -1147,7 +1147,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationDirectoryFileName(
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1176,7 +1176,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetLocalAppDataDirectory(
-    _In_opt_ PPCH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1198,7 +1198,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetRoamingAppDataDirectory(
-    _In_opt_ PPCH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 

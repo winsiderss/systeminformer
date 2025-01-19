@@ -246,7 +246,7 @@ VOID EtAddSMBIOSEnum(
     _In_ PSMBIOS_WINDOW_CONTEXT Context,
     _In_ ULONG Group,
     _In_ PCWSTR Name,
-    _In_ PPCH_KEY_VALUE_PAIR Values,
+    _In_ PCPH_KEY_VALUE_PAIR Values,
     _In_ ULONG SizeOfValues,
     _In_ ULONG Value
     )

@@ -1862,12 +1862,12 @@ static CONST PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
     SIP(SREF(L"Bound"), MIB_TCP_STATE_RESERVED),
 };
 
-PPCH_STRINGREF PhGetProtocolTypeName(
+PCPH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
 {
     static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
         PhProtocolTypeStrings,
@@ -1882,12 +1882,12 @@ PPCH_STRINGREF PhGetProtocolTypeName(
     return &unknown;
 }
 
-PPCH_STRINGREF PhGetTcpStateName(
+PCPH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )
 {
     static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhTcpStateStrings,

@@ -270,14 +270,14 @@ PhGetServiceTriggerInfo(
     );
 
 PHLIBAPI
-PPCH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetServiceStateString(
     _In_ ULONG ServiceState
     );
 
 PHLIBAPI
-PPCH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetServiceTypeString(
     _In_ ULONG ServiceType
@@ -291,7 +291,7 @@ PhGetServiceTypeInteger(
     );
 
 PHLIBAPI
-PPCH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
@@ -305,7 +305,7 @@ PhGetServiceStartTypeInteger(
     );
 
 PHLIBAPI
-PPCH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl

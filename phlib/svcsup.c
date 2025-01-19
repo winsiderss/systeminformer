@@ -907,11 +907,11 @@ BOOLEAN PhGetServiceTriggerInfo(
     return FALSE;
 }
 
-PPCH_STRINGREF PhGetServiceStateString(
+PCPH_STRINGREF PhGetServiceStateString(
     _In_ ULONG ServiceState
     )
 {
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceStatePairs,
@@ -926,11 +926,11 @@ PPCH_STRINGREF PhGetServiceStateString(
     return &PhpServiceUnknownString;
 }
 
-PPCH_STRINGREF PhGetServiceTypeString(
+PCPH_STRINGREF PhGetServiceTypeString(
     _In_ ULONG ServiceType
     )
 {
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
         PhpServiceTypePairs,
@@ -962,11 +962,11 @@ ULONG PhGetServiceTypeInteger(
         return ULONG_MAX;
 }
 
-PPCH_STRINGREF PhGetServiceStartTypeString(
+PCPH_STRINGREF PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
     )
 {
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceStartTypePairs,
@@ -998,11 +998,11 @@ ULONG PhGetServiceStartTypeInteger(
         return ULONG_MAX;
 }
 
-PPCH_STRINGREF PhGetServiceErrorControlString(
+PCPH_STRINGREF PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl
     )
 {
-    PPCH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhpServiceErrorControlPairs,

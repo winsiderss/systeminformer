@@ -31,7 +31,7 @@ NTSTATUS KphConnect(
     NTSTATUS status;
     SC_HANDLE serviceHandle;
     BOOLEAN created = FALSE;
-    PPCH_STRINGREF portName;
+    PCPH_STRINGREF portName;
 
     portName = (Config->PortName ? Config->PortName : &KphDefaultPortName);
 

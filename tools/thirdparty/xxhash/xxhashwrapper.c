@@ -76,7 +76,7 @@ ULONG PhHashXXH32(
     _In_ SIZE_T InputLength,
     _In_ ULONG Seed
     )
-{    
+{
     return XXH32(InputBuffer, InputLength, Seed);
 }
 
@@ -85,7 +85,7 @@ ULONGLONG PhHashXXH64(
     _In_ SIZE_T InputLength,
     _In_ ULONGLONG Seed
     )
-{    
+{
     return XXH64(InputBuffer, InputLength, Seed);
 }
 
@@ -99,7 +99,7 @@ ULONGLONG PhHashXXH3_64(
 }
 
 BOOLEAN PhHashStringRefXXH3_128(
-    _In_ PPCH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG64 Seed,
     _Out_ PULARGE_INTEGER_128 LargeInteger
     )

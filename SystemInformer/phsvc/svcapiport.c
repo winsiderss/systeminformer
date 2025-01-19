@@ -185,7 +185,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
 }
 
 BOOLEAN PhSvcHandleVerify(
-    _In_ PPCH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     BOOLEAN status = FALSE;

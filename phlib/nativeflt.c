@@ -310,7 +310,7 @@ NTSTATUS PhFilterReplyMessage(
  * \return Successful or errant status.
  */
 NTSTATUS PhFilterConnectCommunicationPort(
-    _In_ PPCH_STRINGREF PortName,
+    _In_ PCPH_STRINGREF PortName,
     _In_ ULONG Options,
     _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
     _In_ USHORT SizeOfContext,

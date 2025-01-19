@@ -2506,7 +2506,7 @@ NTSTATUS PhGetTokenSecurityAttributes(
 
 NTSTATUS PhGetTokenSecurityAttribute(
     _In_ HANDLE TokenHandle,
-    _In_ PPCH_STRINGREF AttributeName,
+    _In_ PCPH_STRINGREF AttributeName,
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
     )
 {
@@ -2569,7 +2569,7 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
 BOOLEAN PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PPCH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName
     )
 {
     NTSTATUS status;
@@ -2596,7 +2596,7 @@ BOOLEAN PhDoesTokenSecurityAttributeExist(
 
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
-    _In_ PPCH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName
     )
 {
     for (ULONG i = 0; i < Attributes->AttributeCount; i++)
@@ -5007,8 +5007,8 @@ NTSTATUS PhGetDriverServiceKeyName(
 }
 
 NTSTATUS PhpUnloadDriver(
-    _In_ PPCH_STRINGREF ServiceKeyName,
-    _In_ PPCH_STRINGREF DriverFileName
+    _In_ PCPH_STRINGREF ServiceKeyName,
+    _In_ PCPH_STRINGREF DriverFileName
     )
 {
     static CONST PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
@@ -5077,8 +5077,8 @@ NTSTATUS PhpUnloadDriver(
  */
 NTSTATUS PhUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PPCH_STRINGREF Name,
-    _In_opt_ PPCH_STRINGREF FileName
+    _In_opt_ PCPH_STRINGREF Name,
+    _In_opt_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -6483,7 +6483,7 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     {
         PH_STRINGREF fileName;
         PH_STRINGREF systemRoot;
-        PPCH_STRINGREF frameworkPart;
+        PCPH_STRINGREF frameworkPart;
 
 #ifdef _WIN64
         if (*(PULONG)Context & PH_CLR_PROCESS_IS_WOW64)
@@ -8695,7 +8695,7 @@ NTSTATUS PhCreateKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPCH_STRINGREF ObjectName,
+    _In_ PCPH_STRINGREF ObjectName,
     _In_ ULONG Attributes,
     _In_ ULONG CreateOptions,
     _Out_opt_ PULONG Disposition
@@ -8750,7 +8750,7 @@ NTSTATUS PhOpenKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPCH_STRINGREF ObjectName,
+    _In_ PCPH_STRINGREF ObjectName,
     _In_ ULONG Attributes
     )
 {
@@ -9519,7 +9519,7 @@ NTSTATUS PhCreateFileWin32ExAlt(
  */
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -9625,7 +9625,7 @@ NTSTATUS PhCreateFile(
  */
 NTSTATUS PhCreateFileEx(
     _Out_ PHANDLE FileHandle,
-    _In_ PPCH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
@@ -13563,7 +13563,7 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
         return STATUS_PROCEDURE_NOT_FOUND;
     if (!LdrSystemDllInitBlock_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-    
+
     // Check if CFG is disabled. PhGetProcessIsCFGuardEnabled(NtCurrentProcess());
     if (!(LdrSystemDllInitBlock_Import()->CfgBitMap && LdrSystemDllInitBlock_Import()->CfgBitMapSize))
         return STATUS_SUCCESS;

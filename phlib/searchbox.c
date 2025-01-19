@@ -1329,7 +1329,7 @@ VOID PhCreateSearchControlEx(
 
 BOOLEAN PhSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PPCH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     )
 {
     PPH_SEARCHCONTROL_CONTEXT context;

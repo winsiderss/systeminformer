@@ -551,7 +551,7 @@ BOOLEAN NetworkTreeFilterCallback(
     }
 
     {
-        PPCH_STRINGREF protocolType;
+        PCPH_STRINGREF protocolType;
 
         if (protocolType = PhGetProtocolTypeName(networkNode->NetworkItem->ProtocolType))
         {
@@ -563,7 +563,7 @@ BOOLEAN NetworkTreeFilterCallback(
     {
         if (FlagOn(networkNode->NetworkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
         {
-            PPCH_STRINGREF stateName;
+            PCPH_STRINGREF stateName;
 
             if (stateName = PhGetTcpStateName(networkNode->NetworkItem->State))
             {
