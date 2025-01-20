@@ -2159,7 +2159,7 @@ NTSTATUS KphOpenDeviceBaseDevice(
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.OpenDeviceDriver.Status;
+        status = msg->User.OpenDeviceBaseDevice.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
