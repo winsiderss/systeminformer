@@ -2130,7 +2130,7 @@ NTSTATUS KphOpenDeviceDriver(
     msg->User.OpenDeviceDriver.DriverHandle = DriverHandle;
     status = KphCommsSendMessage(msg);
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
         status = msg->User.OpenDeviceDriver.Status;
     }
@@ -2157,12 +2157,11 @@ NTSTATUS KphOpenDeviceBaseDevice(
     msg->User.OpenDeviceBaseDevice.BaseDeviceHandle = BaseDeviceHandle;
     status = KphCommsSendMessage(msg);
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        status = msg->User.OpenDeviceDriver.Status;
+        status = msg->User.OpenDeviceBaseDevice.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
-
 }

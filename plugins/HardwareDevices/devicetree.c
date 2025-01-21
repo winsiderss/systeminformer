@@ -1455,7 +1455,17 @@ BOOLEAN DevicesTabPageCallback(
         {
             DeviceTabSelected = (BOOLEAN)Parameter1;
             if (DeviceTabSelected)
+            {
                 DeviceTreePublishAsync(FALSE);
+
+                if (DeviceTreeHandle)
+                {
+                    TreeNew_NodesStructured(DeviceTreeHandle);
+
+                    if (DeviceTreeFilterSupport.FilterList)
+                        PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+                }
+            }
         }
         break;
     case MainTabPageFontChanged:
