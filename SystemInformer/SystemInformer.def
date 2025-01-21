@@ -19,1157 +19,1157 @@
 EXPORTS
 
 ; main
-    PhAddProcessPropPage                                    @1001  NONAME
-    PhAddProcessPropPage2                                   @1002  NONAME
-    PhAddPropPageLayoutItem                                 @1003  NONAME
-    PhAddTreeNewFilter                                      @1004  NONAME
-    PhApplyTreeNewFilters                                   @1005  NONAME
-    PhApplyTreeNewFiltersToNode                             @1006  NONAME
-    PhChoiceDialog                                          @1007  NONAME
-    PhCmLoadSettings                                        @1008  NONAME
-    PhCmSaveSettings                                        @1009  NONAME
-    PhCopyListView                                          @1010  NONAME
-    PhCopyListViewInfoTip                                   @1011  NONAME
-    PhCreateKsiSettingsBlob                                 @1012  NONAME
-    PhCreateProcessPropContext                              @1013  NONAME
-    PhCreateProcessPropPageContext                          @1014  NONAME
-    PhCreateProcessPropPageContextEx                        @1015  NONAME
-    PhCreateSearchControl                                   @1016  NONAME
-    PhCreateServiceListControl                              @1017  NONAME
-    PhDeleteMemoryItemList                                  @1018  NONAME
-    PhDeleteStaticWindowIcon                                @1019  NONAME
-    PhDeleteTreeNewColumnMenu                               @1020  NONAME
-    PhDeleteTreeNewFilterSupport                            @1021  NONAME
-    PhDereferenceProcessRecord                              @1022  NONAME
-    PhDeselectAllProcessNodes                               @1023  NONAME
-    PhDeselectAllServiceNodes                               @1024  NONAME
-    PhDestroyWindowIcon                                     @1025  NONAME
-    PhDeviceProviderInitialization                          @1026  NONAME
-    PhDoPropPageLayout                                      @1027  NONAME
-    PhDuplicateProcessInformation                           @1028  NONAME
-    PhDuplicateProcessNodeList                              @1029  NONAME
-    PhEnumNetworkItems                                      @1030  NONAME
-    PhEnumNetworkItemsByProcessId                           @1031  NONAME
-    PhEnumProcessItems                                      @1032  NONAME
-    PhExecuteRunAsCommand2                                  @1033  NONAME
-    PhExecuteRunAsCommand3                                  @1034  NONAME
-    PhExpandAllProcessNodes                                 @1035  NONAME
-    PhFindNetworkNode                                       @1036  NONAME
-    PhFindProcessNode                                       @1037  NONAME
-    PhFindProcessRecord                                     @1038  NONAME
-    PhFindServiceNode                                       @1039  NONAME
-    PhFormatLogEntry                                        @1040  NONAME
-    PhGetApplicationIcon                                    @1041  NONAME
-    PhGetApplicationIconEx                                  @1042  NONAME
-    PhGetClientIdName                                       @1043  NONAME
-    PhGetClientIdNameEx                                     @1044  NONAME
-    PhGetDeviceIcon                                         @1045  NONAME
-    PhGetDeviceProperty                                     @1046  NONAME
-    PhGetFilterSupportNetworkTreeList                       @1047  NONAME
-    PhGetFilterSupportProcessTreeList                       @1048  NONAME
-    PhGetFilterSupportServiceTreeList                       @1049  NONAME
-    PhGetGeneralCallback                                    @1050  NONAME
-    PhGetImageListIcon                                      @1051  NONAME
-    PhGetListViewContextMenuPoint                           @1052  NONAME
-    PhGetPhReleaseChannel                                   @1053  NONAME
-    PhGetPhReleaseChannelString                             @1054  NONAME
-    PhGetPhVersion                                          @1055  NONAME
-    PhGetPhVersionHash                                      @1056  NONAME
-    PhGetPhVersionNumbers                                   @1057  NONAME
-    PhGetProcessIsSuspended                                 @1058  NONAME
-    PhGetProcessKnownType                                   @1059  NONAME
-    PhGetProcessKnownTypeEx                                 @1060  NONAME
-    PhGetProcessPriorityClassString                         @1061  NONAME
-    PhGetProcessSmallImageList                              @1062  NONAME
-    PhGetProtocolTypeName                                   @1063  NONAME
-    PhGetSelectedAndPropagateProcessItems                   @1064  NONAME
-    PhGetSelectedProcessItem                                @1065  NONAME
-    PhGetSelectedProcessItems                               @1066  NONAME
-    PhGetSelectedProcessNodes                               @1067  NONAME
-    PhGetSelectedServiceItem                                @1068  NONAME
-    PhGetSelectedServiceItems                               @1069  NONAME
-    PhGetServiceChange                                      @1070  NONAME
-    PhGetShieldBitmap                                       @1071  NONAME
-    PhGetStatisticsTime                                     @1072  NONAME
-    PhGetStatisticsTimeString                               @1073  NONAME
-    PhGetTcpStateName                                       @1074  NONAME
-    PhHandleCopyCellEMenuItem                               @1075  NONAME
-    PhHandleCopyListViewEMenuItem                           @1076  NONAME
-    PhHandleListViewNotifyBehaviors                         @1077  NONAME
-    PhHandleListViewNotifyForCopy                           @1078  NONAME
-    PhHandleTreeNewColumnMenu                               @1079  NONAME
-    PhImageListExtractIcon                                  @1080  NONAME
-    PhImageListFlushCache                                   @1081  NONAME
-    PhInitializeTreeNewColumnMenu                           @1082  NONAME
-    PhInitializeTreeNewColumnMenuEx                         @1083  NONAME
-    PhInitializeTreeNewFilterSupport                        @1084  NONAME
-    PhInsertCopyCellEMenuItem                               @1085  NONAME
-    PhInsertCopyListViewEMenuItem                           @1086  NONAME
-    PhInsertHandleObjectPropertiesEMenuItems                @1087  NONAME
-    PhInvalidateAllProcessNodes                             @1088  NONAME
-    PhIsProcessSuspended                                    @1089  NONAME
-    PhLoadSymbolProviderOptions                             @1090  NONAME
-    PhLogMessageEntry                                       @1091  NONAME
-    PhLookupDeviceItem                                      @1092  NONAME
-    PhLookupDeviceItemByHash                                @1093  NONAME
-    PhLookupDevicePropertyClass                             @1094  NONAME
-    PhLookupMemoryItemList                                  @1095  NONAME
-    PhProcessImageListInitialization                        @1096  NONAME
-    PhPropPageDlgProcHeader                                 @1097  NONAME
-    PhQueryMemoryItemList                                   @1098  NONAME
-    PhReferenceDeviceItem                                   @1099  NONAME
-    PhReferenceDeviceItem2                                  @1100  NONAME
-    PhReferenceDeviceItemByHash                             @1101  NONAME
-    PhReferenceDeviceTree                                   @1102  NONAME
-    PhReferenceDeviceTreeEx                                 @1103  NONAME
-    PhReferenceNetworkItem                                  @1104  NONAME
-    PhReferenceProcessItem                                  @1105  NONAME
-    PhReferenceProcessItemForParent                         @1106  NONAME
-    PhReferenceProcessItemForRecord                         @1107  NONAME
-    PhReferenceProcessRecord                                @1108  NONAME
-    PhReferenceProcessRecordForStatistics                   @1109  NONAME
-    PhReferenceProcessRecordSafe                            @1110  NONAME
-    PhReferenceServiceItem                                  @1111  NONAME
-    PhRegisterDialog                                        @1112  NONAME
-    PhRegisterMessageLoopFilter                             @1113  NONAME
-    PhRemoveTreeNewFilter                                   @1114  NONAME
-    PhSearchControlMatch                                    @1115  NONAME
-    PhSearchControlMatchLongHintZ                           @1116  NONAME
-    PhSearchControlMatchPointer                             @1117  NONAME
-    PhSearchControlMatchPointerRange                        @1118  NONAME
-    PhSearchControlMatchZ                                   @1119  NONAME
-    PhSearchOnlineString                                    @1120  NONAME
-    PhSelectAndEnsureVisibleProcessNode                     @1121  NONAME
-    PhSelectAndEnsureVisibleServiceNode                     @1122  NONAME
-    PhSetApplicationWindowIcon                              @1123  NONAME
-    PhSetApplicationWindowIconEx                            @1124  NONAME
-    PhSetProcessItemAffinityMask                            @1125  NONAME
-    PhSetProcessItemIoPriority                              @1126  NONAME
-    PhSetProcessItemPagePriority                            @1127  NONAME
-    PhSetProcessItemPriority                                @1128  NONAME
-    PhSetProcessItemPriorityBoost                           @1129  NONAME
-    PhSetProcessItemThrottlingState                         @1130  NONAME
-    PhSetSelectThreadIdProcessPropContext                   @1131  NONAME
-    PhSetStaticWindowIcon                                   @1132  NONAME
-    PhSetWindowIcon                                         @1133  NONAME
-    PhShellExecuteUserString                                @1134  NONAME
-    PhShellOpenKey                                          @1135  NONAME
-    PhShellOpenKey2                                         @1136  NONAME
-    PhShellProcessHacker                                    @1137  NONAME
-    PhShowChooseProcessDialog                               @1138  NONAME
-    PhShowHandleObjectProperties1                           @1139  NONAME
-    PhShowHandleObjectProperties2                           @1140  NONAME
-    PhShowIconNotification                                  @1141  NONAME
-    PhShowProcessAffinityDialog2                            @1142  NONAME
-    PhShowProcessProperties                                 @1143  NONAME
-    PhShowProcessRecordDialog                               @1144  NONAME
-    PhShowSystemInformationDialog                           @1145  NONAME
-    PhShowThreadAffinityDialog                              @1146  NONAME
-    PhSiDoubleLabelYFunction                                @1147  NONAME
-    PhSiSetColorsGraphDrawInfo                              @1148  NONAME
-    PhSiSizeLabelYFunction                                  @1149  NONAME
-    PhSiUInt64LabelYFunction                                @1150  NONAME
-    PhUnregisterDialog                                      @1151  NONAME
-    PhUnregisterMessageLoopFilter                           @1152  NONAME
-    PhUpdateProcessNode                                     @1153  NONAME
-    PhUpdateServiceNode                                     @1154  NONAME
-    PhWordMatchStringRef                                    @1155  NONAME
-    PhWritePhTextHeader                                     @1156  NONAME
-    PhaChoiceDialog                                         @1157  NONAME
-    PhaGetProcessKnownCommandLine                           @1158  NONAME
+    PhAddProcessPropPage
+    PhAddProcessPropPage2
+    PhAddPropPageLayoutItem
+    PhAddTreeNewFilter
+    PhApplyTreeNewFilters
+    PhApplyTreeNewFiltersToNode
+    PhChoiceDialog
+    PhCmLoadSettings
+    PhCmSaveSettings
+    PhCopyListView
+    PhCopyListViewInfoTip
+    PhCreateKsiSettingsBlob
+    PhCreateProcessPropContext
+    PhCreateProcessPropPageContext
+    PhCreateProcessPropPageContextEx
+    PhCreateSearchControl
+    PhCreateServiceListControl
+    PhDeleteMemoryItemList
+    PhDeleteStaticWindowIcon
+    PhDeleteTreeNewColumnMenu
+    PhDeleteTreeNewFilterSupport
+    PhDereferenceProcessRecord
+    PhDeselectAllProcessNodes
+    PhDeselectAllServiceNodes
+    PhDestroyWindowIcon
+    PhDeviceProviderInitialization
+    PhDoPropPageLayout
+    PhDuplicateProcessInformation
+    PhDuplicateProcessNodeList
+    PhEnumNetworkItems
+    PhEnumNetworkItemsByProcessId
+    PhEnumProcessItems
+    PhExecuteRunAsCommand2
+    PhExecuteRunAsCommand3
+    PhExpandAllProcessNodes
+    PhFindNetworkNode
+    PhFindProcessNode
+    PhFindProcessRecord
+    PhFindServiceNode
+    PhFormatLogEntry
+    PhGetApplicationIcon
+    PhGetApplicationIconEx
+    PhGetClientIdName
+    PhGetClientIdNameEx
+    PhGetDeviceIcon
+    PhGetDeviceProperty
+    PhGetFilterSupportNetworkTreeList
+    PhGetFilterSupportProcessTreeList
+    PhGetFilterSupportServiceTreeList
+    PhGetGeneralCallback
+    PhGetImageListIcon
+    PhGetListViewContextMenuPoint
+    PhGetPhReleaseChannel
+    PhGetPhReleaseChannelString
+    PhGetPhVersion
+    PhGetPhVersionHash
+    PhGetPhVersionNumbers
+    PhGetProcessIsSuspended
+    PhGetProcessKnownType
+    PhGetProcessKnownTypeEx
+    PhGetProcessPriorityClassString
+    PhGetProcessSmallImageList
+    PhGetProtocolTypeName
+    PhGetSelectedAndPropagateProcessItems
+    PhGetSelectedProcessItem
+    PhGetSelectedProcessItems
+    PhGetSelectedProcessNodes
+    PhGetSelectedServiceItem
+    PhGetSelectedServiceItems
+    PhGetServiceChange
+    PhGetShieldBitmap
+    PhGetStatisticsTime
+    PhGetStatisticsTimeString
+    PhGetTcpStateName
+    PhHandleCopyCellEMenuItem
+    PhHandleCopyListViewEMenuItem
+    PhHandleListViewNotifyBehaviors
+    PhHandleListViewNotifyForCopy
+    PhHandleTreeNewColumnMenu
+    PhImageListExtractIcon
+    PhImageListFlushCache
+    PhInitializeTreeNewColumnMenu
+    PhInitializeTreeNewColumnMenuEx
+    PhInitializeTreeNewFilterSupport
+    PhInsertCopyCellEMenuItem
+    PhInsertCopyListViewEMenuItem
+    PhInsertHandleObjectPropertiesEMenuItems
+    PhInvalidateAllProcessNodes
+    PhIsProcessSuspended
+    PhLoadSymbolProviderOptions
+    PhLogMessageEntry
+    PhLookupDeviceItem
+    PhLookupDeviceItemByHash
+    PhLookupDevicePropertyClass
+    PhLookupMemoryItemList
+    PhProcessImageListInitialization
+    PhPropPageDlgProcHeader
+    PhQueryMemoryItemList
+    PhReferenceDeviceItem
+    PhReferenceDeviceItem2
+    PhReferenceDeviceItemByHash
+    PhReferenceDeviceTree
+    PhReferenceDeviceTreeEx
+    PhReferenceNetworkItem
+    PhReferenceProcessItem
+    PhReferenceProcessItemForParent
+    PhReferenceProcessItemForRecord
+    PhReferenceProcessRecord
+    PhReferenceProcessRecordForStatistics
+    PhReferenceProcessRecordSafe
+    PhReferenceServiceItem
+    PhRegisterDialog
+    PhRegisterMessageLoopFilter
+    PhRemoveTreeNewFilter
+    PhSearchControlMatch
+    PhSearchControlMatchLongHintZ
+    PhSearchControlMatchPointer
+    PhSearchControlMatchPointerRange
+    PhSearchControlMatchZ
+    PhSearchOnlineString
+    PhSelectAndEnsureVisibleProcessNode
+    PhSelectAndEnsureVisibleServiceNode
+    PhSetApplicationWindowIcon
+    PhSetApplicationWindowIconEx
+    PhSetProcessItemAffinityMask
+    PhSetProcessItemIoPriority
+    PhSetProcessItemPagePriority
+    PhSetProcessItemPriority
+    PhSetProcessItemPriorityBoost
+    PhSetProcessItemThrottlingState
+    PhSetSelectThreadIdProcessPropContext
+    PhSetStaticWindowIcon
+    PhSetWindowIcon
+    PhShellExecuteUserString
+    PhShellOpenKey
+    PhShellOpenKey2
+    PhShellProcessHacker
+    PhShowChooseProcessDialog
+    PhShowHandleObjectProperties1
+    PhShowHandleObjectProperties2
+    PhShowIconNotification
+    PhShowProcessAffinityDialog2
+    PhShowProcessProperties
+    PhShowProcessRecordDialog
+    PhShowSystemInformationDialog
+    PhShowThreadAffinityDialog
+    PhSiDoubleLabelYFunction
+    PhSiSetColorsGraphDrawInfo
+    PhSiSizeLabelYFunction
+    PhSiUInt64LabelYFunction
+    PhUnregisterDialog
+    PhUnregisterMessageLoopFilter
+    PhUpdateProcessNode
+    PhUpdateServiceNode
+    PhWordMatchStringRef
+    PhWritePhTextHeader
+    PhaChoiceDialog
+    PhaGetProcessKnownCommandLine
 
 ; plugin
-    PhEnumeratePlugins                                      @1159  NONAME
-    PhFindPlugin2                                           @1160  NONAME
-    PhGetPluginCallback                                     @1161  NONAME
-    PhGetPluginFileName                                     @1162  NONAME
-    PhGetPluginInformation                                  @1163  NONAME
-    PhGetPluginInterface                                    @1164  NONAME
-    PhGetPluginName                                         @1165  NONAME
-    PhPluginAddMenuHook                                     @1166  NONAME
-    PhPluginAddTreeNewColumn                                @1167  NONAME
-    PhPluginCallPhSvc                                       @1168  NONAME
-    PhPluginCreateEMenuItem                                 @1169  NONAME
-    PhPluginCreateTabPage                                   @1170  NONAME
-    PhPluginEnableTreeNewNotify                             @1171  NONAME
-    PhPluginGetObjectExtension                              @1172  NONAME
-    PhPluginGetSystemStatistics                             @1173  NONAME
-    PhPluginInvokeWindowCallback                            @1174  NONAME
-    PhPluginQueryPhSvc                                      @1175  NONAME
-    PhPluginReserveIds                                      @1176  NONAME
-    PhPluginSetObjectExtension                              @1177  NONAME
-    PhRegisterPlugin                                        @1178  NONAME
+    PhEnumeratePlugins
+    PhFindPlugin2
+    PhGetPluginCallback
+    PhGetPluginFileName
+    PhGetPluginInformation
+    PhGetPluginInterface
+    PhGetPluginName
+    PhPluginAddMenuHook
+    PhPluginAddTreeNewColumn
+    PhPluginCallPhSvc
+    PhPluginCreateEMenuItem
+    PhPluginCreateTabPage
+    PhPluginEnableTreeNewNotify
+    PhPluginGetObjectExtension
+    PhPluginGetSystemStatistics
+    PhPluginInvokeWindowCallback
+    PhPluginQueryPhSvc
+    PhPluginReserveIds
+    PhPluginSetObjectExtension
+    PhRegisterPlugin
 
 ; phsvc
-    PhSvcCallChangeServiceConfig                            @1179  NONAME
-    PhSvcCallChangeServiceConfig2                           @1180  NONAME
-    PhSvcCallPostMessage                                    @1181  NONAME
-    PhSvcCallSendMessage                                    @1182  NONAME
+    PhSvcCallChangeServiceConfig
+    PhSvcCallChangeServiceConfig2
+    PhSvcCallPostMessage
+    PhSvcCallSendMessage
 
 ; UI
-    PhUiCloseConnections                                    @1183  NONAME
-    PhUiCloseHandles                                        @1184  NONAME
-    PhUiConnectSession                                      @1185  NONAME
-    PhUiConnectToPhSvc                                      @1186  NONAME
-    PhUiConnectToPhSvcEx                                    @1187  NONAME
-    PhUiContinueService                                     @1188  NONAME
-    PhUiContinueServices                                    @1189  NONAME
-    PhUiDebugProcess                                        @1190  NONAME
-    PhUiDeleteService                                       @1191  NONAME
-    PhUiDetachFromDebuggerProcess                           @1192  NONAME
-    PhUiDisconnectFromPhSvc                                 @1193  NONAME
-    PhUiDisconnectSession                                   @1194  NONAME
-    PhUiFlushHeapProcesses                                  @1195  NONAME
-    PhUiFreeMemory                                          @1196  NONAME
-    PhUiFreezeTreeProcess                                   @1197  NONAME
-    PhUiHibernateComputer                                   @1198  NONAME
-    PhUiLoadDllProcess                                      @1199  NONAME
-    PhUiLockComputer                                        @1200  NONAME
-    PhUiLogoffComputer                                      @1201  NONAME
-    PhUiLogoffSession                                       @1202  NONAME
-    PhUiPauseService                                        @1203  NONAME
-    PhUiPauseServices                                       @1204  NONAME
-    PhUiReduceWorkingSetProcesses                           @1205  NONAME
-    PhUiRestartComputer                                     @1206  NONAME
-    PhUiRestartProcess                                      @1207  NONAME
-    PhUiResumeProcesses                                     @1208  NONAME
-    PhUiResumeThreads                                       @1209  NONAME
-    PhUiResumeTreeProcess                                   @1210  NONAME
-    PhUiSetAttributesHandle                                 @1211  NONAME
-    PhUiSetBoostPriorityProcess                             @1212  NONAME
-    PhUiSetBoostPriorityProcesses                           @1213  NONAME
-    PhUiSetBoostPriorityThread                              @1214  NONAME
-    PhUiSetBoostPriorityThreads                             @1215  NONAME
-    PhUiSetCriticalProcess                                  @1216  NONAME
-    PhUiSetEcoModeProcess                                   @1217  NONAME
-    PhUiSetExecutionRequiredProcess                         @1218  NONAME
-    PhUiSetIoPriorityProcesses                              @1219  NONAME
-    PhUiSetIoPriorityThread                                 @1220  NONAME
-    PhUiSetPagePriorityProcess                              @1221  NONAME
-    PhUiSetPagePriorityThread                               @1222  NONAME
-    PhUiSetPriorityProcesses                                @1223  NONAME
-    PhUiSetPriorityThread                                   @1224  NONAME
-    PhUiSetPriorityThreads                                  @1225  NONAME
-    PhUiSetVirtualizationProcess                            @1226  NONAME
-    PhUiShutdownComputer                                    @1227  NONAME
-    PhUiSleepComputer                                       @1228  NONAME
-    PhUiStartService                                        @1229  NONAME
-    PhUiStartServices                                       @1230  NONAME
-    PhUiStopService                                         @1231  NONAME
-    PhUiStopServices                                        @1232  NONAME
-    PhUiSuspendProcesses                                    @1233  NONAME
-    PhUiSuspendThreads                                      @1234  NONAME
-    PhUiSuspendTreeProcess                                  @1235  NONAME
-    PhUiTerminateProcesses                                  @1236  NONAME
-    PhUiTerminateThreads                                    @1237  NONAME
-    PhUiTerminateTreeProcess                                @1238  NONAME
-    PhUiThawTreeProcess                                     @1239  NONAME
-    PhUiUnloadModule                                        @1240  NONAME
+    PhUiCloseConnections
+    PhUiCloseHandles
+    PhUiConnectSession
+    PhUiConnectToPhSvc
+    PhUiConnectToPhSvcEx
+    PhUiContinueService
+    PhUiContinueServices
+    PhUiDebugProcess
+    PhUiDeleteService
+    PhUiDetachFromDebuggerProcess
+    PhUiDisconnectFromPhSvc
+    PhUiDisconnectSession
+    PhUiFlushHeapProcesses
+    PhUiFreeMemory
+    PhUiFreezeTreeProcess
+    PhUiHibernateComputer
+    PhUiLoadDllProcess
+    PhUiLockComputer
+    PhUiLogoffComputer
+    PhUiLogoffSession
+    PhUiPauseService
+    PhUiPauseServices
+    PhUiReduceWorkingSetProcesses
+    PhUiRestartComputer
+    PhUiRestartProcess
+    PhUiResumeProcesses
+    PhUiResumeThreads
+    PhUiResumeTreeProcess
+    PhUiSetAttributesHandle
+    PhUiSetBoostPriorityProcess
+    PhUiSetBoostPriorityProcesses
+    PhUiSetBoostPriorityThread
+    PhUiSetBoostPriorityThreads
+    PhUiSetCriticalProcess
+    PhUiSetEcoModeProcess
+    PhUiSetExecutionRequiredProcess
+    PhUiSetIoPriorityProcesses
+    PhUiSetIoPriorityThread
+    PhUiSetPagePriorityProcess
+    PhUiSetPagePriorityThread
+    PhUiSetPriorityProcesses
+    PhUiSetPriorityThread
+    PhUiSetPriorityThreads
+    PhUiSetVirtualizationProcess
+    PhUiShutdownComputer
+    PhUiSleepComputer
+    PhUiStartService
+    PhUiStartServices
+    PhUiStopService
+    PhUiStopServices
+    PhUiSuspendProcesses
+    PhUiSuspendThreads
+    PhUiSuspendTreeProcess
+    PhUiTerminateProcesses
+    PhUiTerminateThreads
+    PhUiTerminateTreeProcess
+    PhUiThawTreeProcess
+    PhUiUnloadModule
 
 ;
 ; phlib exports
 ;
 
 ; ref
-    PhAutoDereferenceObject                                 @1241  NONAME
-    PhCreateAlloc                                           @1242  NONAME
-    PhCreateObject                                          @1243  NONAME
-    PhCreateObjectType                                      @1244  NONAME
-    PhCreateObjectTypeEx                                    @1245  NONAME
-    PhDeleteAutoPool                                        @1246  NONAME
-    PhDereferenceObject                                     @1247  NONAME
-    PhDereferenceObjectDeferDelete                          @1248  NONAME
-    PhDereferenceObjectEx                                   @1249  NONAME
-    PhDrainAutoPool                                         @1250  NONAME
-    PhGetObjectType                                         @1251  NONAME
-    PhGetObjectTypeInformation                              @1252  NONAME
-    PhInitializeAutoPool                                    @1253  NONAME
-    PhReferenceObject                                       @1254  NONAME
-    PhReferenceObjectEx                                     @1255  NONAME
-    PhReferenceObjectSafe                                   @1256  NONAME
+    PhAutoDereferenceObject
+    PhCreateAlloc
+    PhCreateObject
+    PhCreateObjectType
+    PhCreateObjectTypeEx
+    PhDeleteAutoPool
+    PhDereferenceObject
+    PhDereferenceObjectDeferDelete
+    PhDereferenceObjectEx
+    PhDrainAutoPool
+    PhGetObjectType
+    PhGetObjectTypeInformation
+    PhInitializeAutoPool
+    PhReferenceObject
+    PhReferenceObjectEx
+    PhReferenceObjectSafe
 
 ; queuedlock
-    PhfAcquireQueuedLockExclusive                           @1257  NONAME
-    PhfAcquireQueuedLockShared                              @1258  NONAME
-    PhfPulseAllCondition                                    @1259  NONAME
-    PhfPulseCondition                                       @1260  NONAME
-    PhfQueueWakeEvent                                       @1261  NONAME
-    PhfReleaseQueuedLockExclusive                           @1262  NONAME
-    PhfReleaseQueuedLockShared                              @1263  NONAME
-    PhfSetWakeEvent                                         @1264  NONAME
-    PhfWaitForCondition                                     @1265  NONAME
-    PhfWaitForConditionEx                                   @1266  NONAME
-    PhfWaitForWakeEvent                                     @1267  NONAME
-    PhfWakeForReleaseQueuedLock                             @1268  NONAME
+    PhfAcquireQueuedLockExclusive
+    PhfAcquireQueuedLockShared
+    PhfPulseAllCondition
+    PhfPulseCondition
+    PhfQueueWakeEvent
+    PhfReleaseQueuedLockExclusive
+    PhfReleaseQueuedLockShared
+    PhfSetWakeEvent
+    PhfWaitForCondition
+    PhfWaitForConditionEx
+    PhfWaitForWakeEvent
+    PhfWakeForReleaseQueuedLock
 
 ; phconfig
-    PhIsExecutingInWow64                                    @1269  NONAME
-    PhSystemBasicInformation                                @1270  NONAME DATA
+    PhIsExecutingInWow64
+    PhSystemBasicInformation DATA
 
 ; phbasesup
-    PhAddElementAvlTree                                     @1271  NONAME
-    PhAddEntryHashtable                                     @1272  NONAME
-    PhAddEntryHashtableEx                                   @1273  NONAME
-    PhAddItemArray                                          @1274  NONAME
-    PhAddItemList                                           @1275  NONAME
-    PhAddItemPointerList                                    @1276  NONAME
-    PhAddItemSimpleHashtable                                @1277  NONAME
-    PhAddItemsArray                                         @1278  NONAME
-    PhAddItemsList                                          @1279  NONAME
-    PhAddPlusMaxMemorySingles                               @1280  NONAME
-    PhAllocate                                              @1281  NONAME
-    PhAllocateExSafe                                        @1282  NONAME
-    PhAllocateFromFreeList                                  @1283  NONAME
-    PhAllocatePage                                          @1284  NONAME
-    PhAllocateSafe                                          @1285  NONAME
-    PhAppendBytesBuilder                                    @1286  NONAME
-    PhAppendBytesBuilder2                                   @1287  NONAME
-    PhAppendBytesBuilderEx                                  @1288  NONAME
-    PhAppendCharStringBuilder                               @1289  NONAME
-    PhAppendCharStringBuilder2                              @1290  NONAME
-    PhAppendFormatStringBuilder                             @1291  NONAME
-    PhAppendFormatStringBuilder_V                           @1292  NONAME
-    PhAppendStringBuilderEx                                 @1293  NONAME
-    PhBufferToHexString                                     @1294  NONAME
-    PhBufferToHexStringEx                                   @1295  NONAME
-    PhClearArray                                            @1296  NONAME
-    PhClearHashtable                                        @1297  NONAME
-    PhClearList                                             @1298  NONAME
-    PhCompareStringRef                                      @1299  NONAME
-    PhCompareStringZNatural                                 @1300  NONAME
-    PhConcatStringRef2                                      @1301  NONAME
-    PhConcatStringRef3                                      @1302  NONAME
-    PhConcatStringRef4                                      @1303  NONAME
-    PhConcatStrings                                         @1304  NONAME
-    PhConcatStrings2                                        @1305  NONAME
-    PhConcatStrings_V                                       @1306  NONAME
-    PhConvertMultiByteToUtf16                               @1307  NONAME
-    PhConvertMultiByteToUtf16Ex                             @1308  NONAME
-    PhConvertUtf16ToAsciiEx                                 @1309  NONAME
-    PhConvertUtf16ToMultiByte                               @1310  NONAME
-    PhConvertUtf16ToMultiByteEx                             @1311  NONAME
-    PhConvertUtf16ToUtf8                                    @1312  NONAME
-    PhConvertUtf16ToUtf8Buffer                              @1313  NONAME
-    PhConvertUtf16ToUtf8Ex                                  @1314  NONAME
-    PhConvertUtf16ToUtf8Size                                @1315  NONAME
-    PhConvertUtf8ToUtf16                                    @1316  NONAME
-    PhConvertUtf8ToUtf16Buffer                              @1317  NONAME
-    PhConvertUtf8ToUtf16Ex                                  @1318  NONAME
-    PhConvertUtf8ToUtf16Size                                @1319  NONAME
-    PhCopyBytesZ                                            @1320  NONAME
-    PhCopyConvertCircularBufferULONG                        @1321  NONAME
-    PhCopyStringZ                                           @1322  NONAME
-    PhCopyStringZFromBytes                                  @1323  NONAME
-    PhCopyStringZFromMultiByte                              @1324  NONAME
-    PhCountStringZ                                          @1325  NONAME
-    PhCreateBytes                                           @1326  NONAME
-    PhCreateBytesEx                                         @1327  NONAME
-    PhCreateHashtable                                       @1328  NONAME
-    PhCreateList                                            @1329  NONAME
-    PhCreatePointerList                                     @1330  NONAME
-    PhCreateSimpleHashtable                                 @1331  NONAME
-    PhCreateString3                                         @1332  NONAME
-    PhCreateStringEx                                        @1333  NONAME
-    PhCreateThread                                          @1334  NONAME
-    PhCreateThread2                                         @1335  NONAME
-    PhCreateThreadEx                                        @1336  NONAME
-    PhDecodeUnicodeDecoder                                  @1337  NONAME
-    PhDelayExecution                                        @1338  NONAME
-    PhDeleteArray                                           @1339  NONAME
-    PhDeleteBytesBuilder                                    @1340  NONAME
-    PhDeleteCallback                                        @1341  NONAME
-    PhDeleteFreeList                                        @1342  NONAME
-    PhDeleteStringBuilder                                   @1343  NONAME
-    PhDivideSinglesBySingle                                 @1344  NONAME
-    PhDosErrorToNtStatus                                    @1345  NONAME
-    PhDuplicateBytesZ                                       @1346  NONAME
-    PhDuplicateBytesZSafe                                   @1347  NONAME
-    PhDuplicateStringZ                                      @1348  NONAME
-    PhEncodeUnicode                                         @1349  NONAME
-    PhEnumAvlTree                                           @1350  NONAME
-    PhEnumHashtable                                         @1351  NONAME
-    PhEnumPointerListEx                                     @1352  NONAME
-    PhEqualStringRef                                        @1353  NONAME
-    PhExponentiate                                          @1354  NONAME
-    PhExponentiate64                                        @1355  NONAME
-    PhExtractIcon                                           @1356  NONAME
-    PhExtractIconEx                                         @1357  NONAME
-    PhFillMemoryUlong                                       @1358  NONAME
-    PhFinalBytesBuilderBytes                                @1359  NONAME
-    PhFinalStringBuilderString                              @1360  NONAME
-    PhFindCharInStringRef                                   @1361  NONAME
-    PhFindElementAvlTree                                    @1362  NONAME
-    PhFindEntryHashtable                                    @1363  NONAME
-    PhFindItemList                                          @1364  NONAME
-    PhFindItemPointerList                                   @1365  NONAME
-    PhFindItemSimpleHashtable                               @1366  NONAME
-    PhFindLastCharInStringRef                               @1367  NONAME
-    PhFindStringInStringRef                                 @1368  NONAME
-    PhFormat                                                @1369  NONAME
-    PhFormatBytes                                           @1370  NONAME
-    PhFormatBytes_V                                         @1371  NONAME
-    PhFormatString                                          @1372  NONAME
-    PhFormatString_V                                        @1373  NONAME
-    PhFormatToBuffer                                        @1374  NONAME
-    PhFree                                                  @1375  NONAME
-    PhFreePage                                              @1376  NONAME
-    PhFreeToFreeList                                        @1377  NONAME
-    PhGetLastError                                          @1378  NONAME
-    PhGetPrimeNumber                                        @1379  NONAME
-    PhHashBytes                                             @1380  NONAME
-    PhHashStringRef                                         @1381  NONAME
-    PhHashStringRefEx                                       @1382  NONAME
-    PhHexStringToBuffer                                     @1383  NONAME
-    PhHexStringToBufferEx                                   @1384  NONAME
-    PhHungWindowFromGhostWindow                             @1385  NONAME
-    PhInitializeArray                                       @1386  NONAME
-    PhInitializeAvlTree                                     @1387  NONAME
-    PhInitializeBytesBuilder                                @1388  NONAME
-    PhInitializeCallback                                    @1389  NONAME
-    PhInitializeFreeList                                    @1390  NONAME
-    PhInitializeStringBuilder                               @1391  NONAME
-    PhInsertItemList                                        @1392  NONAME
-    PhInsertItemsList                                       @1393  NONAME
-    PhInsertStringBuilder                                   @1394  NONAME
-    PhInsertStringBuilder2                                  @1395  NONAME
-    PhInsertStringBuilderEx                                 @1396  NONAME
-    PhIntegerToString64                                     @1397  NONAME
-    PhInvokeCallback                                        @1398  NONAME
-    PhLoadIndirectString                                    @1399  NONAME
-    PhLoadResource                                          @1400  NONAME
-    PhLocalTimeToSystemTime                                 @1401  NONAME
-    PhLowerBoundElementAvlTree                              @1402  NONAME
-    PhLowerDualBoundElementAvlTree                          @1403  NONAME
-    PhMaxMemorySingles                                      @1404  NONAME
-    PhMaximumElementAvlTree                                 @1405  NONAME
-    PhMinimumElementAvlTree                                 @1406  NONAME
-    PhNtStatusFileNotFound                                  @1407  NONAME
-    PhNtStatusToDosError                                    @1408  NONAME
-    PhPredecessorElementAvlTree                             @1409  NONAME
-    PhPrintTimeSpan                                         @1410  NONAME
-    PhQueryPerformanceCounter                               @1411  NONAME
-    PhQueryPerformanceFrequency                             @1412  NONAME
-    PhQuerySystemTime                                       @1413  NONAME
-    PhQueryTimeZoneBias                                     @1414  NONAME
-    PhReAllocate                                            @1415  NONAME
-    PhReAllocateSafe                                        @1416  NONAME
-    PhReadTimeStampCounter                                  @1417  NONAME
-    PhReferenceEmptyString                                  @1418  NONAME
-    PhRegisterCallback                                      @1419  NONAME
-    PhRegisterCallbackEx                                    @1420  NONAME
-    PhRemoveElementAvlTree                                  @1421  NONAME
-    PhRemoveEntryHashtable                                  @1422  NONAME
-    PhRemoveItemArray                                       @1423  NONAME
-    PhRemoveItemList                                        @1424  NONAME
-    PhRemoveItemPointerList                                 @1425  NONAME
-    PhRemoveItemSimpleHashtable                             @1426  NONAME
-    PhRemoveItemsArray                                      @1427  NONAME
-    PhRemoveItemsList                                       @1428  NONAME
-    PhRemoveStringBuilder                                   @1429  NONAME
-    PhResizeArray                                           @1430  NONAME
-    PhResizeList                                            @1431  NONAME
-    PhRoundUpToPowerOfTwo                                   @1432  NONAME
-    PhSecondsSince1970ToTime                                @1433  NONAME
-    PhSplitStringRefAtChar                                  @1434  NONAME
-    PhSplitStringRefAtLastChar                              @1435  NONAME
-    PhSplitStringRefAtString                                @1436  NONAME
-    PhSplitStringRefEx                                      @1437  NONAME
-    PhStringToDouble                                        @1438  NONAME
-    PhStringToInteger64                                     @1439  NONAME
-    PhStringToUInt64                                        @1440  NONAME
-    PhSuccessorElementAvlTree                               @1441  NONAME
-    PhSystemTimeToLocalTime                                 @1442  NONAME
-    PhTimeToSecondsSince1970                                @1443  NONAME
-    PhTrimStringRef                                         @1444  NONAME
-    PhUnregisterCallback                                    @1445  NONAME
-    PhUpperBoundElementAvlTree                              @1446  NONAME
-    PhUpperDualBoundElementAvlTree                          @1447  NONAME
-    PhWriteUnicodeDecoder                                   @1448  NONAME
-    PhZeroExtendToUtf16Buffer                               @1449  NONAME
-    PhZeroExtendToUtf16Ex                                   @1450  NONAME
-    PhfAcquireRundownProtection                             @1451  NONAME
-    PhfBeginInitOnce                                        @1452  NONAME
-    PhfEndInitOnce                                          @1453  NONAME
-    PhfInitializeBarrier                                    @1454  NONAME
-    PhfInitializeEvent                                      @1455  NONAME
-    PhfInitializeInitOnce                                   @1456  NONAME
-    PhfInitializeRundownProtection                          @1457  NONAME
-    PhfReleaseRundownProtection                             @1458  NONAME
-    PhfResetEvent                                           @1459  NONAME
-    PhfSetEvent                                             @1460  NONAME
-    PhfWaitForBarrier                                       @1461  NONAME
-    PhfWaitForEvent                                         @1462  NONAME
-    PhfWaitForRundownProtection                             @1463  NONAME
+    PhAddElementAvlTree
+    PhAddEntryHashtable
+    PhAddEntryHashtableEx
+    PhAddItemArray
+    PhAddItemList
+    PhAddItemPointerList
+    PhAddItemSimpleHashtable
+    PhAddItemsArray
+    PhAddItemsList
+    PhAddPlusMaxMemorySingles
+    PhAllocate
+    PhAllocateExSafe
+    PhAllocateFromFreeList
+    PhAllocatePage
+    PhAllocateSafe
+    PhAppendBytesBuilder
+    PhAppendBytesBuilder2
+    PhAppendBytesBuilderEx
+    PhAppendCharStringBuilder
+    PhAppendCharStringBuilder2
+    PhAppendFormatStringBuilder
+    PhAppendFormatStringBuilder_V
+    PhAppendStringBuilderEx
+    PhBufferToHexString
+    PhBufferToHexStringEx
+    PhClearArray
+    PhClearHashtable
+    PhClearList
+    PhCompareStringRef
+    PhCompareStringZNatural
+    PhConcatStringRef2
+    PhConcatStringRef3
+    PhConcatStringRef4
+    PhConcatStrings
+    PhConcatStrings2
+    PhConcatStrings_V
+    PhConvertMultiByteToUtf16
+    PhConvertMultiByteToUtf16Ex
+    PhConvertUtf16ToAsciiEx
+    PhConvertUtf16ToMultiByte
+    PhConvertUtf16ToMultiByteEx
+    PhConvertUtf16ToUtf8
+    PhConvertUtf16ToUtf8Buffer
+    PhConvertUtf16ToUtf8Ex
+    PhConvertUtf16ToUtf8Size
+    PhConvertUtf8ToUtf16
+    PhConvertUtf8ToUtf16Buffer
+    PhConvertUtf8ToUtf16Ex
+    PhConvertUtf8ToUtf16Size
+    PhCopyBytesZ
+    PhCopyConvertCircularBufferULONG
+    PhCopyStringZ
+    PhCopyStringZFromBytes
+    PhCopyStringZFromMultiByte
+    PhCountStringZ
+    PhCreateBytes
+    PhCreateBytesEx
+    PhCreateHashtable
+    PhCreateList
+    PhCreatePointerList
+    PhCreateSimpleHashtable
+    PhCreateString3
+    PhCreateStringEx
+    PhCreateThread
+    PhCreateThread2
+    PhCreateThreadEx
+    PhDecodeUnicodeDecoder
+    PhDelayExecution
+    PhDeleteArray
+    PhDeleteBytesBuilder
+    PhDeleteCallback
+    PhDeleteFreeList
+    PhDeleteStringBuilder
+    PhDivideSinglesBySingle
+    PhDosErrorToNtStatus
+    PhDuplicateBytesZ
+    PhDuplicateBytesZSafe
+    PhDuplicateStringZ
+    PhEncodeUnicode
+    PhEnumAvlTree
+    PhEnumHashtable
+    PhEnumPointerListEx
+    PhEqualStringRef
+    PhExponentiate
+    PhExponentiate64
+    PhExtractIcon
+    PhExtractIconEx
+    PhFillMemoryUlong
+    PhFinalBytesBuilderBytes
+    PhFinalStringBuilderString
+    PhFindCharInStringRef
+    PhFindElementAvlTree
+    PhFindEntryHashtable
+    PhFindItemList
+    PhFindItemPointerList
+    PhFindItemSimpleHashtable
+    PhFindLastCharInStringRef
+    PhFindStringInStringRef
+    PhFormat
+    PhFormatBytes
+    PhFormatBytes_V
+    PhFormatString
+    PhFormatString_V
+    PhFormatToBuffer
+    PhFree
+    PhFreePage
+    PhFreeToFreeList
+    PhGetLastError
+    PhGetPrimeNumber
+    PhHashBytes
+    PhHashStringRef
+    PhHashStringRefEx
+    PhHexStringToBuffer
+    PhHexStringToBufferEx
+    PhHungWindowFromGhostWindow
+    PhInitializeArray
+    PhInitializeAvlTree
+    PhInitializeBytesBuilder
+    PhInitializeCallback
+    PhInitializeFreeList
+    PhInitializeStringBuilder
+    PhInsertItemList
+    PhInsertItemsList
+    PhInsertStringBuilder
+    PhInsertStringBuilder2
+    PhInsertStringBuilderEx
+    PhIntegerToString64
+    PhInvokeCallback
+    PhLoadIndirectString
+    PhLoadResource
+    PhLocalTimeToSystemTime
+    PhLowerBoundElementAvlTree
+    PhLowerDualBoundElementAvlTree
+    PhMaxMemorySingles
+    PhMaximumElementAvlTree
+    PhMinimumElementAvlTree
+    PhNtStatusFileNotFound
+    PhNtStatusToDosError
+    PhPredecessorElementAvlTree
+    PhPrintTimeSpan
+    PhQueryPerformanceCounter
+    PhQueryPerformanceFrequency
+    PhQuerySystemTime
+    PhQueryTimeZoneBias
+    PhReAllocate
+    PhReAllocateSafe
+    PhReadTimeStampCounter
+    PhReferenceEmptyString
+    PhRegisterCallback
+    PhRegisterCallbackEx
+    PhRemoveElementAvlTree
+    PhRemoveEntryHashtable
+    PhRemoveItemArray
+    PhRemoveItemList
+    PhRemoveItemPointerList
+    PhRemoveItemSimpleHashtable
+    PhRemoveItemsArray
+    PhRemoveItemsList
+    PhRemoveStringBuilder
+    PhResizeArray
+    PhResizeList
+    PhRoundUpToPowerOfTwo
+    PhSecondsSince1970ToTime
+    PhSplitStringRefAtChar
+    PhSplitStringRefAtLastChar
+    PhSplitStringRefAtString
+    PhSplitStringRefEx
+    PhStringToDouble
+    PhStringToInteger64
+    PhStringToUInt64
+    PhSuccessorElementAvlTree
+    PhSystemTimeToLocalTime
+    PhTimeToSecondsSince1970
+    PhTrimStringRef
+    PhUnregisterCallback
+    PhUpperBoundElementAvlTree
+    PhUpperDualBoundElementAvlTree
+    PhWriteUnicodeDecoder
+    PhZeroExtendToUtf16Buffer
+    PhZeroExtendToUtf16Ex
+    PhfAcquireRundownProtection
+    PhfBeginInitOnce
+    PhfEndInitOnce
+    PhfInitializeBarrier
+    PhfInitializeEvent
+    PhfInitializeInitOnce
+    PhfInitializeRundownProtection
+    PhfReleaseRundownProtection
+    PhfResetEvent
+    PhfSetEvent
+    PhfWaitForBarrier
+    PhfWaitForEvent
+    PhfWaitForRundownProtection
 
 ; phfirmware
-    PhEnumSMBIOS                                            @1464  NONAME
-    PhGetSMBIOSString                                       @1465  NONAME
+    PhEnumSMBIOS
+    PhGetSMBIOSString
 
 ; phnative
-    PhAdjustPrivilege                                       @1466  NONAME
-    PhConnectPipe                                           @1467  NONAME
-    PhCreateDirectoryFullPathWin32                          @1468  NONAME
-    PhCreateDirectoryWin32                                  @1469  NONAME
-    PhCreateEvent                                           @1470  NONAME
-    PhCreateFile                                            @1471  NONAME
-    PhCreateFileWin32                                       @1472  NONAME
-    PhCreateFileWin32Ex                                     @1473  NONAME
-    PhCreateKey                                             @1474  NONAME
-    PhCreateNamedPipe                                       @1475  NONAME
-    PhCreatePipe                                            @1476  NONAME
-    PhDeleteDirectoryWin32                                  @1477  NONAME
-    PhDeleteFile                                            @1478  NONAME
-    PhDeleteFileWin32                                       @1479  NONAME
-    PhDeleteValueKey                                        @1480  NONAME
-    PhDestroyWindowRemote                                   @1481  NONAME
-    PhDetermineDosPathNameType                              @1482  NONAME
-    PhDeviceIoControlFile                                   @1483  NONAME
-    PhDisconnectNamedPipe                                   @1484  NONAME
-    PhDoesFileExist                                         @1485  NONAME
-    PhDoesFileExistWin32                                    @1486  NONAME
-    PhDosPathNameToNtPathName                               @1487  NONAME
-    PhEnumBigPoolInformation                                @1488  NONAME
-    PhEnumDirectoryFile                                     @1489  NONAME
-    PhEnumDirectoryObjects                                  @1490  NONAME
-    PhEnumFileStreams                                       @1491  NONAME
-    PhEnumFirmwareEnvironmentValues                         @1492  NONAME
-    PhEnumGenericModules                                    @1493  NONAME
-    PhEnumHandlesEx                                         @1494  NONAME
-    PhEnumKernelModules                                     @1495  NONAME
-    PhEnumNextProcess                                       @1496  NONAME
-    PhEnumNextThread                                        @1497  NONAME
-    PhEnumObjectIdInformation                               @1498  NONAME
-    PhEnumPagefiles                                         @1499  NONAME
-    PhEnumPoolTagInformation                                @1500  NONAME
-    PhEnumProcessEnvironmentVariables                       @1501  NONAME
-    PhEnumProcesses                                         @1502  NONAME
-    PhEnumProcessesEx                                       @1503  NONAME
-    PhEnumProcessHandles                                    @1504  NONAME
-    PhEnumReparsePointInformation                           @1505  NONAME
-    PhEnumerateKey                                          @1506  NONAME
-    PhEnumerateValueKey                                     @1507  NONAME
-    PhFilterConnectCommunicationPort                        @1508  NONAME
-    PhFindProcessInformation                                @1509  NONAME
-    PhFindProcessInformationByImageName                     @1510  NONAME
-    PhGetActiveProcessorCount                               @1511  NONAME
-    PhGetContextThread                                      @1512  NONAME
-    PhGetDeviceType                                         @1513  NONAME
-    PhGetDllHandle                                          @1514  NONAME
-    PhGetDriverImageFileName                                @1515  NONAME
-    PhGetDriverName                                         @1516  NONAME
-    PhGetDriverServiceKeyName                               @1517  NONAME
-    PhGetFileFullAttributesInformation                      @1518  NONAME
-    PhGetFileName                                           @1519  NONAME
-    PhGetFilePosition                                       @1520  NONAME
-    PhGetFileSize                                           @1521  NONAME
-    PhGetFirmwareEnvironmentVariable                        @1522  NONAME
-    PhGetJobProcessIdList                                   @1523  NONAME
-    PhGetKernelFileName                                     @1524  NONAME
-    PhGetKernelFileName2                                    @1525  NONAME
-    PhGetKernelFileNameEx                                   @1526  NONAME
-    PhGetModuleProcAddress                                  @1527  NONAME
-    PhGetNamedPipeClientComputerName                        @1528  NONAME
-    PhGetNamedPipeClientProcessId                           @1529  NONAME
-    PhGetNamedPipeServerProcessId                           @1530  NONAME
-    PhGetObjectSecurity                                     @1531  NONAME
-    PhGetObjectTypeIndexName                                @1532  NONAME
-    PhGetObjectTypeNumber                                   @1533  NONAME
-    PhGetOwnTokenAttributes                                 @1534  NONAME
-    PhGetPnPDeviceName                                      @1535  NONAME
-    PhGetProcedureAddress                                   @1536  NONAME
-    PhGetProcedureAddressRemote                             @1537  NONAME
-    PhGetProcessCommandLine                                 @1538  NONAME
-    PhGetProcessDepStatus                                   @1539  NONAME
-    PhGetProcessDeviceMap                                   @1540  NONAME
-    PhGetProcessEnvironment                                 @1541  NONAME
-    PhGetProcessImageFileName                               @1542  NONAME
-    PhGetProcessImageFileNameByProcessId                    @1543  NONAME
-    PhGetProcessImageFileNameWin32                          @1544  NONAME
-    PhGetProcessIsDotNet                                    @1545  NONAME
-    PhGetProcessIsDotNetEx                                  @1546  NONAME
-    PhGetProcessMappedFileName                              @1547  NONAME
-    PhGetProcessPebString                                   @1548  NONAME
-    PhGetProcessPriorityClass                               @1549  NONAME
-    PhGetProcessUnloadedDlls                                @1550  NONAME
-    PhGetProcessWindowTitle                                 @1551  NONAME
-    PhGetProcessWorkingSetInformation                       @1552  NONAME
-    PhGetProcessWsCounters                                  @1553  NONAME
-    PhGetSectionFileName                                    @1554  NONAME
-    PhGetTokenGroups                                        @1555  NONAME
-    PhGetTokenIntegrityLevel                                @1556  NONAME
-    PhGetTokenIntegrityLevelRID                             @1557  NONAME
-    PhGetTokenOwner                                         @1558  NONAME
-    PhGetTokenPrimaryGroup                                  @1559  NONAME
-    PhGetTokenPrivileges                                    @1560  NONAME
-    PhGetTokenUser                                          @1561  NONAME
-    PhImpersonateToken                                      @1562  NONAME
-    PhIsDebuggerPresent                                     @1563  NONAME
-    PhIsFirmwareSupported                                   @1564  NONAME
-    PhListenNamedPipe                                       @1565  NONAME
-    PhLoadAppKey                                            @1566  NONAME
-    PhMoveFileWin32                                         @1567  NONAME
-    PhOpenDirectoryObject                                   @1568  NONAME
-    PhOpenDriver                                            @1569  NONAME
-    PhOpenFile                                              @1570  NONAME
-    PhOpenFileById                                          @1571  NONAME
-    PhOpenKey                                               @1572  NONAME
-    PhOpenProcess                                           @1573  NONAME
-    PhOpenProcessClientId                                   @1574  NONAME
-    PhOpenProcessToken                                      @1575  NONAME
-    PhOpenThread                                            @1576  NONAME
-    PhOpenThreadProcess                                     @1577  NONAME
-    PhPeekNamedPipe                                         @1578  NONAME
-    PhQueryEnvironmentVariable                              @1579  NONAME
-    PhQueryFullAttributesFileWin32                          @1580  NONAME
-    PhQueryKey                                              @1581  NONAME
-    PhQuerySymbolicLinkObject                               @1582  NONAME
-    PhQueryTokenVariableSize                                @1583  NONAME
-    PhQueryValueKey                                         @1584  NONAME
-    PhQueueUserWorkItem                                     @1585  NONAME
-    PhReadFile                                              @1586  NONAME
-    PhResolveDevicePrefix                                   @1587  NONAME
-    PhRevertImpersonationToken                              @1588  NONAME
-    PhSetFileAllocationSize                                 @1589  NONAME
-    PhSetFilePosition                                       @1590  NONAME
-    PhSetFileSize                                           @1591  NONAME
-    PhSetFirmwareEnvironmentVariable                        @1592  NONAME
-    PhSetObjectSecurity                                     @1593  NONAME
-    PhSetProcessPowerThrottlingState                        @1594  NONAME
-    PhSetProcessPriorityBoost                               @1595  NONAME
-    PhSetProcessPriorityClass                               @1596  NONAME
-    PhSetThreadBasePriority                                 @1597  NONAME
-    PhSetThreadIoPriority                                   @1598  NONAME
-    PhSetThreadName                                         @1599  NONAME
-    PhSetTokenIsVirtualizationEnabled                       @1600  NONAME
-    PhSetTokenPrivilege                                     @1601  NONAME
-    PhSetTokenPrivilege2                                    @1602  NONAME
-    PhSetTokenSessionId                                     @1603  NONAME
-    PhSetValueKey                                           @1604  NONAME
-    PhTerminateProcess                                      @1605  NONAME
-    PhTraceControl                                          @1606  NONAME
-    PhTransceiveNamedPipe                                   @1607  NONAME
-    PhUnloadDllProcess                                      @1608  NONAME
-    PhUnloadDriver                                          @1609  NONAME
-    PhUpdateDosDevicePrefixes                               @1610  NONAME
-    PhUpdateMupDevicePrefixes                               @1611  NONAME
-    PhWaitForNamedPipe                                      @1612  NONAME
-    PhWriteFile                                             @1613  NONAME
+    PhAdjustPrivilege
+    PhConnectPipe
+    PhCreateDirectoryFullPathWin32
+    PhCreateDirectoryWin32
+    PhCreateEvent
+    PhCreateFile
+    PhCreateFileWin32
+    PhCreateFileWin32Ex
+    PhCreateKey
+    PhCreateNamedPipe
+    PhCreatePipe
+    PhDeleteDirectoryWin32
+    PhDeleteFile
+    PhDeleteFileWin32
+    PhDeleteValueKey
+    PhDestroyWindowRemote
+    PhDetermineDosPathNameType
+    PhDeviceIoControlFile
+    PhDisconnectNamedPipe
+    PhDoesFileExist
+    PhDoesFileExistWin32
+    PhDosPathNameToNtPathName
+    PhEnumBigPoolInformation
+    PhEnumDirectoryFile
+    PhEnumDirectoryObjects
+    PhEnumFileStreams
+    PhEnumFirmwareEnvironmentValues
+    PhEnumGenericModules
+    PhEnumHandlesEx
+    PhEnumKernelModules
+    PhEnumNextProcess
+    PhEnumNextThread
+    PhEnumObjectIdInformation
+    PhEnumPagefiles
+    PhEnumPoolTagInformation
+    PhEnumProcessEnvironmentVariables
+    PhEnumProcesses
+    PhEnumProcessesEx
+    PhEnumProcessHandles
+    PhEnumReparsePointInformation
+    PhEnumerateKey
+    PhEnumerateValueKey
+    PhFilterConnectCommunicationPort
+    PhFindProcessInformation
+    PhFindProcessInformationByImageName
+    PhGetActiveProcessorCount
+    PhGetContextThread
+    PhGetDeviceType
+    PhGetDllHandle
+    PhGetDriverImageFileName
+    PhGetDriverName
+    PhGetDriverServiceKeyName
+    PhGetFileFullAttributesInformation
+    PhGetFileName
+    PhGetFilePosition
+    PhGetFileSize
+    PhGetFirmwareEnvironmentVariable
+    PhGetJobProcessIdList
+    PhGetKernelFileName
+    PhGetKernelFileName2
+    PhGetKernelFileNameEx
+    PhGetModuleProcAddress
+    PhGetNamedPipeClientComputerName
+    PhGetNamedPipeClientProcessId
+    PhGetNamedPipeServerProcessId
+    PhGetObjectSecurity
+    PhGetObjectTypeIndexName
+    PhGetObjectTypeNumber
+    PhGetOwnTokenAttributes
+    PhGetPnPDeviceName
+    PhGetProcedureAddress
+    PhGetProcedureAddressRemote
+    PhGetProcessCommandLine
+    PhGetProcessDepStatus
+    PhGetProcessDeviceMap
+    PhGetProcessEnvironment
+    PhGetProcessImageFileName
+    PhGetProcessImageFileNameByProcessId
+    PhGetProcessImageFileNameWin32
+    PhGetProcessIsDotNet
+    PhGetProcessIsDotNetEx
+    PhGetProcessMappedFileName
+    PhGetProcessPebString
+    PhGetProcessPriorityClass
+    PhGetProcessUnloadedDlls
+    PhGetProcessWindowTitle
+    PhGetProcessWorkingSetInformation
+    PhGetProcessWsCounters
+    PhGetSectionFileName
+    PhGetTokenGroups
+    PhGetTokenIntegrityLevel
+    PhGetTokenIntegrityLevelRID
+    PhGetTokenOwner
+    PhGetTokenPrimaryGroup
+    PhGetTokenPrivileges
+    PhGetTokenUser
+    PhImpersonateToken
+    PhIsDebuggerPresent
+    PhIsFirmwareSupported
+    PhListenNamedPipe
+    PhLoadAppKey
+    PhMoveFileWin32
+    PhOpenDirectoryObject
+    PhOpenDriver
+    PhOpenFile
+    PhOpenFileById
+    PhOpenKey
+    PhOpenProcess
+    PhOpenProcessClientId
+    PhOpenProcessToken
+    PhOpenThread
+    PhOpenThreadProcess
+    PhPeekNamedPipe
+    PhQueryEnvironmentVariable
+    PhQueryFullAttributesFileWin32
+    PhQueryKey
+    PhQuerySymbolicLinkObject
+    PhQueryTokenVariableSize
+    PhQueryValueKey
+    PhQueueUserWorkItem
+    PhReadFile
+    PhResolveDevicePrefix
+    PhRevertImpersonationToken
+    PhSetFileAllocationSize
+    PhSetFilePosition
+    PhSetFileSize
+    PhSetFirmwareEnvironmentVariable
+    PhSetObjectSecurity
+    PhSetProcessPowerThrottlingState
+    PhSetProcessPriorityBoost
+    PhSetProcessPriorityClass
+    PhSetThreadBasePriority
+    PhSetThreadIoPriority
+    PhSetThreadName
+    PhSetTokenIsVirtualizationEnabled
+    PhSetTokenPrivilege
+    PhSetTokenPrivilege2
+    PhSetTokenSessionId
+    PhSetValueKey
+    PhTerminateProcess
+    PhTraceControl
+    PhTransceiveNamedPipe
+    PhUnloadDllProcess
+    PhUnloadDriver
+    PhUpdateDosDevicePrefixes
+    PhUpdateMupDevicePrefixes
+    PhWaitForNamedPipe
+    PhWriteFile
 
 ; phutil
-    PhAdjustRectangleToBounds                               @1614  NONAME
-    PhAdjustRectangleToWorkingArea                          @1615  NONAME
-    PhCenterRectangle                                       @1616  NONAME
-    PhCenterWindow                                          @1617  NONAME
-    PhCompareUnicodeStringZIgnoreMenuPrefix                 @1618  NONAME
-    PhConsoleSetForeground                                  @1619  NONAME
-    PhConsoleSetWindow                                      @1620  NONAME
-    PhCreateOpenFileDialog                                  @1621  NONAME
-    PhCreateProcess                                         @1622  NONAME
-    PhCreateProcessAsUser                                   @1623  NONAME
-    PhCreateProcessRedirection                              @1624  NONAME
-    PhCreateProcessWin32                                    @1625  NONAME
-    PhCreateProcessWin32Ex                                  @1626  NONAME
-    PhCreateSaveFileDialog                                  @1627  NONAME
-    PhDeleteImageVersionInfo                                @1628  NONAME
-    PhDevFreeObjectProperties                               @1629  NONAME
-    PhDevFreeObjects                                        @1630  NONAME
-    PhDevGetObjectProperties                                @1631  NONAME
-    PhDevGetObjects                                         @1632  NONAME
-    PhEllipsisString                                        @1633  NONAME
-    PhEllipsisStringPath                                    @1634  NONAME
-    PhEscapeCommandLinePart                                 @1635  NONAME
-    PhEscapeStringForMenuPrefix                             @1636  NONAME
-    PhExpandEnvironmentStrings                              @1637  NONAME
-    PhFileReadAllTextWin32                                  @1638  NONAME
-    PhFinalHash                                             @1639  NONAME
-    PhFormatDate                                            @1640  NONAME
-    PhFormatDateTime                                        @1641  NONAME
-    PhFormatDecimal                                         @1642  NONAME
-    PhFormatGuid                                            @1643  NONAME
-    PhFormatImageVersionInfo                                @1644  NONAME
-    PhFormatSize                                            @1645  NONAME
-    PhFormatTime                                            @1646  NONAME
-    PhFormatTimeSpan                                        @1647  NONAME
-    PhFormatTimeSpanRelative                                @1648  NONAME
-    PhFormatUInt64                                          @1649  NONAME
-    PhFreeFileDialog                                        @1650  NONAME
-    PhFreeLibrary                                           @1651  NONAME
-    PhFreeLibraryAsImageResource                            @1652  NONAME
-    PhGenerateGuid                                          @1653  NONAME
-    PhGenerateGuidFromName                                  @1654  NONAME
-    PhGenerateRandomAlphaString                             @1655  NONAME
-    PhGenerateRandomNumber64                                @1656  NONAME
-    PhGetApplicationDataFileName                            @1657  NONAME
-    PhGetApplicationDirectory                               @1658  NONAME
-    PhGetApplicationDirectoryFileName                       @1659  NONAME
-    PhGetApplicationDirectoryWin32                          @1660  NONAME
-    PhGetApplicationFileNameWin32                           @1661  NONAME
-    PhGetBaseDirectory                                      @1662  NONAME
-    PhGetBaseName                                           @1663  NONAME
-    PhGetClassObject                                        @1664  NONAME
-    PhGetDllFileName                                        @1665  NONAME
-    PhGetClientRect                                         @1666  NONAME
-    PhGetDpi                                                @1667  NONAME
-    PhGetDpiValue                                           @1668  NONAME
-    PhGetFileDialogFileName                                 @1669  NONAME
-    PhGetFileDialogFilterIndex                              @1670  NONAME
-    PhGetFileDialogOptions                                  @1671  NONAME
-    PhGetFileVersionFixedInfo                               @1672  NONAME
-    PhGetFileVersionInfo                                    @1673  NONAME
-    PhGetFileVersionInfoEx                                  @1674  NONAME
-    PhGetFileVersionInfoLangCodePage                        @1675  NONAME
-    PhGetFileVersionInfoString                              @1676  NONAME
-    PhGetFileVersionInfoString2                             @1677  NONAME
-    PhGetFullPath                                           @1678  NONAME
-    PhGetKnownFolderPath                                    @1679  NONAME
-    PhGetKnownLocation                                      @1680  NONAME
-    PhGetMessage                                            @1681  NONAME
-    PhGetMonitorDpi                                         @1682  NONAME
-    PhGetNtMessage                                          @1683  NONAME
-    PhGetNtSystemRoot                                       @1684  NONAME
-    PhGetSizeDpiValue                                       @1685  NONAME
-    PhGetStatusMessage                                      @1686  NONAME
-    PhGetSystemDirectory                                    @1687  NONAME
-    PhGetSystemDpi                                          @1688  NONAME
-    PhGetSystemMetrics                                      @1689  NONAME
-    PhGetSystemParametersInfo                               @1690  NONAME
-    PhGetSystemRoot                                         @1691  NONAME
-    PhGetTaskbarDpi                                         @1692  NONAME
-    PhGetTemporaryDirectoryRandomAlphaFileName              @1693  NONAME
-    PhGetWin32Message                                       @1694  NONAME
-    PhGetWindowDpi                                          @1695  NONAME
-    PhInitializeHash                                        @1696  NONAME
-    PhInitializeImageVersionInfo                            @1697  NONAME
-    PhInitializeImageVersionInfoEx                          @1698  NONAME
-    PhInitializeProcThreadAttributeList                     @1699  NONAME
-    PhLargeIntegerToLocalSystemTime                         @1700  NONAME
-    PhLargeIntegerToSystemTime                              @1701  NONAME
-    PhLoadLibrary                                           @1702  NONAME
-    PhLoadLibraryAsImageResource                            @1703  NONAME
-    PhMapFlags1                                             @1704  NONAME
-    PhMapFlags2                                             @1705  NONAME
-    PhMatchWildcards                                        @1706  NONAME
-    PhParseCommandLine                                      @1707  NONAME
-    PhParseCommandLineFuzzy                                 @1708  NONAME
-    PhParseCommandLinePart                                  @1709  NONAME
-    PhQueryRegistryString                                   @1710  NONAME
-    PhQueryRegistryUlong                                    @1711  NONAME
-    PhQueryRegistryUlong64                                  @1712  NONAME
-    PhSetFileDialogFileName                                 @1713  NONAME
-    PhSetFileDialogFilter                                   @1714  NONAME
-    PhSetFileDialogOptions                                  @1715  NONAME
-    PhShellExecute                                          @1716  NONAME
-    PhShellExecuteEx                                        @1717  NONAME
-    PhShellExploreFile                                      @1718  NONAME
-    PhShellProperties                                       @1719  NONAME
-    PhShowConfirmMessage                                    @1720  NONAME
-    PhShowContinueStatus                                    @1721  NONAME
-    PhShowFileDialog                                        @1722  NONAME
-    PhShowMessage                                           @1723  NONAME
-    PhShowMessage2                                          @1724  NONAME
-    PhShowMessageOneTime                                    @1725  NONAME
-    PhShowStatus                                            @1726  NONAME
-    PhShowTaskDialog                                        @1727  NONAME
-    PhStringToGuid                                          @1728  NONAME
-    PhSystemTimeToLargeInteger                              @1729  NONAME
-    PhSystemTimeToTzSpecificLocalTime                       @1730  NONAME
-    PhTaskbarListCreate                                     @1731  NONAME
-    PhTaskbarListDestroy                                    @1732  NONAME
-    PhTaskbarListSetOverlayIcon                             @1733  NONAME
-    PhTaskbarListSetProgressState                           @1734  NONAME
-    PhTaskbarListSetProgressValue                           @1735  NONAME
-    PhUpdateHash                                            @1736  NONAME
-    PhUpdateProcThreadAttribute                             @1737  NONAME
-    PhWaitForMultipleObjectsAndPump                         @1738  NONAME
+    PhAdjustRectangleToBounds
+    PhAdjustRectangleToWorkingArea
+    PhCenterRectangle
+    PhCenterWindow
+    PhCompareUnicodeStringZIgnoreMenuPrefix
+    PhConsoleSetForeground
+    PhConsoleSetWindow
+    PhCreateOpenFileDialog
+    PhCreateProcess
+    PhCreateProcessAsUser
+    PhCreateProcessRedirection
+    PhCreateProcessWin32
+    PhCreateProcessWin32Ex
+    PhCreateSaveFileDialog
+    PhDeleteImageVersionInfo
+    PhDevFreeObjectProperties
+    PhDevFreeObjects
+    PhDevGetObjectProperties
+    PhDevGetObjects
+    PhEllipsisString
+    PhEllipsisStringPath
+    PhEscapeCommandLinePart
+    PhEscapeStringForMenuPrefix
+    PhExpandEnvironmentStrings
+    PhFileReadAllTextWin32
+    PhFinalHash
+    PhFormatDate
+    PhFormatDateTime
+    PhFormatDecimal
+    PhFormatGuid
+    PhFormatImageVersionInfo
+    PhFormatSize
+    PhFormatTime
+    PhFormatTimeSpan
+    PhFormatTimeSpanRelative
+    PhFormatUInt64
+    PhFreeFileDialog
+    PhFreeLibrary
+    PhFreeLibraryAsImageResource
+    PhGenerateGuid
+    PhGenerateGuidFromName
+    PhGenerateRandomAlphaString
+    PhGenerateRandomNumber64
+    PhGetApplicationDataFileName
+    PhGetApplicationDirectory
+    PhGetApplicationDirectoryFileName
+    PhGetApplicationDirectoryWin32
+    PhGetApplicationFileNameWin32
+    PhGetBaseDirectory
+    PhGetBaseName
+    PhGetClassObject
+    PhGetDllFileName
+    PhGetClientRect
+    PhGetDpi
+    PhGetDpiValue
+    PhGetFileDialogFileName
+    PhGetFileDialogFilterIndex
+    PhGetFileDialogOptions
+    PhGetFileVersionFixedInfo
+    PhGetFileVersionInfo
+    PhGetFileVersionInfoEx
+    PhGetFileVersionInfoLangCodePage
+    PhGetFileVersionInfoString
+    PhGetFileVersionInfoString2
+    PhGetFullPath
+    PhGetKnownFolderPath
+    PhGetKnownLocation
+    PhGetMessage
+    PhGetMonitorDpi
+    PhGetNtMessage
+    PhGetNtSystemRoot
+    PhGetSizeDpiValue
+    PhGetStatusMessage
+    PhGetSystemDirectory
+    PhGetSystemDpi
+    PhGetSystemMetrics
+    PhGetSystemParametersInfo
+    PhGetSystemRoot
+    PhGetTaskbarDpi
+    PhGetTemporaryDirectoryRandomAlphaFileName
+    PhGetWin32Message
+    PhGetWindowDpi
+    PhInitializeHash
+    PhInitializeImageVersionInfo
+    PhInitializeImageVersionInfoEx
+    PhInitializeProcThreadAttributeList
+    PhLargeIntegerToLocalSystemTime
+    PhLargeIntegerToSystemTime
+    PhLoadLibrary
+    PhLoadLibraryAsImageResource
+    PhMapFlags1
+    PhMapFlags2
+    PhMatchWildcards
+    PhParseCommandLine
+    PhParseCommandLineFuzzy
+    PhParseCommandLinePart
+    PhQueryRegistryString
+    PhQueryRegistryUlong
+    PhQueryRegistryUlong64
+    PhSetFileDialogFileName
+    PhSetFileDialogFilter
+    PhSetFileDialogOptions
+    PhShellExecute
+    PhShellExecuteEx
+    PhShellExploreFile
+    PhShellProperties
+    PhShowConfirmMessage
+    PhShowContinueStatus
+    PhShowFileDialog
+    PhShowMessage
+    PhShowMessage2
+    PhShowMessageOneTime
+    PhShowStatus
+    PhShowTaskDialog
+    PhStringToGuid
+    PhSystemTimeToLargeInteger
+    PhSystemTimeToTzSpecificLocalTime
+    PhTaskbarListCreate
+    PhTaskbarListDestroy
+    PhTaskbarListSetOverlayIcon
+    PhTaskbarListSetProgressState
+    PhTaskbarListSetProgressValue
+    PhUpdateHash
+    PhUpdateProcThreadAttribute
+    PhWaitForMultipleObjectsAndPump
 
 ; circbuf
-    PhClearCircularBuffer_FLOAT                             @1739  NONAME
-    PhClearCircularBuffer_PVOID                             @1740  NONAME
-    PhClearCircularBuffer_ULONG                             @1741  NONAME
-    PhClearCircularBuffer_ULONG64                           @1742  NONAME
-    PhCopyCircularBuffer_FLOAT                              @1743  NONAME
-    PhCopyCircularBuffer_PVOID                              @1744  NONAME
-    PhCopyCircularBuffer_ULONG                              @1745  NONAME
-    PhCopyCircularBuffer_ULONG64                            @1746  NONAME
-    PhDeleteCircularBuffer_FLOAT                            @1747  NONAME
-    PhDeleteCircularBuffer_PVOID                            @1748  NONAME
-    PhDeleteCircularBuffer_ULONG                            @1749  NONAME
-    PhDeleteCircularBuffer_ULONG64                          @1750  NONAME
-    PhInitializeCircularBuffer_FLOAT                        @1751  NONAME
-    PhInitializeCircularBuffer_PVOID                        @1752  NONAME
-    PhInitializeCircularBuffer_ULONG                        @1753  NONAME
-    PhInitializeCircularBuffer_ULONG64                      @1754  NONAME
-    PhResizeCircularBuffer_FLOAT                            @1755  NONAME
-    PhResizeCircularBuffer_PVOID                            @1756  NONAME
-    PhResizeCircularBuffer_ULONG                            @1757  NONAME
-    PhResizeCircularBuffer_ULONG64                          @1758  NONAME
+    PhClearCircularBuffer_FLOAT
+    PhClearCircularBuffer_PVOID
+    PhClearCircularBuffer_ULONG
+    PhClearCircularBuffer_ULONG64
+    PhCopyCircularBuffer_FLOAT
+    PhCopyCircularBuffer_PVOID
+    PhCopyCircularBuffer_ULONG
+    PhCopyCircularBuffer_ULONG64
+    PhDeleteCircularBuffer_FLOAT
+    PhDeleteCircularBuffer_PVOID
+    PhDeleteCircularBuffer_ULONG
+    PhDeleteCircularBuffer_ULONG64
+    PhInitializeCircularBuffer_FLOAT
+    PhInitializeCircularBuffer_PVOID
+    PhInitializeCircularBuffer_ULONG
+    PhInitializeCircularBuffer_ULONG64
+    PhResizeCircularBuffer_FLOAT
+    PhResizeCircularBuffer_PVOID
+    PhResizeCircularBuffer_ULONG
+    PhResizeCircularBuffer_ULONG64
 
 ; cpysave
-    PhGetGenericTreeNewLines                                @1759  NONAME
-    PhGetListViewItemText                                   @1760  NONAME
-    PhGetListViewSelectedItemText                           @1761  NONAME
-    PhGetTreeNewText                                        @1762  NONAME
+    PhGetGenericTreeNewLines
+    PhGetListViewItemText
+    PhGetListViewSelectedItemText
+    PhGetTreeNewText
 
 ; emenu
-    PhCreateEMenu                                           @1763  NONAME
-    PhCreateEMenuItem                                       @1764  NONAME
-    PhDestroyEMenu                                          @1765  NONAME
-    PhDestroyEMenuItem                                      @1766  NONAME
-    PhFindEMenuItem                                         @1767  NONAME
-    PhIndexOfEMenuItem                                      @1768  NONAME
-    PhInsertEMenuItem                                       @1769  NONAME
-    PhLoadResourceEMenuItem                                 @1770  NONAME
-    PhModifyEMenuItem                                       @1771  NONAME
-    PhRemoveAllEMenuItems                                   @1772  NONAME
-    PhRemoveEMenuItem                                       @1773  NONAME
-    PhSetFlagsAllEMenuItems                                 @1774  NONAME
-    PhSetFlagsEMenuItem                                     @1775  NONAME
-    PhShowEMenu                                             @1776  NONAME
+    PhCreateEMenu
+    PhCreateEMenuItem
+    PhDestroyEMenu
+    PhDestroyEMenuItem
+    PhFindEMenuItem
+    PhIndexOfEMenuItem
+    PhInsertEMenuItem
+    PhLoadResourceEMenuItem
+    PhModifyEMenuItem
+    PhRemoveAllEMenuItems
+    PhRemoveEMenuItem
+    PhSetFlagsAllEMenuItems
+    PhSetFlagsEMenuItem
+    PhShowEMenu
 
 ; fastlock
-    PhDeleteFastLock                                        @1777  NONAME
-    PhInitializeFastLock                                    @1778  NONAME
-    PhfAcquireFastLockExclusive                             @1779  NONAME
-    PhfAcquireFastLockShared                                @1780  NONAME
-    PhfReleaseFastLockExclusive                             @1781  NONAME
-    PhfReleaseFastLockShared                                @1782  NONAME
-    PhfTryAcquireFastLockExclusive                          @1783  NONAME
-    PhfTryAcquireFastLockShared                             @1784  NONAME
+    PhDeleteFastLock
+    PhInitializeFastLock
+    PhfAcquireFastLockExclusive
+    PhfAcquireFastLockShared
+    PhfReleaseFastLockExclusive
+    PhfReleaseFastLockShared
+    PhfTryAcquireFastLockExclusive
+    PhfTryAcquireFastLockShared
 
 ; filestream
-    PhCreateFileStream                                      @1785  NONAME
-    PhCreateFileStream2                                     @1786  NONAME
-    PhFlushFileStream                                       @1787  NONAME
-    PhGetPositionFileStream                                 @1788  NONAME
-    PhLockFileStream                                        @1789  NONAME
-    PhReadFileStream                                        @1790  NONAME
-    PhSeekFileStream                                        @1791  NONAME
-    PhUnlockFileStream                                      @1792  NONAME
-    PhVerifyFileStream                                      @1793  NONAME
-    PhWriteFileStream                                       @1794  NONAME
-    PhWriteStringAsUtf8FileStream                           @1795  NONAME
-    PhWriteStringAsUtf8FileStreamEx                         @1796  NONAME
-    PhWriteStringFormatAsUtf8FileStream                     @1797  NONAME
-    PhWriteStringFormatAsUtf8FileStream_V                   @1798  NONAME
+    PhCreateFileStream
+    PhCreateFileStream2
+    PhFlushFileStream
+    PhGetPositionFileStream
+    PhLockFileStream
+    PhReadFileStream
+    PhSeekFileStream
+    PhUnlockFileStream
+    PhVerifyFileStream
+    PhWriteFileStream
+    PhWriteStringAsUtf8FileStream
+    PhWriteStringAsUtf8FileStreamEx
+    PhWriteStringFormatAsUtf8FileStream
+    PhWriteStringFormatAsUtf8FileStream_V
 
 ; graph
-    PhDeleteGraphState                                      @1799  NONAME
-    PhDrawGraphDirect                                       @1800  NONAME
-    PhDrawTrayIconText                                      @1801  NONAME
-    PhGetDrawInfoGraphBuffers                               @1802  NONAME
-    PhGraphStateGetDrawInfo                                 @1803  NONAME
-    PhInitializeGraphState                                  @1804  NONAME
-    PhNfGetTrayIconFont                                     @1805  NONAME
-    PhSetGraphText                                          @1806  NONAME
+    PhDeleteGraphState
+    PhDrawGraphDirect
+    PhDrawTrayIconText
+    PhGetDrawInfoGraphBuffers
+    PhGraphStateGetDrawInfo
+    PhInitializeGraphState
+    PhNfGetTrayIconFont
+    PhSetGraphText
 
 ; guisup
-    PhAddLayoutItem                                         @1807  NONAME
-    PhAddLayoutItemEx                                       @1808  NONAME
-    PhAddListViewColumn                                     @1809  NONAME
-    PhAddIListViewColumn                                    @1810  NONAME
-    PhAddIListViewGroup                                     @1811  NONAME
-    PhAddIListViewGroupItem                                 @1812  NONAME
-    PhAddListViewGroup                                      @1813  NONAME
-    PhAddListViewGroupItem                                  @1814  NONAME
-    PhAddListViewItem                                       @1815  NONAME
-    PhAddIListViewItem                                      @1816  NONAME
-    PhAddTabControlTab                                      @1817  NONAME
-    PhBitmapSetAlpha                                        @1818  NONAME
-    PhCreateDialog                                          @1819  NONAME
-    PhCreateWindowEx                                        @1820  NONAME
-    PhDeleteLayoutManager                                   @1821  NONAME
-    PhDialogBox                                             @1822  NONAME
-    PhEnumChildWindows                                      @1823  NONAME
-    PhEnumWindows                                           @1824  NONAME
-    PhFindIListViewItemByFlags                              @1825  NONAME
-    PhFindListViewItemByFlags                               @1826  NONAME
-    PhFindListViewItemByParam                               @1827  NONAME
-    PhGetComboBoxString                                     @1828  NONAME
-    PhGetDialogItemValue                                    @1829  NONAME
-    PhGetIListViewItemParam                                 @1830  NONAME
-    PhGetListBoxString                                      @1831  NONAME
-    PhGetListViewItemImageIndex                             @1832  NONAME
-    PhGetListViewItemParam                                  @1833  NONAME
-    PhGetSelectedListViewItemParam                          @1834  NONAME
-    PhGetSelectedListViewItemParams                         @1835  NONAME
-    PhGetSelectedIListViewItemParams                        @1836  NONAME
-    PhGetStockApplicationIcon                               @1837  NONAME
-    PhGetStockObject                                        @1838  NONAME
-    PhGetWindowClientId                                     @1839  NONAME
-    PhGetWindowContext                                      @1840  NONAME
-    PhGetWindowText                                         @1841  NONAME
-    PhGetWindowTextEx                                       @1842  NONAME
-    PhIconToBitmap                                          @1843  NONAME
-    PhImageListAddBitmap                                    @1844  NONAME
-    PhImageListAddIcon                                      @1845  NONAME
-    PhImageListCreate                                       @1846  NONAME
-    PhImageListDestroy                                      @1847  NONAME
-    PhImageListDrawEx                                       @1848  NONAME
-    PhImageListDrawIcon                                     @1849  NONAME
-    PhImageListGetIcon                                      @1850  NONAME
-    PhImageListRemoveIcon                                   @1851  NONAME
-    PhImageListReplace                                      @1852  NONAME
-    PhImageListSetBkColor                                   @1853  NONAME
-    PhImageListSetIconSize                                  @1854  NONAME
-    PhImageListSetImageCount                                @1855  NONAME
-    PhInitializeLayoutManager                               @1856  NONAME
-    PhLayoutManagerLayout                                   @1857  NONAME
-    PhLoadIcon                                              @1858  NONAME
-    PhLoadImageFormatFromResource                           @1859  NONAME
-    PhModalPropertySheet                                    @1860  NONAME
-    PhQueryDirectXExclusiveOwnership                        @1861  NONAME
-    PhInitializeWindowTheme                                 @1862  NONAME
-    PhReInitializeWindowTheme                               @1863  NONAME
-    PhRegisterWindowCallback                                @1864  NONAME
-    PhRemoveListViewItem                                    @1865  NONAME
-    PhRemoveWindowContext                                   @1866  NONAME
-    PhSelectComboBoxString                                  @1867  NONAME
-    PhSetClipboardString                                    @1868  NONAME
-    PhSetControlTheme                                       @1869  NONAME
-    PhSetDialogItemText                                     @1870  NONAME
-    PhSetDialogItemValue                                    @1871  NONAME
-    PhSetExtendedListView                                   @1872  NONAME
-    PhSetGroupBoxText                                       @1873  NONAME
-    PhSetHeaderSortIcon                                     @1874  NONAME
-    PhSetImageListBitmap                                    @1875  NONAME
-    PhSetListViewItemImageIndex                             @1876  NONAME
-    PhSetListViewItemParam                                  @1877  NONAME
-    PhSetListViewSubItem                                    @1878  NONAME
-    PhSetIListViewSubItem                                   @1879  NONAME
-    PhSetStateAllListViewItems                              @1880  NONAME
-    PhSetWindowContext                                      @1881  NONAME
-    PhSetWindowText                                         @1882  NONAME
-    PhThemeWindowDrawRebar                                  @1883  NONAME
-    PhThemeWindowDrawToolbar                                @1884  NONAME
-    PhUnregisterWindowCallback                              @1885  NONAME
-    PhWindowThemeControlColor                               @1886  NONAME
+    PhAddLayoutItem
+    PhAddLayoutItemEx
+    PhAddListViewColumn
+    PhAddIListViewColumn
+    PhAddIListViewGroup
+    PhAddIListViewGroupItem
+    PhAddListViewGroup
+    PhAddListViewGroupItem
+    PhAddListViewItem
+    PhAddIListViewItem
+    PhAddTabControlTab
+    PhBitmapSetAlpha
+    PhCreateDialog
+    PhCreateWindowEx
+    PhDeleteLayoutManager
+    PhDialogBox
+    PhEnumChildWindows
+    PhEnumWindows
+    PhFindIListViewItemByFlags
+    PhFindListViewItemByFlags
+    PhFindListViewItemByParam
+    PhGetComboBoxString
+    PhGetDialogItemValue
+    PhGetIListViewItemParam
+    PhGetListBoxString
+    PhGetListViewItemImageIndex
+    PhGetListViewItemParam
+    PhGetSelectedListViewItemParam
+    PhGetSelectedListViewItemParams
+    PhGetSelectedIListViewItemParams
+    PhGetStockApplicationIcon
+    PhGetStockObject
+    PhGetWindowClientId
+    PhGetWindowContext
+    PhGetWindowText
+    PhGetWindowTextEx
+    PhIconToBitmap
+    PhImageListAddBitmap
+    PhImageListAddIcon
+    PhImageListCreate
+    PhImageListDestroy
+    PhImageListDrawEx
+    PhImageListDrawIcon
+    PhImageListGetIcon
+    PhImageListRemoveIcon
+    PhImageListReplace
+    PhImageListSetBkColor
+    PhImageListSetIconSize
+    PhImageListSetImageCount
+    PhInitializeLayoutManager
+    PhLayoutManagerLayout
+    PhLoadIcon
+    PhLoadImageFormatFromResource
+    PhModalPropertySheet
+    PhQueryDirectXExclusiveOwnership
+    PhInitializeWindowTheme
+    PhReInitializeWindowTheme
+    PhRegisterWindowCallback
+    PhRemoveListViewItem
+    PhRemoveWindowContext
+    PhSelectComboBoxString
+    PhSetClipboardString
+    PhSetControlTheme
+    PhSetDialogItemText
+    PhSetDialogItemValue
+    PhSetExtendedListView
+    PhSetGroupBoxText
+    PhSetHeaderSortIcon
+    PhSetImageListBitmap
+    PhSetListViewItemImageIndex
+    PhSetListViewItemParam
+    PhSetListViewSubItem
+    PhSetIListViewSubItem
+    PhSetStateAllListViewItems
+    PhSetWindowContext
+    PhSetWindowText
+    PhThemeWindowDrawRebar
+    PhThemeWindowDrawToolbar
+    PhUnregisterWindowCallback
+    PhWindowThemeControlColor
 
 ; hndlinfo
-    PhCallKphQueryFileInformationWithTimeout                @1887  NONAME
-    PhCompareObjects                                        @1888  NONAME
-    PhEnumObjectTypes                                       @1889  NONAME
-    PhFormatNativeKeyName                                   @1890  NONAME
-    PhGetEtwPublisherName                                   @1891  NONAME
-    PhGetHandleInformation                                  @1892  NONAME
-    PhGetHandleInformationEx                                @1893  NONAME
-    PhGetObjectTypeName                                     @1894  NONAME
-    PhQueryObjectName                                       @1895  NONAME
-    PhStdGetClientIdName                                    @1896  NONAME
+    PhCallKphQueryFileInformationWithTimeout
+    PhCompareObjects
+    PhEnumObjectTypes
+    PhFormatNativeKeyName
+    PhGetEtwPublisherName
+    PhGetHandleInformation
+    PhGetHandleInformationEx
+    PhGetObjectTypeName
+    PhQueryObjectName
+    PhStdGetClientIdName
 
 ; lsasup
-    PhEnumeratePrivileges                                   @1897  NONAME
-    PhGetSidFullName                                        @1898  NONAME
-    PhLookupName                                            @1899  NONAME
-    PhLookupPrivilegeDisplayName                            @1900  NONAME
-    PhLookupPrivilegeName                                   @1901  NONAME
-    PhLookupPrivilegeValue                                  @1902  NONAME
-    PhLookupSid                                             @1903  NONAME
-    PhOpenLsaPolicy                                         @1904  NONAME
-    PhSidToStringSid                                        @1905  NONAME
+    PhEnumeratePrivileges
+    PhGetSidFullName
+    PhLookupName
+    PhLookupPrivilegeDisplayName
+    PhLookupPrivilegeName
+    PhLookupPrivilegeValue
+    PhLookupSid
+    PhOpenLsaPolicy
+    PhSidToStringSid
 
 ; mapimg
-    PhLoadMappedImage                                       @1906  NONAME
-    PhLoadMappedImageEx                                     @1907  NONAME
-    PhLoadMappedImageHeaderPageSize                         @1908  NONAME
-    PhUnloadMappedImage                                     @1909  NONAME
+    PhLoadMappedImage
+    PhLoadMappedImageEx
+    PhLoadMappedImageHeaderPageSize
+    PhUnloadMappedImage
 
 ; provider
-    PhBoostProvider                                         @1910  NONAME
-    PhDeleteProviderThread                                  @1911  NONAME
-    PhGetEnabledProvider                                    @1912  NONAME
-    PhInitializeProviderThread                              @1913  NONAME
-    PhRegisterProvider                                      @1914  NONAME
-    PhSetEnabledProvider                                    @1915  NONAME
-    PhSetIntervalProviderThread                             @1916  NONAME
-    PhStartProviderThread                                   @1917  NONAME
-    PhStopProviderThread                                    @1918  NONAME
-    PhUnregisterProvider                                    @1919  NONAME
+    PhBoostProvider
+    PhDeleteProviderThread
+    PhGetEnabledProvider
+    PhInitializeProviderThread
+    PhRegisterProvider
+    PhSetEnabledProvider
+    PhSetIntervalProviderThread
+    PhStartProviderThread
+    PhStopProviderThread
+    PhUnregisterProvider
 
 ; settings
-    PhAddSetting                                            @1920  NONAME
-    PhAddSettings                                           @1921  NONAME
-    PhClearIgnoredSettings                                  @1922  NONAME
-    PhConvertIgnoredSettings                                @1923  NONAME
-    PhGetIntegerPairStringRefSetting                        @1924  NONAME
-    PhGetIntegerStringRefSetting                            @1925  NONAME
-    PhGetScalableIntegerPairStringRefSetting                @1926  NONAME
-    PhGetStringRefSetting                                   @1927  NONAME
-    PhLoadCustomColorList                                   @1928  NONAME
-    PhLoadListViewColumnSettings                            @1929  NONAME
-    PhLoadListViewColumnsFromSetting                        @1930  NONAME
-    PhLoadListViewGroupStatesFromSetting                    @1931  NONAME
-    PhLoadListViewSortColumnsFromSetting                    @1932  NONAME
-    PhLoadSettings                                          @1933  NONAME
-    PhLoadWindowPlacementFromSetting                        @1934  NONAME
-    PhResetSettings                                         @1935  NONAME
-    PhSaveCustomColorList                                   @1936  NONAME
-    PhSaveListViewColumnSettings                            @1937  NONAME
-    PhSaveListViewColumnsToSetting                          @1938  NONAME
-    PhSaveListViewGroupStatesToSetting                      @1939  NONAME
-    PhSaveListViewSortColumnsToSetting                      @1940  NONAME
-    PhSaveSettings                                          @1941  NONAME
-    PhSaveWindowPlacementToSetting                          @1942  NONAME
-    PhSetIntegerPairStringRefSetting                        @1943  NONAME
-    PhSetIntegerStringRefSetting                            @1944  NONAME
-    PhSetScalableIntegerPairStringRefSetting                @1945  NONAME
-    PhSetScalableIntegerPairStringRefSetting2               @1946  NONAME
-    PhSetStringRefSetting                                   @1947  NONAME
-    PhUpdateCachedSettings                                  @1948  NONAME
+    PhAddSetting
+    PhAddSettings
+    PhClearIgnoredSettings
+    PhConvertIgnoredSettings
+    PhGetIntegerPairStringRefSetting
+    PhGetIntegerStringRefSetting
+    PhGetScalableIntegerPairStringRefSetting
+    PhGetStringRefSetting
+    PhLoadCustomColorList
+    PhLoadListViewColumnSettings
+    PhLoadListViewColumnsFromSetting
+    PhLoadListViewGroupStatesFromSetting
+    PhLoadListViewSortColumnsFromSetting
+    PhLoadSettings
+    PhLoadWindowPlacementFromSetting
+    PhResetSettings
+    PhSaveCustomColorList
+    PhSaveListViewColumnSettings
+    PhSaveListViewColumnsToSetting
+    PhSaveListViewGroupStatesToSetting
+    PhSaveListViewSortColumnsToSetting
+    PhSaveSettings
+    PhSaveWindowPlacementToSetting
+    PhSetIntegerPairStringRefSetting
+    PhSetIntegerStringRefSetting
+    PhSetScalableIntegerPairStringRefSetting
+    PhSetScalableIntegerPairStringRefSetting2
+    PhSetStringRefSetting
+    PhUpdateCachedSettings
 
 ; secedit
-    PhCreateSecurityPage                                    @1949  NONAME
-    PhEditSecurity                                          @1950  NONAME
-    PhGetAccessEntries                                      @1951  NONAME
-    PhGetAccessString                                       @1952  NONAME
-    PhGetSeObjectSecurity                                   @1953  NONAME
-    PhSetSeObjectSecurity                                   @1954  NONAME
-    PhStdGetObjectSecurity                                  @1955  NONAME
-    PhStdSetObjectSecurity                                  @1956  NONAME
+    PhCreateSecurityPage
+    PhEditSecurity
+    PhGetAccessEntries
+    PhGetAccessString
+    PhGetSeObjectSecurity
+    PhSetSeObjectSecurity
+    PhStdGetObjectSecurity
+    PhStdSetObjectSecurity
 
 ; svcsup
-    PhChangeServiceConfig2                                  @1957  NONAME
-    PhCloseServiceHandle                                    @1958  NONAME
-    PhEnumDependentServices                                 @1959  NONAME
-    PhGetServiceConfig                                      @1960  NONAME
-    PhGetServiceConfigFileName                              @1961  NONAME
-    PhGetServiceDescription                                 @1962  NONAME
-    PhGetServiceDllParameter                                @1963  NONAME
-    PhGetServiceErrorControlInteger                         @1964  NONAME
-    PhGetServiceErrorControlString                          @1965  NONAME
-    PhGetServiceFileName                                    @1966  NONAME
-    PhGetServiceNameFromTag                                 @1967  NONAME
-    PhGetServiceStartTypeInteger                            @1968  NONAME
-    PhGetServiceStartTypeString                             @1969  NONAME
-    PhGetServiceStateString                                 @1970  NONAME
-    PhGetServiceTypeInteger                                 @1971  NONAME
-    PhGetServiceTypeString                                  @1972  NONAME
-    PhGetThreadServiceTag                                   @1973  NONAME
-    PhOpenService                                           @1974  NONAME
-    PhOpenServiceKey                                        @1975  NONAME
-    PhQueryServiceConfig                                    @1976  NONAME
-    PhQueryServiceConfig2                                   @1977  NONAME
-    PhQueryServiceStatus                                    @1978  NONAME
-    PhQueryServiceVariableSize                              @1979  NONAME
-    PhStartService                                          @1980  NONAME
-    PhStopService                                           @1981  NONAME
+    PhChangeServiceConfig2
+    PhCloseServiceHandle
+    PhEnumDependentServices
+    PhGetServiceConfig
+    PhGetServiceConfigFileName
+    PhGetServiceDescription
+    PhGetServiceDllParameter
+    PhGetServiceErrorControlInteger
+    PhGetServiceErrorControlString
+    PhGetServiceFileName
+    PhGetServiceNameFromTag
+    PhGetServiceStartTypeInteger
+    PhGetServiceStartTypeString
+    PhGetServiceStateString
+    PhGetServiceTypeInteger
+    PhGetServiceTypeString
+    PhGetThreadServiceTag
+    PhOpenService
+    PhOpenServiceKey
+    PhQueryServiceConfig
+    PhQueryServiceConfig2
+    PhQueryServiceStatus
+    PhQueryServiceVariableSize
+    PhStartService
+    PhStopService
 
 ; symprv
-    PhCreateSymbolProvider                                  @1982  NONAME
-    PhGetLineFromAddress                                    @1983  NONAME
-    PhGetModuleFromAddress                                  @1984  NONAME
-    PhGetSymbolFromAddress                                  @1985  NONAME
-    PhGetSymbolFromName                                     @1986  NONAME
-    PhLoadSymbolProviderModules                             @1987  NONAME
-    PhLoadModuleSymbolProvider                              @1988  NONAME
-    PhLoadModulesForVirtualSymbolProvider                   @1989  NONAME
-    PhSetOptionsSymbolProvider                              @1990  NONAME
-    PhSetSearchPathSymbolProvider                           @1991  NONAME
-    PhStackWalk                                             @1992  NONAME
-    PhWalkThreadStack                                       @1993  NONAME
-    PhWriteMiniDumpProcess                                  @1994  NONAME
+    PhCreateSymbolProvider
+    PhGetLineFromAddress
+    PhGetModuleFromAddress
+    PhGetSymbolFromAddress
+    PhGetSymbolFromName
+    PhLoadSymbolProviderModules
+    PhLoadModuleSymbolProvider
+    PhLoadModulesForVirtualSymbolProvider
+    PhSetOptionsSymbolProvider
+    PhSetSearchPathSymbolProvider
+    PhStackWalk
+    PhWalkThreadStack
+    PhWriteMiniDumpProcess
 
 ; verify
-    PhVerifyFile                                            @1995  NONAME
-    PhVerifyFileIsChainedToMicrosoft                        @1996  NONAME
+    PhVerifyFile
+    PhVerifyFileIsChainedToMicrosoft
 
 ; workqueue
-    PhDeleteWorkQueue                                       @1997  NONAME
-    PhGetGlobalWorkQueue                                    @1998  NONAME
-    PhInitializeWorkQueue                                   @1999  NONAME
-    PhInitializeWorkQueueEnvironment                        @2000  NONAME
-    PhQueueItemWorkQueue                                    @2001  NONAME
-    PhQueueItemWorkQueueEx                                  @2002  NONAME
-    PhWaitForWorkQueue                                      @2003  NONAME
+    PhDeleteWorkQueue
+    PhGetGlobalWorkQueue
+    PhInitializeWorkQueue
+    PhInitializeWorkQueueEnvironment
+    PhQueueItemWorkQueue
+    PhQueueItemWorkQueueEx
+    PhWaitForWorkQueue
 
 ; json
-    PhAddJsonArrayObject                                    @2004  NONAME
-    PhAddJsonObject                                         @2005  NONAME
-    PhAddJsonObject2                                        @2006  NONAME
-    PhAddJsonObjectInt64                                    @2007  NONAME
-    PhAddJsonObjectUInt64                                   @2008  NONAME
-    PhAddJsonObjectValue                                    @2009  NONAME
-    PhCreateJsonArray                                       @2010  NONAME
-    PhCreateJsonObject                                      @2011  NONAME
-    PhCreateJsonParser                                      @2012  NONAME
-    PhCreateJsonParserEx                                    @2013  NONAME
-    PhFreeJsonObject                                        @2014  NONAME
-    PhGetJsonArrayIndexObject                               @2015  NONAME
-    PhGetJsonArrayLength                                    @2016  NONAME
-    PhGetJsonArrayLong64                                    @2017  NONAME
-    PhGetJsonArrayString                                    @2018  NONAME
-    PhGetJsonObject                                         @2019  NONAME
-    PhGetJsonObjectAsArrayList                              @2020  NONAME
-    PhGetJsonObjectBool                                     @2021  NONAME
-    PhGetJsonObjectLength                                   @2022  NONAME
-    PhGetJsonObjectType                                     @2023  NONAME
-    PhGetJsonValueAsInt64                                   @2024  NONAME
-    PhGetJsonValueAsString                                  @2025  NONAME
-    PhGetJsonValueAsUInt64                                  @2026  NONAME
+    PhAddJsonArrayObject
+    PhAddJsonObject
+    PhAddJsonObject2
+    PhAddJsonObjectInt64
+    PhAddJsonObjectUInt64
+    PhAddJsonObjectValue
+    PhCreateJsonArray
+    PhCreateJsonObject
+    PhCreateJsonParser
+    PhCreateJsonParserEx
+    PhFreeJsonObject
+    PhGetJsonArrayIndexObject
+    PhGetJsonArrayLength
+    PhGetJsonArrayLong64
+    PhGetJsonArrayString
+    PhGetJsonObject
+    PhGetJsonObjectAsArrayList
+    PhGetJsonObjectBool
+    PhGetJsonObjectLength
+    PhGetJsonObjectType
+    PhGetJsonValueAsInt64
+    PhGetJsonValueAsString
+    PhGetJsonValueAsUInt64
 
 ; xml
-    PhCreateXmlNode                                         @2027  NONAME
-    PhCreateXmlOpaqueNode                                   @2028  NONAME
-    PhFindXmlObject                                         @2029  NONAME
-    PhFreeXmlObject                                         @2030  NONAME
-    PhGetXmlInterface                                       @2031  NONAME
-    PhGetXmlNodeAttributeByIndex                            @2032  NONAME
-    PhGetXmlNodeAttributeCount                              @2033  NONAME
-    PhGetXmlNodeAttributeText                               @2034  NONAME
-    PhGetXmlNodeElementText                                 @2035  NONAME
-    PhGetXmlNodeFirstChild                                  @2036  NONAME
-    PhGetXmlNodeNextChild                                   @2037  NONAME
-    PhGetXmlNodeOpaqueText                                  @2038  NONAME
-    PhGetXmlObject                                          @2039  NONAME
-    PhLoadXmlObjectFromFile                                 @2040  NONAME
-    PhLoadXmlObjectFromString                               @2041  NONAME
-    PhSaveXmlObjectToFile                                   @2042  NONAME
-    PhSetXmlNodeAttributeText                               @2043  NONAME
+    PhCreateXmlNode
+    PhCreateXmlOpaqueNode
+    PhFindXmlObject
+    PhFreeXmlObject
+    PhGetXmlInterface
+    PhGetXmlNodeAttributeByIndex
+    PhGetXmlNodeAttributeCount
+    PhGetXmlNodeAttributeText
+    PhGetXmlNodeElementText
+    PhGetXmlNodeFirstChild
+    PhGetXmlNodeNextChild
+    PhGetXmlNodeOpaqueText
+    PhGetXmlObject
+    PhLoadXmlObjectFromFile
+    PhLoadXmlObjectFromString
+    PhSaveXmlObjectToFile
+    PhSetXmlNodeAttributeText
 
 ; cache
-    PhClearCacheDirectory                                   @2044  NONAME
-    PhCreateCacheFile                                       @2045  NONAME
-    PhDeleteCacheFile                                       @2046  NONAME
+    PhClearCacheDirectory
+    PhCreateCacheFile
+    PhDeleteCacheFile
 
 ; appresolver
-    PhAppResolverGetAppIdForWindow                          @2047  NONAME
-    PhGetProcessPackageFullName                             @2048  NONAME
+    PhAppResolverGetAppIdForWindow
+    PhGetProcessPackageFullName
 
 ; http
-    PhDnsFree                                               @2049  NONAME
-    PhDnsQuery                                              @2050  NONAME
-    PhDnsQuery2                                             @2051  NONAME
-    PhHttpDnsQuery                                          @2052  NONAME
-    PhHttpSocketAddRequestHeaders                           @2053  NONAME
-    PhHttpSocketBeginRequest                                @2054  NONAME
-    PhHttpSocketClose                                       @2055  NONAME
-    PhHttpSocketConnect                                     @2056  NONAME
-    PhHttpSocketCreate                                      @2057  NONAME
-    PhHttpSocketDestroy                                     @2058  NONAME
-    PhHttpSocketDownloadString                              @2059  NONAME
-    PhHttpSocketEndRequest                                  @2060  NONAME
-    PhHttpSocketGetErrorMessage                             @2061  NONAME
-    PhHttpSocketParseUrl                                    @2062  NONAME
-    PhHttpSocketQueryHeaderString                           @2063  NONAME
-    PhHttpSocketQueryHeaderUlong                            @2064  NONAME
-    PhHttpSocketQueryHeaderUlong64                          @2065  NONAME
-    PhHttpSocketQueryHeaders                                @2066  NONAME
-    PhHttpSocketQueryOptionString                           @2067  NONAME
-    PhHttpSocketReadData                                    @2068  NONAME
-    PhHttpSocketReadDataToBuffer                            @2069  NONAME
-    PhHttpSocketSendRequest                                 @2070  NONAME
-    PhHttpSocketSetCredentials                              @2071  NONAME
-    PhHttpSocketSetFeature                                  @2072  NONAME
-    PhHttpSocketSetSecurity                                 @2073  NONAME
-    PhHttpSocketWriteData                                   @2074  NONAME
+    PhDnsFree
+    PhDnsQuery
+    PhDnsQuery2
+    PhHttpDnsQuery
+    PhHttpSocketAddRequestHeaders
+    PhHttpSocketBeginRequest
+    PhHttpSocketClose
+    PhHttpSocketConnect
+    PhHttpSocketCreate
+    PhHttpSocketDestroy
+    PhHttpSocketDownloadString
+    PhHttpSocketEndRequest
+    PhHttpSocketGetErrorMessage
+    PhHttpSocketParseUrl
+    PhHttpSocketQueryHeaderString
+    PhHttpSocketQueryHeaderUlong
+    PhHttpSocketQueryHeaderUlong64
+    PhHttpSocketQueryHeaders
+    PhHttpSocketQueryOptionString
+    PhHttpSocketReadData
+    PhHttpSocketReadDataToBuffer
+    PhHttpSocketSendRequest
+    PhHttpSocketSetCredentials
+    PhHttpSocketSetFeature
+    PhHttpSocketSetSecurity
+    PhHttpSocketWriteData
 
 ; ksiuser
-    KsiLevel                                                @2075  NONAME
-    KphAlpcQueryInformation                                 @2076  NONAME
-    KphDuplicateObject                                      @2077  NONAME
-    KphOpenDevice                                           @2078  NONAME
-    KphOpenDeviceBaseDevice                                 @2079  NONAME
-    KphOpenDeviceDriver                                     @2080  NONAME
-    KphQueryInformationDriver                               @2081  NONAME
-    KphQueryInformationObject                               @2082  NONAME
-    KsiEnumerateProcessHandles                              @2083  NONAME
-    KsiQueryHashInformationFile                             @2084  NONAME
+    KsiLevel
+    KphAlpcQueryInformation
+    KphDuplicateObject
+    KphOpenDevice
+    KphOpenDeviceBaseDevice
+    KphOpenDeviceDriver
+    KphQueryInformationDriver
+    KphQueryInformationObject
+    KsiEnumerateProcessHandles
+    KsiQueryHashInformationFile
