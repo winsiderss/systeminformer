@@ -264,10 +264,19 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                    return;
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
-                    return;
+                try
+                {
+                    Build.ExportDefinitions(true);
+
+                    if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                        return;
+                    if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                        return;
+                }
+                finally
+                {
+                    Build.ExportDefinitionsRevert();
+                }
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
