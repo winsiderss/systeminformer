@@ -979,14 +979,14 @@ namespace CustomBuildTool
             }
 
             if (!BuildUploadServerConfig(
-                buildBuildId, 
-                buildPostSfUrl, 
-                buildPostSfApiKey, 
-                BuildUploadInfo.Item1, 
-                BuildUploadInfo.Item2, 
-                BuildUploadInfo.Item3, 
-                BuildUploadInfo.Item4, 
-                release, 
+                buildBuildId,
+                buildPostSfUrl,
+                buildPostSfApiKey,
+                BuildUploadInfo.Item1,
+                BuildUploadInfo.Item2,
+                BuildUploadInfo.Item3,
+                BuildUploadInfo.Item4,
+                release,
                 canary
                 ))
             {
@@ -1682,13 +1682,15 @@ namespace CustomBuildTool
 
                         Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_backup);
                     }
+
+                    break;
                 }
                 catch (Exception ex)
                 {
                     Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                 }
 
-                Thread.Sleep(10000);
+                Thread.Sleep(3000);
             }
         }
     }
