@@ -426,7 +426,7 @@ NTSTATUS PhEnumSMBIOS(
 
     info = PhAllocateZero(length);
 
-    info->ProviderSignature = 'RSMB';
+    info->ProviderSignature = 'ACPI';
     info->TableID = 0;
     info->Action = SystemFirmwareTableGet;
     info->TableBufferLength = length - sizeof(PSYSTEM_FIRMWARE_TABLE_INFORMATION);
@@ -442,7 +442,7 @@ NTSTATUS PhEnumSMBIOS(
         PhFree(info);
         info = PhAllocateZero(length);
 
-        info->ProviderSignature = 'RSMB';
+        info->ProviderSignature = 'ACPI';
         info->TableID = 0;
         info->Action = SystemFirmwareTableGet;
         info->TableBufferLength = length - sizeof(SYSTEM_FIRMWARE_TABLE_INFORMATION);
@@ -465,6 +465,8 @@ NTSTATUS PhEnumSMBIOS(
             Context
             );
     }
+
+    PhFree(info);
 
     return status;
 }
