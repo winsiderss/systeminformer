@@ -4828,3 +4828,96 @@ PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
 
     return deviceTree;
 }
+
+BOOLEAN PhEnumDeviceResources(
+    _In_ PPH_DEVICE_ITEM Item,
+    _In_ ULONG LogicalConfig,
+    _In_ PPH_DEVICE_ENUM_RESOURCES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    BOOLEAN done;
+    LOG_CONF logicalConfig;
+    PVOID buffer;
+    ULONG length;
+
+    if (CM_Get_First_Log_Conf(
+        &logicalConfig,
+        Item->DeviceInfoData.DeviceData.DevInst,
+        LogicalConfig
+        ) != CR_SUCCESS)
+        return FALSE;
+
+    done = FALSE;
+    buffer = PhAllocate(64);
+    length = 64;
+
+    while (!done)
+    {
+        LOG_CONF nextConfig;
+        ULONG size;
+        RES_DES deviceResource;
+        RESOURCEID resourceId;
+
+        if (CM_Get_Next_Res_Des(
+            &deviceResource,
+            logicalConfig,
+            ResType_All,
+            &resourceId,
+            0
+            ) == CR_SUCCESS)
+        {
+            while (!done)
+            {
+                RES_DES nextResource;
+
+                if (CM_Get_Res_Des_Data_Size(&size, deviceResource, 0) == CR_SUCCESS)
+                {
+                    if (size > length)
+                    {
+                        buffer = PhReAllocate(buffer, size);
+                        length = size;
+                    }
+
+                    assert(buffer);
+
+                    if (CM_Get_Res_Des_Data(deviceResource, buffer, size, 0) == CR_SUCCESS)
+                    {
+                        done = Callback(LogicalConfig, resourceId, buffer, size, Context);
+                        if (done)
+                            break;
+                    }
+                }
+
+                if (CM_Get_Next_Res_Des(
+                    &nextResource,
+                    deviceResource,
+                    ResType_All,
+                    &resourceId,
+                    0
+                    ) != CR_SUCCESS)
+                    break;
+
+                CM_Free_Res_Des_Handle(deviceResource);
+                deviceResource = nextResource;
+            }
+        }
+
+        CM_Free_Res_Des_Handle(deviceResource);
+
+        if (done)
+            break;
+
+        if (CM_Get_Next_Log_Conf(&nextConfig, logicalConfig, 0) != CR_SUCCESS)
+            break;
+
+        CM_Free_Log_Conf_Handle(logicalConfig);
+        logicalConfig = nextConfig;
+    }
+
+    CM_Free_Log_Conf_Handle(logicalConfig);
+
+    PhFree(buffer);
+
+    return TRUE;
+}
