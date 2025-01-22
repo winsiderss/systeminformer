@@ -2248,6 +2248,7 @@ BOOLEAN PhUiThawTreeProcess(
         return FALSE;
     }
 
+    NtClose(Process->FreezeHandle);
     InterlockedExchangePointer(&Process->FreezeHandle, NULL);
 
     return TRUE;
