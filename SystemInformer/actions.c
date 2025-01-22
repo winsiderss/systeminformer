@@ -2238,7 +2238,7 @@ BOOLEAN PhUiThawTreeProcess(
     NTSTATUS status;
     HANDLE freezeHandle;
 
-    freezeHandle = ReadPointerAcquire(&Process->FreezeHandle)
+    freezeHandle = ReadPointerAcquire(&Process->FreezeHandle);
     if(!freezeHandle)
         return FALSE;
 
