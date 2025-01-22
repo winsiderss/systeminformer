@@ -2236,9 +2236,14 @@ BOOLEAN PhUiThawTreeProcess(
     )
 {
     NTSTATUS status;
+    HANDLE freezeHandle;
+
+    freezeHandle = ReadPointerAcquire(&Process->FreezeHandle)
+    if(!freezeHandle)
+        return FALSE;
 
     status = PhThawProcess(
-        Process->FreezeHandle,
+        freezeHandle,
         Process->ProcessId
         );
 
@@ -2248,7 +2253,8 @@ BOOLEAN PhUiThawTreeProcess(
         return FALSE;
     }
 
-    NtClose(Process->FreezeHandle);
+    NtClose(freezeHandle);
+    
     InterlockedExchangePointer(&Process->FreezeHandle, NULL);
 
     return TRUE;
