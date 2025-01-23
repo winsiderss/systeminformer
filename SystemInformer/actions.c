@@ -2247,13 +2247,13 @@ BOOLEAN PhUiThawTreeProcess(
         Process->ProcessId
         );
 
+    NtClose(freezeHandle);
+
     if (!NT_SUCCESS(status))
     {
         PhpShowErrorProcess(WindowHandle, L"thaw", Process, status, 0);
         return FALSE;
     }
-
-    NtClose(freezeHandle);
 
     return TRUE;
 }
