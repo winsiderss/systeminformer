@@ -2301,7 +2301,10 @@ BOOLEAN PhUiFreezeTreeProcess(
     if (!result)
         return FALSE;
 
-    status = PhFreezeProcess(&freezeHandle, Process->ProcessId);
+    status = PhFreezeProcess(
+        &freezeHandle,
+        Process->ProcessId
+        );
 
     if (!NT_SUCCESS(status))
     {
@@ -2309,7 +2312,10 @@ BOOLEAN PhUiFreezeTreeProcess(
         return FALSE;
     }
 
-    InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle);
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle))
+    {
+        NtClose(freezeHandle);
+    }
 
     return TRUE;
 }
@@ -2320,6 +2326,10 @@ BOOLEAN PhUiThawTreeProcess(
     )
 {
     NTSTATUS status;
+    HANDLE freezeHandle;
+
+    if (!ReadPointerAcquire(&Process->FreezeHandle))
+        return FALSE;
 
     status = PhThawProcess(
         Process->FreezeHandle,
@@ -2330,6 +2340,11 @@ BOOLEAN PhUiThawTreeProcess(
     {
         PhpShowErrorProcess(WindowHandle, L"thaw", Process, status, 0);
         return FALSE;
+    }
+
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, nullptr))
+    {
+        NtClose(freezeHandle);
     }
 
     return TRUE;

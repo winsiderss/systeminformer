@@ -88,7 +88,7 @@ static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enab
 static PPH_LIST ProcessNodeRootList; // list of root nodes
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
-BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
+CONST BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
 static ULONG PhProcessTreeColumnHeaderCacheLength = 0;
 static PVOID PhProcessTreeColumnHeaderCache = NULL;
@@ -4313,7 +4313,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 ; // Dummy
             else if (PhCsUseColorDebuggedProcesses && processItem->IsBeingDebugged)
                 getNodeColor->BackColor = PhCsColorDebuggedProcesses;
-            else if (PhCsUseColorSuspended && processItem->IsSuspended)
+            else if (PhCsUseColorSuspended && (processItem->IsSuspended || processItem->IsFrozenProcess))
                 getNodeColor->BackColor = PhCsColorSuspended;
             else if (PhCsUseColorPartiallySuspended && processItem->ProcessId != SYSTEM_PROCESS_ID && processItem->IsPartiallySuspended)
                 getNodeColor->BackColor = PhCsColorPartiallySuspended;

@@ -1242,6 +1242,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsWow64Process = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
+            ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
             ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
         }
@@ -2706,6 +2707,108 @@ VOID PhProcessProviderUpdate(
 
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
+
+            // Process basic information
+            {
+                PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessExtendedBasicInformation(processItem->QueryHandle, &basicInfo)))
+                {
+                    if (processItem->IsProtectedProcess != basicInfo.IsProtectedProcess)
+                    {
+                        processItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSecureProcess != basicInfo.IsSecureProcess)
+                    {
+                        processItem->IsSecureProcess = basicInfo.IsSecureProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSubsystemProcess != basicInfo.IsSubsystemProcess)
+                    {
+                        processItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsWow64Process != basicInfo.IsWow64Process)
+                    {
+                        processItem->IsWow64Process = basicInfo.IsWow64Process;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsPackagedProcess != basicInfo.IsStronglyNamed)
+                    {
+                        processItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsCrossSessionProcess != basicInfo.IsCrossSessionCreate)
+                    {
+                        processItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsFrozenProcess != basicInfo.IsFrozen)
+                    {
+                        processItem->IsFrozenProcess = basicInfo.IsFrozen;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsBackgroundProcess != basicInfo.IsBackground)
+                    {
+                        processItem->IsBackgroundProcess = basicInfo.IsBackground;
+                        modified = TRUE;
+                    }
+                    if (processItem->AffinityMask != basicInfo.BasicInfo.AffinityMask)
+                    {
+                        processItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
+                        modified = TRUE;
+                    }
+                }
+                else
+                {
+                    if (processItem->IsProtectedProcess)
+                    {
+                        processItem->IsProtectedProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSecureProcess)
+                    {
+                        processItem->IsSecureProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSubsystemProcess)
+                    {
+                        processItem->IsSubsystemProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsWow64Process)
+                    {
+                        processItem->IsWow64Process = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsPackagedProcess)
+                    {
+                        processItem->IsPackagedProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsCrossSessionProcess)
+                    {
+                        processItem->IsCrossSessionProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsFrozenProcess)
+                    {
+                        processItem->IsFrozenProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsBackgroundProcess)
+                    {
+                        processItem->IsBackgroundProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->AffinityMask != PhSystemBasicInformation.ActiveProcessorsAffinityMask)
+                    {
+                        processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+                        modified = TRUE;
+                    }
+                }
+            }
 
             // Update the process affinity. Usually not frequently changed, do so lazily.
             if (runCount % 5 == 0)
