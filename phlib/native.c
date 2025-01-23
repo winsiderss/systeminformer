@@ -10248,7 +10248,7 @@ BOOLEAN PhDoesDirectoryExist(
 
 // rev from RtlDetermineDosPathNameType_U (dmex)
 RTL_PATH_TYPE PhDetermineDosPathNameType(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
 #if defined(PHNT_USE_NATIVE_PATHTYPE)
@@ -12469,7 +12469,9 @@ NTSTATUS PhGetProcessorNominalFrequency(
     return status;
 }
 
+//
 // Process freeze/thaw support
+//
 
 NTSTATUS PhFreezeProcess(
     _Out_ PHANDLE FreezeHandle,
@@ -12542,7 +12544,7 @@ NTSTATUS PhThawProcess(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!NtChangeProcessState_Import())
+    if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
         return STATUS_UNSUCCESSFUL;
 
     status = PhOpenProcess(
@@ -12639,7 +12641,7 @@ NTSTATUS PhThawThread(
     NTSTATUS status;
     HANDLE threadHandle;
 
-    if (!NtChangeThreadState_Import())
+    if (!(NtCreateThreadStateChange_Import() && NtChangeThreadState_Import()))
         return STATUS_UNSUCCESSFUL;
 
     status = PhOpenThread(
@@ -12665,7 +12667,9 @@ NTSTATUS PhThawThread(
     return status;
 }
 
+//
 // Process execution request support
+//
 
 static PH_INITONCE PhExecutionRequestInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE PhExecutionRequestHashtable = NULL;
