@@ -4583,6 +4583,34 @@ PhInitFormatI64X(
 
 FORCEINLINE
 VOID
+PhInitFormatI64XWithWidth(
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64,
+    _In_ USHORT Width
+    )
+{
+    Format->Type = UInt64FormatType | FormatUseRadix | FormatPadZeros;
+    Format->u.UInt64 = UInt64;
+    Format->Radix = 16;
+    Format->Width = Width;
+}
+
+FORCEINLINE
+VOID
+PhInitFormatI64XPadZeroes(
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64,
+    _In_ USHORT Width
+    )
+{
+    Format->Type = UInt64FormatType | FormatUseRadix | FormatPadZeros;
+    Format->u.UInt64 = UInt64;
+    Format->Radix = 16;
+    Format->Width = sizeof(ULONG64) * 2;
+}
+
+FORCEINLINE
+VOID
 PhInitFormatIU(
     _Out_ PPH_FORMAT Format,
     _In_ ULONG_PTR UIntPtr

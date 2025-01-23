@@ -60,13 +60,16 @@ typedef enum _DEVICE_PROPERTIES_INDEX
 typedef struct _DEVICE_PROPERTIES_CONTEXT
 {
     PPH_DEVICE_ITEM DeviceItem;
+    PPH_LIST Resources;
     HWND ParentWindowHandle;
     HWND GeneralListViewHandle;
     HWND PropsListViewHandle;
     HWND InterfacesListViewHandle;
+    HWND ResourcesListViewHandle;
     HICON DeviceIcon;
     PH_INTEGER_PAIR DeviceIconSize;
     HIMAGELIST ListViewImageList;
+
     union
     {
         struct
@@ -941,6 +944,134 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
     return FALSE;
 }
 
+INT_PTR CALLBACK DevicePropResourcesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PDEVICE_PROPERTIES_CONTEXT context;
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->ResourcesListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_RESOURCES_INFO);
+
+            PhSetListViewStyle(context->ResourcesListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ResourcesListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ResourcesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Resource type");
+            PhAddListViewColumn(context->ResourcesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Setting");
+            PhSetExtendedListView(context->ResourcesListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->ResourcesListViewHandle);
+            DeviceSetImageList(context->ResourcesListViewHandle, context);
+
+            for (ULONG i = 0; i < context->Resources->Count; i++)
+            {
+                PDEVICE_RESOURCE resource = context->Resources->Items[i];
+                INT lvItemIndex;
+                lvItemIndex = PhAddListViewItem(context->ResourcesListViewHandle, MAXINT, resource->Type, NULL);
+                PhSetListViewSubItem(context->ResourcesListViewHandle, lvItemIndex, 1, PhGetString(resource->Setting));
+            }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->ResourcesListViewHandle);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->ResourcesListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyBehaviors(lParam, context->ResourcesListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ResourcesListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ResourcesListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->ResourcesListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->ResourcesListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case PHAPP_IDC_COPY:
+                                {
+                                    PhCopyListView(context->ResourcesListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS DevicePropertiesThreadStart(
     _In_ PVOID Parameter
     )
@@ -981,12 +1112,25 @@ NTSTATUS DevicePropertiesThreadStart(
             PvAddPropPage(propContext, newPage);
         }
 
+        DeviceGetAllocatedResourcesList(context->DeviceItem, &context->Resources);
+
+        if (context->Resources->Count > 0)
+        {
+            // Resources
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_DEVICE_RESOURCES),
+                DevicePropResourcesDlgProc,
+                context);
+            PvAddPropPage(propContext, newPage);
+        }
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
         PhDereferenceObject(propContext);
     }
 
     PhDereferenceObject(context->DeviceItem->Tree);
     PhDereferenceObject(context->DeviceItem);
+    PhClearReference(&context->Resources);
     PhFree(context);
 
     return STATUS_SUCCESS;
@@ -1008,4 +1152,190 @@ BOOLEAN DeviceShowProperties(
 
     PhCreateThread2(DevicePropertiesThreadStart, context);
     return TRUE;
+}
+
+_Function_class_(PH_DEVICE_ENUM_RESOURCES_CALLBACK)
+BOOLEAN NTAPI DeviceResourcesCallback(
+    _In_ ULONG LogicalConfig,
+    _In_ ULONG ResourceId,
+    _In_ PVOID Buffer,
+    _In_ ULONG Length,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_LIST list;
+    PH_FORMAT format[5];
+    ULONG count = 0;
+    PDEVICE_RESOURCE resource = NULL;
+
+    assert(Context);
+
+    list = Context;
+
+    switch (ResourceId)
+    {
+    case ResType_Mem:
+        {
+            PMEM_RESOURCE memResource = Buffer;
+
+            PhInitFormatIXPadZeros(&format[count++], (ULONG_PTR)memResource->MEM_Header.MD_Alloc_Base);
+            PhInitFormatS(&format[count++], L" - ");
+            PhInitFormatIXPadZeros(&format[count++], (ULONG_PTR)memResource->MEM_Header.MD_Alloc_Base);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"Memory range";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_IO:
+        {
+            PIO_RESOURCE ioResource = Buffer;
+
+            PhInitFormatI64XWithWidth(&format[count++], ioResource->IO_Header.IOD_Alloc_Base, sizeof(USHORT) * 2);
+            PhInitFormatS(&format[count++], L" - ");
+            PhInitFormatI64XWithWidth(&format[count++], ioResource->IO_Header.IOD_Alloc_End, sizeof(USHORT) * 2);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"I/O range";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_DMA:
+        {
+            PDMA_RESOURCE dmaResource = Buffer;
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"DMA";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_IRQ:
+        {
+            PIRQ_RESOURCE irqResource = Buffer;
+
+            PhInitFormatS(&format[count++], L"0x");
+            PhInitFormatX(&format[count++], irqResource->IRQ_Header.IRQD_Alloc_Num);
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatD(&format[count++], (LONG)irqResource->IRQ_Header.IRQD_Alloc_Num);
+            PhInitFormatC(&format[count++], L')');
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"IRQ";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_BusNumber:
+        {
+            PBUSNUMBER_RESOURCE busNumberResource = Buffer;
+
+            PhInitFormatU(&format[count++], busNumberResource->BusNumber_Header.BUSD_Alloc_Base);
+            if (busNumberResource->BusNumber_Header.BUSD_Alloc_Base != busNumberResource->BusNumber_Header.BUSD_Alloc_End)
+            {
+                PhInitFormatS(&format[count++], L" - ");
+                PhInitFormatU(&format[count++], busNumberResource->BusNumber_Header.BUSD_Alloc_End);
+            }
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"Bus number";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_MemLarge:
+        {
+            PMEM_LARGE_RESOURCE memLargeResource = Buffer;
+
+            PhInitFormatIXPadZeros(&format[count++], (ULONG_PTR)memLargeResource->MEM_LARGE_Header.MLD_Alloc_Base);
+            PhInitFormatS(&format[count++], L" - ");
+            PhInitFormatIXPadZeros(&format[count++], (ULONG_PTR)memLargeResource->MEM_LARGE_Header.MLD_Alloc_End);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"Large memory range";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_ClassSpecific:
+        {
+            PCS_RESOURCE classSpecificResource = Buffer;
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"Class specific";
+            resource->Setting = PhFormatGuid(&classSpecificResource->CS_Header.CSD_ClassGuid);
+        }
+        break;
+    case ResType_PcCardConfig:
+        {
+            PPCCARD_RESOURCE pcCardResource = Buffer;
+
+            PhInitFormatS(&format[count++], L"0x");
+            PhInitFormatIX(&format[count++], pcCardResource->PcCard_Header.PCD_Flags);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"PC card";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_MfCardConfig:
+        {
+            PMFCARD_RESOURCE mfCardResource = Buffer;
+
+            PhInitFormatS(&format[count++], L"0x");
+            PhInitFormatIX(&format[count++], mfCardResource->MfCard_Header.PMF_Flags);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"MF card";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_Connection:
+        {
+            PCONNECTION_RESOURCE connectionResource = Buffer;
+
+            PhInitFormatU(&format[count++], connectionResource->Connection_Header.COND_Class);
+            PhInitFormatS(&format[count++], L" : ");
+            PhInitFormatU(&format[count++], connectionResource->Connection_Header.COND_Type);
+            PhInitFormatS(&format[count++], L" : ");
+            PhInitFormatI64D(&format[count++], connectionResource->Connection_Header.COND_Id.QuadPart);
+
+            resource = PhAllocateZero(sizeof(DEVICE_RESOURCE));
+            resource->Type = L"Connection";
+            resource->Setting = PhFormat(format, count, 10);
+        }
+        break;
+    case ResType_DevicePrivate:
+    default:
+        break;
+    }
+
+    if (resource)
+        PhAddItemList(list, resource);
+
+    return FALSE;
+}
+
+VOID DeviceGetAllocatedResourcesList(
+    _In_ PPH_DEVICE_ITEM DeviceItem,
+    _Out_ PPH_LIST* List
+    )
+{
+    PPH_LIST list;
+
+    list = PhCreateList(1);
+
+    PhEnumDeviceResources(DeviceItem, ALLOC_LOG_CONF, DeviceResourcesCallback, list);
+
+    *List = list;
+}
+
+VOID DeviceFreeAllocatedResourcesList(
+    _In_ PPH_LIST List
+    )
+{
+    for (ULONG i = 0; i < List->Count; i++)
+    {
+        PDEVICE_RESOURCE resource = List->Items[i];
+        PhClearReference(&resource->Setting);
+        PhFree(List->Items[i]);
+    }
+
+    PhDereferenceObject(List);
 }
