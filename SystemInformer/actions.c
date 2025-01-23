@@ -1346,8 +1346,8 @@ BOOLEAN PhIsDangerousProcess(
     if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
-    hash = PhHashStringRefEx(&fileName->sr, TRUE, PH_STRING_HASH_X65599);
     PhMoveReference(&fileName, PhGetBaseName(fileName));
+    hash = PhHashStringRefEx(&fileName->sr, TRUE, PH_STRING_HASH_X65599);
     PhDereferenceObject(fileName);
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(DangerousProcesses); i++)
@@ -1369,6 +1369,90 @@ BOOLEAN PhIsDangerousProcess(
             return TRUE;
     }
 
+    return FALSE;
+}
+
+typedef struct _PH_IS_SYSTEM_PROCESS_CONTEXT
+{
+    PPH_STRING BaseName;
+    BOOLEAN Found;
+} PH_IS_SYSTEM_PROCESS_CONTEXT, *PPH_IS_SYSTEM_PROCESS_CONTEXT;
+
+static BOOLEAN NTAPI PhIsSystemProcessCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_ PPH_IS_SYSTEM_PROCESS_CONTEXT Context
+    )
+{
+    if (Information->Type == REG_DWORD)
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = PTR_ADD_OFFSET(Information, Information->DataOffset);
+        string.Length = Information->DataLength;
+
+        if (PhEqualStringRef(&string, &Context->BaseName->sr, TRUE))
+        {
+            Context->Found = TRUE;
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Determines if a process is a system process.
+ *
+ * \param ProcessId The PID of the process to check.
+ */
+BOOLEAN PhIsTerminalServerSystemProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Terminal Server\\SysProcs");
+    PPH_STRING fileName;
+    HANDLE keyHandle;
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+        return TRUE;
+
+    if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+        return FALSE;
+
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyName,
+        0
+        )))
+    {
+        PH_IS_SYSTEM_PROCESS_CONTEXT context;
+
+        memset(&context, 0, sizeof(PH_IS_SYSTEM_PROCESS_CONTEXT));
+        context.BaseName = fileName;
+        context.Found = FALSE;
+
+        PhEnumerateValueKey(
+            keyHandle,
+            KeyValueFullInformation,
+            PhIsSystemProcessCallback,
+            &context
+            );
+
+        NtClose(keyHandle);
+
+        if (context.Found)
+        {
+            PhDereferenceObject(fileName);
+            return TRUE;
+        }
+    }
+
+    PhDereferenceObject(fileName);
     return FALSE;
 }
 
