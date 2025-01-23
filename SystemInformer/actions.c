@@ -3020,7 +3020,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        PhShowInformation2(WindowHandle, L"The process is not being debugged.", L"%s", L"");
+        PhShowInformation2(WindowHandle, L"Unable to detach the debugger.", L"%s", L"The process is not being debugged.");
         return FALSE;
     }
 
