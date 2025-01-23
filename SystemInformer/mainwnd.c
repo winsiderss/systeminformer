@@ -4499,7 +4499,9 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_TOGGLE_VISIBLE:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)!(BOOLEAN)wparam, (LPARAM)PhMwpInvokeActivateWindow);
+            BOOLEAN visibility = !(BOOLEAN)(ULONG_PTR)wparam;
+
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)visibility, (LPARAM)PhMwpInvokeActivateWindow);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK:
@@ -4513,14 +4515,14 @@ PVOID PhPluginInvokeWindowCallback(
         {
             PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)lparam;
 
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS:
         {
             PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)lparam;
 
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE:
@@ -4585,7 +4587,9 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY:
         {
-            if (!!((BOOLEAN)wparam) != PhMwpUpdateAutomatically)
+            BOOLEAN updateAutomatically = !!(BOOLEAN)(ULONG_PTR)wparam;
+
+            if (updateAutomatically != PhMwpUpdateAutomatically)
             {
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
             }

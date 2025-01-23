@@ -736,6 +736,7 @@ EXPORTS
     PhGetSystemRoot
     PhGetTaskbarDpi
     PhGetTemporaryDirectoryRandomAlphaFileName
+    PhGetUserLocaleInfoBool
     PhGetWin32Message
     PhGetWindowDpi
     PhInitializeHash

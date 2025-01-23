@@ -930,7 +930,7 @@ NTSTATUS PvGetFileAllocatedRanges(
         if (!NT_SUCCESS(status))
             break;
 
-        outputCount = returnLength / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+        outputCount = outputLength / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
 
         if (outputCount == 0)
             break;
