@@ -8590,15 +8590,12 @@ VOID PhpInitializePredefineKeys(
  * \param ObjectName The path to the key.
  * \param Attributes Additional object flags.
  * \param ObjectAttributes The OBJECT_ATTRIBUTES structure to initialize.
- * \param NeedsClose A variable which receives a handle that must be closed when the create/open
- * operation is finished. The variable may be set to NULL if no handle needs to be closed.
  */
 NTSTATUS PhpInitializeKeyObjectAttributes(
     _In_opt_ HANDLE RootDirectory,
     _In_ PUNICODE_STRING ObjectName,
     _In_ ULONG Attributes,
-    _Out_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _Out_ PHANDLE NeedsClose
+    _Out_ POBJECT_ATTRIBUTES ObjectAttributes
     )
 {
     NTSTATUS status;
@@ -8614,8 +8611,6 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
         NULL
         );
 
-    *NeedsClose = NULL;
-
     if (RootDirectory && PH_KEY_IS_PREDEFINED(RootDirectory))
     {
         predefineIndex = PH_KEY_PREDEFINE_TO_NUMBER(RootDirectory);
@@ -8628,12 +8623,11 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
                 PhEndInitOnce(&PhPredefineKeyInitOnce);
             }
 
-            predefineHandle = ReadPointerAcquire(&PhPredefineKeyHandles[predefineIndex]);
+            predefineHandle = InterlockedReadPointer(&PhPredefineKeyHandles[predefineIndex]);
 
             if (!predefineHandle)
             {
                 // The predefined key has not been opened yet. Do so now.
-
                 if (!PhPredefineKeyNames[predefineIndex].Buffer) // we may have failed in getting the current user key name
                     return STATUS_UNSUCCESSFUL;
 
@@ -8654,15 +8648,17 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
                 if (!NT_SUCCESS(status))
                     return status;
 
-                if (_InterlockedCompareExchangePointer(
+                HANDLE keyHandle = InterlockedCompareExchangePointer(
                     &PhPredefineKeyHandles[predefineIndex],
                     predefineHandle,
                     NULL
-                    ) != NULL)
+                    );
+
+                if (keyHandle)
                 {
-                    // Someone else already opened the key and cached it. Indicate that the caller
-                    // needs to close the handle later, since it isn't shared.
-                    *NeedsClose = predefineHandle;
+                    // Someone else already opened the key and cached it.
+                    NtClose(predefineHandle);
+                    predefineHandle = keyHandle;
                 }
             }
 
@@ -8704,7 +8700,6 @@ NTSTATUS PhCreateKey(
     NTSTATUS status;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE needsClose;
 
     if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
@@ -8713,8 +8708,7 @@ NTSTATUS PhCreateKey(
         RootDirectory,
         &objectName,
         Attributes,
-        &objectAttributes,
-        &needsClose
+        &objectAttributes
         )))
     {
         return status;
@@ -8729,9 +8723,6 @@ NTSTATUS PhCreateKey(
         CreateOptions,
         Disposition
         );
-
-    if (needsClose)
-        NtClose(needsClose);
 
     return status;
 }
@@ -8757,7 +8748,6 @@ NTSTATUS PhOpenKey(
     NTSTATUS status;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE needsClose;
 
     if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
@@ -8766,8 +8756,7 @@ NTSTATUS PhOpenKey(
         RootDirectory,
         &objectName,
         Attributes,
-        &objectAttributes,
-        &needsClose
+        &objectAttributes
         )))
     {
         return status;
@@ -8778,9 +8767,6 @@ NTSTATUS PhOpenKey(
         DesiredAccess,
         &objectAttributes
         );
-
-    if (needsClose)
-        NtClose(needsClose);
 
     return status;
 }
