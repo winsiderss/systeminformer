@@ -181,7 +181,7 @@ LCID PhGetSystemDefaultLCID(
     if (NT_SUCCESS(NtQueryDefaultLocale(FALSE, &localeId)))
         return localeId;
 
-    return LOCALE_SYSTEM_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 #endif
 }
 
@@ -198,8 +198,23 @@ LCID PhGetUserDefaultLCID(
     if (NT_SUCCESS(NtQueryDefaultLocale(TRUE, &localeId)))
         return localeId;
 
-    return LOCALE_USER_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 #endif
+}
+
+BOOLEAN PhGetUserLocaleInfoBool(
+    _In_ LCTYPE LCType
+    )
+{
+    WCHAR value[4];
+
+    if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LCType, value, 4))
+    {
+        if (value[0] == L'1')
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 // rev from GetThreadLocale
@@ -216,6 +231,10 @@ LCID PhGetCurrentThreadLCID(
 
     if (!currentTeb->CurrentLocale)
         currentTeb->CurrentLocale = PhGetUserDefaultLCID();
+    if (currentTeb->CurrentLocale == LOCALE_CUSTOM_DEFAULT)
+        currentTeb->CurrentLocale = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
+    if (currentTeb->CurrentLocale == LOCALE_CUSTOM_UNSPECIFIED)
+        currentTeb->CurrentLocale = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 
     return currentTeb->CurrentLocale;
 #endif
@@ -2152,13 +2171,13 @@ PPH_STRING PhFormatDecimal(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
+        if (!GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
         {
             decimalSeparator[0] = L'.';
             decimalSeparator[1] = UNICODE_NULL;
         }
 
-        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
+        if (!GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
         {
             thousandSeparator[0] = L',';
             thousandSeparator[1] = UNICODE_NULL;
@@ -2174,10 +2193,10 @@ PPH_STRING PhFormatDecimal(
     format.lpThousandSep = thousandSeparator;
     format.NegativeOrder = 1;
 
-    bufferSize = GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, NULL, 0);
+    bufferSize = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Value, &format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
-    if (!GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
+    if (!GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
     {
         PhDereferenceObject(string);
         return NULL;

@@ -185,6 +185,13 @@ PhGetUserDefaultLCID(
     VOID
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetUserLocaleInfoBool(
+    _In_ LCTYPE LCType
+    );
+
 // Time
 
 PHLIBAPI

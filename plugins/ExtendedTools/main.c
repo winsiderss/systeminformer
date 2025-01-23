@@ -1060,10 +1060,27 @@ VOID NTAPI ProcessStatsEventCallback(
     }
 }
 
+VOID EtLoadSettingsFirstRun(
+    VOID
+    )
+{
+    if (PhGetIntegerSetting(SETTING_NAME_FIRST_RUN))
+    {
+        if (PhGetUserLocaleInfoBool(LOCALE_IMEASURE))
+        {
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT, TRUE);
+        }
+
+        PhSetIntegerSetting(SETTING_NAME_FIRST_RUN, FALSE);
+    }
+}
+
 VOID EtLoadSettings(
     VOID
     )
 {
+    EtLoadSettingsFirstRun();
+
     EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
     EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
     EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
@@ -1274,6 +1291,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
+                { IntegerSettingType, SETTING_NAME_FIRST_RUN, L"1" },
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },

@@ -20,14 +20,12 @@
     {
         WCHAR localeBuffer[4];
 
-        if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, localeBuffer, 4) &&
-            (localeBuffer[0] != 0 && localeBuffer[1] == 0))
+        if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SDECIMAL, localeBuffer, 4))
         {
             PhpFormatDecimalSeparator = localeBuffer[0];
         }
 
-        if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, localeBuffer, 4) &&
-            (localeBuffer[0] != 0 && localeBuffer[1] == 0))
+        if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_STHOUSAND, localeBuffer, 4))
         {
             PhpFormatThousandSeparator = localeBuffer[0];
         }
@@ -312,7 +310,7 @@ CommonInt64Format:
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
              /* _forcdecpt_l(tempBufferAnsi, PhpFormatUserLocale); */ \
         if ((Format)->Type & FormatCropZeros) \
-            PhpCropZeros(temp, PhpFormatUserLocale); \
+            PhpCropZeros(temp); \
         \
         length = (ULONG)strlen(temp); \
         \
