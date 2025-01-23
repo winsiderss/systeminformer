@@ -521,7 +521,7 @@ LONG PhAddIListViewGroupItem(
     )
 {
     LVITEM item;
-    LONG index = 0;
+    LONG index;
 
     item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iItem = Index;
@@ -535,8 +535,10 @@ LONG PhAddIListViewGroupItem(
         item.lParam = reinterpret_cast<LPARAM>(Param);
     }
 
-    ListView->InsertItem(&item, &index);
-    return index;
+    if (SUCCEEDED(ListView->InsertItem(&item, &index)))
+        return index;
+
+    return INT_ERROR;
 }
 
 VOID PhSetStateAllListViewItems(
