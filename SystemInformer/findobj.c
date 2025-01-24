@@ -24,6 +24,7 @@
 #include <mainwnd.h>
 #include <procprv.h>
 #include <proctree.h>
+#include <phsettings.h>
 #include <settings.h>
 
 #define WM_PH_SEARCH_SHOWDIALOG (WM_APP + 801)
@@ -49,7 +50,7 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
-    PPH_HASHTABLE NodeHashtable;
+    //PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
 
     HANDLE SearchThreadHandle;
@@ -125,6 +126,7 @@ typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_HANDLE_SEARCH_CONTEXT context = ((PPH_HANDLE_SEARCH_CONTEXT)_context); \
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE node1 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)_elem1; \
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE node2 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)_elem2; \
     int sortResult = 0;
@@ -133,24 +135,24 @@ typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
     \
-    return PhModifySort(sortResult, ((PPH_HANDLE_SEARCH_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Process)
 {
-    sortResult = PhCompareString(node1->ClientIdName, node2->ClientIdName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ClientIdName, node2->ClientIdName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Type)
 {
-    sortResult = PhCompareString(node1->TypeNameString, node2->TypeNameString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->TypeNameString, node2->TypeNameString, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareString(node1->BestObjectName, node2->BestObjectName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->BestObjectName, node2->BestObjectName, context->TreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
@@ -168,13 +170,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalName)
 {
-    sortResult = PhCompareString(node1->ObjectNameString, node2->ObjectNameString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ObjectNameString, node2->ObjectNameString, context->TreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GrantedAccess)
 {
-    sortResult = PhCompareStringWithNull(node1->GrantedAccessSymbolicText, node2->GrantedAccessSymbolicText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->GrantedAccessSymbolicText, node2->GrantedAccessSymbolicText, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -200,23 +202,23 @@ VOID PhpHandleObjectSaveSettingsTreeList(
     PhDereferenceObject(settings);
 }
 
-BOOLEAN PhpHandleObjectNodeHashtableEqualFunction(
-    _In_ PVOID Entry1,
-    _In_ PVOID Entry2
-    )
-{
-    PPH_HANDLE_OBJECT_TREE_ROOT_NODE node1 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE *)Entry1;
-    PPH_HANDLE_OBJECT_TREE_ROOT_NODE node2 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE *)Entry2;
-
-    return node1->HandleObject == node2->HandleObject;
-}
-
-ULONG PhpHandleObjectNodeHashtableHashFunction(
-    _In_ PVOID Entry
-    )
-{
-    return PhHashIntPtr((ULONG_PTR)(*(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)Entry)->Handle);
-}
+//BOOLEAN PhpHandleObjectNodeHashtableEqualFunction(
+//    _In_ PVOID Entry1,
+//    _In_ PVOID Entry2
+//    )
+//{
+//    PPH_HANDLE_OBJECT_TREE_ROOT_NODE node1 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE *)Entry1;
+//    PPH_HANDLE_OBJECT_TREE_ROOT_NODE node2 = *(PPH_HANDLE_OBJECT_TREE_ROOT_NODE *)Entry2;
+//
+//    return node1->HandleObject == node2->HandleObject;
+//}
+//
+//ULONG PhpHandleObjectNodeHashtableHashFunction(
+//    _In_ PVOID Entry
+//    )
+//{
+//    return PhHashIntPtr((ULONG_PTR)(*(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)Entry)->Handle);
+//}
 
 VOID PhpDestroyHandleObjectNode(
     _In_ PPH_HANDLE_OBJECT_TREE_ROOT_NODE Node
@@ -250,7 +252,7 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpAddHandleObjectNode(
     handleObjectNode->Handle = Handle;
     handleObjectNode->UniqueId = ++NextUniqueId;
 
-    PhAddEntryHashtable(Context->NodeHashtable, &handleObjectNode);
+    //PhAddEntryHashtable(Context->NodeHashtable, &handleObjectNode);
     PhAddItemList(Context->NodeList, handleObjectNode);
 
     //TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -258,27 +260,27 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpAddHandleObjectNode(
     return handleObjectNode;
 }
 
-PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpFindHandleObjectNode(
-    _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
-    _In_ HANDLE Handle
-    )
-{
-    PH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNode;
-    PPH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNodePtr = &lookupHandleObjectNode;
-    PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNode;
-
-    lookupHandleObjectNode.Handle = Handle;
-
-    handleObjectNode = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)PhFindEntryHashtable(
-        Context->NodeHashtable,
-        &lookupHandleObjectNodePtr
-        );
-
-    if (handleObjectNode)
-        return *handleObjectNode;
-    else
-        return NULL;
-}
+//PPH_HANDLE_OBJECT_TREE_ROOT_NODE PhpFindHandleObjectNode(
+//    _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
+//    _In_ HANDLE Handle
+//    )
+//{
+//    PH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNode;
+//    PPH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNodePtr = &lookupHandleObjectNode;
+//    PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNode;
+//
+//    lookupHandleObjectNode.Handle = Handle;
+//
+//    handleObjectNode = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)PhFindEntryHashtable(
+//        Context->NodeHashtable,
+//        &lookupHandleObjectNodePtr
+//        );
+//
+//    if (handleObjectNode)
+//        return *handleObjectNode;
+//    else
+//        return NULL;
+//}
 
 VOID PhpRemoveHandleObjectNode(
     _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
@@ -287,7 +289,7 @@ VOID PhpRemoveHandleObjectNode(
 {
     ULONG index = 0;
 
-    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
+    //PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
 
     if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
     {
@@ -406,7 +408,16 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             node = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE)getNodeColor->Node;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            if (!node)
+                ; // Dummy
+            else if (PhCsUseColorProtectedInheritHandles && FlagOn(node->HandleInfo.HandleAttributes, OBJ_PROTECT_CLOSE) && FlagOn(node->HandleInfo.HandleAttributes, OBJ_INHERIT))
+                getNodeColor->BackColor = PhCsColorProtectedInheritHandles;
+            else if (PhCsUseColorProtectedHandles && FlagOn(node->HandleInfo.HandleAttributes, OBJ_PROTECT_CLOSE))
+                getNodeColor->BackColor = PhCsColorProtectedHandles;
+            else if (PhCsUseColorInheritHandles && FlagOn(node->HandleInfo.HandleAttributes, OBJ_INHERIT))
+                getNodeColor->BackColor = PhCsColorInheritHandles;
+
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -482,7 +493,7 @@ VOID PhpClearHandleObjectTree(
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
         PhpDestroyHandleObjectNode(Context->NodeList->Items[i]);
 
-    PhClearHashtable(Context->NodeHashtable);
+    //PhClearHashtable(Context->NodeHashtable);
     PhClearList(Context->NodeList);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -542,12 +553,12 @@ VOID PhpInitializeHandleObjectTree(
     )
 {
     Context->NodeList = PhCreateList(100);
-    Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PPH_HANDLE_OBJECT_TREE_ROOT_NODE),
-        PhpHandleObjectNodeHashtableEqualFunction,
-        PhpHandleObjectNodeHashtableHashFunction,
-        100
-        );
+    //Context->NodeHashtable = PhCreateHashtable(
+    //    sizeof(PPH_HANDLE_OBJECT_TREE_ROOT_NODE),
+    //    PhpHandleObjectNodeHashtableEqualFunction,
+    //    PhpHandleObjectNodeHashtableHashFunction,
+    //    100
+    //    );
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
@@ -580,7 +591,7 @@ VOID PhpDeleteHandleObjectTree(
         PhpDestroyHandleObjectNode(Context->NodeList->Items[i]);
     }
 
-    PhDereferenceObject(Context->NodeHashtable);
+    //PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
 }
 
@@ -1064,7 +1075,12 @@ NTSTATUS PhpFindObjectsThreadStart(
             {
                 if (entry->Value)
                 {
-                    NtClose(entry->Value);
+                    status = NtClose(entry->Value);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                    }
                 }
             }
         }
@@ -1151,7 +1167,7 @@ PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
     return context;
 }
 
-VOID NTAPI PhpFindObjectsSearchControlCallback(
+VOID NTAPI PhFindObjectsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     )
@@ -1175,12 +1191,11 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhCreateFindObjectContext();
-
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetDialogContext(hwndDlg, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetDialogContext(hwndDlg);
     }
 
     if (!context)
@@ -1210,7 +1225,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                 hwndDlg,
                 context->SearchWindowHandle,
                 L"Find Handles or DLLs",
-                PhpFindObjectsSearchControlCallback,
+                PhFindObjectsSearchControlCallback,
                 context
                 );
             PhpPopulateObjectTypes(context);
@@ -1241,6 +1256,8 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveDialogContext(hwndDlg);
+
             context->SearchStop = TRUE;
 
             PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
@@ -1264,8 +1281,6 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                 PhDereferenceObject(context->WindowText);
             if (context->TypeWindowFont)
                 DeleteFont(context->TypeWindowFont);
-
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDereferenceObject(context);
 
