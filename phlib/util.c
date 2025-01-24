@@ -398,6 +398,8 @@ BOOLEAN PhSystemTimeToLargeInteger(
 #else
     TIME_FIELDS timeFields;
 
+    RtlZeroMemory(&timeFields, sizeof(TIME_FIELDS));
+
     timeFields.Year = SystemTime->wYear;
     timeFields.Month = SystemTime->wMonth;
     timeFields.Day = SystemTime->wDay;
@@ -3313,7 +3315,7 @@ PPH_STRING PhGetBaseNameChangeExtension(
 
 _Success_(return)
 BOOLEAN PhGetBasePath(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PPH_STRINGREF BasePathName,
     _Out_opt_ PPH_STRINGREF BaseFileName
     )
@@ -4659,6 +4661,7 @@ NTSTATUS PhCreateProcessWin32Ex(
 
     if (!StartupInfo)
     {
+        SetFlag(newFlags, EXTENDED_STARTUPINFO_PRESENT);
         memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
         startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
     }

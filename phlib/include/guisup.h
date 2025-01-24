@@ -849,7 +849,7 @@ VOID
 NTAPI
 PhAddComboBoxStringRefs(
     _In_ HWND WindowHandle,
-    _In_ CONST PPH_STRINGREF* Strings,
+    _In_ CONST PCPH_STRINGREF* Strings,
     _In_ ULONG NumberOfStrings
     )
 {
@@ -1027,7 +1027,7 @@ VOID
 NTAPI
 PhSetClipboardString(
     _In_ HWND WindowHandle,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -1882,7 +1882,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhExtractIconEx(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
     _Out_opt_ HICON *IconLarge,

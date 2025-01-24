@@ -4045,7 +4045,7 @@ NTSTATUS PhSetFileRename(
     {
         PFILE_RENAME_INFORMATION renameInfo;
 
-        renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfoLength = FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName) + (ULONG)NewFileName->Length;
         renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
         renameInfo->ReplaceIfExists = ReplaceIfExists;
         renameInfo->RootDirectory = RootDirectory;
@@ -4066,7 +4066,6 @@ NTSTATUS PhSetFileRename(
     {
         PFILE_RENAME_INFORMATION_EX renameInfo;
 
-        renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
         renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
         renameInfo->Flags = FILE_RENAME_POSIX_SEMANTICS | FILE_RENAME_IGNORE_READONLY_ATTRIBUTE | (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0);
         renameInfo->RootDirectory = RootDirectory;

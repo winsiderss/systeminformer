@@ -1158,7 +1158,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhSplitStringRefAtChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -1168,7 +1168,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhSplitStringRefAtLastChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart

@@ -2448,7 +2448,7 @@ FoundUString:
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -2495,7 +2495,7 @@ BOOLEAN PhSplitStringRefAtChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtLastChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart

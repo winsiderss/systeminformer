@@ -1069,7 +1069,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetBasePath(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PPH_STRINGREF BasePathName,
     _Out_opt_ PPH_STRINGREF BaseFileName
     );
