@@ -1449,7 +1449,7 @@ Fail:
 
 VOID PhSetClipboardString(
     _In_ HWND WindowHandle,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     HANDLE data;
@@ -1683,8 +1683,8 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
+            PhSetWindowProcedure(hwnd, oldWndProc);
         }
         break;
     case WM_SYSCOMMAND:
@@ -3129,7 +3129,7 @@ HICON PhCreateIconFromResourceDirectory(
  */
 _Success_(return)
 BOOLEAN PhGetSystemResourcesFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _Out_ PPH_STRING* ResourceFileName
     )
@@ -3200,7 +3200,7 @@ BOOLEAN PhGetSystemResourcesFileName(
  */
 _Success_(return)
 BOOLEAN PhExtractIconEx(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
     _Out_opt_ HICON *IconLarge,
