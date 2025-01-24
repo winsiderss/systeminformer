@@ -19,7 +19,6 @@
 #include <fltKernel.h>
 #include <ntimage.h>
 #include <bcrypt.h>
-#include <wsk.h>
 #pragma warning(pop)
 #include <pooltags.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
@@ -248,31 +247,31 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     return expected;
 }
 
-#define ProbeOutputType(pointer, type)                                        \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeOutputType(pointer, type)                                         \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeInputType(pointer, type)                                         \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeInputType(pointer, type)                                          \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeOutputBytes(pointer, size)                                       \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeOutputBytes(pointer, size)                                        \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
-#define ProbeInputBytes(pointer, size)                                        \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeInputBytes(pointer, size)                                         \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
-#define RebasePtr(pointer, oldBase, newBase)                                  \
+#define RebasePtr(pointer, oldBase, newBase)                                   \
 Add2Ptr(newBase, PtrOffset(oldBase, pointer))
 
-#define RebaseUnicodeString(string, oldBase, newBase)                         \
-if ((string)->Buffer)                                                         \
-{                                                                             \
-    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
+#define RebaseUnicodeString(string, oldBase, newBase)                          \
+if ((string)->Buffer)                                                          \
+{                                                                              \
+    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer)); \
 }
 
 #define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
