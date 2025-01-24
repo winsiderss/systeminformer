@@ -1009,14 +1009,25 @@ typedef struct _TEB
     //
     ULONG TxFsContext;
 #endif
+
+    //
+    // Reserved for GDI.
+    //
     GDI_TEB_BATCH GdiTebBatch;
     CLIENT_ID RealClientId;
     HANDLE GdiCachedProcessHandle;
     ULONG GdiClientPID;
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
+
+    //
+    // Reserved for User32.
+    //
     ULONG_PTR Win32ClientInfo[WIN32_CLIENT_INFO_LENGTH];
 
+    //
+    // Reserved for opengl32.dll
+    //
     PVOID glDispatchTable[233];
     ULONG_PTR glReserved1[29];
     PVOID glReserved2;
@@ -1162,6 +1173,10 @@ typedef struct _TEB
     ULONG HeapData;
     HANDLE CurrentTransactionHandle;
     PTEB_ACTIVE_FRAME ActiveFrame;
+
+    //
+    // Reserved for FLS (RtlProcessFlsData).
+    //
     PVOID FlsData;
 
     PVOID PreferredLanguages;
