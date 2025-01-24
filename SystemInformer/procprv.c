@@ -381,7 +381,7 @@ PPH_STRING PhGetClientIdNameEx(
     PPH_PROCESS_ITEM processItem = NULL;
 
     // Lookup the name in the process snapshot if necessary
-    if (!ProcessName)
+    if (PhIsNullOrEmptyString(ProcessName))
     {
         processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
