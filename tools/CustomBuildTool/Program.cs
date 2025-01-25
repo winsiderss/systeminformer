@@ -20,8 +20,6 @@ namespace CustomBuildTool
             if (!Build.InitializeBuildEnvironment())
                 return;
 
-            Build.ExportDefinitions(false);
-
             ProgramArgs = Utils.ParseArgs(args);
 
             if (ProgramArgs.ContainsKey("-cleanup"))
