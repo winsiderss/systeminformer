@@ -15,10 +15,6 @@
 
 #include <trace.h>
 
-KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
-KPH_PROTECTED_DATA_SECTION_RO_POP();
-
 /**
  * \brief Performs a binary search of a sorted array.
  *

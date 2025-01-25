@@ -160,7 +160,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)"
+      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
       "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
        </Command>
     </PostBuildEvent>
@@ -202,7 +202,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)"
+      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
       "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
@@ -244,7 +244,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign "$(OutDir)$(TargetName)$(TargetExt)"
+      "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
       "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
@@ -289,7 +289,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
         "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
@@ -334,7 +334,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
         "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>
@@ -377,7 +377,7 @@
     </ResourceCompile>
     <PostBuildEvent>
       <Command>
-        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)
+        "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"
         "$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)
       </Command>
     </PostBuildEvent>

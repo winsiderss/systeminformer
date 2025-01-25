@@ -20,8 +20,6 @@ namespace CustomBuildTool
             if (!Build.InitializeBuildEnvironment())
                 return;
 
-            Build.ExportDefinitions(false);
-
             ProgramArgs = Utils.ParseArgs(args);
 
             if (ProgramArgs.ContainsKey("-cleanup"))
@@ -110,12 +108,12 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(flags))
                     Environment.Exit(1);
             }
-            else if (ProgramArgs.TryGetValue("-azure-sign", out string Path))
+            else if (ProgramArgs.TryGetValue("-azsign", out string Path))
             {
                 if (!EntraKeyVault.SignFiles(Path))
                     Environment.Exit(1);
             }
-            else if (ProgramArgs.TryGetValue("-kph-sign", out string SignArg))
+            else if (ProgramArgs.TryGetValue("-kphsign", out string SignArg))
             {
                 if (!Verify.CreateSigFile("kph", SignArg, Build.BuildCanary))
                     Environment.Exit(1);
