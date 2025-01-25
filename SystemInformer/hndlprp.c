@@ -754,7 +754,7 @@ VOID PhpUpdateHandleGeneral(
                         name = newName;
                     }
 
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION, 1, name->Buffer);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION, 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
 
@@ -779,7 +779,7 @@ VOID PhpUpdateHandleGeneral(
                         name = newName;
                     }
 
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ALPCSERVER, 1, name->Buffer);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCSERVER, 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
 
@@ -804,7 +804,7 @@ VOID PhpUpdateHandleGeneral(
                         name = newName;
                     }
 
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ALPCCLIENT, 1, name->Buffer);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCCLIENT, 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
 
@@ -924,14 +924,14 @@ VOID PhpUpdateHandleGeneral(
                             PhAppendFormatStringBuilder(&stringBuilder, L" (UNKNOWN: %s)", string);
                         }
 
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
                         PhDeleteStringBuilder(&stringBuilder);
 
                         PhPrintUInt32(string, basicInfo.SequenceNo);
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);
 
                         PhPrintPointer(string, basicInfo.PortContext);
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
                     }
 
                     if (WindowsVersion >= WINDOWS_10_19H2)
@@ -953,7 +953,7 @@ VOID PhpUpdateHandleGeneral(
                             clientId.UniqueThread = nullptr;
 
                             name = PhGetClientIdName(&clientId);
-                            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);
                             PhDereferenceObject(name);
                         }
                     }
@@ -965,7 +965,7 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
-        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME, 1, PhGetString(Context->HandleItem->ObjectName));
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME, 1, PhGetString(Context->HandleItem->ObjectName));
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE))
     {
@@ -1000,11 +1000,11 @@ VOID PhpUpdateHandleGeneral(
                 {
                 case FILE_DEVICE_NAMED_PIPE:
                     //isPipeHandle = TRUE;
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Pipe");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Pipe");
                     break;
                 case FILE_DEVICE_NETWORK:
                     //isNetworkHandle = TRUE;
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Network");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Network");
                     break;
                 case FILE_DEVICE_CD_ROM:
                 case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
@@ -1015,14 +1015,14 @@ VOID PhpUpdateHandleGeneral(
                 case FILE_DEVICE_DISK_FILE_SYSTEM:
                 case FILE_DEVICE_VIRTUAL_DISK:
                     isFileOrDirectory = TRUE;
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"File or directory");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"File or directory");
                     break;
                 case FILE_DEVICE_CONSOLE:
                     isConsoleHandle = TRUE;
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Console");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Console");
                     break;
                 default:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Other");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, L"Other");
                     break;
                 }
             }
@@ -1060,7 +1060,7 @@ VOID PhpUpdateHandleGeneral(
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileModeString, sizeof(fileModeString), NULL))
                 {
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEMODE, 1, fileModeString);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEMODE, 1, fileModeString);
                 }
 
                 PhDereferenceObject(fileModeAccessStr);
@@ -1083,12 +1083,12 @@ VOID PhpUpdateHandleGeneral(
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileSizeString, sizeof(fileSizeString), NULL))
                     {
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILESIZE, 1, fileSizeString);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILESIZE, 1, fileSizeString);
                     }
 
                     if (isFileOrDirectory)
                     {
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, fileStandardInfo.Directory ? L"Directory" : L"File");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, fileStandardInfo.Directory ? L"Directory" : L"File");
                     }
 
                     //disableFlushButton |= fileStandardInfo.Directory;
@@ -1114,7 +1114,7 @@ VOID PhpUpdateHandleGeneral(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
                         {
-                            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
                         }
                     }
                     else if (filePositionInfo.CurrentByteOffset.QuadPart != 0)
@@ -1126,7 +1126,7 @@ VOID PhpUpdateHandleGeneral(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
                         {
-                            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
                         }
                     }
                 }
@@ -1143,19 +1143,19 @@ VOID PhpUpdateHandleGeneral(
                 switch (priorityInfo.PriorityHint)
                 {
                 case IoPriorityVeryLow:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Very Low");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Very Low");
                     break;
                 case IoPriorityLow:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Low");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Low");
                     break;
                 case IoPriorityNormal:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Normal");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Normal");
                     break;
                 case IoPriorityHigh:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"High");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"High");
                     break;
                 case IoPriorityCritical:
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Critical");
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Critical");
                     break;
                 }
             }
@@ -1173,13 +1173,13 @@ VOID PhpUpdateHandleGeneral(
 
                 if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
                 {
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEDRIVER, 1, PhGetString(driverName));
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVER, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
                 if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &driverName)))
                 {
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE, 1, PhGetString(driverName));
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
@@ -1250,15 +1250,13 @@ VOID PhpUpdateHandleGeneral(
                     {
                         HANDLE newhandle;
 
-                        status = PhReOpenFile(
+                        if (NT_SUCCESS(PhReOpenFile(
                             &newhandle,
                             fileHandle,
-                            FILE_READ_ACCESS | SYNCHRONIZE,
-                            0,
+                            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                            FILE_SHARE_READ,
                             0
-                            );
-
-                        if (NT_SUCCESS(status))
+                            )))
                         {
                             NtClose(fileHandle);
                             fileHandle = newhandle;
@@ -1354,7 +1352,7 @@ VOID PhpUpdateHandleGeneral(
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileModeString, sizeof(fileModeString), NULL))
                     {
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEMODE, 1, fileModeString);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEMODE, 1, fileModeString);
                     }
 
                     PhDereferenceObject(fileModeAccessStr);
@@ -1376,12 +1374,12 @@ VOID PhpUpdateHandleGeneral(
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileSizeString, sizeof(fileSizeString), NULL))
                         {
-                            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILESIZE, 1, fileSizeString);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILESIZE, 1, fileSizeString);
                         }
 
                         if (isFileOrDirectory)
                         {
-                            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, fileStandardInfo.Directory ? L"Directory" : L"File");
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILETYPE, 1, fileStandardInfo.Directory ? L"Directory" : L"File");
                         }
 
                         //disableFlushButton |= fileStandardInfo.Directory;
@@ -1394,7 +1392,7 @@ VOID PhpUpdateHandleGeneral(
                         sizeof(FILE_POSITION_INFORMATION)
                         )))
                     {
-                        if (filePositionInfo.CurrentByteOffset.QuadPart != 0 && fileStandardInfo.EndOfFile.QuadPart != 0)
+                        if (fileStandardInfo.EndOfFile.QuadPart != 0)
                         {
                             PH_FORMAT format[4];
                             WCHAR filePositionString[PH_INT64_STR_LEN];
@@ -1406,10 +1404,10 @@ VOID PhpUpdateHandleGeneral(
 
                             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
                             {
-                                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
+                                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
                             }
                         }
-                        else if (filePositionInfo.CurrentByteOffset.QuadPart != 0)
+                        else
                         {
                             PH_FORMAT format[1];
                             WCHAR filePositionString[PH_INT64_STR_LEN];
@@ -1418,7 +1416,7 @@ VOID PhpUpdateHandleGeneral(
 
                             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
                             {
-                                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
+                                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPOSITION, 1, filePositionString);
                             }
                         }
                     }
@@ -1435,19 +1433,19 @@ VOID PhpUpdateHandleGeneral(
                     switch (priorityInfo.PriorityHint)
                     {
                     case IoPriorityVeryLow:
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Very Low");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Very Low");
                         break;
                     case IoPriorityLow:
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Low");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Low");
                         break;
                     case IoPriorityNormal:
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Normal");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Normal");
                         break;
                     case IoPriorityHigh:
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"High");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"High");
                         break;
                     case IoPriorityCritical:
-                        PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Critical");
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEPRIORITY, 1, L"Critical");
                         break;
                     }
                 }
@@ -1588,9 +1586,9 @@ VOID PhpUpdateHandleGeneral(
                 PhMoveReference(&fileName, PhGetFileName(fileName));
             }
 
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_SECTIONFILE, 1, PhGetStringOrDefault(fileName, L"N/A"));
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_SECTIONTYPE, 1, sectionType);
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_SECTIONSIZE, 1, PhGetStringOrDefault(sectionSize, L"Unknown"));
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SECTIONFILE, 1, PhGetStringOrDefault(fileName, L"N/A"));
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SECTIONTYPE, 1, sectionType);
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SECTIONSIZE, 1, PhGetStringOrDefault(sectionSize, L"Unknown"));
         }
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Mutant", TRUE))
@@ -1623,8 +1621,8 @@ VOID PhpUpdateHandleGeneral(
 
             if (NT_SUCCESS(PhGetMutantBasicInformation(mutantHandle, &basicInfo)))
             {
-                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT, 1, PhaFormatUInt64(basicInfo.CurrentCount, TRUE)->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED, 1, basicInfo.AbandonedState ? L"True" : L"False");
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT, 1, PhaFormatUInt64(basicInfo.CurrentCount, TRUE)->Buffer);
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED, 1, basicInfo.AbandonedState ? L"True" : L"False");
             }
 
             if (NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo)))
@@ -1634,7 +1632,7 @@ VOID PhpUpdateHandleGeneral(
                 if (ownerInfo.ClientId.UniqueProcess)
                 {
                     name = PhGetClientIdName(&ownerInfo.ClientId);
-                    PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_MUTANTOWNER, 1, name->Buffer);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_MUTANTOWNER, 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
             }
@@ -1762,7 +1760,7 @@ VOID PhpUpdateHandleGeneral(
 
         if (fileName)
         {
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, 1, PhGetStringOrEmpty(fileName));
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME, 1, PhGetStringOrEmpty(fileName));
             PhDereferenceObject(fileName);
         }
 
@@ -1770,13 +1768,13 @@ VOID PhpUpdateHandleGeneral(
         {
             SYSTEMTIME time;
 
-            PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.CreateTime);
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, 1, PhaFormatDateTime(&time)->Buffer);
+            PhLargeIntegerToLocalSystemTime(&time, &times.CreateTime);
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME, 1, PhaFormatDateTime(&time)->Buffer);
 
             if (exitStatus != STATUS_PENDING)
             {
-                PhLargeIntegerToLocalSystemTime(&time, (PLARGE_INTEGER)&times.ExitTime);
-                PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, 1, PhaFormatDateTime(&time)->Buffer);
+                PhLargeIntegerToLocalSystemTime(&time, &times.ExitTime);
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITTIME, 1, PhaFormatDateTime(&time)->Buffer);
             }
         }
 
@@ -1787,7 +1785,7 @@ VOID PhpUpdateHandleGeneral(
 
             message = PhGetStatusMessage(exitStatus, 0);
             exitcode = PhFormatString(L"0x%x (%s)", exitStatus, PhGetStringOrDefault(message, L"Unknown"));
-            PhSetListViewSubItem(Context->ListViewHandle, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE, 1, PhGetStringOrEmpty(exitcode));
+            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PROCESSTHREADEXITCODE, 1, PhGetStringOrEmpty(exitcode));
             PhClearReference(&exitcode);
             PhClearReference(&message);
         }
