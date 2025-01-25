@@ -1408,7 +1408,7 @@ NTSTATUS KphpGetKernelFileName(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
-                      L"ZwQuerySystemInformation failed: %!STATUS!",
+                      "ZwQuerySystemInformation failed: %!STATUS!",
                       status);
 
         return status;
