@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <phuisup.h>
+#include <kphuser.h>
 #include <colmgr.h>
 
 #include <thrdlist.h>
@@ -132,6 +133,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, FALSE, L"Start address (Native)", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_KSTACKUSAGE, FALSE, L"Kernel stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -352,6 +354,7 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->LastErrorCodeText) PhDereferenceObject(ThreadNode->LastErrorCodeText);
     if (ThreadNode->ApartmentStateText) PhDereferenceObject(ThreadNode->ApartmentStateText);
     if (ThreadNode->StackUsageText) PhDereferenceObject(ThreadNode->StackUsageText);
+    if (ThreadNode->KernelStackUsageText) PhDereferenceObject(ThreadNode->KernelStackUsageText);
 
     if (ThreadNode->KernelTimeText) PhDereferenceObject(ThreadNode->KernelTimeText);
     if (ThreadNode->UserTimeText) PhDereferenceObject(ThreadNode->UserTimeText);
@@ -830,6 +833,48 @@ VOID PhpUpdateThreadNodeStackUsage(
     }
 }
 
+VOID PhpUpdateThreadNodeKernelStackSize(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    KPH_KERNEL_STACK_INFORMATION info;
+
+    // This is imperfect because the KernelStack is infrequently updated by the kernel (happens on
+    // context swaps). Additionally, the space between InitialStack and first stack usage is not
+    // accounted for. But generally this is a good enough representation of the kernel stack usage.
+    // (jxy-s)
+
+    if (ThreadNode->ThreadItem->ThreadHandle && KsiLevel() == KphLevelMax)
+    {
+        status = KphQueryInformationThread(
+            ThreadNode->ThreadItem->ThreadHandle,
+            KphThreadKernelStackInformation,
+            &info,
+            sizeof(info),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG_PTR stackUsage = (ULONG_PTR)PTR_SUB_OFFSET(info.InitialStack, info.KernelStack);
+        ULONG_PTR stackLimit = (ULONG_PTR)PTR_SUB_OFFSET(info.StackBase, info.StackLimit);
+        FLOAT percent = (FLOAT)stackUsage / stackLimit * 100;
+
+        ThreadNode->KernelStackUsageFloat = percent;
+        ThreadNode->KernelStackUsage = stackUsage;
+        ThreadNode->KernelStackLimit = stackLimit;
+    }
+    else
+    {
+        ThreadNode->KernelStackUsageFloat = 0;
+        ThreadNode->KernelStackUsage = 0;
+        ThreadNode->KernelStackLimit = 0;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpThreadTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpThreadTreeNewCompare##Column( \
     _In_ void *_context, \
@@ -1216,6 +1261,15 @@ BEGIN_SORT_FUNCTION(StartAddressKernel)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(KernelStackUsage)
+{
+    PhpUpdateThreadNodeKernelStackSize(context, node1);
+    PhpUpdateThreadNodeKernelStackSize(context, node2);
+
+    sortResult = singlecmp(node1->KernelStackUsageFloat, node2->KernelStackUsageFloat);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1284,6 +1338,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LxssTid),
                     SORT_FUNCTION(PowerThrottling),
                     SORT_FUNCTION(StartAddressKernel),
+                    SORT_FUNCTION(KernelStackUsage),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -2066,6 +2121,32 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
 
                     getCellText->Text = PhGetStringRef(node->StackUsageText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_KSTACKUSAGE:
+                {
+                    PhpUpdateThreadNodeKernelStackSize(context, node);
+
+                    if (node->KernelStackUsage && node->KernelStackLimit)
+                    {
+                        PH_FORMAT format[6];
+
+                        // %s / %s (%.0f%%)
+                        PhInitFormatSize(&format[0], node->KernelStackUsage);
+                        PhInitFormatS(&format[1], L" | ");
+                        PhInitFormatSize(&format[2], node->KernelStackLimit);
+                        PhInitFormatS(&format[3], L" (");
+                        PhInitFormatF(&format[4], node->KernelStackUsageFloat, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[5], L"%)");
+
+                        PhMoveReference(&node->KernelStackUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+                    else
+                    {
+                        PhClearReference(&node->KernelStackUsageText);
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->KernelStackUsageText);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_WAITTIME:
