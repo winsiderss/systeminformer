@@ -1666,7 +1666,7 @@ VOID EtSMBIOSSystemSlot(
         ET_SMBIOS_ENUM(L"Height", extended->Height, slotHeights);
 }
 
-VOID EtSMBIOSOuBoardDevice(
+VOID EtSMBIOSOnBoardDevice(
     _In_ ULONG_PTR EnumHandle,
     _In_ PPH_SMBIOS_ENTRY Entry,
     _In_ PSMBIOS_WINDOW_CONTEXT Context
@@ -4082,7 +4082,7 @@ BOOLEAN NTAPI EtEnumerateSMBIOSEntriesCallback(
         EtSMBIOSSystemSlot(EnumHandle, Entry, context);
         break;
     case SMBIOS_ON_BOARD_DEVICE_INFORMATION_TYPE:
-        EtSMBIOSOnboardDevice(EnumHandle, Entry, context);
+        EtSMBIOSOnBoardDevice(EnumHandle, Entry, context);
         break;
     case SMBIOS_OEM_STRING_INFORMATION_TYPE:
         EtSMBIOSOemString(EnumHandle, Entry, context);
