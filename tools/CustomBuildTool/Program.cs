@@ -22,6 +22,14 @@ namespace CustomBuildTool
 
             ProgramArgs = Utils.ParseArgs(args);
 
+            if (ProgramArgs.ContainsKey("-write-tools-id"))
+            {
+                WriteToolsId();
+                return;
+            }
+
+            CheckForOutOfDateTools();
+
             if (ProgramArgs.ContainsKey("-cleanup"))
             {
                 Build.CleanupBuildEnvironment();
@@ -324,6 +332,57 @@ namespace CustomBuildTool
             else
                 Console.Write(builder.GetFormattedText());
             Console.ResetColor();
+        }
+
+        private static void CheckForOutOfDateTools()
+        {
+#if RELEASE
+            string currentId = GetToolsId();
+            string previousId = string.Empty;
+            if (File.Exists("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt"))
+                previousId = File.ReadAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt");
+            if (previousId != currentId)
+                PrintColorMessage($"[WARN] Build tools are out of date!", ConsoleColor.Yellow);
+#endif
+        }
+
+        private static void WriteToolsId()
+        {
+            string currentHash = GetToolsId();
+            File.WriteAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt", currentHash);
+        }
+
+        private static string GetToolsId()
+        {
+            int bufferSize = 0x1000;
+            string[] directories =
+            {
+                "tools\\CustomBuildTool",
+                "tools\\CustomBuildTool\\AzureSignTool",
+            };
+
+            using (var sha256 = SHA256.Create())
+            {
+                foreach (var directory in directories)
+                foreach (string source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
+                {
+                    byte[] buffer = new byte[bufferSize];
+                    int bytesRead;
+
+                    using (var filestream = File.OpenRead(source))
+                    using (var bufferedStream = new BufferedStream(filestream, bufferSize))
+                    {
+                        while ((bytesRead = bufferedStream.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            sha256.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                        }
+                    }
+                }
+
+                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+                return BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
+            }
         }
     }
 }
