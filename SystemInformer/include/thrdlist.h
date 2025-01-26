@@ -62,6 +62,7 @@ typedef enum _PH_THREAD_TREELIST_COLUMN
     PH_THREAD_TREELIST_COLUMN_LXSSTID,
     PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING,
     PH_THREAD_TREELIST_COLUMN_STARTADDRESS,
+    PH_THREAD_TREELIST_COLUMN_KSTACKUSAGE,
     PH_THREAD_TREELIST_COLUMN_MAXIMUM,
 } PH_THREAD_TREELIST_COLUMN;
 
@@ -115,6 +116,9 @@ typedef struct _PH_THREAD_NODE
     FLOAT StackUsageFloat;
     ULONG_PTR StackUsage;
     ULONG_PTR StackLimit;
+    FLOAT KernelStackUsageFloat;
+    ULONG_PTR KernelStackUsage;
+    ULONG_PTR KernelStackLimit;
     PH_THREAD_TOKEN_STATE TokenState;
     NTSTATUS LastSystemCallStatus;
     THREAD_LAST_SYSCALL_INFORMATION LastSystemCall;
@@ -136,6 +140,7 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING LastErrorCodeText;
     PPH_STRING ApartmentStateText;
     PPH_STRING StackUsageText;
+    PPH_STRING KernelStackUsageText;
     WCHAR ContextSwitchesText[PH_INT64_STR_LEN_1];
     WCHAR PriorityText[PH_INT32_STR_LEN_1];
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
