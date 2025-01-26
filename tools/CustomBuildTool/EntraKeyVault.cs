@@ -107,16 +107,23 @@ namespace CustomBuildTool
                 {
                     if (Directory.Exists(Path))
                     {
-                        var files = Directory.EnumerateFiles(Path, "*.dll,*.exe", SearchOption.AllDirectories);
+                        var files = Utils.EnumerateDirectory(Path, [".exe", ".dll"]);
 
-                        foreach (var file in files)
+                        if (files == null || files.Count == 0)
                         {
-                            var result = authenticodeKeyVaultSigner.SignFile(file, null, null, true);
+                            Program.PrintColorMessage($"No files found.", ConsoleColor.Red);
+                        }
+                        else
+                        {
+                            foreach (var file in files)
+                            {
+                                var result = authenticodeKeyVaultSigner.SignFile(file, null, null, true);
 
-                            if (result == HRESULT.S_OK)
-                                Program.PrintColorMessage($"Signed: {file}", ConsoleColor.Green);
-                            else
-                                Program.PrintColorMessage($"Failed: ({result}) {file}", ConsoleColor.Red);
+                                if (result == HRESULT.S_OK)
+                                    Program.PrintColorMessage($"Signed: {file}", ConsoleColor.Green);
+                                else
+                                    Program.PrintColorMessage($"Failed: ({result}) {file}", ConsoleColor.Red);
+                            }
                         }
                     }
                     else if (File.Exists(Path))

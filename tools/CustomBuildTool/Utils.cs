@@ -321,6 +321,15 @@ namespace CustomBuildTool
             return output;
         }
 
+        public static List<string> EnumerateDirectory(string FilePath, string[] Extensions)
+        {
+            return Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                ReturnSpecialDirectories = false
+            }).Where(s => Extensions.Any(ext => string.Equals(ext, Path.GetExtension(s), StringComparison.OrdinalIgnoreCase))).ToList();
+        }
+
         public static string GetWindowsSdkIncludePath()
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
