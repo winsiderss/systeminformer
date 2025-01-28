@@ -230,7 +230,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                     if (NT_SUCCESS(status))
                     {
                         PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION,
-                            PhaFormatString(L"%u Zombie process(es), %u terminated process(es).",
+                            PhaFormatString(L"%u zombie process(es), %u terminated process(es).",
                             NumberOfZombieProcesses, NumberOfTerminatedProcesses)->Buffer
                             );
                         InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);

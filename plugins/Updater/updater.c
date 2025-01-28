@@ -301,6 +301,7 @@ NTSTATUS UpdatePlatformSupportInformation(
     LARGE_INTEGER fileSize;
     PH_HASH_CONTEXT hashContext;
     ULONG64 bytesRemaining;
+    ULONG numberOfBytesRead;
     BYTE buffer[PAGE_SIZE];
     BYTE hash[256 / 8];
 
@@ -324,25 +325,19 @@ NTSTATUS UpdatePlatformSupportInformation(
 
     while (bytesRemaining)
     {
-        IO_STATUS_BLOCK iosb;
-
-        status = NtReadFile(
+        status = PhReadFile(
             fileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &iosb,
             buffer,
             sizeof(buffer),
             NULL,
-            NULL
+            &numberOfBytesRead
             );
 
         if (!NT_SUCCESS(status))
             break;
 
-        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
-        bytesRemaining -= (ULONG)iosb.Information;
+        PhUpdateHash(&hashContext, buffer, numberOfBytesRead);
+        bytesRemaining -= numberOfBytesRead;
     }
 
     if (NT_SUCCESS(status = PhLoadMappedImageHeaderPageSize(NULL, fileHandle, &mappedImage)))

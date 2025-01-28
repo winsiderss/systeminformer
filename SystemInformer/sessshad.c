@@ -220,7 +220,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     }
                     else
                     {
-                        PhShowError2(hwndDlg, L"The computer name is too long.", L"%s", L"");
+                        PhShowStatus(hwndDlg, L"Unable to remote control the session", 0, ERROR_DS_NAME_TOO_LONG);
                     }
                 }
                 break;

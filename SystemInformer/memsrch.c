@@ -447,7 +447,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
                     if (minimumLength < 4)
                     {
-                        PhShowError2(hwndDlg, L"The minimum length must be at least 4.", L"%s", L"");
+                        PhShowError2(hwndDlg, L"Unable to search for strings.", L"%s", L"The minimum length must be at least 4.");
                         break;
                     }
 

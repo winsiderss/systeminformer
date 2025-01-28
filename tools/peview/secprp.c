@@ -189,7 +189,7 @@ VOID PvInitializeCertificateTree(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, NoSortOrder);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, 22);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(22, PhGetWindowDpi(Context->WindowHandle)));
 
     settings = PhGetStringSetting(L"ImageSecurityTreeColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);

@@ -86,7 +86,6 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Extended Notifications";
-            info->Author = L"wj32";
             info->Description = L"Filters notifications.";
 
             PhRegisterCallback(
@@ -365,7 +364,7 @@ BOOLEAN MatchFilterList(
     {
         PFILTER_ENTRY entry = FilterList->Items[i];
 
-        if (isFileName && PhFindCharInString(entry->Filter, 0, L'\\') == SIZE_MAX)
+        if (isFileName && PhFindCharInString(entry->Filter, 0, OBJ_NAME_PATH_SEPARATOR) == SIZE_MAX)
             continue; // ignore filters without backslashes if we're matching a file name
 
         if (entry->Filter->Length == 2 && entry->Filter->Buffer[0] == L'*') // shortcut
@@ -479,8 +478,8 @@ LRESULT CALLBACK TextBoxSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, UCHAR_MAX);
+            PhSetWindowProcedure(hWnd, oldWndProc);
         }
         break;
     case WM_GETDLGCODE:
@@ -536,9 +535,9 @@ INT_PTR HandleCommonMessages(
             WNDPROC oldWndProc;
 
             textBoxHandle = GetDlgItem(hwndDlg, IDC_TEXT);
-            oldWndProc = (WNDPROC)GetWindowLongPtr(textBoxHandle, GWLP_WNDPROC);
+            oldWndProc = PhGetWindowProcedure(textBoxHandle);
             PhSetWindowContext(textBoxHandle, UCHAR_MAX, oldWndProc);
-            SetWindowLongPtr(textBoxHandle, GWLP_WNDPROC, (LONG_PTR)TextBoxSubclassProc);
+            PhSetWindowProcedure(textBoxHandle, TextBoxSubclassProc);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
 

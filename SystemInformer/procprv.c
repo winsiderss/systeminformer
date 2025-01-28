@@ -3225,7 +3225,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), PH_PROCESS_PROVIDER_UPDATED_EVENT_PTR(runCount));
     runCount++;
 }
 

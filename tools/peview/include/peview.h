@@ -323,6 +323,7 @@ typedef enum PV_SYMBOL_TREE_MENU_ITEM
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ,
+    PV_SYMBOL_TREE_MENU_ITEM_FILTER_WRITE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_CODE,
@@ -469,7 +470,8 @@ typedef struct _PDB_SYMBOL_CONTEXT
             ULONG HighlightExecuteSection : 1;
             ULONG HighlightCodeSection : 1;
             ULONG HighlightReadSection : 1;
-            ULONG Spare : 24;
+            ULONG FilterNonWriteSections : 1;
+            ULONG Spare : 23;
         };
     };
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;

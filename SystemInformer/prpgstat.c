@@ -211,7 +211,6 @@ VOID PhpUpdateStatisticsAddListViewGroups(
 }
 
 VOID PhpUpdateProcessStatisticDelta(
-    _In_ PPH_STATISTICS_CONTEXT Context,
     _In_ NMLVDISPINFO* Entry,
     _In_ ULONG_PTR Delta
     )
@@ -498,6 +497,8 @@ VOID PhUpdateProcessStatisticsValue(
     Context->IoOtherCountDelta = ProcessItem->IoOtherCountDelta.Delta;
     Context->OtherTransferCount = ProcessItem->IoCounters.OtherTransferCount;
     Context->IoOtherDelta = ProcessItem->IoOtherDelta.Delta;
+
+    Context->IoTotalDelta = ProcessItem->IoReadDelta.Value + ProcessItem->IoWriteDelta.Value + ProcessItem->IoOtherDelta.Value;
 }
 
 VOID PhUpdateProcessStatisticsMinMax(
@@ -518,6 +519,41 @@ VOID PhUpdateProcessStatisticsMinMax(
     PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->KernelTimeDeltaMin, Context->KernelTimeDeltaMax, Context->KernelTimeDeltaDiff, Context->KernelTimeDelta);
     PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->UserTimeMin, Context->UserTimeMax, Context->UserTimeDiff, Context->UserTime);
     PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->UserTimeDeltaMin, Context->UserTimeDeltaMax, Context->UserTimeDeltaDiff, Context->UserTimeDelta);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->QuotaPagedPoolUsageMin, Context->QuotaPagedPoolUsageMax, Context->QuotaPagedPoolUsageDiff, Context->QuotaPagedPoolUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->QuotaPeakPagedPoolUsageMin, Context->QuotaPeakPagedPoolUsageMax, Context->QuotaPeakPagedPoolUsageDiff, Context->QuotaPeakPagedPoolUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->QuotaNonPagedPoolUsageMin, Context->QuotaNonPagedPoolUsageMax, Context->QuotaNonPagedPoolUsageDiff, Context->QuotaNonPagedPoolUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->QuotaPeakNonPagedPoolUsageMin, Context->QuotaPeakNonPagedPoolUsageMax, Context->QuotaPeakNonPagedPoolUsageDiff, Context->QuotaPeakNonPagedPoolUsage);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PagefileUsageMin, Context->PagefileUsageMax, Context->PagefileUsageDiff, Context->PagefileUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PagefileDeltaMin, Context->PagefileDeltaMax, Context->PagefileDeltaDiff, Context->PagefileDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakPagefileUsageMin, Context->PeakPagefileUsageMax, Context->PeakPagefileUsageDiff, Context->PeakPagefileUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->VirtualSizeMin, Context->VirtualSizeMax, Context->VirtualSizeDiff, Context->VirtualSize);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakVirtualSizeMin, Context->PeakVirtualSizeMax, Context->PeakVirtualSizeDiff, Context->PeakVirtualSize);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PageFaultCountMin, Context->PageFaultCountMax, Context->PageFaultCountDiff, Context->PageFaultCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PageFaultsDeltaMin, Context->PageFaultsDeltaMax, Context->PageFaultsDeltaDiff, Context->PageFaultsDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->HardFaultCountMin, Context->HardFaultCountMax, Context->HardFaultCountDiff, Context->HardFaultCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->HardFaultsDeltaMin, Context->HardFaultsDeltaMax, Context->HardFaultsDeltaDiff, Context->HardFaultsDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->WorkingSetSizeMin, Context->WorkingSetSizeMax, Context->WorkingSetSizeDiff, Context->WorkingSetSize);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->PeakWorkingSetSizeMin, Context->PeakWorkingSetSizeMax, Context->PeakWorkingSetSizeDiff, Context->PeakWorkingSetSize);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->ReadOperationCountMin, Context->ReadOperationCountMax, Context->ReadOperationCountDiff, Context->ReadOperationCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoReadCountDeltaMin, Context->IoReadCountDeltaMax, Context->IoReadCountDeltaDiff, Context->IoReadCountDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->ReadTransferCountMin, Context->ReadTransferCountMax, Context->ReadTransferCountDiff, Context->ReadTransferCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoReadDeltaMin, Context->IoReadDeltaMax, Context->IoReadDeltaDiff, Context->IoReadDelta);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->WriteOperationCountMin, Context->WriteOperationCountMax, Context->WriteOperationCountDiff, Context->WriteOperationCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoWriteCountDeltaMin, Context->IoWriteCountDeltaMax, Context->IoWriteCountDeltaDiff, Context->IoWriteCountDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->WriteTransferCountMin, Context->WriteTransferCountMax, Context->WriteTransferCountDiff, Context->WriteTransferCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoWriteDeltaMin, Context->IoWriteDeltaMax, Context->IoWriteDeltaDiff, Context->IoWriteDelta);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->OtherOperationCountMin, Context->OtherOperationCountMax, Context->OtherOperationCountDiff, Context->OtherOperationCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoOtherCountDeltaMin, Context->IoOtherCountDeltaMax, Context->IoOtherCountDeltaDiff, Context->IoOtherCountDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->OtherTransferCountMin, Context->OtherTransferCountMax, Context->OtherTransferCountDiff, Context->OtherTransferCount);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoOtherDeltaMin, Context->IoOtherDeltaMax, Context->IoOtherDeltaDiff, Context->IoOtherDelta);
+
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoTotalMin, Context->IoTotalMax, Context->IoTotalDiff, Context->IoTotal);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->IoTotalDeltaMin, Context->IoTotalDeltaMax, Context->IoTotalDeltaDiff, Context->IoTotalDelta);
 }
 
 VOID PhpUpdateProcessStatistics(
@@ -679,15 +715,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                     PROCESS_QUERY_INFORMATION,
                     processItem->ProcessId
                     );
-            }
+            }   
 
             PhSetListViewStyle(statisticsContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Min");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 150, L"Max");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 150, L"Difference");
+            PhAddIListViewColumn(statisticsContext->ListView, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
+            PhAddIListViewColumn(statisticsContext->ListView, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
+            PhAddIListViewColumn(statisticsContext->ListView, 2, 2, 2, LVCFMT_LEFT, 150, L"Min");
+            PhAddIListViewColumn(statisticsContext->ListView, 3, 3, 3, LVCFMT_LEFT, 150, L"Max");
+            PhAddIListViewColumn(statisticsContext->ListView, 4, 4, 4, LVCFMT_LEFT, 150, L"Difference");
             PhSetExtendedListView(statisticsContext->ListViewHandle);
             ExtendedListView_SetTriState(statisticsContext->ListViewHandle, TRUE);
             PhpUpdateStatisticsAddListViewGroups(statisticsContext);
@@ -848,7 +884,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PagefileUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTESDELTA:
-                                PhpUpdateProcessStatisticDelta(statisticsContext, dispInfo, statisticsContext->ProcessItem->PrivateBytesDelta.Delta);
+                                PhpUpdateProcessStatisticDelta(dispInfo, statisticsContext->ProcessItem->PrivateBytesDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES:
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PeakPagefileUsage);
@@ -971,7 +1007,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ReadTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_READBYTESDELTA:
-                                PhpUpdateProcessStatisticDeltaBytes(dispInfo, statisticsContext->ProcessItem->IoReadDelta);
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITES:
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->WriteOperationCount);
@@ -983,7 +1019,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WriteTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITEBYTESDELTA:
-                                PhpUpdateProcessStatisticDeltaBytes(dispInfo, statisticsContext->ProcessItem->IoWriteDelta);
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoWriteDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHER:
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->OtherOperationCount);
@@ -998,14 +1034,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PhpUpdateProcessStatisticDeltaBytes(dispInfo, statisticsContext->ProcessItem->IoOtherDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
-                                {
-                                    PH_PROCESS_STATISTICS_FORMAT_SIZE(
-                                        dispInfo,
-                                        statisticsContext->ProcessItem->IoReadDelta.Value +
-                                        statisticsContext->ProcessItem->IoWriteDelta.Value +
-                                        statisticsContext->ProcessItem->IoOtherDelta.Value
-                                    );
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDelta);                  
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
                                 {
@@ -1014,7 +1043,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                         statisticsContext->ProcessItem->IoReadDelta.Delta +
                                         statisticsContext->ProcessItem->IoWriteDelta.Delta +
                                         statisticsContext->ProcessItem->IoOtherDelta.Delta
-                                    );
+                                        );
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOAVERAGE:
@@ -1250,6 +1279,162 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMin + statisticsContext->UserTimeDeltaMin);
                                 break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIORITY:
+                                {
+                                    WCHAR priority[PH_INT32_STR_LEN_1] = L"";
+
+                                    PhPrintInt32(priority, statisticsContext->BasePriorityMin);
+
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PagefileUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTESDELTA:
+                                PhpUpdateProcessStatisticDelta(dispInfo, statisticsContext->PagefileDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPagefileUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->VirtualSizeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakVirtualSizeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultsDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultsDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WorkingSetSizeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakWorkingSetSizeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEWS:
+                                {
+                                    if (statisticsContext->NumberOfPrivatePagesMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
+                                {
+                                    if (statisticsContext->NumberOfShareablePagesMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
+                                {
+                                    if (statisticsContext->NumberOfSharedPagesMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPagedPoolUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakPagedPoolUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaNonPagedPoolUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakNonPagedPoolUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT:
+                                {
+                                    if (statisticsContext->SharedCommitUsageMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PrivateCommitUsageMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PeakPrivateCommitUsageMin)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageMin);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
+                                {
+
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ReadOperationCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadCountDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ReadTransferCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->WriteOperationCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteCountDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WriteTransferCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHER:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->OtherOperationCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherCountDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->OtherTransferCountMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
+                                {
+                                    PH_PROCESS_STATISTICS_FORMAT_SIZE(
+                                        dispInfo,
+                                        statisticsContext->ProcessItem->IoReadDelta.Delta +
+                                        statisticsContext->ProcessItem->IoWriteDelta.Delta +
+                                        statisticsContext->ProcessItem->IoOtherDelta.Delta
+                                    );
+                                }
+                                break;
                             }
                         }
                         else if (dispInfo->item.iSubItem == 3)
@@ -1322,6 +1507,154 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMax + statisticsContext->UserTimeDeltaMax);
                                 break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIORITY:
+                                {
+                                    WCHAR priority[PH_INT32_STR_LEN_1] = L"";
+
+                                    PhPrintInt32(priority, statisticsContext->BasePriorityMax);
+
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PagefileUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTESDELTA:
+                                PhpUpdateProcessStatisticDelta(dispInfo, statisticsContext->PagefileDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPagefileUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->VirtualSizeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakVirtualSizeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultsDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultsDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WorkingSetSizeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakWorkingSetSizeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEWS:
+                                {
+                                    if (statisticsContext->NumberOfPrivatePagesMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
+                                {
+                                    if (statisticsContext->NumberOfShareablePagesMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
+                                {
+                                    if (statisticsContext->NumberOfSharedPagesMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPagedPoolUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakPagedPoolUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaNonPagedPoolUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakNonPagedPoolUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT:
+                                {
+                                    if (statisticsContext->SharedCommitUsageMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PrivateCommitUsageMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PeakPrivateCommitUsageMax)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageMax);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
+                                {
+
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ReadOperationCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadCountDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ReadTransferCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->WriteOperationCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteCountDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WriteTransferCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHER:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->OtherOperationCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherCountDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->OtherTransferCountMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
+                                break;
                             }
                         }
                         else if (dispInfo->item.iSubItem == 4)
@@ -1393,6 +1726,154 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
                                 PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaDiff + statisticsContext->UserTimeDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIORITY:
+                                {
+                                    WCHAR priority[PH_INT32_STR_LEN_1] = L"";
+
+                                    PhPrintInt32(priority, statisticsContext->BasePriorityDiff);
+
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, priority, _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PagefileUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTESDELTA:
+                                PhpUpdateProcessStatisticDelta(dispInfo, statisticsContext->PagefileDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPagefileUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->VirtualSizeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakVirtualSizeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->PageFaultsDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HardFaultsDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WorkingSetSizeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakWorkingSetSizeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATEWS:
+                                {
+                                    if (statisticsContext->NumberOfPrivatePagesDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfPrivatePagesDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS:
+                                {
+                                    if (statisticsContext->NumberOfShareablePagesDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfShareablePagesDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDWS:
+                                {
+                                    if (statisticsContext->NumberOfSharedPagesDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NumberOfSharedPagesDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPagedPoolUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakPagedPoolUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_NONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaNonPagedPoolUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->QuotaPeakNonPagedPoolUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT:
+                                {
+                                    if (statisticsContext->SharedCommitUsageDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->SharedCommitUsageDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PrivateCommitUsageDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PrivateCommitUsageDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATECOMMIT:
+                                {
+                                    if (statisticsContext->PeakPrivateCommitUsageDiff)
+                                        PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->PeakPrivateCommitUsageDiff);
+                                    else
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
+                                {
+
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READS:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ReadOperationCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READSDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadCountDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ReadTransferCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_READBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoReadDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->WriteOperationCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteCountDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->WriteTransferCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_WRITEBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoWriteDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHER:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->OtherOperationCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherCountDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTES:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->OtherTransferCountDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->IoOtherDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
                                 break;
                             }
                         }

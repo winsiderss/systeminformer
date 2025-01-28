@@ -2669,7 +2669,9 @@ VOID PhMwpLayout(
         LayoutPaddingValid = TRUE;
     }
 
-    GetClientRect(PhMainWndHandle, &rect);
+    if (!PhGetClientRect(PhMainWndHandle, &rect))
+        return;
+
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
 
     if (PhEnableDeferredLayout)
@@ -3661,7 +3663,9 @@ VOID PhMwpLayoutTabControl(
         LayoutPaddingValid = TRUE;
     }
 
-    GetClientRect(PhMainWndHandle, &clientRect);
+    if (!PhGetClientRect(PhMainWndHandle, &clientRect))
+        return;
+
     PhMwpApplyLayoutPadding(&clientRect, &LayoutPadding);
     tabRect = clientRect;
     TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabRect);

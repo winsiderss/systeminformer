@@ -518,15 +518,9 @@ VOID PhpFillUmdfDrivers(
         )))
         return;
 
-#ifdef _WIN64
-    // Just in case.
-    if (Process->IsWow64Process)
-        flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
-#endif
-
     if (NT_SUCCESS(PhGetProcessEnvironment(
         processHandle,
-        flags,
+        !!Process->IsWow64Process,
         &environment,
         &environmentLength
         )))

@@ -687,11 +687,14 @@ static VOID PhpDeleteBufferedContext(
         // The original bitmap must be selected back into the context, otherwise the bitmap can't be
         // deleted.
         SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
-        DeleteBitmap(Context->BufferedBitmap);
-        DeleteDC(Context->BufferedContext);
+        Context->BufferedOldBitmap = NULL;
 
-        Context->BufferedContext = NULL;
+        DeleteBitmap(Context->BufferedBitmap);
         Context->BufferedBitmap = NULL;
+
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+
         Context->BufferedBits = NULL;
     }
 }
@@ -704,9 +707,7 @@ static VOID PhpCreateBufferedContext(
 
     PhpDeleteBufferedContext(Context);
 
-    if (!GetClientRect(Context->Handle, &Context->BufferedContextRect))
-        return;
-    if (!(Context->BufferedContextRect.right && Context->BufferedContextRect.bottom))
+    if (!PhGetClientRect(Context->Handle, &Context->BufferedContextRect))
         return;
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -729,11 +730,14 @@ static VOID PhpDeleteFadeOutContext(
     if (Context->FadeOutContext)
     {
         SelectBitmap(Context->FadeOutContext, Context->FadeOutOldBitmap);
-        DeleteBitmap(Context->FadeOutBitmap);
-        DeleteDC(Context->FadeOutContext);
+        Context->FadeOutOldBitmap = NULL;
 
-        Context->FadeOutContext = NULL;
+        DeleteBitmap(Context->FadeOutBitmap);
         Context->FadeOutBitmap = NULL;
+
+        DeleteDC(Context->FadeOutContext);
+        Context->FadeOutContext = NULL;
+
         Context->FadeOutBits = NULL;
     }
 }
@@ -754,7 +758,8 @@ static VOID PhpCreateFadeOutContext(
 
     PhpDeleteFadeOutContext(Context);
 
-    GetClientRect(Context->Handle, &Context->FadeOutContextRect);
+    if (!PhGetClientRect(Context->Handle, &Context->FadeOutContextRect))
+        return;
     Context->FadeOutContextRect.right = Context->Options.FadeOutWidth;
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -968,6 +973,7 @@ LRESULT CALLBACK PhpGraphWndProc(
     case WM_SIZE:
         {
             // Force a re-create of the buffered context.
+            PhpDeleteBufferedContext(context);
             PhpCreateBufferedContext(context);
             PhpDeleteFadeOutContext(context);
 
@@ -983,8 +989,11 @@ LRESULT CALLBACK PhpGraphWndProc(
                 toolInfo.cbSize = sizeof(TOOLINFO);
                 toolInfo.hwnd = hwnd;
                 toolInfo.uId = 1;
-                GetClientRect(hwnd, &toolInfo.rect);
-                SendMessage(context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+
+                if (PhGetClientRect(hwnd, &toolInfo.rect))
+                {
+                    SendMessage(context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+                }
             }
         }
         break;
@@ -1083,9 +1092,12 @@ LRESULT CALLBACK PhpGraphWndProc(
                         RECT clientRect;
                         PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
 
-                        GetCursorPos(&point);
-                        ScreenToClient(hwnd, &point);
-                        GetClientRect(hwnd, &clientRect);
+                        if (!GetCursorPos(&point))
+                            break;
+                        if (!ScreenToClient(hwnd, &point))
+                            break;
+                        if (!PhGetClientRect(hwnd, &clientRect))
+                            break;
 
                         memset(&getTooltipText, 0, sizeof(PH_GRAPH_GETTOOLTIPTEXT));
                         getTooltipText.Header.hwndFrom = hwnd;
@@ -1197,7 +1209,8 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(context->TooltipHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
             }
 
-            GetClientRect(hwnd, &clientRect);
+            if (!PhGetClientRect(hwnd, &clientRect))
+                break;
 
             memset(&mouseEvent, 0, sizeof(PH_GRAPH_MOUSEEVENT));
             mouseEvent.Header.hwndFrom = hwnd;
@@ -1297,7 +1310,6 @@ LRESULT CALLBACK PhpGraphWndProc(
                 toolInfo.hwnd = hwnd;
                 toolInfo.uId = 1;
                 toolInfo.lpszText = LPSTR_TEXTCALLBACK;
-                GetClientRect(hwnd, &toolInfo.rect);
                 SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
                 SendMessage(context->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
@@ -1309,8 +1321,11 @@ LRESULT CALLBACK PhpGraphWndProc(
             }
             else
             {
-                DestroyWindow(context->TooltipHandle);
-                context->TooltipHandle = NULL;
+                if (context->TooltipHandle)
+                {
+                    DestroyWindow(context->TooltipHandle);
+                    context->TooltipHandle = NULL;
+                }
             }
         }
         return TRUE;

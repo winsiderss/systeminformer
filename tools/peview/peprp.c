@@ -994,7 +994,7 @@ VOID PvpSetPeImageBaseAddress(
     else
         imagebase = PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
 
-    string = PhFormatString(L"0x%I64x", imagebase);
+    string = PhFormatString(L"0x%llx", imagebase);
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGEBASE, 1, string->Buffer);
     PhDereferenceObject(string);
 }

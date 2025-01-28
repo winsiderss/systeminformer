@@ -230,7 +230,6 @@ VOID PhpRefreshEnvironmentList(
     if (NT_SUCCESS(status))
     {
         HANDLE tokenHandle;
-        ULONG flags = 0;
 
         PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE);
 
@@ -244,14 +243,9 @@ VOID PhpRefreshEnvironmentList(
             NtClose(tokenHandle);
         }
 
-#ifdef _WIN64
-        if (ProcessItem->IsWow64Process)
-            flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
-#endif
-
         status = PhGetProcessEnvironment(
             processHandle,
-            flags,
+            !!ProcessItem->IsWow64Process,
             &environment,
             &environmentLength
             );
@@ -360,7 +354,6 @@ VOID PhpRefreshEnvironmentList(
         }
     }
 
-    PhApplyTreeNewFilters(&Context->TreeFilterSupport);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
     if (systemDefaultEnvironment)
@@ -1452,6 +1445,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhLoadSettingsEnvironmentList(context);
 
             PhpRefreshEnvironmentList(context, processItem);
+            PhApplyTreeNewFilters(&context->TreeFilterSupport);
 
             PhInitializeWindowTheme(hwndDlg);
         }

@@ -2314,16 +2314,21 @@ BOOLEAN PhUiRestartProcess(
         {
             if (Process->ProcessId == shellClientId.UniqueProcess)
             {
-                status = PhOpenProcess(
+                if (NT_SUCCESS(PhOpenProcess(
                     &processHandle,
                     PROCESS_TERMINATE,
                     Process->ProcessId
-                    );
-
-                if (NT_SUCCESS(status))
+                    )))
                 {
-                    PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                    status = PhTerminateProcess(
+                        processHandle,
+                        STATUS_SUCCESS
+                        );
+
                     NtClose(processHandle);
+
+                    if (NT_SUCCESS(status))
+                        goto CleanupExit;
                 }
             }
         }
@@ -2361,7 +2366,7 @@ BOOLEAN PhUiRestartProcess(
 
     if (!NT_SUCCESS(status = PhGetProcessEnvironment(
         processHandle,
-        Process->IsWow64Process ? PH_GET_PROCESS_ENVIRONMENT_WOW64 : 0,
+        !!Process->IsWow64Process,
         &environmentBuffer,
         &environmentLength
         )))
@@ -5110,18 +5115,21 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
-    ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
+    static ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG result;
     ULONG i;
     MIB_TCPROW tcpRow;
 
-    SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
+    if (!SetTcpEntry_I)
+    {
+        SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
+    }
 
     if (!SetTcpEntry_I)
     {
-        PhShowError2(WindowHandle, L"This feature is not supported by your operating system.", L"%s", L"");
+        PhShowStatus(WindowHandle, L"Unable to close the TCP connection", STATUS_NOT_SUPPORTED, 0);
         return FALSE;
     }
 
@@ -5805,7 +5813,7 @@ BOOLEAN PhUiUnloadModule(
 
             if (status == STATUS_DLL_NOT_FOUND)
             {
-                PhShowError2(WindowHandle, L"Unable to find the module to unload.", L"%s", L"");
+                PhShowStatus(WindowHandle, L"Unable to unload the module", 0, ERROR_MOD_NOT_FOUND);
                 return FALSE;
             }
 

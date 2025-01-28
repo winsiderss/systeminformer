@@ -108,42 +108,42 @@ PPH_STRINGREF rgTags[] =
     SREF(L"Inlinee"),                          // SymTagInlinee
 };
 
-PWSTR rgLocationTypeString[] =
+PPH_STRINGREF rgLocationTypeString[] =
 {
-    L"NULL",
-    L"static",
-    L"TLS",
-    L"RegRel",
-    L"ThisRel",
-    L"Enregistered",
-    L"BitField",
-    L"Slot",
-    L"IL Relative",
-    L"In MetaData",
-    L"Constant",
-    L"RegRelAliasIndir"
+    SREF(L"NULL"),
+    SREF(L"static"),
+    SREF(L"TLS"),
+    SREF(L"RegRel"),
+    SREF(L"ThisRel"),
+    SREF(L"Enregistered"),
+    SREF(L"BitField"),
+    SREF(L"Slot"),
+    SREF(L"IL Relative"),
+    SREF(L"In MetaData"),
+    SREF(L"Constant"),
+    SREF(L"RegRelAliasIndir")
 };
 
-PWSTR rgUdtKind[] =
+PPH_STRINGREF rgUdtKind[] =
 {
-    L"struct",
-    L"class",
-    L"union",
-    L"interface",
+    SREF(L"struct"),
+    SREF(L"class"),
+    SREF(L"union"),
+    SREF(L"interface"),
 };
 
-PWSTR rgDataKind[] =
+PPH_STRINGREF rgDataKind[] =
 {
-    L"Unknown",
-    L"Local",
-    L"Static Local",
-    L"Param",
-    L"Object Ptr",
-    L"File Static",
-    L"Global",
-    L"Member",
-    L"Static Member",
-    L"Constant",
+    SREF(L"Unknown"),
+    SREF(L"Local"),
+    SREF(L"Static Local"),
+    SREF(L"Param"),
+    SREF(L"Object Ptr"),
+    SREF(L"File Static"),
+    SREF(L"Global"),
+    SREF(L"Member"),
+    SREF(L"Static Member"),
+    SREF(L"Constant"),
 };
 
 VOID PrintSymbolType(
@@ -157,7 +157,7 @@ VOID PrintSymTag(
     )
 {
     PhAppendStringBuilder(StringBuilder, rgTags[SymbolTag]);
-    PhAppendFormatStringBuilder(StringBuilder, L": ");
+    PhAppendStringBuilder2(StringBuilder, L": ");
 }
 
 VOID PrintVariant(
@@ -224,7 +224,8 @@ VOID PrintLocation(
             (IDiaSymbol_get_addressSection(IDiaSymbol, &dwSect) == S_OK) &&
             (IDiaSymbol_get_addressOffset(IDiaSymbol, &dwOff) == S_OK))
         {
-            PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X][%04X:%08X]", rgLocationTypeString[dwLocType], dwRVA, dwSect, dwOff);
+            PhAppendStringBuilder(StringBuilder,rgLocationTypeString[dwLocType]);
+            PhAppendFormatStringBuilder(StringBuilder, L", [%08X][%04X:%08X]", dwRVA, dwSect, dwOff);
         }
         break;
 
@@ -235,7 +236,8 @@ VOID PrintLocation(
             (IDiaSymbol_get_addressSection(IDiaSymbol, &dwSect) == S_OK) &&
             (IDiaSymbol_get_addressOffset(IDiaSymbol, &dwOff) == S_OK))
         {
-            PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X][%04X:%08X]", rgLocationTypeString[dwLocType], dwRVA, dwSect, dwOff);
+            PhAppendStringBuilder(StringBuilder, rgLocationTypeString[dwLocType]);
+            PhAppendFormatStringBuilder(StringBuilder, L", [%08X][%04X:%08X]", dwRVA, dwSect, dwOff);
         }
         break;
 
@@ -273,7 +275,8 @@ VOID PrintLocation(
         {
             if (IDiaSymbol_get_slot(IDiaSymbol, &dwSlot) == S_OK)
             {
-                PhAppendFormatStringBuilder(StringBuilder, L"%s, [%08X]", rgLocationTypeString[dwLocType], dwSlot);
+                PhAppendStringBuilder(StringBuilder, rgLocationTypeString[dwLocType]);
+                PhAppendFormatStringBuilder(StringBuilder, L", [%08X]", dwSlot);
             }
         }
         break;
@@ -315,18 +318,19 @@ VOID PrintName(
     {
         if (wcscmp(bstrName, bstrUndName) == 0)
         {
-            PhAppendFormatStringBuilder(StringBuilder, L"%s", bstrName);
+            PhAppendStringBuilder2(StringBuilder, bstrName);
         }
         else
         {
-            PhAppendFormatStringBuilder(StringBuilder, L"%s(%s)", bstrUndName, bstrName);
+            PhAppendStringBuilder2(StringBuilder, bstrUndName);
+            PhAppendFormatStringBuilder(StringBuilder, L"(%s)", bstrName);
         }
 
         PhSymbolProviderFreeDiaString(bstrUndName);
     }
     else
     {
-        PhAppendFormatStringBuilder(StringBuilder, L"%s", bstrName);
+        PhAppendStringBuilder2(StringBuilder, bstrName);
     }
 
     PhSymbolProviderFreeDiaString(bstrName);
@@ -347,13 +351,13 @@ VOID PrintData(
         return;
     }
 
-    PhAppendFormatStringBuilder(StringBuilder, L"%s", rgDataKind[dwDataKind]);
+    PhAppendStringBuilder(StringBuilder, rgDataKind[dwDataKind]);
     PrintSymbolType(StringBuilder, IDiaSymbol);
 
-    PhAppendFormatStringBuilder(StringBuilder, L", ");
+    PhAppendStringBuilder2(StringBuilder, L", ");
     PrintName(StringBuilder, IDiaSymbol);
 
-    PhAppendFormatStringBuilder(StringBuilder, L" = ");
+    PhAppendStringBuilder2(StringBuilder, L" = ");
     PrintLocation(StringBuilder, IDiaSymbol);
 }
 
@@ -366,7 +370,8 @@ VOID PrintUdtKind(
 
     if (IDiaSymbol_get_udtKind(pSymbol, &dwKind) == S_OK)
     {
-        PhAppendFormatStringBuilder(StringBuilder, L"%s ", rgUdtKind[dwKind]);
+        PhAppendStringBuilder(StringBuilder, rgUdtKind[dwKind]);
+        PhAppendStringBuilder2(StringBuilder, L" ");
     }
 }
 
@@ -1353,7 +1358,7 @@ NTSTATUS PeDumpFileSymbols(
         IDiaSymbol_Release(idiaSymbol);
     }
 
-    IDiaSession_Release(idiaSession);
+    //IDiaSession_Release(idiaSession);
 
     PostMessage(Context->WindowHandle, WM_PV_SEARCH_FINISHED, 0, 0);
     return STATUS_SUCCESS;

@@ -433,20 +433,6 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PhSipLayoutMemoryGraphs(hwndDlg);
         }
         break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == CommitGraphHandle)
-            {
-                PhSipNotifyCommitGraph(header);
-            }
-            else if (header->hwndFrom == PhysicalGraphHandle)
-            {
-                PhSipNotifyPhysicalGraph(header);
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -506,6 +492,12 @@ VOID PhSipCreateMemoryGraphs(
     VOID
     )
 {
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipNotifyCommitGraph;
+
     CommitGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
@@ -517,9 +509,13 @@ VOID PhSipCreateMemoryGraphs(
         MemoryDialog,
         NULL,
         PhInstanceHandle,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(CommitGraphHandle, TRUE);
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = PhSipNotifyPhysicalGraph;
 
     PhysicalGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
@@ -532,7 +528,7 @@ VOID PhSipCreateMemoryGraphs(
         MemoryDialog,
         NULL,
         PhInstanceHandle,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(PhysicalGraphHandle, TRUE);
 }
@@ -610,15 +606,19 @@ VOID PhSipLayoutMemoryGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-VOID PhSipNotifyCommitGraph(
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipNotifyCommitGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    switch (Header->code)
+    switch (GraphMessage)
     {
     case GCN_GETDRAWINFO:
         {
-            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
@@ -673,7 +673,7 @@ VOID PhSipNotifyCommitGraph(
         break;
     case GCN_GETTOOLTIPTEXT:
         {
-            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
@@ -698,17 +698,23 @@ VOID PhSipNotifyCommitGraph(
         }
         break;
     }
+
+    return TRUE;
 }
 
-VOID PhSipNotifyPhysicalGraph(
-    _In_ NMHDR *Header
+BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
+    _In_ HWND GraphHandle,
+    _In_ ULONG GraphMessage,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    switch (Header->code)
+    switch (GraphMessage)
     {
     case GCN_GETDRAWINFO:
         {
-            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
@@ -763,7 +769,7 @@ VOID PhSipNotifyPhysicalGraph(
         break;
     case GCN_GETTOOLTIPTEXT:
         {
-            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Parameter1;
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
@@ -814,6 +820,8 @@ VOID PhSipNotifyPhysicalGraph(
         }
         break;
     }
+
+    return TRUE;
 }
 
 VOID PhSipUpdateMemoryGraphs(

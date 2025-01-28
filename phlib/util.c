@@ -903,10 +903,10 @@ PPH_STRING PhGetStatusMessage(
         }
     }
 
-    if (!Win32Result)
-        return PhGetNtMessage(Status);
-    else
+    if (Win32Result)
         return PhGetWin32Message(Win32Result);
+    else
+        return PhGetNtMessage(Status);
 }
 
 /**
@@ -929,18 +929,18 @@ VOID PhShowStatus(
     if (statusMessage = PhGetStatusMessage(Status, Win32Result))
     {
         if (Message)
-            PhShowError2(WindowHandle, Message, L"%s", statusMessage->Buffer);
+            PhShowError2(WindowHandle, Message, L"%s", PhGetString(statusMessage));
         else
-            PhShowError2(WindowHandle, statusMessage->Buffer, L"");
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", PhGetString(statusMessage));
 
         PhDereferenceObject(statusMessage);
     }
     else
     {
         if (Message)
-            PhShowError2(WindowHandle, Message, L"");
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
         else
-            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"");
+            PhShowStatus(WindowHandle, L"Unable to perform the operation.", STATUS_UNSUCCESSFUL, 0);
     }
 }
 
@@ -4372,7 +4372,7 @@ NTSTATUS PhCreateProcess(
     {
         status = RtlCreateUserProcess(
             &fileName,
-            OBJ_CASE_INSENSITIVE,
+            0,
             parameters,
             NULL,
             NULL,
@@ -5198,7 +5198,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
 
             PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 
-            if (NT_SUCCESS(RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
+            if (NT_SUCCESS(PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
                 PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
 
             // Set the default DACL.
@@ -7665,7 +7665,7 @@ HANDLE PhGetNamespaceHandle(
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
-        RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+        PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
         InitializeObjectAttributes(

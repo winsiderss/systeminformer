@@ -26,7 +26,7 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
 //
 
 /**
- * The NtDelayExecution routine suspends the current thread until the specified condition is met. 
+ * The NtDelayExecution routine suspends the current thread until the specified condition is met.
  *
  * @param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
  * @param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
@@ -78,10 +78,10 @@ NtQuerySystemEnvironmentValue(
 #define EFI_VARIABLE_RUNTIME_ACCESS 0x00000004
 // Indicates hardware related errors encountered at runtime.
 #define EFI_VARIABLE_HARDWARE_ERROR_RECORD 0x00000008
-// Indicates an authentication requirement that must be met before writing to this firmware environment variable. 
+// Indicates an authentication requirement that must be met before writing to this firmware environment variable.
 #define EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS 0x00000010
 // Indicates authentication and time stamp requirements that must be met before writing to this firmware environment variable.
-// When this attribute is set, the buffer, represented by Buffer, will begin with an instance of a complete (and serialized) EFI_VARIABLE_AUTHENTICATION_2 descriptor. 
+// When this attribute is set, the buffer, represented by Buffer, will begin with an instance of a complete (and serialized) EFI_VARIABLE_AUTHENTICATION_2 descriptor.
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
 // Append an existing environment variable with the value of Buffer. If the firmware does not support the operation, the function returns ERROR_INVALID_FUNCTION.
 #define EFI_VARIABLE_APPEND_WRITE 0x00000040
@@ -1583,8 +1583,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRegistryQuotaInformation, // q: SYSTEM_REGISTRY_QUOTA_INFORMATION; s (requires SeIncreaseQuotaPrivilege)
     SystemExtendServiceTableInformation, // s (requires SeLoadDriverPrivilege) // loads win32k only
     SystemPrioritySeparation, // s (requires SeTcbPrivilege)
-    SystemVerifierAddDriverInformation, // s (requires SeDebugPrivilege) // 40
-    SystemVerifierRemoveDriverInformation, // s (requires SeDebugPrivilege)
+    SystemVerifierAddDriverInformation, // s: UNICODE_STRING (requires SeDebugPrivilege) // 40
+    SystemVerifierRemoveDriverInformation, // s: UNICODE_STRING (requires SeDebugPrivilege)
     SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION (EX in: USHORT ProcessorGroup)
     SystemLegacyDriverInformation, // q: SYSTEM_LEGACY_DRIVER_INFORMATION
     SystemCurrentTimeZoneInformation, // q; s: RTL_TIME_ZONE_INFORMATION
@@ -1660,7 +1660,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemNativeBasicInformation, // q: SYSTEM_BASIC_INFORMATION
     SystemErrorPortTimeouts, // SYSTEM_ERROR_PORT_TIMEOUTS
     SystemLowPriorityIoInformation, // q: SYSTEM_LOW_PRIORITY_IO_INFORMATION
-    SystemTpmBootEntropyInformation, // q: BOOT_ENTROPY_NT_RESULT // ExQueryBootEntropyInformation  
+    SystemTpmBootEntropyInformation, // q: BOOT_ENTROPY_NT_RESULT // ExQueryBootEntropyInformation
     SystemVerifierCountersInformation, // q: SYSTEM_VERIFIER_COUNTERS_INFORMATION
     SystemPagedPoolInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
     SystemSystemPtesInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes) // 120
@@ -1955,7 +1955,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
 
 // private
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
-{  
+{
     SYSTEM_THREAD_INFORMATION ThreadInfo;
     ULONG_PTR StackBase;
     ULONG_PTR StackLimit;
@@ -4469,7 +4469,7 @@ typedef struct _KAFFINITY_EX
     USHORT Count;
     USHORT Size;
     ULONG Reserved;
-    union 
+    union
     {
         ULONG_PTR Bitmap[1];
         ULONG_PTR StaticBitmap[32];

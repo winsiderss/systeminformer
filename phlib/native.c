@@ -1210,7 +1210,7 @@ NTSTATUS PhGetProcessDepStatus(
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION and
  * PROCESS_VM_READ access.
- * \param Flags A combination of flags.
+ * \param IsWow64Process A variable which receives a boolean indicating whether the process is 32-bit.
  * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the environment block from the WOW64 PEB.
  * \param Environment A variable which will receive a pointer to the environment block copied from
  * the process. You must free the block using PhFreePage() when you no longer need it.
@@ -1219,7 +1219,7 @@ NTSTATUS PhGetProcessDepStatus(
  */
 NTSTATUS PhGetProcessEnvironment(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Flags,
+    _In_ BOOLEAN IsWow64Process,
     _Out_ PVOID *Environment,
     _Out_ PULONG EnvironmentLength
     )
@@ -1230,35 +1230,7 @@ NTSTATUS PhGetProcessEnvironment(
     PVOID environment;
     SIZE_T environmentLength;
 
-    if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
-    {
-        PVOID pebBaseAddress;
-        PVOID processParameters;
-
-        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
-            &processParameters,
-            sizeof(PVOID),
-            NULL
-            )))
-            return status;
-
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
-            &environmentRemote,
-            sizeof(PVOID),
-            NULL
-            )))
-            return status;
-    }
-    else
+    if (IsWow64Process)
     {
         PVOID pebBaseAddress32;
         ULONG processParameters32;
@@ -1288,6 +1260,34 @@ NTSTATUS PhGetProcessEnvironment(
             return status;
 
         environmentRemote = UlongToPtr(environmentRemote32);
+    }
+    else
+    {
+        PVOID pebBaseAddress;
+        PVOID processParameters;
+
+        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
+            &processParameters,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
+            &environmentRemote,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
     }
 
     if (!NT_SUCCESS(status = NtQueryVirtualMemory(
@@ -6134,7 +6134,8 @@ NTSTATUS PhEnumHandlesGeneric(
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
-        ULONG i, count = 0, numberOfHandles = 0;
+        ULONG i, numberOfHandles = 0;
+        ULONG firstIndex = 0, lastIndex = 0;
 
         if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
         {
@@ -6144,29 +6145,54 @@ NTSTATUS PhEnumHandlesGeneric(
 
                 if (handle->UniqueProcessId == ProcessId)
                 {
+                    if (numberOfHandles == 0)
+                        firstIndex = i;
+                    lastIndex = i;
                     numberOfHandles++;
                 }
             }
 
-            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
-            convertedHandles->NumberOfHandles = numberOfHandles;
-
-            for (i = 0; i < handles->NumberOfHandles; i++)
+            if (numberOfHandles)
             {
-                PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+                convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
+                convertedHandles->NumberOfHandles = numberOfHandles;
 
-                if (handle->UniqueProcessId == ProcessId)
+                if (lastIndex == firstIndex + numberOfHandles - 1) // consecutive
                 {
-                    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[count++];
+                    memcpy(
+                        &convertedHandles->Handles[0],
+                        &handles->Handles[firstIndex],
+                        (lastIndex - firstIndex + 1) * sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX)
+                        );
 
-                    memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                    *Handles = convertedHandles;
                 }
+                else
+                {
+                    for (i = 0; i < handles->NumberOfHandles; i++)
+                    {
+                        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
+
+                        if (handle->UniqueProcessId == ProcessId)
+                        {
+                            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[i++];
+
+                            memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                        }
+                    }
+
+                    *Handles = convertedHandles;
+                }
+            }
+            else
+            {
+                status = STATUS_NOT_FOUND;
             }
 
             PhFree(handles);
-
-            *Handles = convertedHandles;
         }
+
+        return status;
     }
 
     return status;
@@ -13786,7 +13812,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
 
         // Allocate a large buffer and copy all entries.
 
-        while ((status = NtPssCaptureVaSpaceBulk(
+        while ((status = NtPssCaptureVaSpaceBulk_Import()(
             ProcessHandle,
             BaseAddress,
             buffer,

@@ -688,6 +688,8 @@ VOID PhpPopulateObjectTypes(
 
         ReleaseDC(Context->TypeWindowHandle, comboDc);
 
+        maxLength += PhGetSystemMetrics(SM_CXVSCROLL, PhGetWindowDpi(Context->TypeWindowHandle)) * 2;
+
         if (maxLength)
         {
             SendMessage(Context->TypeWindowHandle, CB_SETDROPPEDWIDTH, maxLength, 0);
@@ -832,7 +834,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
 
     if (NT_SUCCESS(PhGetHandleInformation(
         handleContext->ProcessHandle,
-        (HANDLE)handleContext->HandleInfo->HandleValue,
+        handleContext->HandleInfo->HandleValue,
         handleContext->HandleInfo->ObjectTypeIndex,
         NULL,
         &typeName,
@@ -852,15 +854,15 @@ static NTSTATUS NTAPI SearchHandleFunction(
               MatchSearchString(context, &upperBestObjectName->sr)) &&
              MatchTypeString(context, &upperTypeName->sr)) ||
             PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->Object) ||
-            PhSearchControlMatchPointer(context->SearchMatchHandle, (PVOID)handleContext->HandleInfo->HandleValue))
+            PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->HandleValue))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
             searchResult = PhAllocateZero(sizeof(PHP_OBJECT_SEARCH_RESULT));
-            searchResult->ProcessId = (HANDLE)handleContext->HandleInfo->UniqueProcessId;
+            searchResult->ProcessId = handleContext->HandleInfo->UniqueProcessId;
             searchResult->ResultType = HandleSearchResult;
             searchResult->Object = handleContext->HandleInfo->Object;
-            searchResult->Handle = (HANDLE)handleContext->HandleInfo->HandleValue;
+            searchResult->Handle = handleContext->HandleInfo->HandleValue;
             searchResult->TypeName = typeName;
             searchResult->ObjectName = objectName;
             searchResult->BestObjectName = bestObjectName;
@@ -937,7 +939,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         searchResult = PhAllocateZero(sizeof(PHP_OBJECT_SEARCH_RESULT));
         searchResult->ProcessId = moduleContext->ProcessId;
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
-        searchResult->Handle = (HANDLE)Module->BaseAddress;
+        searchResult->Handle = Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
         PhSetReference(&searchResult->BestObjectName, filenameWin32);
         PhSetReference(&searchResult->ObjectName, Module->FileName);
@@ -1005,24 +1007,24 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             processHandlePtr = PhFindItemSimpleHashtable(
                 processHandleHashtable,
-                (PVOID)handleInfo->UniqueProcessId
+                handleInfo->UniqueProcessId
                 );
 
             if (processHandlePtr)
             {
-                processHandle = (HANDLE)*processHandlePtr;
+                processHandle = *processHandlePtr;
             }
             else
             {
                 if (NT_SUCCESS(PhOpenProcess(
                     &processHandle,
                     PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION,
-                    (HANDLE)handleInfo->UniqueProcessId
-                    )))
+                    handleInfo->UniqueProcessId
+                )))
                 {
                     PhAddItemSimpleHashtable(
                         processHandleHashtable,
-                        (PVOID)handleInfo->UniqueProcessId,
+                        handleInfo->UniqueProcessId,
                         processHandle
                         );
                 }
@@ -1031,12 +1033,12 @@ NTSTATUS PhpFindObjectsThreadStart(
                     if (NT_SUCCESS(PhOpenProcess(
                         &processHandle,
                         PROCESS_QUERY_INFORMATION,
-                        (HANDLE)handleInfo->UniqueProcessId
-                        )))
+                        handleInfo->UniqueProcessId
+                    )))
                     {
                         PhAddItemSimpleHashtable(
                             processHandleHashtable,
-                            (PVOID)handleInfo->UniqueProcessId,
+                            handleInfo->UniqueProcessId,
                             processHandle
                             );
                     }
@@ -1084,7 +1086,7 @@ NTSTATUS PhpFindObjectsThreadStart(
             i = 0;
 
             while (PhEnumHashtable(processHandleHashtable, &entry, &i))
-                NtClose((HANDLE)entry->Value);
+                NtClose(entry->Value);
         }
 
         PhDereferenceObject(processHandleHashtable);
@@ -1777,7 +1779,7 @@ VOID PhShowFindObjectsDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PhFindObjectsThreadHandle, PhpFindObjectsDialogThreadStart, NULL)))
         {
-            PhShowError2(PhMainWndHandle, L"Unable to create the window.", L"%s", L"");
+            PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
             return;
         }
 

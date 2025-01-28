@@ -281,6 +281,22 @@ PhFlushMenuThemes(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetWindowRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT WindowRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetClientRect(
+    _In_ HWND WindowHandle,
+    _Out_ PRECT ClientRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsHungAppWindow(
     _In_ HWND WindowHandle
     );
@@ -915,6 +931,14 @@ PhSelectComboBoxString(
     _In_ HWND WindowHandle,
     _In_ PCWSTR String,
     _In_ BOOLEAN Partial
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteComboBoxStrings(
+    _In_ HWND ComboBoxHandle,
+    _In_ BOOLEAN ResetContent
     );
 
 PHLIBAPI
