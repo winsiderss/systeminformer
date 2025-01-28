@@ -25,9 +25,7 @@ static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 
 HWND EtObjectManagerDialogHandle = NULL;
-LARGE_INTEGER EtObjectManagerTimeCached = { 0 };
 PPH_LIST EtObjectManagerOwnHandles = NULL;
-PPH_HASHTABLE EtObjectManagerPropWindows = NULL;
 HICON EtObjectManagerPropIcon = NULL;
 BOOLEAN EtObjectManagerShowHandlesPage = FALSE;
 
@@ -453,96 +451,92 @@ VOID EtInitializeListImages(
         );
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-
-    for (INT i = 0; i < EtObjectMax; i++)
-    {
-        PhImageListAddIcon(Context->ListImageList, icon);
-    }
-
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_FOLDER), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectDirectory, icon, &index);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectSymLink, icon, &index);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectEvent, icon, &index);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectMutant, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SEMAPHORE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectSemaphore, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectSection, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectDriver, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectDevice, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectAlpcPort, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_FILTERPORT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectFilterPort, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_JOB), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectJob, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectSession, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectKey, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_CPU), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectCpuPartition, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MEMORY), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectMemoryPartition, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEYEDEVENT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectKeyedEvent, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_TIMER), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectTimer, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_WINSTA), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectWindowStation, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_TYPE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectType, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_CALLBACK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    IImageList2_ReplaceIcon((IImageList2*)Context->ListImageList, EtObjectCallback, icon, &index);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 }
 
 static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_DIRECTORY_ENUM_CONTEXT Context
@@ -575,6 +569,7 @@ static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PET_OBJECT_CONTEXT Context
@@ -680,14 +675,10 @@ static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
 
         if (entry->EtObjectType == EtObjectSymLink)
         {
-            PPH_STRING fullPath;
             PPH_STRING linkTarget;
             PPH_STRING driveLetter;
 
-            fullPath = PH_AUTO(EtGetObjectFullPath(entry->BaseDirectory, entry->Name));
-
-            if (!PhIsNullOrEmptyString(fullPath) &&
-                NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, NULL, &fullPath->sr)))
+            if (NT_SUCCESS(PhQuerySymbolicLinkObject(&linkTarget, RootDirectory, &entry->Name->sr)))
             {
                 PhMoveReference(&entry->Target, linkTarget);
 
@@ -764,6 +755,7 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
 
             // enumerate \??
             EtEnumDirectoryObjectsCallback(
+                nullptr,
                 &EtObjectManagerUserDirectoryObject,
                 &DirectoryObjectType,
                 &enumContext
@@ -1276,7 +1268,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         {
                             entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
                         }
-                            
+
                         else
                         {
                             entry->Target = PhFormatString(
@@ -1593,6 +1585,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
                     _In_opt_ PLARGE_INTEGER Timeout
                     ) = NULL;
+                LARGE_INTEGER timeout;
 
                 if (PhBeginInitOnce(&initOnce))
                 {
@@ -1619,7 +1612,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                     }
                     else
@@ -1640,7 +1633,7 @@ NTSTATUS EtObjectManagerOpenHandle(
                             NULL,
                             NULL,
                             NULL,
-                            PhTimeoutFromMillisecondsEx(1000)
+                            PhTimeoutFromMilliseconds(&timeout, 1000)
                             );
                         PhDereferenceObject(clientName);
                     }
@@ -1946,7 +1939,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
                 // Open a handle to the process if we don't already have one.
                 if (processHandlePtr = PhFindItemSimpleHashtable(
                     processHandleHashtable,
-                    (PVOID)handleInfo->UniqueProcessId
+                    handleInfo->UniqueProcessId
                     ))
                 {
                     processHandle = *processHandlePtr;
@@ -1956,12 +1949,12 @@ NTSTATUS EtObjectManagerOpenRealObject(
                     if (NT_SUCCESS(PhOpenProcess(
                         &processHandle,
                         (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
-                        (HANDLE)handleInfo->UniqueProcessId
+                        handleInfo->UniqueProcessId
                         )))
                     {
                         PhAddItemSimpleHashtable(
                             processHandleHashtable,
-                            (PVOID)handleInfo->UniqueProcessId,
+                            handleInfo->UniqueProcessId,
                             processHandle
                             );
                     }
@@ -1973,7 +1966,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
 
                 if (NT_SUCCESS(PhGetHandleInformation(
                     processHandle,
-                    (HANDLE)handleInfo->HandleValue,
+                    handleInfo->HandleValue,
                     handleInfo->ObjectTypeIndex,
                     NULL,
                     NULL,
@@ -1985,8 +1978,8 @@ NTSTATUS EtObjectManagerOpenRealObject(
                     {
                         if (OwnerProcessId)
                         {
-                            *OwnerProcessId = (HANDLE)handleInfo->UniqueProcessId;
-                            *Handle = (HANDLE)handleInfo->HandleValue;
+                            *OwnerProcessId = handleInfo->UniqueProcessId;
+                            *Handle = handleInfo->HandleValue;
                             status = STATUS_SUCCESS;
 
                             PhDereferenceObject(objectName);
@@ -1998,7 +1991,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
                             DesiredAccess,
                             NULL,
                             processHandle,
-                            (HANDLE)handleInfo->HandleValue
+                            handleInfo->HandleValue
                             )))
                         {
                             status = EtDuplicateHandleFromProcessEx(
@@ -2006,7 +1999,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
                                 0,
                                 NULL,
                                 processHandle,
-                                (HANDLE)handleInfo->HandleValue
+                                handleInfo->HandleValue
                                 );
                         }
 
@@ -2026,7 +2019,14 @@ NTSTATUS EtObjectManagerOpenRealObject(
 
         i = 0;
         while (PhEnumHashtable(processHandleHashtable, &procEntry, &i))
-            NtClose(procEntry->Value);
+        {
+            status = NtClose(procEntry->Value);
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+            }
+        }
 
         PhDereferenceObject(processHandleHashtable);
         PhFree(handles);
@@ -2084,7 +2084,7 @@ INT NTAPI WinObjNameCompareFunction(
     PET_OBJECT_ENTRY item1 = Item1;
     PET_OBJECT_ENTRY item2 = Item2;
 
-    return PhCompareStringZ(PhGetStringOrEmpty(item1->Name), PhGetStringOrEmpty(item2->Name), TRUE);
+    return PhCompareStringWithNull(item1->Name, item2->Name, TRUE);
 }
 
 INT NTAPI WinObjTypeCompareFunction(
@@ -2096,7 +2096,7 @@ INT NTAPI WinObjTypeCompareFunction(
     PET_OBJECT_ENTRY item1 = Item1;
     PET_OBJECT_ENTRY item2 = Item2;
 
-    return PhCompareStringZ(PhGetStringOrEmpty(item1->TypeName), PhGetStringOrEmpty(item2->TypeName), TRUE);
+    return PhCompareStringWithNull(item1->TypeName, item2->TypeName, TRUE);
 }
 
 INT NTAPI WinObjTargetCompareFunction(
@@ -2111,7 +2111,7 @@ INT NTAPI WinObjTargetCompareFunction(
     if (item1->EtObjectType == EtObjectType && item2->EtObjectType == EtObjectType)
         return uintcmp(item1->TypeTypeIndex, item2->TypeTypeIndex);
     else
-        return PhCompareStringZ(PhGetStringOrEmpty(item1->Target), PhGetStringOrEmpty(item2->Target), TRUE);
+        return PhCompareStringWithNull(item1->Target, item2->Target, TRUE);
 }
 
 INT NTAPI WinObjTriStateCompareFunction(
@@ -2207,8 +2207,8 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
         {
             for (i = 0; i < handles->NumberOfHandles; i++)
             {
-                if ((HANDLE)handles->Handles[i].UniqueProcessId == ProcessId &&
-                    (HANDLE)handles->Handles[i].HandleValue == ObjectHandle)
+                if (handles->Handles[i].UniqueProcessId == ProcessId &&
+                    handles->Handles[i].HandleValue == ObjectHandle)
                 {
                     if (Object) *Object = handles->Handles[i].Object;
                     if (TypeIndex) *TypeIndex = handles->Handles[i].ObjectTypeIndex;
@@ -2243,28 +2243,8 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     else
         objectName = EtGetObjectFullPath(Entry->BaseDirectory, Entry->Name);
 
-    if (!!PhGetIntegerSetting(L"ForceNoParent"))
-    {
-        PPH_KEY_VALUE_PAIR entry;
-        ULONG i = 0;
-
-        while (PhEnumHashtable(EtObjectManagerPropWindows, &entry, &i))
-        {
-            if (PhEqualString(objectName, ((PPH_HANDLE_ITEM)entry->Value)->ObjectName, TRUE))   // HACK: activate already opened window for this object if any
-            {
-                FLASHWINFO fi = {sizeof(FLASHWINFO), entry->Key, FLASHW_CAPTION, 7, GetCaretBlinkTime() / 8};
-                ShowWindow(entry->Key, SW_SHOW);
-                SetForegroundWindow(entry->Key);
-                FlashWindowEx(&fi);
-
-                PhDereferenceObject(objectName);
-                return;
-            }
-        }
-    }
-
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = Entry;
+    objectContext.Object = PhReferenceObject(Entry);
     objectContext.FullName = NULL;
 
     if (Entry->EtObjectType == EtObjectDirectory)
@@ -2286,7 +2266,6 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     handleItem = PhCreateHandleItem(NULL);
     handleItem->Handle = objectHandle;
     handleItem->TypeIndex = ULONG_MAX;
-    EtObjectManagerTimeCached.QuadPart = 0;
 
     switch (Entry->EtObjectType)
     {
@@ -2326,12 +2305,6 @@ VOID NTAPI EtpObjectManagerObjectProperties(
                 &handleItem->Attributes
                 );
 
-            // Show only real source object address
-            if (status == STATUS_NOT_ALL_ASSIGNED)
-            {
-                handleItem->Object = 0;
-            }
-
             if (NT_SUCCESS(status = PhGetHandleInformation(
                 processHandle,
                 objectHandle,
@@ -2344,8 +2317,9 @@ VOID NTAPI EtpObjectManagerObjectProperties(
             {
                 // We will remove access row in EtHandlePropertiesWindowInitialized callback
                 if (!NT_SUCCESS(subStatus) || KsiLevel() < KphLevelMed)
+                {
                     handleItem->Attributes = basicInfo.Attributes;
-                EtObjectManagerTimeCached = basicInfo.CreationTime;
+                }
             }
 
             if (processHandle != NtCurrentProcess())
@@ -2369,6 +2343,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Object Manager plugin window
     PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
+    PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
 
@@ -2494,7 +2469,7 @@ start_scan:
                     PhGetString(Target),
                     FALSE,
                     L"Make sure the Explorer executable file is present."
-                );
+                    );
             }
             else
             {
@@ -2530,7 +2505,6 @@ VOID NTAPI EtpObjectManagerRefresh(
     if (numberOfItems != 0)
         oldSelect = PhReferenceObject(listviewItems[0]->Name);
 
-    SendMessage(Context->TreeViewHandle, WM_SETREDRAW, FALSE, 0);
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
 
     EtObjectManagerFreeListViewItems(Context);
@@ -2586,7 +2560,6 @@ start_scan:
     // Reapply old selection
     EtpObjectManagerSortAndSelectOld(Context, oldSelect);
 
-    SendMessage(Context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
     Context->DisableSelChanged = FALSE;
 
@@ -2678,7 +2651,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     else
         oldSelect = PhReferenceObject(context->CurrentPath);
 
-    PhSetWindowText(context->PathControlHandle, PhGetString(oldSelect));
+    PhSetDialogItemText(context->WindowHandle, IDC_OBJMGR_PATH, PhGetString(oldSelect));
     PhDereferenceObject(oldSelect);
 
     WCHAR string[PH_INT32_STR_LEN_1];
@@ -2755,7 +2728,7 @@ VOID EtpObjectManagerCopyObjectAddress(
     }
 
     objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = Entry;
+    objectContext.Object = PhReferenceObject(Entry);
     objectContext.FullName = NULL;
 
     if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)) ||
@@ -2795,6 +2768,7 @@ VOID EtpObjectManagerCopyObjectAddress(
 cleanup_exit:
     PhSetClipboardString(context->WindowHandle, &pointer);
 
+    PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
 
@@ -2813,7 +2787,7 @@ VOID EtpObjectEntryDeleteProcedure(
     PhClearReference(&entry->BaseDirectory);
 }
 
-VOID EtpLoadComboBoxHistoryFromSettings(
+VOID EtpLoadComboBoxHistoryToSettings(
     _In_ PET_OBJECT_CONTEXT Context
     )
 {
@@ -2930,13 +2904,13 @@ INT_PTR CALLBACK WinObjDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_SEARCH);
             context->PathControlHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_PATH);
+
             if (GetComboBoxInfo(context->PathControlHandle, &info))
                 context->PathControlEdit = info.hwndItem;
+
             context->CurrentDirectoryList = PhCreateList(100);
             if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
-            if (!EtObjectManagerPropWindows || !PhReferenceObjectSafe(EtObjectManagerPropWindows))
-                EtObjectManagerPropWindows = PhCreateSimpleHashtable(10);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -3004,20 +2978,25 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
-            if (PhIsNullOrEmptyString(Target))  // HACK
-                Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
+            {
+                PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
 
-            EtpLoadComboBoxHistoryFromSettings(context);
+                if (PhIsNullOrEmptyString(Target))  // HACK
+                {
+                    Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
+                }
 
-            context->DisableSelChanged = TRUE;
-            EtpObjectManagerOpenTarget(context, Target);
-            TreeView_EnsureVisible(context->TreeViewHandle, context->SelectedTreeItem);
-            context->DisableSelChanged = FALSE;
+                EtpLoadComboBoxHistoryToSettings(context);
 
-            EtEnumCurrentDirectoryObjects(context);
+                context->DisableSelChanged = TRUE;
+                EtpObjectManagerOpenTarget(context, Target);
+                TreeView_EnsureVisible(context->TreeViewHandle, context->SelectedTreeItem);
+                context->DisableSelChanged = FALSE;
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeViewHandle, TRUE);
+                EtEnumCurrentDirectoryObjects(context);
+            }
+
+            PhSetDialogFocus(hwndDlg, context->TreeViewHandle);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
@@ -3039,8 +3018,6 @@ INT_PTR CALLBACK WinObjDlgProc(
                 PhDereferenceObject(context->CurrentDirectoryList);
             if (EtObjectManagerOwnHandles)
                 PhDereferenceObject(EtObjectManagerOwnHandles);
-            if (EtObjectManagerPropWindows)
-                PhDereferenceObject(EtObjectManagerPropWindows);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
@@ -3056,8 +3033,6 @@ INT_PTR CALLBACK WinObjDlgProc(
             EtpSaveComboBoxHistoryToSettings(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            EtObjectManagerDialogHandle = NULL;
 
             PostQuitMessage(0);
         }
@@ -3760,16 +3735,10 @@ NTSTATUS EtShowObjectManagerDialogThread(
 
     PhSetEvent(&EtObjectManagerDialogInitializedEvent);
 
-    PostMessage(EtObjectManagerDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (Dart Vanya)
-        {
-            CallWindowProc(WinObjDlgProc, EtObjectManagerDialogHandle, message.message, message.wParam, message.lParam);
-        }
 
         if (!IsDialogMessage(EtObjectManagerDialogHandle, &message))
         {
@@ -3787,6 +3756,8 @@ NTSTATUS EtShowObjectManagerDialogThread(
         NtClose(EtObjectManagerDialogThreadHandle);
         EtObjectManagerDialogThreadHandle = NULL;
     }
+
+    EtObjectManagerDialogHandle = NULL;
 
     PhResetEvent(&EtObjectManagerDialogInitializedEvent);
 
