@@ -1733,6 +1733,7 @@ NTSTATUS DiskDriveEnableStatistics(
     )
 {
     static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Partmgr");
+    static ULONG keyValue = TRUE;
     NTSTATUS status;
     HANDLE keyHandle;
 
@@ -1746,7 +1747,7 @@ NTSTATUS DiskDriveEnableStatistics(
 
     if (NT_SUCCESS(status))
     {
-        PhSetValueKeyZ(keyHandle, L"EnableCounterForIoctl", REG_DWORD, &(ULONG){ TRUE }, sizeof(ULONG));
+        PhSetValueKeyZ(keyHandle, L"EnableCounterForIoctl", REG_DWORD, &keyValue, sizeof(ULONG));
         NtClose(keyHandle);
     }
 

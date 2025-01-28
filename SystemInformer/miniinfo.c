@@ -1504,6 +1504,11 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
             node->RepresentativeIsHung = FALSE;
     }
 
+    if (FlagOn(ProcessGroup->Representative->State, PH_PROCESS_ITEM_REMOVED))
+    {
+        node->RepresentativeIsTerminated = TRUE;
+    }
+
     PhAddItemList(ListSection->NodeList, node);
 
     return node;
@@ -1670,6 +1675,14 @@ BOOLEAN PhMipListSectionTreeNewCallback(
 
                 PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&hungPrefix, &getTitleText.Title->sr));
                 getTitleText.TitleColor = RGB(0xff, 0x00, 0x00);
+            }
+
+            if (node->RepresentativeIsTerminated)
+            {
+                static PH_STRINGREF terminatedPrefix = PH_STRINGREF_INIT(L"(Terminated) ");
+
+                PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&terminatedPrefix, &getTitleText.Title->sr));
+                getTitleText.TitleColor = RGB(0xA9, 0xA9, 0xA9);
             }
 
             listSection->Callback(listSection, MiListSectionGetTitleText, &getTitleText, NULL);
@@ -1947,6 +1960,7 @@ VOID PhMipHandleListSectionCommand(
         {
             PPH_LIST nodes;
             ULONG i;
+            BOOLEAN invalid;
 
             nodes = PhCreateList(ProcessGroup->Processes->Count);
 
@@ -1958,7 +1972,8 @@ VOID PhMipHandleListSectionCommand(
                     PhAddItemList(nodes, node);
             }
 
-            i = nodes->Count;
+            invalid = ProcessGroup->Processes->Count == 1 && nodes->Count == 0;
+
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoActivePinType, -1, 0, 0, NULL, NULL);
             PhPinMiniInformation(MiniInfoHoverPinType, -1, 0, 0, NULL, NULL);
@@ -1968,7 +1983,7 @@ VOID PhMipHandleListSectionCommand(
             PhSelectAndEnsureVisibleProcessNodes((PPH_PROCESS_NODE*)nodes->Items, nodes->Count);
             PhDereferenceObject(nodes);
 
-            if (ProcessGroup->Processes->Count == 1 && i == 0)
+            if (invalid)
             {
                 PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
             }

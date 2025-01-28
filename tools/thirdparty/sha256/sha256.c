@@ -53,7 +53,7 @@ void sha256_starts( sha256_context *ctx )
     ctx->state[7] = 0x5BE0CD19;
 }
 
-void sha256_process( sha256_context *ctx, uint8 data[64] )
+void sha256_process( sha256_context *ctx, const uint8 data[64] )
 {
     uint32 temp1, temp2, W[64];
     uint32 A, B, C, D, E, F, G, H;
@@ -184,7 +184,7 @@ void sha256_process( sha256_context *ctx, uint8 data[64] )
     ctx->state[7] += H;
 }
 
-void sha256_update( sha256_context *ctx, uint8 *input, uint32 length )
+void sha256_update( sha256_context *ctx, const uint8 *input, uint32 length )
 {
     uint32 left, fill;
 
@@ -223,7 +223,7 @@ void sha256_update( sha256_context *ctx, uint8 *input, uint32 length )
     }
 }
 
-static uint8 sha256_padding[64] =
+static const uint8 sha256_padding[64] =
 {
  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -247,7 +247,7 @@ void sha256_finish( sha256_context *ctx, uint8 digest[32] )
     last = ctx->total[0] & 0x3F;
     padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
-    sha256_update( ctx, sha256_padding, padn );
+    sha256_update( ctx, (uint8 *) sha256_padding, padn );
     sha256_update( ctx, msglen, 8 );
 
     PUT_UINT32( ctx->state[0], digest,  0 );

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{3437FD16-A3BF-4938-883A-EB0DF1584A2A}</ProjectGuid>
     <RootNamespace>ExtendedTools</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -147,6 +148,7 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceSession.cpp" />
     <ClCompile Include="reparse.c" />
+    <ClCompile Include="smbios.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="tpm.c" />
     <ClCompile Include="tpm_editor.c" />

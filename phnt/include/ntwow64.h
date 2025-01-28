@@ -645,8 +645,8 @@ FORCEINLINE VOID UStrToUStr32(
 //
 // Get the 32-bit TEB without doing a memory reference.
 //
-#define WOW64_GET_TEB32(teb64) ((PTEB32)(PVOID)RtlOffsetToPointer((teb64), WOW64_ROUND_TO_PAGES(sizeof(TEB))))
-#define WOW64_TEB32_POINTER_ADDRESS(teb64) (PVOID)&((teb64)->NtTib.ExceptionList)
+#define WOW64_GET_TEB32(teb64) ((PTEB32)(((ULONG_PTR)(teb64)) + ((ULONG_PTR)WOW64_ROUND_TO_PAGES(sizeof(TEB)))))
+#define WOW64_TEB32_POINTER_ADDRESS(teb64) ((PVOID)&(((PTEB)(teb64))->NtTib.ExceptionList))
 
 typedef union _WOW64_EXECUTE_OPTIONS
 {

@@ -465,6 +465,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             PvConfigTreeBorders(context->TreeNewHandle);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingImportsText, 0);
+            TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(22, PhGetWindowDpi(hwndDlg)));
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

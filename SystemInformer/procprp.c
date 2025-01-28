@@ -158,9 +158,9 @@ INT CALLBACK PhpPropSheetProc(
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
             PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetContext);
 
-            propSheetContext->PropSheetWindowHookProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            propSheetContext->PropSheetWindowHookProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
+            PhSetWindowProcedure(hwndDlg, PhpPropSheetWndProc);
 
             if (PhEnableThemeSupport) // NOTE: Required for compatibility. (dmex)
                 PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);

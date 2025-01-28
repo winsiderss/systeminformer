@@ -288,12 +288,12 @@ PPH_LIST PhCreateProcessGroupList(
         PPH_STRING fileName;
         PSID userSid;
 
-        processGroup = PhAllocate(sizeof(PH_PROCESS_GROUP));
+        processGroup = PhAllocateZero(sizeof(PH_PROCESS_GROUP));
         processGroup->Processes = PhCreateList(4);
         fileName = PhpGetRelevantFileName(processData->Process->ProcessItem, Flags);
         userSid = processData->Process->ProcessItem->Sid;
 
-        if (!fileName || !userSid || (Flags & PH_GROUP_PROCESSES_DONT_GROUP))
+        if (PhIsNullOrEmptyString(fileName) || !PhValidSid(userSid) || (Flags & PH_GROUP_PROCESSES_DONT_GROUP))
         {
             processGroup->Representative = processData->Process->ProcessItem;
             PhpAddGroupMember(processData, processGroup->Processes);
@@ -320,16 +320,15 @@ VOID PhFreeProcessGroupList(
     _In_ PPH_LIST List
     )
 {
-    ULONG i;
-
-    for (i = 0; i < List->Count; i++)
+    for (ULONG i = 0; i < List->Count; i++)
     {
         PPH_PROCESS_GROUP processGroup = List->Items[i];
 
         PhDereferenceObjects(processGroup->Processes->Items, processGroup->Processes->Count);
-        PhDereferenceObject(processGroup->Processes);
+        PhClearReference(&processGroup->Processes);
         PhFree(processGroup);
     }
 
+    PhClearList(List);
     PhDereferenceObject(List);
 }

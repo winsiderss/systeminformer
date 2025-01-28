@@ -112,7 +112,7 @@ namespace CustomBuildTool
                 }
 
                 {
-                    var result = Task.Run(responseMessage.Content.ReadAsStringAsync).GetAwaiter().GetResult();
+                    var result = responseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
                     if (string.IsNullOrWhiteSpace(result))
                     {
@@ -168,9 +168,10 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[DeleteRelease] " + ex, ConsoleColor.Red);
+                //return false; ignore
             }
 
-            return false;
+            return true;
         }
 
         public static GithubReleasesResponse UpdateRelease(string ReleaseId)

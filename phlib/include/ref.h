@@ -16,7 +16,9 @@
 extern "C" {
 #endif
 
+//
 // Configuration
+//
 
 #define PH_OBJECT_SMALL_OBJECT_SIZE 48
 #define PH_OBJECT_SMALL_OBJECT_COUNT 512
@@ -25,7 +27,9 @@ extern "C" {
 #define PH_OBJECT_TYPE_USE_FREE_LIST 0x00000001
 #define PH_OBJECT_TYPE_VALID_FLAGS 0x00000001
 
+//
 // Object type callbacks
+//
 
 /**
  * The delete procedure for an object type, called when an object of the type is being freed.
@@ -222,7 +226,9 @@ PhCreateAlloc(
     _In_ SIZE_T Size
     );
 
+//
 // Object reference functions
+//
 
 FORCEINLINE
 VOID
@@ -276,7 +282,9 @@ PhClearReference(
     PhMoveReference(ObjectReference, NULL);
 }
 
+//
 // Convenience functions
+//
 
 FORCEINLINE
 PVOID
@@ -293,7 +301,9 @@ PhCreateObjectZero(
     return object;
 }
 
+//
 // Auto-dereference pool
+//
 
 /** The size of the static array in an auto-release pool. */
 #define PH_AUTO_POOL_STATIC_SIZE 64

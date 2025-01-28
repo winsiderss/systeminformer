@@ -37,7 +37,15 @@ typedef struct _PH_SCALABLE_INTEGER_PAIR
             LONG Y;
         };
     };
-    LONG Scale;
+    union
+    {
+        PH_INTEGER_PAIR Padding;
+        struct
+        {
+            LONG Scale;
+            LONG Spare;
+        };
+    };
 } PH_SCALABLE_INTEGER_PAIR, *PPH_SCALABLE_INTEGER_PAIR;
 
 typedef struct _PH_RECTANGLE
@@ -175,6 +183,13 @@ LCID
 NTAPI
 PhGetUserDefaultLCID(
     VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetUserLocaleInfoBool(
+    _In_ LCTYPE LCType
     );
 
 // Time
@@ -321,6 +336,19 @@ PhShowMessageOneTime(
     ...
     );
 
+PHLIBAPI
+LONG
+NTAPI
+PhShowMessageOneTime2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _Out_opt_ PBOOLEAN Checked,
+    _In_ PCWSTR Format,
+    ...
+    );
+
 typedef struct _TASKDIALOGCONFIG TASKDIALOGCONFIG, *PTASKDIALOGCONFIG;
 
 // TDM_NAVIGATE_PAGE is not thread safe and accelerator keys crash the process
@@ -406,7 +434,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PCWSTR String,
     _Out_ PULONG Integer
@@ -428,7 +456,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindIntegerSiKeyValuePairsStringRef(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PPH_STRINGREF String,
     _Out_ PULONG Integer
@@ -460,7 +488,7 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
     _Out_ PWSTR *String
@@ -482,22 +510,60 @@ _Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringRefSiKeyValuePairs(
-    _In_ PPCH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PPH_STRINGREF* String
+    _Out_ PCPH_STRINGREF* String
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
-            *String = (PPH_STRINGREF)KeyValuePairs[i].Key;
+            *String = (PCPH_STRINGREF)KeyValuePairs[i].Key;
             return TRUE;
         }
     }
 
     return FALSE;
+}
+
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhIndexStringSiKeyValuePairs(
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PWSTR *String
+    )
+{
+    if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
+    {
+        *String = (PWSTR)KeyValuePairs[Integer].Key;
+        return TRUE;
+    }
+
+    return PhFindStringSiKeyValuePairs(KeyValuePairs, SizeOfKeyValuePairs, Integer, String);
+}
+
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhIndexStringRefSiKeyValuePairs(
+    _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PCPH_STRINGREF* String
+    )
+{
+    if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
+    {
+        *String = (PCPH_STRINGREF)KeyValuePairs[Integer].Key;
+        return TRUE;
+    }
+
+    return PhFindStringRefSiKeyValuePairs(KeyValuePairs, SizeOfKeyValuePairs, Integer, String);
 }
 
 #define GUID_VERSION_MAC 1
@@ -874,7 +940,7 @@ NTAPI
 PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     );
 
 typedef struct _PH_IMAGE_VERSION_INFO
@@ -979,8 +1045,8 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetBaseNameChangeExtension(
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF FileExtension
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileExtension
     );
 
 FORCEINLINE
@@ -1003,7 +1069,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetBasePath(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PPH_STRINGREF BasePathName,
     _Out_opt_ PPH_STRINGREF BaseFileName
     );
@@ -1088,7 +1154,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationDirectoryFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1117,7 +1183,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetLocalAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1139,7 +1205,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetRoamingAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 

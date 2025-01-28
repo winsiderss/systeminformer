@@ -19,7 +19,6 @@
 #include <fltKernel.h>
 #include <ntimage.h>
 #include <bcrypt.h>
-#include <wsk.h>
 #pragma warning(pop)
 #include <pooltags.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
@@ -96,6 +95,7 @@
     _When_(((timeout != NULL) && (timeout->QuadPart == 0)),                    \
            _IRQL_requires_max_(DISPATCH_LEVEL))
 
+typedef const void* PCVOID;
 #ifndef MAX_PATH
 #define MAX_PATH 260
 #endif
@@ -247,31 +247,31 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     return expected;
 }
 
-#define ProbeOutputType(pointer, type)                                        \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeOutputType(pointer, type)                                         \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeInputType(pointer, type)                                         \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeInputType(pointer, type)                                          \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeOutputBytes(pointer, size)                                       \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeOutputBytes(pointer, size)                                        \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
-#define ProbeInputBytes(pointer, size)                                        \
-_Pragma("warning(suppress : 6001)")                                           \
+#define ProbeInputBytes(pointer, size)                                         \
+_Pragma("warning(suppress : 6001 4116)")                                       \
 ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
-#define RebasePtr(pointer, oldBase, newBase)                                  \
+#define RebasePtr(pointer, oldBase, newBase)                                   \
 Add2Ptr(newBase, PtrOffset(oldBase, pointer))
 
-#define RebaseUnicodeString(string, oldBase, newBase)                         \
-if ((string)->Buffer)                                                         \
-{                                                                             \
-    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
+#define RebaseUnicodeString(string, oldBase, newBase)                          \
+if ((string)->Buffer)                                                          \
+{                                                                              \
+    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer)); \
 }
 
 #define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
@@ -454,6 +454,66 @@ VOID KphFree(
     _FreesMem_ PVOID Memory,
     _In_ ULONG Tag
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Return_allocatesMem_size_(NumberOfBytes)
+FORCEINLINE
+PVOID KphpAllocateNPagedA(
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag,
+    _Out_writes_bytes_(SizeOfStack) PBYTE Stack,
+    _In_ ULONG SizeOfStack
+    )
+{
+    if (NumberOfBytes <= SizeOfStack)
+    {
+        RtlZeroMemory(Stack, SizeOfStack);
+        return Stack;
+    }
+
+    return KphAllocateNPaged(NumberOfBytes, Tag);
+}
+
+#define KphAllocateNPagedA(NumberOfBytes, Tag, Stack)                          \
+    KphpAllocateNPagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
+
+_IRQL_requires_max_(APC_LEVEL)
+_Return_allocatesMem_size_(NumberOfBytes)
+FORCEINLINE
+PVOID KphpAllocatePagedA(
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag,
+    _Out_writes_bytes_(SizeOfStack) PBYTE Stack,
+    _In_ ULONG SizeOfStack
+    )
+{
+    if (NumberOfBytes <= SizeOfStack)
+    {
+        RtlZeroMemory(Stack, SizeOfStack);
+        return Stack;
+    }
+
+    return KphAllocatePaged(NumberOfBytes, Tag);
+}
+
+#define KphAllocatePagedA(NumberOfBytes, Tag, Stack)                           \
+    KphpAllocatePagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+FORCEINLINE
+VOID KphpFreeA(
+    _FreesMem_ PVOID Memory,
+    _In_ ULONG Tag,
+    _In_ PBYTE Stack
+    )
+{
+    if (Memory != Stack)
+    {
+        KphFree(Memory, Tag);
+    }
+}
+
+#define KphFreeA(Memory, Tag, Stack) KphpFreeA(Memory, Tag, Stack)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphInitializeNPagedLookaside(
@@ -979,7 +1039,49 @@ BOOLEAN KphEqualMemory(
     return (memcmp(Buffer1, Buffer2, Length) == 0);
 }
 
+typedef
+_Function_class_(KPH_BINARY_SEARCH_CALLBACK)
+INT
+KSIAPI
+KPH_BINARY_SEARCH_CALLBACK(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID Key,
+    _In_ PCVOID Element
+    );
+typedef KPH_BINARY_SEARCH_CALLBACK* PKPH_BINARY_SEARCH_CALLBACK;
+
 _Must_inspect_result_
+_Success_(return != NULL)
+PVOID KphBinarySearch(
+    _In_ PCVOID Key,
+    _In_reads_bytes_(NumberOfElements * SizeOfElement) PCVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_BINARY_SEARCH_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef
+_Function_class_(KPH_QUICK_SORT_CALLBACK)
+INT
+KSIAPI
+KPH_QUICK_SORT_CALLBACK(
+    _In_opt_ PVOID Context,
+    _In_ PCVOID LeftElement,
+    _In_ PCVOID RightElement
+    );
+typedef KPH_QUICK_SORT_CALLBACK* PKPH_QUICK_SORT_CALLBACK;
+
+VOID KphQuickSort(
+    _Inout_updates_bytes_(NumberOfElements * SizeOfElement) PVOID Base,
+    _In_ ULONG NumberOfElements,
+    _In_ ULONG SizeOfElement,
+    _In_ PKPH_QUICK_SORT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+_Must_inspect_result_
+_Success_(return != NULL)
 PVOID KphSearchMemory(
     _In_reads_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength,

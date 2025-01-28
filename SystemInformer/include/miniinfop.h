@@ -258,7 +258,7 @@ typedef struct _PH_MIP_GROUP_NODE
     HANDLE RepresentativeProcessId;
     LARGE_INTEGER RepresentativeCreateTime;
     BOOLEAN RepresentativeIsHung;
-
+    BOOLEAN RepresentativeIsTerminated;
     PPH_STRING TooltipText;
 } PH_MIP_GROUP_NODE, *PPH_MIP_GROUP_NODE;
 

@@ -569,7 +569,7 @@ VOID PhShowMemoryListCommand(
         }
         else if (!PhGetOwnTokenAttributes().Elevated)
         {
-            PhShowError2(ParentWindow, L"Memory Command", L"System Informer must run elevated to empty all.");
+            PhShowStatus(ParentWindow, L"Unable to empty the memory list.", 0, ERROR_ELEVATION_REQUIRED);
         }
         else
         {

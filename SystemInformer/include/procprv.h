@@ -153,7 +153,6 @@ typedef struct _PH_PROCESS_ITEM
 
     // Parameters
 
-    PPH_STRING FileNameWin32;
     PPH_STRING FileName;
     PPH_STRING CommandLine;
 
@@ -539,5 +538,12 @@ PhDuplicateProcessInformation(
     _Outptr_ PPVOID ProcessInformation
     );
 // end_phapppub
+
+PPH_PROCESS_ITEM
+PhCreateProcessItemFromHandle(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN TerminatedProcess
+    );
 
 #endif

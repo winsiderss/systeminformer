@@ -14,7 +14,7 @@
 #include <svcsup.h>
 #include <kphuser.h>
 
-static PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
+static CONST PH_STRINGREF KphDefaultPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
 static PH_FREE_LIST KphMessageFreeList;
 
 VOID KphInitialize(
@@ -31,7 +31,7 @@ NTSTATUS KphConnect(
     NTSTATUS status;
     SC_HANDLE serviceHandle;
     BOOLEAN created = FALSE;
-    PPH_STRINGREF portName;
+    PCPH_STRINGREF portName;
 
     portName = (Config->PortName ? Config->PortName : &KphDefaultPortName);
 
@@ -334,8 +334,8 @@ VOID KphSetServiceSecurity(
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION,
@@ -347,7 +347,7 @@ VOID KphSetServiceSecurity(
         DELETE,
         (PSID)&PhSeInteractiveSid
         );
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
@@ -391,8 +391,8 @@ NTSTATUS KsiLoadUnloadService(
     )
 {
 #ifdef _WIN64
-    static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
+    static CONST PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
     PPH_STRING fullServiceFileName;
@@ -425,10 +425,15 @@ NTSTATUS KsiLoadUnloadService(
         {
             if (disposition == REG_CREATED_NEW_KEY)
             {
+                ULONG regValue;
+
                 fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
-                PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &(ULONG){ SERVICE_ERROR_NORMAL }, sizeof(ULONG));
-                PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &(ULONG){ SERVICE_KERNEL_DRIVER }, sizeof(ULONG));
-                PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &(ULONG){ SERVICE_DISABLED }, sizeof(ULONG));
+                regValue = SERVICE_ERROR_NORMAL;
+                PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &regValue, sizeof(ULONG));
+                regValue = SERVICE_KERNEL_DRIVER;
+                PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &regValue, sizeof(ULONG));
+                regValue = SERVICE_DISABLED;
+                PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &regValue, sizeof(ULONG));
                 PhSetValueKeyZ(serviceKeyHandle, L"ImagePath", REG_SZ, fullServiceFileName->Buffer, (ULONG)fullServiceFileName->Length + sizeof(UNICODE_NULL));
                 PhSetValueKeyZ(serviceKeyHandle, L"ObjectName", REG_SZ, Config->ObjectName->Buffer, (ULONG)Config->ObjectName->Length + sizeof(UNICODE_NULL));
                 PhDereferenceObject(fullServiceFileName);
@@ -902,6 +907,56 @@ NTSTATUS KphQueryInformationObject(
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryObjectThreadName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ThreadName
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize;
+    ULONG returnLength;
+    PTHREAD_NAME_INFORMATION buffer;
+
+    returnLength = 0;
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = KphQueryInformationObject(
+        ProcessHandle,
+        Handle,
+        KphObjectThreadNameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(returnLength);
+
+        status = KphQueryInformationObject(
+            ProcessHandle,
+            Handle,
+            KphObjectThreadNameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
+    }
+
+    PhFree(buffer);
+
     return status;
 }
 
@@ -2075,7 +2130,7 @@ NTSTATUS KphOpenDeviceDriver(
     msg->User.OpenDeviceDriver.DriverHandle = DriverHandle;
     status = KphCommsSendMessage(msg);
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
         status = msg->User.OpenDeviceDriver.Status;
     }
@@ -2102,12 +2157,11 @@ NTSTATUS KphOpenDeviceBaseDevice(
     msg->User.OpenDeviceBaseDevice.BaseDeviceHandle = BaseDeviceHandle;
     status = KphCommsSendMessage(msg);
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        status = msg->User.OpenDeviceDriver.Status;
+        status = msg->User.OpenDeviceBaseDevice.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
-
 }

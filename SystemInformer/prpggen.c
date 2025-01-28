@@ -548,7 +548,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, processItem->ProtectionString->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PhpGetStringOrNa(processItem->ProtectionString));
 
             // Image type
 
@@ -717,7 +717,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                     else
                     {
-                        PhShowError2(hwndDlg, L"The process does not exist.", L"%s", L"");
+                        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_NOT_FOUND, 0);
                     }
                 }
                 break;

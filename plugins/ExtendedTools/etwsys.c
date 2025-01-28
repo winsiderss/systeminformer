@@ -1501,17 +1501,11 @@ VOID EtpUpdateNetworkGraph(
 {
     NetworkReceiveGraphState.Valid = FALSE;
     NetworkReceiveGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(NetworkReceiveGraphHandle, 1);
-    Graph_Draw(NetworkReceiveGraphHandle);
-    Graph_UpdateTooltip(NetworkReceiveGraphHandle);
-    InvalidateRect(NetworkReceiveGraphHandle, NULL, FALSE);
+    Graph_Update(NetworkReceiveGraphHandle);
 
     NetworkSendGraphState.Valid = FALSE;
     NetworkSendGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(NetworkSendGraphHandle, 1);
-    Graph_Draw(NetworkSendGraphHandle);
-    Graph_UpdateTooltip(NetworkSendGraphHandle);
-    InvalidateRect(NetworkSendGraphHandle, NULL, FALSE);
+    Graph_Update(NetworkSendGraphHandle);
 }
 
 VOID EtpUpdateNetworkPanel(

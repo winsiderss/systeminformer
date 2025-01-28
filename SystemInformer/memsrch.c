@@ -94,6 +94,7 @@ PVOID PhAllocateForMemorySearch(
     _In_ SIZE_T Size
     )
 {
+    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     PVOID memory;
 
     PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
@@ -116,7 +117,7 @@ PVOID PhAllocateForMemorySearch(
         RtlSetHeapInformation(
             PhMemorySearchHeap,
             HeapCompatibilityInformation,
-            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            &heapCompatibility,
             sizeof(ULONG)
             );
 
@@ -447,7 +448,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
                     if (minimumLength < 4)
                     {
-                        PhShowError2(hwndDlg, L"The minimum length must be at least 4.", L"%s", L"");
+                        PhShowError2(hwndDlg, L"Unable to search for strings.", L"%s", L"The minimum length must be at least 4.");
                         break;
                     }
 

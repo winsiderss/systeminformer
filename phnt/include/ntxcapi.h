@@ -15,6 +15,7 @@ RtlDispatchException(
     _In_ PCONTEXT ContextRecord
     );
 
+_Analysis_noreturn_
 NTSYSAPI
 DECLSPEC_NORETURN
 VOID
@@ -40,6 +41,7 @@ RtlRaiseExceptionForReturnAddressHijack(
     );
 
 // rev
+_Analysis_noreturn_
 NTSYSAPI
 DECLSPEC_NORETURN
 VOID
@@ -106,6 +108,7 @@ NtRaiseException(
     _In_ BOOLEAN FirstChance
     );
 
+_Analysis_noreturn_
 NTSYSCALLAPI
 DECLSPEC_NORETURN
 VOID

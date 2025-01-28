@@ -13,24 +13,18 @@ namespace CustomBuildTool
 {
     public static class HttpClient
     {
-        private static System.Net.Http.HttpClient HttpMessageClient = null;
-        private static System.Net.Http.HttpClientHandler HttpClientHandler = null;
-
         public static System.Net.Http.HttpClient CreateHttpClient()
         {
-            if (HttpMessageClient == null)
-            {
-                HttpClientHandler = new HttpClientHandler();
-                HttpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-                HttpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+            httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
-                System.Net.Http.HttpClient httpClient = new System.Net.Http.HttpClient(HttpClientHandler);
-                httpClient.DefaultRequestVersion = HttpVersion.Version20;
-                httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
-            }
+            var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
+            httpClient.DefaultRequestVersion = HttpVersion.Version20;
+            httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CustomBuildTool", "1.0"));
 
-            return HttpMessageClient;
+            return httpClient;
         }
 
         public static HttpResponseMessage SendMessageResponse(HttpRequestMessage HttpMessage)

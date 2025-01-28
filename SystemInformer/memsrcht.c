@@ -816,7 +816,11 @@ BOOLEAN NTAPI PhpMemoryStringsTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
@@ -977,7 +981,7 @@ INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
 
                     if (!minimumLength || minimumLength > MAXULONG32)
                     {
-                        PhShowError2(hwndDlg, L"Invalid minimum length.", L"%s", L"");
+                        PhShowError2(hwndDlg, L"Unable to update the length.", L"%s", L"The minimum length is invalid.");
                         break;
                     }
 
@@ -1579,12 +1583,13 @@ BOOLEAN PhpShowMemoryStringTreeDialog(
     context->UseClone = UseClone;
     context->PrevNodeList = PrevNodeList;
 
-    if (!NT_SUCCESS(PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
+    if (!NT_SUCCESS(status = PhCreateThread2(PhpShowMemoryStringDialogThreadStart, context)))
     {
-        PhShowError2(ParentWindowHandle, L"Unable to create the window.", L"%s", L"");
         PhDereferenceObject(context->ProcessItem);
         NtClose(context->ProcessHandle);
         PhFree(context);
+
+        PhShowStatus(ParentWindowHandle, L"Unable to create the window.", status, 0);
         return FALSE;
     }
 

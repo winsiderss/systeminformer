@@ -18,7 +18,7 @@ typedef struct
 sha256_context;
 
 void sha256_starts( sha256_context *ctx );
-void sha256_update( sha256_context *ctx, uint8 *input, uint32 length );
+void sha256_update( sha256_context *ctx, const uint8 *input, uint32 length );
 void sha256_finish( sha256_context *ctx, uint8 digest[32] );
 
 #endif /* sha256.h */

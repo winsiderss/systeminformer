@@ -43,6 +43,7 @@ NTSTATUS PhCreatePipeEx(
     SECURITY_DESCRIPTOR securityDescriptor;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    LARGE_INTEGER timeout;
     SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
     {
         sizeof(SECURITY_QUALITY_OF_SERVICE),
@@ -99,8 +100,8 @@ NTSTATUS PhCreatePipeEx(
     {
         if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
         {
-            RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-            RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+            PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+            PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
             objectAttributes.SecurityDescriptor = &securityDescriptor;
         }
@@ -120,7 +121,7 @@ NTSTATUS PhCreatePipeEx(
         1,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMillisecondsEx(120000)
+        PhTimeoutFromMilliseconds(&timeout, 120000)
         );
 
     if (!NT_SUCCESS(status))
@@ -167,7 +168,7 @@ NTSTATUS PhCreatePipeEx(
 CleanupExit:
     if (pipeAcl)
     {
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+        PhFree(pipeAcl);
     }
 
     NtClose(pipeDirectoryHandle);
@@ -192,6 +193,7 @@ NTSTATUS PhCreateNamedPipe(
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    LARGE_INTEGER timeout;
     SECURITY_DESCRIPTOR securityDescriptor;
     SECURITY_QUALITY_OF_SERVICE pipeSecurityQos =
     {
@@ -215,8 +217,8 @@ NTSTATUS PhCreateNamedPipe(
 
     if (NT_SUCCESS(PhDefaultNpAcl(&pipeAcl)))
     {
-        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+        PhCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        PhSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
 
         objectAttributes.SecurityDescriptor = &securityDescriptor;
     }
@@ -235,7 +237,7 @@ NTSTATUS PhCreateNamedPipe(
         FILE_PIPE_UNLIMITED_INSTANCES,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMillisecondsEx(1000)
+        PhTimeoutFromMilliseconds(&timeout, 1000)
         );
 
     if (NT_SUCCESS(status))

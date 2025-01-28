@@ -132,13 +132,13 @@ PVOID PhpImportProcedureNative(
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
-typeof(&Name) Name##_Import(VOID) \
+typeof(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&Name))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 /**
@@ -148,27 +148,30 @@ typeof(&Name) Name##_Import(VOID) \
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
-typeof(&Name) Name##_Import(VOID) \
+typeof(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&Name))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
-PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateThreadStateChange);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeThreadState);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtAllocateVirtualMemoryEx);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
 
+PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppression);
+PH_DEFINE_IMPORT(L"ntdll.dll", LdrSystemDllInitBlock);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
@@ -250,6 +253,13 @@ ULONG NTAPI GetCurrentProcessId_Stub(
     return HandleToUlong(NtCurrentProcessId());
 }
 
+HANDLE NTAPI GetCurrentProcess_Stub(
+    VOID
+    )
+{
+    return NtCurrentProcess();
+}
+
 HANDLE NTAPI GetProcessHeap_Stub(
     VOID
     )
@@ -293,6 +303,48 @@ PSLIST_ENTRY NTAPI InterlockedFlushSList_Stub(
     return RtlInterlockedFlushSList(ListHead);
 }
 
+BOOL WINAPI QueryPerformanceCounter_Stub(
+    _Out_ LARGE_INTEGER* lpPerformanceCount
+    )
+{
+    return !!RtlQueryPerformanceCounter(lpPerformanceCount);
+}
+
+VOID WINAPI EnterCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlEnterCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI LeaveCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlLeaveCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI DeleteCriticalSection_Stub(
+    _Inout_ LPCRITICAL_SECTION lpCriticalSection
+    )
+{
+    RtlDeleteCriticalSection(lpCriticalSection);
+}
+
+VOID WINAPI AcquireSRWLockExclusive_Stub(
+    _Inout_ PSRWLOCK SRWLock
+    )
+{
+    RtlAcquireSRWLockExclusive(SRWLock);
+}
+
+VOID WINAPI ReleaseSRWLockExclusive_Stub(
+    _Inout_ PSRWLOCK SRWLock
+    )
+{
+    RtlReleaseSRWLockExclusive(SRWLock);
+}
+
 DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
@@ -300,11 +352,18 @@ DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcess = GetCurrentProcess_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_QueryPerformanceCounter = QueryPerformanceCounter_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_EnterCriticalSection = EnterCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_LeaveCriticalSection = LeaveCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_DeleteCriticalSection = DeleteCriticalSection_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_AcquireSRWLockExclusive = AcquireSRWLockExclusive_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_ReleaseSRWLockExclusive = ReleaseSRWLockExclusive_Stub;
 
 #endif

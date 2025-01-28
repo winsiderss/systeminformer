@@ -501,24 +501,17 @@ NTSTATUS KphSetInformationThread(
 
     if (AccessMode != KernelMode)
     {
-        if (ThreadInformationLength <= ARRAYSIZE(stackBuffer))
+        threadInformation = KphAllocatePagedA(ThreadInformationLength,
+                                              KPH_TAG_THREAD_INFO,
+                                              stackBuffer);
+        if (!threadInformation)
         {
-            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-            threadInformation = stackBuffer;
-        }
-        else
-        {
-            threadInformation = KphAllocatePaged(ThreadInformationLength,
-                                                 KPH_TAG_THREAD_INFO);
-            if (!threadInformation)
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              GENERAL,
-                              "Failed to allocate thread info buffer.");
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Failed to allocate thread info buffer.");
 
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
-            }
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
         }
 
         __try
@@ -678,11 +671,9 @@ Exit:
         ObDereferenceObject(thread);
     }
 
-    if (threadInformation &&
-        (threadInformation != ThreadInformation) &&
-        (threadInformation != stackBuffer))
+    if (threadInformation && (threadInformation != ThreadInformation))
     {
-        KphFree(threadInformation, KPH_TAG_THREAD_INFO);
+        KphFreeA(threadInformation, KPH_TAG_THREAD_INFO, stackBuffer);
     }
 
     return status;

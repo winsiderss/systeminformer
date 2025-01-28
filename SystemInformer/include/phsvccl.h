@@ -51,7 +51,8 @@ NTSTATUS PhSvcCallExecuteRunAsCommand(
 
 NTSTATUS PhSvcCallUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PCWSTR Name
+    _In_opt_ PCWSTR Name,
+    _In_opt_ PCWSTR FileName
     );
 
 NTSTATUS PhSvcCallControlProcess(

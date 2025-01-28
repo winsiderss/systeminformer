@@ -17,6 +17,13 @@ EXTERN_C_START
 PHLIBAPI
 HRESULT
 NTAPI
+PhGetWbemLocatorClass(
+    _Out_ struct IWbemLocator** WbemLocatorClass
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
 PhCoSetProxyBlanket(
     _In_ IUnknown* InterfacePtr
     );
@@ -28,6 +35,11 @@ PhGetWbemClassObjectString(
     _In_ PVOID WbemClassObject,
     _In_ PCWSTR Name
     );
+
+#define PhStringRefToBSTR(String) \
+    SysAllocStringLen((String)->Buffer, (UINT)(String)->Length / sizeof(WCHAR))
+#define PhStringZToBSTR(String) \
+    SysAllocStringLen((String), (UINT)sizeof(String) - sizeof(UNICODE_NULL) / sizeof(WCHAR))
 
 // powrprof.h
 typedef enum _POWER_DATA_ACCESSOR POWER_DATA_ACCESSOR;
@@ -44,10 +56,6 @@ typedef ULONG (WINAPI* _PowerWriteSecurityDescriptor)(
     _In_ POWER_DATA_ACCESSOR AccessFlags,
     _In_ PGUID PowerGuid,
     _In_ PCWSTR StringSecurityDescriptor
-    );
-
-PVOID PhGetWbemProxImageBaseAddress(
-    VOID
     );
 
 // Power policy

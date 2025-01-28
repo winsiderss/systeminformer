@@ -82,6 +82,57 @@ VOID PhShowMemoryEditorDialog(
 
     if (!links)
     {
+        NTSTATUS status;
+        PVOID buffer;
+
+        if (RegionSize > 1024ULL * 1024ULL * 1024ULL) // 1 GB
+        {
+            PhShowStatus(OwnerWindow, L"Unable to edit the memory region.", 0, MEM_E_INVALID_SIZE);
+            return;
+        }
+
+        status = PhAllocateVirtualMemory(NtCurrentProcess(), &buffer, RegionSize, MEM_COMMIT, PAGE_READWRITE);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(OwnerWindow, L"Unable to edit the memory region.", status, 0);
+            return;
+        }
+
+        {
+            HANDLE processHandle;
+
+            status = PhOpenProcess(
+                &processHandle,
+                PROCESS_VM_READ,
+                ProcessId
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = NtReadVirtualMemory(
+                    processHandle,
+                    BaseAddress,
+                    buffer,
+                    RegionSize,
+                    NULL
+                    );
+
+                NtClose(processHandle);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(OwnerWindow, L"Unable to read memory", status, 0);
+                    return;
+                }
+            }
+            else
+            {
+                PhShowStatus(OwnerWindow, L"Unable to open the process", status, 0);
+                return;
+            }
+        }
+
         context = PhAllocateZero(sizeof(MEMORY_EDITOR_CONTEXT));
         context->OwnerHandle = OwnerWindow;
         context->ProcessId = ProcessId;
@@ -90,6 +141,7 @@ VOID PhShowMemoryEditorDialog(
         context->SelectOffset = SelectOffset;
         PhSwapReference(&context->Title, Title);
         context->Flags = Flags;
+        context->Buffer = buffer;
 
         context->WindowHandle = PhCreateDialog(
             PhInstanceHandle,
@@ -169,9 +221,6 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     {
     case WM_INITDIALOG:
         {
-            NTSTATUS status;
-            HANDLE processHandle;
-
             PhSetApplicationWindowIcon(hwndDlg);
 
             if (context->Title)
@@ -192,65 +241,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-
-            if (context->RegionSize > 1024 * 1024 * 1024) // 1 GB
-            {
-                PhShowError2(context->OwnerHandle, L"Unable to edit the memory region because it is too large.", L"%s", L"");
-                return TRUE;
-            }
-
-            context->Buffer = PhAllocatePage(context->RegionSize, NULL);
-
-            if (!context->Buffer)
-            {
-                PhShowError2(context->OwnerHandle, L"Unable to allocate memory for the buffer.", L"%s", L"");
-                return TRUE;
-            }
-
-            {
-                status = PhOpenProcess(
-                    &processHandle,
-                    PROCESS_VM_READ,
-                    context->ProcessId
-                    );
-
-                if (NT_SUCCESS(status))
-                {
-                    status = NtReadVirtualMemory(
-                        processHandle,
-                        context->BaseAddress,
-                        context->Buffer,
-                        context->RegionSize,
-                        NULL
-                        );
-
-                    NtClose(processHandle);
-
-                    if (!NT_SUCCESS(status))
-                    {
-                        PhShowStatus(context->OwnerHandle, L"Unable to read memory", status, 0);
-                        return TRUE;
-                    }
-                }
-                else
-                {
-                    PhShowStatus(context->OwnerHandle, L"Unable to open the process", status, 0);
-                    return TRUE;
-                }
-            }
-
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
-                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BYTESPERROW), NULL,
-                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GOTO), NULL,
-                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_WRITE), NULL,
-                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REREAD), NULL,
-                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BYTESPERROW), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GOTO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_WRITE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REREAD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             if (MinimumSize.left == -1)
             {
@@ -442,7 +438,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             if (offset >= context->RegionSize)
                             {
-                                PhShowError2(hwndDlg, L"The offset is too large.", L"%s", L"");
+                                PhShowStatus(hwndDlg, L"Unable to edit the memory region.", 0, MEM_E_INVALID_SIZE);
                                 continue;
                             }
 

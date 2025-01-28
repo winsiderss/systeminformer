@@ -256,17 +256,11 @@ VOID NetworkDeviceUpdateGraphs(
 {
     Context->GraphSendState.Valid = FALSE;
     Context->GraphSendState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GraphSendHandle, 1);
-    Graph_Draw(Context->GraphSendHandle);
-    Graph_UpdateTooltip(Context->GraphSendHandle);
-    InvalidateRect(Context->GraphSendHandle, NULL, FALSE);
+    Graph_Update(Context->GraphSendHandle);
 
     Context->GraphReceiveState.Valid = FALSE;
     Context->GraphReceiveState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GraphReceiveHandle, 1);
-    Graph_Draw(Context->GraphReceiveHandle);
-    Graph_UpdateTooltip(Context->GraphReceiveHandle);
-    InvalidateRect(Context->GraphReceiveHandle, NULL, FALSE);
+    Graph_Update(Context->GraphReceiveHandle);
 }
 
 VOID NetworkDeviceLayoutGraphs(

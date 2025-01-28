@@ -5568,7 +5568,7 @@ typedef struct _ETW_UMGL_KEY
 #define EVENT_TRACE_USE_RAWTIMESTAMP 0x00000002
 // Used with OpenTrace(), retrieves event from file as is.
 #define EVENT_TRACE_GET_RAWEVENT 0x00000100
-// Used with OpenTrace() to ReadBehind  a live logger session
+// Used with OpenTrace() to ReadBehind a live logger session.
 #define EVENT_TRACE_READ_BEHIND 0x00000200
 // Used in EventCallbacks to indicate that the InstanceId field is a sequence number.
 #define EVENT_TRACE_USE_SEQUENCE  0x0004

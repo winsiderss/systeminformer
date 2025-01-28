@@ -453,8 +453,8 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     if (SUCCEEDED(status))
     {
         ULONG taskCount = 0;
-        PGUID taskIds = NULL;
-        PWSTR* taskNames = NULL;
+        PCGUID taskIds = NULL;
+        PCWSTR* taskNames = NULL;
 
         status = IPackageDebugSettings_EnumerateBackgroundTasks(
             packageDebugSettings,
@@ -543,8 +543,8 @@ PPH_STRING PhGetAppContainerName(
     }
     else // Check the local system account appcontainer mappings. (dmex)
     {
-        static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-        static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+        static CONST PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+        static CONST PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
         HANDLE keyHandle;
         PPH_STRING sidString;
         PPH_STRING keyPath;
@@ -598,8 +598,8 @@ PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     )
 {
-    static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-    static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+    static CONST PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+    static CONST PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
     HANDLE keyHandle;
     PPH_STRING sidString;
     PPH_STRING keyPath;
@@ -659,7 +659,7 @@ PPH_STRING PhGetPackagePath(
     _In_ PPH_STRING PackageFullName
     )
 {
-    static PH_STRINGREF storeAppPackages = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
+    static CONST PH_STRINGREF storeAppPackages = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
     HANDLE keyHandle;
     PPH_STRING keyPath;
     PPH_STRING packagePath = NULL;
@@ -687,7 +687,7 @@ PPH_STRING PhGetPackageAppDataPath(
     _In_ HANDLE ProcessHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     PPH_STRING packageAppDataPath = NULL;
     PPH_STRING localAppDataPath;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
@@ -1052,7 +1052,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
 
     if (HR_FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
         return FALSE;
-    if (!(V_VT(&packageHostEnvironment) == VT_UI4 && V_UI4(&packageHostEnvironment)))
+    if (packageHostEnvironment.vt != VT_UI4 && packageHostEnvironment.ulVal)
         return FALSE;
 
     IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_ID, &packageAppUserModelID);
@@ -1281,7 +1281,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
         goto CleanupExit;
     if (HR_FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
         goto CleanupExit;
-    if (HR_FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), V_BSTR(&propertyPathValue), &imagePath)))
+    if (HR_FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), propertyPathValue.bstrVal, &imagePath)))
         goto CleanupExit;
 
     if (IconLarge)
@@ -1295,7 +1295,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }
@@ -1311,7 +1311,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }
@@ -1319,8 +1319,8 @@ BOOLEAN PhAppResolverGetPackageIcon(
 CleanupExit:
     if (imagePath)
         CoTaskMemFree(imagePath);
-    if (V_BSTR(&propertyPathValue))
-        CoTaskMemFree(V_BSTR(&propertyPathValue));
+    if (propertyPathValue.bstrVal)
+        CoTaskMemFree(propertyPathValue.bstrVal);
     if (propertyStore)
         IPropertyStore_Release(propertyStore);
 

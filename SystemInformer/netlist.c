@@ -424,6 +424,8 @@ BEGIN_SORT_FUNCTION(LocalAddress)
 {
     SOCKADDR_IN6 localAddress1;
     SOCKADDR_IN6 localAddress2;
+    SCOPE_ID scopeId1;
+    SCOPE_ID scopeId2;
 
     memset(&localAddress1, 0, sizeof(SOCKADDR_IN6)); // memset for zero padding (dmex)
     memset(&localAddress2, 0, sizeof(SOCKADDR_IN6));
@@ -437,7 +439,8 @@ BEGIN_SORT_FUNCTION(LocalAddress)
     }
     else if (networkItem1->LocalEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
-        IN6ADDR_SETSOCKADDR(&localAddress1, &networkItem1->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = networkItem1->LocalScopeId }, 0);
+        scopeId1.Value = networkItem1->LocalScopeId;
+        IN6ADDR_SETSOCKADDR(&localAddress1, &networkItem1->LocalEndpoint.Address.In6Addr, scopeId1, 0);
     }
 
     if (networkItem2->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
@@ -449,7 +452,8 @@ BEGIN_SORT_FUNCTION(LocalAddress)
     }
     else if (networkItem2->LocalEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
-        IN6ADDR_SETSOCKADDR(&localAddress2, &networkItem2->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = networkItem2->LocalScopeId }, 0);
+        scopeId2.Value = networkItem2->LocalScopeId;
+        IN6ADDR_SETSOCKADDR(&localAddress2, &networkItem2->LocalEndpoint.Address.In6Addr, scopeId2, 0);
     }
 
     sortResult = memcmp(&localAddress1, &localAddress2, sizeof(SOCKADDR_IN6));
@@ -472,6 +476,8 @@ BEGIN_SORT_FUNCTION(RemoteAddress)
 {
     SOCKADDR_IN6 remoteAddress1;
     SOCKADDR_IN6 remoteAddress2;
+    SCOPE_ID scopeId1;
+    SCOPE_ID scopeId2;
 
     memset(&remoteAddress1, 0, sizeof(SOCKADDR_IN6)); // memset for zero padding (dmex)
     memset(&remoteAddress2, 0, sizeof(SOCKADDR_IN6));
@@ -485,7 +491,8 @@ BEGIN_SORT_FUNCTION(RemoteAddress)
     }
     else if (networkItem1->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
-        IN6ADDR_SETSOCKADDR(&remoteAddress1, &networkItem1->RemoteEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = networkItem1->RemoteScopeId }, 0);
+        scopeId1.Value = networkItem1->RemoteScopeId;
+        IN6ADDR_SETSOCKADDR(&remoteAddress1, &networkItem1->RemoteEndpoint.Address.In6Addr, scopeId1, 0);
     }
 
     if (networkItem2->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
@@ -497,7 +504,8 @@ BEGIN_SORT_FUNCTION(RemoteAddress)
     }
     else if (networkItem2->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
-        IN6ADDR_SETSOCKADDR(&remoteAddress2, &networkItem2->RemoteEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = networkItem2->RemoteScopeId }, 0);
+        scopeId2.Value = networkItem2->RemoteScopeId;
+        IN6ADDR_SETSOCKADDR(&remoteAddress2, &networkItem2->RemoteEndpoint.Address.In6Addr, scopeId2, 0);
     }
 
     sortResult = memcmp(&remoteAddress1, &remoteAddress2, sizeof(SOCKADDR_IN6));
@@ -623,7 +631,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHNETLC_PROCESS:
-                getCellText->Text = PhGetStringRef(node->ProcessNameText);
+                {
+                    getCellText->Text = PhGetStringRef(node->ProcessNameText);
+                }
                 break;
             case PHNETLC_PID:
                 {
@@ -668,7 +678,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_PROTOCOL:
                 {
-                    PPH_STRINGREF protocolType;
+                    PCPH_STRINGREF protocolType;
 
                     if (protocolType = PhGetProtocolTypeName(networkItem->ProtocolType))
                     {
@@ -685,7 +695,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 {
                     if (FlagOn(networkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
                     {
-                        PPH_STRINGREF stateName;
+                        PCPH_STRINGREF stateName;
 
                         if (stateName = PhGetTcpStateName(networkItem->State))
                         {
@@ -922,8 +932,8 @@ VOID PhpUpdateNetworkItemProcessName(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_STRINGREF processNameUnknown = PH_STRINGREF_INIT(L"Unknown process");
-    static PH_STRINGREF processNameWaiting = PH_STRINGREF_INIT(L"Waiting connections");
+    static CONST PH_STRINGREF processNameUnknown = PH_STRINGREF_INIT(L"Unknown process");
+    static CONST PH_STRINGREF processNameWaiting = PH_STRINGREF_INIT(L"Waiting connections");
     static PPH_STRING cachedNameUnknown = NULL;
     static PPH_STRING cachedNameWaiting = NULL;
 
