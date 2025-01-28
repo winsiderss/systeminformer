@@ -345,7 +345,7 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     );
 
 VOID PhMwpToggleSignedProcessTreeFilter(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpToggleMicrosoftProcessTreeFilter(

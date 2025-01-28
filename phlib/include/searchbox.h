@@ -48,7 +48,7 @@ BOOLEAN
 NTAPI
 PhSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
-    _In_ PPH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     );
 
 PHLIBAPI

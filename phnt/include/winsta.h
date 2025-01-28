@@ -125,39 +125,39 @@ typedef struct _SESSIONIDW
 // private
 typedef enum _WINSTATIONINFOCLASS
 {
-    WinStationCreateData, // WINSTATIONCREATE
-    WinStationConfiguration, // WINSTACONFIGWIRE + USERCONFIG
-    WinStationPdParams, // PDPARAMS
-    WinStationWd, // WDCONFIG
-    WinStationPd, // PDCONFIG2 + PDPARAMS
-    WinStationPrinter, // Not supported.
-    WinStationClient, // WINSTATIONCLIENT
-    WinStationModules,
-    WinStationInformation, // WINSTATIONINFORMATION
-    WinStationTrace,
-    WinStationBeep,
-    WinStationEncryptionOff,
+    WinStationCreateData, // q: WINSTATIONCREATE
+    WinStationConfiguration, // qs: WINSTACONFIGWIRE + USERCONFIG
+    WinStationPdParams, // qs: PDPARAMS
+    WinStationWd, // q: WDCONFIG
+    WinStationPd, // q: PDCONFIG2 + PDPARAMS
+    WinStationPrinter, // qs: Not supported.
+    WinStationClient, // q: WINSTATIONCLIENT
+    WinStationModules, // q:
+    WinStationInformation, // q: WINSTATIONINFORMATION
+    WinStationTrace, // qs:
+    WinStationBeep, // s: // 10
+    WinStationEncryptionOff, // s:
     WinStationEncryptionPerm,
-    WinStationNtSecurity, // s; (open secure desktop ctrl+alt+del)
-    WinStationUserToken, // WINSTATIONUSERTOKEN
+    WinStationNtSecurity, // s: (open secure desktop ctrl+alt+del)
+    WinStationUserToken, // q: WINSTATIONUSERTOKEN
     WinStationUnused1,
-    WinStationVideoData, // WINSTATIONVIDEODATA
-    WinStationInitialProgram, // s; (set current process as initial program)
-    WinStationCd, // CDCONFIG
-    WinStationSystemTrace,
-    WinStationVirtualData,
+    WinStationVideoData, // q: WINSTATIONVIDEODATA
+    WinStationInitialProgram, // s: (set current process as initial program)
+    WinStationCd, // q: CDCONFIG
+    WinStationSystemTrace, // qs:
+    WinStationVirtualData, // q: // 20
     WinStationClientData, // WINSTATIONCLIENTDATA
-    WinStationSecureDesktopEnter,
-    WinStationSecureDesktopExit,
-    WinStationLoadBalanceSessionTarget, // ULONG
-    WinStationLoadIndicator, // WINSTATIONLOADINDICATORDATA
-    WinStationShadowInfo, // WINSTATIONSHADOW
+    WinStationSecureDesktopEnter, // qs:
+    WinStationSecureDesktopExit, // qs:
+    WinStationLoadBalanceSessionTarget, // q: ULONG
+    WinStationLoadIndicator, // q: WINSTATIONLOADINDICATORDATA
+    WinStationShadowInfo, // qs: WINSTATIONSHADOW
     WinStationDigProductId, // WINSTATIONPRODID
     WinStationLockedState, // BOOL
     WinStationRemoteAddress, // WINSTATIONREMOTEADDRESS
-    WinStationIdleTime, // ULONG
+    WinStationIdleTime, // ULONG // 30
     WinStationLastReconnectType, // ULONG
-    WinStationDisallowAutoReconnect, // BOOLEAN
+    WinStationDisallowAutoReconnect, // qs: BOOLEAN
     WinStationMprNotifyInfo,
     WinStationExecSrvSystemPipe, // WCHAR[48]
     WinStationSmartCardAutoLogon, // BOOLEAN
@@ -165,11 +165,13 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationReconnectedFromId, // ULONG
     WinStationEffectsPolicy, // ULONG
     WinStationType, // ULONG
-    WinStationInformationEx, // WINSTATIONINFORMATIONEX
+    WinStationInformationEx, // WINSTATIONINFORMATIONEX // 40
     WinStationValidationInfo
 } WINSTATIONINFOCLASS;
 
-// Retrieves general information on the type of terminal server session (protocol) to which the session belongs.
+/**
+ * Retrieves general information used to create the terminal server session (protocol) to which the station belongs.
+ */
 typedef struct _WINSTATIONCREATE
 {
     ULONG fEnableWinStation : 1;
@@ -743,7 +745,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     ULONG NumberOfThreads;
     LARGE_INTEGER SpareLi1;
     LARGE_INTEGER SpareLi2;
-    LARGE_INTEGER SpareLi3;
+    LARGE_INTEGER CycleTime;
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
@@ -753,7 +755,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     ULONG InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG SpareUl3;
+    ULONG UniqueProcessKey;
     SIZE_T PeakVirtualSize;
     SIZE_T VirtualSize;
     ULONG PageFaultCount;
@@ -1049,6 +1051,8 @@ WinStationEnumerateProcesses(
     _Out_ PVOID *Processes
     );
 
+#define WINSTATION_PROCESS_LEVEL 0
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -1247,7 +1251,7 @@ WinStationQuerySessionVirtualIP(
     _In_ ADDRESS_FAMILY Family,
     _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
     );
-    
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -1258,7 +1262,7 @@ WinStationGetDeviceId(
     _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
     _In_ SIZE_T BufferLength
     );
-        
+
 // rev
 NTSYSAPI
 BOOLEAN

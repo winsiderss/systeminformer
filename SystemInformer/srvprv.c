@@ -223,7 +223,7 @@ ULONG PhpServiceHashtableHashFunction(
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
 
-    return PhHashStringRefEx(&serviceItem->Key, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&serviceItem->Key, TRUE, PH_STRING_HASH_XXH32);
 }
 
 PPH_SERVICE_ITEM PhpLookupServiceItem(
@@ -440,7 +440,7 @@ static ULONG PhHashServiceNameEntry(
     _In_ PPHP_SERVICE_NAME_ENTRY Value
     )
 {
-    return PhHashStringRefEx(&Value->Name, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&Value->Name, TRUE, PH_STRING_HASH_XXH32);
 }
 
 VOID PhServiceQueryStage1(

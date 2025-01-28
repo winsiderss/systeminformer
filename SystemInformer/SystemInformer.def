@@ -156,7 +156,7 @@ EXPORTS
     PhShellOpenKey
     PhShellOpenKey2
     PhShellProcessHacker
-    PhShowChooseProcessDialog 
+    PhShowChooseProcessDialog
     PhShowHandleObjectProperties1
     PhShowHandleObjectProperties2
     PhShowIconNotification
@@ -176,7 +176,7 @@ EXPORTS
     PhWordMatchStringRef
     PhWritePhTextHeader
     PhaChoiceDialog
-    PhaGetProcessKnownCommandLine 
+    PhaGetProcessKnownCommandLine
 
 ; plugin
     PhEnumeratePlugins
@@ -395,7 +395,6 @@ EXPORTS
     PhExtractIcon
     PhExtractIconEx
     PhFillMemoryUlong
-    PhFinalArrayItems
     PhFinalBytesBuilderBytes
     PhFinalStringBuilderString
     PhFindCharInStringRef
@@ -501,6 +500,10 @@ EXPORTS
     PhfWaitForBarrier
     PhfWaitForEvent
     PhfWaitForRundownProtection
+
+; phfirmware
+    PhEnumSMBIOS
+    PhGetSMBIOSString
 
 ; phnative
     PhAdjustPrivilege
@@ -622,6 +625,7 @@ EXPORTS
     PhQuerySymbolicLinkObject
     PhQueryTokenVariableSize
     PhQueryValueKey
+    PhQueueUserWorkItem
     PhReadFile
     PhResolveDevicePrefix
     PhRevertImpersonationToken
@@ -704,6 +708,7 @@ EXPORTS
     PhGetBaseName
     PhGetClassObject
     PhGetDllFileName
+    PhGetClientRect
     PhGetDpi
     PhGetDpiValue
     PhGetFileDialogFileName
@@ -731,11 +736,13 @@ EXPORTS
     PhGetSystemRoot
     PhGetTaskbarDpi
     PhGetTemporaryDirectoryRandomAlphaFileName
+    PhGetUserLocaleInfoBool
     PhGetWin32Message
     PhGetWindowDpi
     PhInitializeHash
     PhInitializeImageVersionInfo
     PhInitializeImageVersionInfoEx
+    PhInitializeProcThreadAttributeList
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -773,6 +780,7 @@ EXPORTS
     PhTaskbarListSetProgressState
     PhTaskbarListSetProgressValue
     PhUpdateHash
+    PhUpdateProcThreadAttribute
     PhWaitForMultipleObjectsAndPump
 
 ; circbuf

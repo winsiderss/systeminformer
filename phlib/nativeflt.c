@@ -152,8 +152,8 @@ NTSTATUS PhFilterLoadUnload(
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
-    ULONG filterNameBufferLength;
-    PFLT_LOAD_PARAMETERS filterNameBuffer;
+    ULONG filterLoadParametersLength;
+    PFLT_LOAD_PARAMETERS filterLoadParameters;
     SECURITY_QUALITY_OF_SERVICE filterSecurityQos =
     {
         sizeof(SECURITY_QUALITY_OF_SERVICE),
@@ -189,10 +189,10 @@ NTSTATUS PhFilterLoadUnload(
     if (!NT_SUCCESS(status))
         return status;
 
-    filterNameBufferLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
-    filterNameBuffer = PhAllocateZero(filterNameBufferLength);
-    filterNameBuffer->FilterNameSize = (USHORT)ServiceName->Length;
-    RtlCopyMemory(filterNameBuffer->FilterName, ServiceName->Buffer, ServiceName->Length);
+    filterLoadParametersLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
+    filterLoadParameters = _malloca(filterLoadParametersLength);
+    filterLoadParameters->FilterNameSize = (USHORT)ServiceName->Length;
+    RtlCopyMemory(filterLoadParameters->FilterName, ServiceName->Buffer, ServiceName->Length);
 
     status = NtDeviceIoControlFile(
         fileHandle,
@@ -201,14 +201,15 @@ NTSTATUS PhFilterLoadUnload(
         NULL,
         &ioStatusBlock,
         LoadDriver ? FLT_CTL_LOAD : FLT_CTL_UNLOAD,
-        filterNameBuffer,
-        filterNameBufferLength,
+        filterLoadParameters,
+        filterLoadParametersLength,
         NULL,
         0
         );
 
     NtClose(fileHandle);
-    PhFree(filterNameBuffer);
+
+    _freea(filterLoadParameters);
 
     return status;
 }
@@ -309,7 +310,7 @@ NTSTATUS PhFilterReplyMessage(
  * \return Successful or errant status.
  */
 NTSTATUS PhFilterConnectCommunicationPort(
-    _In_ PPH_STRINGREF PortName,
+    _In_ PCPH_STRINGREF PortName,
     _In_ ULONG Options,
     _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
     _In_ USHORT SizeOfContext,

@@ -366,11 +366,11 @@ VOID PhTickHandleNodes(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_HANDLE_LIST_CONTEXT context = (PPH_HANDLE_LIST_CONTEXT)_context; \
     PPH_HANDLE_NODE node1 = *(PPH_HANDLE_NODE *)_elem1; \
     PPH_HANDLE_NODE node2 = *(PPH_HANDLE_NODE *)_elem2; \
     PPH_HANDLE_ITEM handleItem1 = node1->HandleItem; \
     PPH_HANDLE_ITEM handleItem2 = node2->HandleItem; \
-    PPH_HANDLE_LIST_CONTEXT context = (PPH_HANDLE_LIST_CONTEXT)_context; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
@@ -536,7 +536,9 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(handleItem->BestObjectName);
                 break;
             case PHHNTLC_HANDLE:
-                PhInitializeStringRefLongHint(&getCellText->Text, handleItem->HandleString);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, handleItem->HandleString);
+                }
                 break;
             case PHHNTLC_OBJECTADDRESS:
                 {
@@ -645,7 +647,11 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            PPH_TREENEW_SORT_CHANGED_EVENT sorting = Parameter1;
+
+            context->TreeNewSortColumn = sorting->SortColumn;
+            context->TreeNewSortOrder = sorting->SortOrder;
+
             // Force a rebuild to sort the items.
             TreeNew_NodesStructured(hwnd);
         }

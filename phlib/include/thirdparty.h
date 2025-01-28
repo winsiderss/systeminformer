@@ -66,3 +66,9 @@
 #else
 #error "ThirdParty.lib is mssing"
 #endif
+
+#if __has_include("../../tools/thirdparty/xxhash/xxhashwrapper.h")
+#include "../../tools/thirdparty/xxhash/xxhashwrapper.h"
+#else
+#error "ThirdParty.lib is mssing"
+#endif

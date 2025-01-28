@@ -269,7 +269,7 @@ VOID PvpSetWslImageBase(
     }
     else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
     {
-        string = PhFormatString(L"0x%I64x", PhGetMappedWslImageBaseAddress(&PvMappedImage));
+        string = PhFormatString(L"0x%llx", PhGetMappedWslImageBaseAddress(&PvMappedImage));
         PhSetDialogItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
         PhDereferenceObject(string);
     }
@@ -289,7 +289,7 @@ VOID PvpSetWslEntrypoint(
     }
     else if (PvMappedImage.Header->e_ident[EI_CLASS] == ELFCLASS64)
     {
-        string = PhFormatString(L"0x%I64x", PvMappedImage.Headers64->e_entry);
+        string = PhFormatString(L"0x%llx", PvMappedImage.Headers64->e_entry);
         PhSetDialogItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
         PhDereferenceObject(string);
     }

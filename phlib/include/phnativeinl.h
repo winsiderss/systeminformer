@@ -872,7 +872,7 @@ PhGetThreadPowerThrottlingState(
         &powerThrottlingState,
         sizeof(powerThrottlingState),
         NULL
-    );
+        );
 
     if (NT_SUCCESS(status))
     {
@@ -1377,12 +1377,32 @@ PhGetThreadGroupAffinity(
     _Out_ PGROUP_AFFINITY GroupAffinity
     )
 {
+    ULONG returnLength;
+
     return NtQueryInformationThread(
         ThreadHandle,
         ThreadGroupInformation,
         GroupAffinity,
         sizeof(GROUP_AFFINITY),
-        NULL
+        &returnLength
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadIndexInformation(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_INDEX_INFORMATION ThreadIndex
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIndexInformation,
+        ThreadIndex,
+        sizeof(THREAD_INDEX_INFORMATION),
+        &returnLength
         );
 }
 
@@ -2144,10 +2164,17 @@ PhGetSystemUptime(
 FORCEINLINE
 NTSTATUS PhWaitForSingleObject(
     _In_ HANDLE Handle,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ ULONG Timeout
     )
 {
-    return NtWaitForSingleObject(Handle, FALSE, Timeout);
+    LARGE_INTEGER timeout;
+
+    if (Timeout)
+    {
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(Timeout, PH_TIMEOUT_MS);
+    }
+
+    return NtWaitForSingleObject(Handle, FALSE, Timeout ? &timeout : nullptr);
 }
 
 #endif

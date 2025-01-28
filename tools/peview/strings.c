@@ -26,7 +26,8 @@ typedef struct _PV_STRINGS_SETTINGS
             ULONG Ansi : 1;
             ULONG Unicode : 1;
             ULONG ExtendedCharSet : 1;
-            ULONG Spare : 29;
+            ULONG SkipTextSection : 1;
+            ULONG Spare : 28;
         };
 
         ULONG Flags;
@@ -115,17 +116,25 @@ NTSTATUS NTAPI PvpStringSearchNextBuffer(
 _Function_class_(PH_STRING_SEARCH_CALLBACK)
 BOOLEAN NTAPI PvpStringSearchCallback(
     _In_ PPH_STRING_SEARCH_RESULT Result,
-    _In_opt_ PVOID Context
+    _In_ PPV_STRINGS_CONTEXT Context
     )
 {
-    PPV_STRINGS_CONTEXT context = Context;
     PPV_STRINGS_NODE node;
     PIMAGE_SECTION_HEADER section;
 
-    assert(Context);
+    section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase));
+
+    if (
+        Context->Settings.SkipTextSection && section &&
+        FlagOn(section->Characteristics, IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ)
+        )
+    {
+        if (PhEqualBytesZ((PCSTR)section->Name, ".text", FALSE))
+            return FALSE;
+    }
 
     node = PhAllocateZero(sizeof(PV_STRINGS_NODE));
-    node->Index = ++context->StringsCount;
+    node->Index = ++Context->StringsCount;
     node->Rva = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase);
     node->Unicode = Result->Unicode;
     node->String = PhReferenceObject(Result->String);
@@ -136,19 +145,22 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
-    PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
-    PhAddItemList(context->SearchResults, node);
-    PhReleaseQueuedLockExclusive(&context->SearchResultsLock);
-
-    if (section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)node->Rva))
+    if (section)
     {
-        for (ULONG i = 0; i < IMAGE_SIZEOF_SHORT_NAME; i++)
-        {
-            node->SectionName[i] = section->Name[i];
-        }
+        PhCopyStringZFromUtf8(
+            (PCSTR)section->Name,
+            SIZE_MAX,
+            node->SectionName,
+            RTL_NUMBER_OF(node->SectionName),
+            NULL
+            );
     }
 
-    return !!context->StopSearch;
+    PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+    PhAddItemList(Context->SearchResults, node);
+    PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+
+    return !!Context->StopSearch;
 }
 
 NTSTATUS PvpSearchStringsThread(
@@ -620,7 +632,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )
 {
     PULONG length;
 
@@ -698,7 +710,7 @@ INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
 ULONG PvpStringsMinimumLengthDialog(
     _In_ HWND WindowHandle,
     _In_ ULONG CurrentMinimumLength
-)
+    )
 {
     ULONG length;
 
@@ -877,6 +889,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     PPH_EMENU_ITEM unicode;
                     PPH_EMENU_ITEM extendedUnicode;
                     PPH_EMENU_ITEM minimumLength;
+                    PPH_EMENU_ITEM skipExecutableSection;
                     PPH_EMENU_ITEM refresh;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
@@ -884,6 +897,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     ansi = PhCreateEMenuItem(0, 1, L"ANSI", NULL, NULL);
                     unicode = PhCreateEMenuItem(0, 2, L"Unicode", NULL, NULL);
                     extendedUnicode = PhCreateEMenuItem(0, 3, L"Extended character set", NULL, NULL);
+                    skipExecutableSection = PhCreateEMenuItem(0, 4, L"Skip .text secton", NULL, NULL);
                     minimumLength = PhCreateEMenuItem(0, 4, L"Minimum length...", NULL, NULL);
                     refresh = PhCreateEMenuItem(0, 5, L"Refresh", NULL, NULL);
 
@@ -891,6 +905,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
                     PhInsertEMenuItem(menu, unicode, ULONG_MAX);
                     PhInsertEMenuItem(menu, extendedUnicode, ULONG_MAX);
+                    PhInsertEMenuItem(menu, skipExecutableSection, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, minimumLength, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -902,6 +917,8 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         unicode->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.ExtendedCharSet)
                         extendedUnicode->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.SkipTextSection)
+                        skipExecutableSection->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -929,6 +946,12 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         else if (selectedItem == extendedUnicode)
                         {
                             context->Settings.ExtendedCharSet = !context->Settings.ExtendedCharSet;
+                            PvpSaveSettingsStrings(context);
+                            PvpSearchStrings(context);
+                        }
+                        else if (selectedItem == skipExecutableSection)
+                        {
+                            context->Settings.SkipTextSection = !context->Settings.SkipTextSection;
                             PvpSaveSettingsStrings(context);
                             PvpSearchStrings(context);
                         }

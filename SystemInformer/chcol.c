@@ -384,18 +384,19 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
-                    #define ORDER_LIMIT 210
                     ULONG i;
-                    ULONG orderArray[ORDER_LIMIT];
+                    ULONG orderArraySize;
+                    PULONG orderArray;
                     ULONG maxOrder;
-#ifdef DEBUG
-                    assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // ORDER_LIMIT must be defined a value greater than ColumnCount // (dmex)
-#endif
-                    memset(orderArray, 0, sizeof(orderArray));
-                    maxOrder = 0;
 
                     if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
                     {
+                        orderArraySize = (TreeNew_GetColumnCount(context->ControlHandle) + 1) * sizeof(ULONG);
+                        orderArray = _malloca(orderArraySize);
+
+                        memset(orderArray, 0, orderArraySize);
+                        maxOrder = 0;
+
                         // Apply visibility settings and build the order array.
 
                         TreeNew_SetRedraw(context->ControlHandle, FALSE);
@@ -410,7 +411,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                             TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
 
-                            if (column->Visible && index < ORDER_LIMIT)
+                            if (column->Visible)
                             {
                                 orderArray[index] = column->Id;
 
@@ -425,6 +426,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         TreeNew_SetRedraw(context->ControlHandle, TRUE);
 
                         InvalidateRect(context->ControlHandle, NULL, FALSE);
+
+                        _freea(orderArray);
                     }
 
                     EndDialog(hwndDlg, IDOK);

@@ -1005,24 +1005,17 @@ NTSTATUS KphSetInformationProcess(
 
     if (AccessMode != KernelMode)
     {
-        if (ProcessInformationLength <= ARRAYSIZE(stackBuffer))
+        processInformation = KphAllocatePagedA(ProcessInformationLength,
+                                               KPH_TAG_PROCESS_INFO,
+                                               stackBuffer);
+        if (!processInformation)
         {
-            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-            processInformation = stackBuffer;
-        }
-        else
-        {
-            processInformation = KphAllocatePaged(ProcessInformationLength,
-                                                  KPH_TAG_PROCESS_INFO);
-            if (!processInformation)
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              GENERAL,
-                              "Failed to allocate process info buffer.");
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Failed to allocate process info buffer.");
 
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
-            }
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
         }
 
         __try
@@ -1208,11 +1201,9 @@ Exit:
         ObDereferenceObject(process);
     }
 
-    if (processInformation &&
-        (processInformation != ProcessInformation) &&
-        (processInformation != stackBuffer))
+    if (processInformation && (processInformation != ProcessInformation))
     {
-        KphFree(processInformation, KPH_TAG_PROCESS_INFO);
+        KphFreeA(processInformation, KPH_TAG_PROCESS_INFO, stackBuffer);
     }
 
     return status;

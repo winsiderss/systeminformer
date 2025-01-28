@@ -144,7 +144,7 @@ VOID NTAPI KsipApcKernelRoutine(
     ObDereferenceObjectDeferDelete(driverObject);
 }
 
-VOID KsiInitializeApc(
+VOID KSIAPI KsiInitializeApc(
     _Out_ PKSI_KAPC Apc,
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PRKTHREAD Thread,
@@ -171,7 +171,7 @@ VOID KsiInitializeApc(
     Apc->InternalContext = NULL;
 }
 
-BOOLEAN KsiInsertQueueApc(
+BOOLEAN KSIAPI KsiInsertQueueApc(
     _Inout_ PKSI_KAPC Apc,
     _In_opt_ PVOID SystemArgument1,
     _In_opt_ PVOID SystemArgument2,
@@ -194,7 +194,7 @@ BOOLEAN KsiInsertQueueApc(
     return result;
 }
 
-NTSTATUS KsiRemoveQueueApc(
+NTSTATUS KSIAPI KsiRemoveQueueApc(
     _Inout_ PKSI_KAPC Apc
     )
 {
@@ -256,7 +256,7 @@ VOID KsipWorkItemRoutine(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-VOID KsiInitializeWorkItem(
+VOID KSIAPI KsiInitializeWorkItem(
     _Out_ PKSI_WORK_QUEUE_ITEM WorkItem,
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PKSI_WORK_QUEUE_ROUTINE Routine,
@@ -272,7 +272,7 @@ VOID KsiInitializeWorkItem(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-VOID KsiQueueWorkItem(
+VOID KSIAPI KsiQueueWorkItem(
     _Inout_ PKSI_WORK_QUEUE_ITEM WorkItem,
     _In_ WORK_QUEUE_TYPE QueueType
     )
@@ -289,7 +289,7 @@ VOID KsiQueueWorkItem(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KsiInitialize(
+NTSTATUS KSIAPI KsiInitialize(
     _In_ ULONG Version,
     _In_ PDRIVER_OBJECT DriverObject,
     _In_opt_ PVOID Reserved
@@ -307,7 +307,7 @@ NTSTATUS KsiInitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KsiUninitialize(
+VOID KSIAPI KsiUninitialize(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ ULONG Reserved
     )

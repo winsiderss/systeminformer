@@ -11,6 +11,8 @@
 
 #pragma once
 
+EXTERN_C_START
+
 EXTERN_C
 BOOLEAN
 NTAPI
@@ -27,3 +29,5 @@ PvGetTlshFileHash(
     _In_ HANDLE FileHandle,
     _Out_ char** HashResult
     );
+
+EXTERN_C_END

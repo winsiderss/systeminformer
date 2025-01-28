@@ -145,8 +145,8 @@ VOID GraphicsDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->GpuDialog,
         NULL,
         NULL,
@@ -160,8 +160,8 @@ VOID GraphicsDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->GpuDialog,
         NULL,
         NULL,
@@ -175,8 +175,8 @@ VOID GraphicsDeviceCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->GpuDialog,
         NULL,
         NULL,
@@ -192,8 +192,8 @@ VOID GraphicsDeviceCreateGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             Context->GpuDialog,
             NULL,
             NULL,
@@ -207,8 +207,8 @@ VOID GraphicsDeviceCreateGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             Context->GpuDialog,
             NULL,
             NULL,
@@ -222,8 +222,8 @@ VOID GraphicsDeviceCreateGraphs(
             WS_VISIBLE | WS_CHILD | WS_BORDER,
             0,
             0,
-            3,
-            3,
+            0,
+            0,
             Context->GpuDialog,
             NULL,
             NULL,
@@ -997,47 +997,29 @@ VOID GraphicsDeviceUpdateGraphs(
 {
     Context->GpuGraphState.Valid = FALSE;
     Context->GpuGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GpuGraphHandle, 1);
-    Graph_Draw(Context->GpuGraphHandle);
-    Graph_UpdateTooltip(Context->GpuGraphHandle);
-    InvalidateRect(Context->GpuGraphHandle, NULL, FALSE);
+    Graph_Update(Context->GpuGraphHandle);
 
     Context->DedicatedGraphState.Valid = FALSE;
     Context->DedicatedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->DedicatedGraphHandle, 1);
-    Graph_Draw(Context->DedicatedGraphHandle);
-    Graph_UpdateTooltip(Context->DedicatedGraphHandle);
-    InvalidateRect(Context->DedicatedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->DedicatedGraphHandle);
 
     Context->SharedGraphState.Valid = FALSE;
     Context->SharedGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->SharedGraphHandle, 1);
-    Graph_Draw(Context->SharedGraphHandle);
-    Graph_UpdateTooltip(Context->SharedGraphHandle);
-    InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
+    Graph_Update(Context->SharedGraphHandle);
 
     //if (EtGpuSupported)
     {
         Context->PowerUsageGraphState.Valid = FALSE;
         Context->PowerUsageGraphState.TooltipIndex = ULONG_MAX;
-        Graph_MoveGrid(Context->PowerUsageGraphHandle, 1);
-        Graph_Draw(Context->PowerUsageGraphHandle);
-        Graph_UpdateTooltip(Context->PowerUsageGraphHandle);
-        InvalidateRect(Context->PowerUsageGraphHandle, NULL, FALSE);
+        Graph_Update(Context->PowerUsageGraphHandle);
 
         Context->TemperatureGraphState.Valid = FALSE;
         Context->TemperatureGraphState.TooltipIndex = ULONG_MAX;
-        Graph_MoveGrid(Context->TemperatureGraphHandle, 1);
-        Graph_Draw(Context->TemperatureGraphHandle);
-        Graph_UpdateTooltip(Context->TemperatureGraphHandle);
-        InvalidateRect(Context->TemperatureGraphHandle, NULL, FALSE);
+        Graph_Update(Context->TemperatureGraphHandle);
 
         Context->FanRpmGraphState.Valid = FALSE;
         Context->FanRpmGraphState.TooltipIndex = ULONG_MAX;
-        Graph_MoveGrid(Context->FanRpmGraphHandle, 1);
-        Graph_Draw(Context->FanRpmGraphHandle);
-        Graph_UpdateTooltip(Context->FanRpmGraphHandle);
-        InvalidateRect(Context->FanRpmGraphHandle, NULL, FALSE);
+        Graph_Update(Context->FanRpmGraphHandle);
     }
 }
 

@@ -138,7 +138,7 @@ NTSTATUS NTAPI PhpEnumVirtualMemoryAttributesCallback(
     for (ULONG_PTR i = 0; i < NumberOfEntries; i++)
     {
         PMEMORY_WORKING_SET_EX_INFORMATION page = &Blocks[i];
-        PMEMORY_WORKING_SET_EX_BLOCK block = &page->u1.VirtualAttributes;
+        PMEMORY_WORKING_SET_EX_BLOCK block = &page->VirtualAttributes;
 
         if (!block->SharedOriginal)
         {

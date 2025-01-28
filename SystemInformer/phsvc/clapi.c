@@ -22,6 +22,7 @@ NTSTATUS PhSvcConnectToServer(
     _In_opt_ SIZE_T PortSectionSize
     )
 {
+    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     NTSTATUS status;
     HANDLE sectionHandle;
     LARGE_INTEGER sectionSize;
@@ -110,7 +111,7 @@ NTSTATUS PhSvcConnectToServer(
     RtlSetHeapInformation(
         PhSvcClPortHeap,
         HeapCompatibilityInformation,
-        &(ULONG){ HEAP_COMPATIBILITY_LFH },
+        &heapCompatibility,
         sizeof(ULONG)
         );
 
@@ -339,7 +340,8 @@ NTSTATUS PhSvcCallExecuteRunAsCommand(
 
 NTSTATUS PhSvcCallUnloadDriver(
     _In_opt_ PVOID BaseAddress,
-    _In_opt_ PCWSTR Name
+    _In_opt_ PCWSTR Name,
+    _In_opt_ PCWSTR FileName
     )
 {
     NTSTATUS status;
@@ -352,12 +354,19 @@ NTSTATUS PhSvcCallUnloadDriver(
         return STATUS_PORT_DISCONNECTED;
 
     m.p.ApiNumber = PhSvcUnloadDriverApiNumber;
-
     m.p.u.UnloadDriver.i.BaseAddress = BaseAddress;
 
     if (Name)
     {
         name = PhSvcpCreateString(Name, SIZE_MAX, &m.p.u.UnloadDriver.i.Name);
+
+        if (!name)
+            return STATUS_NO_MEMORY;
+    }
+
+    if (FileName)
+    {
+        name = PhSvcpCreateString(FileName, SIZE_MAX, &m.p.u.UnloadDriver.i.FileName);
 
         if (!name)
             return STATUS_NO_MEMORY;

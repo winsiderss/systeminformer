@@ -394,15 +394,20 @@ VOID PhInitializeThemeWindowFrame(
 {
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
+        BOOL boolAttribute;
+        ULONG ulongAttribute;
+
         if (PhEnableThemeSupport)
         {
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
             //    {
-            //        if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            //        boolAttribute = FALSE;
+            //
+            //        if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &boolAttribute, sizeof(BOOL))))
             //        {
-            //            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+            //            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &boolAttribute, sizeof(BOOL));
             //        }
             //
             //        //if (WindowsVersion > WINDOWS_11)
@@ -413,9 +418,11 @@ VOID PhInitializeThemeWindowFrame(
             //    break;
             //case 1: // Old colors
 
-            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+            boolAttribute = TRUE;
+
+            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &boolAttribute, sizeof(BOOL))))
             {
-                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &boolAttribute, sizeof(BOOL));
             }
 
             if (WindowsVersion >= WINDOWS_11)
@@ -426,7 +433,8 @@ VOID PhInitializeThemeWindowFrame(
 
         if (WindowsVersion >= WINDOWS_11_22H2)
         {
-            PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
+            ulongAttribute = 1;
+            PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &ulongAttribute, sizeof(ULONG));
         }
     }
 }
@@ -436,6 +444,8 @@ VOID PhWindowThemeSetDarkMode(
     _In_ BOOLEAN EnableDarkMode
     )
 {
+    //BOOL boolAttribute;
+
     if (EnableDarkMode && PhEnableThemeSupport) // ShouldAppsUseDarkMode_I()
     {
         PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
@@ -443,9 +453,11 @@ VOID PhWindowThemeSetDarkMode(
 
         //if (WindowsVersion >= WINDOWS_11)
         //{
-        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+        //    boolAttribute = TRUE;
+        //
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &boolAttribute, sizeof(BOOL))))
         //    {
-        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &boolAttribute, sizeof(BOOL));
         //    }
         //}
     }
@@ -456,9 +468,11 @@ VOID PhWindowThemeSetDarkMode(
 
         //if (WindowsVersion >= WINDOWS_11)
         //{
-        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+        //    boolAttribute = FALSE;
+        //
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &boolAttribute, sizeof(BOOL))))
         //    {
-        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &boolAttribute, sizeof(BOOL));
         //    }
         //}
     }

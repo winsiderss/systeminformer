@@ -90,8 +90,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -105,8 +105,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -120,8 +120,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -135,8 +135,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -150,8 +150,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -165,8 +165,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -180,8 +180,8 @@ VOID FramesPropCreateGraphs(
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
-        3,
-        3,
+        0,
+        0,
         Context->WindowHandle,
         NULL,
         NULL,
@@ -339,52 +339,31 @@ VOID FramesPropUpdateGraphs(
 {
     Context->FramesPerSecondGraphState.Valid = FALSE;
     Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->FramesPerSecondGraphHandle, 1);
-    Graph_Draw(Context->FramesPerSecondGraphHandle);
-    Graph_UpdateTooltip(Context->FramesPerSecondGraphHandle);
-    InvalidateRect(Context->FramesPerSecondGraphHandle, NULL, FALSE);
+    Graph_Update(Context->FramesPerSecondGraphHandle);
 
     Context->FramesLatencyGraphState.Valid = FALSE;
     Context->FramesLatencyGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->FramesLatencyGraphHandle, 1);
-    Graph_Draw(Context->FramesLatencyGraphHandle);
-    Graph_UpdateTooltip(Context->FramesLatencyGraphHandle);
-    InvalidateRect(Context->FramesLatencyGraphHandle, NULL, FALSE);
+    Graph_Update(Context->FramesLatencyGraphHandle);
 
     Context->PresentIntervalGraphState.Valid = FALSE;
     Context->PresentIntervalGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->PresentIntervalGraphHandle, 1);
-    Graph_Draw(Context->PresentIntervalGraphHandle);
-    Graph_UpdateTooltip(Context->PresentIntervalGraphHandle);
-    InvalidateRect(Context->PresentIntervalGraphHandle, NULL, FALSE);
+    Graph_Update(Context->PresentIntervalGraphHandle);
 
     Context->PresentDurationGraphState.Valid = FALSE;
     Context->PresentDurationGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->PresentDurationGraphHandle, 1);
-    Graph_Draw(Context->PresentDurationGraphHandle);
-    Graph_UpdateTooltip(Context->PresentDurationGraphHandle);
-    InvalidateRect(Context->PresentDurationGraphHandle, NULL, FALSE);
+    Graph_Update(Context->PresentDurationGraphHandle);
 
     Context->FramesRenderTimeGraphState.Valid = FALSE;
     Context->FramesRenderTimeGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->FramesRenderTimeGraphHandle, 1);
-    Graph_Draw(Context->FramesRenderTimeGraphHandle);
-    Graph_UpdateTooltip(Context->FramesRenderTimeGraphHandle);
-    InvalidateRect(Context->FramesRenderTimeGraphHandle, NULL, FALSE);
+    Graph_Update(Context->FramesRenderTimeGraphHandle);
 
     Context->FramesDisplayTimeGraphState.Valid = FALSE;
     Context->FramesDisplayTimeGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->FramesDisplayTimeGraphHandle, 1);
-    Graph_Draw(Context->FramesDisplayTimeGraphHandle);
-    Graph_UpdateTooltip(Context->FramesDisplayTimeGraphHandle);
-    InvalidateRect(Context->FramesDisplayTimeGraphHandle, NULL, FALSE);
+    Graph_Update(Context->FramesDisplayTimeGraphHandle);
 
     Context->FramesDisplayLatencyGraphState.Valid = FALSE;
     Context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->FramesDisplayLatencyGraphHandle, 1);
-    Graph_Draw(Context->FramesDisplayLatencyGraphHandle);
-    Graph_UpdateTooltip(Context->FramesDisplayLatencyGraphHandle);
-    InvalidateRect(Context->FramesDisplayLatencyGraphHandle, NULL, FALSE);
+    Graph_Update(Context->FramesDisplayLatencyGraphHandle);
 }
 
 VOID FramesPropUpdatePanel(
@@ -1172,7 +1151,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case WM_PH_UPDATE_DIALOG:
         {
-            if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
+            if (!FlagOn(processItem->State, PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {
                 FramesPropUpdateGraphs(context);
                 FramesPropUpdatePanel(context);

@@ -903,23 +903,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-
-
-
-                    //FINDREPLACE fr;       // common dialog box structure
-                    //WCHAR szFindWhat[80] = { 0 };  // buffer receiving string
-                    //HWND hdlg = NULL;     // handle to Find dialog box
-
-                    //// Initialize FINDREPLACE
-                    //ZeroMemory(&fr, sizeof(fr));
-                    //fr.lStructSize = sizeof(fr);
-                    //fr.hwndOwner = hwndDlg;
-                    //fr.lpstrFindWhat = szFindWhat;
-                    //fr.wFindWhatLen = 40;
-                    //fr.Flags = 0;
-
-                    //hdlg = FindText(&fr);
-
                     WepRefreshWindows(context);
 
                     PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);

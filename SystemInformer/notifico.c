@@ -404,6 +404,8 @@ VOID PhNfUninitialization(
     )
 {
 #ifdef PH_NF_ENABLE_WORKQUEUE
+    //LARGE_INTEGER timeout;
+
     if (PhpTrayIconEventHandle)
         NtSetEvent(PhpTrayIconEventHandle, NULL);
 #endif
@@ -423,7 +425,7 @@ VOID PhNfUninitialization(
 //#ifdef PH_NF_ENABLE_WORKQUEUE
 //    if (PhpTrayIconThreadHandle)
 //    {
-//        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, PhTimeoutFromMillisecondsEx(1000));
+//        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 1000));
 //    }
 //#endif
 }

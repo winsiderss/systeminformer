@@ -19,9 +19,8 @@
 
 EXTERN_C_START
 
-#define KPH_SERVICE_NAME TEXT("SystemInformer")
-#define KPH_OBJECT_PATH  TEXT("\\Driver")
-#define KPH_OBJECT_NAME  TEXT("\\SystemInformer")
+#define KPH_SERVICE_NAME TEXT("KSystemInformer")
+#define KPH_OBJECT_NAME  TEXT("\\Driver\\KSystemInformer")
 #define KPH_PORT_NAME    TEXT("\\KSystemInformer")
 
 #ifdef DEBUG
@@ -35,14 +34,13 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF FileName;
     _In_ PPH_STRINGREF ServiceName;
     _In_ PPH_STRINGREF ObjectName;
-    _In_opt_ PPH_STRINGREF PortName;
+    _In_opt_ PCPH_STRINGREF PortName;
     _In_opt_ PPH_STRINGREF Altitude;
     _In_ ULONG FsSupportedFeatures;
     _In_ KPH_PARAMETER_FLAGS Flags;
-    _In_opt_ PKPH_COMMS_CALLBACK Callback;
-
     _In_ BOOLEAN EnableNativeLoad;
     _In_ BOOLEAN EnableFilterLoad;
+    _In_opt_ PKPH_COMMS_CALLBACK Callback;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 
 PHLIBAPI
@@ -237,6 +235,15 @@ KphQueryInformationObject(
     _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength,
     _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryObjectThreadName(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ThreadName
     );
 
 PHLIBAPI

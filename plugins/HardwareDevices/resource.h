@@ -81,9 +81,11 @@
 #define IDC_DEVICE_PROPERTIES_LIST      1107
 #define IDD_DEVICE_INTERFACES           1108
 #define IDC_DEVICE_INTERFACES_INFO      1109
+#define IDD_DEVICE_RESOURCES            1110
+#define IDC_DEVICE_RESOURCES_INFO       1111
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        118

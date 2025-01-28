@@ -36,6 +36,7 @@
 *.vspscc
 *_i.c
 *_p.c
+*.bak
 
 # Visual C++ cache files
 *.aps

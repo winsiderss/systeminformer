@@ -774,19 +774,13 @@ NTSTATUS KphAlpcQueryInformation(
                 allocatedSize = sizeof(KPH_ALPC_COMMUNICATION_NAMES_INFORMATION);
             }
 
-            if (allocatedSize <= ARRAYSIZE(stackBuffer))
+            buffer = KphAllocatePagedA(allocatedSize,
+                                       KPH_TAG_ALPC_QUERY,
+                                       stackBuffer);
+            if (!buffer)
             {
-                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-                buffer = stackBuffer;
-            }
-            else
-            {
-                buffer = KphAllocatePaged(allocatedSize, KPH_TAG_ALPC_QUERY);
-                if (!buffer)
-                {
-                    status = STATUS_INSUFFICIENT_RESOURCES;
-                    goto Exit;
-                }
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
             }
 
             info = buffer;
@@ -841,9 +835,9 @@ NTSTATUS KphAlpcQueryInformation(
 
 Exit:
 
-    if (buffer && (buffer != stackBuffer))
+    if (buffer)
     {
-        KphFree(buffer, KPH_TAG_ALPC_QUERY);
+        KphFreeA(buffer, KPH_TAG_ALPC_QUERY, stackBuffer);
     }
 
     if (port)

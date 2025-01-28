@@ -482,7 +482,8 @@ PhSaveCustomColorList(
     );
 // end_phapppub
 
-#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
+#define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), (PhCs##Name) = (Value)))
 
 EXTERN_C_END
 

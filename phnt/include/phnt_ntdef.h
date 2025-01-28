@@ -17,7 +17,9 @@
 #define NOTHING
 #endif
 
+//
 // Basic types
+//
 
 typedef struct _QUAD
 {
@@ -41,7 +43,9 @@ typedef ULONG *PLOGICAL;
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 typedef NTSTATUS *PNTSTATUS;
 
+//
 // Cardinal types
+//
 
 typedef char CCHAR;
 typedef short CSHORT;
@@ -54,8 +58,11 @@ typedef CLONG *PCLONG;
 typedef PCSTR PCSZ;
 
 typedef PVOID* PPVOID;
+typedef CONST VOID *PCVOID;
 
+//
 // Specific
+//
 
 typedef UCHAR KIRQL, *PKIRQL;
 typedef LONG KPRIORITY, *PKPRIORITY;
@@ -73,7 +80,9 @@ typedef struct _ULARGE_INTEGER_128
     ULONGLONG QuadPart[2];
 } ULARGE_INTEGER_128, *PULARGE_INTEGER_128;
 
+//
 // Limits
+//
 
 #define MINCHAR     0x80        // winnt
 #define MAXCHAR     0x7f        // winnt
@@ -85,7 +94,9 @@ typedef struct _ULARGE_INTEGER_128
 #define MAXUSHORT   0xffff      // winnt
 #define MAXULONG    0xffffffff  // winnt
 
+//
 // NT status macros
+//
 
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define NT_INFORMATION(Status) ((((ULONG)(Status)) >> 30) == 1)
@@ -102,7 +113,9 @@ typedef struct _ULARGE_INTEGER_128
 #define NT_NTWIN32(Status) (NT_FACILITY(Status) == FACILITY_NTWIN32)
 #define WIN32_FROM_NTSTATUS(Status) (((ULONG)(Status)) & 0xffff)
 
+//
 // Functions
+//
 
 #ifndef _WIN64
 #define FASTCALL __fastcall
@@ -110,7 +123,9 @@ typedef struct _ULARGE_INTEGER_128
 #define FASTCALL
 #endif
 
+//
 // Synchronization enumerations
+//
 
 typedef enum _EVENT_TYPE
 {
@@ -133,7 +148,9 @@ typedef enum _WAIT_TYPE
     WaitDpc,
 } WAIT_TYPE;
 
+//
 // Strings
+//
 
 typedef struct _STRING
 {
@@ -171,7 +188,9 @@ extern const DECLSPEC_SELECTANY UNICODE_STRING _var = RTL_CONSTANT_STRING(_str)
 WCHAR _var ## _buffer[_size]; \
 UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
 
+//
 // Balanced tree node
+//
 
 #define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
 
@@ -197,7 +216,9 @@ typedef struct _RTL_BALANCED_NODE
 #define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) \
     ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
 
+//
 // Portability
+//
 
 typedef struct _SINGLE_LIST_ENTRY32
 {
@@ -224,7 +245,9 @@ typedef struct _STRING64
 typedef STRING64 UNICODE_STRING64, *PUNICODE_STRING64;
 typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 
+//
 // Object attributes
+//
 
 #define OBJ_PROTECT_CLOSE                   0x00000001L
 #define OBJ_INHERIT                         0x00000002L
@@ -277,7 +300,9 @@ typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
 #define OBJ_NAME_PATH_SEPARATOR ((WCHAR)L'\\')
 #define OBJ_NAME_ALTPATH_SEPARATOR ((WCHAR)L'/')
 
+//
 // Portability
+//
 
 typedef struct _OBJECT_ATTRIBUTES64
 {
@@ -303,7 +328,9 @@ typedef struct _OBJECT_ATTRIBUTES32
 
 typedef const OBJECT_ATTRIBUTES32 *PCOBJECT_ATTRIBUTES32;
 
+//
 // Product types
+//
 
 typedef enum _NT_PRODUCT_TYPE
 {
@@ -334,7 +361,9 @@ typedef enum _SUITE_TYPE
     MaxSuiteType
 } SUITE_TYPE;
 
+//
 // Specific
+//
 
 typedef struct _CLIENT_ID
 {
@@ -388,6 +417,14 @@ typedef struct _KSYSTEM_TIME
 #define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
 #else
 #define POINTER_ALIGNMENT
+#endif
+
+#ifndef DECLSPEC_NOALIAS
+#if _MSC_VER < 1900
+#define DECLSPEC_NOALIAS
+#else
+#define DECLSPEC_NOALIAS __declspec(noalias)
+#endif
 #endif
 
 #endif

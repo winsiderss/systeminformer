@@ -157,6 +157,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     PPH_STRING httpRequestString = NULL;
     PPH_STRING httpHeaderFileHash = NULL;
     PPH_STRING httpHeaderFileName = NULL;
+    LARGE_INTEGER allocationSize;
     ULONG httpStatus = 0;
     ULONG httpContentLength = 0;
     PH_HASH_CONTEXT hashContext;
@@ -335,11 +336,13 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         goto CleanupExit;
     }
 
+    allocationSize.QuadPart = httpContentLength;
+
     status = PhCreateFileWin32Ex(
         &tempFileHandle,
         PhGetString(httpHeaderFileName),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        &(LARGE_INTEGER){ .QuadPart = httpContentLength },
+        &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
         FILE_OVERWRITE_IF,

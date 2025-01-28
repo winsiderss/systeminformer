@@ -4,23 +4,26 @@
         <OutputType>Exe</OutputType>
         <Platforms>AnyCPU</Platforms>
         <PlatformTarget>AnyCPU</PlatformTarget>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
         <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
         <PublishAot>true</PublishAot>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
       <DefineConstants>DEBUG;TRACE</DefineConstants>
       <DebugType>full</DebugType>
       <DebugSymbols>true</DebugSymbols>
+      <FileAlignment>4096</FileAlignment>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
       <DefineConstants />
       <DebugType>embedded</DebugType>
       <DebugSymbols>true</DebugSymbols>
+      <FileAlignment>4096</FileAlignment>
     </PropertyGroup>
     
 </Project>

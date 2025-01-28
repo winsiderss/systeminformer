@@ -428,6 +428,10 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG64 IoOtherCountDelta; ULONG64 IoOtherCountDeltaMin; ULONG64 IoOtherCountDeltaMax; ULONG64 IoOtherCountDeltaDiff;
     ULONG64 OtherTransferCount; ULONG64 OtherTransferCountMin; ULONG64 OtherTransferCountMax; ULONG64 OtherTransferCountDiff;
     ULONG64 IoOtherDelta; ULONG64 IoOtherDeltaMin; ULONG64 IoOtherDeltaMax; ULONG64 IoOtherDeltaDiff;
+
+    ULONG64 IoTotal; ULONG64 IoTotalMin; ULONG64 IoTotalMax; ULONG64 IoTotalDiff;
+    ULONG64 IoTotalDelta; ULONG64 IoTotalDeltaMin; ULONG64 IoTotalDeltaMax; ULONG64 IoTotalDeltaDiff;
+
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)

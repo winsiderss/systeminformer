@@ -206,19 +206,13 @@ typedef struct _IO_STATUS_BLOCK
     ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
-typedef VOID (NTAPI *PIO_APC_ROUTINE)(
+typedef _Function_class_(IO_APC_ROUTINE)
+VOID NTAPI IO_APC_ROUTINE(
     _In_ PVOID ApcContext,
     _In_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG Reserved
     );
-
-// private
-typedef struct _FILE_IO_COMPLETION_INFORMATION
-{
-    PVOID KeyContext;
-    PVOID ApcContext;
-    IO_STATUS_BLOCK IoStatusBlock;
-} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+typedef IO_APC_ROUTINE* PIO_APC_ROUTINE;
 
 typedef enum _FILE_INFORMATION_CLASS
 {
@@ -537,6 +531,9 @@ typedef struct _FILE_RENAME_INFORMATION_EX
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_RENAME_INFORMATION_EX, *PFILE_RENAME_INFORMATION_EX;
 
+/**
+ * The FILE_STREAM_INFORMATION structure contains information about a file stream.
+ */
 typedef struct _FILE_STREAM_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -546,6 +543,9 @@ typedef struct _FILE_STREAM_INFORMATION
     _Field_size_bytes_(StreamNameLength) WCHAR StreamName[1];
 } FILE_STREAM_INFORMATION, *PFILE_STREAM_INFORMATION;
 
+/**
+ * The FILE_TRACKING_INFORMATION structure contains information used for tracking file operations.
+ */
 typedef struct _FILE_TRACKING_INFORMATION
 {
     HANDLE DestinationFile;
@@ -553,18 +553,42 @@ typedef struct _FILE_TRACKING_INFORMATION
     _Field_size_bytes_(ObjectInformationLength) CHAR ObjectInformation[1];
 } FILE_TRACKING_INFORMATION, *PFILE_TRACKING_INFORMATION;
 
+/**
+ * The FILE_COMPLETION_INFORMATION structure contains the port handle and key for an I/O completion port created for a file handle.
+ *
+ * \remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
+ * Completion information is replaced with the ZwSetInformationFile routine with the FileInformationClass parameter set to FileReplaceCompletionInformation.
+ * The Port and Key members of FILE_COMPLETION_INFORMATION are set to their new values. To remove an existing completion port for a file handle, Port is set to NULL.
+ *
+ * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_completion_information
+ */
 typedef struct _FILE_COMPLETION_INFORMATION
 {
     HANDLE Port;
     PVOID Key;
 } FILE_COMPLETION_INFORMATION, *PFILE_COMPLETION_INFORMATION;
 
+/**
+ * The FILE_PIPE_INFORMATION structure contains information about a named pipe that is not specific to the local or the remote end of the pipe.
+ *
+ * \remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
+ * When CompletionMode is set to FILE_PIPE_QUEUE_OPERATION, if the pipe is connected to, read to, or written from,
+ * the operation is not completed until there is data to read, all data is written, or a client is connected.
+ * When CompletionMode is set to FILE_PIPE_COMPLETE_OPERATION, if the pipe is being connected to, read to, or written from, the operation is completed immediately.
+ *
+ * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_information
+ */
 typedef struct _FILE_PIPE_INFORMATION
 {
      ULONG ReadMode;
      ULONG CompletionMode;
 } FILE_PIPE_INFORMATION, *PFILE_PIPE_INFORMATION;
 
+/**
+ * The FILE_PIPE_LOCAL_INFORMATION structure contains information about the local end of a named pipe.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_local_information
+ */
 typedef struct _FILE_PIPE_LOCAL_INFORMATION
 {
      ULONG NamedPipeType;
@@ -579,32 +603,54 @@ typedef struct _FILE_PIPE_LOCAL_INFORMATION
      ULONG NamedPipeEnd;
 } FILE_PIPE_LOCAL_INFORMATION, *PFILE_PIPE_LOCAL_INFORMATION;
 
+/**
+ * The FILE_PIPE_REMOTE_INFORMATION structure contains information about the remote end of a named pipe.
+ *
+ * \remarks Remote information is not available for local pipes or for the server end of a remote pipe.
+ * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_remote_information
+ */
 typedef struct _FILE_PIPE_REMOTE_INFORMATION
 {
-     LARGE_INTEGER CollectDataTime;
-     ULONG MaximumCollectionCount;
+    LARGE_INTEGER CollectDataTime;  // The maximum amount of time, in 100-nanosecond intervals, that elapses before transmission of data from the client machine to the server.
+    ULONG MaximumCollectionCount;   // The maximum size, in bytes, of data that will be collected on the client machine before transmission to the server.
 } FILE_PIPE_REMOTE_INFORMATION, *PFILE_PIPE_REMOTE_INFORMATION;
 
+/**
+ * The FILE_MAILSLOT_QUERY_INFORMATION structure contains information about a mailslot.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_query_information
+ */
 typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
 {
-    ULONG MaximumMessageSize;
-    ULONG MailslotQuota;
-    ULONG NextMessageSize;
-    ULONG MessagesAvailable;
-    LARGE_INTEGER ReadTimeout;
+    ULONG MaximumMessageSize;       // The maximum size, in bytes, of a single message that can be written to the mailslot, or 0 for a message of any size.
+    ULONG MailslotQuota;            // The size, in bytes, of the in-memory pool that is reserved for writes to this mailslot.
+    ULONG NextMessageSize;          // The next message size, in bytes.
+    ULONG MessagesAvailable;        // The total number of messages waiting to be read from the mailslot.
+    LARGE_INTEGER ReadTimeout;      // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
 } FILE_MAILSLOT_QUERY_INFORMATION, *PFILE_MAILSLOT_QUERY_INFORMATION;
 
+/**
+ * The FILE_MAILSLOT_SET_INFORMATION structure is used to set a value on a mailslot.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_set_information
+ */
 typedef struct _FILE_MAILSLOT_SET_INFORMATION
 {
-    PLARGE_INTEGER ReadTimeout;
+    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs. 
 } FILE_MAILSLOT_SET_INFORMATION, *PFILE_MAILSLOT_SET_INFORMATION;
 
+/**
+ * The FILE_REPARSE_POINT_INFORMATION structure contains information about a reparse point.
+ */
 typedef struct _FILE_REPARSE_POINT_INFORMATION
 {
     LONGLONG FileReference;
     ULONG Tag;
 } FILE_REPARSE_POINT_INFORMATION, *PFILE_REPARSE_POINT_INFORMATION;
 
+/**
+ * The FILE_LINK_ENTRY_INFORMATION structure contains information about a file link entry.
+ */
 typedef struct _FILE_LINK_ENTRY_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -613,6 +659,9 @@ typedef struct _FILE_LINK_ENTRY_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_LINK_ENTRY_INFORMATION, *PFILE_LINK_ENTRY_INFORMATION;
 
+/**
+ * The FILE_LINKS_INFORMATION structure contains information about file links.
+ */
 typedef struct _FILE_LINKS_INFORMATION
 {
     ULONG BytesNeeded;
@@ -620,12 +669,18 @@ typedef struct _FILE_LINKS_INFORMATION
     FILE_LINK_ENTRY_INFORMATION Entry;
 } FILE_LINKS_INFORMATION, *PFILE_LINKS_INFORMATION;
 
+/**
+ * The FILE_NETWORK_PHYSICAL_NAME_INFORMATION structure contains information about the network physical name of a file.
+ */
 typedef struct _FILE_NETWORK_PHYSICAL_NAME_INFORMATION
 {
     ULONG FileNameLength;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_NETWORK_PHYSICAL_NAME_INFORMATION, *PFILE_NETWORK_PHYSICAL_NAME_INFORMATION;
 
+/**
+ * The FILE_STANDARD_LINK_INFORMATION structure contains standard information about a file link.
+ */
 typedef struct _FILE_STANDARD_LINK_INFORMATION
 {
     ULONG NumberOfAccessibleLinks;
@@ -2191,7 +2246,7 @@ NtCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ ULONG Count
+    _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
 NTSYSCALLAPI
@@ -2251,6 +2306,14 @@ NtRemoveIoCompletion(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+// private
+typedef struct _FILE_IO_COMPLETION_INFORMATION
+{
+    PVOID KeyContext;
+    PVOID ApcContext;
+    IO_STATUS_BLOCK IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

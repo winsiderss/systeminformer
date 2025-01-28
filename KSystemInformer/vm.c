@@ -294,23 +294,15 @@ NTSTATUS KphReadVirtualMemory(
             goto Exit;
         }
 
-        if (BufferSize <= ARRAYSIZE(stackBuffer))
+        buffer = KphAllocateNPagedA(BufferSize, KPH_TAG_COPY_VM, stackBuffer);
+        if (!buffer)
         {
-            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-            buffer = stackBuffer;
-        }
-        else
-        {
-            buffer = KphAllocateNPaged(BufferSize, KPH_TAG_COPY_VM);
-            if (!buffer)
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              GENERAL,
-                              "Failed to allocate copy buffer.");
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Failed to allocate copy buffer.");
 
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
-            }
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
         }
 
         copyAddress.VirtualAddress = BaseAddress;
@@ -369,9 +361,9 @@ NTSTATUS KphReadVirtualMemory(
 
 Exit:
 
-    if (buffer && (buffer != stackBuffer))
+    if (buffer)
     {
-        KphFree(buffer, KPH_TAG_COPY_VM);
+        KphFreeA(buffer, KPH_TAG_COPY_VM, stackBuffer);
     }
 
     if (releaseModuleLock)
@@ -482,20 +474,13 @@ NTSTATUS KphQuerySection(
         {
             if (SectionInformation)
             {
-                if (SectionInformationLength <= ARRAYSIZE(stackBuffer))
+                buffer = KphAllocateNPagedA(SectionInformationLength,
+                                            KPH_TAG_SECTION_QUERY,
+                                            stackBuffer);
+                if (!buffer)
                 {
-                    RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-                    buffer = stackBuffer;
-                }
-                else
-                {
-                    buffer = KphAllocateNPaged(SectionInformationLength,
-                                               KPH_TAG_SECTION_QUERY);
-                    if (!buffer)
-                    {
-                        status = STATUS_INSUFFICIENT_RESOURCES;
-                        goto Exit;
-                    }
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
                 }
             }
             else
@@ -563,9 +548,9 @@ Exit:
         ObDereferenceObject(sectionObject);
     }
 
-    if (buffer && (buffer != stackBuffer))
+    if (buffer)
     {
-        KphFree(buffer, KPH_TAG_SECTION_QUERY);
+        KphFreeA(buffer, KPH_TAG_SECTION_QUERY, stackBuffer);
     }
 
     return status;

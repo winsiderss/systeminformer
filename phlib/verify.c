@@ -1143,7 +1143,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
     _Out_opt_ PPH_STRING *SignerName
     )
 {
-    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
+    static CONST PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
     VERIFY_RESULT result;
     PPH_STRING additionalCatalogFileName = NULL;
     PCERT_CONTEXT *signatures;

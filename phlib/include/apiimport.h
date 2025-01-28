@@ -28,14 +28,17 @@ PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
 PH_DECLARE_IMPORT(NtQueryInformationResourceManager);
 PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
-PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
 PH_DECLARE_IMPORT(NtChangeProcessState);
+PH_DECLARE_IMPORT(NtCreateThreadStateChange);
+PH_DECLARE_IMPORT(NtChangeThreadState);
 PH_DECLARE_IMPORT(NtCopyFileChunk);
 PH_DECLARE_IMPORT(NtAllocateVirtualMemoryEx);
 PH_DECLARE_IMPORT(NtCompareObjects);
 
+PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(LdrControlFlowGuardEnforcedWithExportSuppression);
+PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);

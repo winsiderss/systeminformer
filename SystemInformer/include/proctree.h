@@ -396,8 +396,9 @@ PhGetSelectedProcessItems(
     _Out_ PULONG NumberOfProcesses
     );
 
+_Success_(return)
 PHAPPAPI
-VOID
+BOOLEAN
 NTAPI
 PhGetSelectedProcessNodes(
     _Out_ PPH_PROCESS_NODE** Nodes,
