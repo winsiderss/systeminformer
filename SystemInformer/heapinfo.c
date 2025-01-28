@@ -11,17 +11,16 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
 #include <emenu.h>
-#include <mainwnd.h>
 #include <procprv.h>
 #include <settings.h>
 
 typedef struct _PH_PROCESS_HEAPS_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND ListViewHandle;
     HFONT BoldFont;
     union
@@ -153,6 +152,7 @@ VOID PhShowProcessHeapsDialog(
     PPH_PROCESS_HEAPS_CONTEXT context;
 
     context = PhAllocateZero(sizeof(PH_PROCESS_HEAPS_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->IsWow64Process = !!ProcessItem->IsWow64Process;
 
@@ -736,13 +736,15 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             if (PhGetIntegerPairSetting(L"SegmentHeapWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhSaveListViewSortColumnsToSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
             PhSaveWindowPlacementToSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
@@ -766,11 +768,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 PhDereferenceObject(context->ProcessItem);
                 context->ProcessItem = NULL;
             }
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(context);
         }
         break;

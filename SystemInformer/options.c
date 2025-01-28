@@ -126,7 +126,7 @@ static HWND ContainerControl = NULL;
 static BOOLEAN RestartRequired = FALSE;
 
 // General
-static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+static CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
 static HFONT CurrentFontInstance = NULL;
 static HFONT CurrentFontMonospaceInstance = NULL;
@@ -134,7 +134,7 @@ static PPH_STRING NewFontSelection = NULL;
 static PPH_STRING NewFontMonospaceSelection = NULL;
 
 // Advanced
-static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+static CONST PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 static PPH_STRING OldTaskMgrDebugger = NULL;
 static HWND WindowHandleForElevate = NULL;
 
@@ -1217,7 +1217,9 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
 {
     static PH_STRINGREF processExitKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit");
     static PH_STRINGREF valueModeName = PH_STRINGREF_INIT(L"ReportingMode");
+    static ULONG valueMode = 4;
     //static PH_STRINGREF valueSelfName = PH_STRINGREF_INIT(L"IgnoreSelfExits");
+    //static ULONG valueSelf = 1;
     //static PH_STRINGREF valueMonitorName = PH_STRINGREF_INIT(L"MonitorProcess");
     static PH_STRINGREF valueGlobalName = PH_STRINGREF_INIT(L"GlobalFlag");
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -1261,14 +1263,14 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             keyFilenameHandle,
             &valueModeName,
             REG_DWORD,
-            &(ULONG){ 4 },
+            &valueMode,
             sizeof(ULONG)
             );
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        //PhSetValueKey(keyFilenameHandle, &valueSelfName, REG_DWORD, &(ULONG){ 1 }, sizeof(ULONG));
+        //PhSetValueKey(keyFilenameHandle, &valueSelfName, REG_DWORD, &valueSelf, sizeof(ULONG));
         //PhSetValueKey(keyFilenameHandle, &valueMonitorName, REG_SZ, filename->Buffer, (ULONG)filename->Length + sizeof(UNICODE_NULL));
 
         if (NT_SUCCESS(status))

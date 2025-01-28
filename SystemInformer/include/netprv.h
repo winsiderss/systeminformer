@@ -122,14 +122,14 @@ VOID PhNetworkProviderUpdate(
 
 // begin_phapppub
 PHAPPAPI
-PPH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     );
 
 PHAPPAPI
-PPH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetTcpStateName(
     _In_ ULONG State

@@ -381,7 +381,7 @@ PPH_STRING PhGetClientIdNameEx(
     PPH_PROCESS_ITEM processItem = NULL;
 
     // Lookup the name in the process snapshot if necessary
-    if (!ProcessName)
+    if (PhIsNullOrEmptyString(ProcessName))
     {
         processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
@@ -469,7 +469,6 @@ VOID PhpProcessItemDeleteProcedure(
     }
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
-    if (processItem->FileNameWin32) PhDereferenceObject(processItem->FileNameWin32);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
@@ -762,7 +761,7 @@ VOID PhpProcessQueryStage1(
 
         if (PhEnableCycleCpuUsage && processId == INTERRUPTS_PROCESS_ID)
         {
-            static PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
+            static CONST PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
             PhMoveReference(&Data->VersionInfo.FileDescription, PhCreateString2(&descriptionText));
         }
     }
@@ -1243,6 +1242,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsWow64Process = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
+            ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
             ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
         }
@@ -1259,23 +1259,11 @@ VOID PhpFillProcessItem(
 
         if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
         {
-            PPH_STRING fileName;
-
-            if (fileName = PhGetKernelFileName())
-            {
-                ProcessItem->FileName = fileName;
-                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
-            }
+            ProcessItem->FileName = PhGetKernelFileName();
         }
         else if (ProcessItem->IsSecureSystem)
         {
-            PPH_STRING fileName;
-
-            if (fileName = PhGetSecureKernelFileName())
-            {
-                ProcessItem->FileName = fileName;
-                ProcessItem->FileNameWin32 = PhGetFileName(fileName);
-            }
+            ProcessItem->FileName = PhGetSecureKernelFileName();
         }
         else
         {
@@ -1288,26 +1276,22 @@ VOID PhpFillProcessItem(
                     ProcessItem->FileName = fileName;
                 }
 
-                if (ProcessItem->QueryHandle)
-                {
-                    //if (NT_SUCCESS(PhGetProcessImageFileName(ProcessItem->QueryHandle, &fileName)))
-                    //    ProcessItem->FileName = fileName;
-
-                    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
-                    {
-                        ProcessItem->FileNameWin32 = fileName;
-                    }
-                }
+                //if (ProcessItem->QueryHandle)
+                //{
+                //    if (NT_SUCCESS(PhGetProcessImageFileName(ProcessItem->QueryHandle, &fileName)))
+                //        ProcessItem->FileName = fileName;
+                //    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
+                //        ProcessItem->FileNameWin32 = fileName;
+                //}
             }
         }
     }
 
     // Token information
-    if (ProcessItem->QueryHandle)
     {
         HANDLE tokenHandle;
 
-        if (NT_SUCCESS(PhOpenProcessToken(
+        if (ProcessItem->QueryHandle && NT_SUCCESS(PhOpenProcessToken(
             ProcessItem->QueryHandle,
             TOKEN_QUERY,
             &tokenHandle
@@ -1374,6 +1358,54 @@ VOID PhpFillProcessItem(
         }
     }
 
+    // Extended Process Information
+    if (WindowsVersion >= WINDOWS_10 && ProcessItem->QueryHandle)
+    {
+        PPROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+        ULONG telemetryInfoLength;
+
+        if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(ProcessItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
+        {
+            SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
+            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
+            PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
+            SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
+            PWSTR PackageNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->PackageNameOffset);
+            SIZE_T RelativeAppNameLength = telemetryInfo->CommandLineOffset - telemetryInfo->RelativeAppNameOffset;
+            PWSTR RelativeAppNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->RelativeAppNameOffset);
+            SIZE_T CommandLineLength = telemetryInfoLength - telemetryInfo->CommandLineOffset;
+            PWSTR CommandLineBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->CommandLineOffset);
+
+            ProcessItem->ProcessStartKey = telemetryInfo->ProcessStartKey;
+            ProcessItem->CreateInterruptTime = telemetryInfo->CreateInterruptTime;
+            ProcessItem->ProcessSequenceNumber = telemetryInfo->ProcessSequenceNumber;
+            ProcessItem->SessionCreateTime = telemetryInfo->SessionCreateTime;
+            ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
+            ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
+
+            if (!ProcessItem->Sid && RtlValidSid(UserSidBuffer))
+            {
+                ProcessItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+            }
+
+            if (PhIsNullOrEmptyString(ProcessItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
+            {
+                ProcessItem->FileName = PhCreateStringEx(ImagePathBuffer, ImagePathLength - sizeof(UNICODE_NULL));
+            }
+
+            if (PhIsNullOrEmptyString(ProcessItem->PackageFullName) && PackageNameLength > sizeof(UNICODE_NULL))
+            {
+                ProcessItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
+            }
+
+            //if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
+            //{
+            //    ProcessItem->CommandLine = PhCreateString(CommandLineBuffer); // CommandLineLength - sizeof(UNICODE_NULL));
+            //}
+        }
+    }
+    
     // Known Process Type
     if (ProcessItem->FileName)
     {
@@ -1481,54 +1513,6 @@ VOID PhpFillProcessItem(
             {
                 ProcessItem->LxssProcessId = lxssProcessId;
             }
-        }
-    }
-
-    // Extended Process Information
-    if (WindowsVersion >= WINDOWS_10 && ProcessItem->QueryHandle)
-    {
-        PPROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
-        ULONG telemetryInfoLength;
-
-        if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(ProcessItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
-        {
-            SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
-            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
-            SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
-            PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
-            SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
-            PWSTR PackageNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->PackageNameOffset);
-            SIZE_T RelativeAppNameLength = telemetryInfo->CommandLineOffset - telemetryInfo->RelativeAppNameOffset;
-            PWSTR RelativeAppNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->RelativeAppNameOffset);
-            SIZE_T CommandLineLength = telemetryInfoLength - telemetryInfo->CommandLineOffset;
-            PWSTR CommandLineBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->CommandLineOffset);
-
-            ProcessItem->ProcessStartKey = telemetryInfo->ProcessStartKey;
-            ProcessItem->CreateInterruptTime = telemetryInfo->CreateInterruptTime;
-            ProcessItem->ProcessSequenceNumber = telemetryInfo->ProcessSequenceNumber;
-            ProcessItem->SessionCreateTime = telemetryInfo->SessionCreateTime;
-            ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
-            ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
-
-            if (!ProcessItem->Sid && RtlValidSid(UserSidBuffer))
-            {
-                ProcessItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
-            }
-
-            if (PhIsNullOrEmptyString(ProcessItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
-            {
-                ProcessItem->FileName = PhCreateStringEx(ImagePathBuffer, ImagePathLength - sizeof(UNICODE_NULL));
-            }
-
-            if (PhIsNullOrEmptyString(ProcessItem->PackageFullName) && PackageNameLength > sizeof(UNICODE_NULL))
-            {
-                ProcessItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
-            }
-
-            //if (PhIsNullOrEmptyString(ProcessItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
-            //{
-            //    ProcessItem->CommandLine = PhCreateString(CommandLineBuffer); // CommandLineLength - sizeof(UNICODE_NULL));
-            //}
         }
     }
 
@@ -2724,6 +2708,108 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
+            // Process basic information
+            {
+                PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessExtendedBasicInformation(processItem->QueryHandle, &basicInfo)))
+                {
+                    if (processItem->IsProtectedProcess != basicInfo.IsProtectedProcess)
+                    {
+                        processItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSecureProcess != basicInfo.IsSecureProcess)
+                    {
+                        processItem->IsSecureProcess = basicInfo.IsSecureProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSubsystemProcess != basicInfo.IsSubsystemProcess)
+                    {
+                        processItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsWow64Process != basicInfo.IsWow64Process)
+                    {
+                        processItem->IsWow64Process = basicInfo.IsWow64Process;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsPackagedProcess != basicInfo.IsStronglyNamed)
+                    {
+                        processItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsCrossSessionProcess != basicInfo.IsCrossSessionCreate)
+                    {
+                        processItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsFrozenProcess != basicInfo.IsFrozen)
+                    {
+                        processItem->IsFrozenProcess = basicInfo.IsFrozen;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsBackgroundProcess != basicInfo.IsBackground)
+                    {
+                        processItem->IsBackgroundProcess = basicInfo.IsBackground;
+                        modified = TRUE;
+                    }
+                    if (processItem->AffinityMask != basicInfo.BasicInfo.AffinityMask)
+                    {
+                        processItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
+                        modified = TRUE;
+                    }
+                }
+                else
+                {
+                    if (processItem->IsProtectedProcess)
+                    {
+                        processItem->IsProtectedProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSecureProcess)
+                    {
+                        processItem->IsSecureProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsSubsystemProcess)
+                    {
+                        processItem->IsSubsystemProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsWow64Process)
+                    {
+                        processItem->IsWow64Process = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsPackagedProcess)
+                    {
+                        processItem->IsPackagedProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsCrossSessionProcess)
+                    {
+                        processItem->IsCrossSessionProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsFrozenProcess)
+                    {
+                        processItem->IsFrozenProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->IsBackgroundProcess)
+                    {
+                        processItem->IsBackgroundProcess = FALSE;
+                        modified = TRUE;
+                    }
+                    if (processItem->AffinityMask != PhSystemBasicInformation.ActiveProcessorsAffinityMask)
+                    {
+                        processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+                        modified = TRUE;
+                    }
+                }
+            }
+
             // Update the process affinity. Usually not frequently changed, do so lazily.
             if (runCount % 5 == 0)
             {
@@ -3225,7 +3311,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), PH_PROCESS_PROVIDER_UPDATED_EVENT_PTR(runCount));
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &runCount);
     runCount++;
 }
 
@@ -3862,7 +3948,7 @@ ULONG PhImageListCacheHashtableHashFunction(
 {
     PPH_IMAGELIST_ITEM entry = *(PPH_IMAGELIST_ITEM*)Entry;
 
-    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(
@@ -4099,4 +4185,186 @@ BOOLEAN PhDuplicateProcessInformation(
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
 
     return TRUE;
+}
+
+PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN TerminatedProcess
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    PPH_PROCESS_ITEM processItem;
+    PPH_PROCESS_ITEM idleProcessItem;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PROCESS_HANDLE_INFORMATION handleInfo;
+    KERNEL_USER_TIMES times;
+    UCHAR priorityClass;
+
+    if (processItem = PhReferenceProcessItem(ProcessId))
+        return processItem;
+
+    processItem = PhCreateProcessItem(ProcessId);
+    processItem->QueryHandle = ProcessHandle;
+
+    if (TerminatedProcess)
+    {
+        SetFlag(processItem->State, PH_PROCESS_ITEM_REMOVED);
+    }
+
+    // We need a process record. Just use the record of System Idle Process.
+    if (idleProcessItem = PhReferenceProcessItem(SYSTEM_IDLE_PROCESS_ID))
+    {
+        processItem->Record = idleProcessItem->Record;
+        PhReferenceProcessRecord(processItem->Record);
+    }
+    else
+    {
+        assert(idleProcessItem);
+        PhDereferenceObject(processItem);
+        return NULL;
+    }
+
+    // Set up the file name and process name.
+
+    if (NT_SUCCESS(PhGetProcessImageFileName(processItem->QueryHandle, &fileName)))
+    {
+        processItem->FileName = fileName;
+    }
+
+    if (processItem->FileName)
+        processItem->ProcessName = PhGetBaseName(processItem->FileName);
+    else
+        processItem->ProcessName = PhCreateString(L"Unknown");
+
+    // Basic process information and not-so-dynamic information.
+
+    {
+        if (NT_SUCCESS(PhGetProcessBasicInformation(processItem->QueryHandle, &basicInfo)))
+        {
+            processItem->ParentProcessId = basicInfo.InheritedFromUniqueProcessId;
+            processItem->BasePriority = basicInfo.BasePriority;
+        }
+
+        PhGetProcessSessionId(processItem->QueryHandle, &processItem->SessionId);
+
+        //PhPrintUInt32(processItem->ParentProcessIdString, HandleToUlong(processItem->ParentProcessId));
+        //PhPrintUInt32(processItem->SessionIdString, processItem->SessionId);
+
+        if (NT_SUCCESS(PhGetProcessTimes(processItem->QueryHandle, &times)))
+        {
+            processItem->CreateTime = times.CreateTime;
+            processItem->KernelTime = times.KernelTime;
+            processItem->UserTime = times.UserTime;
+        }
+
+        // TODO: Token information?
+
+        if (NT_SUCCESS(PhGetProcessPriorityClass(processItem->QueryHandle, &priorityClass)))
+        {
+            processItem->PriorityClass = priorityClass;
+        }
+
+        if (NT_SUCCESS(PhGetProcessHandleCount(processItem->QueryHandle, &handleInfo)))
+        {
+            processItem->NumberOfHandles = handleInfo.HandleCount;
+        }
+    }
+
+    //
+    // Extended process information
+    //
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PPROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+        ULONG telemetryInfoLength;
+
+        if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(processItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
+        {
+            SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
+            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
+            PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
+            SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
+            PWSTR PackageNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->PackageNameOffset);
+            SIZE_T RelativeAppNameLength = telemetryInfo->CommandLineOffset - telemetryInfo->RelativeAppNameOffset;
+            PWSTR RelativeAppNameBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->RelativeAppNameOffset);
+            SIZE_T CommandLineLength = telemetryInfoLength - telemetryInfo->CommandLineOffset;
+            PWSTR CommandLineBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->CommandLineOffset);
+
+            processItem->ProcessStartKey = telemetryInfo->ProcessStartKey;
+            processItem->CreateInterruptTime = telemetryInfo->CreateInterruptTime;
+            processItem->ProcessSequenceNumber = telemetryInfo->ProcessSequenceNumber;
+            processItem->SessionCreateTime = telemetryInfo->SessionCreateTime;
+            processItem->ImageChecksum = telemetryInfo->ImageChecksum;
+            processItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
+
+            if (!processItem->Sid && RtlValidSid(UserSidBuffer))
+            {
+                processItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+            }
+
+            if (PhIsNullOrEmptyString(processItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
+            {
+                processItem->FileName = PhCreateStringEx(ImagePathBuffer, ImagePathLength - sizeof(UNICODE_NULL));
+            }
+
+            if (PhIsNullOrEmptyString(processItem->PackageFullName) && PackageNameLength > sizeof(UNICODE_NULL))
+            {
+                processItem->PackageFullName = PhCreateStringEx(PackageNameBuffer, PackageNameLength - sizeof(UNICODE_NULL));
+            }
+
+            if (PhIsNullOrEmptyString(processItem->CommandLine) && CommandLineLength > sizeof(UNICODE_NULL))
+            {
+                processItem->CommandLine = PhCreateStringEx(CommandLineBuffer, CommandLineLength - sizeof(UNICODE_NULL));
+            }
+        }
+    }
+
+    // Stage 1
+    // Some copy and paste magic here...
+
+    if (processItem->FileName)
+    {
+        // Small icon, large icon.
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, processItem->ProcessId, processItem->PackageFullName, PhProcessImageListWindowDpi))
+        {
+            processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
+            processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
+        }
+
+        // Version info.
+        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
+    }
+
+    // Command line
+
+    if (PhIsNullOrEmptyString(processItem->CommandLine))
+    {
+        PPH_STRING commandLine;
+        SIZE_T i;
+
+        if (NT_SUCCESS(status = PhGetProcessCommandLine(processItem->QueryHandle, &commandLine)))
+        {
+            // Some command lines (e.g. from taskeng.exe) have nulls in them.
+            // Since Windows can't display them, we'll replace them with
+            // spaces.
+            for (i = 0; i < commandLine->Length / sizeof(WCHAR); i++)
+            {
+                if (commandLine->Buffer[i] == UNICODE_NULL)
+                    commandLine->Buffer[i] = ' ';
+            }
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            processItem->CommandLine = commandLine;
+        }
+    }
+
+    PhSetEvent(&processItem->Stage1Event);
+
+    return processItem;
 }

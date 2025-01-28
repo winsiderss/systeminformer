@@ -304,6 +304,7 @@ BOOLEAN PhShowOptionsDefaultInstallLocation(
     );
 
 VOID PhShowProcessContextMenu(
+    _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
 

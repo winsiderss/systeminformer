@@ -453,8 +453,8 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     if (SUCCEEDED(status))
     {
         ULONG taskCount = 0;
-        PGUID taskIds = NULL;
-        PWSTR* taskNames = NULL;
+        PCGUID taskIds = NULL;
+        PCWSTR* taskNames = NULL;
 
         status = IPackageDebugSettings_EnumerateBackgroundTasks(
             packageDebugSettings,
@@ -543,8 +543,8 @@ PPH_STRING PhGetAppContainerName(
     }
     else // Check the local system account appcontainer mappings. (dmex)
     {
-        static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-        static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+        static CONST PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+        static CONST PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
         HANDLE keyHandle;
         PPH_STRING sidString;
         PPH_STRING keyPath;
@@ -598,8 +598,8 @@ PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     )
 {
-    static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-    static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+    static CONST PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+    static CONST PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
     HANDLE keyHandle;
     PPH_STRING sidString;
     PPH_STRING keyPath;
@@ -659,7 +659,7 @@ PPH_STRING PhGetPackagePath(
     _In_ PPH_STRING PackageFullName
     )
 {
-    static PH_STRINGREF storeAppPackages = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
+    static CONST PH_STRINGREF storeAppPackages = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
     HANDLE keyHandle;
     PPH_STRING keyPath;
     PPH_STRING packagePath = NULL;
@@ -687,7 +687,7 @@ PPH_STRING PhGetPackageAppDataPath(
     _In_ HANDLE ProcessHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
     PPH_STRING packageAppDataPath = NULL;
     PPH_STRING localAppDataPath;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;

@@ -44,6 +44,12 @@ BOOLEAN WeWindowTreeFilterCallback(
     if (!context->SearchMatchHandle)
         return TRUE;
 
+    if (windowNode->WindowHandle)
+    {
+        if (PhSearchControlMatchPointer(context->SearchMatchHandle, windowNode->WindowHandle))
+            return TRUE;
+    }
+
     if (windowNode->WindowClass[0])
     {
         if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, windowNode->WindowClass))

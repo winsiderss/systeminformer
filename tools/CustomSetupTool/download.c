@@ -45,7 +45,8 @@ PPH_STRING SetupGetVersion(
 }
 
 BOOLEAN SetupQueryUpdateData(
-    _Inout_ PPH_SETUP_CONTEXT Context
+    _Inout_ PPH_SETUP_CONTEXT Context,
+    _In_ PWSTR ServerName
     )
 {
     BOOLEAN success = FALSE;
@@ -61,7 +62,7 @@ BOOLEAN SetupQueryUpdateData(
 
     if (!PhHttpSocketConnect(
         httpContext,
-        L"systeminformer.sourceforge.io",
+        ServerName,
         PH_HTTP_DEFAULT_HTTPS_PORT
         ))
     {
@@ -140,6 +141,26 @@ CleanupExit:
         PhDereferenceObject(jsonString);
 
     return success;
+}
+
+BOOLEAN SetupQueryUpdateDataWithFailover(
+    _Inout_ PPH_SETUP_CONTEXT Context
+    )
+{
+    static PWSTR Servers[] =
+    {
+        L"system-informer.com",
+        L"systeminformer.com",
+        L"systeminformer.sourceforge.io",
+    };
+
+    for (ULONG i = 0; i < ARRAYSIZE(Servers); i++)
+    {
+        if (SetupQueryUpdateData(Context, Servers[i]))
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 BOOLEAN UpdateDownloadUpdateData(

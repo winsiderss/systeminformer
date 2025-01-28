@@ -88,7 +88,7 @@ static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enab
 static PPH_LIST ProcessNodeRootList; // list of root nodes
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
-BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
+CONST BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
 static ULONG PhProcessTreeColumnHeaderCacheLength = 0;
 static PVOID PhProcessTreeColumnHeaderCache = NULL;
@@ -2941,7 +2941,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
                 break;
             case PHPRTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(processItem->FileNameWin32);
+                getCellText->Text = PhGetStringRef(processItem->FileName);
                 break;
             case PHPRTLC_COMMANDLINE:
                 getCellText->Text = PhGetStringRef(processItem->CommandLine);
@@ -4313,7 +4313,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 ; // Dummy
             else if (PhCsUseColorDebuggedProcesses && processItem->IsBeingDebugged)
                 getNodeColor->BackColor = PhCsColorDebuggedProcesses;
-            else if (PhCsUseColorSuspended && processItem->IsSuspended)
+            else if (PhCsUseColorSuspended && (processItem->IsSuspended || processItem->IsFrozenProcess))
                 getNodeColor->BackColor = PhCsColorSuspended;
             else if (PhCsUseColorPartiallySuspended && processItem->ProcessId != SYSTEM_PROCESS_ID && processItem->IsPartiallySuspended)
                 getNodeColor->BackColor = PhCsColorPartiallySuspended;
@@ -4761,7 +4761,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
 
-            PhShowProcessContextMenu(contextMenu);
+            PhShowProcessContextMenu(PhMainWndHandle, contextMenu);
         }
         return TRUE;
     case TreeNewNodeExpanding:
@@ -5286,6 +5286,9 @@ BOOLEAN PhGetSelectedProcessItems(
     }
     else
     {
+        *NumberOfProcesses = 0;
+        *Processes = NULL;
+        PhDeleteArray(&array);
         return FALSE;
     }
 }
@@ -5301,7 +5304,7 @@ PPH_PROCESS_NODE PhGetSelectedProcessNode(
     {
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
-        if (node->Node.Selected)
+        if (node->Node.Visible && node->Node.Selected)
         {
             processNode = node;
             break;
@@ -5311,7 +5314,8 @@ PPH_PROCESS_NODE PhGetSelectedProcessNode(
     return processNode;
 }
 
-VOID PhGetSelectedProcessNodes(
+_Success_(return)
+BOOLEAN PhGetSelectedProcessNodes(
     _Out_ PPH_PROCESS_NODE **Nodes,
     _Out_ PULONG NumberOfNodes
     )
@@ -5329,10 +5333,22 @@ VOID PhGetSelectedProcessNodes(
             PhAddItemArray(&array, &node);
     }
 
-    *NumberOfNodes = (ULONG)PhFinalArrayCount(&array);
-    *Nodes = PhFinalArrayItems(&array);
+    if (PhFinalArrayCount(&array))
+    {
+        *NumberOfNodes = (ULONG)PhFinalArrayCount(&array);
+        *Nodes = PhFinalArrayItems(&array);
+        return TRUE;
+    }
+    else
+    {
+        *NumberOfNodes = 0;
+        *Nodes = NULL;
+        PhDeleteArray(&array);
+        return FALSE;
+    }
 }
 
+_Success_(return)
 BOOLEAN PhGetProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PPH_SERVICE_ITEM** Services,

@@ -25,12 +25,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <locale.h>
 #include <inttypes.h>
 #include <math.h>
 #include <malloc.h>
 #include <float.h>
 
+//
 // Memory
+//
+
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
 
@@ -65,14 +69,18 @@
 #define XMM_CHAR_ALIGNED(p) (0 == (((ULONG_PTR)(p) + sizeof(wchar_t) - 1) & (0-sizeof(wchar_t)) & (XMM_SIZE-1)))
 #define XMM_PAGE_SAFE(p) (PAGE_OFFSET(p) <= (PAGE_SIZE - XMM_SIZE))
 
+//
 // Exceptions
+//
 
 #define PhRaiseStatus(Status) RtlRaiseStatus(Status)
 
 #define SIMPLE_EXCEPTION_FILTER(Condition) \
     ((Condition) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
 
+//
 // Compiler
+//
 
 #ifdef DEBUG
 #define ASSUME_ASSERT(Expression) assert(Expression)
@@ -82,7 +90,9 @@
 #define ASSUME_NO_DEFAULT __assume(FALSE)
 #endif
 
+//
 // Math
+//
 
 #if defined(_M_IX86)
 #define UInt32Add32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) + ((unsigned int)(b)))) // Avoids warning C26451 (dmex)
@@ -96,7 +106,9 @@
 #define UInt32Mul32To64(a, b) (((unsigned __int64)((unsigned int)(a))) * ((unsigned __int64)((unsigned int)(b))))
 #endif
 
+//
 // Time
+//
 
 #define PH_TICKS_PER_NS ((LONG64)1 * 10)
 #define PH_TICKS_PER_MS (PH_TICKS_PER_NS * 1000)
@@ -115,7 +127,9 @@
 #define PH_TIMEOUT_MS PH_TICKS_PER_MS
 #define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
 
+//
 // Annotations
+//
 
 /**
  * Indicates that a function assumes the specified number of references are available for the
@@ -145,7 +159,9 @@
  */
 #define _Needs_align_(align)
 
+//
 // Casts
+//
 
 // Zero extension and sign extension macros
 #define C_1uTo2(x) ((unsigned short)(unsigned char)(x))
@@ -157,7 +173,9 @@
 #define C_4uTo8(x) ((unsigned __int64)(unsigned int)(x))
 #define C_4sTo8(x) ((unsigned __int64)(signed int)(x))
 
+//
 // Sorting
+//
 
 typedef enum _PH_SORT_ORDER
 {
@@ -301,7 +319,9 @@ FORCEINLINE int wcsicmp2(
 
 typedef int (__cdecl *PC_COMPARE_FUNCTION)(void *, const void *, const void *);
 
+//
 // Synchronization
+//
 
 FORCEINLINE LONG_PTR __InterlockedExchangeAddPointer(
     _Inout_ _Interlocked_operand_ LONG_PTR volatile *Addend,
@@ -419,7 +439,35 @@ FORCEINLINE BOOLEAN _InterlockedIncrementPositive(
     }
 }
 
+FORCEINLINE
+PVOID
+_InterlockedReadPointer(
+    _Inout_ _Interlocked_operand_ volatile PVOID *Base
+    )
+{
+    return _InterlockedCompareExchangePointer(Base, NULL, NULL);
+}
+
+FORCEINLINE
+PVOID
+_InterlockedWritePointer(
+    _Inout_ _Interlocked_operand_ volatile PVOID* Base,
+    _In_ PVOID Value
+    )
+{
+    return _InterlockedExchangePointer(Base, Value);
+}
+
+#ifndef InterlockedReadPointer
+#define InterlockedReadPointer _InterlockedReadPointer
+#endif
+#ifndef InterlockedWritePointer
+#define InterlockedWritePointer _InterlockedWritePointer
+#endif
+
+//
 // Strings
+//
 
 #define PH_INT32_STR_LEN 12
 #define PH_INT32_STR_LEN_1 (PH_INT32_STR_LEN + 1)
@@ -435,47 +483,59 @@ FORCEINLINE BOOLEAN _InterlockedIncrementPositive(
 #pragma warning(push)
 #pragma warning(disable:4996)
 
-FORCEINLINE VOID PhPrintInt32(
-    _Out_writes_(PH_INT32_STR_LEN_1) PWSTR Destination,
-    _In_ LONG Int32
+FORCEINLINE
+VOID
+PhPrintInt32(
+    _Out_writes_(PH_INT32_STR_LEN_1) CONST PWSTR Destination,
+    _In_ CONST LONG Int32
     )
 {
     _ltow(Int32, Destination, 10);
 }
 
-FORCEINLINE VOID PhPrintUInt32(
-    _Out_writes_(PH_INT32_STR_LEN_1) PWSTR Destination,
-    _In_ ULONG UInt32
+FORCEINLINE
+VOID
+PhPrintUInt32(
+    _Out_writes_(PH_INT32_STR_LEN_1) CONST PWSTR Destination,
+    _In_ CONST ULONG UInt32
     )
 {
     _ultow(UInt32, Destination, 10);
 }
 
-FORCEINLINE VOID PhPrintUInt32IX(
-    _Out_writes_(PH_PTR_STR_LEN_1) PWSTR Destination,
-    _In_ ULONG UInt32
+FORCEINLINE
+VOID
+PhPrintUInt32IX(
+    _Out_writes_(PH_PTR_STR_LEN_1) CONST PWSTR Destination,
+    _In_ CONST ULONG UInt32
     )
 {
     _ultow(UInt32, Destination, 16);
 }
 
-FORCEINLINE VOID PhPrintInt64(
-    _Out_writes_(PH_INT64_STR_LEN_1) PWSTR Destination,
-    _In_ LONG64 Int64
+FORCEINLINE
+VOID
+PhPrintInt64(
+    _Out_writes_(PH_INT64_STR_LEN_1) CONST PWSTR Destination,
+    _In_ CONST LONG64 Int64
     )
 {
     _i64tow(Int64, Destination, 10);
 }
 
-FORCEINLINE VOID PhPrintUInt64(
-    _Out_writes_(PH_INT64_STR_LEN_1) PWSTR Destination,
-    _In_ ULONG64 UInt64
+FORCEINLINE
+VOID
+PhPrintUInt64(
+    _Out_writes_(PH_INT64_STR_LEN_1) CONST PWSTR Destination,
+    _In_ CONST ULONG64 UInt64
     )
 {
     _ui64tow(UInt64, Destination, 10);
 }
 
-FORCEINLINE VOID PhPrintPointer(
+FORCEINLINE
+VOID
+PhPrintPointer(
     _Out_writes_(PH_PTR_STR_LEN_1) PWSTR Destination,
     _In_opt_ PVOID Pointer
     )
@@ -491,7 +551,9 @@ FORCEINLINE VOID PhPrintPointer(
 
 #pragma warning(pop)
 
-FORCEINLINE VOID PhPrintPointerPadZeros(
+FORCEINLINE
+VOID
+PhPrintPointerPadZeros(
     _Out_writes_(PH_PTR_STR_LEN_1) PWSTR Destination,
     _In_ PVOID Pointer
     )
@@ -535,27 +597,34 @@ FORCEINLINE VOID PhPrintPointerPadZeros(
 
 // Misc.
 
-FORCEINLINE ULONG64 PhRoundNumber(
-    _In_ ULONG64 Value,
-    _In_ ULONG64 Granularity
+FORCEINLINE
+ULONG64
+PhRoundNumber(
+    _In_ CONST ULONG64 Value,
+    _In_ CONST ULONG64 Granularity
     )
 {
     return (Value + Granularity / 2) / Granularity * Granularity;
 }
 
-FORCEINLINE ULONG PhMultiplyDivide(
-    _In_ ULONG Number,
-    _In_ ULONG Numerator,
-    _In_ ULONG Denominator
+FORCEINLINE
+ULONG
+PhMultiplyDivide(
+    _In_ CONST ULONG Number,
+    _In_ CONST ULONG Numerator,
+    _In_ CONST ULONG Denominator
     )
 {
-    return (ULONG)(((ULONG64)Number * (ULONG64)Numerator + Denominator / 2) / (ULONG64)Denominator);
+    //return (((ULONG64)Number * (ULONG64)Numerator + (ULONG64)Denominator / 2) / (ULONG64)Denominator);
+    return UInt32Div32To64(UInt32Add32To64(UInt32Mul32To64(Number, Numerator), UInt32Div32To64(Denominator, 2)), Denominator);
 }
 
-FORCEINLINE LONG PhMultiplyDivideSigned(
-    _In_ LONG Number,
-    _In_ ULONG Numerator,
-    _In_ ULONG Denominator
+FORCEINLINE
+LONG
+PhMultiplyDivideSigned(
+    _In_ CONST LONG Number,
+    _In_ CONST ULONG Numerator,
+    _In_ CONST ULONG Denominator
     )
 {
     if (Number >= 0)
@@ -564,12 +633,14 @@ FORCEINLINE LONG PhMultiplyDivideSigned(
         return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
 }
 
-FORCEINLINE VOID PhProbeAddress(
-    _In_ PVOID UserAddress,
-    _In_ SIZE_T UserLength,
-    _In_ PVOID BufferAddress,
-    _In_ SIZE_T BufferLength,
-    _In_ ULONG Alignment
+FORCEINLINE
+VOID
+PhProbeAddress(
+    _In_ CONST PVOID UserAddress,
+    _In_ CONST SIZE_T UserLength,
+    _In_ CONST PVOID BufferAddress,
+    _In_ CONST SIZE_T BufferLength,
+    _In_ CONST ULONG Alignment
     )
 {
     if (UserLength != 0)
@@ -586,9 +657,83 @@ FORCEINLINE VOID PhProbeAddress(
     }
 }
 
-FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
-    _Out_ PLARGE_INTEGER Timeout,
-    _In_ ULONG Milliseconds
+/**
+ * Probes a user address for read access and checks if the specified user address is readable
+ * and within the bounds of the buffer.
+ *
+ * @param UserAddress The address to probe.
+ * @param UserLength The length of the memory to probe.
+ * @param BufferAddress The base address of the buffer.
+ * @param BufferLength The length of the buffer.
+ * @param Alignment The required alignment of the address.
+ */
+FORCEINLINE
+VOID
+PhProbeForRead(
+    _In_ CONST PVOID UserAddress,
+    _In_ CONST SIZE_T UserLength,
+    _In_ CONST PVOID BufferAddress,
+    _In_ CONST SIZE_T BufferLength,
+    _In_ CONST ULONG Alignment
+    )
+{
+    if (UserLength != 0)
+    {
+        PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
+
+        // Align the UserLength to the nearest page boundary.
+        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+
+        // Iterate over each page and ensure the address is valid and accessible.
+        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        {
+            // Ensure the address does not overflow
+            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
+            {
+                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+            }
+
+            *((volatile char*)UserAddress + offset);
+        }
+    }
+}
+
+FORCEINLINE
+VOID
+PhProbeForWrite(
+    _In_ CONST PVOID UserAddress,
+    _In_ CONST SIZE_T UserLength,
+    _In_ CONST PVOID BufferAddress,
+    _In_ CONST SIZE_T BufferLength,
+    _In_ CONST ULONG Alignment
+    )
+{
+    if (UserLength != 0)
+    {
+        PhProbeAddress(UserAddress, UserLength, BufferAddress, BufferLength, Alignment);
+
+        // Align the UserLength to the nearest page boundary.
+        SIZE_T length = (SIZE_T)ALIGN_UP_BY(UserLength, PAGE_SIZE);
+
+        // Iterate over each page and ensure the address is valid and accessible.
+        for (SIZE_T offset = 0; offset < length; offset += PAGE_SIZE)
+        {
+            // Ensure the address does not overflow
+            if ((ULONG_PTR)UserAddress + offset < (ULONG_PTR)UserAddress)
+            {
+                PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+            }
+
+            *((volatile char*)UserAddress + offset) = *((volatile char*)UserAddress + offset);
+        }
+    }
+}
+
+FORCEINLINE
+PLARGE_INTEGER
+PhTimeoutFromMilliseconds(
+    _Out_ CONST PLARGE_INTEGER Timeout,
+    _In_ CONST ULONG Milliseconds
     )
 {
     if (Milliseconds == INFINITE)
@@ -598,8 +743,5 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
 
     return Timeout;
 }
-
-#define PhTimeoutFromMillisecondsEx(Milliseconds) \
-    &(LARGE_INTEGER) { .QuadPart = -(LONGLONG)UInt32x32To64(((ULONG)(Milliseconds)), PH_TIMEOUT_MS) }
 
 #endif

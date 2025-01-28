@@ -1316,12 +1316,6 @@ BOOLEAN PhUiLogoffSession(
     return FALSE;
 }
 
-typedef struct _PH_PLUGIN_IS_DANGEROUS_PROCESS
-{
-    HANDLE ProcessId;
-    BOOLEAN DangerousProcess;
-} PH_PLUGIN_IS_DANGEROUS_PROCESS, *PPH_PLUGIN_IS_DANGEROUS_PROCESS;
-
 /**
  * Determines if a process is a system process.
  *
@@ -1352,7 +1346,7 @@ BOOLEAN PhIsDangerousProcess(
     if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
-    PhMoveReference(&fileName, PhGetFileName(fileName));
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
     hash = PhHashStringRefEx(&fileName->sr, TRUE, PH_STRING_HASH_X65599);
     PhDereferenceObject(fileName);
 
@@ -1375,6 +1369,90 @@ BOOLEAN PhIsDangerousProcess(
             return TRUE;
     }
 
+    return FALSE;
+}
+
+typedef struct _PH_IS_SYSTEM_PROCESS_CONTEXT
+{
+    PPH_STRING BaseName;
+    BOOLEAN Found;
+} PH_IS_SYSTEM_PROCESS_CONTEXT, *PPH_IS_SYSTEM_PROCESS_CONTEXT;
+
+static BOOLEAN NTAPI PhIsSystemProcessCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_ PPH_IS_SYSTEM_PROCESS_CONTEXT Context
+    )
+{
+    if (Information->Type == REG_DWORD)
+    {
+        PH_STRINGREF string;
+
+        string.Buffer = PTR_ADD_OFFSET(Information, Information->DataOffset);
+        string.Length = Information->DataLength;
+
+        if (PhEqualStringRef(&string, &Context->BaseName->sr, TRUE))
+        {
+            Context->Found = TRUE;
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Determines if a process is a system process.
+ *
+ * \param ProcessId The PID of the process to check.
+ */
+BOOLEAN PhIsTerminalServerSystemProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Terminal Server\\SysProcs");
+    PPH_STRING fileName;
+    HANDLE keyHandle;
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+        return TRUE;
+
+    if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+        return FALSE;
+
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyName,
+        0
+        )))
+    {
+        PH_IS_SYSTEM_PROCESS_CONTEXT context;
+
+        memset(&context, 0, sizeof(PH_IS_SYSTEM_PROCESS_CONTEXT));
+        context.BaseName = fileName;
+        context.Found = FALSE;
+
+        PhEnumerateValueKey(
+            keyHandle,
+            KeyValueFullInformation,
+            PhIsSystemProcessCallback,
+            &context
+            );
+
+        NtClose(keyHandle);
+
+        if (context.Found)
+        {
+            PhDereferenceObject(fileName);
+            return TRUE;
+        }
+    }
+
+    PhDereferenceObject(fileName);
     return FALSE;
 }
 
@@ -2223,7 +2301,10 @@ BOOLEAN PhUiFreezeTreeProcess(
     if (!result)
         return FALSE;
 
-    status = PhFreezeProcess(&freezeHandle, Process->ProcessId);
+    status = PhFreezeProcess(
+        &freezeHandle,
+        Process->ProcessId
+        );
 
     if (!NT_SUCCESS(status))
     {
@@ -2231,7 +2312,10 @@ BOOLEAN PhUiFreezeTreeProcess(
         return FALSE;
     }
 
-    InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle);
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, freezeHandle))
+    {
+        NtClose(freezeHandle);
+    }
 
     return TRUE;
 }
@@ -2242,6 +2326,10 @@ BOOLEAN PhUiThawTreeProcess(
     )
 {
     NTSTATUS status;
+    HANDLE freezeHandle;
+
+    if (!ReadPointerAcquire(&Process->FreezeHandle))
+        return FALSE;
 
     status = PhThawProcess(
         Process->FreezeHandle,
@@ -2252,6 +2340,11 @@ BOOLEAN PhUiThawTreeProcess(
     {
         PhpShowErrorProcess(WindowHandle, L"thaw", Process, status, 0);
         return FALSE;
+    }
+
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, nullptr))
+    {
+        NtClose(freezeHandle);
     }
 
     return TRUE;
@@ -2376,7 +2469,7 @@ BOOLEAN PhUiRestartProcess(
     processHandle = NULL;
 
     // Start the process.
-    // 
+    //
     // Use the existing process as the parent, and restarting the process will inherit most of the process configuration from itself (dmex)
 
     status = PhOpenProcess(
@@ -2624,9 +2717,9 @@ BOOLEAN PhUiDebugProcess(
     _In_ PPH_PROCESS_ITEM Process
     )
 {
-    static PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+    static CONST PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #ifdef _WIN64
-    static PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+    static CONST PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #endif
     NTSTATUS status;
     BOOLEAN cont = FALSE;
@@ -2920,7 +3013,7 @@ BOOLEAN PhUiSetEcoModeProcess(
                     PhSetProcessPriorityClass(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
 
                     //
-                    // Turn PROCESS_EXECUTION_SPEED throttling on. 
+                    // Turn PROCESS_EXECUTION_SPEED throttling on.
                     //
                     status = PhSetProcessPowerThrottlingState(
                         processHandle,
@@ -3026,7 +3119,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        PhShowInformation2(WindowHandle, L"The process is not being debugged.", L"%s", L"");
+        PhShowInformation2(WindowHandle, L"Unable to detach the debugger.", L"%s", L"The process is not being debugged.");
         return FALSE;
     }
 
@@ -3092,10 +3185,12 @@ BOOLEAN PhUiLoadDllProcess(
 
     if (NT_SUCCESS(status))
     {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(processHandle, &fileName->sr, FALSE, &timeout);
+        status = PhLoadDllProcess(
+            processHandle,
+            &fileName->sr,
+            FALSE,
+            5000
+            );
 
         NtClose(processHandle);
     }
@@ -3743,7 +3838,7 @@ VOID PhShowServiceProgressDialogStatusPage(
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = PhpUiServiceProgressDialogCallbackProc;
-    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", verb, L" ", object, L"...")->Buffer;
+    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", PhGetString(verb), L" ", object, L"...")->Buffer;
     config.cxWidth = 200;
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
@@ -4095,7 +4190,7 @@ static NTSTATUS PhpCheckServiceStatus(
         }
         else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
         {
-            // Service doesn't report progress. 
+            // Service doesn't report progress.
         }
     }
 
@@ -5799,13 +5894,10 @@ BOOLEAN PhUiUnloadModule(
 
             if (NT_SUCCESS(status))
             {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
                 status = PhUnloadDllProcess(
                     processHandle,
                     Module->BaseAddress,
-                    &timeout
+                    5000
                     );
 
                 NtClose(processHandle);
@@ -5831,7 +5923,7 @@ BOOLEAN PhUiUnloadModule(
         break;
 
     case PH_MODULE_TYPE_KERNEL_MODULE:
-        status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
+        status = PhUnloadDriver(Module->BaseAddress, &Module->Name->sr, &Module->FileName->sr);
 
         if (!NT_SUCCESS(status))
         {
@@ -5849,7 +5941,7 @@ BOOLEAN PhUiUnloadModule(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallUnloadDriver(Module->BaseAddress, Module->Name->Buffer)))
+                    if (NT_SUCCESS(status = PhSvcCallUnloadDriver(Module->BaseAddress, Module->Name->Buffer, Module->FileName->Buffer)))
                         success = TRUE;
                     else
                         PhShowStatus(WindowHandle, PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer, status, 0);
@@ -6302,6 +6394,7 @@ BOOLEAN PhUiFlushHeapProcesses(
 {
     BOOLEAN success = TRUE;
     ULONG i;
+    LARGE_INTEGER timeout;
 
     for (i = 0; i < NumberOfProcesses; i++)
     {
@@ -6317,7 +6410,7 @@ BOOLEAN PhUiFlushHeapProcesses(
 
         if (NT_SUCCESS(status))
         {
-            status = PhFlushProcessHeapsRemote(processHandle, PhTimeoutFromMillisecondsEx(4000));
+            status = PhFlushProcessHeapsRemote(processHandle, PhTimeoutFromMilliseconds(&timeout, 4000));
             NtClose(processHandle);
         }
 

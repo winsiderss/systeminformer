@@ -901,6 +901,8 @@ INT_PTR CALLBACK TracertDlgProc(
         {
             context->Cancel = TRUE;
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
             TracertSaveSettingsTreeList(context);
@@ -911,7 +913,6 @@ INT_PTR CALLBACK TracertDlgProc(
                 DeleteFont(context->TreeNewFont);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhDereferenceObject(context);
 
             PostQuitMessage(0);

@@ -27,8 +27,8 @@
  */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
+    _In_opt_ PCPH_STRINGREF FullDllName,
+    _In_opt_ PCPH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY result = NULL;
@@ -424,6 +424,24 @@ typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
     PPH_STRING FileName;
 } PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
 
+static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ImageSize,
+    _In_ PPH_STRING FileName,
+    _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
+    )
+{
+    if (PhEqualString(FileName, Context->FileName, TRUE))
+    {
+        Context->DllBase = ImageBase;
+        return STATUS_NO_MORE_ENTRIES;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
@@ -510,6 +528,15 @@ NTSTATUS PhGetProcedureAddressRemote(
 
             PhDereferenceObject(remoteFileName);
         }
+    }
+
+    if (!context.DllBase)
+    {
+        status = PhEnumProcessModulesLimited(
+            ProcessHandle,
+            PhpGetProcedureAddressRemoteLimitedCallback,
+            &context
+            );
     }
 
     if (!context.DllBase)
@@ -984,8 +1011,8 @@ PVOID PhGetLoaderEntryAddressDllBase(
 }
 
 PVOID PhGetLoaderEntryDllBase(
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
+    _In_opt_ PCPH_STRINGREF FullDllName,
+    _In_opt_ PCPH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY entry;
@@ -1100,9 +1127,6 @@ PVOID PhGetDllProcedureAddress(
 
     if (!(baseAddress = PhGetLoaderEntryDllBase(NULL, &baseDllName)))
         return NULL;
-
-    //if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
-    //    return NULL;
 
     return PhGetDllBaseProcedureAddress(
         baseAddress,
@@ -2803,7 +2827,7 @@ NTSTATUS PhGetFileBinaryTypeWin32(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
-    
+
     InitializeObjectAttributes(
         &objectAttributes,
         NULL,

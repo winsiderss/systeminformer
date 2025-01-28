@@ -132,16 +132,18 @@ PVOID PhGetWmiUtilsDllBase(
             PhDereferenceObject(fileName);
         }
 
+        {
+            typedef void (WINAPI* _SetOaNoCache)(void);
+            _SetOaNoCache SetOaNoCache_I;
+
+            if (SetOaNoCache_I = PhGetModuleProcAddress(L"oleaut32.dll", "SetOaNoCache"))
+            {
+                SetOaNoCache_I();
+            }
+        }
+
         PhEndInitOnce(&initOnce);
     }
-
-
-    typedef void (WINAPI* _SetOaNoCache)(void);
-    _SetOaNoCache SetOaNoCache_I;
-
-    SetOaNoCache_I = PhGetModuleProcAddress(L"oleaut32.dll", "SetOaNoCache");
-
-    SetOaNoCache_I();
 
     return imageBaseAddress;
 }

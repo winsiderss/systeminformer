@@ -1519,7 +1519,7 @@ NTSTATUS PhCheckImagePagesForTampering(
 
         for (i = 0; i < numberOfPages; i++)
         {
-            PMEMORY_WORKING_SET_EX_BLOCK page = &info[i].u1.VirtualAttributes;
+            PMEMORY_WORKING_SET_EX_BLOCK page = &info[i].VirtualAttributes;
 
             if (!page->SharedOriginal)
             {

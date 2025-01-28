@@ -549,6 +549,35 @@ HWND PhGetShellWindow(
     return GetShellWindow();
 }
 
+BOOLEAN PhSetChildWindowNoActivate(
+    _In_ HWND WindowHandle,
+    _In_ HANDLE ThreadId
+    )
+{
+    typedef ULONG (WINAPI* SetChildWindowNoActivate)(
+        _In_ HWND WindowHandle
+        );
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, nullptr, 2005);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!SetChildWindowNoActivate_I)
+        return FALSE;
+
+    return !!SetChildWindowNoActivate_I(WindowHandle);
+}
+
 BOOLEAN PhCheckWindowThreadDesktop(
     _In_ HWND WindowHandle,
     _In_ HANDLE ThreadId
@@ -1468,7 +1497,7 @@ Fail:
 
 VOID PhSetClipboardString(
     _In_ HWND WindowHandle,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     HANDLE data;
@@ -1700,17 +1729,17 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
 
     switch (uMsg)
     {
-        case WM_NCDESTROY:
+    case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
+            PhSetWindowProcedure(hwnd, oldWndProc);
         }
         break;
     case WM_SYSCOMMAND:
         {
             switch (wParam & 0xFFF0)
             {
-                case SC_CLOSE:
+            case SC_CLOSE:
                 {
                     PostMessage(hwnd, WM_CLOSE, 0, 0);
                 }
@@ -1756,7 +1785,7 @@ INT CALLBACK PhpGeneralPropSheetProc(
 {
     switch (uMsg)
     {
-        case PSCB_INITIALIZED:
+    case PSCB_INITIALIZED:
         {
             PhSetWindowContext(hwndDlg, 0xF, (PVOID)PhGetWindowProcedure(hwndDlg));
             PhSetWindowProcedure(hwndDlg, PhpGeneralPropSheetWndProc);
@@ -1826,21 +1855,6 @@ BOOLEAN PhModalPropertySheet(
 
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages (dmex)
-        {
-            HWND pageWindowHandle;
-
-            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
-            {
-                if (SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
-                {
-                    processed = TRUE;
-                }
-            }
-
-            //DefWindowProc(hwnd, message.message, message.wParam, message.lParam);
-        }
 
         if (!processed)
         {
@@ -3163,13 +3177,13 @@ HICON PhCreateIconFromResourceDirectory(
  */
 _Success_(return)
 BOOLEAN PhGetSystemResourcesFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _Out_ PPH_STRING* ResourceFileName
     )
 {
-    static PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemResources\\");
-    static PH_STRINGREF extensionName = PH_STRINGREF_INIT(L".mun");
+    static CONST PH_STRINGREF directoryName = PH_STRINGREF_INIT(L"\\SystemResources\\");
+    static CONST PH_STRINGREF extensionName = PH_STRINGREF_INIT(L".mun");
     PPH_STRING fileName;
     PH_STRINGREF directoryPart;
     PH_STRINGREF fileNamePart;
@@ -3234,7 +3248,7 @@ BOOLEAN PhGetSystemResourcesFileName(
  */
 _Success_(return)
 BOOLEAN PhExtractIconEx(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
     _Out_opt_ HICON *IconLarge,
@@ -4557,7 +4571,7 @@ BOOLEAN PhRecentListAddCommand(
     _In_ PPH_STRINGREF Command
     )
 {
-    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
+    static CONST PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
     BOOLEAN status;
     HANDLE listHandle;
     PPH_STRING command;

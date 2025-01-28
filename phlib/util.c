@@ -181,7 +181,7 @@ LCID PhGetSystemDefaultLCID(
     if (NT_SUCCESS(NtQueryDefaultLocale(FALSE, &localeId)))
         return localeId;
 
-    return LOCALE_SYSTEM_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 #endif
 }
 
@@ -198,8 +198,23 @@ LCID PhGetUserDefaultLCID(
     if (NT_SUCCESS(NtQueryDefaultLocale(TRUE, &localeId)))
         return localeId;
 
-    return LOCALE_USER_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+    return MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 #endif
+}
+
+BOOLEAN PhGetUserLocaleInfoBool(
+    _In_ LCTYPE LCType
+    )
+{
+    WCHAR value[4];
+
+    if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LCType, value, 4))
+    {
+        if (value[0] == L'1')
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 // rev from GetThreadLocale
@@ -216,6 +231,10 @@ LCID PhGetCurrentThreadLCID(
 
     if (!currentTeb->CurrentLocale)
         currentTeb->CurrentLocale = PhGetUserDefaultLCID();
+    if (currentTeb->CurrentLocale == LOCALE_CUSTOM_DEFAULT)
+        currentTeb->CurrentLocale = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
+    if (currentTeb->CurrentLocale == LOCALE_CUSTOM_UNSPECIFIED)
+        currentTeb->CurrentLocale = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
 
     return currentTeb->CurrentLocale;
 #endif
@@ -378,6 +397,8 @@ BOOLEAN PhSystemTimeToLargeInteger(
     return TRUE;
 #else
     TIME_FIELDS timeFields;
+
+    RtlZeroMemory(&timeFields, sizeof(TIME_FIELDS));
 
     timeFields.Year = SystemTime->wYear;
     timeFields.Month = SystemTime->wMonth;
@@ -787,25 +808,30 @@ LONG PhShowMessage2(
     }
 }
 
-BOOLEAN PhShowMessageOneTime(
+BOOLEAN PhpShowMessageOneTime(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
     _In_opt_ PCWSTR Icon,
     _In_opt_ PCWSTR Title,
+    _Out_opt_ PLONG Result,
+    _Out_opt_ PBOOLEAN Checked,
     _In_ PCWSTR Format,
-    ...
+    _In_ va_list ArgPtr
     )
 {
     ULONG result;
-    va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     BOOLEAN checked = FALSE;
     ULONG buttonsFlags;
 
-    va_start(argptr, Format);
-    message = PhFormatString_V(Format, argptr);
-    va_end(argptr);
+    if (Result)
+        *Result = INT_ERROR;
+
+    if (Checked)
+        *Checked = FALSE;
+
+    message = PhFormatString_V(Format, ArgPtr);
 
     if (!message)
         return FALSE;
@@ -836,13 +862,59 @@ BOOLEAN PhShowMessageOneTime(
         ))
     {
         PhDereferenceObject(message);
-        return !!checked;
+
+        if (Result)
+            *Result = result;
+
+        if (Checked)
+            *Checked = !!checked;
+
+        return TRUE;
     }
     else
     {
         PhDereferenceObject(message);
         return FALSE;
     }
+}
+
+BOOLEAN PhShowMessageOneTime(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    BOOLEAN checked;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowMessageOneTime(WindowHandle, Buttons, Icon, Title, NULL, &checked, Format, argptr);
+    va_end(argptr);
+
+    return checked;
+}
+
+LONG PhShowMessageOneTime2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ PCWSTR Title,
+    _Out_opt_ PBOOLEAN Checked,
+    _In_ PCWSTR Format,
+    ...
+    )
+{
+    LONG result;
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowMessageOneTime(WindowHandle, Buttons, Icon, Title, &result, Checked, Format, argptr);
+    va_end(argptr);
+
+    return result;
 }
 
 _Success_(return)
@@ -2101,13 +2173,13 @@ PPH_STRING PhFormatDecimal(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
+        if (!GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
         {
             decimalSeparator[0] = L'.';
             decimalSeparator[1] = UNICODE_NULL;
         }
 
-        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
+        if (!GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
         {
             thousandSeparator[0] = L',';
             thousandSeparator[1] = UNICODE_NULL;
@@ -2123,10 +2195,10 @@ PPH_STRING PhFormatDecimal(
     format.lpThousandSep = thousandSeparator;
     format.NegativeOrder = 1;
 
-    bufferSize = GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, NULL, 0);
+    bufferSize = GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Value, &format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
 
-    if (!GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
+    if (!GetNumberFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
@@ -2397,12 +2469,12 @@ BOOLEAN PhGetFileVersionInfoKey(
 _Success_(return)
 BOOLEAN PhGetFileVersionVarFileInfoValue(
     _In_ PVOID VersionInfo,
-    _In_ PPH_STRINGREF KeyName,
+    _In_ PCPH_STRINGREF KeyName,
     _Out_opt_ PVOID* Buffer,
     _Out_opt_ PULONG BufferLength
     )
 {
-    static PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
+    static CONST PH_STRINGREF varfileBlockName = PH_STRINGREF_INIT(L"VarFileInfo");
     PVS_VERSION_INFO_STRUCT32 varfileBlockInfo;
     PVS_VERSION_INFO_STRUCT32 varfileBlockValue;
 
@@ -2458,7 +2530,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
     _In_ PVOID VersionInfo
     )
 {
-    static PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
+    static CONST PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
     PLANGANDCODEPAGE codePage;
     ULONG codePageLength;
 
@@ -2523,10 +2595,10 @@ PPH_STRING PhGetFileVersionInfoString(
 PPH_STRING PhGetFileVersionInfoString2(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     )
 {
-    static PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
+    static CONST PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
     PVS_VERSION_INFO_STRUCT32 blockStringInfo;
     PVS_VERSION_INFO_STRUCT32 blockLangInfo;
     PVS_VERSION_INFO_STRUCT32 stringNameBlockInfo;
@@ -2592,7 +2664,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 PPH_STRING PhGetFileVersionInfoStringEx(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRINGREF KeyName
+    _In_ PCPH_STRINGREF KeyName
     )
 {
     PPH_STRING string;
@@ -2622,9 +2694,9 @@ VOID PhpGetImageVersionInfoFields(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF companyName = PH_STRINGREF_INIT(L"CompanyName");
-    static PH_STRINGREF fileDescription = PH_STRINGREF_INIT(L"FileDescription");
-    static PH_STRINGREF productName = PH_STRINGREF_INIT(L"ProductName");
+    static CONST PH_STRINGREF companyName = PH_STRINGREF_INIT(L"CompanyName");
+    static CONST PH_STRINGREF fileDescription = PH_STRINGREF_INIT(L"FileDescription");
+    static CONST PH_STRINGREF productName = PH_STRINGREF_INIT(L"ProductName");
 
     ImageVersionInfo->CompanyName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &companyName);
     ImageVersionInfo->FileDescription = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileDescription);
@@ -2665,7 +2737,7 @@ VOID PhpGetImageVersionVersionStringEx(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF fileVersion = PH_STRINGREF_INIT(L"FileVersion");
+    static CONST PH_STRINGREF fileVersion = PH_STRINGREF_INIT(L"FileVersion");
     VS_FIXEDFILEINFO* rootBlock;
     PPH_STRING versionString;
 
@@ -3217,8 +3289,8 @@ PPH_STRING PhGetBaseName(
 }
 
 PPH_STRING PhGetBaseNameChangeExtension(
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF FileExtension
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileExtension
     )
 {
     ULONG_PTR indexOfBackslash;
@@ -3243,7 +3315,7 @@ PPH_STRING PhGetBaseNameChangeExtension(
 
 _Success_(return)
 BOOLEAN PhGetBasePath(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PPH_STRINGREF BasePathName,
     _Out_opt_ PPH_STRINGREF BaseFileName
     )
@@ -3311,7 +3383,7 @@ PPH_STRING PhGetSystemDirectory(
     VOID
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     static PPH_STRING cachedSystemDirectory = NULL;
     PPH_STRING systemDirectory;
     PH_STRINGREF systemRootString;
@@ -3337,7 +3409,7 @@ PPH_STRING PhGetSystemDirectoryWin32(
     _In_opt_ PPH_STRINGREF AppendPath
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
+    static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     PH_STRINGREF systemRootString;
 
     PhGetSystemRoot(&systemRootString);
@@ -3633,7 +3705,7 @@ PPH_STRING PhGetApplicationDirectoryWin32(
 }
 
 PPH_STRING PhGetApplicationDirectoryFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3670,7 +3742,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 }
 
 PPH_STRING PhGetLocalAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3688,7 +3760,7 @@ PPH_STRING PhGetLocalAppDataDirectory(
 }
 
 PPH_STRING PhGetRoamingAppDataDirectory(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -4589,6 +4661,7 @@ NTSTATUS PhCreateProcessWin32Ex(
 
     if (!StartupInfo)
     {
+        SetFlag(newFlags, EXTENDED_STARTUPINFO_PRESENT);
         memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
         startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
     }
@@ -4946,7 +5019,7 @@ NTSTATUS PhCreateProcessAsUser(
         InitializeObjectAttributes(
             &objectAttributes,
             NULL,
-            OBJ_EXCLUSIVE,
+            0,
             NULL,
             NULL
             );
@@ -5431,7 +5504,7 @@ NTSTATUS PhShellExecuteEx(
             {
                 if (info.hProcess)
                 {
-                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMillisecondsEx(Timeout));
+                    PhWaitForSingleObject(info.hProcess, Timeout);
                 }
             }
         }
@@ -7737,7 +7810,7 @@ NTSTATUS PhGetFileData(
         NULL,
         &isb,
         buffer,
-        PAGE_SIZE,
+        sizeof(buffer),
         NULL,
         NULL
         )))
@@ -8488,6 +8561,7 @@ NTSTATUS PhCreateProcessClone(
     NTSTATUS status;
     HANDLE processHandle;
     HANDLE cloneProcessHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     status = PhOpenProcess(
         &processHandle,
@@ -8498,10 +8572,18 @@ NTSTATUS PhCreateProcessClone(
     if (!NT_SUCCESS(status))
         return status;
 
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+
     status = NtCreateProcessEx(
         &cloneProcessHandle,
         PROCESS_ALL_ACCESS,
-        NULL,
+        &objectAttributes,
         processHandle,
         PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED,
         NULL,
@@ -8655,6 +8737,10 @@ NTSTATUS PhCreateProcessRedirection(
     HANDLE inputReadHandle = NULL;
     HANDLE inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
+    HANDLE handleList[2];
+#if defined(PH_BUILD_MSIX)
+    ULONG appPolicy;
+#endif
     PROCESS_BASIC_INFORMATION basicInfo;
 
     status = PhCreatePipeEx(
@@ -8683,11 +8769,14 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
@@ -8698,20 +8787,25 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    appPolicy = PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE;
+
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY,
-        &(ULONG){ PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE },
+        &appPolicy,
         sizeof(ULONG)
         );
 
@@ -8808,8 +8902,7 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    if (!InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength))
-        return STATUS_NO_MEMORY;
+    InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength);
 
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
@@ -8820,7 +8913,8 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
-    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes[AttributeCount]);
+    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes);
+    attributeListLength += sizeof(PROC_THREAD_ATTRIBUTE) * AttributeCount;
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
     *AttributeList = attributeList;
@@ -9260,14 +9354,14 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
     _Inout_ PD3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP QueryExclusiveOwnership
     )
 {
-    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL;
+    static NTSTATUS (WINAPI* D3DKMTQueryVidPnExclusiveOwnership_I)(D3DKMT_QUERYVIDPNEXCLUSIVEOWNERSHIP*) = NULL; // same typedef as NtGdiDdDDIQueryVidPnExclusiveOwnership
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhLoadLibrary(L"gdi32.dll"))
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
         {
             D3DKMTQueryVidPnExclusiveOwnership_I = PhGetDllBaseProcedureAddress(baseAddress, "D3DKMTQueryVidPnExclusiveOwnership", 0);
         }

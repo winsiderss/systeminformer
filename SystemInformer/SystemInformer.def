@@ -156,7 +156,7 @@ EXPORTS
     PhShellOpenKey
     PhShellOpenKey2
     PhShellProcessHacker
-    PhShowChooseProcessDialog 
+    PhShowChooseProcessDialog
     PhShowHandleObjectProperties1
     PhShowHandleObjectProperties2
     PhShowIconNotification
@@ -176,7 +176,9 @@ EXPORTS
     PhWordMatchStringRef
     PhWritePhTextHeader
     PhaChoiceDialog
-    PhaGetProcessKnownCommandLine 
+    PhaGetProcessKnownCommandLine
+    PhCreateHandleItem
+    PhShowHandlePropertiesEx
 
 ; plugin
     PhEnumeratePlugins
@@ -395,7 +397,6 @@ EXPORTS
     PhExtractIcon
     PhExtractIconEx
     PhFillMemoryUlong
-    PhFinalArrayItems
     PhFinalBytesBuilderBytes
     PhFinalStringBuilderString
     PhFindCharInStringRef
@@ -501,6 +502,10 @@ EXPORTS
     PhfWaitForBarrier
     PhfWaitForEvent
     PhfWaitForRundownProtection
+
+; phfirmware
+    PhEnumSMBIOS
+    PhGetSMBIOSString
 
 ; phnative
     PhAdjustPrivilege
@@ -733,11 +738,13 @@ EXPORTS
     PhGetSystemRoot
     PhGetTaskbarDpi
     PhGetTemporaryDirectoryRandomAlphaFileName
+    PhGetUserLocaleInfoBool
     PhGetWin32Message
     PhGetWindowDpi
     PhInitializeHash
     PhInitializeImageVersionInfo
     PhInitializeImageVersionInfoEx
+    PhInitializeProcThreadAttributeList
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -775,6 +782,7 @@ EXPORTS
     PhTaskbarListSetProgressState
     PhTaskbarListSetProgressValue
     PhUpdateHash
+    PhUpdateProcThreadAttribute
     PhWaitForMultipleObjectsAndPump
 
 ; circbuf
@@ -802,6 +810,7 @@ EXPORTS
 ; cpysave
     PhGetGenericTreeNewLines
     PhGetListViewItemText
+    PhGetIListViewItemText
     PhGetListViewSelectedItemText
     PhGetTreeNewText
 
@@ -879,6 +888,7 @@ EXPORTS
     PhFindIListViewItemByFlags
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
+    PhFindIListViewItemByParam
     PhGetComboBoxString
     PhGetDialogItemValue
     PhGetIListViewItemParam
@@ -886,6 +896,7 @@ EXPORTS
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
     PhGetSelectedListViewItemParam
+    PhGetSelectedIListViewItemParam
     PhGetSelectedListViewItemParams
     PhGetSelectedIListViewItemParams
     PhGetStockApplicationIcon
@@ -914,9 +925,10 @@ EXPORTS
     PhModalPropertySheet
     PhQueryDirectXExclusiveOwnership
     PhInitializeWindowTheme
-    PhReInitializeWindowTheme
+    PhReInitializeTheme
     PhRegisterWindowCallback
     PhRemoveListViewItem
+    PhRemoveIListViewItem
     PhRemoveWindowContext
     PhSelectComboBoxString
     PhSetClipboardString
@@ -928,16 +940,21 @@ EXPORTS
     PhSetHeaderSortIcon
     PhSetImageListBitmap
     PhSetListViewItemImageIndex
+    PhSetIListViewItemImageIndex
     PhSetListViewItemParam
     PhSetListViewSubItem
     PhSetIListViewSubItem
     PhSetStateAllListViewItems
     PhSetWindowContext
     PhSetWindowText
+    PhThemeWindowDrawButton
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
     PhUnregisterWindowCallback
     PhWindowThemeControlColor
+    PhIsThemeSupportEnabled
+    PhWindowThemeSetDarkMode
+    PhReInitializeStreamerMode
 
 ; hndlinfo
     PhCallKphQueryFileInformationWithTimeout

@@ -12,7 +12,6 @@
 #include <phapp.h>
 #include <settings.h>
 #include <colmgr.h>
-#include <mainwnd.h>
 #include <emenu.h>
 #include <symprv.h>
 #include <phplug.h>
@@ -1414,7 +1413,7 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
                         {
                             PPH_PROCESS_PROPCONTEXT propContext;
 
-                            if (propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem))
+                            if (propContext = PhCreateProcessPropContext(nullptr, processItem))
                             {
                                 PhShowProcessProperties(propContext);
                                 PhDereferenceObject(propContext);
@@ -1451,7 +1450,7 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
                         {
                             PPH_PROCESS_PROPCONTEXT propContext;
 
-                            if (propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem))
+                            if (propContext = PhCreateProcessPropContext(nullptr, processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, threadId);
                                 PhShowProcessProperties(propContext);
@@ -1617,7 +1616,6 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PPH_THREAD_STACKS_CONTEXT)lParam;
-
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -1668,7 +1666,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
             if (PhGetIntegerPairSetting(L"ThreadStacksWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"ThreadStacksWindowPosition", L"ThreadStacksWindowSize", hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 

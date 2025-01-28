@@ -47,6 +47,16 @@ HRESULT PhGetWbemLocatorClass(
             PhDereferenceObject(systemFileName);
         }
 
+        {
+            typedef void (WINAPI* _SetOaNoCache)(void);
+            _SetOaNoCache SetOaNoCache_I;
+
+            if (SetOaNoCache_I = PhGetModuleProcAddress(L"oleaut32.dll", "SetOaNoCache"))
+            {
+                SetOaNoCache_I();
+            }
+        }
+
         PhEndInitOnce(&initOnce);
     }
 

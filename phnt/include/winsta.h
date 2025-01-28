@@ -1051,6 +1051,8 @@ WinStationEnumerateProcesses(
     _Out_ PVOID *Processes
     );
 
+#define WINSTATION_PROCESS_LEVEL 0
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -1249,7 +1251,7 @@ WinStationQuerySessionVirtualIP(
     _In_ ADDRESS_FAMILY Family,
     _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
     );
-    
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -1260,7 +1262,7 @@ WinStationGetDeviceId(
     _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
     _In_ SIZE_T BufferLength
     );
-        
+
 // rev
 NTSYSAPI
 BOOLEAN

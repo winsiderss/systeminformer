@@ -460,12 +460,24 @@ NTSTATUS PhSvcApiUnloadDriver(
 {
     NTSTATUS status;
     PPH_STRING name;
+    PPH_STRING file;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.UnloadDriver.i.Name, TRUE, &name)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.UnloadDriver.i.Name, TRUE, &name)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.UnloadDriver.i.FileName, TRUE, &file)))
+        return status;
+
+    if (!(PhIsNullOrEmptyString(name) && PhIsNullOrEmptyString(file)))
     {
-        status = PhUnloadDriver(Payload->u.UnloadDriver.i.BaseAddress, PhGetString(name));
-        PhClearReference(&name);
+        status = PhUnloadDriver(Payload->u.UnloadDriver.i.BaseAddress, &name->sr, &file->sr);
     }
+    else
+    {
+        status = STATUS_DATA_ERROR;
+    }
+
+    PhClearReference(&name);
+    PhClearReference(&file);
 
     return status;
 }

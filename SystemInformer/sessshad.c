@@ -13,8 +13,6 @@
 #include <settings.h>
 #include <winsta.h>
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
 static CONST PH_KEY_VALUE_PAIR VirtualKeyPairs[] =
 {
     SIP(L"0", '0'),

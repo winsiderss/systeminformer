@@ -780,44 +780,41 @@ NTSTATUS PhRunAsExecutionAlias(
     _In_ PPH_STRING Command
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PPH_STRING commandString;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     PPH_STRING fullFileName = NULL;
+    PPH_STRING commandString = NULL;
     PH_STRINGREF fileName;
     PH_STRINGREF arguments;
 
-    if (!(commandString = PhExpandEnvironmentStrings(&Command->sr)))
-        commandString = PhCreateString2(&Command->sr);
+    commandString = PhExpandEnvironmentStrings(&Command->sr);
+
+    if (PhIsNullOrEmptyString(commandString))
+    {
+        PhMoveReference(&fullFileName, PhCreateString2(&Command->sr));
+    }
 
     PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
 
     if (PhIsNullOrEmptyString(fullFileName))
+    {
         PhMoveReference(&fullFileName, PhCreateString2(&fileName));
-
-    if (PhIsNullOrEmptyString(fullFileName))
-    {
-        if (fullFileName) PhDereferenceObject(fullFileName);
-        if (commandString) PhDereferenceObject(commandString);
-        status = STATUS_NOT_IMPLEMENTED;
-        goto CleanupExit;
     }
 
-    // NOTE: The CreateProcess function will ignore PROC_THREAD_ATTRIBUTE_PARENT_PROCESS when redirecting execution
-    // of the filename via execution alias. The new process incorrectly inherits our elevated process token
-    // instead of using the non-elevated parent process. To work around the issue we execute the alias using the
-    // WdcRunTaskAsInteractiveUser function and also skip resetting the token and current directory. (dmex)
-
-    if (!PhIsAppExecutionAliasTarget(fullFileName))
+    if (!PhIsNullOrEmptyString(fullFileName))
     {
-        if (fullFileName) PhDereferenceObject(fullFileName);
-        if (commandString) PhDereferenceObject(commandString);
-        status = STATUS_NOT_IMPLEMENTED;
-        goto CleanupExit;
+        // NOTE: The CreateProcess function will ignore PROC_THREAD_ATTRIBUTE_PARENT_PROCESS when redirecting execution
+        // of the filename via execution alias. The new process incorrectly inherits our elevated process token
+        // instead of using the non-elevated parent process. To work around the issue we execute the alias using the
+        // WdcRunTaskAsInteractiveUser function and also skip resetting the token and current directory. (dmex)
+
+        if (PhIsAppExecutionAliasTarget(fullFileName))
+        {
+            status = STATUS_SUCCESS;
+        }
     }
 
-CleanupExit:
-    if (fullFileName) PhDereferenceObject(fullFileName);
-    if (commandString) PhDereferenceObject(commandString);
+    PhClearReference(&fullFileName);
+    PhClearReference(&commandString);
 
     return status;
 }
@@ -896,7 +893,7 @@ NTSTATUS PhRunAsExecuteParentCommand(
     }
 
     status = PhSetDesktopWinStaAccess(WindowHandle);
-    
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -1134,7 +1131,7 @@ VOID PhRunAsExecuteCommmand(
             createInfo.DesktopName = PhGetString(desktopName);
 
         status = PhSetDesktopWinStaAccess(Context->WindowHandle);
-        
+
         if (!NT_SUCCESS(status))
             goto CleanupAsUserExit;
 
@@ -1177,11 +1174,9 @@ VOID PhRunAsExecuteCommmand(
     {
         if (ProcessId)
         {
-            if (NT_SUCCESS(PhRunAsExecutionAlias(program)))
-            {
-                status = STATUS_SUCCESS;
-            }
-            else
+            status = PhRunAsExecutionAlias(program);
+
+            if (!NT_SUCCESS(status))
             {
                 status = PhRunAsExecuteParentCommand(
                     Context->WindowHandle,
@@ -1223,7 +1218,8 @@ VOID PhRunAsExecuteCommmand(
                 PhShowError2(
                     Context->WindowHandle,
                     L"Unable to start the program.",
-                    L"Unable to start the execution alias with custom tokens."
+                    L"%s",
+                    L"Unable to start the execution alias with a process token."
                     );
             }
             else
@@ -2076,7 +2072,7 @@ NTSTATUS PhInvokeRunAsService(
     ULONG flags;
 
     status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
-    
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2330,10 +2326,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
             success = TRUE;
         }
 
-        if (parentDirectory)
-        {
-            PhDereferenceObject(parentDirectory);
-        }
+        PhClearReference(&parentDirectory);
     }
 
     PhClearReference(&executeString);
@@ -2498,16 +2491,10 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status = PhInitializeProcThreadAttributeList(&attributeList, 1)))
         goto CleanupExit;
 
-    PROC_THREAD_ATTRIBUTE extended;
-    extended.Attribute = PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS;
-    extended.Size = sizeof(ULONG);
-    extended.Value = (ULONG_PTR)EXTENDED_PROCESS_CREATION_FLAG_FORCELUA;
-    attributeList->ExtendedFlagsAttribute = &extended;
-
     status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-        &(HANDLE){ processHandle },
+        &processHandle,
         sizeof(HANDLE)
         );
 
@@ -2578,22 +2565,16 @@ static VOID PhpRunFileSetImageList(
 {
     if (Context->ImageListHandle)
     {
-        PhImageListSetIconSize(
-            Context->ImageListHandle,
-            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi)
-            );
+        PhImageListDestroy(Context->ImageListHandle);
+        Context->ImageListHandle = NULL;
     }
-    else
-    {
-        Context->ImageListHandle = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
-            ILC_MASK | ILC_COLOR32,
-            1,
-            1
-            );
-    }
+
+    Context->ImageListHandle = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
+        ILC_MASK | ILC_COLOR32,
+        1, 1
+        );
 
     if (Context->ImageListHandle)
     {
@@ -2619,17 +2600,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PHP_RUNFILEDLG));
-
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetDialogContext(hwndDlg, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
+        context = PhGetDialogContext(hwndDlg);
     }
 
     if (!context)
@@ -2677,6 +2652,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveDialogContext(hwndDlg);
+
             PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
 
             PhImageListDestroy(context->ImageListHandle);

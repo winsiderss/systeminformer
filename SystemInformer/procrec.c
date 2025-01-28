@@ -84,11 +84,6 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (!context)
@@ -214,6 +209,8 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             if (context->FileIcon)
                 DestroyIcon(context->FileIcon);
         }

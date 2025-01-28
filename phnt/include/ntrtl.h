@@ -3204,6 +3204,7 @@ RtlCreateUserProcessEx(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -3383,6 +3384,7 @@ RtlCreateUserThread(
     );
 
 #if (PHNT_VERSION >= PHNT_WINXP)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -5236,6 +5238,19 @@ typedef struct _RTL_HEAP_PARAMETERS
 //
 #define HEAP_CREATE_HARDENED 0x00000200
 
+/**
+ * The RtlCreateHeap routine creates a heap object that can be used by the calling process. This routine reserves
+ * space in the virtual address space of the process and allocates physical storage for a specified initial portion of this block.
+ *
+ * @param Flags Flags specifying optional attributes of the heap.
+ * @param HeapBase If HeapBase is a non-NULL value, it specifies the base address for a block of caller-allocated memory to use for the heap.
+ * @param ReserveSize If ReserveSize is a nonzero value, it specifies the initial amount of memory, in bytes, to reserve for the heap.
+ * @param CommitSize If CommitSize is a nonzero value, it specifies the initial amount of memory, in bytes, to commit for the heap.
+ * @param Lock Pointer to an opaque structure to be used as the heap lock.
+ * @param Parameters Pointer to a RTL_HEAP_PARAMETERS structure that contains parameters to be applied when creating the heap.
+ * @return RtlCreateHeap returns a handle to be used in accessing the created heap.
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateheap
+ */
 _Must_inspect_result_
 NTSYSAPI
 PVOID
@@ -5251,6 +5266,14 @@ RtlCreateHeap(
     _In_opt_ PVOID Parameters
     );
 
+/**
+ * The RtlDestroyHeap routine destroys the specified heap object. RtlDestroyHeap decommits and releases all the pages of a private heap object,
+ * and it invalidates the handle to the heap.
+ *
+ * @param HeapHandle Handle for the heap to be destroyed. This parameter is a heap handle returned by RtlCreateHeap.
+ * @return If the call to RtlDestroyHeap succeeds, the return value is a NULL pointer. If the call to RtlDestroyHeap fails, the return value is a handle for the heap.
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldestroyheap
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -5258,14 +5281,15 @@ RtlDestroyHeap(
     _In_ _Post_invalid_ PVOID HeapHandle
     );
 
-#ifndef DECLSPEC_NOALIAS
-#if _MSC_VER < 1900
-#define DECLSPEC_NOALIAS
-#else
-#define DECLSPEC_NOALIAS __declspec(noalias)
-#endif
-#endif
-
+/**
+ * The RtlAllocateHeap routine allocates a block of memory from a heap.
+ *
+ * @param HeapHandle Handle for a private heap from which the memory will be allocated.
+ * @param Flags Controllable aspects of heap allocation. Specifying any flags will override the corresponding value specified when the heap was created with RtlCreateHeap.
+ * @param Size Number of bytes to be allocated. If the heap, specified by the HeapHandle parameter, is a nongrowable heap, Size must be less than or equal to the heap's virtual memory threshold.
+ * @return If the call to RtlAllocateHeap succeeds, the return value is a pointer to the newly-allocated block. The return value is NULL if the allocation failed.
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
+ */
 NTSYSAPI
 _Success_(return != 0)
 _Must_inspect_result_
@@ -5816,9 +5840,9 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetHeapInformation(
-    _In_opt_ PVOID HeapHandle,
+    _In_opt_ PCVOID HeapHandle,
     _In_ HEAP_INFORMATION_CLASS HeapInformationClass,
-    _In_opt_ PVOID HeapInformation,
+    _In_opt_ PCVOID HeapInformation,
     _In_opt_ SIZE_T HeapInformationLength
     );
 
@@ -5826,7 +5850,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleAllocateHeap(
-    _In_ PVOID HeapHandle,
+    _In_ PCVOID HeapHandle,
     _In_ ULONG Flags,
     _In_ SIZE_T Size,
     _In_ ULONG Count,
@@ -5837,7 +5861,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleFreeHeap(
-    _In_ PVOID HeapHandle,
+    _In_ PCVOID HeapHandle,
     _In_ ULONG Flags,
     _In_ ULONG Count,
     _In_ PVOID *Array
@@ -6541,7 +6565,9 @@ RtlReportSilentProcessExit(
     );
 #endif
 
+//
 // Random
+//
 
 NTSYSAPI
 ULONG
@@ -6577,7 +6603,9 @@ RtlComputeImportTableHash(
     _In_ ULONG ImportTableHashRevision // must be 1
     );
 
+//
 // Integer conversion
+//
 
 NTSYSAPI
 NTSTATUS
@@ -6654,7 +6682,9 @@ RtlUnicodeStringToInteger(
     _Out_ PULONG Value
     );
 
+//
 // IPv4/6 conversion
+//
 
 typedef struct in_addr IN_ADDR, *PIN_ADDR;
 typedef struct in6_addr IN6_ADDR, *PIN6_ADDR;
@@ -6900,7 +6930,9 @@ RtlBeginReadTickLock(
     return result;
 }
 
+//
 // Time zones
+//
 
 typedef struct _RTL_TIME_ZONE_INFORMATION
 {
@@ -6927,7 +6959,9 @@ RtlSetTimeZoneInformation(
     _In_ PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
     );
 
+//
 // Interlocked bit manipulation interfaces
+//
 
 #define RtlInterlockedSetBits(Flags, Flag) \
     InterlockedOr((PLONG)(Flags), Flag)
@@ -6953,7 +6987,9 @@ RtlSetTimeZoneInformation(
 #define RtlInterlockedTestBits(Flags, Flag) \
     ((InterlockedOr((PLONG)(Flags), 0) & (Flag)) == (Flag)) // dmex
 
+//
 // Bitmaps
+//
 
 typedef struct _RTL_BITMAP
 {
@@ -7338,7 +7374,9 @@ RtlFindSetBitsAndClearEx(
 
 #endif
 
+//
 // Handle tables
+//
 
 typedef struct _RTL_HANDLE_TABLE_ENTRY
 {
@@ -7411,7 +7449,9 @@ RtlIsValidIndexHandle(
     _Out_ PRTL_HANDLE_TABLE_ENTRY *Handle
     );
 
+//
 // Atom tables
+//
 
 #define RTL_ATOM_MAXIMUM_INTEGER_ATOM (RTL_ATOM)0xc000
 #define RTL_ATOM_INVALID_ATOM (RTL_ATOM)0x0000
@@ -7499,7 +7539,9 @@ RtlGetIntegerAtom(
     );
 #endif
 
+//
 // SIDs
+//
 
 _Must_inspect_result_
 NTSYSAPI
@@ -8169,7 +8211,9 @@ RtlMapGenericMask(
     _In_ PGENERIC_MAPPING GenericMapping
     );
 
+//
 // ACLs
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8463,7 +8507,9 @@ RtlAddProcessTrustLabelAce(
     );
 #endif
 
+//
 // Named pipes
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8472,7 +8518,9 @@ RtlDefaultNpAcl(
     _Out_ PACL *Acl
     );
 
+//
 // Security objects
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8775,7 +8823,9 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 
 #endif
 
+//
 // Version
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8803,7 +8853,9 @@ RtlGetNtVersionNumbers(
     _Out_opt_ PULONG NtBuildNumber
     );
 
+//
 // System information
+//
 
 // rev
 NTSYSAPI
@@ -8831,7 +8883,9 @@ RtlGetSuiteMask(
     );
 #endif
 
+//
 // Thread pool (old)
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8918,7 +8972,9 @@ LdrInitializeThunk(
     _In_ PVOID Parameter
     );
 
+//
 // Thread execution
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -8928,7 +8984,9 @@ RtlDelayExecution(
     _In_opt_ PLARGE_INTEGER DelayInterval
     );
 
+//
 // Timer support
+//
 
 NTSYSAPI
 NTSTATUS
@@ -8999,7 +9057,9 @@ RtlDeleteTimerQueueEx(
     _In_opt_ HANDLE Event
     );
 
+//
 // Registry access
+//
 
 NTSYSAPI
 NTSTATUS
@@ -9132,7 +9192,9 @@ RtlDeleteRegistryValue(
     _In_ PCWSTR ValueName
     );
 
+//
 // Thread profiling
+//
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 
@@ -9227,7 +9289,9 @@ RtlWow64EnableFsRedirectionEx(
     _Out_ PVOID *OldFsRedirectionLevel
     );
 
+//
 // Misc.
+//
 
 NTSYSAPI
 ULONG32
@@ -9320,7 +9384,9 @@ RtlGetCurrentProcessorNumberEx(
 
 #endif
 
+//
 // Stack support
+//
 
 NTSYSAPI
 VOID
@@ -10208,7 +10274,7 @@ NTSTATUS
 NTAPI 
 RtlProcessFlsData(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPVOID FlsData
+    _Out_ PVOID* FlsData
     );
 #endif
 

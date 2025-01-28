@@ -134,6 +134,7 @@ static VOID CstExportKey(
     PVOID blob;
     HANDLE fileHandle;
     IO_STATUS_BLOCK iosb;
+    LARGE_INTEGER allocationSize;
 
     if (!NT_SUCCESS(status = BCryptExportKey(
         KeyHandle,
@@ -161,11 +162,13 @@ static VOID CstExportKey(
         CstFailWithStatus(status, L"failed to export %ls, unable to get blob data", Description);
     }
 
+    allocationSize.QuadPart = blobSize;
+
     if (!NT_SUCCESS(status = PhCreateFileWin32Ex(
         &fileHandle,
         FileName,
         FILE_GENERIC_WRITE,
-        &(LARGE_INTEGER){.QuadPart = blobSize},
+        &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         0,
         FILE_OVERWRITE_IF,
@@ -446,6 +449,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         PVOID signature;
         PPH_STRING string;
         HANDLE fileHandle;
+        LARGE_INTEGER allocationSize;
 
         if (!CstArgument1 || !CstKeyFileName || (!CstSigFileName && !CstHex))
             CstFailWith(L"%ls", CstHelpMessage);
@@ -510,11 +514,13 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         }
         else
         {
+            allocationSize.QuadPart = signatureSize;
+
             if (!NT_SUCCESS(status = PhCreateFileWin32Ex(
                 &fileHandle,
                 CstSigFileName->Buffer,
                 FILE_GENERIC_WRITE,
-                &(LARGE_INTEGER){.QuadPart = signatureSize},
+                &allocationSize,
                 FILE_ATTRIBUTE_NORMAL,
                 0,
                 FILE_OVERWRITE_IF,

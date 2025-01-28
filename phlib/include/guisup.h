@@ -215,6 +215,21 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhDrawThemeTextEx(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ LONG cchText,
+    _In_ ULONG TextFlags,
+    _Inout_ LPRECT Rect,
+    _In_opt_ const PVOID Options // DTTOPTS*
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhAllowDarkModeForWindow(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
@@ -867,6 +882,9 @@ PhGetWindowText(
     _In_ HWND WindowHandle
     );
 
+#define PhaGetWindowText(WindowHandle) \
+    PH_AUTO_T(PH_STRING, PhGetWindowText(WindowHandle))
+
 #define PH_GET_WINDOW_TEXT_INTERNAL 0x1
 #define PH_GET_WINDOW_TEXT_LENGTH_ONLY 0x2
 
@@ -908,7 +926,7 @@ VOID
 NTAPI
 PhAddComboBoxStringRefs(
     _In_ HWND WindowHandle,
-    _In_ CONST PPH_STRINGREF* Strings,
+    _In_ CONST PCPH_STRINGREF* Strings,
     _In_ ULONG NumberOfStrings
     )
 {
@@ -1036,6 +1054,9 @@ PhGetListViewInterface(
     return listviewInterface;
 }
 
+#define PhDestroyListViewInterface(ListViewClass) \
+    if (ListViewClass) IListView_Release((struct IListView*)(ListViewClass));
+
 PHLIBAPI
 VOID
 NTAPI
@@ -1083,7 +1104,7 @@ VOID
 NTAPI
 PhSetClipboardString(
     _In_ HWND WindowHandle,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -1971,7 +1992,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhExtractIconEx(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
     _Out_opt_ HICON *IconLarge,

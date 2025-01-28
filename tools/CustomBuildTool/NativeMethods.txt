@@ -4,6 +4,7 @@ CreateEnvironmentBlock
 DestroyEnvironmentBlock
 ExitProcess
 SetFileInformationByHandle
+GetFileInformationByHandleEx
 RegOpenKeyEx
 RegQueryValueEx
 RegSetKeyValue

@@ -30,7 +30,7 @@ BOOLEAN PhGetWslDistributionFromPath(
     _Out_opt_ PPH_STRING *LxssFileName
     )
 {
-    static PH_STRINGREF lxssKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Lxss");
+    static CONST PH_STRINGREF lxssKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Lxss");
     PPH_STRING lxssDistributionName = NULL;
     PPH_STRING lxssDistroPath = NULL;
     PPH_STRING lxssFileName = NULL;
@@ -403,6 +403,7 @@ BOOLEAN PhCreateProcessLxss(
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
+    HANDLE handleList[2];
     STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
     PH_FORMAT format[4];
@@ -452,11 +453,14 @@ BOOLEAN PhCreateProcessLxss(
     if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&attributeList, 1)))
         goto CleanupExit;
 
+    handleList[0] = inputReadHandle;
+    handleList[1] = outputWriteHandle;
+
     if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2])
+        handleList,
+        sizeof(handleList)
         )))
     {
         goto CleanupExit;

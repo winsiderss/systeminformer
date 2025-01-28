@@ -780,7 +780,7 @@ VOID ToggleSearchFocus(
     SetSearchFocus(hWnd, GetFocus() != SearchboxHandle);
 }
 
-LRESULT CALLBACK MainWindowProc(
+LRESULT CALLBACK MainWindowCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
@@ -886,7 +886,7 @@ LRESULT CALLBACK MainWindowProc(
                         goto DefaultWndProc;
                     }
 
-                    if (GetFocus() == SearchboxHandle)
+                    if (SearchboxHandle && (GetFocus() == SearchboxHandle))
                     {
                         SendMessage(SearchboxHandle, WM_KEYDOWN, VK_ESCAPE, 0);
                         SetSearchFocus(WindowHandle, FALSE);
@@ -901,7 +901,7 @@ LRESULT CALLBACK MainWindowProc(
                 goto DefaultWndProc;
             case ID_SEARCH_TAB:
                 // handle tab when the searchbox is focused
-                if (GetFocus() == SearchboxHandle)
+                if (SearchboxHandle && (GetFocus() == SearchboxHandle))
                     SetSearchFocus(WindowHandle, FALSE);
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
@@ -1006,7 +1006,7 @@ LRESULT CALLBACK MainWindowProc(
                                 PPH_EMENU_ITEM menuItem;
                                 LONG dpiValue;
 
-                                dpiValue = PhGetWindowDpi(WindowHandle);
+                                dpiValue = SystemInformer_GetWindowDpi();
 
                                 // Add toolbar buttons to the context menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
@@ -1306,8 +1306,7 @@ LRESULT CALLBACK MainWindowProc(
             {
                 POINT cursorPos;
                 HWND windowOverMouse;
-                ULONG processId;
-                ULONG threadId;
+                CLIENT_ID clientId;
 
                 GetCursorPos(&cursorPos);
                 windowOverMouse = WindowFromPoint(cursorPos);
@@ -1322,10 +1321,10 @@ LRESULT CALLBACK MainWindowProc(
 
                     if (windowOverMouse)
                     {
-                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+                        PhGetWindowClientId(windowOverMouse, &clientId);
 
                         // Draw a rectangle over the current window (but not if it's one of our own).
-                        if (UlongToHandle(processId) != NtCurrentProcessId())
+                        if (clientId.UniqueProcess != NtCurrentProcessId())
                         {
                             DrawWindowBorderForTargeting(windowOverMouse);
                             TargetingCurrentWindowDraw = TRUE;
@@ -1347,8 +1346,7 @@ LRESULT CALLBACK MainWindowProc(
         {
             if (TargetingWindow)
             {
-                ULONG processId;
-                ULONG threadId;
+                CLIENT_ID clientId;
 
                 TargetingCompleted = TRUE;
 
@@ -1378,13 +1376,13 @@ LRESULT CALLBACK MainWindowProc(
                             TargetingCurrentWindow = hungWindow;
                     }
 
-                    threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
+                    PhGetWindowClientId(TargetingCurrentWindow, &clientId);
 
-                    if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
+                    if (clientId.UniqueThread && clientId.UniqueProcess && clientId.UniqueProcess != NtCurrentProcessId())
                     {
                         PPH_PROCESS_NODE processNode;
 
-                        processNode = PhFindProcessNode(UlongToHandle(processId));
+                        processNode = PhFindProcessNode(clientId.UniqueProcess);
 
                         if (processNode)
                         {
@@ -1399,11 +1397,11 @@ LRESULT CALLBACK MainWindowProc(
                                 PPH_PROCESS_PROPCONTEXT propContext;
                                 PPH_PROCESS_ITEM processItem;
 
-                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
                                 {
                                     if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
                                     {
-                                        PhSetSelectThreadIdProcessPropContext(propContext, UlongToHandle(threadId));
+                                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
                                         PhShowProcessProperties(propContext);
                                         PhDereferenceObject(propContext);
                                     }
@@ -1412,7 +1410,7 @@ LRESULT CALLBACK MainWindowProc(
                                 }
                                 else
                                 {
-                                    PhShowError2(WindowHandle, L"System Informer", L"The process (PID %lu) does not exist.", processId);
+                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
                                 }
                             }
                             break;
@@ -1420,14 +1418,14 @@ LRESULT CALLBACK MainWindowProc(
                             {
                                 PPH_PROCESS_ITEM processItem;
 
-                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
                                 {
                                     PhUiTerminateProcesses(WindowHandle, &processItem, 1);
                                     PhDereferenceObject(processItem);
                                 }
                                 else
                                 {
-                                    PhShowError2(WindowHandle, L"System Informer", L"The process (PID %lu) does not exist.", processId);
+                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
                                 }
                             }
                             break;
@@ -1769,7 +1767,7 @@ VOID NTAPI LoadCallback(
     MaxInitializationDelay = __max(0, __min(MaxInitializationDelay, 5));
 
     MainWindowHookProc = SystemInformer_GetWindowProcedure();
-    SystemInformer_SetWindowProcedure(MainWindowProc);
+    SystemInformer_SetWindowProcedure(MainWindowCallbackProc);
 
     UpdateCachedSettings();
 
@@ -1846,7 +1844,7 @@ VOID NTAPI MenuItemCallback(
 
                     SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
 
-                    if (!(rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS))
+                    if (!FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
                     {
                         // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
                         // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
@@ -1858,7 +1856,7 @@ VOID NTAPI MenuItemCallback(
                         ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
                     }
 
-                    if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+                    if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
                     {
                         ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }

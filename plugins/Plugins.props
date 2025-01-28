@@ -50,7 +50,7 @@
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
         </BuildLog>
         <PostBuildEvent>
-            <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)</Command>
+            <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"</Command>
         </PostBuildEvent>
         <ResourceCompile>
             <Culture>0x0009</Culture>

@@ -1934,7 +1934,7 @@ VOID CALLBACK EtFwEventCallback(
 
             if (entry.ProcessItem = EtFwGetFileNameProcessCachedSlow(fileName))
             {
-                PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
+                PhSwapReference(&entry.ProcessFileNameWin32, PhGetFileName(entry.ProcessItem->FileName));
             }
 
             PhDereferenceObject(fileName);
@@ -1979,7 +1979,7 @@ VOID CALLBACK EtFwEventCallback(
     {
         PhMoveReference(&entry.ProcessItem, PhReferenceProcessItem(SYSTEM_PROCESS_ID));
         PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
-        PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
+        PhSwapReference(&entry.ProcessFileNameWin32, PhGetFileName(entry.ProcessItem->FileName));
         PhSwapReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
     }
 

@@ -103,7 +103,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValueEx(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength,
@@ -123,8 +123,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemEnvironmentValue(
-    _In_ PUNICODE_STRING VariableName,
-    _In_ PUNICODE_STRING VariableValue
+    _In_ PCUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableValue
     );
 
 /**
@@ -145,7 +145,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemEnvironmentValueEx(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
     _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength, // 0 = delete variable
@@ -246,7 +246,13 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
 #if (PHNT_VERSION >= PHNT_WINXP)
-
+/**
+ * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
+ *
+ * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
+ * @param Id A pointer to a variable that receives the identifier of the new boot entry.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -255,6 +261,12 @@ NtAddBootEntry(
     _Out_opt_ PULONG Id
     );
 
+/**
+ * The NtDeleteBootEntry routine deletes an existing boot entry from the system boot configuration.
+ *
+ * @param Id The identifier of the boot entry to be deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -262,6 +274,12 @@ NtDeleteBootEntry(
     _In_ ULONG Id
     );
 
+/**
+ * The NtModifyBootEntry routine modifies an existing boot entry in the system boot configuration.
+ *
+ * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -269,6 +287,13 @@ NtModifyBootEntry(
     _In_ PBOOT_ENTRY BootEntry
     );
 
+/**
+ * The NtEnumerateBootEntries routine retrieves information about all boot entries in the system boot configuration.
+ *
+ * @param Buffer A pointer to a buffer that receives the boot entries information.
+ * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -277,6 +302,13 @@ NtEnumerateBootEntries(
     _Inout_ PULONG BufferLength
     );
 
+/**
+ * The NtQueryBootEntryOrder routine retrieves the current boot entry order.
+ *
+ * @param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
+ * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -285,6 +317,13 @@ NtQueryBootEntryOrder(
     _Inout_ PULONG Count
     );
 
+/**
+ * The NtSetBootEntryOrder routine sets the boot entry order.
+ *
+ * @param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
+ * @param Count The number of entries in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -293,6 +332,13 @@ NtSetBootEntryOrder(
     _In_ ULONG Count
     );
 
+/**
+ * The NtQueryBootOptions routine retrieves the current boot options.
+ *
+ * @param BootOptions A pointer to a buffer that receives the boot options.
+ * @param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -301,6 +347,13 @@ NtQueryBootOptions(
     _Inout_ PULONG BootOptionsLength
     );
 
+/**
+ * The NtSetBootOptions routine sets the boot options.
+ *
+ * @param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
+ * @param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -309,6 +362,15 @@ NtSetBootOptions(
     _In_ ULONG FieldsToChange
     );
 
+/**
+ * The NtTranslateFilePath routine translates a file path from one format to another.
+ *
+ * @param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
+ * @param OutputType The type of the output file path.
+ * @param OutputFilePath A pointer to a buffer that receives the translated file path.
+ * @param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -319,6 +381,13 @@ NtTranslateFilePath(
     _Inout_opt_ PULONG OutputFilePathLength
     );
 
+/**
+ * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
+ *
+ * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
+ * @param Id A pointer to a variable that receives the identifier of the new driver entry.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -327,6 +396,12 @@ NtAddDriverEntry(
     _Out_opt_ PULONG Id
     );
 
+/**
+ * The NtDeleteDriverEntry routine deletes an existing driver entry from the system boot configuration.
+ *
+ * @param Id The identifier of the driver entry to be deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -334,6 +409,12 @@ NtDeleteDriverEntry(
     _In_ ULONG Id
     );
 
+/**
+ * The NtModifyDriverEntry routine modifies an existing driver entry in the system boot configuration.
+ *
+ * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -341,6 +422,13 @@ NtModifyDriverEntry(
     _In_ PEFI_DRIVER_ENTRY DriverEntry
     );
 
+/**
+ * The NtEnumerateDriverEntries routine retrieves information about all driver entries in the system boot configuration.
+ *
+ * @param Buffer A pointer to a buffer that receives the driver entries information.
+ * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -349,6 +437,13 @@ NtEnumerateDriverEntries(
     _Inout_ PULONG BufferLength
     );
 
+/**
+ * The NtQueryDriverEntryOrder routine retrieves the current driver entry order.
+ *
+ * @param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
+ * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -357,6 +452,13 @@ NtQueryDriverEntryOrder(
     _Inout_ PULONG Count
     );
 
+/**
+ * The NtSetDriverEntryOrder routine sets the driver entry order.
+ *
+ * @param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
+ * @param Count The number of entries in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -364,7 +466,6 @@ NtSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
-
 #endif
 
 typedef enum _FILTER_BOOT_OPTION_OPERATION
@@ -376,7 +477,16 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
 } FILTER_BOOT_OPTION_OPERATION;
 
 #if (PHNT_VERSION >= PHNT_WIN8)
-
+/**
+ * The NtFilterBootOption routine filters boot options based on the specified operation, object type, and element type.
+ *
+ * @param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
+ * @param ObjectType The type of the object to be filtered.
+ * @param ElementType The type of the element within the object to be filtered.
+ * @param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
+ * @param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -387,7 +497,6 @@ NtFilterBootOption(
     _In_reads_bytes_opt_(DataSize) PVOID Data,
     _In_ ULONG DataSize
     );
-
 #endif
 
 //
@@ -568,10 +677,20 @@ NtQueryEvent(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Event Pair
+//
 
 #define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)
 
+/**
+ * The NtCreateEventPair routine creates an event pair object and opens a handle to the object with the specified desired access.
+ *
+ * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -581,6 +700,14 @@ NtCreateEventPair(
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtOpenEventPair routine opens a handle to an existing event pair object.
+ *
+ * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -590,6 +717,12 @@ NtOpenEventPair(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtSetLowEventPair routine sets the low event in an event pair to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -597,6 +730,12 @@ NtSetLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetHighEventPair routine sets the high event in an event pair to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -604,6 +743,12 @@ NtSetHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtWaitLowEventPair routine waits for the low event in an event pair to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -611,6 +756,12 @@ NtWaitLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtWaitHighEventPair routine waits for the high event in an event pair to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -618,6 +769,12 @@ NtWaitHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetLowWaitHighEventPair routine sets the low event in an event pair to the signaled state and waits for the high event to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -625,6 +782,12 @@ NtSetLowWaitHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetHighWaitLowEventPair routine sets the high event in an event pair to the signaled state and waits for the low event to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -632,7 +795,9 @@ NtSetHighWaitLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+//
 // Mutant
+//
 
 #ifndef MUTANT_QUERY_STATE
 #define MUTANT_QUERY_STATE 0x0001
@@ -648,6 +813,9 @@ typedef enum _MUTANT_INFORMATION_CLASS
     MutantOwnerInformation // MUTANT_OWNER_INFORMATION
 } MUTANT_INFORMATION_CLASS;
 
+/**
+ * The MUTANT_BASIC_INFORMATION structure contains basic information about a mutant object.
+ */
 typedef struct _MUTANT_BASIC_INFORMATION
 {
     LONG CurrentCount;
@@ -655,11 +823,24 @@ typedef struct _MUTANT_BASIC_INFORMATION
     BOOLEAN AbandonedState;
 } MUTANT_BASIC_INFORMATION, *PMUTANT_BASIC_INFORMATION;
 
+/**
+ * The MUTANT_OWNER_INFORMATION structure contains information about the owner of a mutant object.
+ */
 typedef struct _MUTANT_OWNER_INFORMATION
 {
     CLIENT_ID ClientId;
 } MUTANT_OWNER_INFORMATION, *PMUTANT_OWNER_INFORMATION;
 
+/**
+ * The NtCreateMutant routine creates a mutant object, sets the initial state of the mutant to the specified value,
+ * and opens a handle to the object with the specified desired access.
+ *
+ * @param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -670,6 +851,14 @@ NtCreateMutant(
     _In_ BOOLEAN InitialOwner
     );
 
+/**
+ * The NtOpenMutant routine opens a handle to an existing mutant object.
+ *
+ * @param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -679,6 +868,13 @@ NtOpenMutant(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtReleaseMutant routine releases ownership of a mutant object.
+ *
+ * @param MutantHandle A handle to the mutant object.
+ * @param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -687,6 +883,16 @@ NtReleaseMutant(
     _Out_opt_ PLONG PreviousCount
     );
 
+/**
+ * The NtQueryMutant routine retrieves information about a mutant object.
+ *
+ * @param MutantHandle A handle to the mutant object.
+ * @param MutantInformationClass The type of information to be retrieved.
+ * @param MutantInformation A pointer to a buffer that receives the requested information.
+ * @param MutantInformationLength The size of the buffer pointed to by MutantInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -698,7 +904,9 @@ NtQueryMutant(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Semaphore
+//
 
 #ifndef SEMAPHORE_QUERY_STATE
 #define SEMAPHORE_QUERY_STATE 0x0001
@@ -717,12 +925,26 @@ typedef enum _SEMAPHORE_INFORMATION_CLASS
     SemaphoreBasicInformation
 } SEMAPHORE_INFORMATION_CLASS;
 
+/**
+ * The SEMAPHORE_BASIC_INFORMATION structure contains basic information about a semaphore object.
+ */
 typedef struct _SEMAPHORE_BASIC_INFORMATION
 {
     LONG CurrentCount;
     LONG MaximumCount;
 } SEMAPHORE_BASIC_INFORMATION, *PSEMAPHORE_BASIC_INFORMATION;
 
+/**
+ * The NtCreateSemaphore routine creates a semaphore object, sets the initial count of the semaphore to the specified value,
+ * and opens a handle to the object with the specified desired access.
+ *
+ * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @param InitialCount The initial count of the semaphore object.
+ * @param MaximumCount The maximum count of the semaphore object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -734,6 +956,14 @@ NtCreateSemaphore(
     _In_ LONG MaximumCount
     );
 
+/**
+ * The NtOpenSemaphore routine opens a handle to an existing semaphore object.
+ *
+ * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -743,6 +973,14 @@ NtOpenSemaphore(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtReleaseSemaphore routine increases the count of the specified semaphore object by a specified amount.
+ *
+ * @param SemaphoreHandle A handle to the semaphore object.
+ * @param ReleaseCount The amount by which the semaphore object's count is to be increased.
+ * @param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -752,6 +990,16 @@ NtReleaseSemaphore(
     _Out_opt_ PLONG PreviousCount
     );
 
+/**
+ * The NtQuerySemaphore routine retrieves information about a semaphore object.
+ *
+ * @param SemaphoreHandle A handle to the semaphore object.
+ * @param SemaphoreInformationClass The type of information to be retrieved.
+ * @param SemaphoreInformation A pointer to a buffer that receives the requested information.
+ * @param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -763,7 +1011,9 @@ NtQuerySemaphore(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Timer
+//
 
 #ifndef TIMER_QUERY_STATE
 #define TIMER_QUERY_STATE 0x0001
@@ -1620,7 +1870,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWow64SharedInformationObsolete, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s: SYSTEM_FIRMWARE_TABLE_HANDLER // (kernel-mode only)
     SystemFirmwareTableInformation, // SYSTEM_FIRMWARE_TABLE_INFORMATION
-    SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
+    SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX // since VISTA
     SystemVerifierTriageInformation, // not implemented
     SystemSuperfetchInformation, // q; s: SUPERFETCH_INFORMATION // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // q: SYSTEM_MEMORY_LIST_INFORMATION; s: SYSTEM_MEMORY_LIST_COMMAND (requires SeProfileSingleProcessPrivilege) // 80

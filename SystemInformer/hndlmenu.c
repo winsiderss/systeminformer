@@ -40,25 +40,36 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
         PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
         if (PhEqualString2(Info->TypeName, L"File", TRUE))
+        {
             PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File propert&ies", NULL, NULL), indexInParent);
-
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &file location", EnableShortcut), NULL, NULL), indexInParent);
+            PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &file location", EnableShortcut), NULL, NULL), indexInParent + 1);
+            PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 2);
+        }
+        else
+        {
+            PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &file location", EnableShortcut), NULL, NULL), indexInParent);
+            PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
+        }
     }
     else if (PhEqualString2(Info->TypeName, L"Key", TRUE))
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &key", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
     }
     else if (PhEqualString2(Info->TypeName, L"Process", TRUE))
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process propert&ies", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
     }
     else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Read/Write &memory", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to t&hread", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuSeparator(), indexInParent + 1);
     }
 }
 
@@ -188,6 +199,26 @@ VOID PhShowHandleObjectProperties1(
         {
             targetProcessItem = PhReferenceProcessItem(processId);
 
+            if (!targetProcessItem)
+            {
+                NTSTATUS status;
+
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    processId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    targetProcessItem = PhCreateProcessItemFromHandle(
+                        processId,
+                        processHandle,
+                        TRUE
+                        );
+                }
+            }
+
             if (targetProcessItem)
             {
                 SystemInformer_ShowProcessProperties(targetProcessItem);
@@ -272,7 +303,9 @@ VOID PhShowHandleObjectProperties1(
                     PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
 
                     if (tooBig)
-                        PhShowWarning2(hWnd, L"The section size is greater than 32 MB. Only the first 32 MB will be available.", L"%s", L"");
+                    {
+                        PhShowWarning2(hWnd, L"Unable to map a view of the section.", L"%s", L"The section size is greater than 32 MB. Only the first 32 MB will be available.");
+                    }
 
                     memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                     showMemoryEditor->ProcessId = NtCurrentProcessId();
@@ -357,6 +390,26 @@ VOID PhShowHandleObjectProperties1(
         if (clientId.UniqueProcess)
         {
             targetProcessItem = PhReferenceProcessItem(clientId.UniqueProcess);
+
+            if (!targetProcessItem)
+            {
+                NTSTATUS status;
+
+                status = PhOpenProcessClientId(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    &clientId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    targetProcessItem = PhCreateProcessItemFromHandle(
+                        clientId.UniqueProcess,
+                        processHandle,
+                        TRUE
+                        );
+                }
+            }
 
             if (targetProcessItem)
             {

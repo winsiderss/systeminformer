@@ -687,7 +687,7 @@ NTSTATUS PhSaveXmlObjectToFile(
     _In_opt_ PVOID XmlSaveCallback
     )
 {
-    static PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
+    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".tmp");
     NTSTATUS status;
     PPH_STRING fileName;
     HANDLE fileHandle = NULL;

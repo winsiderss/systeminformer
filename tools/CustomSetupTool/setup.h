@@ -295,7 +295,7 @@ ULONG64 ParseVersionString(
     _Inout_ PPH_STRING VersionString
     );
 
-BOOLEAN SetupQueryUpdateData(
+BOOLEAN SetupQueryUpdateDataWithFailover(
     _Inout_ PPH_SETUP_CONTEXT Context
     );
 

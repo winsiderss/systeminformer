@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
@@ -179,10 +179,7 @@
     <ClCompile Include="strsrch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="appsupport.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ntuser.c">
+    <ClCompile Include="nativeuser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nativemodule.c">
@@ -206,7 +203,7 @@
     <ClCompile Include="guisuplistview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="delayhook.c">
+    <ClCompile Include="firmware.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -427,5 +424,11 @@
     <ClInclude Include="include\phconsole.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\phfirmware.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="delayhook.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

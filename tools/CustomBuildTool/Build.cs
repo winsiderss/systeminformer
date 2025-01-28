@@ -25,8 +25,7 @@ namespace CustomBuildTool
         public static string BuildLongVersion = string.Empty;
         public static string BuildSourceLink = string.Empty;
         public const string BuildVersionMajor = "3";
-        public const string BuildVersionMinor = "1";
-        public static string BuildVersionRevision = "0";
+        public const string BuildVersionMinor = "2";
 
         public static bool InitializeBuildEnvironment()
         {
@@ -42,9 +41,19 @@ namespace CustomBuildTool
                 return false;
             }
 
-            Build.TimeStart = DateTime.UtcNow;
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
+
+            // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
+            if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
+            {
+                var timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
+                Build.TimeStart = DateTime.Parse(timestamp);
+            }
+            else
+            {
+                Build.TimeStart = DateTime.UtcNow;
+            }
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
@@ -68,12 +77,6 @@ namespace CustomBuildTool
                 Build.BuildCommitHash = buildsource;
             if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
                 Build.BuildCommitBranch = buildbranch;
-
-            if (Win32.GetEnvironmentVariable("SYSTEM_REVISION", out string build_revision))
-            {
-                if (ushort.TryParse(build_revision, out _))
-                    Build.BuildVersionRevision = build_revision;
-            }
 
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
@@ -156,6 +159,12 @@ namespace CustomBuildTool
             }
         }
 
+        public static void WriteTimeStampFile()
+        {
+            Utils.CreateOutputDirectory();
+            Utils.WriteAllText($"{BuildOutputFolder}\\systeminformer-build-timestamp.txt", TimeStart.ToString("o"));
+        }
+
         public static string BuildTimeSpan()
         {
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
@@ -163,7 +172,13 @@ namespace CustomBuildTool
 
         public static string BuildVersionBuild
         {
-            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}"; }
+            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}".TrimStart('0'); }
+        }
+
+        public static string BuildVersionRevision
+        {
+            // Remove leading zeros or the value is interpreted as octal.
+            get { return $"{TimeStart.Hour}{TimeStart.Minute:D2}".TrimStart('0'); }
         }
 
         public static string BuildUpdated
@@ -506,24 +521,10 @@ namespace CustomBuildTool
 
             // Copy the resource header and prefix types with PHAPP
             {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
-                WIN32_FILE_ATTRIBUTE_DATA destinationFile;
+                Win32.GetFileTime("SystemInformer\\resource.h", out long sourceCreationTime, out long sourceWriteTime);
+                Win32.GetFileTime("sdk\\include\\phappresource.h", out long destCreationTime, out long destWriteTime);
 
-                PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\resource.h",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &sourceFile);
-
-                PInvoke.GetFileAttributesEx(
-                    "sdk\\include\\phappresource.h",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &destinationFile
-                    );
-
-                if (
-                    sourceFile.ftCreationTime.FileTimeToDateTime() != destinationFile.ftCreationTime.FileTimeToDateTime() ||
-                    sourceFile.ftLastWriteTime.FileTimeToDateTime() != destinationFile.ftLastWriteTime.FileTimeToDateTime()
-                    )
+                if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
                 {
                     string resourceContent = Utils.ReadAllText("SystemInformer\\resource.h");
 
@@ -532,20 +533,8 @@ namespace CustomBuildTool
                         // Update resource headers with SDK definition
                         string sdkContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                        Utils.WriteAllText(
-                            "sdk\\include\\phappresource.h",
-                            sdkContent
-                            );
-
-                        using (var fs = File.OpenWrite("sdk\\include\\phappresource.h"))
-                        {
-                            PInvoke.SetFileTime(
-                                fs.SafeFileHandle,
-                                sourceFile.ftCreationTime,
-                                sourceFile.ftLastAccessTime,
-                                sourceFile.ftLastWriteTime
-                                );
-                        }
+                        Utils.WriteAllText("sdk\\include\\phappresource.h", sdkContent);
+                        Win32.SetFileTime("sdk\\include\\phappresource.h", sourceCreationTime, sourceWriteTime);
                     }
                 }
             }
@@ -941,20 +930,38 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDeployUpdateConfig()
+        public static bool BuildUpdateServerConfig()
         {
             if (!Build.BuildCanary)
                 return true;
             if (Build.BuildToolsDebug)
                 return true;
-            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
-                return false;
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
-                return false;
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
-                return false;
 
-            Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {Build.BuildShortVersion}", ConsoleColor.Cyan);
+            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
+            {
+                Program.PrintColorMessage("BUILD_BUILDID not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
+            {
+                Program.PrintColorMessage("BUILD_SF_API not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
+            {
+                Program.PrintColorMessage("BUILD_SF_KEY not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostCfUrl))
+            {
+                Program.PrintColorMessage("BUILD_CF_API not found.", ConsoleColor.Red);
+                return false;
+            }
+            if (!Win32.GetEnvironmentVariable("BUILD_CF_KEY", out string buildPostCfApiKey))
+            {
+                Program.PrintColorMessage("BUILD_CF_KEY not found.", ConsoleColor.Red);
+                return false;
+            }
 
             if (!GetBuildDeployInfo("release", out BuildDeployInfo release))
                 return false;
@@ -965,90 +972,89 @@ namespace CustomBuildTool
             //if (!GetBuildDeployInfo("developer", out BuildDeployInfo developer))
             //    return false;
 
-            GithubRelease githubMirrorUpload = BuildDeployUploadGithubConfig();
-
-            if (githubMirrorUpload == null)
-                return false;
-
-            string canaryBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
-            string canarySetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
-
-            string releaseBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
-            string releaseSetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
-
-            if (string.IsNullOrWhiteSpace(canaryBinziplink) ||
-                string.IsNullOrWhiteSpace(canarySetupexelink) ||
-                string.IsNullOrWhiteSpace(releaseBinziplink) ||
-                string.IsNullOrWhiteSpace(releaseSetupexelink))
+            if (!BuildUpdateGithubServer(out var BuildUploadInfo))
             {
-                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUpdateGithubServer failed.", ConsoleColor.Red);
                 return false;
             }
 
-            try
+            if (!BuildUploadServerConfig(
+                buildBuildId,
+                buildPostSfUrl,
+                buildPostSfApiKey,
+                BuildUploadInfo.Item1,
+                BuildUploadInfo.Item2,
+                BuildUploadInfo.Item3,
+                BuildUploadInfo.Item4,
+                release,
+                canary
+                ))
             {
-                BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
-                {
-                    BuildUpdated = Build.BuildUpdated,
-                    BuildDisplay = Build.BuildShortVersion,
-                    BuildVersion = Build.BuildLongVersion,
-                    BuildCommit = Build.BuildCommitHash,
-                    BuildId = buildBuildId,
-                    BinUrl = canaryBinziplink,
-                    BinLength = canary.BinFileLength.ToString(),
-                    BinHash = canary.BinHash,
-                    BinSig = canary.BinSig,
-                    SetupUrl = canarySetupexelink,
-                    SetupLength = canary.SetupFileLength.ToString(),
-                    SetupHash = canary.SetupHash,
-                    SetupSig = canary.SetupSig,
-                    ReleaseBinUrl = releaseBinziplink,
-                    ReleaseBinLength = release.BinFileLength.ToString(),
-                    ReleaseBinHash = release.BinHash,
-                    ReleaseBinSig = release.BinSig,
-                    ReleaseSetupUrl = releaseSetupexelink,
-                    ReleaseSetupLength = release.SetupFileLength.ToString(),
-                    ReleaseSetupHash = release.SetupHash,
-                    ReleaseSetupSig = release.SetupSig,
-                };
-
-                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
-
-                if (buildPostString.LongLength == 0)
-                    return false;
-
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, buildPostSfUrl))
-                {
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    requestMessage.Headers.Add("X-ApiKey", buildPostSfApiKey);
-                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                    requestMessage.Version = HttpVersion.Version20;
-
-                    requestMessage.Content = new ByteArrayContent(buildPostString);
-                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                    var httpResult = HttpClient.SendMessage(requestMessage);
-
-                    if (string.IsNullOrWhiteSpace(httpResult))
-                    {
-                        Program.PrintColorMessage("[UpdateBuildWebService-SF]", ConsoleColor.Red);
-                        return false;
-                    }
-                }
+                Program.PrintColorMessage("BuildUploadServerConfig-SF failed.", ConsoleColor.Red);
+                return false;
             }
-            catch (Exception ex)
+
+            if (!BuildUploadServerConfig(
+                buildBuildId,
+                buildPostCfUrl,
+                buildPostCfApiKey,
+                BuildUploadInfo.Item1,
+                BuildUploadInfo.Item2,
+                BuildUploadInfo.Item3,
+                BuildUploadInfo.Item4,
+                release,
+                canary
+                ))
             {
-                Program.PrintColorMessage($"[UpdateBuildWebService-SF] {ex}", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUploadServerConfig-CF failed.", ConsoleColor.Red);
                 return false;
             }
 
             return true;
         }
 
-        public static GithubRelease BuildDeployUploadGithubConfig()
+        private static bool BuildUpdateGithubServer(out Tuple<string, string, string, string> BuildUploadInfo)
         {
-            if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
-                return null;
+            BuildUploadInfo = null;
+
+            if (!Build.BuildCanary)
+                return true;
+            if (Build.BuildToolsDebug)
+                return true;
+
+            GithubRelease githubMirrorUpload = BuildUploadFilesToGithub();
+
+            if (githubMirrorUpload == null)
+                return false;
+
+            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
+            string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
+            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
+            string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
+
+            if (string.IsNullOrWhiteSpace(canaryBinlink) ||
+                string.IsNullOrWhiteSpace(canarySetuplink) ||
+                string.IsNullOrWhiteSpace(releaseBinlink) ||
+                string.IsNullOrWhiteSpace(releaseSetuplink))
+            {
+                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                return false;
+            }
+
+            BuildUploadInfo = new Tuple<string, string, string, string>(
+                canaryBinlink,
+                canarySetuplink,
+                releaseBinlink,
+                releaseSetuplink
+                );
+
+            return true;
+        }
+
+        private static GithubRelease BuildUploadFilesToGithub()
+        {
+            //if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
+            //    return null;
 
             GithubRelease mirror = null;
 
@@ -1124,6 +1130,101 @@ namespace CustomBuildTool
             }
 
             return mirror;
+        }
+
+        private static bool BuildUploadServerConfig(
+            string BuildBuildId,
+            string BuildPostUrl,
+            string BuildPostKey,
+            string CanaryBinLink,
+            string CanarySetupLink,
+            string ReleaseBinLink,
+            string ReleaseSetupLink,
+            BuildDeployInfo Release,
+            BuildDeployInfo Canary
+            )
+        {
+            if (!Build.BuildCanary)
+                return true;
+            if (Build.BuildToolsDebug)
+                return true;
+
+            if (string.IsNullOrWhiteSpace(BuildBuildId) ||
+                string.IsNullOrWhiteSpace(BuildPostUrl) ||
+                string.IsNullOrWhiteSpace(BuildPostKey) ||
+                string.IsNullOrWhiteSpace(CanaryBinLink) ||
+                string.IsNullOrWhiteSpace(CanarySetupLink) ||
+                string.IsNullOrWhiteSpace(ReleaseBinLink) ||
+                string.IsNullOrWhiteSpace(ReleaseSetupLink))
+            {
+                Program.PrintColorMessage("BuildUpdateServerConfig invalid args.", ConsoleColor.Red);
+                return false;
+            }
+
+            try
+            {
+                BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
+                {
+                    BuildUpdated = Build.BuildUpdated,
+                    BuildDisplay = Build.BuildShortVersion,
+                    BuildVersion = Build.BuildLongVersion,
+                    BuildCommit = Build.BuildCommitHash,
+                    BuildId = BuildBuildId,
+                    BinUrl = CanaryBinLink,
+                    BinLength = Canary.BinFileLength.ToString(),
+                    BinHash = Canary.BinHash,
+                    BinSig = Canary.BinSig,
+                    SetupUrl = CanarySetupLink,
+                    SetupLength = Canary.SetupFileLength.ToString(),
+                    SetupHash = Canary.SetupHash,
+                    SetupSig = Canary.SetupSig,
+                    ReleaseBinUrl = ReleaseBinLink,
+                    ReleaseBinLength = Release.BinFileLength.ToString(),
+                    ReleaseBinHash = Release.BinHash,
+                    ReleaseBinSig = Release.BinSig,
+                    ReleaseSetupUrl = ReleaseSetupLink,
+                    ReleaseSetupLength = Release.SetupFileLength.ToString(),
+                    ReleaseSetupHash = Release.SetupHash,
+                    ReleaseSetupSig = Release.SetupSig,
+                };
+
+                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
+
+                if (buildPostString.LongLength == 0)
+                    return false;
+
+                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildPostUrl))
+                {
+                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    requestMessage.Headers.Add("X-ApiKey", BuildPostKey);
+                    requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                    requestMessage.Version = HttpVersion.Version20;
+
+                    requestMessage.Content = new ByteArrayContent(buildPostString);
+                    requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                    var httpResult = HttpClient.SendMessage(requestMessage);
+
+                    if (string.IsNullOrWhiteSpace(httpResult))
+                    {
+                        Program.PrintColorMessage("[UpdateBuildWebService-SF-NullOrWhiteSpace]", ConsoleColor.Red);
+                        return false;
+                    }
+
+                    if (!httpResult.Equals("OK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"[UpdateBuildWebService-SF] {httpResult}", ConsoleColor.Red);
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[UpdateBuildWebService-SF] {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
         }
 
         private static void BuildMsixPackageManifest(BuildFlags Flags)
@@ -1336,8 +1437,8 @@ namespace CustomBuildTool
                     {
                         ["documents"] = new JsonObject
                         {
-                            ["\\*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*",
-                            [$"{Path.Join([Build.BuildWorkingFolder, "\\"])}*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}*"
+                            ["*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*",
+                            [$"{Path.Join([Build.BuildWorkingFolder, "\\"])}*"] = $"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*"
                         }
                     };
 
@@ -1350,7 +1451,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void CleanupBuildEnvironment()
+        public static bool CleanupBuildEnvironment()
         {
             try
             {
@@ -1361,91 +1462,89 @@ namespace CustomBuildTool
                     Program.PrintColorMessage(output, ConsoleColor.DarkGray);
                 }
 
+                if (Directory.Exists(BuildOutputFolder)) // output
                 {
-                    if (Directory.Exists(BuildOutputFolder)) // output
+                    Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildOutputFolder, true);
+                }
+
+                if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
+                {
+                    Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
+                }
+
+                //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                //{
+                //    string sourceFile = BuildOutputFolder + file.FileName;
+                //
+                //    Win32.DeleteFile(sourceFile);
+                //}
+                //
+                //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                //{
+                //    if (Directory.Exists(folder))
+                //        Directory.Delete(folder, true);
+                //}
+
+                var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string folder in project_folders)
+                {
+                    string path = Path.GetFullPath(folder);
+                    var name = Path.GetFileName(path.AsSpan());
+
+                    if (
+                        name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("obj", StringComparison.OrdinalIgnoreCase)
+                        )
                     {
-                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildOutputFolder, true);
-                    }
-
-                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
-                    {
-                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
-                    }
-
-                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                    //{
-                    //    string sourceFile = BuildOutputFolder + file.FileName;
-                    //
-                    //    Win32.DeleteFile(sourceFile);
-                    //}
-                    //
-                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                    //{
-                    //    if (Directory.Exists(folder))
-                    //        Directory.Delete(folder, true);
-                    //}
-
-                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string folder in project_folders)
-                    {
-                        string path = Path.GetFullPath(folder);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (
-                            name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
-                            name.Equals("obj", StringComparison.OrdinalIgnoreCase)
-                            )
-                        {
-                            if (Directory.Exists(path))
-                            {
-                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
-
-                                try
-                                {
-                                    Directory.Delete(path, true);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                                }
-                            }
-                        }
-                    }
-
-                    // Delete files with abs
-
-                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string file in res_files)
-                    {
-                        string path = Path.GetFullPath(file);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                        if (Directory.Exists(path))
                         {
                             Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
 
                             try
                             {
-                                Win32.DeleteFile(path);
+                                Directory.Delete(path, true);
                             }
                             catch (Exception ex)
                             {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                             }
+                        }
+                    }
+                }
+
+                // Delete files with abs
+
+                var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string file in res_files)
+                {
+                    string path = Path.GetFullPath(file);
+                    var name = Path.GetFileName(path.AsSpan());
+
+                    if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                        try
+                        {
+                            Win32.DeleteFile(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
                         }
                     }
                 }
@@ -1454,62 +1553,46 @@ namespace CustomBuildTool
             {
                 Program.PrintColorMessage($"[Cleanup] {ex}", ConsoleColor.Red);
             }
+
+            return true;
         }
 
-        public static void ReflowExportDefinitions(bool ReleaseBuild)
+        private static readonly string ExportHeader = @"/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2008-2016
+ *     dmex    2017-2024
+ *
+ *
+ * This file was automatically generated.
+ *
+ * Do not link at runtime. Use the SystemInformer.def.h header file instead.
+ *
+ */
+
+#pragma once
+
+#ifndef _PH_EXPORT_DEF_H
+#define _PH_EXPORT_DEF_H
+";
+
+        private static readonly string ExportFooter = @"
+#endif _PH_EXPORT_DEF_H
+";
+
+        public static void ExportDefinitions(bool ReleaseBuild)
         {
+            List<int> ordinals = [];
             StringBuilder output = new StringBuilder();
-            int total = 0; // ushort.MaxValue
+            StringBuilder output_header = new StringBuilder();
 
-            {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
-
-                File.Copy(
-                    "SystemInformer\\SystemInformer.def",
-                    "SystemInformer\\SystemInformer.bak",
-                    true
-                    );
-
-                if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.def",
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard,
-                    &sourceFile))
-                {
-                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.bak"))
-                    {
-                        PInvoke.SetFileTime(
-                            fs.SafeFileHandle,
-                            sourceFile.ftCreationTime,
-                            sourceFile.ftLastAccessTime,
-                            sourceFile.ftLastWriteTime
-                            );
-                    }
-                }
-            }
-
-            var content = File.ReadAllText("SystemInformer\\SystemInformer.def");
+            var content = Utils.ReadAllText("SystemInformer\\SystemInformer.def");
             var lines = content.Split("\r\n");
-
-            foreach (var line in lines)
-            {
-                if (line.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
-                {
-                    total++;
-                }
-            }
-
-            //using (var reader = File.OpenText("SystemInformer\\SystemInformer.def"))
-            //{
-            //    while (reader.ReadLine() is { } line)
-            //    {
-            //        if (line.Contains('@', StringComparison.OrdinalIgnoreCase))
-            //        {
-            //            total++;
-            //        }
-            //    }
-            //}
-
-            List<int> ordinals = new List<int>();
+            int total = lines.Length;
 
             if (ReleaseBuild)
             {
@@ -1530,77 +1613,85 @@ namespace CustomBuildTool
                     ordinals.Add(1000 + ordinals.Count + 1);
                 }
             }
+
+            output_header.AppendLine(ExportHeader);
+
             foreach (string line in lines)
             {
                 var span = line.AsSpan();
 
-                if (span.IsEmpty || span.IsWhiteSpace())
+                if (span.IsWhiteSpace())
                 {
                     output.Append(span);
-                    output.Append(Environment.NewLine);
+                    output.AppendLine();
                 }
                 else
                 {
                     if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
                     {
                         var ordinal = ordinals[0]; ordinals.RemoveAt(0);
+                        var name_end = span.Slice(4).IndexOf(' ');
+                        if (name_end == -1)
+                            name_end = span.Slice(4).Length;
+                        var name = span.Slice(4, name_end).ToString();
 
-                        output.Append(line.Replace("DATA", ""));
-                        output.Append(" @");
-                        output.Append(ordinal);
-                        output.Append(" NONAME");
+                        if (span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase) != -1)
+                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME DATA");
+                        else
+                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME");
 
-                        if (span.EndsWith("DATA", StringComparison.OrdinalIgnoreCase))
-                        {
-                            output.Append(" DATA");
-                        }
-
-                        output.Append(Environment.NewLine);
+                        output_header.AppendLine($"#define EXPORT_{name.ToUpper(),-55} {ordinal}");
                     }
                     else
                     {
                         output.Append(span);
-                        output.Append(Environment.NewLine);
+                        output.AppendLine();
                     }
                 }
             }
+
+            output_header.AppendLine(ExportFooter);
 
             string export_content = output.ToString().TrimEnd();
+            string export_header = output_header.ToString().TrimEnd();
+            string export_backup = string.Empty;
 
-            Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
-        }
-
-        public static void RestoreExportDefinitions()
-        {
-            if (File.Exists("SystemInformer\\SystemInformer.bak"))
+            if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
             {
-                WIN32_FILE_ATTRIBUTE_DATA sourceFile;
+                export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
+            }
 
-                File.Copy(
-                    "SystemInformer\\SystemInformer.bak",
-                    "SystemInformer\\SystemInformer.def",
-                    true
-                    );
-
-                if (PInvoke.GetFileAttributesEx(
-                    "SystemInformer\\SystemInformer.bak", 
-                    GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, 
-                    &sourceFile))
-                {
-                    using (var fs = File.OpenWrite("SystemInformer\\SystemInformer.def"))
-                    {
-                        PInvoke.SetFileTime(
-                            fs.SafeFileHandle,
-                            sourceFile.ftCreationTime,
-                            sourceFile.ftLastAccessTime,
-                            sourceFile.ftLastWriteTime
-                            );
-                    }
-                }
-
-                File.Delete("SystemInformer\\SystemInformer.bak");
+            // Only write to the file if it has changed.
+            if (!string.Equals(content, export_content, StringComparison.OrdinalIgnoreCase) || !string.Equals(export_backup, export_content, StringComparison.OrdinalIgnoreCase))
+            {
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def.h", export_header);
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def.bak", export_content);
             }
         }
 
+        public static void ExportDefinitionsRevert()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                try
+                {
+                    if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
+                    {
+                        string export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
+
+                        Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_backup);
+                    }
+
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
+                }
+
+                Thread.Sleep(3000);
+            }
+        }
     }
 }

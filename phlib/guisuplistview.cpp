@@ -185,7 +185,7 @@ LONG PhFindIListViewItemByFlags(
     LVITEMINDEX nextItemIndex;
 
     itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = 0;
+    itemIndex.iGroup = -1;
 
     if (SUCCEEDED(ListView->GetNextItem(itemIndex, Flags, &nextItemIndex)))
         return nextItemIndex.iItem;
@@ -520,7 +520,7 @@ LONG PhAddIListViewGroupItem(
     )
 {
     LVITEM item;
-    LONG index = 0;
+    LONG index;
 
     item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iItem = Index;
@@ -534,8 +534,10 @@ LONG PhAddIListViewGroupItem(
         item.lParam = reinterpret_cast<LPARAM>(Param);
     }
 
-    ListView->InsertItem(&item, &index);
-    return index;
+    if (SUCCEEDED(ListView->InsertItem(&item, &index)))
+        return index;
+
+    return INT_ERROR;
 }
 
 VOID PhSetStateAllListViewItems(
@@ -701,153 +703,7 @@ BOOLEAN PhGetIListViewItemRect(
     LVITEMINDEX itemIndex;
 
     itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = 0;
+    itemIndex.iGroup = -1;
 
     return SUCCEEDED(ListView->GetItemRect(itemIndex, Flags, ItemRect));
 }
-
-
-
-enum class SlimEventType
-{
-    AutoReset,
-    ManualReset,
-};
-
-/**
-A lean and mean event class.
-This class provides a very similar API to `wil::unique_event` but doesn't require a kernel object.
-
-The two variants of this class are:
-- `wil::slim_event_auto_reset`
-- `wil::slim_event_manual_reset`
-
-In addition, `wil::slim_event_auto_reset` has the alias `wil::slim_event`.
-Some key differences to `wil::unique_event` include:
-- There is no 'create()' function, as initialization occurs in the constructor and can't fail.
-- The move functions have been deleted.
-- For auto-reset events, the `is_signaled()` function doesn't reset the event. (Use `ResetEvent()` instead.)
-- The `ResetEvent()` function returns the previous state of the event.
-- To create a manual reset event, use `wil::slim_event_manual_reset'.
-~~~~
-wil::slim_event finished;
-std::thread doStuff([&finished] () {
-    Sleep(10);
-    finished.SetEvent();
-});
-finished.wait();
-
-std::shared_ptr<wil::slim_event> CreateSharedEvent(bool startSignaled)
-{
-    return std::make_shared<wil::slim_event>(startSignaled);
-}
-~~~~ */
-template <SlimEventType Type>
-class slim_event_t
-{
-public:
-    slim_event_t() noexcept = default;
-    slim_event_t(bool isSignaled) noexcept : m_isSignaled(isSignaled ? TRUE : FALSE) { }
-
-    // Cannot change memory location.
-    slim_event_t(const slim_event_t&) noexcept = default;
-    slim_event_t(slim_event_t&&) noexcept = default;
-    slim_event_t& operator=(const slim_event_t&) noexcept = default;
-    slim_event_t& operator=(slim_event_t&&) noexcept = default;
-
-    ULONG_PTR m_isSignaled = FALSE;
-
-    // Returns the previous state of the event.
-    bool ResetEvent() noexcept
-    {
-        return !!InterlockedExchangePointer(reinterpret_cast<volatile PVOID*>(&m_isSignaled), nullptr);
-    }
-
-    void SetEvent() noexcept
-    {
-        // FYI: 'WakeByAddress*' invokes a full memory barrier.
-        WriteULongPtrRelease(&m_isSignaled, TRUE);
-
-        if (Type == SlimEventType::AutoReset)
-        {
-            RtlWakeAddressSingle(&m_isSignaled);
-        }
-        else
-        {
-            RtlWakeAddressAll(&m_isSignaled);
-        }
-    }
-
-
-    // Checks if the event is currently signaled.
-    // Note: Unlike Win32 auto-reset event objects, this will not reset the event.
-    [[nodiscard]] bool is_signaled() const noexcept
-    {
-        return !!ReadULongPtrAcquire(&m_isSignaled);
-    }
-
-    bool wait(ULONG timeoutMilliseconds) noexcept
-    {
-        ULONG64 elapsedTimeMilliseconds = 0;
-        LARGE_INTEGER startCounter;
-        LARGE_INTEGER stopCounter;
-
-        if (timeoutMilliseconds == 0)
-            return TryAcquireEvent();
-        if (timeoutMilliseconds == INFINITE)
-            return wait();
-
-        PhQueryPerformanceCounter(&startCounter);
-
-        while (!TryAcquireEvent())
-        {
-            if (elapsedTimeMilliseconds >= timeoutMilliseconds)
-                return false;
-
-            ULONG newTimeout = static_cast<ULONG>(timeoutMilliseconds - elapsedTimeMilliseconds);
-
-            if (!WaitForSignal(newTimeout))
-                return false;
-
-            PhQueryPerformanceCounter(&stopCounter);
-            elapsedTimeMilliseconds = (stopCounter.QuadPart - startCounter.QuadPart);
-            elapsedTimeMilliseconds /= static_cast<ULONG64>(10 * 1000);
-        }
-
-        return true;
-    }
-
-    bool wait() noexcept
-    {
-        while (!TryAcquireEvent())
-        {
-            if (!WaitForSignal(INFINITE))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-private:
-    bool TryAcquireEvent() noexcept
-    {
-        if (Type == SlimEventType::AutoReset)
-        {
-            return ResetEvent();
-        }
-        else
-        {
-            return is_signaled();
-        }
-    }
-
-    bool WaitForSignal(DWORD timeoutMilliseconds) noexcept
-    {
-        LONG falseValue = FALSE;
-        BOOL waitResult = WaitOnAddress(&m_isSignaled, &falseValue, sizeof(m_isSignaled), timeoutMilliseconds);
-        //__FAIL_FAST_ASSERT__(waitResult || ::GetLastError() == ERROR_TIMEOUT);
-        return !!waitResult;
-    }
-};

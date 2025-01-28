@@ -1217,7 +1217,7 @@ NTSTATUS PhpUpdateMemoryWsCounters(
             {
                 for (i = 0; i < requestPages; i++)
                 {
-                    PMEMORY_WORKING_SET_EX_BLOCK block = &info[i].u1.VirtualAttributes;
+                    PMEMORY_WORKING_SET_EX_BLOCK block = &info[i].VirtualAttributes;
 
                     if (block->Valid)
                     {
@@ -1396,7 +1396,7 @@ NTSTATUS PhQueryMemoryItemList(
                 NULL
                 )))
             {
-                PMEMORY_WORKING_SET_EX_BLOCK block = &pageInfo.u1.VirtualAttributes;
+                PMEMORY_WORKING_SET_EX_BLOCK block = &pageInfo.VirtualAttributes;
 
                 memoryItem->Valid = !!block->Valid;
                 memoryItem->Bad = !!block->Bad;

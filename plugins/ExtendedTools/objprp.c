@@ -313,7 +313,7 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
 
 VOID EtHandlePropertiesWindowInitialized(
     _In_ PVOID Parameter
-)
+    )
 {
     static INT EtListViewRowCache[OBJECT_GENERAL_INDEX_MAXIMUM];
 
@@ -379,9 +379,9 @@ VOID EtHandlePropertiesWindowInitialized(
         }
 
         // Removing of row breaks cached indexes, so hide reference value instead
-        //PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_REFERENCES], 1, L"");
+        //PhSetIListViewSubItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_REFERENCES, 1, L"");
 
-        PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK]);
+        PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
         EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES] = PhAddIListViewGroupItem(
             context->ListViewClass,
             PH_HANDLE_GENERAL_CATEGORY_BASICINFO,
@@ -411,7 +411,7 @@ VOID EtHandlePropertiesWindowInitialized(
         Attributes = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
         PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_ATTRIBUTES], 1, PhGetString(Attributes));
 
-        // Show creation time
+        // Show creation time (for symbolic links)
         if (EtObjectManagerTimeCached.QuadPart != 0)
         {
             SYSTEMTIME startTimeFields;
@@ -433,12 +433,12 @@ VOID EtHandlePropertiesWindowInitialized(
         {
             if (!context->HandleItem->Object)
             {
-                PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FLAGS], 1, NULL);
-                PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER], 1, NULL);
-                PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, NULL);
+                PhSetIListViewSubItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, NULL);
+                PhSetIListViewSubItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, NULL);
+                PhSetIListViewSubItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, NULL);
             }
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT]);
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCSERVER]);
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT + 3);
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT + 2);
         }
     }
     else if ((ULONG_PTR)context->OwnerPlugin == ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW))
@@ -447,28 +447,28 @@ VOID EtHandlePropertiesWindowInitialized(
             !PhEqualString(context->HandleItem->ObjectName, context->HandleItem->BestObjectName, TRUE))
         {
             // I don't know why new row always appending in the back. This stupid full rebuild of section only one workaround
-            PPH_STRING accessString = PH_AUTO(PhGetIListViewItemText(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK], 1));
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK]);
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_OBJECT]);
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE]);
-            PhRemoveIListViewItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME]);
+            PPH_STRING accessString = PH_AUTO(PhGetIListViewItemText(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, 1));
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_ACCESSMASK);
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_OBJECT);
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_TYPE);
+            PhRemoveIListViewItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_NAME);
 
-            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME] = PhAddIListViewGroupItem(context->ListViewClass,
+            EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME] = PhAddIListViewGroupItem(context->ListViewClass,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO, 0, L"Name", NULL);
             INT origNameIndex = PhAddIListViewGroupItem(context->ListViewClass,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO, 1, L"Original name", NULL);
-            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE] = PhAddIListViewGroupItem(context->ListViewClass,
+            EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE] = PhAddIListViewGroupItem(context->ListViewClass,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO, 2, L"Type", NULL);
-            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_OBJECT] = PhAddIListViewGroupItem(context->ListViewClass,
+            EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_OBJECT] = PhAddIListViewGroupItem(context->ListViewClass,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO, 3, L"Object address", NULL);
-            context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddIListViewGroupItem(context->ListViewClass,
+            EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK] = PhAddIListViewGroupItem(context->ListViewClass,
                 PH_HANDLE_GENERAL_CATEGORY_BASICINFO, 4, L"Granted access", NULL);
 
-            PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
+            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME], 1, PhGetString(context->HandleItem->BestObjectName));
             PhSetIListViewSubItem(context->ListViewClass, origNameIndex, 1, PhGetString(context->HandleItem->ObjectName));
-            PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
-            PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
-            PhSetIListViewSubItem(context->ListViewClass, context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
+            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_TYPE], 1, PhGetString(context->HandleItem->TypeName));
+            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_OBJECT], 1, context->HandleItem->ObjectString);
+            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[PH_HANDLE_GENERAL_INDEX_ACCESSMASK], 1, PhGetString(accessString));
         }
     }
 
@@ -867,7 +867,7 @@ VOID EtHandlePropertiesWindowInitialized(
                 }
             }
         }
-        // Show Device information
+        // Show Session information
         else if (PhEqualString2(context->HandleItem->TypeName, L"Session", TRUE))
         {
             PH_STRINGREF firstPart;

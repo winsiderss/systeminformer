@@ -191,7 +191,7 @@ PPH_STRING PhpGetPluginDirectoryPath(
     VOID
     )
 {
-    static PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
+    static CONST PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
 
     return PhGetApplicationDirectoryFileName(&pluginsDirectory, PhPluginsLoadNative);
 }

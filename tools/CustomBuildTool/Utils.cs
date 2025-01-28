@@ -24,28 +24,24 @@ namespace CustomBuildTool
         /// </summary>
         public static Dictionary<string, string> ParseArgs(string[] args)
         {
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var dict = new Dictionary<string, string>(args.Length, StringComparer.OrdinalIgnoreCase);
             string argPending = null;
 
             foreach (string s in args)
             {
                 if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
                 {
-                    dict.TryAdd(s, string.Empty);
-
+                    dict[s] = string.Empty;
                     argPending = s;
+                }
+                else if (!string.IsNullOrEmpty(argPending))
+                {
+                    dict[argPending] = s;
+                    argPending = null;
                 }
                 else
                 {
-                    if (argPending != null)
-                    {
-                        dict[argPending] = s;
-                        argPending = null;
-                    }
-                    else
-                    {
-                        dict.TryAdd(string.Empty, s);
-                    }
+                    dict[string.Empty] = s;
                 }
             }
 
@@ -323,6 +319,15 @@ namespace CustomBuildTool
             string output = Win32.ShellExecute(currentGitPath, $"{currentGitDirectory} {Command}", false);
             output = output.Trim();
             return output;
+        }
+
+        public static List<string> EnumerateDirectory(string FilePath, string[] Extensions)
+        {
+            return Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                ReturnSpecialDirectories = false
+            }).Where(s => Extensions.Any(ext => string.Equals(ext, Path.GetExtension(s), StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         public static string GetWindowsSdkIncludePath()

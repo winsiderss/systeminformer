@@ -1680,4 +1680,19 @@ BOOLEAN DeviceShowProperties(
     _In_ PPH_DEVICE_ITEM DeviceItem
     );
 
+typedef struct _DEVICE_RESOURCE
+{
+    PCWSTR Type;
+    PPH_STRING Setting;
+} DEVICE_RESOURCE, * PDEVICE_RESOURCE;
+
+VOID DeviceGetAllocatedResourcesList(
+    _In_ PPH_DEVICE_ITEM DeviceItem,
+    _Out_ PPH_LIST* List
+    );
+
+VOID DeviceFreeAllocatedResourcesList(
+    _In_ PPH_LIST List
+    );
+
 #endif

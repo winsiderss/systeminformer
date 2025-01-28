@@ -253,6 +253,7 @@ SOCKET WhoisDualStackSocketCreate(
     )
 {
     SOCKET socketHandle;
+    INT socketOpt;
 
     socketHandle = WSASocket(
         AF_INET6,
@@ -266,11 +267,13 @@ SOCKET WhoisDualStackSocketCreate(
     if (socketHandle == INVALID_SOCKET)
         return INVALID_SOCKET;
 
+    socketOpt = FALSE;
+
     if (setsockopt(
         socketHandle,
         IPPROTO_IPV6,
         IPV6_V6ONLY,
-        (PCSTR)&(INT){ FALSE },
+        (PCSTR)&socketOpt,
         sizeof(INT)
         ) == SOCKET_ERROR)
     {

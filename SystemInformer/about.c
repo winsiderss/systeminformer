@@ -263,7 +263,7 @@ PPH_STRING PhGetApplicationVersionString(
         PhInitFormatU(&format[5], PHAPP_VERSION_BUILD);
         PhInitFormatC(&format[6], L'.');
         PhInitFormatU(&format[7], PHAPP_VERSION_REVISION);
-        PhInitFormatS(&format[8], L" (<a href=\"https://systeminformer.sourceforge.io/fwlink?commit=");
+        PhInitFormatS(&format[8], L" (<a href=\"https://github.com/winsiderss/systeminformer/commit/");
         PhInitFormatMultiByteS(&format[9], PHAPP_VERSION_COMMIT);
         PhInitFormatS(&format[10], L"\">");
         PhInitFormatMultiByteS(&format[11], PHAPP_VERSION_COMMIT);
