@@ -37,7 +37,7 @@ extern "C" {
 
 typedef struct _PH_QUEUED_LOCK
 {
-    ULONG_PTR Value;
+    volatile ULONG_PTR Value;
 } PH_QUEUED_LOCK, *PPH_QUEUED_LOCK;
 
 #define PH_QUEUED_LOCK_INIT { 0 }
@@ -61,6 +61,8 @@ typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
     ULONG SharedOwners;
     ULONG Flags;
 } PH_QUEUED_WAIT_BLOCK, *PPH_QUEUED_WAIT_BLOCK;
+
+static_assert((sizeof(PH_QUEUED_WAIT_BLOCK) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
 
 BOOLEAN PhQueuedLockInitialization(
     VOID
@@ -112,10 +114,10 @@ PhAcquireQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
-    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+    if ((ULONG_PTR)(PULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&QueuedLock->Value,
         (PVOID)(PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC),
-        (PVOID)0
+        (PVOID)NULL
         ) != 0)
     {
         PhfAcquireQueuedLockShared(QueuedLock);
@@ -189,9 +191,9 @@ PhReleaseQueuedLockShared(
 
     value = PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC;
 
-    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+    if ((ULONG_PTR)(PULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&QueuedLock->Value,
-        (PVOID)0,
+        (PVOID)NULL,
         (PVOID)value
         ) != value)
     {

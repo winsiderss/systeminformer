@@ -45,11 +45,12 @@ PSID PhSeAdministratorsSid( // WinBuiltinAdministratorsSid (dmex)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    static SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
     PSID administratorsSid = (PSID)administratorsSidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhInitializeSid(administratorsSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        PhInitializeSid(administratorsSid, &authority, 2);
         *PhSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
         *PhSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
@@ -67,11 +68,12 @@ PSID PhSeUsersSid( // WinBuiltinUsersSid (dmex)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UCHAR usersSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    static SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
     PSID usersSid = (PSID)usersSidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhInitializeSid(usersSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        PhInitializeSid(usersSid, &authority, 2);
         *PhSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
         *PhSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
 
@@ -89,11 +91,12 @@ PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UCHAR anyAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    static SID_IDENTIFIER_AUTHORITY authority = SECURITY_APP_PACKAGE_AUTHORITY;
     PSID anyAppPackagesSid = (PSID)anyAppPackagesSidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhInitializeSid(anyAppPackagesSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        PhInitializeSid(anyAppPackagesSid, &authority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
         *PhSubAuthoritySid(anyAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
         *PhSubAuthoritySid(anyAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
 
@@ -111,11 +114,12 @@ PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UCHAR internetExplorerSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    static SID_IDENTIFIER_AUTHORITY authority = SECURITY_APP_PACKAGE_AUTHORITY;
     PSID internetExplorerSid = (PSID)internetExplorerSidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhInitializeSid(internetExplorerSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        PhInitializeSid(internetExplorerSid, &authority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
         *PhSubAuthoritySid(internetExplorerSid, 0) = SECURITY_CAPABILITY_BASE_RID;
         *PhSubAuthoritySid(internetExplorerSid, 1) = SECURITY_CAPABILITY_INTERNET_EXPLORER;
 
@@ -133,11 +137,12 @@ PSID PhSeCloudActiveDirectorySid( // S-1-12-1 (dmex)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UCHAR activeDirectorySidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[1])];
+    static SID_IDENTIFIER_AUTHORITY authority = { 0, 0, 0, 0, 0, 12 };
     PSID activeDirectorySid = (PSID)activeDirectorySidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhInitializeSid(activeDirectorySid, &(SID_IDENTIFIER_AUTHORITY){ 0, 0, 0, 0, 0, 12 }, 1);
+        PhInitializeSid(activeDirectorySid, &authority, 1);
         *PhSubAuthoritySid(activeDirectorySid, 0) = 1;
 
         PhEndInitOnce(&initOnce);

@@ -53,10 +53,10 @@
 
 #include <phbase.h>
 #include <phintrnl.h>
-#include <phnative.h>
-#include <phnativeinl.h>
 #include <phintrin.h>
 #include <circbuf.h>
+#include <thirdparty.h>
+#include <ntintsafe.h>
 
 #ifndef PH_NATIVE_STRING_CONVERSION
 #define PH_NATIVE_STRING_CONVERSION 1
@@ -495,7 +495,12 @@ ULONGLONG PhReadTimeStampCounter(
     ULONG64 value;
 
     value = ReadTimeStampCounter();
+
+#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+    MemoryBarrier();
+#else
     SpeculationFence();
+#endif
 
 #else
     ULONG64 value;
@@ -988,20 +993,22 @@ PVOID PhAllocatePage(
     )
 {
     PVOID baseAddress;
+    SIZE_T regionSize;
 
     baseAddress = NULL;
+    regionSize = Size;
 
     if (NT_SUCCESS(NtAllocateVirtualMemory(
         NtCurrentProcess(),
         &baseAddress,
         0,
-        &Size,
+        &regionSize,
         MEM_COMMIT,
         PAGE_READWRITE
         )))
     {
         if (NewSize)
-            *NewSize = Size;
+            *NewSize = regionSize;
 
         return baseAddress;
     }
@@ -1017,7 +1024,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     )
 {
     PhFreeVirtualMemory(NtCurrentProcess(), Memory, MEM_RELEASE);
@@ -1025,7 +1032,7 @@ VOID PhFreePage(
 
 /**
  * Allocates pages of memory.
- * 
+ *
  * \param Size The number of bytes to allocate. The number of pages allocated will be large enough to contain \a Size bytes.
  * \param Alignment The alignment value, which must be an integer power of 2.
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
@@ -1078,7 +1085,7 @@ PVOID PhAllocatePageAligned(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePageAligned(
-    _In_ _Post_invalid_ PVOID Memory
+    _In_ _Frees_ptr_ PVOID Memory
     )
 {
     _aligned_free(Memory);
@@ -1139,15 +1146,81 @@ NTSTATUS PhFreeVirtualMemory(
     _In_ ULONG FreeType
     )
 {
-    PVOID baseAddress = BaseAddress;
-    SIZE_T allocationSize = 0;
+    NTSTATUS status;
+    PVOID regionAddress = BaseAddress;
+    SIZE_T regionSize = 0;
 
-    return NtFreeVirtualMemory(
+    status = NtFreeVirtualMemory(
         ProcessHandle,
-        &baseAddress,
-        &allocationSize,
+        &regionAddress,
+        &regionSize,
         FreeType
         );
+
+    //if (status == STATUS_INVALID_PAGE_PROTECTION)
+    //{
+    //    if (RtlFlushSecureMemoryCache(regionAddress, regionSize))
+    //    {
+    //        status = NtFreeVirtualMemory(
+    //            ProcessHandle,
+    //            &regionAddress,
+    //            &regionSize,
+    //            FreeType
+    //            );
+    //    }
+    //}
+
+    return status;
+}
+
+NTSTATUS PhProtectVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG NewProtection,
+    _Out_opt_ PULONG OldProtection
+    )
+{
+    NTSTATUS status;
+    PVOID regionAddress = BaseAddress;
+    SIZE_T regionSize = RegionSize;
+    ULONG oldProtection = 0;
+
+    status = NtProtectVirtualMemory(
+        ProcessHandle,
+        &regionAddress,
+        &regionSize,
+        NewProtection,
+        &oldProtection
+        );
+
+    if (NT_SUCCESS(status) && OldProtection)
+    {
+        *OldProtection = oldProtection;
+        return STATUS_SUCCESS;
+    }
+
+    //if (status == STATUS_INVALID_PAGE_PROTECTION)
+    //{
+    //    if (RtlFlushSecureMemoryCache(regionAddress, regionSize))
+    //    {
+    //        status = NtProtectVirtualMemory(
+    //            ProcessHandle,
+    //            &regionAddress,
+    //            &regionSize,
+    //            NewProtection,
+    //            &oldProtection
+    //            );
+    //
+    //        if (NT_SUCCESS(status) && OldProtection)
+    //        {
+    //            *OldProtection = oldProtection;
+    //            return STATUS_SUCCESS;
+    //        }
+    //    }
+    //}
+
+    return status;
 }
 
 /**
@@ -1525,6 +1598,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 {
     NTSTATUS status;
     SIZE_T i;
+    ULONG inputBytes;
     ULONG unicodeBytes;
     BOOLEAN copied;
 
@@ -1542,12 +1616,22 @@ BOOLEAN PhCopyStringZFromMultiByte(
         i = strlen(InputBuffer);
     }
 
+    status = RtlSizeTToULong(i, &inputBytes);
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = SIZE_MAX;
+
+        return FALSE;
+    }
+
     // Determine the length of the output string.
 
     status = RtlMultiByteToUnicodeSize(
         &unicodeBytes,
         InputBuffer,
-        (ULONG)i
+        inputBytes
         );
 
     if (!NT_SUCCESS(status))
@@ -1567,7 +1651,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
             unicodeBytes,
             NULL,
             InputBuffer,
-            (ULONG)i
+            inputBytes
             );
 
         if (NT_SUCCESS(status))
@@ -1603,6 +1687,7 @@ BOOLEAN PhCopyStringZFromUtf8(
 {
     NTSTATUS status;
     SIZE_T i;
+    ULONG inputBytes;
     ULONG unicodeBytes;
     BOOLEAN copied;
 
@@ -1620,6 +1705,16 @@ BOOLEAN PhCopyStringZFromUtf8(
         i = strlen(InputBuffer);
     }
 
+    status = RtlSizeTToULong(i, &inputBytes);
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = SIZE_MAX;
+
+        return FALSE;
+    }
+
     // Determine the length of the output string.
 
     status = RtlUTF8ToUnicodeN(
@@ -1627,7 +1722,7 @@ BOOLEAN PhCopyStringZFromUtf8(
         0,
         &unicodeBytes,
         InputBuffer,
-        (ULONG)i
+        inputBytes
         );
 
     if (!NT_SUCCESS(status))
@@ -1647,7 +1742,7 @@ BOOLEAN PhCopyStringZFromUtf8(
             unicodeBytes,
             NULL,
             InputBuffer,
-            (ULONG)i
+            inputBytes
             );
 
         if (NT_SUCCESS(status))
@@ -1859,8 +1954,8 @@ LONG PhCompareStringZNatural(
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
  */
 LONG PhCompareStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1930,8 +2025,8 @@ LONG PhCompareStringRef(
  * \param IgnoreCase TRUE to perform a case-insensitive comparison, otherwise FALSE.
  */
 BOOLEAN PhEqualStringRef(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -2077,7 +2172,7 @@ CompareCharacters:
  * \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindCharInStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     )
@@ -2175,7 +2270,7 @@ ULONG_PTR PhFindCharInStringRef(
  * \a Character was not found, -1 is returned.
  */
 ULONG_PTR PhFindLastCharInStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ WCHAR Character,
     _In_ BOOLEAN IgnoreCase
     )
@@ -2281,8 +2376,8 @@ ULONG_PTR PhFindLastCharInStringRef(
  * \a SubString was not found, -1 is returned.
  */
 ULONG_PTR PhFindStringInStringRef(
-    _In_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF SubString,
+    _In_ PCPH_STRINGREF String,
+    _In_ PCPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -2353,7 +2448,7 @@ FoundUString:
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -2400,7 +2495,7 @@ BOOLEAN PhSplitStringRefAtChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtLastChar(
-    _In_ PPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Input,
     _In_ WCHAR Separator,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -3114,8 +3209,8 @@ PPH_STRING PhConcatStrings2(
  * \param String2 The second string.
  */
 PPH_STRING PhConcatStringRef2(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2
     )
 {
     PPH_STRING string;
@@ -3146,9 +3241,9 @@ PPH_STRING PhConcatStringRef2(
  * \param String3 The third string.
  */
 PPH_STRING PhConcatStringRef3(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
-    _In_ PPH_STRINGREF String3
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String3
     )
 {
     PPH_STRING string;
@@ -3181,10 +3276,10 @@ PPH_STRING PhConcatStringRef3(
  * \param String4 The forth string.
  */
 PPH_STRING PhConcatStringRef4(
-    _In_ PPH_STRINGREF String1,
-    _In_ PPH_STRINGREF String2,
-    _In_ PPH_STRINGREF String3,
-    _In_ PPH_STRINGREF String4
+    _In_ PCPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF String3,
+    _In_ PCPH_STRINGREF String4
     )
 {
     PPH_STRING string;
@@ -3871,12 +3966,18 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
 {
     NTSTATUS status;
     PPH_STRING string;
+    ULONG bufferLength;
     ULONG unicodeBytes;
+
+    status = RtlSizeTToULong(Length, &bufferLength);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
 
     status = RtlMultiByteToUnicodeSize(
         &unicodeBytes,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3888,7 +3989,7 @@ PPH_STRING PhConvertMultiByteToUtf16Ex(
         (ULONG)string->Length,
         NULL,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3928,12 +4029,18 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
 {
     NTSTATUS status;
     PPH_BYTES bytes;
+    ULONG bufferLength;
     ULONG multiByteLength;
+
+    status = RtlSizeTToULong(Length, &bufferLength);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
 
     status = RtlUnicodeToMultiByteSize(
         &multiByteLength,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -3945,7 +4052,7 @@ PPH_BYTES PhConvertUtf16ToMultiByteEx(
         (ULONG)bytes->Length,
         NULL,
         Buffer,
-        (ULONG)Length
+        bufferLength
         );
 
     if (!NT_SUCCESS(status))
@@ -4949,21 +5056,6 @@ VOID PhDeleteArray(
 }
 
 /**
- * Obtains a copy of the array constructed by an array object and frees resources used by the
- * object.
- *
- * \param Array An array object.
- *
- * \return The array buffer.
- */
-PVOID PhFinalArrayItems(
-    _Inout_ PPH_ARRAY Array
-    )
-{
-    return Array->Items;
-}
-
-/**
  * Resizes an array.
  *
  * \param Array An array object.
@@ -5964,7 +6056,7 @@ ULONG PhHashBytes(
  * \param IgnoreCase TRUE for a case-insensitive hash function, otherwise FALSE.
  */
 ULONG PhHashStringRef(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -5995,7 +6087,7 @@ ULONG PhHashStringRef(
 }
 
 ULONG PhHashStringRefEx(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ BOOLEAN IgnoreCase,
     _In_ PH_STRING_HASH HashAlgorithm
     )
@@ -6061,6 +6153,18 @@ ULONG PhHashStringRefEx(
             }
 
             return hash;
+        }
+    case PH_STRING_HASH_XXH32:
+        {
+            if (String->Length == 0)
+                return 0;
+
+            if (IgnoreCase)
+            {
+                NOTHING;
+            }
+
+            return PhHashXXH32(String->Buffer, String->Length, 0);
         }
     }
 
@@ -7043,7 +7147,7 @@ BOOLEAN PhPrintTimeSpanToBuffer(
         {
             PH_FORMAT format[7];
 
-            // %I64u:%02I64u:%02I64u:%02I64u
+            // %llu:%02I64u:%02I64u:%02I64u
             PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
             PhInitFormatC(&format[1], L':');
             PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);
@@ -7059,7 +7163,7 @@ BOOLEAN PhPrintTimeSpanToBuffer(
         {
             PH_FORMAT format[9];
 
-            // %I64u:%02I64u:%02I64u:%02I64u
+            // %llu:%02I64u:%02I64u:%02I64u
             PhInitFormatI64U(&format[0], PH_TICKS_PARTIAL_DAYS(Ticks));
             PhInitFormatC(&format[1], L':');
             PhInitFormatI64UWithWidth(&format[2], PH_TICKS_PARTIAL_HOURS(Ticks), 2);

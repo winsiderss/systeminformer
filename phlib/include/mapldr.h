@@ -188,8 +188,8 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetLoaderEntryDllBase(
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
+    _In_opt_ PCPH_STRINGREF FullDllName,
+    _In_opt_ PCPH_STRINGREF BaseDllName
     );
 
 FORCEINLINE

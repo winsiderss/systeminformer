@@ -29,68 +29,35 @@ typedef struct _PH_CHOICE_DIALOG_CONTEXT
     PCWSTR SavedChoicesSettingName;
 
     HWND ComboBoxHandle;
+    HFONT FontHandle;
 } PH_CHOICE_DIALOG_CONTEXT, *PPH_CHOICE_DIALOG_CONTEXT;
 
-INT_PTR CALLBACK PhpChoiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-/**
- * Prompts the user for input.
- *
- * \remarks If \c PH_CHOICE_DIALOG_PASSWORD is specified, the string
- * returned in \a SelectedChoice is NOT auto-dereferenced.
- */
-BOOLEAN PhaChoiceDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PCWSTR Title,
-    _In_ PCWSTR Message,
-    _In_opt_ PCWSTR*Choices,
-    _In_opt_ ULONG NumberOfChoices,
-    _In_opt_ PCWSTR Option,
-    _In_ ULONG Flags,
-    _Inout_ PPH_STRING *SelectedChoice,
-    _Inout_opt_ PBOOLEAN SelectedOption,
-    _In_opt_ PCWSTR SavedChoicesSettingName
-    )
-{
-    PH_CHOICE_DIALOG_CONTEXT context;
-
-    memset(&context, 0, sizeof(PH_CHOICE_DIALOG_CONTEXT));
-    context.Title = Title;
-    context.Message = Message;
-    context.Choices = Choices;
-    context.NumberOfChoices = NumberOfChoices;
-    context.Option = Option;
-    context.Flags = Flags;
-    context.SelectedChoice = SelectedChoice;
-    context.SelectedOption = SelectedOption;
-    context.SavedChoicesSettingName = SavedChoicesSettingName;
-
-    return PhDialogBox(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_CHOOSE),
-        ParentWindowHandle,
-        PhpChoiceDlgProc,
-        &context
-        ) == IDOK;
-}
-
-INT_PTR CALLBACK PhpChoiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+INT_PTR CALLBACK PhChoiceDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    PPH_CHOICE_DIALOG_CONTEXT context;
+
+    if (WindowMessage == WM_INITDIALOG)
+    {
+        context = (PPH_CHOICE_DIALOG_CONTEXT)lParam;
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PPH_CHOICE_DIALOG_CONTEXT context = (PPH_CHOICE_DIALOG_CONTEXT)lParam;
             ULONG type;
             SIZE_T i;
             HWND comboBoxHandle;
@@ -99,11 +66,11 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             RECT rect;
             ULONG diff;
 
-            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            checkBoxHandle = GetDlgItem(WindowHandle, IDC_OPTION);
 
-            PhSetWindowText(hwndDlg, context->Title);
-            PhSetWindowText(GetDlgItem(hwndDlg, IDC_MESSAGE), context->Message);
+            PhSetWindowText(WindowHandle, context->Title);
+            PhSetWindowText(GetDlgItem(WindowHandle, IDC_MESSAGE), context->Message);
+            PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             type = context->Flags & PH_CHOICE_DIALOG_TYPE_MASK;
 
@@ -113,26 +80,22 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             switch (type)
             {
             case PH_CHOICE_DIALOG_USER_CHOICE:
-                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICEUSER);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICEUSER), SW_SHOW);
+                comboBoxHandle = GetDlgItem(WindowHandle, IDC_CHOICEUSER);
                 break;
             case PH_CHOICE_DIALOG_PASSWORD:
-                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICESIMPLE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICESIMPLE), SW_SHOW);
+                comboBoxHandle = GetDlgItem(WindowHandle, IDC_CHOICESIMPLE);
 
                 // Disable combo box features since it isn't a combo box.
                 context->SavedChoicesSettingName = NULL;
                 break;
             case PH_CHOICE_DIALOG_CHOICE:
             default:
-                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICE), SW_SHOW);
+                comboBoxHandle = GetDlgItem(WindowHandle, IDC_CHOICE);
                 break;
             }
 
             context->ComboBoxHandle = comboBoxHandle;
-
-            checkBoxHandle = GetDlgItem(hwndDlg, IDC_OPTION);
+            ShowWindow(context->ComboBoxHandle, SW_SHOW);
 
             if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
@@ -185,8 +148,10 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
             if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
-                if (*context->SelectedChoice)
-                    PhSetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+                if (!PhIsNullOrEmptyString(*context->SelectedChoice))
+                {
+                    PhSetWindowText(comboBoxHandle, PhGetString(*context->SelectedChoice));
+                }
 
                 Edit_SetSel(comboBoxHandle, 0, -1);
             }
@@ -194,12 +159,14 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             {
                 // If we failed to choose a default choice based on what was specified,
                 // select the first one if possible, or set the text directly.
-                if (!(*context->SelectedChoice) || PhSelectComboBoxString(
-                    comboBoxHandle, (*context->SelectedChoice)->Buffer, FALSE) == CB_ERR)
+                if (
+                    !PhIsNullOrEmptyString(*context->SelectedChoice) ||
+                    PhSelectComboBoxString(comboBoxHandle, PhGetString(*context->SelectedChoice), FALSE) == CB_ERR
+                    )
                 {
-                    if (type == PH_CHOICE_DIALOG_USER_CHOICE && *context->SelectedChoice)
+                    if (type == PH_CHOICE_DIALOG_USER_CHOICE && !PhIsNullOrEmptyString(*context->SelectedChoice))
                     {
-                        PhSetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+                        PhSetWindowText(comboBoxHandle, PhGetString(*context->SelectedChoice));
                     }
                     else if (type == PH_CHOICE_DIALOG_CHOICE && context->NumberOfChoices != 0)
                     {
@@ -224,43 +191,43 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                 ShowWindow(checkBoxHandle, SW_HIDE);
                 GetWindowRect(checkBoxHandle, &checkBoxRect);
-                MapWindowRect(NULL, hwndDlg, &checkBoxRect);
-                GetWindowRect(GetDlgItem(hwndDlg, IDOK), &rect);
-                MapWindowRect(NULL, hwndDlg, &rect);
+                MapWindowRect(NULL, WindowHandle, &checkBoxRect);
+                GetWindowRect(GetDlgItem(WindowHandle, IDOK), &rect);
+                MapWindowRect(NULL, WindowHandle, &rect);
                 diff = rect.top - checkBoxRect.top;
 
                 // OK
                 rect.top -= diff;
                 rect.bottom -= diff;
-                SetWindowPos(GetDlgItem(hwndDlg, IDOK), NULL, rect.left, rect.top,
+                SetWindowPos(GetDlgItem(WindowHandle, IDOK), NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
                     SWP_NOACTIVATE | SWP_NOZORDER);
 
                 // Cancel
-                GetWindowRect(GetDlgItem(hwndDlg, IDCANCEL), &rect);
-                MapWindowRect(NULL, hwndDlg, &rect);
+                GetWindowRect(GetDlgItem(WindowHandle, IDCANCEL), &rect);
+                MapWindowRect(NULL, WindowHandle, &rect);
                 rect.top -= diff;
                 rect.bottom -= diff;
-                SetWindowPos(GetDlgItem(hwndDlg, IDCANCEL), NULL, rect.left, rect.top,
+                SetWindowPos(GetDlgItem(WindowHandle, IDCANCEL), NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
                     SWP_NOACTIVATE | SWP_NOZORDER);
 
                 // Window
-                GetWindowRect(hwndDlg, &rect);
+                GetWindowRect(WindowHandle, &rect);
                 rect.bottom -= diff;
-                SetWindowPos(hwndDlg, NULL, rect.left, rect.top,
+                SetWindowPos(WindowHandle, NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
                     SWP_NOACTIVATE | SWP_NOZORDER);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
-            PhSetDialogFocus(hwndDlg, comboBoxHandle);
+            PhSetDialogFocus(WindowHandle, comboBoxHandle);
         }
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -268,14 +235,13 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             case IDOK:
                 {
-                    PPH_CHOICE_DIALOG_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING selectedChoice;
 
-                    if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
+                    if (FlagOn(context->Flags, PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
                     {
                         selectedChoice = PH_AUTO(PhGetWindowText(context->ComboBoxHandle));
                         *context->SelectedChoice = selectedChoice;
@@ -288,7 +254,9 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     }
 
                     if (context->Option && context->SelectedOption)
-                        *context->SelectedOption = Button_GetCheck(GetDlgItem(hwndDlg, IDC_OPTION)) == BST_CHECKED;
+                    {
+                        *context->SelectedOption = Button_GetCheck(GetDlgItem(WindowHandle, IDC_OPTION)) == BST_CHECKED;
+                    }
 
                     if (context->SavedChoicesSettingName)
                     {
@@ -304,33 +272,28 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                         if (selectedChoice->Length != 0)
                         {
-                            escaped = PhEscapeStringForDelimiter(selectedChoice, L'\\');
+                            escaped = PH_AUTO(PhEscapeStringForDelimiter(selectedChoice, L'\\'));
                             PhAppendStringBuilder(&savedChoices, &escaped->sr);
-                            PhDereferenceObject(escaped);
                             PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
                         for (i = 1; i < choicesToSave; i++)
                         {
-                            choice = PhGetComboBoxString(context->ComboBoxHandle, i - 1);
+                            choice = PH_AUTO(PhGetComboBoxString(context->ComboBoxHandle, i - 1));
 
-                            if (!choice)
+                            if (PhIsNullOrEmptyString(choice))
                                 break;
 
                             // Don't save the choice if it's the same as the one
                             // entered by the user (since we already saved it above).
                             if (PhEqualString(choice, selectedChoice, FALSE))
                             {
-                                PhDereferenceObject(choice);
                                 choicesToSave++; // useless for now, but may be needed in the future
                                 continue;
                             }
 
-                            escaped = PhEscapeStringForDelimiter(choice, L'\\');
+                            escaped = PH_AUTO(PhEscapeStringForDelimiter(choice, L'\\'));
                             PhAppendStringBuilder(&savedChoices, &escaped->sr);
-                            PhDereferenceObject(escaped);
-                            PhDereferenceObject(choice);
-
                             PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
@@ -341,18 +304,18 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         PhDeleteStringBuilder(&savedChoices);
                     }
 
-                    EndDialog(hwndDlg, IDOK);
+                    EndDialog(WindowHandle, IDOK);
                 }
                 break;
             }
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -365,18 +328,27 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPH_CHOICE_DIALOG_CONTEXT context;
+
+    if (WindowMessage == WM_INITDIALOG)
+    {
+        context = (PPH_CHOICE_DIALOG_CONTEXT)lParam;
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PPH_CHOICE_DIALOG_CONTEXT context = (PPH_CHOICE_DIALOG_CONTEXT)lParam;
-            HFONT fontHandle;
-            NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-            LONG dpi = PhGetWindowDpi(WindowHandle);
-
             context->ComboBoxHandle = GetDlgItem(WindowHandle, IDC_INPUT);
 
-            PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
             PhCenterWindow(WindowHandle, GetParent(WindowHandle));
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -385,30 +357,33 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             PhSetWindowText(GetDlgItem(WindowHandle, IDC_TEXT), context->Message);
 
             {
+                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+                LONG dpi = PhGetWindowDpi(WindowHandle);
+
                 if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpi))
                 {
                     metrics.lfMessageFont.lfHeight = 4 * metrics.lfMessageFont.lfHeight / 3;
 
-                    if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
+                    if (context->FontHandle = CreateFontIndirect(&metrics.lfMessageFont))
                     {
-                        SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), fontHandle, FALSE);
+                        SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), context->FontHandle, FALSE);
                     }
 
                     metrics.lfMessageFont.lfHeight = -14;
 
-                    if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
+                    if (context->FontHandle = CreateFontIndirect(&metrics.lfMessageFont))
                     {
-                        SetWindowFont(context->ComboBoxHandle, fontHandle, FALSE);
+                        SetWindowFont(context->ComboBoxHandle, context->FontHandle, FALSE);
                     }
                 }
             }
 
             {
-                if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) == PH_CHOICE_DIALOG_PASSWORD)
+                if (FlagOn(context->Flags, PH_CHOICE_DIALOG_TYPE_MASK) == PH_CHOICE_DIALOG_PASSWORD)
                 {
                     NOTHING;
                 }
-                else if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) == PH_CHOICE_DIALOG_USER_CHOICE && context->SavedChoicesSettingName)
+                else if (FlagOn(context->Flags, PH_CHOICE_DIALOG_TYPE_MASK) == PH_CHOICE_DIALOG_USER_CHOICE && context->SavedChoicesSettingName)
                 {
                     PPH_STRING savedChoices = PhGetStringSetting(context->SavedChoicesSettingName);
                     PPH_STRING savedChoice;
@@ -463,6 +438,11 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
     case WM_DESTROY:
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+            if (context->FontHandle)
+            {
+                DeleteFont(context->FontHandle);
+            }
         }
         break;
     case WM_COMMAND:
@@ -476,10 +456,9 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
                 break;
             case IDOK:
                 {
-                    PPH_CHOICE_DIALOG_CONTEXT context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING selectedChoice;
 
-                    if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
+                    if (FlagOn(context->Flags, PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
                     {
                         selectedChoice = PH_AUTO(PhGetWindowText(context->ComboBoxHandle));
                         *context->SelectedChoice = selectedChoice;
@@ -505,33 +484,28 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
                         if (selectedChoice->Length != 0)
                         {
-                            escaped = PhEscapeStringForDelimiter(selectedChoice, L'\\');
+                            escaped = PH_AUTO(PhEscapeStringForDelimiter(selectedChoice, L'\\'));
                             PhAppendStringBuilder(&savedChoices, &escaped->sr);
-                            PhDereferenceObject(escaped);
                             PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
                         for (i = 1; i < choicesToSave; i++)
                         {
-                            choice = PhGetComboBoxString(context->ComboBoxHandle, i - 1);
+                            choice = PH_AUTO(PhGetComboBoxString(context->ComboBoxHandle, i - 1));
 
-                            if (!choice)
+                            if (PhIsNullOrEmptyString(choice))
                                 break;
 
                             // Don't save the choice if it's the same as the one
                             // entered by the user (since we already saved it above).
                             if (PhEqualString(choice, selectedChoice, FALSE))
                             {
-                                PhDereferenceObject(choice);
                                 choicesToSave++; // useless for now, but may be needed in the future
                                 continue;
                             }
 
-                            escaped = PhEscapeStringForDelimiter(choice, L'\\');
+                            escaped = PH_AUTO(PhEscapeStringForDelimiter(choice, L'\\'));
                             PhAppendStringBuilder(&savedChoices, &escaped->sr);
-                            PhDereferenceObject(escaped);
-                            PhDereferenceObject(choice);
-
                             PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
@@ -554,7 +528,7 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            if (!GetClientRect(WindowHandle, &clientRect))
+            if (!PhGetClientRect(WindowHandle, &clientRect))
                 break;
 
             SetBkMode(hdc, TRANSPARENT);
@@ -617,6 +591,47 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
     }
 
     return FALSE;
+}
+
+/**
+ * Prompts the user for input.
+ *
+ * \remarks If \c PH_CHOICE_DIALOG_PASSWORD is specified, the string
+ * returned in \a SelectedChoice is NOT auto-dereferenced.
+ */
+BOOLEAN PhaChoiceDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Message,
+    _In_opt_ PCWSTR*Choices,
+    _In_opt_ ULONG NumberOfChoices,
+    _In_opt_ PCWSTR Option,
+    _In_ ULONG Flags,
+    _Inout_ PPH_STRING *SelectedChoice,
+    _Inout_opt_ PBOOLEAN SelectedOption,
+    _In_opt_ PCWSTR SavedChoicesSettingName
+    )
+{
+    PH_CHOICE_DIALOG_CONTEXT context;
+
+    memset(&context, 0, sizeof(PH_CHOICE_DIALOG_CONTEXT));
+    context.Title = Title;
+    context.Message = Message;
+    context.Choices = Choices;
+    context.NumberOfChoices = NumberOfChoices;
+    context.Option = Option;
+    context.Flags = Flags;
+    context.SelectedChoice = SelectedChoice;
+    context.SelectedOption = SelectedOption;
+    context.SavedChoicesSettingName = SavedChoicesSettingName;
+
+    return PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_CHOOSE),
+        ParentWindowHandle,
+        PhChoiceDlgProc,
+        &context
+        ) == IDOK;
 }
 
 BOOLEAN PhChoiceDialog(

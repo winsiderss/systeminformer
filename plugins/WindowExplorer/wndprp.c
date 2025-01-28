@@ -417,7 +417,6 @@ NTSTATUS WepResolveSymbolFunction(
     PostMessage(context->NotifyWindow, WEM_RESOLVE_DONE, 0, (LPARAM)context);
 
     PhDereferenceObject(context->Context);
-    PhFree(context);
     return STATUS_SUCCESS;
 }
 

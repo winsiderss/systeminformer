@@ -85,6 +85,7 @@ EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
 EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
 EXTERN_C BOOLEAN EtNpuFahrenheitEnabled;
+EXTERN_C ULONG EtSampleCount;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;
@@ -95,6 +96,7 @@ extern BOOLEAN EtPropagateCpuUsage;
 extern BOOLEAN EtEnableAvxSupport;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
+#define SETTING_NAME_FIRST_RUN (PLUGIN_NAME L".FirstRun")
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
@@ -160,6 +162,10 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_TPM_WINDOW_POSITION (PLUGIN_NAME L".TpmWindowPosition")
 #define SETTING_NAME_TPM_WINDOW_SIZE (PLUGIN_NAME L".TpmWindowSize")
 #define SETTING_NAME_TPM_LISTVIEW_COLUMNS (PLUGIN_NAME L".TpmListViewColumns")
+#define SETTING_NAME_SMBIOS_WINDOW_POSITION (PLUGIN_NAME L".SMBIOSWindowPosition")
+#define SETTING_NAME_SMBIOS_WINDOW_SIZE (PLUGIN_NAME L".SMBIOSWindowSize")
+#define SETTING_NAME_SMBIOS_INFO_COLUMNS (PLUGIN_NAME L".SMBIOSListViewColumns")
+#define SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES (PLUGIN_NAME L".SMBIOSShowUndefinedTypes")
 
 VOID EtLoadSettings(
     VOID
@@ -1644,10 +1650,8 @@ VOID EtShowFirmwareDialog(
 #define PH_OBJ_KERNEL_ACCESS_ONLY                0x00010000L
 
 extern HWND EtObjectManagerDialogHandle;
-extern LARGE_INTEGER EtObjectManagerTimeCached;
 extern PPH_LIST EtObjectManagerOwnHandles;
 extern HICON EtObjectManagerPropIcon;
-extern PPH_HASHTABLE EtObjectManagerPropWindows;
 extern BOOLEAN EtObjectManagerShowHandlesPage;
 
 extern ULONG EtAlpcPortTypeIndex;
@@ -1741,6 +1745,12 @@ NTSTATUS EtTpmRead(
 VOID EtShowTpmEditDialog(
     _In_ HWND ParentWindowHandle,
     _In_ TPM_NV_INDEX Index
+    );
+
+// smbios
+
+VOID EtShowSMBIOSDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 #endif

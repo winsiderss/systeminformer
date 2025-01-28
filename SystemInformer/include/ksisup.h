@@ -36,6 +36,18 @@ PhGetKsiMessage(
     ...
     );
 
+LONG
+PhShowKsiMessage2(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Buttons,
+    _In_opt_ PCWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PCWSTR Title,
+    _In_ PCWSTR Format,
+    ...
+    );
+
 VOID
 PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,

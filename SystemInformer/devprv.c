@@ -101,6 +101,8 @@ DEFINE_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE, 0x6e3bb679, 0x4372, 0x
 DEFINE_GUID(GUID_BUS_TYPE_TREE, 0x4E815EE1, 0x20F8, 0x41EF, 0x8C, 0xFF, 0x3C, 0x28, 0x3F, 0x02, 0xD7, 0x22);
 DEFINE_GUID(GUID_TREE_TPM_SERVICE_FDTPM, 0x36deaa79, 0xc5dd, 0x447c, 0x95, 0xe6, 0xb3, 0x85, 0x95, 0x89, 0x29, 0x1a);
 DEFINE_GUID(GUID_TREE_TPM_SERVICE_STPM, 0x1F75CF6D, 0xF709, 0x4C0C, 0x8B, 0xCB, 0x0C, 0xDC, 0xA1, 0x28, 0x9D, 0xDD);
+DEFINE_GUID(GUID_DISPLAY_DEVICE_ARRIVAL, 0x1CA05180, 0xA699, 0x450A, 0x9A, 0x0C, 0xDE, 0x4F, 0xBE, 0x3D, 0xDD, 0x89);
+DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
 
 DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
 DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
@@ -2308,6 +2310,8 @@ PH_DEFINE_WELL_KNOWN_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_BUS_TYPE_TREE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_TREE_TPM_SERVICE_FDTPM);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_TREE_TPM_SERVICE_STPM);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_DISPLAY_DEVICE_ARRIVAL);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_COMPUTE_DEVICE_ARRIVAL);
 
 static PH_INITONCE PhpWellKnownGuidsInitOnce = PH_INITONCE_INIT;
 static const PH_WELL_KNOWN_GUID* PhpWellKnownGuids[] =
@@ -2612,6 +2616,8 @@ static const PH_WELL_KNOWN_GUID* PhpWellKnownGuids[] =
     &PH_WELL_KNOWN_GUID_BUS_TYPE_TREE,
     &PH_WELL_KNOWN_GUID_TREE_TPM_SERVICE_FDTPM,
     &PH_WELL_KNOWN_GUID_TREE_TPM_SERVICE_STPM,
+    &PH_WELL_KNOWN_GUID_DISPLAY_DEVICE_ARRIVAL,
+    &PH_WELL_KNOWN_GUID_COMPUTE_DEVICE_ARRIVAL,
 };
 
 static int __cdecl PhpWellKnownGuidSortFunction(
@@ -4821,4 +4827,97 @@ PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
     }
 
     return deviceTree;
+}
+
+BOOLEAN PhEnumDeviceResources(
+    _In_ PPH_DEVICE_ITEM Item,
+    _In_ ULONG LogicalConfig,
+    _In_ PPH_DEVICE_ENUM_RESOURCES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    BOOLEAN done;
+    LOG_CONF logicalConfig;
+    PVOID buffer;
+    ULONG length;
+
+    if (CM_Get_First_Log_Conf(
+        &logicalConfig,
+        Item->DeviceInfoData.DeviceData.DevInst,
+        LogicalConfig
+        ) != CR_SUCCESS)
+        return FALSE;
+
+    done = FALSE;
+    buffer = PhAllocate(64);
+    length = 64;
+
+    while (!done)
+    {
+        LOG_CONF nextConfig;
+        ULONG size;
+        RES_DES deviceResource;
+        RESOURCEID resourceId;
+
+        if (CM_Get_Next_Res_Des(
+            &deviceResource,
+            logicalConfig,
+            ResType_All,
+            &resourceId,
+            0
+            ) == CR_SUCCESS)
+        {
+            while (!done)
+            {
+                RES_DES nextResource;
+
+                if (CM_Get_Res_Des_Data_Size(&size, deviceResource, 0) == CR_SUCCESS)
+                {
+                    if (size > length)
+                    {
+                        buffer = PhReAllocate(buffer, size);
+                        length = size;
+                    }
+
+                    assert(buffer);
+
+                    if (CM_Get_Res_Des_Data(deviceResource, buffer, size, 0) == CR_SUCCESS)
+                    {
+                        done = Callback(LogicalConfig, resourceId, buffer, size, Context);
+                        if (done)
+                            break;
+                    }
+                }
+
+                if (CM_Get_Next_Res_Des(
+                    &nextResource,
+                    deviceResource,
+                    ResType_All,
+                    &resourceId,
+                    0
+                    ) != CR_SUCCESS)
+                    break;
+
+                CM_Free_Res_Des_Handle(deviceResource);
+                deviceResource = nextResource;
+            }
+        }
+
+        CM_Free_Res_Des_Handle(deviceResource);
+
+        if (done)
+            break;
+
+        if (CM_Get_Next_Log_Conf(&nextConfig, logicalConfig, 0) != CR_SUCCESS)
+            break;
+
+        CM_Free_Log_Conf_Handle(logicalConfig);
+        logicalConfig = nextConfig;
+    }
+
+    CM_Free_Log_Conf_Handle(logicalConfig);
+
+    PhFree(buffer);
+
+    return TRUE;
 }

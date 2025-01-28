@@ -24,33 +24,7 @@ namespace GenerateZw
         private static readonly string OutputFile = "ntzwapi.h";
         private static readonly string Header = "#ifndef _NTZWAPI_H\r\n#define _NTZWAPI_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n";
         private static readonly string Footer = "#endif\r\n";
-        public static readonly string[] Files =
-        {
-            "ntdbg.h",
-            "ntexapi.h",
-            "ntgdi.h",
-            "ntioapi.h",
-            "ntkeapi.h",
-            "ntldr.h",
-            "ntlpcapi.h",
-            "ntmisc.h",
-            "ntmmapi.h",
-            "ntnls.h",
-            "ntobapi.h",
-            "ntpebteb.h",
-            "ntpfapi.h",
-            "ntpnpapi.h",
-            "ntpoapi.h",
-            "ntpsapi.h",
-            "ntregapi.h",
-            "ntrtl.h",
-            "ntsam.h",
-            "ntseapi.h",
-            "nttmapi.h",
-            "nttp.h",
-            "ntwow64.h",
-            "ntxcapi.h"
-        };
+        public static readonly string[] Exclude = { "ntuser.h" };
 
         static ZwGen()
         {
@@ -70,26 +44,30 @@ namespace GenerateZw
 
         public static void Execute()
         {
+            var files = Directory.EnumerateFiles(BaseDirectory, "*.h", SearchOption.AllDirectories);
+
             // Build up a list of definitions.
 
             var definitions = new List<ServiceDefinition>();
             var regex = RegexDefinition.Regex();
 
-            foreach (string fileName in Files)
+            foreach (string fileName in files)
             {
-                var file = BaseDirectory + Path.DirectorySeparatorChar + fileName;
-                var text = File.ReadAllText(file);
+                if (Exclude.Contains(Path.GetFileName(fileName), StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                var text = File.ReadAllText(fileName);
 
                 MatchCollection matches = regex.Matches(text);
 
                 foreach (Match match in matches)
                 {
                     definitions.Add(new ServiceDefinition
-                    {
-                        Name = match.Groups[1].Value,
-                        Text = match.Value,
-                        NameIndex = match.Groups[1].Index - match.Index
-                    });
+                    (
+                        match.Groups[1].Value,
+                        match.Value,
+                        match.Groups[1].Index - match.Index
+                    ));
                 }
             }
 
@@ -108,10 +86,10 @@ namespace GenerateZw
 
                 foreach (var d in _defs)
                 {
-                    Console.WriteLine("System service: " + d.Name);
+                    Console.WriteLine($"System service: {d.Name}");
 
                     // Write the original definition, replacing "Nt" with "Zw".
-                    sw.Write(string.Concat(d.Text.AsSpan(0, d.NameIndex), "Zw", d.Text.AsSpan(d.NameIndex + 2), "\r\n\r\n"));
+                    sw.Write($"{d.Text.AsSpan(0, d.NameIndex)}Zw{d.Text.AsSpan(d.NameIndex + 2)}\r\n\r\n");
                 }
 
                 // Footer
@@ -123,15 +101,22 @@ namespace GenerateZw
 
     public static partial class RegexDefinition
     {
-        [GeneratedRegex(@"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Singleline)]
+        [GeneratedRegex(@"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Singleline | RegexOptions.Compiled)]
         public static partial Regex Regex();
     }
 
     public class ServiceDefinition : IEquatable<ServiceDefinition>
     {
-        public string Name;
-        public string Text;
-        public int NameIndex;
+        public readonly string Name;
+        public readonly string Text;
+        public readonly int NameIndex;
+
+        public ServiceDefinition(string Name, string Text, int NameIndex)
+        {
+            this.Name = Name;
+            this.Text = Text;
+            this.NameIndex = NameIndex;
+        }
 
         public override string ToString()
         {
@@ -145,9 +130,6 @@ namespace GenerateZw
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
-
             if (obj is not ServiceDefinition service)
                 return false;
 
@@ -156,7 +138,7 @@ namespace GenerateZw
 
         public bool Equals(ServiceDefinition other)
         {
-            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 

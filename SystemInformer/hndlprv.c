@@ -345,7 +345,7 @@ VOID PhHandleProviderUpdate(
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
     PSYSTEM_HANDLE_INFORMATION_EX handleInfo;
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handles;
-    ULONG numberOfHandles;
+    ULONG_PTR numberOfHandles;
     ULONG i;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_KEY_VALUE_PAIR handlePair;
@@ -353,16 +353,14 @@ VOID PhHandleProviderUpdate(
     PH_WORK_QUEUE workQueue;
     KPH_LEVEL level;
 
-    if (!NT_SUCCESS(handleProvider->RunStatus = PhEnumHandlesGeneric(
+    handleProvider->RunStatus = PhEnumHandlesGeneric(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
         PhCsEnableHandleSnapshot,
         &handleInfo
-        )))
-        goto UpdateExit;
+        );
 
     level = KsiLevel();
-
     if (level < KphLevelMed)
     {
         useWorkQueue = TRUE;
@@ -375,18 +373,21 @@ VOID PhHandleProviderUpdate(
         }
     }
 
-    handles = handleInfo->Handles;
-    numberOfHandles = (ULONG)handleInfo->NumberOfHandles;
-
-    for (i = 0; i < numberOfHandles; i++)
+    if (NT_SUCCESS(handleProvider->RunStatus))
     {
-        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
+        handles = handleInfo->Handles;
+        numberOfHandles = handleInfo->NumberOfHandles;
 
-        PhAddItemSimpleHashtable(
-            handleProvider->TempListHashtable,
-            (PVOID)handle->HandleValue,
-            handle
-            );
+        for (i = 0; i < numberOfHandles; i++)
+        {
+            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
+
+            PhAddItemSimpleHashtable(
+                handleProvider->TempListHashtable,
+                handle->HandleValue,
+                handle
+                );
+        }
     }
 
     // Look for closed handles.
@@ -413,23 +414,22 @@ VOID PhHandleProviderUpdate(
 
                 if (tempHashtableValue)
                 {
-#if 0 // TODO(jxy-s) enable this on the next driver release
-                    // Also compare the object pointers to make sure a
-                    // different object wasn't re-opened with the same
-                    // handle value.
-                    if (KsiLevel() >= KphLevelMed && handleProvider->ProcessHandle)
+                    // Also compare the object pointers to make sure a different object wasn't
+                    // re-opened with the same handle value.
+                    if (
+                        // TODO(jxy-s): remove following line after next driver release, see commit 3a54b8329
+                        handleProvider->ProcessId != SYSTEM_PROCESS_ID &&
+                        level >= KphLevelMed && handleProvider->ProcessHandle
+                        )
                     {
                         found = NT_SUCCESS(KphCompareObjects(
                             handleProvider->ProcessHandle,
                             handleItem->Handle,
-                            (HANDLE)(*tempHashtableValue)->HandleValue
+                            (*tempHashtableValue)->HandleValue
                             ));
                     }
                     // This isn't 100% accurate as pool addresses may be re-used, but it works well.
                     else if (handleItem->Object && handleItem->Object == (*tempHashtableValue)->Object)
-#else
-                    if (handleItem->Object && handleItem->Object == (*tempHashtableValue)->Object)
-#endif
                     {
                         found = TRUE;
                     }
@@ -467,10 +467,7 @@ VOID PhHandleProviderUpdate(
 
             for (i = 0; i < handlesToRemove->Count; i++)
             {
-                PhpRemoveHandleItem(
-                    handleProvider,
-                    (PPH_HANDLE_ITEM)handlesToRemove->Items[i]
-                    );
+                PhpRemoveHandleItem(handleProvider, handlesToRemove->Items[i]);
             }
 
             PhReleaseQueuedLockExclusive(&handleProvider->HandleHashSetLock);
@@ -589,7 +586,10 @@ VOID PhHandleProviderUpdate(
         PhDeleteWorkQueue(&workQueue);
     }
 
-    PhFree(handleInfo);
+    if (NT_SUCCESS(handleProvider->RunStatus))
+    {
+        PhFree(handleInfo);
+    }
 
     // Re-create the temporary hashtable if it got too big.
     if (handleProvider->TempListHashtable->AllocatedEntries > 8192)
@@ -602,6 +602,5 @@ VOID PhHandleProviderUpdate(
         PhClearHashtable(handleProvider->TempListHashtable);
     }
 
-UpdateExit:
     PhInvokeCallback(&handleProvider->HandleUpdatedEvent, NULL);
 }

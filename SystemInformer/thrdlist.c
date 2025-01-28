@@ -341,14 +341,28 @@ VOID PhpDestroyThreadNode(
     PhEmCallObjectOperation(EmThreadNodeType, ThreadNode, EmObjectDelete);
 
     if (ThreadNode->CyclesDeltaText) PhDereferenceObject(ThreadNode->CyclesDeltaText);
+    if (ThreadNode->ContextSwitchesDeltaText) PhDereferenceObject(ThreadNode->ContextSwitchesDeltaText);
     if (ThreadNode->StartAddressText) PhDereferenceObject(ThreadNode->StartAddressText);
     if (ThreadNode->PrioritySymbolicText) PhDereferenceObject(ThreadNode->PrioritySymbolicText);
     if (ThreadNode->CreatedText) PhDereferenceObject(ThreadNode->CreatedText);
     if (ThreadNode->NameText) PhDereferenceObject(ThreadNode->NameText);
     if (ThreadNode->StateText) PhDereferenceObject(ThreadNode->StateText);
-
-    if (ThreadNode->LastErrorCodeText) PhDereferenceObject(ThreadNode->LastErrorCodeText);
     if (ThreadNode->LastSystemCallText) PhDereferenceObject(ThreadNode->LastSystemCallText);
+    if (ThreadNode->LastErrorCodeText) PhDereferenceObject(ThreadNode->LastErrorCodeText);
+    if (ThreadNode->ApartmentStateText) PhDereferenceObject(ThreadNode->ApartmentStateText);
+    if (ThreadNode->StackUsageText) PhDereferenceObject(ThreadNode->StackUsageText);
+
+    if (ThreadNode->KernelTimeText) PhDereferenceObject(ThreadNode->KernelTimeText);
+    if (ThreadNode->UserTimeText) PhDereferenceObject(ThreadNode->UserTimeText);
+
+    if (ThreadNode->WaitTimeText) PhDereferenceObject(ThreadNode->WaitTimeText);
+    if (ThreadNode->IoReads) PhDereferenceObject(ThreadNode->IoReads);
+    if (ThreadNode->IoWrites) PhDereferenceObject(ThreadNode->IoWrites);
+    if (ThreadNode->IoOther) PhDereferenceObject(ThreadNode->IoOther);
+    if (ThreadNode->IoReadBytes) PhDereferenceObject(ThreadNode->IoReadBytes);
+    if (ThreadNode->IoWriteBytes) PhDereferenceObject(ThreadNode->IoWriteBytes);
+    if (ThreadNode->IoOtherBytes) PhDereferenceObject(ThreadNode->IoOtherBytes);
+
     if (ThreadNode->ThreadContextHandle) NtClose(ThreadNode->ThreadContextHandle);
     if (ThreadNode->ThreadReadVmHandle) NtClose(ThreadNode->ThreadReadVmHandle);
 
@@ -1554,16 +1568,22 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_KERNELTIME:
                 {
-                    PhPrintTimeSpan(node->KernelTimeText, threadItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
+                    if (threadItem->KernelTime.QuadPart != 0)
+                    {
+                        PhMoveReference(&node->KernelTimeText, PhFormatTimeSpan(threadItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM));
+                    }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->KernelTimeText);
+                    getCellText->Text = PhGetStringRef(node->KernelTimeText);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_USERTIME:
                 {
-                    PhPrintTimeSpan(node->UserTimeText, threadItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
+                    if (threadItem->UserTime.QuadPart != 0)
+                    {
+                        PhMoveReference(&node->UserTimeText, PhFormatTimeSpan(threadItem->UserTime.QuadPart, PH_TIMESPAN_HMSM));
+                    }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->UserTimeText);
+                    getCellText->Text = PhGetStringRef(node->UserTimeText);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IDEALPROCESSOR:
@@ -1691,7 +1711,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         {
                             // If the thread was created in a frozen/suspended process and hasn't executed, the
                             // ThreadLastSystemCall returns status_success but the values are invalid. (dmex)
-                            PhMoveReference(&node->LastSystemCallText, PhReferenceEmptyString());
+                            PhClearReference(&node->LastSystemCallText);
                         }
                         else
                         {
@@ -1753,7 +1773,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                         PhInitFormatS(&format[0], L"0x");
                         PhInitFormatX(&format[1], node->LastSystemCallStatus);
-
                         PhMoveReference(&node->LastSystemCallText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
 
@@ -1978,37 +1997,42 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_WAITTIME:
                 {
-                    PhPrintTimeSpan(node->WaitTimeText, threadItem->WaitTime, PH_TIMESPAN_HMSM);
+                    if (threadItem->WaitTime != 0)
+                    {
+                        PhMoveReference(&node->WaitTimeText, PhFormatTimeSpan(threadItem->WaitTime, PH_TIMESPAN_HMSM));
+                    }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->WaitTimeText);
+                    getCellText->Text = PhGetStringRef(node->WaitTimeText);
                 }
                 break;
-
             case PH_THREAD_TREELIST_COLUMN_IOREADS:
                 {
                     if (threadItem->IoCounters.ReadOperationCount != 0)
                     {
-                        PhPrintUInt64(node->IoReads, threadItem->IoCounters.ReadOperationCount);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoReads);
+                        PhMoveReference(&node->IoReads, PhFormatUInt64(threadItem->IoCounters.ReadOperationCount, TRUE));
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoReads);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOWRITES:
                 {
                     if (threadItem->IoCounters.WriteOperationCount != 0)
                     {
-                        PhPrintUInt64(node->IoWrites, threadItem->IoCounters.WriteOperationCount);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoWrites);
+                        PhMoveReference(&node->IoWrites, PhFormatUInt64(threadItem->IoCounters.WriteOperationCount, TRUE));
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoWrites);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOOTHER:
                 {
                     if (threadItem->IoCounters.OtherOperationCount != 0)
                     {
-                        PhPrintUInt64(node->IoOther, threadItem->IoCounters.OtherOperationCount);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoOther);
+                        PhMoveReference(&node->IoOther, PhFormatUInt64(threadItem->IoCounters.OtherOperationCount, TRUE));
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoOther);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOREADBYTES:
@@ -2016,8 +2040,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (threadItem->IoCounters.ReadTransferCount != 0)
                     {
                         PhMoveReference(&node->IoReadBytes, PhFormatSize(threadItem->IoCounters.ReadTransferCount, ULONG_MAX));
-                        getCellText->Text = node->IoReadBytes->sr;
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoReadBytes);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES:
@@ -2025,8 +2050,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (threadItem->IoCounters.WriteTransferCount != 0)
                     {
                         PhMoveReference(&node->IoWriteBytes, PhFormatSize(threadItem->IoCounters.WriteTransferCount, ULONG_MAX));
-                        getCellText->Text = node->IoWriteBytes->sr;
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoWriteBytes);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES:
@@ -2034,8 +2060,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (threadItem->IoCounters.OtherTransferCount != 0)
                     {
                         PhMoveReference(&node->IoOtherBytes, PhFormatSize(threadItem->IoCounters.OtherTransferCount, ULONG_MAX));
-                        getCellText->Text = node->IoOtherBytes->sr;
                     }
+
+                    getCellText->Text = PhGetStringRef(node->IoOtherBytes);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING:
@@ -2043,6 +2070,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (threadItem->PowerThrottling)
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;

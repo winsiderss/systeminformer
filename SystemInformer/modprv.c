@@ -997,13 +997,7 @@ PPH_STRINGREF PhGetModuleTypeName(
 {
     PPH_STRINGREF string;
 
-    if (ModuleType >= PH_MODULE_TYPE_MODULE &&
-        ModuleType <= PH_MODULE_TYPE_ENCLAVE_MODULE)
-    {
-        return (PPH_STRINGREF)PhModuleTypePairs[ModuleType].Key;
-    }
-
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhModuleTypePairs,
         sizeof(PhModuleTypePairs),
         ModuleType,
@@ -1037,13 +1031,7 @@ PPH_STRINGREF PhGetModuleLoadReasonTypeName(
 {
     PPH_STRINGREF string;
 
-    if (LoadReason >= LoadReasonStaticDependency &&
-        LoadReason <= LoadReasonPatchImage)
-    {
-        return (PPH_STRINGREF)PhModuleLoadReasonTypePairs[LoadReason].Key;
-    }
-
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhModuleLoadReasonTypePairs,
         sizeof(PhModuleLoadReasonTypePairs),
         LoadReason,
@@ -1211,7 +1199,7 @@ NTSTATUS PhModuleEnclaveListInitialize(
     ULONG sizeOfImage;
     PPH_STRING fileName;
 
-    symbolProvider = PhCreateSymbolProvider(NtCurrentProcessId()); // HACK
+    symbolProvider = PhCreateSymbolProvider(NULL);
     PhLoadSymbolProviderOptions(symbolProvider);
 
     if (PhGetLoaderEntryDataZ(L"ntdll.dll", &baseAddress, &sizeOfImage, &fileName))

@@ -184,6 +184,9 @@ VOID PvSetOptionsSymbolsList(
     case PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ:
         Context->HideReadSection = !Context->HideReadSection;
         break;
+    case PV_SYMBOL_TREE_MENU_ITEM_FILTER_WRITE:
+        Context->FilterNonWriteSections = !Context->FilterNonWriteSections;
+        break;
     case PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE:
         Context->HighlightWriteSection = !Context->HighlightWriteSection;
         break;
@@ -649,14 +652,22 @@ BOOLEAN PvSymbolTreeFilterCallback(
     //if (node->Address == 0)
     //    return TRUE;
 
-    if (context->HideWriteSection && node->Characteristics & IMAGE_SCN_MEM_WRITE)
-        return FALSE;
-    if (context->HideExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
-        return FALSE;
-    if (context->HideCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
-        return FALSE;
-    if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
-        return FALSE;
+    if (context->FilterNonWriteSections)
+    {
+        if (!FlagOn(node->Characteristics, IMAGE_SCN_MEM_WRITE))
+            return FALSE;
+    }
+    else
+    {
+        if (context->HideWriteSection && FlagOn(node->Characteristics, IMAGE_SCN_MEM_WRITE))
+            return FALSE;
+        if (context->HideExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+            return FALSE;
+        if (context->HideCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
+            return FALSE;
+        if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
+            return FALSE;
+    }
 
     if (!context->SearchMatchHandle)
         return TRUE;
@@ -927,6 +938,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     PPH_EMENU_ITEM executableMenuItem;
                     PPH_EMENU_ITEM codeMenuItem;
                     PPH_EMENU_ITEM readMenuItem;
+                    PPH_EMENU_ITEM filterWriteMenuItem;
                     PPH_EMENU_ITEM highlightWriteMenuItem;
                     PPH_EMENU_ITEM highlightExecuteMenuItem;
                     PPH_EMENU_ITEM highlightCodeMenuItem;
@@ -939,6 +951,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     executableMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE, L"Hide executable", NULL, NULL);
                     codeMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE, L"Hide code", NULL, NULL);
                     readMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ, L"Hide readable", NULL, NULL);
+                    filterWriteMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_FILTER_WRITE, L"Filter non-writable", NULL, NULL);
                     highlightWriteMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE, L"Highlight writable", NULL, NULL);
                     highlightExecuteMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE, L"Highlight executable", NULL, NULL);
                     highlightCodeMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_CODE, L"Highlight code", NULL, NULL);
@@ -949,6 +962,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     PhInsertEMenuItem(menu, executableMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, codeMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, readMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, filterWriteMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightWriteMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, highlightExecuteMenuItem, ULONG_MAX);
@@ -963,6 +977,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                         codeMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HideReadSection)
                         readMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->FilterNonWriteSections)
+                        filterWriteMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightWriteSection)
                         highlightWriteMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightExecuteSection)

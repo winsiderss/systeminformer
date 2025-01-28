@@ -161,19 +161,13 @@ NTSTATUS KphQueryInformationFile(
         }
     }
 
-    if (FileInformationLength <= ARRAYSIZE(stackBuffer))
+    buffer = KphAllocatePagedA(FileInformationLength,
+                               KPH_TAG_FILE_QUERY,
+                               stackBuffer);
+    if (!buffer)
     {
-        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-        buffer = stackBuffer;
-    }
-    else
-    {
-        buffer = KphAllocatePaged(FileInformationLength, KPH_TAG_FILE_QUERY);
-        if (!buffer)
-        {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
     }
 
     KeStackAttachProcess(process, &apcState);
@@ -210,9 +204,9 @@ NTSTATUS KphQueryInformationFile(
 
 Exit:
 
-    if (buffer && (buffer != stackBuffer))
+    if (buffer)
     {
-        KphFree(buffer, KPH_TAG_FILE_QUERY);
+        KphFreeA(buffer, KPH_TAG_FILE_QUERY, stackBuffer);
     }
 
     if (process)
@@ -311,19 +305,13 @@ NTSTATUS KphQueryVolumeInformationFile(
         }
     }
 
-    if (FsInformationLength <= ARRAYSIZE(stackBuffer))
+    buffer = KphAllocatePagedA(FsInformationLength,
+                               KPH_TAG_VOL_FILE_QUERY,
+                               stackBuffer);
+    if (!buffer)
     {
-        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
-        buffer = stackBuffer;
-    }
-    else
-    {
-        buffer = KphAllocatePaged(FsInformationLength, KPH_TAG_VOL_FILE_QUERY);
-        if (!buffer)
-        {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
     }
 
     KeStackAttachProcess(process, &apcState);
@@ -360,9 +348,9 @@ NTSTATUS KphQueryVolumeInformationFile(
 
 Exit:
 
-    if (buffer && (buffer != stackBuffer))
+    if (buffer)
     {
-        KphFree(buffer, KPH_TAG_VOL_FILE_QUERY);
+        KphFreeA(buffer, KPH_TAG_VOL_FILE_QUERY, stackBuffer);
     }
 
     if (process)

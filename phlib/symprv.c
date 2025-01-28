@@ -397,10 +397,10 @@ VOID PhpSymbolProviderCompleteInitialization(
     VOID
     )
 {
-    static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
-    static PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // dbghelp.dll dependency required for MiniDumpWriteDump (dmex)
-    static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
-    static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
+    static CONST PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
+    static CONST PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // dbghelp.dll dependency required for MiniDumpWriteDump (dmex)
+    static CONST PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
+    static CONST PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
     PPH_STRING winsdkPath;
     PVOID dbgcoreHandle;
     PVOID dbghelpHandle;
@@ -1655,7 +1655,7 @@ NTSTATUS PhpAccessCallbackFunctionTable(
     _Out_ PULONG NumberOfFunctions
     )
 {
-    static PH_STRINGREF knownFunctionTableDllsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\KnownFunctionTableDlls");
+    static CONST PH_STRINGREF knownFunctionTableDllsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\KnownFunctionTableDlls");
     NTSTATUS status;
     HANDLE keyHandle;
     ULONG returnLength;

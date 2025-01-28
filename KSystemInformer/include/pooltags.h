@@ -105,21 +105,6 @@
 #define KPH_TAG_FILE_QUERY                      '0FpK'
 #define KPH_TAG_VOL_FILE_QUERY                  '1FpK'
 
-// socket
-
-#define KPH_TAG_SOCKET                          '0spK'
-#define KPH_TAG_TLS                             '1spK'
-#define KPH_TAG_TLS_BUFFER                      '2spK'
-
-// http
-
-#define KPH_TAG_HTTP_RESPONSE                   '0hpK'
-
-// download
-
-#define KPH_TAG_DOWNLOAD_REQUEST                '0DpK'
-#define KPH_TAG_DOWNLOAD_CONTEXT                '1DpK'
-
 // back_trace
 
 #define KPH_TAG_BACK_TRACE_OBJECT               '0BpK'

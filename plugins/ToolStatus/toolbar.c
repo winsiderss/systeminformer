@@ -147,6 +147,8 @@ VOID RebarCreateOrUpdateWindow(
 
     if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
     {
+        REBARINFO rebarInfo;
+
         ToolbarWindowFont = SystemInformer_GetFont();
 
         RebarHandle = CreateWindow(
@@ -171,8 +173,11 @@ VOID RebarCreateOrUpdateWindow(
             NULL
             );
 
+        memset(&rebarInfo, 0, sizeof(REBARINFO));
+        rebarInfo.cbSize = sizeof(REBARINFO);
+
         // Set the rebar info with no imagelist.
-        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&(REBARINFO){ sizeof(REBARINFO) });
+        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.

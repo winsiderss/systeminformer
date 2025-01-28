@@ -473,7 +473,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
     {
     case PH_IPV4_NETWORK_TYPE:
         {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
+            static CONST PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
             PH_FORMAT format[9];
             SIZE_T returnLength;
             WCHAR reverseNameBuffer[IP4_REVERSE_DOMAIN_STRING_LENGTH];
@@ -511,17 +511,17 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
         break;
     case PH_IPV6_NETWORK_TYPE:
         {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
+            static CONST PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
             PH_STRING_BUILDER stringBuilder;
 
             // DNS_MAX_IP6_REVERSE_NAME_LENGTH
             PhInitializeStringBuilder(&stringBuilder, IP6_REVERSE_DOMAIN_STRING_LENGTH);
 
-            for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
+            for (LONG i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
             {
                 PH_FORMAT format[4];
                 SIZE_T returnLength;
-                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
+                WCHAR reverseNameBuffer[PH_INT64_STR_LEN_1];
 
                 PhInitFormatX(&format[0], Address->In6Addr.s6_addr[i] & 0xF);
                 PhInitFormatC(&format[1], L'.');
@@ -1836,7 +1836,7 @@ BOOLEAN PhGetNetworkConnections(
     return TRUE;
 }
 
-static PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
 {
     SIP(SREF(L"TCP"), PH_TCP4_NETWORK_PROTOCOL),
     SIP(SREF(L"TCP6"), PH_TCP6_NETWORK_PROTOCOL),
@@ -1845,7 +1845,7 @@ static PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
     SIP(SREF(L"HYPERV"), PH_HV_NETWORK_PROTOCOL),
 };
 
-static PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
+static CONST PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
 {
     SIP(SREF(L"Closed"), MIB_TCP_STATE_CLOSED),
     SIP(SREF(L"Listen"), MIB_TCP_STATE_LISTEN),
@@ -1862,18 +1862,18 @@ static PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
     SIP(SREF(L"Bound"), MIB_TCP_STATE_RESERVED),
 };
 
-PPH_STRINGREF PhGetProtocolTypeName(
+PCPH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
 {
-    static PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PPH_STRINGREF string;
+    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+    PCPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhFindStringRefSiKeyValuePairs(
         PhProtocolTypeStrings,
         sizeof(PhProtocolTypeStrings),
         ProtocolType,
-        (PWSTR*)&string
+        &string
         ))
     {
         return string;
@@ -1882,18 +1882,18 @@ PPH_STRINGREF PhGetProtocolTypeName(
     return &unknown;
 }
 
-PPH_STRINGREF PhGetTcpStateName(
+PCPH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )
 {
-    static PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PPH_STRINGREF string;
+    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+    PCPH_STRINGREF string;
 
-    if (PhFindStringSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhTcpStateStrings,
         sizeof(PhTcpStateStrings),
         State,
-        (PWSTR*)&string
+        &string
         ))
     {
         return string;

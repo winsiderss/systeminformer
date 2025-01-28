@@ -1693,27 +1693,29 @@ VOID NTAPI MenuHookCallback(
             ULONG numberOfProcesses;
             ULONG i;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            LockDb();
-
-            for (i = 0; i < numberOfProcesses; i++)
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
             {
-                PDB_OBJECT object;
+                LockDb();
 
-                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
+                for (i = 0; i < numberOfProcesses; i++)
                 {
-                    ULONG newPriorityClass = GetPriorityClassFromId(id);
+                    PDB_OBJECT object;
 
-                    if (object->PriorityClass != newPriorityClass)
+                    if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
                     {
-                        object->PriorityClass = newPriorityClass;
-                        changed = TRUE;
+                        ULONG newPriorityClass = GetPriorityClassFromId(id);
+
+                        if (object->PriorityClass != newPriorityClass)
+                        {
+                            object->PriorityClass = newPriorityClass;
+                            changed = TRUE;
+                        }
                     }
                 }
-            }
 
-            UnlockDb();
-            PhFree(processes);
+                UnlockDb();
+                PhFree(processes);
+            }
 
             if (changed)
                 SaveDb();
@@ -1729,27 +1731,29 @@ VOID NTAPI MenuHookCallback(
             ULONG numberOfProcesses;
             ULONG i;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            LockDb();
-
-            for (i = 0; i < numberOfProcesses; i++)
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
             {
-                PDB_OBJECT object;
+                LockDb();
 
-                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
+                for (i = 0; i < numberOfProcesses; i++)
                 {
-                    ULONG newIoPriorityPlusOne = GetIoPriorityFromId(id) + 1;
+                    PDB_OBJECT object;
 
-                    if (object->IoPriorityPlusOne != newIoPriorityPlusOne)
+                    if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
                     {
-                        object->IoPriorityPlusOne = newIoPriorityPlusOne;
-                        changed = TRUE;
+                        ULONG newIoPriorityPlusOne = GetIoPriorityFromId(id) + 1;
+
+                        if (object->IoPriorityPlusOne != newIoPriorityPlusOne)
+                        {
+                            object->IoPriorityPlusOne = newIoPriorityPlusOne;
+                            changed = TRUE;
+                        }
                     }
                 }
-            }
 
-            UnlockDb();
-            PhFree(processes);
+                UnlockDb();
+                PhFree(processes);
+            }
 
             if (changed)
                 SaveDb();
@@ -1766,27 +1770,29 @@ VOID NTAPI MenuHookCallback(
             ULONG numberOfProcesses;
             ULONG i;
 
-            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-            LockDb();
-
-            for (i = 0; i < numberOfProcesses; i++)
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
             {
-                PDB_OBJECT object;
+                LockDb();
 
-                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PAGEPRIORITY))
+                for (i = 0; i < numberOfProcesses; i++)
                 {
-                    ULONG newPagePriorityPlusOne = GetPagePriorityFromId(id) + 1;
+                    PDB_OBJECT object;
 
-                    if (object->PagePriorityPlusOne != newPagePriorityPlusOne)
+                    if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PAGEPRIORITY))
                     {
-                        object->PagePriorityPlusOne = newPagePriorityPlusOne;
-                        changed = TRUE;
+                        ULONG newPagePriorityPlusOne = GetPagePriorityFromId(id) + 1;
+
+                        if (object->PagePriorityPlusOne != newPagePriorityPlusOne)
+                        {
+                            object->PagePriorityPlusOne = newPagePriorityPlusOne;
+                            changed = TRUE;
+                        }
                     }
                 }
-            }
 
-            UnlockDb();
-            PhFree(processes);
+                UnlockDb();
+                PhFree(processes);
+            }
 
             if (changed)
                 SaveDb();
@@ -1997,7 +2003,7 @@ VOID TreeNewMessageCallback(
                     }
                     break;
                 }
-    
+
             }
             else if (message->TreeNewHandle == ServiceTreeNewHandle)
             {
@@ -2345,7 +2351,7 @@ VOID ProcessTreeNewInitializingCallback(
     affinity.Text = L"Affinity";
     affinity.Width = 120;
     affinity.Alignment = PH_ALIGN_LEFT;
-        
+
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &affinity, AFFINITY_COLUMN_ID, NULL, ProcessAffinitySortFunction);
 }

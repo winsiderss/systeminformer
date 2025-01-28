@@ -25,17 +25,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -121,7 +121,7 @@ BEGIN
     DEFPUSHBUTTON   "Save",IDYES,198,47,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,252,47,50,14
     EDITTEXT        IDC_KEY_EDIT,7,24,295,14,ES_AUTOHSCROLL
-    LTEXT           "Paste the",IDC_KEYTEXT_L,7,7,120,8
+    LTEXT           "Paste the license key below:",IDC_KEYTEXT_L,7,7,172,8
     CONTROL         "Checkout <a href=""https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key"">How-to-generate-a-license-key</a>",IDC_HELPLINK,
                     "SysLink",WS_TABSTOP,7,47,136,14
 END

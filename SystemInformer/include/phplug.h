@@ -63,7 +63,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessProviderAddedEvent, // [process provider thread]
     GeneralCallbackProcessProviderModifiedEvent, // [process provider thread]
     GeneralCallbackProcessProviderRemovedEvent, // [process provider thread]
-    GeneralCallbackProcessProviderUpdatedEvent, // [process provider thread]
+    GeneralCallbackProcessProviderUpdatedEvent, // PPH_PROCESS_PROVIDER_UPDATED_EVENT [process provider thread]
     GeneralCallbackServiceProviderAddedEvent, // [service provider thread]
     GeneralCallbackServiceProviderModifiedEvent, // [service provider thread]
     GeneralCallbackServiceProviderRemovedEvent, // [service provider thread]
@@ -78,6 +78,8 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackDeviceNotificationEvent, // [device provider thread]
 
     GeneralCallbackTrayIconsInitializing, // [work queue thread]
+    GeneralCallbackTrayIconsUpdatedEvent,
+
     GeneralCallbackWindowNotifyEvent,
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
@@ -98,6 +100,15 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackMenuHook = 6, // PH_PLUGIN_MENU_HOOK_INFORMATION MenuHookInfo [menu thread]
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
+
+// Provider events
+
+typedef struct _PH_PROCESS_PROVIDER_UPDATED_EVENT
+{
+    ULONG RunCount;
+} PH_PROCESS_PROVIDER_UPDATED_EVENT, *PPH_PROCESS_PROVIDER_UPDATED_EVENT;
+
+// Plugin events
 
 typedef struct _PH_PLUGIN_GET_HIGHLIGHTING_COLOR
 {
@@ -150,6 +161,12 @@ typedef struct _PH_PLUGIN_OBJECT_PROPERTIES
     ULONG MaximumNumberOfPages;
     HPROPSHEETPAGE *Pages;
 } PH_PLUGIN_OBJECT_PROPERTIES, *PPH_PLUGIN_OBJECT_PROPERTIES;
+
+typedef struct _PH_PLUGIN_IS_DANGEROUS_PROCESS
+{
+    HANDLE ProcessId;
+    BOOLEAN DangerousProcess;
+} PH_PLUGIN_IS_DANGEROUS_PROCESS, *PPH_PLUGIN_IS_DANGEROUS_PROCESS;
 
 typedef enum _PH_PLUGIN_HANDLE_GENERAL_CATEGORY
 {

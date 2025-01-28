@@ -164,8 +164,6 @@ INT WINAPI wWinMain(
         }
         else
         {
-            AllowSetForegroundWindow(ASFW_ANY);
-
             if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
             {
                 PhActivatePreviousInstance();
@@ -243,6 +241,18 @@ INT WINAPI wWinMain(
     }
 #endif
 
+    // Set the default timer resolution.
+    {
+        if (WindowsVersion > WINDOWS_11)
+        {
+            PhSetProcessPowerThrottlingState(
+                NtCurrentProcess(),
+                PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                0  // Disable synthetic timer resolution.
+                );
+        }
+    }
+
     // Set the default priority.
     {
         UCHAR priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
@@ -260,7 +270,7 @@ INT WINAPI wWinMain(
 
     if (!PhMainWndInitialization(CmdShow))
     {
-        PhShowError2(NULL, L"Unable to initialize the main window.", L"%s", L"");
+        PhShowStatus(NULL, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
         return 1;
     }
 
@@ -442,6 +452,7 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
 }
 
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_ PVOID Context
@@ -462,7 +473,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        Context,
+        RootDirectory,
         NULL
         );
 
@@ -482,12 +493,15 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
+        PROCESS_BASIC_INFORMATION basicInfo;
         PH_TOKEN_USER tokenUser;
         ULONG attempts = 50;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
             goto CleanupExit;
-        if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, objectInfo.ClientId.UniqueProcess)))
+        if (!NT_SUCCESS(PhOpenProcessClientId(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &objectInfo.ClientId)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
             goto CleanupExit;
         if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             goto CleanupExit;
@@ -496,6 +510,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
+        AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
         PhConsoleSetForeground(processHandle, TRUE);
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
@@ -542,11 +557,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    HANDLE directoryHandle;
-
-    directoryHandle = PhGetNamespaceHandle();
-
-    PhEnumDirectoryObjects(directoryHandle, PhpPreviousInstancesCallback, directoryHandle);
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, nullptr);
 }
 
 VOID PhInitializeCommonControls(
@@ -723,12 +734,12 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         TASKDIALOG_BUTTON buttons[6] =
         {
-            { 1, L"Full\nA complete dump of the process, rarely needed most of the time." },
-            { 2, L"Normal\nFor most purposes, this dump file is the most useful." },
-            { 3, L"Minimal\nA very limited dump with limited data." },
-            { 4, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
-            { 5, L"Ignore" },  // \nTry ignore the exception and continue.";
-            { 6, L"Exit" }, // \nTerminate the program.";
+            { 101, L"Full\nA complete dump of the process, rarely needed most of the time." },
+            { 102, L"Normal\nFor most purposes, this dump file is the most useful." },
+            { 103, L"Minimal\nA very limited dump with limited data." },
+            { 104, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
+            { 105, L"Ignore" },  // \nTry ignore the exception and continue.";
+            { 106, L"Exit" }, // \nTerminate the program.";
         };
 
         if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
@@ -748,7 +759,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         config.pszMainInstruction = L"System Informer has crashed :(";
         config.cButtons = RTL_NUMBER_OF(buttons);
         config.pButtons = buttons;
-        config.nDefaultButton = 6;
+        config.nDefaultButton = 106;
         config.cxWidth = 250;
         config.pszContent = PhGetString(message);
 #ifdef DEBUG
@@ -759,16 +770,16 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         {
             switch (result)
             {
-            case 1:
+            case 101:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeFull);
                 break;
-            case 2:
+            case 102:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeNormal);
                 break;
-            case 3:
+            case 103:
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
                 break;
-            case 4:
+            case 104:
                 {
                     PhShellProcessHacker(
                         NULL,
@@ -781,7 +792,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                         );
                 }
                 break;
-            case 5:
+            case 105:
                 {
                     return EXCEPTION_CONTINUE_EXECUTION;
                 }
@@ -797,7 +808,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                 L"Do you want to create a minidump on the Desktop?"
                 ) == IDYES)
             {
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
             }
         }
     }
@@ -999,8 +1010,8 @@ BOOLEAN PhInitializeComPolicy(
         PhLengthSid(&administratorsSid);
 
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
@@ -1066,7 +1077,9 @@ BOOLEAN PhInitializeTimerPolicy(
     VOID
     )
 {
-    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &(BOOL){ FALSE }, sizeof(BOOL));
+    static BOOL timerSuppression = FALSE;
+
+    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &timerSuppression, sizeof(BOOL));
 
     return TRUE;
 }

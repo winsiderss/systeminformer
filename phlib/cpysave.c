@@ -168,7 +168,7 @@ PPH_LIST PhaFormatTextTable(
     {
         PH_STRING_BUILDER stringBuilder;
 
-        PhInitializeStringBuilder(&stringBuilder, 100);
+        PhInitializeStringBuilder(&stringBuilder, 0x100);
 
         switch (Mode)
         {

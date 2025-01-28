@@ -51,7 +51,7 @@ NTSTATUS SetupDownloadProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    if (!SetupQueryUpdateData(Context))
+    if (!SetupQueryUpdateDataWithFailover(Context))
         goto CleanupExit;
 
     if (!UpdateDownloadUpdateData(Context))

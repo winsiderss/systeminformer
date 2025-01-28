@@ -703,17 +703,17 @@ VOID PhTnpOnPaint(
             return;
         }
 
-        if (Context->DoubleBuffered)
-        {
-            if (!Context->BufferedContext)
-            {
-                PhTnpCreateBufferedContext(Context);
-            }
-        }
-
         if (hdc = BeginPaint(hwnd, &paintStruct))
         {
             updateRect = paintStruct.rcPaint;
+
+            if (Context->DoubleBuffered)
+            {
+                if (!Context->BufferedContext)
+                {
+                    PhTnpCreateBufferedContext(Context, hdc);
+                }
+            }
 
             if (Context->BufferedContext)
             {
@@ -6214,7 +6214,9 @@ VOID PhTnpDrawThemedBorder(
     LONG borderX;
     LONG borderY;
 
-    GetWindowRect(Context->Handle, &windowRect);
+    if (!PhGetWindowRect(Context->Handle, &windowRect))
+        return;
+
     windowRect.right -= windowRect.left;
     windowRect.bottom -= windowRect.top;
     windowRect.left = 0;
@@ -6928,21 +6930,27 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     PPH_TREENEW_CONTEXT context;
     WNDPROC oldWndProc;
 
-    context = PhGetWindowContext(hwnd, MAXCHAR);
-
-    if (hwnd == context->FixedHeaderHandle)
-        oldWndProc = context->FixedHeaderWindowProc;
+    if (context = PhGetWindowContext(hwnd, MAXCHAR))
+    {
+        if (hwnd == context->FixedHeaderHandle)
+            oldWndProc = context->FixedHeaderWindowProc;
+        else
+            oldWndProc = context->HeaderWindowProc;
+    }
     else
-        oldWndProc = context->HeaderWindowProc;
+    {
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwnd, MAXCHAR);
+
             PhTnpHeaderDestroyBufferedContext(context);
 
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hwnd, MAXCHAR);
         }
         break;
     case WM_MOUSEMOVE:
@@ -7338,7 +7346,8 @@ VOID PhTnpDragSelect(
     // TODO: Make sure the monitor's color depth is sufficient for alpha-blended selection
     // rectangles.
 
-    GetWindowRect(Context->Handle, &windowRect);
+    if (!PhGetWindowRect(Context->Handle, &windowRect))
+        return;
 
     cursorPoint.x = windowRect.left + cursorX;
     cursorPoint.y = windowRect.top + cursorY;
@@ -7652,35 +7661,30 @@ VOID PhTnpProcessDragSelect(
 }
 
 VOID PhTnpCreateBufferedContext(
-    _In_ PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc
     )
 {
-    HDC hdc;
+    Context->BufferedContext = CreateCompatibleDC(Hdc);
 
-    if (hdc = GetDC(Context->Handle))
+    if (!Context->BufferedContext)
+        return;
+
+    Context->BufferedContextRect = Context->ClientRect;
+    Context->BufferedBitmap = CreateCompatibleBitmap(
+        Hdc,
+        Context->BufferedContextRect.right + 1, // leave one extra pixel for divider animation
+        Context->BufferedContextRect.bottom
+        );
+
+    if (!Context->BufferedBitmap)
     {
-        Context->BufferedContext = CreateCompatibleDC(hdc);
-
-        if (!Context->BufferedContext)
-            return;
-
-        Context->BufferedContextRect = Context->ClientRect;
-        Context->BufferedBitmap = CreateCompatibleBitmap(
-            hdc,
-            Context->BufferedContextRect.right + 1, // leave one extra pixel for divider animation
-            Context->BufferedContextRect.bottom
-            );
-
-        if (!Context->BufferedBitmap)
-        {
-            DeleteDC(Context->BufferedContext);
-            Context->BufferedContext = NULL;
-            return;
-        }
-
-        ReleaseDC(Context->Handle, hdc);
-        Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
+        DeleteDC(Context->BufferedContext);
+        Context->BufferedContext = NULL;
+        return;
     }
+
+    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
 }
 
 VOID PhTnpDestroyBufferedContext(

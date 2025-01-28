@@ -7,32 +7,36 @@
 #ifndef _NTMMAPI_H
 #define _NTMMAPI_H
 
-// Protection constants
+//
+// Memory Protection Constants
+//
 
-#define PAGE_NOACCESS 0x01
-#define PAGE_READONLY 0x02
-#define PAGE_READWRITE 0x04
-#define PAGE_WRITECOPY 0x08
-#define PAGE_EXECUTE 0x10
-#define PAGE_EXECUTE_READ 0x20
-#define PAGE_EXECUTE_READWRITE 0x40
-#define PAGE_EXECUTE_WRITECOPY 0x80
-#define PAGE_GUARD 0x100
-#define PAGE_NOCACHE 0x200
-#define PAGE_WRITECOMBINE 0x400
+#define PAGE_NOACCESS 0x01              // Disables all access to the committed region of pages. An attempt to read from, write to, or execute the committed region results in an access violation.
+#define PAGE_READONLY 0x02              // Enables read-only access to the committed region of pages. An attempt to write or execute the committed region results in an access violation.
+#define PAGE_READWRITE 0x04             // Enables read-only or read/write access to the committed region of pages.
+#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object. 
+#define PAGE_EXECUTE 0x10               // Enables execute access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READ 0x20          // Enables execute or read-only access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READWRITE 0x40     // Enables execute, read-only, or read/write access to the committed region of pages.
+#define PAGE_EXECUTE_WRITECOPY 0x80     // Enables execute, read-only, or copy-on-write access to a mapped view of a file mapping object.
+#define PAGE_GUARD 0x100                // Pages in the region become guard pages. Any attempt to access a guard page causes the system to raise a STATUS_GUARD_PAGE_VIOLATION exception.
+#define PAGE_NOCACHE 0x200              // Sets all pages to be non-cachable. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
+#define PAGE_WRITECOMBINE 0x400         // Sets all pages to be write-combined. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000
-#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000
-#define PAGE_TARGETS_NO_UPDATE      0x40000000
-#define PAGE_TARGETS_INVALID        0x40000000
-#define PAGE_ENCLAVE_UNVALIDATED    0x20000000
+#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object. 
+#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000 // Pages in the region contain a thread control structure (TCS) from the Intel Software Guard Extensions programming model.
+#define PAGE_TARGETS_NO_UPDATE      0x40000000 // Pages in the region will not update the CFG bitmap when the protection changes. The default behavior for VirtualProtect is to mark all locations as valid call targets for CFG.
+#define PAGE_TARGETS_INVALID        0x40000000 // Pages in the region are excluded from the CFG bitmap as valid targets. Any indirect call to locations in those pages will terminate the process using the __fastfail intrinsic.
+#define PAGE_ENCLAVE_UNVALIDATED    0x20000000 // Pages in the region are excluded from measurement with the EEXTEND instruction of the Intel Software Guard Extensions programming model.
 #define PAGE_ENCLAVE_NO_CHANGE      0x20000000
 #define PAGE_ENCLAVE_MASK           0x10000000
 #define PAGE_ENCLAVE_DECOMMIT       (PAGE_ENCLAVE_MASK | 0)
 #define PAGE_ENCLAVE_SS_FIRST       (PAGE_ENCLAVE_MASK | 1)
 #define PAGE_ENCLAVE_SS_REST        (PAGE_ENCLAVE_MASK | 2)
 
-// Region and section constants
+//
+// Memory Region and Section Constants
+//
 
 #define MEM_COMMIT 0x00001000
 #define MEM_RESERVE 0x00002000
@@ -151,23 +155,33 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_READWRITE 30
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_COPYONWRITE 31
 
+/**
+ * The MEMORY_WORKING_SET_BLOCK structure contains working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_block
+ */
 typedef struct _MEMORY_WORKING_SET_BLOCK
 {
-    ULONG_PTR Protection : 5;
-    ULONG_PTR ShareCount : 3;
-    ULONG_PTR Shared : 1;
-    ULONG_PTR Node : 3;
+    ULONG_PTR Protection : 5;       // The protection attributes of the page. This member can be one of above MEMORY_BLOCK_* values.
+    ULONG_PTR ShareCount : 3;       // The number of processes that share this page. The maximum value of this member is 7.
+    ULONG_PTR Shared : 1;           // If this bit is 1, the page is sharable; otherwise, the page is not sharable.
+    ULONG_PTR Node : 3;             // The NUMA node where the physical memory should reside.
 #ifdef _WIN64
-    ULONG_PTR VirtualPage : 52;
+    ULONG_PTR VirtualPage : 52;     // The address of the page in the virtual address space.
 #else
-    ULONG VirtualPage : 20;
+    ULONG VirtualPage : 20;         // The address of the page in the virtual address space.
 #endif
 } MEMORY_WORKING_SET_BLOCK, *PMEMORY_WORKING_SET_BLOCK;
 
+/**
+ * The MEMORY_WORKING_SET_INFORMATION structure contains working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_information
+ */
 typedef struct _MEMORY_WORKING_SET_INFORMATION
 {
     ULONG_PTR NumberOfEntries;
-    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[1];
+    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[ANYSIZE_ARRAY];
 } MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
 
 // private
@@ -211,42 +225,47 @@ typedef enum _MEMORY_WORKING_SET_EX_LOCATION
     MemoryLocationReserved
 } MEMORY_WORKING_SET_EX_LOCATION;
 
-// private
-typedef struct _MEMORY_WORKING_SET_EX_BLOCK
+/**
+ * The MEMORY_WORKING_SET_EX_BLOCK structure contains extended working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block
+ */
+typedef union _MEMORY_WORKING_SET_EX_BLOCK
 {
+    ULONG_PTR Flags;
     union
     {
         struct
         {
-            ULONG_PTR Valid : 1;
-            ULONG_PTR ShareCount : 3;
-            ULONG_PTR Win32Protection : 11;
-            ULONG_PTR Shared : 1;
-            ULONG_PTR Node : 6;
-            ULONG_PTR Locked : 1;
-            ULONG_PTR LargePage : 1;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Valid : 1;                    // If this bit is 1, the subsequent members are valid; otherwise they should be ignored.
+            ULONG_PTR ShareCount : 3;               // The number of processes that share this page. The maximum value of this member is 7.
+            ULONG_PTR Win32Protection : 11;         // The memory protection attributes of the page.
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
+            ULONG_PTR Node : 6;                     // The NUMA node. The maximum value of this member is 63.
+            ULONG_PTR Locked : 1;                   // If this bit is 1, the virtual page is locked in physical memory.
+            ULONG_PTR LargePage : 1;                // If this bit is 1, the page is a large page.
+            ULONG_PTR Priority : 3;                 // The memory priority attributes of the page.
             ULONG_PTR Reserved : 3;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
-            ULONG_PTR Win32GraphicsProtection : 4; // 19H1
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
         struct
         {
-            ULONG_PTR Valid : 1;
+            ULONG_PTR Valid : 1;                    // If this bit is 0, the subsequent members are valid; otherwise they should be ignored.
             ULONG_PTR Reserved0 : 14;
-            ULONG_PTR Shared : 1;
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
             ULONG_PTR Reserved1 : 5;
             ULONG_PTR PageTable : 1;
-            ULONG_PTR Location : 2;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Location : 2;                 // The memory location of the page.  MEMORY_WORKING_SET_EX_LOCATION
+            ULONG_PTR Priority : 3;                 // The memory priority of the page.
             ULONG_PTR ModifiedList : 1;
             ULONG_PTR Reserved2 : 2;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
 #endif
@@ -254,15 +273,15 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
     };
 } MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
 
-// private
+/**
+ * The MEMORY_WORKING_SET_EX_INFORMATION structure contains extended working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_information
+ */
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
-    PVOID VirtualAddress;
-    union
-    {
-        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
-        ULONG_PTR Long;
-    } u1;
+    PVOID VirtualAddress;                             // The virtual address.
+    MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;    // The attributes of the page at VirtualAddress.
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
 // private
@@ -677,7 +696,9 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x7f
 
+//
 // Virtual memory
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -692,11 +713,10 @@ NtAllocateVirtualMemory(
     _In_ ULONG_PTR ZeroBits,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-
 _Must_inspect_result_
 _When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
@@ -711,9 +731,17 @@ NtAllocateVirtualMemoryEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-
 #endif
 
+/**
+ * Frees virtual memory allocated for a process.
+ *
+ * @param ProcessHandle A handle to the process whose virtual memory is to be freed.
+ * @param BaseAddress A pointer to the base address of the region of pages to be freed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region of memory to be freed.
+ * @param FreeType The type of free operation. This parameter can be MEM_DECOMMIT or MEM_RELEASE.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -724,14 +752,24 @@ NtFreeVirtualMemory(
     _In_ ULONG FreeType
     );
 
+/**
+ * Reads virtual memory from a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be read.
+ * @param BaseAddress A pointer to the base address in the specified process from which to read.
+ * @param Buffer A pointer to a buffer that receives the contents from the address space of the specified process.
+ * @param NumberOfBytesToRead The number of bytes to be read from the specified process.
+ * @param NumberOfBytesRead A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
@@ -741,51 +779,90 @@ NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
-    _Out_opt_ PULONGLONG NumberOfBytesRead,
-    _In_ ULONG Flags
+    _In_opt_ ULONGLONG BaseAddress,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToRead,
+    _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
 #if (PHNT_VERSION >= PHNT_WIN11)
-// rev
+/**
+ * Reads virtual memory from a process with extended options.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be read.
+ * @param BaseAddress A pointer to the base address in the specified process from which to read.
+ * @param Buffer A pointer to a buffer that receives the contents from the address space of the specified process.
+ * @param NumberOfBytesToRead The number of bytes to be read from the specified process.
+ * @param NumberOfBytesRead A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @param Flags Additional flags for the read operation.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemoryEx(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead,
     _In_ ULONG Flags
     );
 #endif
 
+/**
+ * Writes virtual memory to a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be written.
+ * @param BaseAddress A pointer to the base address in the specified process to which to write.
+ * @param Buffer A pointer to the buffer that contains the data to be written to the address space of the specified process.
+ * @param NumberOfBytesToWrite The number of bytes to be written to the specified process.
+ * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWriteVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
 // rev
+/**
+ * Writes virtual memory to a 64-bit process from a 32-bit process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be written.
+ * @param BaseAddress A pointer to the base address in the specified process to which to write.
+ * @param Buffer A pointer to the buffer that contains the data to be written to the address space of the specified process.
+ * @param NumberOfBytesToWrite The number of bytes to be written to the specified process.
+ * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
+    _In_opt_ ULONGLONG BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToWrite,
     _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
+/**
+ * Changes the protection on a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose memory protection is to be changed.
+ * @param BaseAddress A pointer to the base address of the region of pages whose access protection attributes are to be changed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region whose access protection attributes are to be changed.
+ * @param NewProtection The memory protection option. This parameter can be one of the memory protection constants.
+ * @param OldProtection A pointer to a variable that receives the previous access protection of the first page in the specified region of pages.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -793,10 +870,21 @@ NtProtectVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _In_ ULONG NewProtect,
-    _Out_ PULONG OldProtect
+    _In_ ULONG NewProtection,
+    _Out_ PULONG OldProtection
     );
 
+/**
+ * Queries information about a region of virtual memory in a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory information is to be queried.
+ * @param BaseAddress A pointer to the base address of the region of pages to be queried.
+ * @param MemoryInformationClass The type of information to be queried.
+ * @param MemoryInformation A pointer to a buffer that receives the memory information.
+ * @param MemoryInformationLength The size of the buffer pointed to by the MemoryInformation parameter.
+ * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -810,12 +898,23 @@ NtQueryVirtualMemory(
     );
 
 // rev
+/**
+ * Queries information about a region of virtual memory in a 64-bit process from a 32-bit process.
+ *
+ * @param ProcessHandle A handle to the process whose memory information is to be queried.
+ * @param BaseAddress A pointer to the base address of the region of pages to be queried.
+ * @param MemoryInformationClass The type of information to be queried.
+ * @param MemoryInformation A pointer to a buffer that receives the memory information.
+ * @param MemoryInformationLength The size of the buffer pointed to by the MemoryInformation parameter.
+ * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
+    _In_opt_ ULONGLONG BaseAddress,
     _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ ULONGLONG MemoryInformationLength,
@@ -824,6 +923,15 @@ NtWow64QueryVirtualMemory64(
 
 typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
 
+/**
+ * Flushes the instruction cache for a specified process.
+ *
+ * @param ProcessHandle A handle to the process whose instruction cache is to be flushed.
+ * @param BaseAddress A pointer to the base address of the region of memory to be flushed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region to be flushed.
+ * @param IoStatus A pointer to an IO_STATUS_BLOCK structure that receives the status of the flush operation.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -987,7 +1095,7 @@ NtMapViewOfSection(
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
@@ -1061,8 +1169,7 @@ NtAreMappedFilesTheSame(
 #define MEMORY_PARTITION_QUERY_ACCESS 0x0001
 #define MEMORY_PARTITION_MODIFY_ACCESS 0x0002
 #define MEMORY_PARTITION_ALL_ACCESS \
-    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | \
-     MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
+    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -1267,7 +1374,7 @@ NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
     _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
-    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
 #endif

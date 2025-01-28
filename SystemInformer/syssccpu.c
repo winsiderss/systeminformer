@@ -16,6 +16,7 @@
 #include <sysinfop.h>
 #include <procprv.h>
 #include <phsettings.h>
+#include <phfirmware.h>
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
@@ -41,6 +42,7 @@ static PH_UINT64_DELTA DpcsDelta;
 static PH_UINT32_DELTA SystemCallsDelta;
 static HWND CpuPanelUtilizationLabel;
 static HWND CpuPanelSpeedLabel;
+static HWND CpuVirtualizationLabel;
 static HWND CpuPanelProcessesLabel;
 static HWND CpuPanelThreadsLabel;
 static HWND CpuPanelHandlesLabel;
@@ -53,6 +55,66 @@ static HWND CpuPanelCoresLabel;
 static HWND CpuPanelSocketsLabel;
 static HWND CpuPanelLogicalLabel;
 static HWND CpuPanelLatencyLabel;
+static ULONG64 CpuL1CacheSize;
+static ULONG64 CpuL2CacheSize;
+static ULONG64 CpuL3CacheSize;
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    ULONG64 size;
+
+    if (Entry->Header.Type != SMBIOS_CACHE_INFORMATION_TYPE)
+        return FALSE;
+
+    if (!PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, Configuration) ||
+        !Entry->Cache.Configuration.Enabled)
+    {
+        return FALSE;
+    }
+
+    size = 0;
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
+    {
+        if (Entry->Cache.InstalledSize.Value == MAXUSHORT &&
+            PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
+        {
+            if (Entry->Cache.InstalledSize2.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
+        }
+        else
+        {
+            if (Entry->Cache.InstalledSize.Granularity)
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
+            else
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
+        }
+    }
+
+    switch (Entry->Cache.Configuration.Level)
+    {
+    case 0:
+        CpuL1CacheSize += size;
+        break;
+    case 1:
+        CpuL2CacheSize += size;
+        break;
+    case 2:
+        CpuL3CacheSize += size;
+        break;
+    }
+
+    return FALSE;
+}
 
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -66,6 +128,10 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoCreate:
         {
             CpuSection = Section;
+            CpuL1CacheSize = 0;
+            CpuL2CacheSize = 0;
+            CpuL3CacheSize = 0;
+            PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, NULL);
         }
         return TRUE;
     case SysInfoDestroy:
@@ -461,6 +527,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
         {
             CpuPanelUtilizationLabel = GetDlgItem(hwndDlg, IDC_UTILIZATION);
             CpuPanelSpeedLabel = GetDlgItem(hwndDlg, IDC_SPEED);
+            CpuVirtualizationLabel = GetDlgItem(hwndDlg, IDC_VIRTUALIZATION);
             CpuPanelProcessesLabel = GetDlgItem(hwndDlg, IDC_ZPROCESSES_V);
             CpuPanelThreadsLabel = GetDlgItem(hwndDlg, IDC_ZTHREADS_V);
             CpuPanelHandlesLabel = GetDlgItem(hwndDlg, IDC_ZHANDLES_V);
@@ -476,6 +543,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
 
             SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
             SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(CpuVirtualizationLabel, CpuSection->Parameters->MediumFont, FALSE);
         }
         break;
     case WM_COMMAND:
@@ -1031,6 +1099,36 @@ VOID PhSipUpdateCpuPanel(
     PH_FORMAT format[5];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
+
+    // Hardware
+
+    if (CpuTicked == 0)
+    {
+        switch (PhGetVirtualStatus())
+        {
+        case PhVirtualStatusVirtualMachine:
+            PhSetWindowText(CpuVirtualizationLabel, L"Virtual machine");
+            break;
+        case PhVirtualStatusEnabledHyperV:
+        case PhVirtualStatusEnabledFirmware:
+            PhSetWindowText(CpuVirtualizationLabel, L"Enabled");
+            break;
+        case PhVirtualStatusDiabledWithHyperV:
+            PhSetWindowText(CpuVirtualizationLabel, L"Disabled / Hyper-V");
+            break;
+        case PhVirtualStatusDiabled:
+            PhSetWindowText(CpuVirtualizationLabel, L"Disabled");
+            break;
+        case PhVirtualStatusNotCapable:
+        default:
+            PhSetWindowText(CpuVirtualizationLabel, L"Not capable");
+            break;
+        }
+
+        PhSetDialogItemText(CpuPanel, IDC_ZL1CACHE_V, CpuL1CacheSize ? PhaFormatSize(CpuL1CacheSize, ULONG_MAX)->Buffer : L"N/A");
+        PhSetDialogItemText(CpuPanel, IDC_ZL2CACHE_V, CpuL2CacheSize ? PhaFormatSize(CpuL2CacheSize, ULONG_MAX)->Buffer : L"N/A");
+        PhSetDialogItemText(CpuPanel, IDC_ZL3CACHE_V, CpuL3CacheSize ? PhaFormatSize(CpuL3CacheSize, ULONG_MAX)->Buffer : L"N/A");
+    }
 
     if (CurrentPerformanceDistribution && PreviousPerformanceDistribution)
     {
@@ -1946,6 +2044,7 @@ BOOLEAN PhIsCoreParked(
     )
 {
     static ULONG initialBufferSize = 0;
+    static HANDLE processHandle = NULL;
     NTSTATUS status;
     ULONG returnLength;
     BOOLEAN isParked;
@@ -1976,7 +2075,7 @@ BOOLEAN PhIsCoreParked(
 
     status = NtQuerySystemInformationEx(
         SystemCpuSetInformation,
-        &(HANDLE){NULL},
+        &processHandle,
         sizeof(HANDLE),
         cpuSetInfo,
         returnLength,
@@ -1992,7 +2091,7 @@ BOOLEAN PhIsCoreParked(
 
         status = NtQuerySystemInformationEx(
             SystemCpuSetInformation,
-            &(HANDLE){NULL},
+            &processHandle,
             sizeof(HANDLE),
             cpuSetInfo,
             returnLength,

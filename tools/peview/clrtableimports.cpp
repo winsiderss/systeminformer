@@ -118,43 +118,43 @@ PPH_STRING PvClrImportFlagsToString(
     PhInitializeStringBuilder(&stringBuilder, 10);
 
     if (IsPmNoMangle(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"No mangle, "));
+        PhAppendStringBuilder2(&stringBuilder, L"No mangle, ");
     if (IsPmCharSetAnsi(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Ansi charset, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Ansi charset, ");
     if (IsPmCharSetUnicode(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Unicode charset, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Unicode charset, ");
     if (IsPmCharSetAuto(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Auto charset, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Auto charset, ");
     if (IsPmSupportsLastError(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Supports last error, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Supports last error, ");
     if (IsPmCallConvWinapi(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Winapi, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Winapi, ");
     if (IsPmCallConvCdecl(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Cdecl, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Cdecl, ");
     if (IsPmCallConvStdcall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Stdcall, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Stdcall, ");
     if (IsPmCallConvThiscall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Thiscall, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Thiscall, ");
     if (IsPmCallConvFastcall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Fastcall, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Fastcall, ");
     if (IsPmBestFitEnabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Bestfit enabled, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Bestfit enabled, ");
     if (IsPmBestFitDisabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Bestfit disabled, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Bestfit disabled, ");
     if (IsPmBestFitUseAssem(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"Bestfit assembly, "));
+        PhAppendStringBuilder2(&stringBuilder, L"Bestfit assembly, ");
     if (IsPmThrowOnUnmappableCharEnabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"ThrowOnUnmappableChar enabled, "));
+        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar enabled, ");
     if (IsPmThrowOnUnmappableCharDisabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"ThrowOnUnmappableChar disabled, "));
+        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar disabled, ");
     if (IsPmThrowOnUnmappableCharUseAssem(Flags))
-        PhAppendStringBuilder2(&stringBuilder, const_cast<wchar_t*>(L"ThrowOnUnmappableChar assembly, "));
+        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar assembly, ");
 
-    if (PhEndsWithString2(stringBuilder.String, const_cast<wchar_t*>(L", "), FALSE))
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
     PhPrintPointer(pointer, UlongToPtr(Flags));
-    PhAppendFormatStringBuilder(&stringBuilder, const_cast<wchar_t*>(L" (%s)"), pointer);
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -729,7 +729,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                         PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
                         importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
-                        importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
+                        importFunction->FunctionName = PhConvertUtf8ToUtf16(importName);
                         importFunction->Flags = importFlagsValue;
                         importFunction->Offset = importOffsetValue;
 
@@ -755,7 +755,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                     PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
                     importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
-                    importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
+                    importFunction->FunctionName = PhConvertUtf8ToUtf16(importName);
                     importFunction->Flags = importFlagsValue;
                     importFunction->Offset = importOffsetValue;
 

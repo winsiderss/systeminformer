@@ -24,6 +24,12 @@ namespace CustomBuildTool
 
         public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
+            if (string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(OutFileName) || string.IsNullOrEmpty(Secret) || string.IsNullOrEmpty(Salt))
+            {
+                Program.PrintColorMessage($"Unable to encrypt file: Invalid arguments.", ConsoleColor.Yellow);
+                return false;
+            }
+
             try
             {
                 using (var fileStream = File.OpenRead(FileName))
@@ -44,6 +50,12 @@ namespace CustomBuildTool
 
         public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
+            if (string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(OutFileName) || string.IsNullOrEmpty(Secret) || string.IsNullOrEmpty(Salt))
+            {
+                Program.PrintColorMessage($"Unable to decrypt file: Invalid arguments.", ConsoleColor.Yellow);
+                return false;
+            }
+
             try
             {
                 using (var fileStream = File.OpenRead(FileName))
@@ -169,7 +181,7 @@ namespace CustomBuildTool
             }
             catch (Exception e)
             {
-                Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e.Message}", ConsoleColor.Yellow);
+                Program.PrintColorMessage($"Unable to create signature string {Path.GetFileName(FileName)}: {e}", ConsoleColor.Yellow);
             }
 
             return !string.IsNullOrWhiteSpace(Signature);
@@ -185,12 +197,13 @@ namespace CustomBuildTool
                 {
                     using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoEncrypt = rijndael.CreateEncryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
                     {
                         Stream.CopyTo(cryptoStream);
                         cryptoStream.FlushFinalBlock();
                     }
 
+                    memoryStream.SetLength(memoryStream.Position);
                     return memoryStream.ToArray();
                 }
             }
@@ -218,12 +231,13 @@ namespace CustomBuildTool
                 {
                     using (var rijndael = GetRijndael(Secret, GetSalt(Salt)))
                     using (var cryptoDecrypt = rijndael.CreateDecryptor())
-                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write))
+                    using (var cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
                     {
                         Stream.CopyTo(cryptoStream);
                         cryptoStream.FlushFinalBlock();
                     }
 
+                    memoryStream.SetLength(memoryStream.Position);
                     return memoryStream.ToArray();
                 }
             }
@@ -240,7 +254,7 @@ namespace CustomBuildTool
 
             return null;
         }
-        
+
         private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
         {
             using (var blobStream = new MemoryStream(Bytes))
@@ -348,42 +362,10 @@ namespace CustomBuildTool
 
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
-            if (
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string key) &&
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string value) &&
-                Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt)
-                )
+            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
             {
-                if (Uri.TryCreate(value, UriKind.Absolute, out Uri result) && result.IsFile)
-                {
-                    using (var fileStream = File.OpenRead(value))
-                    {
-                        KeyMaterial = Decrypt(fileStream, key, salt);
-                    }
-                }
-                else
-                {
-                    byte[] bytes = Utils.ReadAllBytes(value);
-                    KeyMaterial = Decrypt(bytes, key, salt);
-                }
-
-                return true;
-            }
-            else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
-            {
-                if (Uri.TryCreate(secret, UriKind.Absolute, out Uri result) && result.IsFile)
-                {
-                    using (var fileStream = File.OpenRead(secret))
-                    {
-                        KeyMaterial = Decrypt(fileStream, secret, GetSalt(null));
-                    }
-                }
-                else
-                {
-                    byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                    KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
-                }
-
+                byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+                KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))
@@ -397,5 +379,57 @@ namespace CustomBuildTool
                 return false;
             }
         }
+
+        //private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
+        //{
+        //    if (
+        //        Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string key) &&
+        //        Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string value) &&
+        //        Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt)
+        //        )
+        //    {
+        //        if (Uri.TryCreate(value, UriKind.Absolute, out Uri result) && result.IsFile)
+        //        {
+        //            using (var fileStream = File.OpenRead(value))
+        //            {
+        //                KeyMaterial = Decrypt(fileStream, key, salt);
+        //            }
+        //        }
+        //        else
+        //        {
+        //            byte[] bytes = Utils.ReadAllBytes(value);
+        //            KeyMaterial = Decrypt(bytes, key, salt);
+        //        }
+        //
+        //        return true;
+        //    }
+        //    else if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
+        //    {
+        //        if (Uri.TryCreate(secret, UriKind.Absolute, out Uri result) && result.IsFile)
+        //        {
+        //            using (var fileStream = File.OpenRead(secret))
+        //            {
+        //                KeyMaterial = Decrypt(fileStream, secret, GetSalt(null));
+        //            }
+        //        }
+        //        else
+        //        {
+        //            byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
+        //            KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
+        //        }
+        //
+        //        return true;
+        //    }
+        //    else if (File.Exists(GetPath($"{KeyName}.key")))
+        //    {
+        //        KeyMaterial = Utils.ReadAllBytes(GetPath($"{KeyName}.key"));
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        KeyMaterial = null;
+        //        return false;
+        //    }
+        //}
     }
 }

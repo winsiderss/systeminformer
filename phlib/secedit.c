@@ -962,6 +962,35 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
             sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
+        else
+        {
+            if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(sidInfo.pSid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY))
+            {
+                ULONG subAuthority = *PhSubAuthoritySid(sidInfo.pSid, 0);
+
+                switch (subAuthority)
+                {
+                case SECURITY_UMFD_BASE_RID:
+                    {
+                        PhMoveReference(&sidString, PhCreateString(L"Font Driver Host\\UMFD"));
+                        sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
+                        PhAddItemList(this->NameCache, sidString);
+                    }
+                    break;
+                }
+            }
+            else if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(sidInfo.pSid), PhIdentifierAuthoritySid(PhSeCloudActiveDirectorySid())))
+            {
+                ULONG subAuthority = *PhSubAuthoritySid(sidInfo.pSid, 0);
+
+                if (subAuthority == 1)
+                {
+                    PhMoveReference(&sidString, PhGetAzureDirectoryObjectSid(sidInfo.pSid));
+                    sidInfo.pwzCommonName = (PWSTR)PhGetString(sidString);
+                    PhAddItemList(this->NameCache, sidString);
+                }
+            }
+        }
 
         sidInfoList->aSidInfo[i] = sidInfo;
     }

@@ -1360,18 +1360,19 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY32 config32 = NULL;
+        ULONG config32Length = 0;
 
         status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config32,
-            NULL
+            &config32Length
             );
 
         if (NT_SUCCESS(status))
         {
-            if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
+            if (RTL_CONTAINS_FIELD(config32, min(config32->Size, config32Length), GuardFlags))
             {
                 guardFlags = config32->GuardFlags;
             }
@@ -1386,18 +1387,19 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     else
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY64 config64 = NULL;
+        ULONG config64Length = 0;
 
         status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config64,
-            NULL
+            &config64Length
             );
 
         if (NT_SUCCESS(status))
         {
-            if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
+            if (RTL_CONTAINS_FIELD(config64, min(config64->Size, config64Length), GuardFlags))
             {
                 guardFlags = config64->GuardFlags;
             }
@@ -4067,15 +4069,6 @@ NTSTATUS PhGetMappedImageRelocations(
     if (!relocationDirectory)
         return STATUS_INVALID_PARAMETER;
 
-    __try
-    {
-        PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
-    }
-
     Relocations->MappedImage = MappedImage;
     Relocations->DataDirectory = dataDirectory;
     Relocations->FirstRelocationDirectory = relocationDirectory;
@@ -4188,7 +4181,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     PIMAGE_BASE_RELOCATION relocationDirectory;
     PVOID relocationDirectoryBegin;
     PVOID relocationDirectoryEnd;
-    ULONG relocationIndex = 0;
 
     status = PhGetMappedImageDataDirectory(
         MappedImage,
@@ -4208,15 +4200,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     if (!relocationDirectory)
         return STATUS_INVALID_PARAMETER;
 
-    __try
-    {
-        PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
-    }
-
     relocationDirectoryBegin = relocationDirectory;
     relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
 
@@ -4224,6 +4207,24 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     {
         ULONG relocationCount;
         PIMAGE_RELOCATION_RECORD relocations;
+
+        __try
+        {
+            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        if (relocationDirectory->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
+        {
+            //
+            // Prevent runaway.
+            //
+            return STATUS_INVALID_IMAGE_FORMAT;
+        }
 
         relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
         relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
@@ -4241,7 +4242,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
             break;
 
         relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
-        relocationIndex++;
     }
 
     return status;

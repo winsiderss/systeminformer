@@ -32,5 +32,8 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
+set BUILD_TOOL="tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe"
+start /B /W "" %BUILD_TOOL% "-write-tools-id"
+
 :end
 pause

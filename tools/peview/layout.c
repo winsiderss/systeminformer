@@ -930,7 +930,7 @@ NTSTATUS PvGetFileAllocatedRanges(
         if (!NT_SUCCESS(status))
             break;
 
-        outputCount = returnLength / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+        outputCount = outputLength / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
 
         if (outputCount == 0)
             break;
@@ -1096,7 +1096,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             fileLayoutSteamEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstStreamOffset);
             fileLayoutInfoEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->ExtraInfoOffset);
 
-            PvAddChildLayoutNode(Context, NULL, L"File reference number", PhFormatString(L"%I64u (0x%I64x)", fileLayoutEntry->FileReferenceNumber, fileLayoutEntry->FileReferenceNumber));
+            PvAddChildLayoutNode(Context, NULL, L"File reference number", PhFormatString(L"%llu (0x%llx)", fileLayoutEntry->FileReferenceNumber, fileLayoutEntry->FileReferenceNumber));
             PvAddChildLayoutNode(Context, NULL, L"File attributes", PhFormatUInt64(fileLayoutEntry->FileAttributes, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"File entry flags", PhFormatUInt64(fileLayoutEntry->Flags, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"Creation time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.CreationTime.QuadPart));
@@ -1131,7 +1131,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                     parentNode = PvAddChildLayoutNode(Context, NULL, L"Filename", NULL);
                     PvAddChildLayoutNode(Context, parentNode, PvLayoutNameFlagsToString(fileLayoutNameEntry->Flags), layoutFileName);
                     //PvAddChildLayoutNode(Context, parentNode, L"Parent Name", PvLayoutGetParentIdName(fileHandle, fileLayoutNameEntry->ParentFileReferenceNumber));
-                    PvAddChildLayoutNode(Context, parentNode, L"Parent ID", PhFormatString(L"%I64u (0x%I64x)", fileLayoutNameEntry->ParentFileReferenceNumber, fileLayoutNameEntry->ParentFileReferenceNumber));
+                    PvAddChildLayoutNode(Context, parentNode, L"Parent ID", PhFormatString(L"%llu (0x%llx)", fileLayoutNameEntry->ParentFileReferenceNumber, fileLayoutNameEntry->ParentFileReferenceNumber));
 
                     if (fileLayoutNameEntry->NextNameOffset == 0)
                         break;

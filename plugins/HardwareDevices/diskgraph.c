@@ -252,17 +252,11 @@ VOID DiskDeviceUpdateGraphs(
 {
     Context->GraphReadState.Valid = FALSE;
     Context->GraphReadState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GraphWriteHandle, 1);
-    Graph_Draw(Context->GraphWriteHandle);
-    Graph_UpdateTooltip(Context->GraphWriteHandle);
-    InvalidateRect(Context->GraphWriteHandle, NULL, FALSE);
+    Graph_Update(Context->GraphWriteHandle);
 
     Context->GraphWriteState.Valid = FALSE;
     Context->GraphWriteState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GraphReadHandle, 1);
-    Graph_Draw(Context->GraphReadHandle);
-    Graph_UpdateTooltip(Context->GraphReadHandle);
-    InvalidateRect(Context->GraphReadHandle, NULL, FALSE);
+    Graph_Update(Context->GraphReadHandle);
 }
 
 VOID DiskDeviceLayoutGraphs(

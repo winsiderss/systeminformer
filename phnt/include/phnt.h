@@ -117,4 +117,7 @@ extern "C" {
 }
 #endif
 
+static_assert(__alignof(LARGE_INTEGER) == 8, "Windows headers require the default packing option. Changing the packing can lead to memory corruption.");
+static_assert(__alignof(PROCESS_CYCLE_TIME_INFORMATION) == 8, "PHNT headers require the default packing option. Changing the packing can lead to memory corruption.");
+
 #endif

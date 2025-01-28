@@ -76,20 +76,18 @@ VOID EtNpuMonitorInitialization(
 
     if (EtNpuEnabled)
     {
-        ULONG sampleCount;
         ULONG i;
 
-        sampleCount = PhGetIntegerSetting(L"SampleCount");
-        PhInitializeCircularBuffer_FLOAT(&EtNpuNodeHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG(&EtMaxNpuNodeHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&EtMaxNpuNodeUsageHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG64(&EtNpuDedicatedHistory, sampleCount);
-        PhInitializeCircularBuffer_ULONG64(&EtNpuSharedHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&EtNpuNodeHistory, EtSampleCount);
+        PhInitializeCircularBuffer_ULONG(&EtMaxNpuNodeHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&EtMaxNpuNodeUsageHistory, EtSampleCount);
+        PhInitializeCircularBuffer_ULONG64(&EtNpuDedicatedHistory, EtSampleCount);
+        PhInitializeCircularBuffer_ULONG64(&EtNpuSharedHistory, EtSampleCount);
         if (EtNpuSupported)
         {
-            PhInitializeCircularBuffer_FLOAT(&EtNpuPowerUsageHistory, sampleCount);
-            PhInitializeCircularBuffer_FLOAT(&EtNpuTemperatureHistory, sampleCount);
-            PhInitializeCircularBuffer_ULONG64(&EtNpuFanRpmHistory, sampleCount);
+            PhInitializeCircularBuffer_FLOAT(&EtNpuPowerUsageHistory, EtSampleCount);
+            PhInitializeCircularBuffer_FLOAT(&EtNpuTemperatureHistory, EtSampleCount);
+            PhInitializeCircularBuffer_ULONG64(&EtNpuFanRpmHistory, EtSampleCount);
         }
 
         if (!EtNpuD3DEnabled)
@@ -98,7 +96,7 @@ VOID EtNpuMonitorInitialization(
 
         for (i = 0; i < EtNpuTotalNodeCount; i++)
         {
-            PhInitializeCircularBuffer_FLOAT(&EtNpuNodesHistory[i], sampleCount);
+            PhInitializeCircularBuffer_FLOAT(&EtNpuNodesHistory[i], EtSampleCount);
         }
 
         PhRegisterCallback(
