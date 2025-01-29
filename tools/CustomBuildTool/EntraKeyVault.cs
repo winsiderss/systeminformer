@@ -107,7 +107,7 @@ namespace CustomBuildTool
                 {
                     if (Directory.Exists(Path))
                     {
-                        var files = Utils.EnumerateDirectory(Path, [".exe", ".dll"]);
+                        var files = Utils.EnumerateDirectory(Path, [".exe", ".dll"], ["ksi.dll"]);
 
                         if (files == null || files.Count == 0)
                         {
