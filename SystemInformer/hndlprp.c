@@ -137,7 +137,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
     propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = handleContext->ParentWindowHandle;
+    propSheetHeader.hwndParent = PhCsForceNoParent ? NULL : handleContext->ParentWindowHandle;
     propSheetHeader.pszCaption = handleContext->Caption ? handleContext->Caption : L"Handle";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
