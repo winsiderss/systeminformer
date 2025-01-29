@@ -1909,6 +1909,10 @@ NtResumeProcess(
     _In_ HANDLE ProcessHandle
     );
 
+//
+// Macros
+//
+
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define ZwCurrentProcess() NtCurrentProcess()
 #define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
@@ -1927,7 +1931,7 @@ NtResumeProcess(
 #define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PIMAGE_DOS_HEADER)&__ImageBase)
 
 #define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
@@ -3308,7 +3312,7 @@ NtCreateThreadEx(
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
-#define JobObjectContainerTelemetryId 44
+#define JobObjectContainerTelemetryId 44 // GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
 #define JobObjectSiloSystemRoot 45
 #define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
