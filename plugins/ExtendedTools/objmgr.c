@@ -1283,8 +1283,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         if (winStationInfo.Domain[0] == UNICODE_NULL || winStationInfo.UserName[0] == UNICODE_NULL)
                         {
                             entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
-                        }
-                            
+                        }                            
                         else
                         {
                             entry->Target = PhFormatString(
@@ -1903,7 +1902,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING fullName;
     ULONG targetIndex;
-    ULONG i;
+    ULONG_PTR i;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
     PVOID* processHandlePtr;
@@ -1957,7 +1956,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
                 // Open a handle to the process if we don't already have one.
                 if (processHandlePtr = PhFindItemSimpleHashtable(
                     processHandleHashtable,
-                    (PVOID)handleInfo->UniqueProcessId
+                    handleInfo->UniqueProcessId
                     ))
                 {
                     processHandle = *processHandlePtr;
@@ -2035,14 +2034,16 @@ NTSTATUS EtObjectManagerOpenRealObject(
             }
         }
 
-        i = 0;
-        while (PhEnumHashtable(processHandleHashtable, &procEntry, &i))
         {
-            status = NtClose(procEntry->Value);
-
-            if (!NT_SUCCESS(status))
+            ULONG j = 0;
+            while (PhEnumHashtable(processHandleHashtable, &procEntry, &j))
             {
-                PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                NTSTATUS status = NtClose(procEntry->Value);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                }
             }
         }
 
@@ -2385,6 +2386,16 @@ VOID NTAPI EtpObjectManagerObjectProperties(
 
     // Object Manager plugin window
     PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
+
+    // Update the object address for items skipped by resolver
+    Entry->Object = handleItem->Object;
+    if (Entry->Object)  PhPrintPointer(Entry->ObjectString, Entry->Object);
+    else                Entry->ObjectString[0] = UNICODE_NULL;
+    if (Entry->Context->UseAddressColumn)
+    {
+        Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
+        IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
+    }
 
     PhDereferenceObject(objectContext.CurrentPath);
 }
@@ -2798,8 +2809,11 @@ VOID EtpObjectManagerCopyObjectAddress(
             {
                 Entry->Object = objectAddress;
                 PhPrintPointer(Entry->ObjectString, objectAddress);
-                Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
-                IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
+                if (Entry->Context->UseAddressColumn)
+                {
+                    Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
+                    IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
+                }
                 PhInitializeStringRef(&pointer, Entry->ObjectString);
             }
         }
@@ -3073,10 +3087,7 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->ListViewClass)
-            {
-                IListView_Release(context->ListViewClass);
-            }
+            PhDestroyListViewInterface(context->ListViewClass);
 
             PostQuitMessage(0);
         }
@@ -3785,7 +3796,6 @@ NTSTATUS EtShowObjectManagerDialogThread(
 
     PhSetEvent(&EtObjectManagerDialogInitializedEvent);
 
-    PostMessage(EtObjectManagerDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == INT_ERROR)
