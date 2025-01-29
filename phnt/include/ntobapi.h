@@ -340,6 +340,12 @@ typedef struct _OBJECT_BOUNDARY_ENTRY
 {
     BOUNDARY_ENTRY_TYPE EntryType;
     ULONG EntrySize;
+    //union
+    //{
+    //    WCHAR Name[1];
+    //    PSID Sid;
+    //    PSID IntegrityLabel;
+    //};
 } OBJECT_BOUNDARY_ENTRY, *POBJECT_BOUNDARY_ENTRY;
 
 // rev
@@ -360,6 +366,7 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
             ULONG Reserved : 31;
         };
     };
+    //OBJECT_BOUNDARY_ENTRY Entries[1];
 } OBJECT_BOUNDARY_DESCRIPTOR, *POBJECT_BOUNDARY_DESCRIPTOR;
 
 #if (PHNT_VERSION >= PHNT_VISTA)
