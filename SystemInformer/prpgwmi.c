@@ -1807,7 +1807,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
 
             PhpRefreshWmiProvidersList(context, processItem);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

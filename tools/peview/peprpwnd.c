@@ -778,8 +778,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDC_SECURITY), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, TRUE);
+            PhInitializeWindowTheme(hwndDlg);
 
             {
                 HICON smallIcon;
@@ -983,9 +982,38 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             }
         }
         break;
+    case WM_SETTINGCHANGE:
+        if (HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, L"EnableThemeSupport", L"EnableThemeUseWindowsTheme"))
+        {
+            PhCreateThread2(PvReInitializeThemeThread, NULL);
+        }
+        break;
     }
 
     return FALSE;
+}
+
+NTSTATUS NTAPI PvReInitializeThemeThread(
+    _In_ PVOID Context
+    )
+{
+    BOOLEAN currentTheme;
+
+    //currentTheme = PhShouldAppsUseDarkMode();
+    currentTheme = PhGetAppsUseLightTheme();
+
+    dprintf("PvReInitializeThemeThread: currentTheme = %d, PhEnableThemeSupport = %d\r\n", currentTheme, PhEnableThemeSupport);
+
+    if (PhEnableThemeSupport != currentTheme)
+    {
+        PhEnableThemeSupport = currentTheme;
+
+        PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
+
+        PhReInitializeTheme(PhEnableThemeSupport);
+    };
+
+    return STATUS_SUCCESS;
 }
 
 VOID PvTabWindowOnSize(
@@ -1196,5 +1224,5 @@ VOID PvCreateTabSectionDialog(
         Section->Parameter
         );
 
-    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+    PhInitializeWindowTheme(Section->DialogHandle);
 }

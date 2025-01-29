@@ -890,7 +890,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                 0
                 );
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

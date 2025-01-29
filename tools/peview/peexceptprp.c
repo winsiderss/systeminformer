@@ -409,7 +409,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
 
             PvEnumerateExceptionEntries(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

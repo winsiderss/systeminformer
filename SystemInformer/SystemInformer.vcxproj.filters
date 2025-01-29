@@ -315,9 +315,6 @@
     <ClCompile Include="ksisup.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="delayhook.c">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="ksyscall.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -498,6 +495,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\informer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlprp.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

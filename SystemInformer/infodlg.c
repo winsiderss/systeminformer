@@ -79,7 +79,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

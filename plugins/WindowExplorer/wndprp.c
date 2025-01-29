@@ -1499,10 +1499,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
-            if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(GetParent(hwndDlg));
         }
         break;
     case WM_DESTROY:
@@ -1723,7 +1720,7 @@ static INT_PTR CALLBACK WepWindowPropEditDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1911,7 +1908,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
 
             WepRefreshWindowProps(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2183,7 +2180,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
 
             WepRefreshWindowPropertyStorage(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2394,7 +2391,7 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
             PhSetExtendedListView(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }

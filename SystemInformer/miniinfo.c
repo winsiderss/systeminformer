@@ -162,7 +162,7 @@ VOID PhPinMiniInformation(
             SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
         }
 
-        PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport);
+        PhInitializeWindowTheme(PhMipContainerWindow);
 
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
@@ -887,7 +887,7 @@ VOID PhMipCreateSectionDialog(
                 createDialog.Parameter
                 );
 
-            PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(Section->DialogHandle);
         }
     }
 }

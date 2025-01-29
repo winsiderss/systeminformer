@@ -732,7 +732,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->ChangedEventRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

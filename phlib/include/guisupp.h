@@ -109,13 +109,25 @@ typedef HRESULT (WINAPI* _GetThemePartSize)(
     _Out_ SIZE* psz
     );
 
-typedef BOOL(WINAPI* _AllowDarkModeForWindow)(
+typedef BOOLEAN(WINAPI* _AllowDarkModeForWindow)(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
     );
 
-typedef BOOL(WINAPI* _IsDarkModeAllowedForWindow)(
+typedef BOOLEAN(WINAPI* _IsDarkModeAllowedForWindow)(
     _In_ HWND WindowHandle
+    );
+
+typedef BOOLEAN(WINAPI* _ShouldAppsUseDarkMode)(
+    VOID
+    );
+
+typedef PreferredAppMode(WINAPI* _SetPreferredAppMode)(
+    _In_ PreferredAppMode AppMode
+    );
+
+typedef VOID(WINAPI* _FlushMenuThemes)(
+    VOID
     );
 
 typedef HRESULT (WINAPI* _GetDpiForMonitor)(

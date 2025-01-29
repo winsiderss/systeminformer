@@ -474,6 +474,10 @@ typedef struct _CUSTOMIZE_CONTEXT
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
     COLORREF TextColor;
+    HBRUSH BrushNormalDark;
+    HBRUSH BrushPushedDark;
+    HBRUSH BrushHotDark;
+    COLORREF TextColorDark;
 
     LONG WindowDpi;
     INT CXWidth;

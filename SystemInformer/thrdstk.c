@@ -1001,7 +1001,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             if (PhPluginsEnabled)
             {

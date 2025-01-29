@@ -167,7 +167,7 @@ INT_PTR CALLBACK PvpPeEhContDlgProc(
 
             PvEnumerateEHContinuationEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -425,7 +425,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

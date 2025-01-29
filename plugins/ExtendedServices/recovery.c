@@ -329,7 +329,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
             context->Ready = TRUE;
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_DESTROY:
@@ -587,7 +587,7 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     )
 {
     if (WindowMessage == WM_INITDIALOG)
-        PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        PhInitializeWindowTheme(WindowHandle);
     return FALSE;
 }
 
@@ -626,7 +626,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_RESTARTCOMPAFTER));
             Edit_SetSel(GetDlgItem(WindowHandle, IDC_RESTARTCOMPAFTER), 0, -1);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_DESTROY:

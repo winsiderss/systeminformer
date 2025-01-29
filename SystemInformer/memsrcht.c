@@ -958,7 +958,7 @@ INT_PTR CALLBACK PhpMemoryStringsMinimumLengthDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_MINIMUMLENGTH, lengthString);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1165,7 +1165,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 PhpSearchMemoryStrings(context);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

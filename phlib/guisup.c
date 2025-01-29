@@ -74,6 +74,12 @@ static _DrawThemeBackground DrawThemeBackground_I = NULL;
 static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
+static _ShouldAppsUseDarkMode ShouldAppsUseDarkMode_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 132)
+// Win10-RS5 (uxtheme.dll ordinal 135)
+// Win10 build 17763: AllowDarkModeForApp(BOOL)
+// Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
+static _SetPreferredAppMode SetPreferredAppMode_I = NULL;
+static _FlushMenuThemes FlushMenuThemes_I = NULL;
 static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
 static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
 static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
@@ -125,6 +131,9 @@ VOID PhGuiSupportInitialization(
         {
             AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
             IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
+            ShouldAppsUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 132);
+            SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
+            FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
         }
     }
 
@@ -427,6 +436,45 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
         return FALSE;
 
     return !!IsDarkModeAllowedForWindow_I(WindowHandle);
+}
+
+BOOLEAN PhShouldAppsUseDarkMode(
+    VOID
+    )
+{
+    if (!ShouldAppsUseDarkMode_I)
+        return FALSE;
+
+    return !!ShouldAppsUseDarkMode_I();
+}
+
+BOOLEAN PhIsThemeSupportEnabled(
+    VOID
+    )
+{
+    return PhEnableThemeSupport;
+}
+
+PreferredAppMode PhSetPreferredAppMode(
+    _In_ PreferredAppMode AppMode
+    )
+{
+    if (!SetPreferredAppMode_I)
+        return PreferredAppModeDisabled;
+
+    PreferredAppMode prevMode = SetPreferredAppMode_I(AppMode);
+    PhFlushMenuThemes();
+    return prevMode;
+}
+
+VOID PhFlushMenuThemes(
+    VOID
+    )
+{
+    if (FlushMenuThemes_I)
+    {
+        FlushMenuThemes_I();
+    }
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
@@ -4303,14 +4351,15 @@ BOOLEAN PhSetWindowCompositionAttribute(
 
 BOOLEAN PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
-    _In_ ULONG GradientColor
+    _In_ ULONG GradientColor,
+    _In_ BOOLEAN Enable
     )
 {
     ACCENT_POLICY policy =
     {
-        ACCENT_ENABLE_ACRYLICBLURBEHIND,
-        ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,
-        GradientColor,
+        Enable ? ACCENT_ENABLE_ACRYLICBLURBEHIND : 0,
+        Enable ? ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL : 0,
+        Enable ? GradientColor : 0,
         0
     };
     WINDOWCOMPOSITIONATTRIBUTEDATA attribute =

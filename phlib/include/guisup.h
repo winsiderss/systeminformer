@@ -245,6 +245,57 @@ PhIsDarkModeAllowedForWindow(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhShouldAppsUseDarkMode(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeSupportEnabled(
+    VOID
+    );
+
+typedef enum _PreferredAppMode
+{
+    PreferredAppModeDisabled,
+    PreferredAppModeDarkOnDark,
+    PreferredAppModeDarkAlways,
+    PreferredAppModeLightAlways,
+    PreferredAppModeMax
+} PreferredAppMode;
+
+PHLIBAPI
+PreferredAppMode
+NTAPI
+PhSetPreferredAppMode(
+    _In_ PreferredAppMode AppMode
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFlushMenuThemes(
+    VOID
+    );
+
+#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!GetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName))) ClassName[0] = UNICODE_NULL
+
+#define PH_THEME_SET_PREFFEREDAPPMODE(GeneralThemeSetting, UseWindowsThemeSetting)     PhSetPreferredAppMode( \
+    PhGetIntegerSetting(GeneralThemeSetting) ? \
+    PhGetIntegerSetting(UseWindowsThemeSetting) ? PreferredAppModeDarkOnDark : PreferredAppModeDarkAlways : \
+    PreferredAppModeLightAlways)
+
+#define PH_THEME_GET_GENERAL_SWITCH(GeneralThemeSetting) PhGetIntegerSetting(GeneralThemeSetting) && PhShouldAppsUseDarkMode()
+
+#define HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, GeneralThemeSetting, UseWindowsThemeSetting) \
+    ((ULONG)wParam == 0 && PhEqualStringZ((PWSTR)lParam, L"ImmersiveColorSet", TRUE) && \
+    PhGetIntegerSetting(GeneralThemeSetting) && \
+    PhGetIntegerSetting(UseWindowsThemeSetting))
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetWindowRect(
     _In_ HWND WindowHandle,
     _Out_ PRECT WindowRect
@@ -655,6 +706,15 @@ PhFindListViewItemByParam(
     _In_opt_ PVOID Param
     );
 
+PHLIBAPI
+LONG
+NTAPI
+PhFindIListViewItemByParam(
+    _In_ IListView* ListView,
+    _In_ LONG StartIndex,
+    _In_opt_ PVOID Param
+    );
+
 _Success_(return)
 PHLIBAPI
 BOOLEAN
@@ -705,8 +765,25 @@ PhRemoveListViewItem(
 PHLIBAPI
 VOID
 NTAPI
+PhRemoveIListViewItem(
+    _In_ IListView * ListView,
+    _In_ LONG Index
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhSetListViewItemImageIndex(
     _In_ HWND ListViewHandle,
+    _In_ LONG Index,
+    _In_ LONG ImageIndex
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetIListViewItemImageIndex(
+    _In_ IListView * ListView,
     _In_ LONG Index,
     _In_ LONG ImageIndex
     );
@@ -1690,6 +1767,39 @@ PhMakeColorBrighter(
     return RGB(r, g, b);
 }
 
+FORCEINLINE
+COLORREF
+PhMakeColorDarker(
+    _In_ COLORREF Color,
+    _In_ UCHAR Increment
+    )
+{
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+
+    r = (UCHAR)Color;
+    g = (UCHAR)(Color >> 8);
+    b = (UCHAR)(Color >> 16);
+
+    if (r - Increment > 0)
+        r -= Increment;
+    else
+        r = 0;
+
+    if (g - Increment > 0)
+        g -= Increment;
+    else
+        g = 0;
+
+    if (b - Increment > 0)
+        b -= Increment;
+    else
+        b = 0;
+
+    return RGB(r, g, b);
+}
+
 // Window support
 
 typedef enum _PH_PLUGIN_WINDOW_EVENT_TYPE
@@ -2242,7 +2352,8 @@ BOOLEAN
 NTAPI
 PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
-    _In_ ULONG GradientColor
+    _In_ ULONG GradientColor,
+    _In_ BOOLEAN Enable
     );
 
 PHLIBAPI
@@ -2339,6 +2450,9 @@ extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
 extern BOOLEAN PhEnableThemeNativeButtons;
+extern BOOLEAN PhEnableThemeTabBorders;
+extern BOOLEAN PhEnableThemeAnimation;
+extern BOOLEAN PhEnableStreamerMode;
 extern BOOLEAN PhEnableThemeListviewBorder;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
@@ -2351,6 +2465,13 @@ PHLIBAPI
 VOID
 NTAPI
 PhInitializeWindowTheme(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeEx(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN EnableThemeSupport
     );
@@ -2358,15 +2479,15 @@ PhInitializeWindowTheme(
 PHLIBAPI
 VOID
 NTAPI
-PhInitializeWindowThemeEx(
-    _In_ HWND WindowHandle
+PhReInitializeTheme(
+    BOOLEAN EnableThemeSupport
     );
 
 PHLIBAPI
 VOID
 NTAPI
-PhReInitializeWindowTheme(
-    _In_ HWND WindowHandle
+PhReInitializeStreamerMode(
+    BOOLEAN Enable
     );
 
 PHLIBAPI
@@ -2374,6 +2495,67 @@ VOID
 NTAPI
 PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowFrameEx(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhWindowThemeSetDarkMode(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableDarkMode
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeMenu(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeTreeNewTheme(
+    _In_ HWND TreeNewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeListViewTheme(
+    _In_ HWND ListViewHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    );
+
+PHLIBAPI
+VOID
+CALLBACK
+PhInitializeSuperclassControls(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetAppsUseLightTheme(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeTransparencyEnabled(
+    VOID
     );
 
 PHLIBAPI
@@ -2407,13 +2589,6 @@ NTAPI
 PhThemeWindowMeasureItem(
     _In_ HWND WindowHandle,
     _In_ PMEASUREITEMSTRUCT DrawInfo
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeWindowThemeMainMenu(
-    _In_ HMENU MenuHandle
     );
 
 PHLIBAPI

@@ -66,7 +66,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
             }
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME));
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:

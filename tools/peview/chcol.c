@@ -390,7 +390,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }

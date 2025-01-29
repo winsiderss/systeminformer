@@ -198,7 +198,7 @@ INT_PTR CALLBACK PvpPeLinksDlgProc(
 
             PvpPeEnumerateFileLinks(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
