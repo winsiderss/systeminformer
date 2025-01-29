@@ -95,7 +95,7 @@ typedef struct IPCEntry
 #define IPC_BLOCK_SIZE           2048
 #define IPC_NUM_BLOCKS_IN_TABLE  32
 
-C_ASSERT(IPC_BLOCK_TABLE_SIZE == IPC_NUM_BLOCKS_IN_TABLE * IPC_BLOCK_SIZE);
+static_assert(IPC_BLOCK_TABLE_SIZE == IPC_NUM_BLOCKS_IN_TABLE * IPC_BLOCK_SIZE);
 
 typedef struct _IPCHeader
 {
@@ -155,8 +155,8 @@ typedef struct _IPCControlBlock_Wow64
 } IPCControlBlock_Wow64;
 #include <poppack.h>
 
-C_ASSERT(sizeof(IPCControlBlock) == IPC_BLOCK_SIZE);
-C_ASSERT(sizeof(IPCControlBlock_Wow64) == IPC_BLOCK_SIZE);
+static_assert(sizeof(IPCControlBlock) == IPC_BLOCK_SIZE);
+static_assert(sizeof(IPCControlBlock_Wow64) == IPC_BLOCK_SIZE);
 
 #ifndef _WIN64
 #include <pshpack4.h>
@@ -176,8 +176,8 @@ typedef struct IPCControlBlockTable_Wow64
 } IPCControlBlockTable_Wow64;
 #include <poppack.h>
 
-C_ASSERT(sizeof(IPCControlBlockTable) == IPC_BLOCK_TABLE_SIZE);
-C_ASSERT(sizeof(IPCControlBlockTable_Wow64) == IPC_BLOCK_TABLE_SIZE);
+static_assert(sizeof(IPCControlBlockTable) == IPC_BLOCK_TABLE_SIZE);
+static_assert(sizeof(IPCControlBlockTable_Wow64) == IPC_BLOCK_TABLE_SIZE);
 
 
 #ifndef _WIN64

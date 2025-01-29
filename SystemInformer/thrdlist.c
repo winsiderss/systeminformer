@@ -88,7 +88,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TID, TRUE, L"TID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CYCLESDELTA, TRUE, L"Cycles delta", 80, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, TRUE, L"Start address", 180, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESSWIN32, TRUE, L"Start address (Win32)", 180, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PRIORITYSYMBOLIC, TRUE, L"Priority (symbolic)", 80, PH_ALIGN_LEFT, 4, 0, TRUE);
     // Available columns
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_SERVICE, FALSE, L"Service", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -131,6 +131,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LXSSTID, FALSE, L"TID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, TRUE, L"Start address (Native)", 180, PH_ALIGN_LEFT, 3, 0);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -836,11 +837,11 @@ VOID PhpUpdateThreadNodeStackUsage(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_THREAD_LIST_CONTEXT context = (PPH_THREAD_LIST_CONTEXT)_context; \
     PPH_THREAD_NODE node1 = *(PPH_THREAD_NODE *)_elem1; \
     PPH_THREAD_NODE node2 = *(PPH_THREAD_NODE *)_elem2; \
     PPH_THREAD_ITEM threadItem1 = node1->ThreadItem; \
     PPH_THREAD_ITEM threadItem2 = node2->ThreadItem; \
-    PPH_THREAD_LIST_CONTEXT context = (PPH_THREAD_LIST_CONTEXT)_context; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
@@ -892,9 +893,9 @@ BEGIN_SORT_FUNCTION(CyclesDelta)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(StartAddress)
+BEGIN_SORT_FUNCTION(StartAddressWin32)
 {
-    sortResult = PhCompareStringWithNull(threadItem1->StartAddressString, threadItem2->StartAddressString, TRUE);
+    sortResult = uint64cmp((ULONG_PTR)threadItem1->StartAddressWin32, (ULONG_PTR)threadItem2->StartAddressWin32);
 }
 END_SORT_FUNCTION
 
@@ -906,7 +907,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Service)
 {
-    sortResult = PhCompareStringWithNull(threadItem1->ServiceName, threadItem2->ServiceName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(threadItem1->ServiceName, threadItem2->ServiceName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -915,7 +916,7 @@ BEGIN_SORT_FUNCTION(Name)
     PhpUpdateThreadNodeNameText(node1);
     PhpUpdateThreadNodeNameText(node2);
 
-    sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->NameText, node2->NameText, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -927,7 +928,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StartModule)
 {
-    sortResult = PhCompareStringWithNull(threadItem1->StartAddressFileName, threadItem2->StartAddressFileName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(threadItem1->StartAddressWin32FileName, threadItem2->StartAddressWin32FileName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1209,6 +1210,12 @@ BEGIN_SORT_FUNCTION(PowerThrottling)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(StartAddressKernel)
+{
+    sortResult = uint64cmp((ULONG_PTR)threadItem1->StartAddress, (ULONG_PTR)threadItem2->StartAddress);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1236,7 +1243,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Tid),
                     SORT_FUNCTION(Cpu),
                     SORT_FUNCTION(CyclesDelta),
-                    SORT_FUNCTION(StartAddress),
+                    SORT_FUNCTION(StartAddressWin32),
                     SORT_FUNCTION(PrioritySymbolic),
                     SORT_FUNCTION(Service),
                     SORT_FUNCTION(Name),
@@ -1276,6 +1283,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(IoOtherBytes),
                     SORT_FUNCTION(LxssTid),
                     SORT_FUNCTION(PowerThrottling),
+                    SORT_FUNCTION(StartAddressKernel),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1391,9 +1399,74 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
                 }
                 break;
+            case PH_THREAD_TREELIST_COLUMN_STARTADDRESSWIN32:
+                {
+                    if (NT_SUCCESS(threadItem->StartAddressStatus))
+                    {
+                        getCellText->Text = PhGetStringRef(threadItem->StartAddressWin32String);
+                    }
+                    else
+                    {
+                        PPH_STRING errorMessage;
+                        PH_FORMAT format[5];
+
+                        PhInitFormatS(&format[0], L"0x");
+                        PhInitFormatX(&format[1], threadItem->StartAddressStatus);
+
+                        if (errorMessage = PhGetStatusMessage(threadItem->StartAddressStatus, 0))
+                        {
+                            PhInitFormatS(&format[2], L" (");
+                            PhInitFormatSR(&format[3], errorMessage->sr);
+                            PhInitFormatC(&format[4], L')');
+
+                            PhMoveReference(&threadItem->StartAddressWin32String, PhFormat(format, 5, 0));
+                            PhDereferenceObject(errorMessage);
+                        }
+                        else
+                        {
+                            PhMoveReference(&threadItem->StartAddressWin32String, PhFormat(format, 2, 0));
+                        }
+
+                        getCellText->Text = PhGetStringRef(threadItem->StartAddressWin32String);
+                    }
+                }
+                break;
             case PH_THREAD_TREELIST_COLUMN_STARTADDRESS:
                 {
-                    getCellText->Text = PhGetStringRef(threadItem->StartAddressString);
+                    if (threadItem->StartAddress)
+                    {
+                        getCellText->Text = PhGetStringRef(threadItem->StartAddressString);
+                    }
+                    else
+                    {
+                        NTSTATUS status;
+                        PPH_STRING errorMessage;
+                        PH_FORMAT format[5];
+
+                        if (WindowsVersion > WINDOWS_10_22H2)
+                            status = STATUS_ACCESS_DENIED;
+                        else
+                            status = STATUS_BUFFER_ALL_ZEROS;
+
+                        PhInitFormatS(&format[0], L"0x");
+                        PhInitFormatX(&format[1], status);
+
+                        if (errorMessage = PhGetStatusMessage(status, 0))
+                        {
+                            PhInitFormatS(&format[2], L" (");
+                            PhInitFormatSR(&format[3], errorMessage->sr);
+                            PhInitFormatC(&format[4], L')');
+
+                            PhMoveReference(&threadItem->StartAddressString, PhFormat(format, 5, 0));
+                            PhDereferenceObject(errorMessage);
+                        }
+                        else
+                        {
+                            PhMoveReference(&threadItem->StartAddressString, PhFormat(format, 2, 0));
+                        }
+
+                        getCellText->Text = PhGetStringRef(threadItem->StartAddressString);
+                    }
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_PRIORITYSYMBOLIC:
@@ -1421,7 +1494,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_STARTMODULE:
                 {
-                    getCellText->Text = PhGetStringRef(threadItem->StartAddressFileName);
+                    getCellText->Text = PhGetStringRef(threadItem->StartAddressWin32FileName);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CONTEXTSWITCHES:
@@ -2094,7 +2167,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
             if (!threadItem)
                 NOTHING;
-            //else if (context->HighlightUnknownStartAddress && threadItem->StartAddressResolveLevel == PhsrlAddress)
+            //else if (context->HighlightUnknownStartAddress && threadItem->StartAddressWin32ResolveLevel == PhsrlAddress)
             //    getNodeColor->BackColor = PhCsColorUnknown;
             else if (context->HighlightSuspended && threadItem->WaitReason == Suspended)
                 getNodeColor->BackColor = PhCsColorSuspended;

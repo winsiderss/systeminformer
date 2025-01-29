@@ -321,13 +321,20 @@ namespace CustomBuildTool
             return output;
         }
 
-        public static List<string> EnumerateDirectory(string FilePath, string[] Extensions)
+        public static List<string> EnumerateDirectory(string FilePath, string[] Extensions, string[] Exclude = null)
         {
-            return Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
+            var list = Directory.EnumerateFiles(FilePath, "*", new EnumerationOptions
             {
                 RecurseSubdirectories = true,
                 ReturnSpecialDirectories = false
             }).Where(s => Extensions.Any(ext => string.Equals(ext, Path.GetExtension(s), StringComparison.OrdinalIgnoreCase))).ToList();
+
+            if (Exclude != null)
+            {
+                list.RemoveAll(s => Exclude.Any(f => f.Equals(s, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return list;
         }
 
         public static string GetWindowsSdkIncludePath()

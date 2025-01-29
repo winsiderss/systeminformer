@@ -363,6 +363,15 @@ NtCreateTokenEx(
     );
 #endif
 
+/**
+ * The NtOpenProcessToken routine opens the access token associated with a process, and returns a handle that can be used to access that token.
+ *
+ * @param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstoken
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -372,6 +381,16 @@ NtOpenProcessToken(
     _Out_ PHANDLE TokenHandle
     );
 
+/**
+ * The NtOpenProcessTokenEx routine opens the access token associated with a process, and returns a handle that can be used to access that token.
+ *
+ * @param ProcessHandle Handle to the process whose access token is to be opened. The handle must have PROCESS_QUERY_INFORMATION access.
+ * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * @param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenprocesstokenex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -382,6 +401,16 @@ NtOpenProcessTokenEx(
     _Out_ PHANDLE TokenHandle
     );
 
+/**
+ * The NtOpenThreadToken routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
+ *
+ * @param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * @param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
+ * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtoken
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -392,6 +421,17 @@ NtOpenThreadToken(
     _Out_ PHANDLE TokenHandle
     );
 
+/**
+ * The NtOpenThreadTokenEx routine opens the access token associated with a thread, and returns a handle that can be used to access that token.
+ *
+ * @param ThreadHandle Handle to the thread whose access token is to be opened. The handle must have THREAD_QUERY_INFORMATION access.
+ * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * @param OpenAsSelf Boolean value specifying whether the access check is to be made against the security context of the thread calling NtOpenThreadToken or against the security context of the process for the calling thread.
+ * @param HandleAttributes Attributes for the created handle. Only OBJ_KERNEL_HANDLE is currently supported.
+ * @param TokenHandle Pointer to a caller-allocated variable that receives a handle to the newly opened access token.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntopenthreadtokenex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -403,6 +443,18 @@ NtOpenThreadTokenEx(
     _Out_ PHANDLE TokenHandle
     );
 
+/**
+ * The NtDuplicateToken function creates a handle to a new access token that duplicates an existing token.
+ *
+ * @param ExistingTokenHandle A handle to an existing access token that was opened with the TOKEN_DUPLICATE access right.
+ * @param DesiredAccess ACCESS_MASK structure specifying the requested types of access to the access token.
+ * @param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that describes the requested properties for the new token.
+ * @param EffectiveOnly A Boolean value that indicates whether the entire existing token should be duplicated into the new token or just the effective (currently enabled) part of the token.
+ * @param Type Specifies the type of token to create either a primary token or an impersonation token.
+ * @param NewTokenHandle Pointer to a caller-allocated variable that receives a handle to the newly duplicated token.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntduplicatetoken
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
