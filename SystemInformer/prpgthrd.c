@@ -448,15 +448,15 @@ BOOLEAN PhpThreadTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressString))
+    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressWin32String))
     {
-        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressString->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressWin32String->sr))
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressFileName))
+    if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressWin32FileName))
     {
-        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressFileName->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressWin32FileName->sr))
             return TRUE;
     }
 
@@ -1512,12 +1512,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             //    {
             //        PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
             //
-            //        if (threadItem && threadItem->StartAddressFileName)
+            //        if (threadItem && threadItem->StartAddressWin32FileName)
             //        {
             //            PhShellExecuteUserString(
             //                hwndDlg,
             //                L"FileBrowseExecutable",
-            //                threadItem->StartAddressFileName->Buffer,
+            //                threadItem->StartAddressWin32FileName->Buffer,
             //                FALSE,
             //                L"Make sure the Explorer executable file is present."
             //                );

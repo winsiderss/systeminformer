@@ -454,7 +454,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ PVOID Context
     )
 {
-    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
+    static CONST PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
     HANDLE objectHandle;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -506,8 +506,8 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
-        AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
-        PhConsoleSetForeground(processHandle, TRUE);
+        //AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+        //PhConsoleSetForeground(processHandle, TRUE);
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
