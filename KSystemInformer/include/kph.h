@@ -28,6 +28,7 @@
 #include <ntldr.h>
 #include <ntwow64.h>
 #include <kphapi.h>
+#include <kphringbuff.h>
 
 #define KSIAPI NTAPI
 
@@ -2485,5 +2486,60 @@ BOOLEAN KphSessionTokenPrivilegeCheck(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInitializeSessionToken(
+    VOID
+    );
+
+// ringbuff
+
+typedef struct _KPH_RING_SECTION
+{
+    PVOID SectionObject;
+    PMDL Mdl;
+    PVOID KernelBase;
+} KPH_RING_SECTION, *PKPH_RING_SECTION;
+
+typedef struct _KPH_RING_BUFFER
+{
+    KSPIN_LOCK ProducerLock;
+    volatile ULONG* ProducerPos;
+    volatile ULONG* ConsumerPos;
+    ULONG Length;
+    PVOID Buffer;
+    PKEVENT Event;
+    KPH_RING_SECTION ProducerSection;
+    KPH_RING_SECTION ConsumerSection;
+    PEPROCESS Process;
+    PVOID UserProducerBase;
+    PVOID UserConsumerBase;
+} KPH_RING_BUFFER, *PKPH_RING_BUFFER;
+
+_Return_allocatesMem_size_(Length)
+PVOID KphReserveRingBuffer(
+    _In_ PKPH_RING_BUFFER Ring,
+    _In_ ULONG Length
+    );
+
+VOID KphCommitRingBuffer(
+    _In_ PKPH_RING_BUFFER Ring,
+    _In_freesMem_ PVOID Buffer
+    );
+
+VOID KphDiscardRingBuffer(
+    _In_ PKPH_RING_BUFFER Ring,
+    _In_freesMem_ PVOID Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateRingBuffer(
+    _Out_ PKPH_RING_BUFFER* Ring,
+    _Out_ PKPH_RING_BUFFER_USER User,
+    _In_ ULONG Length,
+    _In_opt_ PKEVENT Event,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeRingBuffer(
     VOID
     );

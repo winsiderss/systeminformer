@@ -201,6 +201,8 @@ NTSTATUS DriverEntry(
 
     KphObjectInitialize();
 
+    KphInitializeRingBuffer();
+
     KphInitializeParameters(RegistryPath);
 
     status = KphInitializeAlloc();
@@ -230,7 +232,7 @@ NTSTATUS DriverEntry(
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
-                      "KphLocateKernelRevision failed: %!STATUS!",
+                      "KphGetKernelVersion failed: %!STATUS!",
                       status);
 
         goto Exit;
