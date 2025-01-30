@@ -13,6 +13,7 @@
 #include <ph.h>
 #include <kphcomms.h>
 #include <kphuser.h>
+#include <kphringbuff.h>
 #include <mapldr.h>
 
 typedef struct _KPH_UMESSAGE
@@ -38,6 +39,14 @@ PKPH_UMESSAGE KphpCommsMessages = NULL;
 ULONG KphpCommsMessageCount = 0;
 PH_RUNDOWN_PROTECT KphpCommsRundown;
 PH_FREE_LIST KphpCommsReplyFreeList;
+HANDLE KphpCommsRingBufferThread = NULL;
+KPH_RING_BUFFER_CONNECT KphpCommsRingBuffer =
+{
+    .Length = (8 * 1024 * 1024),
+    .EventHandle = NULL,
+    .Ring.Consumer = NULL,
+    .Ring.Producer = NULL,
+};
 
 #define KPH_COMMS_MIN_THREADS   2
 #define KPH_COMMS_MESSAGE_SCALE 2
@@ -190,6 +199,61 @@ Exit:
     TpStartAsyncIoOperation(Io);
 }
 
+_Function_class_(KPH_RING_CALLBACK)
+BOOLEAN NTAPI KphpRingBufferCallback(
+    _In_opt_ PVOID Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    if (!PhAcquireRundownProtection(&KphpCommsRundown))
+    {
+        return TRUE;
+    }
+
+    if (!Length)
+    {
+        if (KphpCommsRingBuffer.EventHandle)
+            PhWaitForSingleObject(KphpCommsRingBuffer.EventHandle, 1000);
+        else
+            PhDelayExecution(300);
+        goto Exit;
+    }
+
+    if (!KphpCommsRegisteredCallback || Length < KPH_MESSAGE_MIN_SIZE)
+    {
+        goto Exit;
+    }
+
+    msg = Buffer;
+
+    status = KphMsgValidate(msg);
+    if (!NT_SUCCESS(status))
+    {
+        assert(FALSE);
+        goto Exit;
+    }
+
+    KphpCommsRegisteredCallback(0, msg);
+
+Exit:
+
+    PhReleaseRundownProtection(&KphpCommsRundown);
+
+    return FALSE;
+}
+
+NTSTATUS NTAPI KphpRingBufferProcessor(
+    _In_ PVOID Context
+    )
+{
+    KphProcessRingBuffer(&KphpCommsRingBuffer.Ring, KphpRingBufferCallback, NULL);
+    return STATUS_SUCCESS;
+}
+
 static VOID KphpTpSetPoolThreadBasePriority(
     _Inout_ PTP_POOL Pool,
     _In_ ULONG BasePriority
@@ -236,6 +300,7 @@ NTSTATUS KphCommsStart(
 {
     NTSTATUS status;
     ULONG numberOfThreads;
+    PVOID connectionContext;
 
     if (KphpCommsFltPortHandle)
     {
@@ -243,11 +308,15 @@ NTSTATUS KphCommsStart(
         goto Exit;
     }
 
+    //NtCreateEvent(&KphpCommsRingBuffer.EventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
+
+    connectionContext = &KphpCommsRingBuffer;
+
     status = PhFilterConnectCommunicationPort(
         PortName,
         0,
-        NULL,
-        0,
+        &connectionContext,
+        sizeof(connectionContext),
         NULL,
         &KphpCommsFltPortHandle
         );
@@ -261,6 +330,12 @@ NTSTATUS KphCommsStart(
 
     PhInitializeRundownProtection(&KphpCommsRundown);
     PhInitializeFreeList(&KphpCommsReplyFreeList, sizeof(KPH_UREPLY), 16);
+
+    status = PhCreateThreadEx(&KphpCommsRingBufferThread, KphpRingBufferProcessor, NULL);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
 
     if (PhSystemProcessorInformation.NumberOfProcessors >= KPH_COMMS_MIN_THREADS)
         numberOfThreads = PhSystemProcessorInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE;
@@ -376,6 +451,34 @@ VOID KphCommsStop(
     {
         TpReleasePool(KphpCommsThreadPool);
         KphpCommsThreadPool = NULL;
+    }
+
+    if (KphpCommsRingBufferThread)
+    {
+        if (KphpCommsRingBuffer.EventHandle)
+            NtSetEvent(KphpCommsRingBuffer.EventHandle, NULL);
+
+        NtWaitForSingleObject(KphpCommsRingBufferThread, FALSE, NULL);
+        NtClose(KphpCommsRingBufferThread);
+        KphpCommsRingBufferThread = NULL;
+
+        if (KphpCommsRingBuffer.Ring.Producer)
+        {
+            NtUnmapViewOfSection(NtCurrentProcess(), KphpCommsRingBuffer.Ring.Producer);
+            KphpCommsRingBuffer.Ring.Producer = NULL;
+        }
+
+        if (KphpCommsRingBuffer.Ring.Consumer)
+        {
+            NtUnmapViewOfSection(NtCurrentProcess(), KphpCommsRingBuffer.Ring.Consumer);
+            KphpCommsRingBuffer.Ring.Consumer = NULL;
+        }
+
+        if (KphpCommsRingBuffer.EventHandle)
+        {
+            NtClose(KphpCommsRingBuffer.EventHandle);
+            KphpCommsRingBuffer.EventHandle = NULL;
+        }
     }
 
     KphpCommsRegisteredCallback = NULL;
