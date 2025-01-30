@@ -379,6 +379,11 @@ VOID KSIAPI KphpDeleteClientObject(
     {
         FltCloseClientPort(KphFltFilter, &client->Port);
     }
+
+    if (client->RingBuffer)
+    {
+        KphDereferenceObject(client->RingBuffer);
+    }
 }
 
 /**
@@ -395,6 +400,97 @@ VOID KSIAPI KphpFreeClientObject(
     KPH_PAGED_CODE_PASSIVE();
 
     KphFree(Object, KPH_TAG_CLIENT);
+}
+
+/**
+ * \brief Initializes the client ring buffer.
+ *
+ * \param[in] Client The client to initialize the ring buffer for.
+ * \param[in,out] Connection Pointer to the ring buffer connection context.
+ *
+ * \return Successful status or an errant one.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphpCommsInitializeRingBuffer(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_RING_BUFFER_CONNECT Connection
+    )
+{
+    NTSTATUS status;
+    PKPH_RING_BUFFER ring;
+    KPH_RING_BUFFER_CONNECT connection;
+    PKEVENT event;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    ring = NULL;
+    event = NULL;
+
+    __try
+    {
+        ProbeInputType(Connection, KPH_RING_BUFFER_CONNECT);
+        RtlCopyVolatileMemory(&connection,
+                              Connection,
+                              sizeof(KPH_RING_BUFFER_CONNECT));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    if (connection.EventHandle)
+    {
+        status = ObReferenceObjectByHandle(connection.EventHandle,
+                                           EVENT_MODIFY_STATE,
+                                           *ExEventObjectType,
+                                           UserMode,
+                                           &event,
+                                           NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          COMMS,
+                          "ObReferenceObjectByHandle failed: %!STATUS!",
+                          status);
+
+            event = NULL;
+            goto Exit;
+        }
+    }
+
+    status = KphCreateRingBuffer(&ring,
+                                 &Connection->Ring,
+                                 connection.Length,
+                                 event,
+                                 UserMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "KphCreateRingBuffer failed: %!STATUS!",
+                      status);
+
+        ring = NULL;
+        goto Exit;
+    }
+
+    Client->RingBuffer = ring;
+    KphReferenceObject(ring);
+
+Exit:
+
+    if (ring)
+    {
+        KphDereferenceObject(ring);
+    }
+
+    if (event)
+    {
+        ObDereferenceObject(event);
+    }
+
+    return status;
 }
 
 /**
@@ -426,8 +522,6 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(ServerPortCookie);
-    UNREFERENCED_PARAMETER(ConnectionContext);
-    UNREFERENCED_PARAMETER(SizeOfContext);
 
     *ConnectionPortCookie = NULL;
 
@@ -483,6 +577,26 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
 
         client = NULL;
         goto Exit;
+    }
+
+    if (ConnectionContext && (SizeOfContext >= sizeof(PVOID)))
+    {
+        PKPH_RING_BUFFER_CONNECT connection;
+
+        NT_ASSERT(ConnectionContext > MmHighestUserAddress);
+
+        connection = *(PVOID*)ConnectionContext;
+
+        status = KphpCommsInitializeRingBuffer(client, connection);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          COMMS,
+                          "KphpCommsInitializeRingBuffer failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
     }
 
     client->Port = ClientPort;
@@ -1256,6 +1370,33 @@ NTSTATUS KphpCommsSendMessage(
                       Message->Header.TimeStamp.QuadPart,
                       &client->Process->ImageName,
                       HandleToULong(client->Process->ProcessId));
+
+        if (client->RingBuffer && FromAsyncQueue)
+        {
+            PVOID buffer;
+
+            NT_ASSERT(!reply);
+
+            buffer = KphReserveRingBuffer(client->RingBuffer,
+                                          Message->Header.Size);
+            if (buffer)
+            {
+                RtlCopyMemory(buffer, Message, Message->Header.Size);
+                KphCommitRingBuffer(client->RingBuffer, buffer);
+            }
+            else
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              COMMS,
+                              "Ring buffer exhausted (%lu - %!TIME!) %wZ (%lu)",
+                              (ULONG)Message->Header.MessageId,
+                              Message->Header.TimeStamp.QuadPart,
+                              &client->Process->ImageName,
+                              HandleToULong(client->Process->ProcessId));
+            }
+
+            continue;
+        }
 
         timeout = KphpGetTimeoutForMessage(client, Message, FromAsyncQueue);
 
