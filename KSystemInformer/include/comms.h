@@ -20,6 +20,7 @@ typedef struct _KPH_CLIENT
     KPH_REFERENCE DriverUnloadProtectionRef;
     KPH_MESSAGE_TIMEOUTS MessageTimeouts;
     KPH_INFORMER_SETTINGS InformerSettings;
+    PKPH_RING_BUFFER RingBuffer;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef
