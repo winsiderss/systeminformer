@@ -113,3 +113,7 @@
 
 #define KPH_TAG_SESSION_TOKEN_OBJECT            '0tpK'
 #define KPH_TAG_SESSION_TOKEN_SIGNATURE         '1tpK'
+
+// ringbuff
+
+#define KPH_TAG_RING_BUFFER                     '0RpK'
