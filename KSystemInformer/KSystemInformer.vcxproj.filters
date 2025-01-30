@@ -129,6 +129,9 @@
     <ClCompile Include="device.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ringbuff.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
