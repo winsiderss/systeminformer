@@ -234,6 +234,7 @@
     <None Include="sistatus.mc" />
     <None Include="include\sistatus_MSG00001.bin" />
     <ResourceCompile Include="include\sistatus.rc" />
+    <ClInclude Include="include\kphringbuff.h" />
     <ClInclude Include="include\sistatus.h" />
   </ItemGroup>
   <!-- sistatus -->
@@ -251,6 +252,7 @@
     <ClCompile Include="kphmsg.c" />
     <ClCompile Include="kphmsgdyn.c" />
     <ClCompile Include="kphdyn.c" />
+    <ClCompile Include="kphringbuff.c" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
