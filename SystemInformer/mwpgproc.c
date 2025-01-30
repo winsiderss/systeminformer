@@ -859,7 +859,8 @@ VOID PhMwpInitializeProcessMenu(
         {
             CLIENT_ID shellClientId;
 
-            if (NT_SUCCESS(PhGetWindowClientId(PhGetShellWindow(), &shellClientId)) &&
+            if (Processes[0]->KnownProcessType == ExplorerProcessType &&
+                NT_SUCCESS(PhGetWindowClientId(PhGetShellWindow(), &shellClientId)) &&
                 Processes[0]->ProcessId == shellClientId.UniqueProcess)
             {
                 item->Text = L"Res&tart shell";
