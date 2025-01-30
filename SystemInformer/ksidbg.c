@@ -1512,12 +1512,12 @@ VOID KsiDebugLogMessageRaw(
 }
 
 VOID NTAPI KsiDebugLogMessageCallback(
-    _In_ PKPH_MESSAGE Message,
+    _In_ PPH_INFORMER_CONTEXT Informer,
     _In_opt_ PVOID Context
     )
 {
-    KsiDebugLogMessageRaw(Message);
-    KsiDebugLogMessageLog(Message);
+    KsiDebugLogMessageRaw(Informer->Message);
+    KsiDebugLogMessageLog(Informer->Message);
 }
 
 VOID KsiDebugLogInitialize(
