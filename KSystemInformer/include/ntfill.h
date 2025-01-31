@@ -1230,6 +1230,7 @@ MiGetVadEndAddress(
 
 NTKERNELAPI
 NTSTATUS
+NTAPI
 MmCreateSection(
     _Out_ PVOID* SectionObject,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1239,6 +1240,30 @@ MmCreateSection(
     _In_ ULONG AllocationAttributes,
     _In_opt_ HANDLE FileHandle,
     _In_opt_ PFILE_OBJECT FileObject
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+MmMapViewOfSection(
+    _In_ PVOID SectionObject,
+    _In_ PEPROCESS Process,
+    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID *BaseAddress,
+    _In_ ULONG_PTR ZeroBits,
+    _In_ SIZE_T CommitSize,
+    _Inout_opt_ PLARGE_INTEGER SectionOffset,
+    _Inout_ PSIZE_T ViewSize,
+    _In_ SECTION_INHERIT InheritDisposition,
+    _In_ ULONG AllocationType,
+    _In_ ULONG PageProtection
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+MmUnmapViewOfSection(
+    _In_ PEPROCESS Process,
+    _In_ PVOID BaseAddress
     );
 
 NTKERNELAPI
