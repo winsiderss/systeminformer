@@ -189,6 +189,8 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     if (!options.InPost && (options.PreEnabled || options.PostEnabled))
     {
         options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
+        options.EnablePostObjectNames = KphInformerEnabled(RegEnablePostObjectNames, process);
+        options.EnablePostValueNames = KphInformerEnabled(RegEnablePostValueNames, process);
         options.EnableValueBuffers = KphInformerEnabled(RegEnableValueBuffers, process);
     }
 
