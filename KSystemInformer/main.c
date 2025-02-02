@@ -205,16 +205,7 @@ NTSTATUS DriverEntry(
 
     KphInitializeParameters(RegistryPath);
 
-    status = KphInitializeAlloc();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphInitializeAlloc failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
+    KphInitializeAlloc();
 
     status = KphInitializeKnownDll();
     if (!NT_SUCCESS(status))
