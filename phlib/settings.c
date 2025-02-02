@@ -820,6 +820,9 @@ NTSTATUS PhSaveSettings(
         );
     PhFreeXmlObject(topNode);
 
+    if (status == STATUS_SHARING_VIOLATION) // Skip multiple instances (dmex)
+        status = STATUS_SUCCESS;
+
     return status;
 }
 
