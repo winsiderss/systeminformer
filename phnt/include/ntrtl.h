@@ -2979,15 +2979,19 @@ RtlFreeToPeb(
 // Processes
 //
 
+// CURDIR Handle | Flags
+#define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
+#define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
+
 typedef struct _CURDIR
 {
     UNICODE_STRING DosPath;
     HANDLE Handle;
 } CURDIR, *PCURDIR;
 
-// CURDIR Handle | Flags
-#define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
-#define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
+// RTL_DRIVE_LETTER_CURDIR Flags
+#define RTL_MAX_DRIVE_LETTERS 32
+#define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
 
 typedef struct _RTL_DRIVE_LETTER_CURDIR
 {
@@ -2997,9 +3001,9 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
     STRING DosPath;
 } RTL_DRIVE_LETTER_CURDIR, *PRTL_DRIVE_LETTER_CURDIR;
 
-// RTL_DRIVE_LETTER_CURDIR Flags
-#define RTL_MAX_DRIVE_LETTERS 32
-#define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
+#define RTL_USER_PROC_DETACHED_PROCESS ((HANDLE)(LONG_PTR)-1)
+#define RTL_USER_PROC_CREATE_NEW_CONSOLE ((HANDLE)(LONG_PTR)-2)
+#define RTL_USER_PROC_CREATE_NO_WINDOW ((HANDLE)(LONG_PTR)-3)
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS
 {
@@ -3075,7 +3079,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessParameters(
-    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
     _In_ PUNICODE_STRING ImagePathName,
     _In_opt_ PUNICODE_STRING DllPath,
     _In_opt_ PUNICODE_STRING CurrentDirectory,
@@ -3093,7 +3097,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessParametersEx(
-    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
     _In_ PUNICODE_STRING ImagePathName,
     _In_opt_ PUNICODE_STRING DllPath,
     _In_opt_ PUNICODE_STRING CurrentDirectory,
@@ -3113,7 +3117,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateProcessParametersWithTemplate(
-    _Out_ PRTL_USER_PROCESS_PARAMETERS *pProcessParameters,
+    _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
     _In_ PUNICODE_STRING ImagePathName,
     _In_opt_ PUNICODE_STRING DllPath,
     _In_opt_ PUNICODE_STRING CurrentDirectory,
