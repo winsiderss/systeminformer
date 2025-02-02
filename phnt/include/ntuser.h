@@ -230,6 +230,13 @@ NtUserBuildPropList(
     );
 
 NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserCanCurrentThreadChangeForeground(
+    VOID
+    );
+
+NTSYSCALLAPI
 HWND
 NTAPI
 NtUserGetProcessWindowStation(
@@ -436,9 +443,17 @@ BOOL
 NTAPI
 NtUserChangeWindowMessageFilterEx(
     _In_ HWND WindowHandle,
-    _In_ ULONG message,
-    _In_ ULONG action,
-    _Inout_ PCHANGEFILTERSTRUCT pChangeFilterStruct
+    _In_ ULONG WindowMessage,
+    _In_ ULONG FilterAction,
+    _Inout_opt_ PCHANGEFILTERSTRUCT ChangeFilterStruct
+    );
+
+NTSYSCALLAPI
+HWND
+NTAPI
+NtUserChildWindowFromPoint(
+    _In_ HWND WindowHandle,
+    _In_ POINT pt
     );
 
 NTSYSCALLAPI
@@ -461,7 +476,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserCloseDesktop(
-    _In_ HDESK hDesktop
+    _In_ HDESK DesktopHandle
     );
 
 NTSYSCALLAPI
@@ -485,16 +500,16 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserDeleteMenu(
-    _In_ HMENU hMenu,
-    _In_ ULONG uPosition,
-    _In_ ULONG uFlags
+    _In_ HMENU MenuHandle,
+    _In_ ULONG Position,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserDestroyMenu(
-    _In_ HMENU hMenu
+    _In_ HMENU MenuHandle
     );
 
 NTSYSCALLAPI
@@ -715,49 +730,49 @@ BOOL
 NTAPI
 NtUserGetMenuItemRect(
     _In_ HWND WindowHandle,
-    _In_ HMENU hMenu,
-    _In_ ULONG uItem,
-    _In_ LPRECT lprcItem
+    _In_ HMENU MenuHandle,
+    _In_ ULONG MenuIndex,
+    _In_ PRECT MenuRect
     );
 
 NTSYSCALLAPI
 LONG
 NTAPI
 NtUserGetMouseMovePointsEx(
-    _In_ ULONG cbSize,
-    _In_ LPMOUSEMOVEPOINT lppt,
-    _In_ LPMOUSEMOVEPOINT lpptBuf,
-    _In_ LONG nBufPoints,
-    _In_ ULONG resolution
+    _In_ ULONG MouseMovePointsSize,
+    _In_ LPMOUSEMOVEPOINT InputBuffer,
+    _Out_ LPMOUSEMOVEPOINT OutputBuffer,
+    _In_ LONG OutputBufferCount,
+    _In_ ULONG Resolution
     );
 
 NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserGetRawInputData(
-    _In_ HRAWINPUT hRawInput,
-    _In_ ULONG uiCommand,
-    _In_ LPVOID pData,
-    _In_ PULONG pcbSize,
-    _In_ ULONG cbSizeHeader
+    _In_ HRAWINPUT RawInputData,
+    _In_ ULONG RawInputCommand,
+    _Out_opt_ PVOID RawInputBuffer,
+    _Inout_ PULONG RawInputBufferSize,
+    _In_ ULONG RawInputHeaderSize
     );
 
 NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserGetRawInputDeviceList(
-    _In_ PRAWINPUTDEVICELIST pRawInputDeviceList,
-    _In_ PULONG puiNumDevices,
-    _In_ ULONG cbSize
+    _In_ PRAWINPUTDEVICELIST RawInputDeviceList,
+    _Inout_ PULONG RawInputDeviceCount,
+    _In_ ULONG RawInputDeviceSize
     );
 
 NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserGetRegisteredRawInputDevices(
-    _In_ PRAWINPUTDEVICE pRawInputDevices,
-    _In_ PULONG puiNumDevices,
-    _In_ ULONG cbSize
+    _Out_opt_ PRAWINPUTDEVICE RawInputDevices,
+    _Inout_ PULONG RawInputDeviceCount,
+    _In_ ULONG RawInputDeviceSize
     );
 
 NTSYSCALLAPI
@@ -765,7 +780,7 @@ HMENU
 NTAPI
 NtUserGetSystemMenu(
     _In_ HWND WindowHandle,
-    _In_ BOOL bRevert
+    _In_ BOOL Revert
     );
 
 NTSYSCALLAPI
@@ -787,7 +802,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserGetObjectInformation(
-    _In_ HANDLE hObj,
+    _In_ HANDLE ObjectHandle,
     _In_ LONG Index,
     _In_ PVOID vInfo,
     _In_ ULONG Length,
@@ -806,7 +821,7 @@ BOOL
 NTAPI
 NtUserGetWindowPlacement(
     _In_ HWND WindowHandle,
-    _In_opt_ WINDOWPLACEMENT* lpwndpl
+    _Inout_ PWINDOWPLACEMENT WindowPlacement
     );
 
 NTSYSCALLAPI
@@ -814,7 +829,7 @@ BOOL
 NTAPI
 NtUserHiliteMenuItem(
     _In_ HWND WindowHandle,
-    _In_ HMENU Menu,
+    _In_ HMENU MenuHandle,
     _In_ ULONG IDHiliteItem,
     _In_ ULONG Hilite
     );
@@ -873,7 +888,7 @@ LONG
 NTAPI
 NtUserMenuItemFromPoint(
     _In_ HWND WindowHandle,
-    _In_ HMENU hMenu,
+    _In_ HMENU MenuHandle,
     _In_ POINT ptScreen
     );
 
@@ -884,9 +899,9 @@ NtUserMoveWindow(
     _In_ HWND WindowHandle,
     _In_ LONG X,
     _In_ LONG Y,
-    _In_ LONG nWidth,
-    _In_ LONG nHeight,
-    _In_ BOOL bRepaint
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ BOOL Repaint
     );
 
 NTSYSCALLAPI
@@ -946,6 +961,14 @@ QuerySendMessage(
     );
 
 NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserRaiseLowerShellWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN SetWithOptions
+    );
+
+NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserRedrawWindow(
@@ -977,7 +1000,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserRemoveMenu(
-    _In_ HMENU hMenu,
+    _In_ HMENU MenuHandle,
     _In_ ULONG uPosition,
     _In_ ULONG uFlags
     );
@@ -1080,6 +1103,13 @@ NtUserSetWindowWord(
     );
 
 NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUserSetForegroundWindowForApplication(
+    _In_ HWND WindowHandle
+    );
+
+NTSYSCALLAPI
 HWND
 NTAPI
 NtUserShellForegroundBoostProcess(
@@ -1151,7 +1181,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserTrackPopupMenuEx(
-    _In_ HMENU hMenu,
+    _In_ HMENU MenuHandle,
     _In_ ULONG uFlags,
     _In_ LONG x,
     _In_ LONG y,
