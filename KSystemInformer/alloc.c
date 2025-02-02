@@ -679,12 +679,9 @@ ULONG KphpGenerateRandomPoolTag(
 
 /**
  * \brief Initializes allocation infrastructure.
- *
- * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphInitializeAlloc(
+VOID KphInitializeAlloc(
     VOID
     )
 {
@@ -716,6 +713,4 @@ NTSTATUS KphInitializeAlloc(
     KphCreateObjectType(&KphpNPagedLookasideObjectTypeName,
                         &typeInfo,
                         &KphpNPagedLookasideObjectType);
-
-    return STATUS_SUCCESS;
 }
