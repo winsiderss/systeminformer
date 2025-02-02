@@ -1547,7 +1547,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
         {
             PROCESS_NETWORK_COUNTERS networkCounters;
 
-            if (NT_SUCCESS(PhGetProcesNetworkIoCounters(ProcessItem->QueryHandle, &networkCounters)))
+            if (NT_SUCCESS(PhGetProcessNetworkIoCounters(ProcessItem->QueryHandle, &networkCounters)))
             {
                 ProcessItem->NetworkCounters = networkCounters;
             }

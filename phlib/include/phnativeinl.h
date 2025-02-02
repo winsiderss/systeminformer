@@ -813,7 +813,7 @@ PhGetProcessMitigationPolicyInformation(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcesNetworkIoCounters(
+PhGetProcessNetworkIoCounters(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
     )
