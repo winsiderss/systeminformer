@@ -155,6 +155,40 @@ PPH_STRING PhGetWbemClassObjectString(
     return string;
 }
 
+ULONG64 PhGetWbemClassObjectUlong64(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    VARIANT variant;
+
+    RtlZeroMemory(&variant, sizeof(VARIANT));
+
+    if (SUCCEEDED(IWbemClassObject_Get((IWbemClassObject*)WbemClassObject, Name, 0, &variant, NULL, 0)))
+    {
+        return V_UI8(&variant);
+    }
+
+    return ULONG64_MAX;
+}
+
+PVOID PhGetWbemClassObjectUlongPtr(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    VARIANT variant;
+
+    RtlZeroMemory(&variant, sizeof(VARIANT));
+
+    if (SUCCEEDED(IWbemClassObject_Get((IWbemClassObject*)WbemClassObject, Name, 0, &variant, NULL, 0)))
+    {
+        return (PVOID)V_UINT_PTR(&variant);
+    }
+
+    return nullptr;
+}
+
 // Power policy security descriptors
 
 NTSTATUS PhpGetPowerPolicySecurityDescriptor(
