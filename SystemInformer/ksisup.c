@@ -33,7 +33,6 @@ typedef struct _KSI_SUPPORT_DATA
 } KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
 
 static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
-static PPH_STRING KsiKernelFileName = NULL;
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;
@@ -56,43 +55,16 @@ VOID KsiDebugLogFinalize(
     );
 #endif
 
-PPH_STRING KsiGetKernelFileNameInternal(
-    VOID
-    )
-{
-    NTSTATUS status;
-    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
-    PRTL_PROCESS_MODULES modules;
-    ULONG modulesLength;
-
-    modules = (PRTL_PROCESS_MODULES)buffer;
-    modulesLength = sizeof(buffer);
-
-    status = NtQuerySystemInformation(
-        SystemModuleInformation,
-        modules,
-        modulesLength,
-        &modulesLength
-        );
-
-    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
-        return NULL;
-    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
-        return NULL;
-
-    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-}
-
 PPH_STRING KsiGetKernelFileName(
     VOID
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING KsiKernelFileName = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        KsiKernelFileName = KsiGetKernelFileNameInternal();
-
+        KsiKernelFileName = PhGetKernelFileName();
         PhEndInitOnce(&initOnce);
     }
 
