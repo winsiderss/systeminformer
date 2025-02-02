@@ -4599,3 +4599,34 @@ VOID PhEnumerateRecentList(
 
     FreeMRUList_I(listHandle);
 }
+
+/**
+ * Forcibly closes the specified window.
+ *
+ * @param WindowHandle A handle to the window to be closed.
+ * @param Force If TRUE, force the destruction of the window if an initial attempt to gently close the window using WM_CLOSE fails. If FALSE, only WM_CLOSE is attempted.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endtask
+ */
+NTSTATUS PhTerminateWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Force
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* EndTask_I)(_In_ HWND hWnd, _In_ BOOL fShutDown, _In_ BOOL fForce) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        EndTask_I = PhGetDllProcedureAddress(L"user32.dll", "EndTask", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!EndTask_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (EndTask_I(WindowHandle, FALSE, !!Force))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}

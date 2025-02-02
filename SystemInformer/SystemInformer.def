@@ -940,6 +940,7 @@ EXPORTS
     PhSetStateAllListViewItems
     PhSetWindowContext
     PhSetWindowText
+    PhTerminateWindow
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
     PhUnregisterWindowCallback
