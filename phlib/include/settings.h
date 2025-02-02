@@ -466,6 +466,22 @@ PhSaveListViewGroupStatesToSetting(
 PHLIBAPI
 VOID
 NTAPI
+PhLoadIListViewColumnsFromSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSaveIListViewColumnsToSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhLoadCustomColorList(
     _In_ PCWSTR Name,
     _In_ PULONG CustomColorList,
