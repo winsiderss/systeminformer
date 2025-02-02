@@ -4010,22 +4010,22 @@ NTSTATUS PhSetFileDelete(
             );
     }
 
-    if (!NT_SUCCESS(status))
-    {
-        HANDLE deleteHandle;
-
-        if (NT_SUCCESS(PhReOpenFile(
-            &deleteHandle,
-            FileHandle,
-            DELETE,
-            FILE_SHARE_DELETE,
-            FILE_DELETE_ON_CLOSE
-            )))
-        {
-            NtClose(deleteHandle);
-            status = STATUS_SUCCESS;
-        }
-    }
+    //if (!NT_SUCCESS(status))
+    //{
+    //    HANDLE deleteHandle;
+    //
+    //    if (NT_SUCCESS(PhReOpenFile(
+    //        &deleteHandle,
+    //        FileHandle,
+    //        DELETE,
+    //        FILE_SHARE_DELETE,
+    //        FILE_DELETE_ON_CLOSE
+    //        )))
+    //    {
+    //        NtClose(deleteHandle);
+    //        status = STATUS_SUCCESS;
+    //    }
+    //}
 
     return status;
 }
