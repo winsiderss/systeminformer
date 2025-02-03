@@ -426,6 +426,15 @@ PhUiDeleteService(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiRestartServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiCloseConnections(
     _In_ HWND WindowHandle,
     _In_ PPH_NETWORK_ITEM *Connections,
