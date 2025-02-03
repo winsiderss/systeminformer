@@ -232,6 +232,7 @@ EXPORTS
     PhUiReduceWorkingSetProcesses
     PhUiRestartComputer
     PhUiRestartProcess
+    PhUiRestartServices
     PhUiResumeProcesses
     PhUiResumeThreads
     PhUiResumeTreeProcess
