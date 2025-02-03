@@ -331,7 +331,7 @@ namespace CustomBuildTool
 
             if (Exclude != null)
             {
-                list.RemoveAll(s => Exclude.Any(f => f.Equals(s, StringComparison.OrdinalIgnoreCase)));
+                list.RemoveAll(s => Exclude.Any(f => f.Equals(Path.GetFileName(s), StringComparison.OrdinalIgnoreCase)));
             }
 
             return list;
