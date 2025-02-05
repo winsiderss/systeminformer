@@ -565,6 +565,13 @@ PsGetProcessSectionBaseAddress(
     );
 
 NTKERNELAPI
+BOOLEAN
+NTAPI
+PsGetProcessExitProcessCalled(
+    _In_ PEPROCESS Process
+    );
+
+NTKERNELAPI
 NTSTATUS
 NTAPI
 PsSuspendProcess(
