@@ -1641,8 +1641,6 @@ NTSTATUS KphCidPopulate(
         }
         else
         {
-            LARGE_INTEGER timeout;
-
             //
             // Check if we should track this process during population.
             // Ultimately here we're ensuring the process isn't already exited.
@@ -1661,19 +1659,13 @@ NTSTATUS KphCidPopulate(
                 continue;
             }
 
-            timeout.QuadPart = 0;
-            status = KeWaitForSingleObject(processObject,
-                                           Executive,
-                                           KernelMode,
-                                           FALSE,
-                                           &timeout);
-            if (status != STATUS_TIMEOUT)
+            if (PsGetProcessExitProcessCalled(processObject))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
-                              "KeWaitForSingleObject(processObject) "
-                              "reported: %!STATUS!",
-                              status);
+                              "PsGetProcessExitProcessCalled reported TRUE "
+                              "(process %lu)",
+                              HandleToULong(info->UniqueProcessId));
 
                 ObDereferenceObject(processObject);
                 continue;
