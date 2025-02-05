@@ -326,7 +326,7 @@ ZwAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
     _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
-    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
 
@@ -349,7 +349,7 @@ ZwAllocateVirtualMemory(
     _In_ ULONG_PTR ZeroBits,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect
+    _In_ ULONG PageProtection
     );
 
 NTSYSCALLAPI
@@ -1023,7 +1023,7 @@ ZwCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ ULONG Count
+    _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
 NTSYSCALLAPI
@@ -2351,7 +2351,7 @@ ZwMapViewOfSection(
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect
+    _In_ ULONG PageProtection
     );
 
 NTSYSCALLAPI
@@ -2883,8 +2883,8 @@ ZwProtectVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _In_ ULONG NewProtect,
-    _Out_ PULONG OldProtect
+    _In_ ULONG NewProtection,
+    _Out_ PULONG OldProtection
     );
 
 NTSYSCALLAPI
@@ -3308,7 +3308,7 @@ ZwQueryPerformanceCounter(
     );
 
 NTSYSCALLAPI
-NTSTATUS
+LOGICAL
 NTAPI
 ZwQueryPortInformationProcess(
     VOID
@@ -3409,7 +3409,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQuerySystemEnvironmentValueEx(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
     _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
     _Inout_ PULONG BufferLength,
@@ -3636,8 +3636,8 @@ NTAPI
 ZwReadVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
@@ -3647,8 +3647,8 @@ NTAPI
 ZwReadVirtualMemoryEx(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead,
     _In_ ULONG Flags
     );
@@ -4386,15 +4386,15 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetSystemEnvironmentValue(
-    _In_ PUNICODE_STRING VariableName,
-    _In_ PUNICODE_STRING VariableValue
+    _In_ PCUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableValue
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetSystemEnvironmentValueEx(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
     _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength, // 0 = delete variable
@@ -4903,7 +4903,7 @@ NTSTATUS
 NTAPI
 ZwWow64QueryVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
+    _In_opt_ ULONGLONG BaseAddress,
     _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ ULONGLONG MemoryInformationLength,
@@ -4915,11 +4915,10 @@ NTSTATUS
 NTAPI
 ZwWow64ReadVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
-    _Out_opt_ PULONGLONG NumberOfBytesRead,
-    _In_ ULONG Flags
+    _In_opt_ ULONGLONG BaseAddress,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToRead,
+    _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
 NTSYSCALLAPI
@@ -4927,9 +4926,9 @@ NTSTATUS
 NTAPI
 ZwWow64WriteVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
+    _In_opt_ ULONGLONG BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToWrite,
     _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
@@ -4981,8 +4980,8 @@ NTAPI
 ZwWriteVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
