@@ -1838,6 +1838,7 @@ BOOLEAN PhGetNetworkConnections(
 
 static CONST PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
 {
+    SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"TCP"), PH_TCP4_NETWORK_PROTOCOL),
     SIP(SREF(L"TCP6"), PH_TCP6_NETWORK_PROTOCOL),
     SIP(SREF(L"UDP"), PH_UDP4_NETWORK_PROTOCOL),
@@ -1847,6 +1848,7 @@ static CONST PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
 
 static CONST PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
 {
+    SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"Closed"), MIB_TCP_STATE_CLOSED),
     SIP(SREF(L"Listen"), MIB_TCP_STATE_LISTEN),
     SIP(SREF(L"SYN sent"), MIB_TCP_STATE_SYN_SENT),
@@ -1866,7 +1868,6 @@ PCPH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
 {
-    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
     PCPH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
@@ -1879,25 +1880,42 @@ PCPH_STRINGREF PhGetProtocolTypeName(
         return string;
     }
 
-    return &unknown;
+    return PhProtocolTypeStrings[0].Key;
 }
 
 PCPH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )
 {
-    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PCPH_STRINGREF string;
-
-    if (PhIndexStringRefSiKeyValuePairs(
-        PhTcpStateStrings,
-        sizeof(PhTcpStateStrings),
-        State,
-        &string
-        ))
+    switch (State)
     {
-        return string;
+    case MIB_TCP_STATE_CLOSED:
+    case MIB_TCP_STATE_LISTEN:
+    case MIB_TCP_STATE_SYN_SENT:
+    case MIB_TCP_STATE_SYN_RCVD:
+    case MIB_TCP_STATE_ESTAB:
+    case MIB_TCP_STATE_FIN_WAIT1:
+    case MIB_TCP_STATE_FIN_WAIT2:
+    case MIB_TCP_STATE_CLOSE_WAIT:
+    case MIB_TCP_STATE_CLOSING:
+    case MIB_TCP_STATE_LAST_ACK:
+    case MIB_TCP_STATE_TIME_WAIT:
+    case MIB_TCP_STATE_DELETE_TCB:
+        return PhTcpStateStrings[State].Key;
+    case MIB_TCP_STATE_RESERVED:
+        return PhTcpStateStrings[13].Key;
     }
 
-    return &unknown;
+    // TODO: We can't index the string from MIB_TCP_STATE_RESERVED (dmex)
+    //if (PhIndexStringRefSiKeyValuePairs(
+    //    PhTcpStateStrings,
+    //    sizeof(PhTcpStateStrings),
+    //    State,
+    //    &string
+    //    ))
+    //{
+    //    return string;
+    //}
+
+    return PhTcpStateStrings[0].Key;
 }
