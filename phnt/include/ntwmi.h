@@ -6187,7 +6187,7 @@ WmiExecuteMethodW(
 // Enable or disable a trace direct callback.
 // The callback is invoked immediately via a separate thread.
 #define NOTIFICATION_CALLBACK_DIRECT 0x00000004
-// Set this flag (and only this flag) when you want to only check if the 
+// Set this flag (and only this flag) when you want to only check if the
 // caller has permission to receive events for the guid.
 #define NOTIFICATION_CHECK_ACCESS 0x00000008
 // Enable lightweight notification.

@@ -1575,7 +1575,7 @@ NTAPI
 LdrFlushAlternateResourceModules(
     VOID
     );
-    
+
 // rev
 NTSYSAPI
 NTSTATUS
@@ -1591,8 +1591,8 @@ LdrDllRedirectionCallback(
 
 // rev
 NTSYSAPI
-VOID 
-NTAPI 
+VOID
+NTAPI
 LdrSetDllManifestProber(
     _In_ PVOID Routine
     );
@@ -1603,12 +1603,12 @@ NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
 
 // rev
 NTSYSAPI
-VOID 
-NTAPI 
+VOID
+NTAPI
 LdrpResGetMappingSize(
-    _In_ PVOID BaseAddress, 
-    _Out_ PSIZE_T Size, 
-    _In_ ULONG Flags, 
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T Size,
+    _In_ ULONG Flags,
     _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
     );
 

@@ -45,16 +45,16 @@ NtVdmControl(
 // ApiSet
 
 NTSYSAPI
-BOOL 
-NTAPI 
+BOOL
+NTAPI
 ApiSetQueryApiSetPresence(
     _In_ PCUNICODE_STRING Namespace,
     _Out_ PBOOLEAN Present
     );
 
 NTSYSAPI
-BOOL 
-NTAPI 
+BOOL
+NTAPI
 ApiSetQueryApiSetPresenceEx(
     _In_ PCUNICODE_STRING Namespace,
     _Out_ PBOOLEAN IsInSchema,
@@ -75,7 +75,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySecurityPolicy(
-    _In_ PCUNICODE_STRING Policy, 
+    _In_ PCUNICODE_STRING Policy,
     _In_ PCUNICODE_STRING KeyName,
     _In_ PCUNICODE_STRING ValueName,
     _In_ SECURE_SETTING_VALUE_TYPE ValueType,
@@ -135,8 +135,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenCpuPartition(
-    _Out_ PHANDLE CpuPartitionHandle, 
-    _In_ ACCESS_MASK DesiredAccess, 
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
@@ -145,8 +145,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateCpuPartition(
-    _Out_ PHANDLE CpuPartitionHandle, 
-    _In_ ACCESS_MASK DesiredAccess, 
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
@@ -155,21 +155,21 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationCpuPartition(
-    _In_ HANDLE CpuPartitionHandle, 
-    _In_ ULONG CpuPartitionInformationClass, 
-    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation, 
-    _In_ ULONG CpuPartitionInformationLength, 
-    _Reserved_ PVOID, 
-    _Reserved_ ULONG, 
+    _In_ HANDLE CpuPartitionHandle,
+    _In_ ULONG CpuPartitionInformationClass,
+    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation,
+    _In_ ULONG CpuPartitionInformationLength,
+    _Reserved_ PVOID,
+    _Reserved_ ULONG,
     _Reserved_ ULONG
     );
 
 // Process KeepAlive (also WakeCounter)
 
-typedef enum _PROCESS_ACTIVITY_TYPE 
-{ 
-    ProcessActivityTypeAudio = 0, 
-    ProcessActivityTypeMax = 1 
+typedef enum _PROCESS_ACTIVITY_TYPE
+{
+    ProcessActivityTypeAudio = 0,
+    ProcessActivityTypeMax = 1
 } PROCESS_ACTIVITY_TYPE;
 
 // rev

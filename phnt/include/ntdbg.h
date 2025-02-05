@@ -78,7 +78,7 @@ vDbgPrintExWithPrefix(
     );
 
 NTSYSAPI
-ULONG 
+ULONG
 STDAPIVCALLTYPE
 DbgPrintReturnControlC(
     _In_z_ _Printf_format_string_ PCCH Format,

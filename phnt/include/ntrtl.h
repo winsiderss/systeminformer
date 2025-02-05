@@ -622,7 +622,7 @@ RtlRbRemoveNode(
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlCompareExchangePointerMapping( 
+RtlCompareExchangePointerMapping(
     _In_ PRTL_BALANCED_NODE Node1,
     _In_ PRTL_BALANCED_NODE Node2,
     _Out_ PRTL_BALANCED_NODE *Node3,
@@ -1262,10 +1262,10 @@ RtlConvertSRWLockExclusiveToShared(
 #endif
 
 //
-// Read-Copy Update. 
+// Read-Copy Update.
 //
-// RCU synchronization allows concurrent access to shared data structures, 
-// such as linked lists, trees, or hash tables, without using traditional locking methods 
+// RCU synchronization allows concurrent access to shared data structures,
+// such as linked lists, trees, or hash tables, without using traditional locking methods
 // in scenarios where read operations are frequent and need to be fast.
 // @remarks RCU synchronization is not for general-purpose synchronization.
 // Teb->Rcu is used to store the RCU state.
@@ -1288,7 +1288,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlRcuReadLock(
-    _Inout_ PRTL_SRWLOCK SRWLock, 
+    _Inout_ PRTL_SRWLOCK SRWLock,
     _Out_ PULONG Rcu
     );
 
@@ -1296,7 +1296,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlRcuReadUnlock(
-    _Inout_ PRTL_SRWLOCK SRWLock, 
+    _Inout_ PRTL_SRWLOCK SRWLock,
     _Inout_ PULONG* Rcu
     );
 
@@ -3673,7 +3673,7 @@ RtlRemoteCall(
 
 /**
  * Registers a vectored exception handler.
- * 
+ *
  * @param First If this parameter is TRUE, the handler is the first handler in the list.
  * @param Handler A pointer to the vectored exception handler to be called.
  * @return A handle to the vectored exception handler.
@@ -3689,7 +3689,7 @@ RtlAddVectoredExceptionHandler(
 
 /**
  * Removes a vectored exception handler.
- * 
+ *
  * @param Handle A handle to the vectored exception handler to remove.
  * @return The function returns 0 if the handler is removed, or -1 if the handler is not found.
  * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredexceptionhandler
@@ -3703,7 +3703,7 @@ RtlRemoveVectoredExceptionHandler(
 
 /**
  * Registers a vectored continue handler.
- * 
+ *
  * @param First If this parameter is TRUE, the handler is the first handler in the list.
  * @param Handler A pointer to the vectored exception handler to be called.
  * @return A handle to the vectored continue handler.
@@ -3719,7 +3719,7 @@ RtlAddVectoredContinueHandler(
 
 /**
  * Removes a vectored continue handler.
- * 
+ *
  * @param Handle A handle to the vectored continue handler to remove.
  * @return The function returns 0 if the handler is removed, or -1 if the handler is not found.
  * @see https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-removevectoredcontinuehandler
@@ -3860,7 +3860,7 @@ RtlInterlockedFlushSList(
     );
 
 NTSYSAPI
-WORD  
+WORD
 NTAPI
 RtlQueryDepthSList(
     _In_ PSLIST_HEADER ListHead
@@ -4318,7 +4318,7 @@ RtlCrc64(
 #define GlobalDataIdQpcBias 18
 
 NTSYSAPI
-ULONG   
+ULONG
 NTAPI
 RtlGetSystemGlobalData(
     _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
@@ -6179,7 +6179,7 @@ RtlUlonglongByteSwap(
 
 DECLSPEC_DEPRECATED
 NTSYSAPI
-LARGE_INTEGER 
+LARGE_INTEGER
 NTAPI
 RtlConvertUlongToLargeInteger(
     _In_ ULONG UnsignedInteger
@@ -6187,7 +6187,7 @@ RtlConvertUlongToLargeInteger(
 
 DECLSPEC_DEPRECATED
 NTSYSAPI
-LARGE_INTEGER 
+LARGE_INTEGER
 NTAPI
 RtlConvertLongToLargeInteger(
     _In_ LONG SignedInteger
@@ -7849,7 +7849,7 @@ RtlDeriveCapabilitySidsFromName(
 /**
  * The RtlCreateSecurityDescriptor routine initializes a new absolute-format security descriptor.
  * On return, the security descriptor is initialized with no system ACL, no discretionary ACL, no owner, no primary group, and all control flags set to zero.
- * 
+ *
  * \param SecurityDescriptor Pointer to the buffer for the \ref SECURITY_DESCRIPTOR to be initialized.
  * \param Revision Specifies the revision level to assign to the security descriptor. Set this parameter to SECURITY_DESCRIPTOR_REVISION.
  * @return NTSTATUS Successful or errant status.
@@ -7865,7 +7865,7 @@ RtlCreateSecurityDescriptor(
 
 /**
  * The RtlValidSecurityDescriptor routine checks a given security descriptor's validity.
- * 
+ *
  * \param SecurityDescriptor Pointer to the \ref SECURITY_DESCRIPTOR to be checked.
  * @return Returns TRUE if the security descriptor is valid, or FALSE otherwise.
  * @remarks The routine checks the validity of an absolute-format security descriptor. To check the validity of a self-relative security descriptor, use the \ref RtlValidRelativeSecurityDescriptor routine instead.
@@ -7881,7 +7881,7 @@ RtlValidSecurityDescriptor(
 
 /**
  * The RtlLengthSecurityDescriptor routine returns the size of a given security descriptor.
- * 
+ *
  * \param SecurityDescriptor A pointer to a \ref SECURITY_DESCRIPTOR structure whose length the function retrieves.
  * @return Returns the length, in bytes, of the SECURITY_DESCRIPTOR structure.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthsecuritydescriptor
@@ -9610,7 +9610,7 @@ RtlGetUnloadEventTraceEx(
 
 NTSYSAPI
 _Success_(return != 0)
-USHORT  
+USHORT
 NTAPI
 RtlCaptureStackBackTrace(
     _In_ ULONG FramesToSkip,
@@ -9687,7 +9687,7 @@ RtlInstallFunctionTableCallback(
 
 #if (PHNT_VERSION >= PHNT_WIN8)
 NTSYSAPI
-DWORD   
+DWORD
 NTAPI
 RtlAddGrowableFunctionTable(
     _Out_ PVOID* DynamicTable,
@@ -10274,8 +10274,8 @@ RtlFlsSetValue(
     );
 
 NTSYSAPI
-NTSTATUS 
-NTAPI 
+NTSTATUS
+NTAPI
 RtlProcessFlsData(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID* FlsData
@@ -11248,8 +11248,8 @@ RtlRunOnceInitialize(
     );
 
 typedef _Function_class_(RTL_RUN_ONCE_INIT_FN)
-LOGICAL 
-NTAPI 
+LOGICAL
+NTAPI
 RTL_RUN_ONCE_INIT_FN(
     _Inout_ PRTL_RUN_ONCE RunOnce,
     _Inout_opt_ PVOID Parameter,
@@ -11304,8 +11304,8 @@ RtlEqualWnfChangeStamps(
 
 _Always_(_Post_satisfies_(return == STATUS_NO_MEMORY || return == STATUS_RETRY || return == STATUS_SUCCESS))
 typedef _Function_class_(WNF_USER_CALLBACK)
-NTSTATUS 
-NTAPI 
+NTSTATUS
+NTAPI
 WNF_USER_CALLBACK(
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,

@@ -891,8 +891,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwCreateCpuPartition(
-    _Out_ PHANDLE CpuPartitionHandle, 
-    _In_ ACCESS_MASK DesiredAccess, 
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
@@ -2466,8 +2466,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwOpenCpuPartition(
-    _Out_ PHANDLE CpuPartitionHandle, 
-    _In_ ACCESS_MASK DesiredAccess, 
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
@@ -3367,7 +3367,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQuerySecurityPolicy(
-    _In_ PCUNICODE_STRING Policy, 
+    _In_ PCUNICODE_STRING Policy,
     _In_ PCUNICODE_STRING KeyName,
     _In_ PCUNICODE_STRING ValueName,
     _In_ SECURE_SETTING_VALUE_TYPE ValueType,
@@ -4125,12 +4125,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetInformationCpuPartition(
-    _In_ HANDLE CpuPartitionHandle, 
-    _In_ ULONG CpuPartitionInformationClass, 
-    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation, 
-    _In_ ULONG CpuPartitionInformationLength, 
-    _Reserved_ PVOID, 
-    _Reserved_ ULONG, 
+    _In_ HANDLE CpuPartitionHandle,
+    _In_ ULONG CpuPartitionInformationClass,
+    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation,
+    _In_ ULONG CpuPartitionInformationLength,
+    _Reserved_ PVOID,
+    _Reserved_ ULONG,
     _Reserved_ ULONG
     );
 

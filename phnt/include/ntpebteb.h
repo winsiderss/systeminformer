@@ -249,13 +249,13 @@ typedef struct _PEB
         BOOLEAN BitField;
         struct
         {
-            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).  
+            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).
             BOOLEAN IsProtectedProcess : 1;             // The process is a protected process.
-            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.         
-            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.            
+            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.
+            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.
             BOOLEAN IsPackagedProcess : 1;              // The process is a packaged store process (APPX/MSIX).
-            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.      
-            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).            
+            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.
+            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).
             BOOLEAN IsLongPathAwareProcess : 1;         // The process is long path aware.
         };
     };
@@ -314,7 +314,7 @@ typedef struct _PEB
         struct
         {
             ULONG ProcessInJob : 1;                 // The process is part of a job.
-            ULONG ProcessInitializing : 1;          // The process is initializing. 
+            ULONG ProcessInitializing : 1;          // The process is initializing.
             ULONG ProcessUsingVEH : 1;              // The process is using VEH.
             ULONG ProcessUsingVCH : 1;              // The process is using VCH.
             ULONG ProcessUsingFTH : 1;              // The process is using FTH.
@@ -432,7 +432,7 @@ typedef struct _PEB
     //
     // Number of process heaps.
     //
-    ULONG NumberOfHeaps;        
+    ULONG NumberOfHeaps;
 
     //
     // Maximum number of process heaps.
@@ -604,7 +604,7 @@ typedef struct _PEB
 
     //
     // Packaged process feature state.
-    //   
+    //
     union
     {
         ULONG AppModelFeatureState;
@@ -617,7 +617,7 @@ typedef struct _PEB
 
     //
     // SpareUlongs
-    // 
+    //
     ULONG SpareUlongs[2];
 
     //
@@ -1136,7 +1136,7 @@ typedef struct _TEB
 
     //
     // The preferred processor for the curremt thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
-    // 
+    //
     union
     {
         PROCESSOR_NUMBER CurrentIdealProcessor;
@@ -1152,7 +1152,7 @@ typedef struct _TEB
 
     //
     // The minimum size of the stack available during any stack overflow exceptions. (SetThreadStackGuarantee)
-    // 
+    //
     ULONG GuaranteedStackBytes;
 
     //

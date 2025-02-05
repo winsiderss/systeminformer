@@ -128,7 +128,7 @@ typedef struct _CONSOLEENDTASK
 
 /**
  * Performs special kernel operations for console host applications. (win32u.dll)
- * 
+ *
  * This includes reparenting the console window, allowing the console to pass foreground rights
  * on to launched console subsystem applications and terminating attached processes.
  *

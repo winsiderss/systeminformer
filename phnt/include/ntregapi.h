@@ -105,7 +105,7 @@ typedef struct _KEY_FLAGS_INFORMATION
 
 /**
  * The KEY_VIRTUALIZATION_INFORMATION structure contains information about the virtualization state of a key.
- * 
+ *
  * The flags include:
  * - VirtualizationCandidate: The key is part of the virtualization namespace scope (only HKLM\Software for now).
  * - VirtualizationEnabled: Virtualization is enabled on this key. Can be 1 only if VirtualizationCandidate is 1.
@@ -127,9 +127,9 @@ typedef struct _KEY_VIRTUALIZATION_INFORMATION
 // private
 /**
  * The KEY_TRUST_INFORMATION structure contains information about the trust status of a key.
- * 
+ *
  * The flags include:
- * - TrustedKey: Indicates whether the key is trusted. When set, this flag signifies that the key is considered 
+ * - TrustedKey: Indicates whether the key is trusted. When set, this flag signifies that the key is considered
  *   to be secure and reliable.
  * - Reserved: Reserved bits.
  */
@@ -142,19 +142,19 @@ typedef struct _KEY_TRUST_INFORMATION
 // private
 /**
  * The KEY_LAYER_INFORMATION structure contains information about a key layer.
- * 
+ *
  * The flags include:
- * - IsTombstone: Indicates whether the key layer is a tombstone. A tombstone is a marker that indicates 
- *   that the key has been deleted but not yet purged from the registry. It is used to maintain the 
+ * - IsTombstone: Indicates whether the key layer is a tombstone. A tombstone is a marker that indicates
+ *   that the key has been deleted but not yet purged from the registry. It is used to maintain the
  *   integrity of the registry and ensure that deleted keys are not immediately reused.
- * - IsSupersedeLocal: Indicates whether the key layer supersedes the local key. When set, this flag 
- *   indicates that the key layer should replace the local key's information, effectively overriding 
+ * - IsSupersedeLocal: Indicates whether the key layer supersedes the local key. When set, this flag
+ *   indicates that the key layer should replace the local key's information, effectively overriding
  *   any local changes or settings.
- * - IsSupersedeTree: Indicates whether the key layer supersedes the entire key tree. When set, this flag 
- *   indicates that the key layer should replace the entire subtree of keys, overriding any changes or 
+ * - IsSupersedeTree: Indicates whether the key layer supersedes the entire key tree. When set, this flag
+ *   indicates that the key layer should replace the entire subtree of keys, overriding any changes or
  *   settings in the subtree.
- * - ClassIsInherited: Indicates whether the key layer's class is inherited. When set, this flag indicates 
- *   that the class information of the key layer is inherited from its parent key, rather than being 
+ * - ClassIsInherited: Indicates whether the key layer's class is inherited. When set, this flag indicates
+ *   that the class information of the key layer is inherited from its parent key, rather than being
  *   explicitly defined.
  * - Reserved: Reserved bits.
  */
@@ -181,7 +181,7 @@ typedef enum _KEY_SET_INFORMATION_CLASS
 
 /**
  * Structure representing the last write time of a registry key.
- * 
+ *
  * The values include:
  * - LastWriteTime: Contains the timestamp of the last write operation performed on a registry key.
  */
@@ -192,9 +192,9 @@ typedef struct _KEY_WRITE_TIME_INFORMATION
 
 /**
  * The KEY_WOW64_FLAGS_INFORMATION structure contains information about the WOW64 flags for a key.
- * 
+ *
  * The fields include:
- * - UserFlags: A set of user-defined flags associated with the key. These flags are used to store 
+ * - UserFlags: A set of user-defined flags associated with the key. These flags are used to store
  *   additional information about the key in the context of WOW64 (Windows 32-bit on Windows 64-bit).
  */
 typedef struct _KEY_WOW64_FLAGS_INFORMATION
@@ -204,9 +204,9 @@ typedef struct _KEY_WOW64_FLAGS_INFORMATION
 
 /**
  * The KEY_HANDLE_TAGS_INFORMATION structure contains information about the handle tags for a key.
- * 
+ *
  * The fields include:
- * - HandleTags: A set of tags associated with the key handle. These tags are used to store additional 
+ * - HandleTags: A set of tags associated with the key handle. These tags are used to store additional
  *   metadata or state information about the key handle.
  */
 typedef struct _KEY_HANDLE_TAGS_INFORMATION
@@ -216,19 +216,19 @@ typedef struct _KEY_HANDLE_TAGS_INFORMATION
 
 /**
  * The KEY_SET_LAYER_INFORMATION structure contains information about a key layer.
- * 
+ *
  * The flags include:
- * - IsTombstone: Indicates whether the key layer is a tombstone. A tombstone is a marker that indicates 
- *   that the key has been deleted but not yet purged from the registry. It is used to maintain the 
+ * - IsTombstone: Indicates whether the key layer is a tombstone. A tombstone is a marker that indicates
+ *   that the key has been deleted but not yet purged from the registry. It is used to maintain the
  *   integrity of the registry and ensure that deleted keys are not immediately reused.
- * - IsSupersedeLocal: Indicates whether the key layer supersedes the local key. When set, this flag 
- *   indicates that the key layer should replace the local key's information, effectively overriding 
+ * - IsSupersedeLocal: Indicates whether the key layer supersedes the local key. When set, this flag
+ *   indicates that the key layer should replace the local key's information, effectively overriding
  *   any local changes or settings.
- * - IsSupersedeTree: Indicates whether the key layer supersedes the entire key tree. When set, this flag 
- *   indicates that the key layer should replace the entire subtree of keys, overriding any changes or 
+ * - IsSupersedeTree: Indicates whether the key layer supersedes the entire key tree. When set, this flag
+ *   indicates that the key layer should replace the entire subtree of keys, overriding any changes or
  *   settings in the subtree.
- * - ClassIsInherited: Indicates whether the key layer's class is inherited. When set, this flag indicates 
- *   that the class information of the key layer is inherited from its parent key, rather than being 
+ * - ClassIsInherited: Indicates whether the key layer's class is inherited. When set, this flag indicates
+ *   that the class information of the key layer is inherited from its parent key, rather than being
  *   explicitly defined.
  * - Reserved: Reserved bits.
  */
@@ -243,9 +243,9 @@ typedef struct _KEY_SET_LAYER_INFORMATION
 
 /**
  * The KEY_CONTROL_FLAGS_INFORMATION structure contains control flags for a key.
- * 
+ *
  * The fields include:
- * - ControlFlags: A set of control flags associated with the key. These flags are used to store 
+ * - ControlFlags: A set of control flags associated with the key. These flags are used to store
  *   additional control information about the key, which can affect its behavior or state.
  */
 typedef struct _KEY_CONTROL_FLAGS_INFORMATION
@@ -586,7 +586,7 @@ typedef struct _VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST
 
 /**
  * Creates a new registry key routine or opens an existing one.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -612,7 +612,7 @@ NtCreateKey(
 #if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Creates a new registry key or opens an existing one, and it associates the key with a transaction.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -640,7 +640,7 @@ NtCreateKeyTransacted(
 
 /**
  * Opens an existing registry key.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -659,7 +659,7 @@ NtOpenKey(
 #if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Opens an existing registry key and associates the key with a transaction.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -680,7 +680,7 @@ NtOpenKeyTransacted(
 #if (PHNT_VERSION >= PHNT_WIN7)
 /**
  * Opens an existing registry key with extended options.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -699,7 +699,7 @@ NtOpenKeyEx(
 
 /**
  * Opens an existing registry key in a transaction with extended options.
- * 
+ *
  * @param[out] KeyHandle A pointer to a handle that receives the key handle.
  * @param[in] DesiredAccess The access mask that specifies the desired access rights.
  * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
@@ -721,7 +721,7 @@ NtOpenKeyTransactedEx(
 
 /**
  * Deletes a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be deleted.
  * @return NTSTATUS Successful or errant status.
  */
@@ -734,7 +734,7 @@ NtDeleteKey(
 
 /**
  * Renames a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be renamed.
  * @param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
  * @return NTSTATUS Successful or errant status.
@@ -749,7 +749,7 @@ NtRenameKey(
 
 /**
  * Deletes a value from a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key that contains the value to be deleted.
  * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
  * @return NTSTATUS Successful or errant status.
@@ -764,7 +764,7 @@ NtDeleteValueKey(
 
 /**
  * Queries information about a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be queried.
  * @param[in] KeyInformationClass The type of information to be queried.
  * @param[out] KeyInformation A pointer to a buffer that receives the key information.
@@ -785,7 +785,7 @@ NtQueryKey(
 
 /**
  * Sets information for a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be modified.
  * @param[in] KeySetInformationClass The type of information to be set.
  * @param[in] KeySetInformation A pointer to a buffer that contains the key information.
@@ -804,7 +804,7 @@ NtSetInformationKey(
 
 /**
  * Queries the value of a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be queried.
  * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be queried.
  * @param[in] KeyValueInformationClass The type of information to be queried.
@@ -827,7 +827,7 @@ NtQueryValueKey(
 
 /**
  * Sets the value of a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be modified.
  * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be set.
  * @param[in, optional] TitleIndex Reserved.
@@ -850,7 +850,7 @@ NtSetValueKey(
 
 /**
  * Queries multiple values of a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be queried.
  * @param[in, out] ValueEntries A pointer to an array of KEY_VALUE_ENTRY structures that specify the values to be queried.
  * @param[in] EntryCount The number of entries in the array.
@@ -873,7 +873,7 @@ NtQueryMultipleValueKey(
 
 /**
  * Enumerates the subkeys of a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be enumerated.
  * @param[in] Index The index of the subkey to be enumerated.
  * @param[in] KeyInformationClass The type of information to be queried.
@@ -896,7 +896,7 @@ NtEnumerateKey(
 
 /**
  * Enumerates the values of a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be enumerated.
  * @param[in] Index The index of the value to be enumerated.
  * @param[in] KeyValueInformationClass The type of information to be queried.
@@ -919,7 +919,7 @@ NtEnumerateValueKey(
 
 /**
  * Flushes the changes to a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be flushed.
  * @return NTSTATUS Successful or errant status.
  */
@@ -932,7 +932,7 @@ NtFlushKey(
 
 /**
  * Compacts the specified registry keys.
- * 
+ *
  * @param[in] Count The number of keys to be compacted.
  * @param[in] KeyArray An array of handles to the keys to be compacted.
  * @return NTSTATUS Successful or errant status.
@@ -947,7 +947,7 @@ NtCompactKeys(
 
 /**
  * Compresses a registry key.
- * 
+ *
  * @param[in] KeyHandle A handle to the key to be compressed.
  * @return NTSTATUS Successful or errant status.
  */
@@ -960,7 +960,7 @@ NtCompressKey(
 
 /**
  * Loads a registry key from a file.
- * 
+ *
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * @return NTSTATUS Successful or errant status.
@@ -975,7 +975,7 @@ NtLoadKey(
 
 /**
  * Loads a registry key from a file with additional options.
- * 
+ *
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * @param[in] Flags The options to use when loading the key.
@@ -992,7 +992,7 @@ NtLoadKey2(
 
 /**
  * Loads a registry key from a file with extended options.
- * 
+ *
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * @param[in] Flags The options to use when loading the key.
@@ -1021,7 +1021,7 @@ NtLoadKeyEx(
 // rev by tyranid
 /**
  * Loads a registry key from a file with extended parameters.
- * 
+ *
  * @param[in] TargetKey A pointer to an OBJECT_ATTRIBUTES structure that specifies the target key.
  * @param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * @param[in] Flags The options to use when loading the key.
@@ -1049,7 +1049,7 @@ NtLoadKey3(
 
 /**
  * Replaces a registry key.
- * 
+ *
  * @param[in] NewFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the new file.
  * @param[in] TargetHandle A handle to the target key.
  * @param[in] OldFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the old file.
@@ -1066,7 +1066,7 @@ NtReplaceKey(
 
 /**
  * Saves the specified registry key to a file.
- * 
+ *
  * @param KeyHandle Handle to the registry key.
  * @param FileHandle Handle to the file where the key will be saved.
  * @return NTSTATUS Successful or errant status.
@@ -1081,7 +1081,7 @@ NtSaveKey(
 
 /**
  * Saves the specified registry key to a file with a specified format.
- * 
+ *
  * @param KeyHandle Handle to the registry key.
  * @param FileHandle Handle to the file where the key will be saved.
  * @param Format Format in which the key will be saved.
@@ -1098,7 +1098,7 @@ NtSaveKeyEx(
 
 /**
  * Merges two registry keys and saves the result to a file.
- * 
+ *
  * @param HighPrecedenceKeyHandle Handle to the high precedence registry key.
  * @param LowPrecedenceKeyHandle Handle to the low precedence registry key.
  * @param FileHandle Handle to the file where the merged key will be saved.
@@ -1115,7 +1115,7 @@ NtSaveMergedKeys(
 
 /**
  * Restores a registry key from a file.
- * 
+ *
  * @param KeyHandle Handle to the registry key.
  * @param FileHandle Handle to the file from which the key will be restored.
  * @param Flags Flags for the restore operation.
@@ -1132,7 +1132,7 @@ NtRestoreKey(
 
 /**
  * Unloads a registry key.
- * 
+ *
  * @param TargetKey Pointer to the object attributes of the target key.
  * @return NTSTATUS Successful or errant status.
  */
@@ -1145,7 +1145,7 @@ NtUnloadKey(
 
 /**
  * Unloads a registry key with additional flags.
- * 
+ *
  * @param TargetKey Pointer to the object attributes of the target key.
  * @param Flags Flags for the unload operation.
  * @return NTSTATUS Successful or errant status.
@@ -1161,7 +1161,7 @@ NtUnloadKey2(
 
 /**
  * Unloads a registry key and optionally signals an event.
- * 
+ *
  * @param TargetKey Pointer to the object attributes of the target key.
  * @param Event Optional handle to an event to be signaled.
  * @return NTSTATUS Successful or errant status.
@@ -1176,7 +1176,7 @@ NtUnloadKeyEx(
 
 /**
  * Notifies of changes to a registry key.
- * 
+ *
  * @param KeyHandle Handle to the registry key.
  * @param Event Optional handle to an event to be signaled.
  * @param ApcRoutine Optional APC routine to be called.
@@ -1207,7 +1207,7 @@ NtNotifyChangeKey(
 
 /**
  * Requests notification when a registry key or any of its subkeys changes.
- * 
+ *
  * @param MasterKeyHandle A handle to an open key. The handle must be opened with the KEY_NOTIFY access right.
  * @param Count The number of subkeys under the key specified by the MasterKeyHandle parameter.
  * @param SubordinateObjects Pointer to an array of OBJECT_ATTRIBUTES structures, one for each subkey. This array can contain one OBJECT_ATTRIBUTES structure.
@@ -1242,7 +1242,7 @@ NtNotifyChangeMultipleKeys(
 
 /**
  * Queries the number of open subkeys of a registry key.
- * 
+ *
  * @param TargetKey Pointer to the object attributes of the target key.
  * @param HandleCount Pointer to a variable to receive the handle count.
  * @return NTSTATUS Successful or errant status.
@@ -1257,7 +1257,7 @@ NtQueryOpenSubKeys(
 
 /**
  * Queries the open subkeys of a registry key with additional information.
- * 
+ *
  * @param TargetKey Pointer to the object attributes of the target key.
  * @param BufferLength Length of the buffer.
  * @param Buffer Optional buffer to receive the subkey information.
@@ -1277,7 +1277,7 @@ NtQueryOpenSubKeysEx(
 
 /**
  * Initializes the registry.
- * 
+ *
  * @param BootCondition Condition for the boot.
  * @return NTSTATUS Successful or errant status.
  */
@@ -1290,7 +1290,7 @@ NtInitializeRegistry(
 
 /**
  * Locks the registry key and prevents changes from being written to disk.
- * 
+ *
  * @param KeyHandle Handle to the registry key.
  * @return NTSTATUS Successful or errant status.
  */
@@ -1303,7 +1303,7 @@ NtLockRegistryKey(
 
 /**
  * Locks the product activation keys.
- * 
+ *
  * @param pPrivateVer Optional pointer to a private version variable.
  * @param pSafeMode Optional pointer to a safe mode variable.
  * @return NTSTATUS Successful or errant status.
@@ -1319,7 +1319,7 @@ NtLockProductActivationKeys(
 #if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Freezes the registry and prevents changes from being flushed to disk.
- * 
+ *
  * @param TimeOutInSeconds Timeout in seconds.
  * @return NTSTATUS Successful or errant status.
  */
@@ -1334,7 +1334,7 @@ NtFreezeRegistry(
 #if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Thaws the registry and enables flushing changes to disk.
- * 
+ *
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -1348,7 +1348,7 @@ NtThawRegistry(
 #if (PHNT_VERSION >= PHNT_REDSTONE)
 /**
  * Creates a registry transaction.
- * 
+ *
  * @param RegistryTransactionHandle Pointer to a variable to receive the handle.
  * @param DesiredAccess Desired access mask.
  * @param ObjAttributes Optional pointer to object attributes.
@@ -1366,7 +1366,7 @@ NTSTATUS NtCreateRegistryTransaction(
 #if (PHNT_VERSION >= PHNT_REDSTONE)
 /**
  * Opens a registry transaction.
- * 
+ *
  * @param RegistryTransactionHandle Pointer to a variable to receive the handle.
  * @param DesiredAccess Desired access mask.
  * @param ObjAttributes Pointer to object attributes.
@@ -1382,7 +1382,7 @@ NTSTATUS NtOpenRegistryTransaction(
 #if (PHNT_VERSION >= PHNT_REDSTONE)
 /**
  * Commits a registry transaction.
- * 
+ *
  * @param RegistryTransactionHandle Handle to the registry transaction.
  * @param Flags Reserved for future use.
  * @return NTSTATUS Successful or errant status.
@@ -1396,7 +1396,7 @@ NTSTATUS NtCommitRegistryTransaction(
 #if (PHNT_VERSION >= PHNT_REDSTONE)
 /**
  * Rolls back a registry transaction.
- * 
+ *
  * @param RegistryTransactionHandle Handle to the registry transaction.
  * @param Flags Reserved for future use.
  * @return NTSTATUS Successful or errant status.

@@ -377,7 +377,7 @@ typedef struct _PAGE_PRIORITY_INFORMATION
 
 /**
  * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
  */
 typedef struct _PROCESS_BASIC_INFORMATION
@@ -502,7 +502,7 @@ typedef struct _VM_COUNTERS_EX2
 
 /**
  * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
  */
 typedef struct _KERNEL_USER_TIMES
@@ -552,7 +552,7 @@ typedef struct _PROCESS_EXCEPTION_PORT
 
 /**
  * The PROCESS_ACCESS_TOKEN structure is used to manage the security context of a process or thread.
- * 
+ *
  * A process's access token can only be changed if the process has no threads or a single thread that has not yet begun execution.
  */
 typedef struct _PROCESS_ACCESS_TOKEN
@@ -562,7 +562,7 @@ typedef struct _PROCESS_ACCESS_TOKEN
     // TOKEN_ASSIGN_PRIMARY access to this token is needed.
     //
     HANDLE Token;
-    
+
     //
     // Handle to the initial thread of the process.
     // THREAD_QUERY_INFORMATION access to this thread is needed.
@@ -1199,7 +1199,7 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
     {
         ULONG Eligible : 1;
         ULONG ReleaseRepurposedMemResetCommit : 1;
-        ULONG ForceReleaseMemResetCommit : 1; 
+        ULONG ForceReleaseMemResetCommit : 1;
         ULONG Spare : 29;
     };
     SIZE_T CommitDebt;
@@ -1477,7 +1477,7 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
     ULONGLONG CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
-// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles 
+// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
 typedef struct _THREAD_LOCK_OWNERSHIP
 {
     ULONG SrwLock[1];
@@ -1510,10 +1510,10 @@ typedef struct _THREAD_TEB_INFORMATION
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
-{   
-    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.  
-    ULONG Index;                    // An identifier for the specific counter.   
-    ULONG64 Start;                  // The initial value of the counter when measurement started.   
+{
+    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.
+    ULONG Index;                    // An identifier for the specific counter.
+    ULONG64 Start;                  // The initial value of the counter when measurement started.
     ULONG64 Total;                  // The accumulated value of the counter over the measurement period.
 } COUNTER_READING, *PCOUNTER_READING;
 
@@ -1523,7 +1523,7 @@ typedef struct _COUNTER_READING
 
 /**
  * The THREAD_PERFORMANCE_DATA structure aggregates various performance metrics for a thread.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
 typedef struct _THREAD_PERFORMANCE_DATA
@@ -2506,7 +2506,7 @@ NtSetLdtEntries(
 
 /**
  * Dispatches the Asynchronous Procedure Call (APC) from the NtQueueApc* functions to the specified routine.
- * 
+ *
  * @param ApcRoutine A pointer to the APC routine to be executed.
  * @param Parameter Optional. A pointer to a parameter to be passed to the APC routine.
  * @param ActxContext Optional. A handle to an activation context.
@@ -2522,7 +2522,7 @@ RtlDispatchAPC(
 
 /**
  * A pointer to a function that serves as an APC routine.
- * 
+ *
  * @param ApcArgument1 Optional. A pointer to the first argument to be passed to the APC routine.
  * @param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
  * @param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
@@ -2535,7 +2535,7 @@ typedef VOID (NTAPI* PPS_APC_ROUTINE)(
 
 /**
  * Encodes an APC routine pointer for use in a WOW64 environment.
- * 
+ *
  * @param ApcRoutine The APC routine pointer to be encoded.
  * @return PVOID The encoded APC routine pointer.
  */
@@ -2544,7 +2544,7 @@ typedef VOID (NTAPI* PPS_APC_ROUTINE)(
 
 /**
  * Decodes an APC routine pointer that was encoded for use in a WOW64 environment.
- * 
+ *
  * @param ApcRoutine The encoded APC routine pointer to be decoded.
  * @return PVOID The decoded APC routine pointer.
  */
@@ -3218,7 +3218,7 @@ NtCreateUserProcess(
 
 /**
  * A pointer to a user-defined function that serves as the starting routine for a new thread.
- * 
+ *
  * @param ThreadParameter A pointer to a variable to be passed to the thread.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3566,7 +3566,7 @@ NtAssignProcessToJobObject(
  * Terminates all processes associated with the job object. If the job is nested, all processes currently associated with the job and all child jobs in the hierarchy are terminated.
  *
  * @param JobHandle A handle to the job whose processes will be terminated. The handle must have the JOB_OBJECT_TERMINATE access right.
- * @param ExitStatus The exit status to be used by all processes and threads in the job object. 
+ * @param ExitStatus The exit status to be used by all processes and threads in the job object.
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -3755,7 +3755,7 @@ typedef enum _PSSNT_QUERY_INFORMATION_CLASS
 // rev
 /**
  * Captures a snapshot of the specified process.
- * 
+ *
  * @param SnapshotHandle Pointer to a variable that receives the snapshot handle.
  * @param ProcessHandle Handle to the process.
  * @param CaptureFlags Flags indicating what to capture.
@@ -3775,7 +3775,7 @@ PssNtCaptureSnapshot(
 // rev
 /**
  * Duplicates a process snapshot from one process to another.
- * 
+ *
  * @param SourceProcessHandle Handle to the source process.
  * @param SnapshotHandle Handle to the snapshot to duplicate.
  * @param TargetProcessHandle Handle to the target process.
@@ -3797,8 +3797,8 @@ PssNtDuplicateSnapshot(
 // rev
 /**
  * Frees a remote process snapshot.
- * 
- * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights. 
+ *
+ * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3812,7 +3812,7 @@ PssNtFreeSnapshot(
 // rev
 /**
  * Frees a snapshot.
- * 
+ *
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3827,7 +3827,7 @@ PssNtFreeRemoteSnapshot(
 // rev
 /**
  * Queries information from a the specified snapshot.
- * 
+ *
  * @param SnapshotHandle Handle to the snapshot.
  * @param InformationClass The information class to query.
  * @param Buffer Pointer to a buffer that receives the queried information.

@@ -96,7 +96,7 @@ NTSYSAPI GUID GUID_WINDOWS_RESUME_TARGET_TEMPLATE_PCAT;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_EFI;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_PCAT;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_RAMDISK_OPTIONS; // {ramdiskoptions}
-NTSYSAPI GUID GUID_VHD_BOOT_OPTIONS; 
+NTSYSAPI GUID GUID_VHD_BOOT_OPTIONS;
 NTSYSAPI GUID PARTITION_BASIC_DATA_GUID;
 NTSYSAPI GUID PARTITION_CLUSTER_GUID;
 NTSYSAPI GUID PARTITION_ENTRY_UNUSED_GUID;
@@ -126,7 +126,7 @@ typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
 
 /**
  * Sets the logging level and callback routine for BCD messages.
- * 
+ *
  * @param BcdLoggingLevel The logging level to set.
  * @param BcdMessageCallbackRoutine The callback routine for BCD messages.
  * @return NTSTATUS Successful or errant status.
@@ -151,7 +151,7 @@ BcdInitializeBcdSyncMutant(
 
 /**
  * Retrieves the file name for the BCD.
- * 
+ *
  * @param BcdSystemStorePath The pointer to receive the system store path.
  * @return NTSTATUS Successful or errant status.
  */
@@ -164,7 +164,7 @@ BcdGetSystemStorePath(
 
 /**
  * Sets the device for the system BCD store.
- * 
+ *
  * @param SystemPartition The system partition to set.
  * @return NTSTATUS Successful or errant status.
  */
@@ -177,7 +177,7 @@ BcdSetSystemStoreDevice(
 
 /**
  * Opens the BCD system store.
- * 
+ *
  * @param BcdStoreHandle The handle to receive the system store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -190,7 +190,7 @@ BcdOpenSystemStore(
 
 /**
  * Opens a BCD store from a file.
- * 
+ *
  * @param BcdFilePath The file path of the BCD store.
  * @param BcdStoreHandle The handle to receive the BCD store.
  * @return NTSTATUS Successful or errant status.
@@ -205,7 +205,7 @@ BcdOpenStoreFromFile(
 
 /**
  * Creates a BCD store.
- * 
+ *
  * @param BcdFilePath The file path to create the BCD store.
  * @param BcdStoreHandle The handle to receive the BCD store.
  * @return NTSTATUS Successful or errant status.
@@ -220,7 +220,7 @@ BcdCreateStore(
 
 /**
  * Exports the BCD store to a file.
- * 
+ *
  * @param BcdFilePath The file path to export the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -234,7 +234,7 @@ BcdExportStore(
 #if (PHNT_VERSION > PHNT_WIN11)
 /**
  * Exports the BCD store to a file with additional flags.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @param Flags The flags for exporting the store.
  * @param BcdFilePath The file path to export the BCD store.
@@ -252,7 +252,7 @@ BcdExportStoreEx(
 
 /**
  * Imports a BCD store from a file.
- * 
+ *
  * @param BcdFilePath The file path to import the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -271,7 +271,7 @@ typedef enum _BCD_IMPORT_FLAGS
 
 /**
  * Imports a BCD store from a file with additional flags.
- * 
+ *
  * @param BcdFilePath The file path to import the BCD store.
  * @param BcdImportFlags The flags for importing the store.
  * @return NTSTATUS Successful or errant status.
@@ -286,7 +286,7 @@ BcdImportStoreWithFlags(
 
 /**
  * Deletes object references in the BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @param Identifier The identifier of the object to delete references for.
  * @return NTSTATUS Successful or errant status.
@@ -301,7 +301,7 @@ BcdDeleteObjectReferences(
 
 /**
  * Deletes the system store for BCD.
- * 
+ *
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -320,7 +320,7 @@ typedef enum _BCD_OPEN_FLAGS
 
 /**
  * Opens a BCD store with additional flags.
- * 
+ *
  * @param BcdFilePath The file path of the BCD store.
  * @param BcdOpenFlags The flags for opening the store.
  * @param BcdStoreHandle The handle to receive the BCD store.
@@ -337,7 +337,7 @@ BcdOpenStore(
 
 /**
  * Closes a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -350,7 +350,7 @@ BcdCloseStore(
 
 /**
  * Flushes a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -363,7 +363,7 @@ BcdFlushStore(
 
 /**
  * Forcibly unloads a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
