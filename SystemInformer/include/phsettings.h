@@ -141,6 +141,9 @@ EXT ULONG PhCsEnableGraphMaxText;
 EXT ULONG PhCsEnableAvxSupport;
 EXT ULONG PhCsEnableHandleSnapshot;
 
+EXT BOOLEAN PhEnableProcessMonitor;
+EXT ULONG PhProcessMonitorLookback;
+
 #pragma pop_macro("EXT")
 
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
