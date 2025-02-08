@@ -47,4 +47,9 @@ VOID PhInformerInitialize(
     VOID
     );
 
+PPH_LIST PhInformerDatabaseQuery(
+    _In_ ULONG64 ProcessStartKey,
+    _In_opt_ PLARGE_INTEGER TimeStamp
+    );
+
 #endif
