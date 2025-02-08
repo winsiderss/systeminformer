@@ -1424,6 +1424,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK,
     PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY,
     PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE,
+    PHP_OPTIONS_INDEX_PROCESS_MONITOR,
     PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS
 } PHP_OPTIONS_GENERAL_INDEX;
 
@@ -1474,6 +1475,8 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"Single-click tray icons", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"Icon click toggles visibility", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"Include usage of collapsed processes", NULL);
+        if (WindowsVersion >= WINDOWS_10)
+            PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_PROCESS_MONITOR, L"Enable process monitor (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"Show advanced options", NULL);
     }
 
@@ -1506,6 +1509,8 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+    if (WindowsVersion >= WINDOWS_10)
+        SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROCESS_MONITOR, L"EnableProcessMonitor");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
 
     if (CurrentUserRunPresent)
@@ -1696,6 +1701,8 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+    if (WindowsVersion >= WINDOWS_10)
+        SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_PROCESS_MONITOR, L"EnableProcessMonitor");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
 
     if (PhGetIntegerSetting(L"EnableThemeSupport")) // PhGetIntegerSetting required (dmex)
