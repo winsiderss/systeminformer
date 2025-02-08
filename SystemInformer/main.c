@@ -80,6 +80,9 @@ INT WINAPI wWinMain(
 
     PhInitializePreviousInstance();
 
+    PhInitializeSuperclassControls();
+    PhInitializeCallbacks();
+
     if (PhEnableKsiSupport &&
         !PhStartupParameters.ShowOptions)
     {
@@ -100,7 +103,6 @@ INT WINAPI wWinMain(
     PhInitializeCommonControls();
 
     PhInitializeAppSystem();
-    PhInitializeCallbacks();
     PhEmInitialization();
 
     if (PhStartupParameters.ShowOptions)
