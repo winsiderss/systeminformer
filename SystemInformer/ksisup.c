@@ -1051,6 +1051,7 @@ VOID KsiConnect(
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(L"KsiDynDataNoEmbedded");
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
+    config.RingBufferLength = PhGetIntegerSetting(L"KsiRingBufferLength");
     config.Callback = KsiCommsCallback;
 
     status = KphConnect(&config);
