@@ -40,7 +40,8 @@ NTSTATUS
 NTAPI
 KphCommsStart(
     _In_ PCPH_STRINGREF PortName,
-    _In_opt_ PKPH_COMMS_CALLBACK Callback
+    _In_opt_ PKPH_COMMS_CALLBACK Callback,
+    _In_ ULONG RingBufferLength
     );
 
 VOID
