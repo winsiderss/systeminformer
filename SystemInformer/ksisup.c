@@ -1603,6 +1603,51 @@ NTSTATUS KsiConnect(
             KphStripProtectedProcessMasks(NtCurrentProcess(), process, thread);
     }
 
+    if (PhEnableProcessMonitor)
+    {
+        KPH_INFORMER_SETTINGS settings;
+
+        settings.Flags = MAXULONG64;
+        settings.Flags2 = MAXULONG64;
+        settings.Flags3 = MAXULONG64;
+
+        //
+        // Conservative settings for now.
+        //
+
+        settings.EnableStackTraces = FALSE;
+
+        settings.DebugPrint = FALSE;
+
+        settings.HandlePreCreateProcess = FALSE;
+        settings.HandlePostCreateProcess = FALSE;
+        settings.HandlePreDuplicateProcess = FALSE;
+        settings.HandlePostDuplicateProcess = FALSE;
+        settings.HandlePreCreateThread = FALSE;
+        settings.HandlePostCreateThread = FALSE;
+        settings.HandlePreDuplicateThread = FALSE;
+        settings.HandlePostDuplicateThread = FALSE;
+        settings.HandlePreCreateDesktop = FALSE;
+        settings.HandlePostCreateDesktop = FALSE;
+        settings.HandlePreDuplicateDesktop = FALSE;
+        settings.HandlePostDuplicateDesktop = FALSE;
+
+        settings.EnableProcessCreateReply = FALSE;
+        settings.FileEnablePreCreateReply = FALSE;
+        settings.FileEnablePostCreateReply = FALSE;
+
+        settings.FileEnablePostFileNames = FALSE;
+        settings.FileEnableIoControlBuffers = FALSE;
+        settings.FileEnableFsControlBuffers = FALSE;
+        settings.FileEnableDirControlBuffers = FALSE;
+
+        settings.RegEnablePostObjectNames = FALSE;
+        settings.RegEnablePostValueNames = FALSE;
+        settings.RegEnableValueBuffers = FALSE;
+
+        KphSetInformerSettings(&settings);
+    }
+
 CleanupExit:
 
     PhClearReference(&objectName);

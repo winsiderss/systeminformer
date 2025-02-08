@@ -394,6 +394,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN, L"1");    // SUPPORTED_FS_FEATURES_QUERY_OPEN
     PhpAddIntegerSetting(SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO, L"1");     // SUPPORTED_FS_FEATURES_BYPASS_IO
     PhpAddIntegerSetting(SETTING_KSI_RING_BUFFER_LENGTH, L"12c00000"); // bytes
+
+    PhpAddIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR, L"0");
+    PhpAddIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK, L"a");
 }
 
 VOID PhUpdateCachedSettings(
@@ -488,4 +491,7 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
     PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
     PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
+
+    PhEnableProcessMonitor = !!PhGetIntegerSetting(SETTING_ENABLE_PROCESS_MONITOR);
+    PhProcessMonitorLookback = PhGetIntegerSetting(SETTING_PROCESS_MONITOR_LOOKBACK);
 }

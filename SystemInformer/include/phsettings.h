@@ -141,6 +141,9 @@ EXT ULONG PhCsEnableGraphMaxText;
 EXT ULONG PhCsEnableAvxSupport;
 EXT ULONG PhCsEnableHandleSnapshot;
 
+EXT BOOLEAN PhEnableProcessMonitor;
+EXT ULONG PhProcessMonitorLookback;
+
 #pragma pop_macro("EXT")
 
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))
@@ -517,6 +520,8 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN                    L"KsiEnableFsFeatureQueryOpen"
 #define SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO                     L"KsiEnableFsFeatureBypassIO"
 #define SETTING_KSI_RING_BUFFER_LENGTH                              L"KsiRingBufferLength"
+#define SETTING_ENABLE_PROCESS_MONITOR                              L"EnableProcessMonitor"
+#define SETTING_PROCESS_MONITOR_LOOKBACK                            L"ProcessMonitorLookback"
 // end_phapppub
 
 #endif

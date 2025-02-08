@@ -425,6 +425,10 @@ C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 
 EXTERN_C_START
 
+VOID KphMsgQuerySystemTime(
+    _Out_ PLARGE_INTEGER SystemTime
+    );
+
 VOID KphMsgInit(
     _Out_writes_bytes_(KPH_MESSAGE_MIN_SIZE) PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_ID MessageId
