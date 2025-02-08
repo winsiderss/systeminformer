@@ -1398,6 +1398,7 @@ NTSTATUS KsiConnect(
     config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(SETTING_KSI_DYN_DATA_NO_EMBEDDED);
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
+    config.RingBufferLength = PhGetIntegerSetting(SETTING_KSI_RING_BUFFER_LENGTH);
     config.Callback = KsiCommsCallback;
 
     status = KphConnect(&config);

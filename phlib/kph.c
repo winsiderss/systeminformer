@@ -35,7 +35,7 @@ NTSTATUS KphConnect(
 
     portName = (Config->PortName ? Config->PortName : &KphDefaultPortName);
 
-    status = KphCommsStart(portName, Config->Callback);
+    status = KphCommsStart(portName, Config->Callback, Config->RingBufferLength);
 
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
         return status;
@@ -48,7 +48,7 @@ NTSTATUS KphConnect(
 
         if (NT_SUCCESS(status))
         {
-            status = KphCommsStart(portName, Config->Callback);
+            status = KphCommsStart(portName, Config->Callback, Config->RingBufferLength);
         }
 
         return status;
@@ -73,7 +73,7 @@ NTSTATUS KphConnect(
         if (!NT_SUCCESS(status))
             goto CreateAndConnectEnd;
 
-        status = KphCommsStart(portName, Config->Callback);
+        status = KphCommsStart(portName, Config->Callback, Config->RingBufferLength);
 
         goto CreateAndConnectEnd;
     }
@@ -121,7 +121,7 @@ NTSTATUS KphConnect(
     if (!NT_SUCCESS(status))
         goto CreateAndConnectEnd;
 
-    status = KphCommsStart(portName, Config->Callback);
+    status = KphCommsStart(portName, Config->Callback, Config->RingBufferLength);
 
 CreateAndConnectEnd:
 

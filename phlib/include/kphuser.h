@@ -40,6 +40,7 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ KPH_PARAMETER_FLAGS Flags;
     _In_ BOOLEAN EnableNativeLoad;
     _In_ BOOLEAN EnableFilterLoad;
+    _In_ ULONG RingBufferLength;
     _In_opt_ PKPH_COMMS_CALLBACK Callback;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 

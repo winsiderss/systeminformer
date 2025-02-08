@@ -41,13 +41,7 @@ ULONG KphpCommsMessageCount = 0;
 PH_RUNDOWN_PROTECT KphpCommsRundown;
 PH_FREE_LIST KphpCommsReplyFreeList;
 HANDLE KphpCommsRingBufferThread = NULL;
-KPH_RING_BUFFER_CONNECT KphpCommsRingBuffer =
-{
-    .Length = (8 * 1024 * 1024),
-    .EventHandle = NULL,
-    .Ring.Consumer = NULL,
-    .Ring.Producer = NULL,
-};
+KPH_RING_BUFFER_CONNECT KphpCommsRingBuffer = { 0 };
 
 #define KPH_COMMS_MIN_THREADS   2
 #define KPH_COMMS_MESSAGE_SCALE 2
@@ -224,18 +218,22 @@ NTSTATUS NTAPI KphpRingBufferProcessor(
  * \param[in] PortName Communication port name.
  * \param[in] Callback Communication callback for receiving (and replying to)
  * messages from the driver.
+ * \param[in] RingBufferLength Size of the ring buffer to use for messages.
  *
  * \return Successful or errant status.
  */
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
     _In_ PCPH_STRINGREF PortName,
-    _In_opt_ PKPH_COMMS_CALLBACK Callback
+    _In_opt_ PKPH_COMMS_CALLBACK Callback,
+    _In_ ULONG RingBufferLength
     )
 {
     NTSTATUS status;
     ULONG numberOfThreads;
     PVOID connectionContext;
+    PVOID connectionContextPointer;
+    USHORT connectionContextSize;
 
     if (KphpCommsFltPortHandle)
     {
@@ -243,15 +241,25 @@ NTSTATUS KphCommsStart(
         goto CleanupExit;
     }
 
-    NtCreateEvent(&KphpCommsRingBuffer.EventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
-
-    connectionContext = &KphpCommsRingBuffer;
+    if (RingBufferLength)
+    {
+        NtCreateEvent(&KphpCommsRingBuffer.EventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
+        KphpCommsRingBuffer.Length = RingBufferLength;
+        connectionContext = &KphpCommsRingBuffer;
+        connectionContextPointer = &connectionContext;
+        connectionContextSize = sizeof(PVOID);
+    }
+    else
+    {
+        connectionContextPointer = NULL;
+        connectionContextSize = 0;
+    }
 
     if (!NT_SUCCESS(status = PhFilterConnectCommunicationPort(
         PortName,
         0,
-        &connectionContext,
-        sizeof(connectionContext),
+        connectionContextPointer,
+        connectionContextSize,
         NULL,
         &KphpCommsFltPortHandle
         )))
@@ -263,8 +271,11 @@ NTSTATUS KphCommsStart(
     PhInitializeRundownProtection(&KphpCommsRundown);
     PhInitializeFreeList(&KphpCommsReplyFreeList, sizeof(KPH_UREPLY), 16);
 
-    if (!NT_SUCCESS(status = PhCreateThreadEx(&KphpCommsRingBufferThread, KphpRingBufferProcessor, NULL)))
-        goto CleanupExit;
+    if (RingBufferLength)
+    {
+        if (!NT_SUCCESS(status = PhCreateThreadEx(&KphpCommsRingBufferThread, KphpRingBufferProcessor, NULL)))
+            goto CleanupExit;
+    }
 
     if (PhSystemProcessorInformation.NumberOfProcessors >= KPH_COMMS_MIN_THREADS)
         numberOfThreads = PhSystemProcessorInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE;

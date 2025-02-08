@@ -516,6 +516,7 @@ EXT ULONG PhCsEnableHandleSnapshot;
 #define SETTING_KSI_ENABLE_FS_FEATURE_OFFLOAD_WRITE                 L"KsiEnableFsFeatureOffloadWrite"
 #define SETTING_KSI_ENABLE_FS_FEATURE_QUERY_OPEN                    L"KsiEnableFsFeatureQueryOpen"
 #define SETTING_KSI_ENABLE_FS_FEATURE_BYPASS_IO                     L"KsiEnableFsFeatureBypassIO"
+#define SETTING_KSI_RING_BUFFER_LENGTH                              L"KsiRingBufferLength"
 // end_phapppub
 
 #endif
