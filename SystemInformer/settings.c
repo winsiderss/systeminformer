@@ -380,6 +380,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadWrite", L"1"); // SUPPORTED_FS_FEATURES_OFFLOAD_WRITE
     PhpAddIntegerSetting(L"KsiEnableFsFeatureQueryOpen", L"1");    // SUPPORTED_FS_FEATURES_QUERY_OPEN
     PhpAddIntegerSetting(L"KsiEnableFsFeatureBypassIO", L"1");     // SUPPORTED_FS_FEATURES_BYPASS_IO
+    PhpAddIntegerSetting(L"KsiRingBufferLength", L"12c00000"); // bytes
 }
 
 VOID PhUpdateCachedSettings(
