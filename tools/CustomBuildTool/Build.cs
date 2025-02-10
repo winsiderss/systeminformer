@@ -47,7 +47,7 @@ namespace CustomBuildTool
             // Ensures consistent time stamp across build invocations. The file is written by pipeline builds.
             if (File.Exists($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt"))
             {
-                var timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
+                ReadOnlySpan<char> timestamp = Utils.ReadAllText($"{Build.BuildOutputFolder}\\systeminformer-build-timestamp.txt");
                 Build.TimeStart = DateTime.Parse(timestamp);
             }
             else
@@ -57,7 +57,7 @@ namespace CustomBuildTool
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
-                if (MemoryExtensions.Equals(build_definition, "canary", StringComparison.OrdinalIgnoreCase))
+                if (build_definition.Equals("canary", StringComparison.OrdinalIgnoreCase))
                 {
                     Build.BuildCanary = true;
                     Program.PrintColorMessage("[CANARY BUILD]", ConsoleColor.Cyan);
@@ -66,7 +66,7 @@ namespace CustomBuildTool
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_DEBUG", out ReadOnlySpan<char> build_debug))
             {
-                if (MemoryExtensions.Equals(build_debug, "true", StringComparison.OrdinalIgnoreCase))
+                if (build_debug.Equals("true", StringComparison.OrdinalIgnoreCase))
                 {
                     Build.BuildToolsDebug = true;
                     Program.PrintColorMessage("[DEBUG BUILD]", ConsoleColor.Cyan);
@@ -172,13 +172,30 @@ namespace CustomBuildTool
 
         public static string BuildVersionBuild
         {
-            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}".TrimStart('0'); }
+            get 
+            {
+                // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
+                var first = (TimeStart.Year % 100).ToString();
+                // Extract the day of the year (1 to 365 or 366 in a leap year). Padding with leading zeros if necessary.
+                // For example, if the day of the year is 5, it will be converted to "005".
+                var second = TimeStart.DayOfYear.ToString("D3");
+                // Format the strings: 23005
+                return string.Concat([first, second]);
+            }
         }
 
         public static string BuildVersionRevision
         {
-            // Remove leading zeros or the value is interpreted as octal.
-            get { return $"{TimeStart.Hour}{TimeStart.Minute:D2}".TrimStart('0'); }
+            get
+            {
+                // Extract the hour of the day. For example, if the hour is 0|23, (Hour + 1) will result in 1|24.
+                var first = (TimeStart.Hour + 1).ToString();
+                // Extract the minute of the hour (0 to 59). Padding with leading zeros if necessary.
+                // For example, if the minute of the hour is 5, it will be converted to "005".
+                var second = TimeStart.Minute.ToString("D2");
+                // Format the strings: 1005|24005
+                return string.Concat([first, second]);
+            }
         }
 
         public static string BuildUpdated

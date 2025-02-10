@@ -27,7 +27,7 @@
                 var MemoryCertStore = PInvoke.CertOpenStore(
                     new PCSTR(p),
                     0,
-                    (HCRYPTPROV_LEGACY)0,
+                    default,
                     0,
                     null
                     );
