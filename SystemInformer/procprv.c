@@ -1367,7 +1367,7 @@ VOID PhpFillProcessItem(
         if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(ProcessItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
         {
             SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
-            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            PSID UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
             SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
             PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
             SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
@@ -1384,9 +1384,10 @@ VOID PhpFillProcessItem(
             ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
             ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
 
-            if (!ProcessItem->Sid && RtlValidSid(UserSidBuffer))
+            if (!ProcessItem->Sid && PhValidSid(UserSidBuffer))
             {
                 ProcessItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+                ProcessItem->UserName = PhpGetSidFullNameCached(UserSidBuffer);
             }
 
             if (PhIsNullOrEmptyString(ProcessItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
@@ -4284,7 +4285,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
         if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(processItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
         {
             SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
-            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            PSID UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
             SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
             PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
             SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
@@ -4301,9 +4302,10 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
             processItem->ImageChecksum = telemetryInfo->ImageChecksum;
             processItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
 
-            if (!processItem->Sid && RtlValidSid(UserSidBuffer))
+            if (!processItem->Sid && PhValidSid(UserSidBuffer))
             {
                 processItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+                processItem->UserName = PhpGetSidFullNameCached(UserSidBuffer);
             }
 
             if (PhIsNullOrEmptyString(processItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
