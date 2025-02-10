@@ -293,7 +293,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     );
 
@@ -301,7 +301,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveXmlObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     );

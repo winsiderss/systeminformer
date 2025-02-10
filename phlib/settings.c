@@ -138,7 +138,7 @@ PPH_STRING PhSettingToString(
 
 BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF StringRef,
+    _In_ PCPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
     _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
@@ -260,7 +260,7 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PH_SETTING lookupSetting;
@@ -297,7 +297,7 @@ VOID PhEnumSettings(
 }
 
 _May_raise_ ULONG PhGetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -325,7 +325,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
 }
 
 _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -353,7 +353,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
 }
 
 _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     )
@@ -393,7 +393,7 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
 }
 
 _May_raise_ PPH_STRING PhGetStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -448,7 +448,7 @@ _May_raise_ BOOLEAN PhGetBinarySetting(
 }
 
 _May_raise_ VOID PhSetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG Value
     )
 {
@@ -470,7 +470,7 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
 }
 
 _May_raise_ VOID PhSetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     )
 {
@@ -491,7 +491,7 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_SCALABLE_INTEGER_PAIR Value
     )
 {
@@ -514,7 +514,7 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     )
@@ -527,8 +527,8 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
 }
 
 _May_raise_ VOID PhSetStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Value
     )
 {
     PPH_SETTING setting;
@@ -645,7 +645,7 @@ VOID PhConvertIgnoredSettings(
 }
 
 NTSTATUS PhLoadSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -751,8 +751,8 @@ PSTR PhpSettingsSaveCallback(
 
 PVOID PhpCreateSettingElement(
     _Inout_ PVOID ParentNode,
-    _In_ PPH_STRINGREF SettingName,
-    _In_ PPH_STRINGREF SettingValue
+    _In_ PCPH_STRINGREF SettingName,
+    _In_ PCPH_STRINGREF SettingValue
     )
 {
     PVOID settingNode;
@@ -777,7 +777,7 @@ PVOID PhpCreateSettingElement(
 }
 
 NTSTATUS PhSaveSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -851,8 +851,8 @@ VOID PhResetSettings(
 
 VOID PhAddSetting(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF DefaultValue
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF DefaultValue
     )
 {
     PH_SETTING setting;
@@ -890,7 +890,7 @@ VOID PhAddSettings(
 }
 
 PPH_SETTING PhGetSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;

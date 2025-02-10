@@ -170,9 +170,9 @@ PH_ACCESS_ENTRY CONST PhpGroupDescriptionEntries[6] =
     { NULL, SE_GROUP_RESOURCE, FALSE, FALSE, L"Resource" }
 };
 
-static PH_STRINGREF PhpEmptyTokenAttributesText = PH_STRINGREF_INIT(L"There are no attributes to display.");
-static PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There are no claims to display.");
-static PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
+static CONST PH_STRINGREF PhpEmptyTokenAttributesText = PH_STRINGREF_INIT(L"There are no attributes to display.");
+static CONST PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There are no claims to display.");
+static CONST PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
 
 INT CALLBACK PhpTokenPropPageProc(
     _In_ HWND hwnd,
@@ -3203,7 +3203,7 @@ BOOLEAN PhpAddTokenCapabilities(
                         {
                             if (PhIsPackageCapabilitySid(tokenAppContainer.AppContainer.Sid, TokenPageContext->Capabilities->Groups[i].Sid))
                             {
-                                static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
+                                static CONST PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
 
                                 if (name = PhGetTokenPackageFullName(tokenHandle))
                                 {
@@ -3239,8 +3239,8 @@ BOOLEAN PhpAddTokenCapabilities(
 
                         if (name = PhFormatGuid(&capabilityGuid.Guid))
                         {
-                            static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
-                            static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
+                            static CONST PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
+                            static CONST PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
 
                             PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
 
@@ -3488,7 +3488,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     _In_ ULONG ValueIndex
     )
 {
-    static PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
+    static CONST PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
     PH_FORMAT format[6];
     ULONG count = 0;
 
@@ -4162,7 +4162,7 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
                     {
                         if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
                         {
-                            static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
+                            static CONST PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
 
                             PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
                                 &tokenProfilePathString->sr,

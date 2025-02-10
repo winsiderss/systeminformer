@@ -138,11 +138,11 @@ VOID PhInitializeCallbacks(
     );
 
 BOOLEAN PhIsPluginDisabled(
-    _In_ PPH_STRINGREF BaseName
+    _In_ PCPH_STRINGREF BaseName
     );
 
 VOID PhSetPluginDisabled(
-    _In_ PPH_STRINGREF BaseName,
+    _In_ PCPH_STRINGREF BaseName,
     _In_ BOOLEAN Disable
     );
 

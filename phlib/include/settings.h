@@ -22,8 +22,8 @@ EXTERN_C_START
 
 #define ADD_SETTING_WRAPPER(Type, Name, DefaultValue) \
 { \
-    static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
-    static PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
+    static CONST PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
+    static CONST PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
     PhAddSetting(Type, &name, &defaultValue); \
 }
 
@@ -71,7 +71,7 @@ PPH_STRING PhSettingToString(
 
 BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF StringRef,
+    _In_ PCPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
     _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
@@ -94,7 +94,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 _May_raise_
@@ -102,7 +102,7 @@ PHLIBAPI
 PH_INTEGER_PAIR
 NTAPI
 PhGetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 _May_raise_
@@ -110,7 +110,7 @@ PHLIBAPI
 PH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     );
@@ -120,7 +120,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 _May_raise_
@@ -128,7 +128,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG Value
     );
 
@@ -137,7 +137,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     );
 
@@ -146,7 +146,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_SCALABLE_INTEGER_PAIR Value
     );
 
@@ -155,7 +155,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting2(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     );
@@ -165,8 +165,8 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Value
     );
 
 FORCEINLINE
@@ -284,7 +284,7 @@ VOID
 NTAPI
 PhSetStringSetting2(
     _In_ PCWSTR Name,
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Value
     )
 {
     PH_STRINGREF name;
@@ -355,11 +355,11 @@ VOID PhConvertIgnoredSettings(
     );
 
 NTSTATUS PhLoadSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 NTSTATUS PhSaveSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 VOID PhResetSettings(
@@ -371,8 +371,8 @@ VOID PhResetSettings(
 
 VOID PhAddSetting(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF DefaultValue
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF DefaultValue
     );
 
 typedef struct _PH_SETTING_CREATE
@@ -394,7 +394,7 @@ PHLIBAPI
 PPH_SETTING
 NTAPI
 PhGetSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI

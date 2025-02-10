@@ -3981,7 +3981,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhStringToInteger64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
     _Out_opt_ PLONG64 Integer
     );

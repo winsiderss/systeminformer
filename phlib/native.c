@@ -4034,7 +4034,7 @@ NTSTATUS PhSetFileRename(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE RootDirectory,
     _In_ BOOLEAN ReplaceIfExists,
-    _In_ PPH_STRINGREF NewFileName
+    _In_ PCPH_STRINGREF NewFileName
     )
 {
     NTSTATUS status;
@@ -10568,7 +10568,7 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
 }
 
 NTSTATUS PhCreateDirectoryFullPath(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PH_STRINGREF directoryPart;

@@ -2034,7 +2034,7 @@ NTSTATUS PhRunAsServiceStart(
             { RtlConvertUlongToLuid(SE_RESTORE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
             { RtlConvertUlongToLuid(SE_IMPERSONATE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
         };
-        UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
+        const UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
         PTOKEN_PRIVILEGES tokenPrivileges;
 
         tokenPrivileges = (PTOKEN_PRIVILEGES)privilegesBuffer;

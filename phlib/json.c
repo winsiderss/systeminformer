@@ -627,7 +627,7 @@ PVOID PhLoadXmlObjectFromString(
 }
 
 NTSTATUS PhLoadXmlObjectFromFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     )
 {
@@ -682,7 +682,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
 }
 
 NTSTATUS PhSaveXmlObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     )

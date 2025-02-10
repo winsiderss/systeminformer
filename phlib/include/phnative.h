@@ -1564,7 +1564,7 @@ PhSetFileRename(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE RootDirectory,
     _In_ BOOLEAN ReplaceIfExists,
-    _In_ PPH_STRINGREF NewFileName
+    _In_ PCPH_STRINGREF NewFileName
     );
 
 PHLIBAPI
@@ -3091,7 +3091,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectoryFullPath(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
