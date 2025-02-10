@@ -56,9 +56,6 @@ typedef enum _PHP_AGGREGATE_LOCATION
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
 
-static GUID IID_INetFwMgr_I = { 0xf7898af5, 0xcac4, 0x4632, { 0xa2, 0xec, 0xda, 0x06, 0xe5, 0x11, 0x1a, 0xf2 } };
-static GUID CLSID_NetFwMgr_I = { 0x304ce942, 0x6e39, 0x40d8, { 0x94, 0x3a, 0xb9, 0x13, 0xc4, 0x0c, 0x9c, 0xd4 } };
-
 VOID EtpAddTreeNewColumn(
     _In_ PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
     _In_ ULONG SubId,
@@ -923,12 +920,12 @@ VOID EtProcessTreeNewMessage(
                 PH_FORMAT format[2];
                 ULONG64 value;
 
+                if (number == 0)
+                    break;
+
                 value = number;
                 value *= 1000;
                 value /= EtUpdateInterval;
-
-                if (value == 0)
-                    break;
 
                 PhInitFormatSize(&format[0], value);
                 PhInitFormatS(&format[1], L"/s");
@@ -944,10 +941,10 @@ VOID EtProcessTreeNewMessage(
             {
                 PH_FORMAT format[2];
 
-                if (decimal == 0.0)
+                if (decimal == 0.f)
                     break;
 
-                decimal *= 100;
+                decimal *= 100.f;
                 PhInitFormatF(&format[0], decimal, 2);
                 PhInitFormatC(&format[1], L'%');
 
@@ -962,7 +959,7 @@ VOID EtProcessTreeNewMessage(
             {
                 PH_FORMAT format[1];
 
-                if (decimal == 0.0)
+                if (decimal == 0.f)
                     break;
 
                 PhInitFormatF(&format[0], decimal, 2);
@@ -978,10 +975,10 @@ VOID EtProcessTreeNewMessage(
             {
                 PH_FORMAT format[2];
 
-                if (decimal == 0.0)
+                if (decimal == 0.f)
                     break;
 
-                decimal *= 100;
+                decimal *= 100.f;
                 PhInitFormatF(&format[0], decimal, 2);
                 PhInitFormatC(&format[1], L'%');
 
@@ -1235,13 +1232,13 @@ VOID EtNetworkTreeNewMessage(
 
                     if (block->FirewallStatus >= FirewallUnknownStatus && block->FirewallStatus < FirewallMaximumStatus)
                     {
-                        static PH_STRINGREF strings[FirewallMaximumStatus] =
+                        static CONST PH_STRINGREF strings[FirewallMaximumStatus] =
                         {
                             PH_STRINGREF_INIT(L"Unknown"),
                             PH_STRINGREF_INIT(L"Allowed, not restricted"),
                             PH_STRINGREF_INIT(L"Allowed, restricted"),
                             PH_STRINGREF_INIT(L"Not allowed, not restricted"),
-                            PH_STRINGREF_INIT(L"Not allowed, restricted")
+                            PH_STRINGREF_INIT(L"Not allowed, restricted"),
                         };
 
                         block->TextCacheLength[message->SubId] = strings[block->FirewallStatus].Length;
@@ -1363,7 +1360,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
 
     if (!manager)
     {
-        if (!SUCCEEDED(PhGetClassObject(L"firewallapi.dll", &CLSID_NetFwMgr_I, &IID_INetFwMgr_I, &manager)))
+        if (!SUCCEEDED(PhGetClassObject(L"firewallapi.dll", &CLSID_NetFwMgr, &IID_INetFwMgr, &manager)))
             return FirewallUnknownStatus;
 
         if (!manager)
@@ -1375,7 +1372,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
     if (!processItem)
         return FirewallUnknownStatus;
 
-    if (!processItem->FileName)
+    if (PhIsNullOrEmptyString(processItem->FileName))
     {
         PhDereferenceObject(processItem);
         return FirewallUnknownStatus;
