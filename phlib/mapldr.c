@@ -215,7 +215,7 @@ NTSTATUS PhLoadLibraryAsResource(
     InitializeObjectAttributes(
         &sectionAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );
@@ -2527,7 +2527,6 @@ NTSTATUS PhLoaderEntryLoadDll(
     PVOID imageBaseAddress;
     SIZE_T imageBaseOffset;
 
-
     status = PhCreateFile(
         &fileHandle,
         FileName,
@@ -2831,7 +2830,7 @@ NTSTATUS PhGetFileBinaryTypeWin32(
     InitializeObjectAttributes(
         &objectAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );

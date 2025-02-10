@@ -25,6 +25,7 @@ NTSTATUS PhSvcConnectToServer(
     static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     NTSTATUS status;
     HANDLE sectionHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
     LARGE_INTEGER sectionSize;
     PORT_VIEW clientView;
     REMOTE_PORT_VIEW serverView;
@@ -39,13 +40,21 @@ NTSTATUS PhSvcConnectToServer(
     if (PortSectionSize == 0)
         PortSectionSize = UInt32x32To64(8, 1024 * 1024); // 8 MB
 
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
     // Create the port section and connect to the port.
 
     sectionSize.QuadPart = PortSectionSize;
     status = NtCreateSection(
         &sectionHandle,
         SECTION_ALL_ACCESS,
-        NULL,
+        &objectAttributes,
         &sectionSize,
         PAGE_READWRITE,
         SEC_COMMIT,
