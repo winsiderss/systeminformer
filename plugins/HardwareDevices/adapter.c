@@ -180,6 +180,11 @@ VOID NetworkDevicesUpdate(
             entry->CurrentNetworkSend = entry->NetworkSendDelta.Delta;
             entry->CurrentNetworkReceive = entry->NetworkReceiveDelta.Delta;
 
+            entry->CurrentNetworkSend *= 1000;
+            entry->CurrentNetworkSend /= NetUpdateInterval;
+            entry->CurrentNetworkReceive *= 1000;
+            entry->CurrentNetworkReceive /= NetUpdateInterval;
+
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, entry->CurrentNetworkSend);
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, entry->CurrentNetworkReceive);
         }
