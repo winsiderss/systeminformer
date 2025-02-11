@@ -138,6 +138,15 @@ PhMappedImagePrefetch(
 PHLIBAPI
 PIMAGE_SECTION_HEADER
 NTAPI
+PhMappedImageSectionByName(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN IgnoreCase
+    );
+
+PHLIBAPI
+PIMAGE_SECTION_HEADER
+NTAPI
 PhMappedImageRvaToSection(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva

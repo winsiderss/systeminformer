@@ -513,6 +513,30 @@ VOID PhMappedImagePrefetch(
     PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
 }
 
+PIMAGE_SECTION_HEADER PhMappedImageSectionByName(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    for (USHORT i = 0; i < MappedImage->NumberOfSections; i++)
+    {
+        WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+        if (PhGetMappedImageSectionName(
+            &MappedImage->Sections[i],
+            sectionName,
+            RTL_NUMBER_OF(sectionName),
+            nullptr
+            ) && PhEqualStringZ(sectionName, Name, IgnoreCase))
+        {
+            return &MappedImage->Sections[i];
+        }
+    }
+
+    return NULL;
+}
+
 PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva
