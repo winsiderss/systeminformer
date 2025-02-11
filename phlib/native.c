@@ -2511,12 +2511,12 @@ NTSTATUS PhGetTokenSecurityAttribute(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING attributeName;
+    UNICODE_STRING attributeName[1];
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION buffer;
     ULONG bufferLength;
     ULONG returnLength;
 
-    if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
+    if (!PhStringRefToUnicodeString(AttributeName, &attributeName[0]))
         return STATUS_NAME_TOO_LONG;
 
     returnLength = 0;
@@ -2526,8 +2526,8 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
     status = NtQuerySecurityAttributesToken(
         TokenHandle,
-        &attributeName,
-        1,
+        attributeName,
+        RTL_NUMBER_OF(attributeName),
         buffer,
         bufferLength,
         &returnLength
@@ -2541,8 +2541,8 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
         status = NtQuerySecurityAttributesToken(
             TokenHandle,
-            &attributeName,
-            1,
+            attributeName,
+            RTL_NUMBER_OF(attributeName),
             buffer,
             bufferLength,
             &returnLength
@@ -2601,7 +2601,7 @@ PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
 {
     for (ULONG i = 0; i < Attributes->AttributeCount; i++)
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &Attributes->Attribute.pAttributeV1[i];
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &Attributes->AttributeV1[i];
         PH_STRINGREF attributeName;
 
         PhUnicodeStringToStringRef(&attribute->Name, &attributeName);
@@ -2732,7 +2732,7 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
 
         if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
         {
-            value = attribute->Values.pUint64[ValueIndex];
+            value = attribute->Values.Uint64[ValueIndex];
         }
 
         PhFree(info);
@@ -2756,7 +2756,7 @@ PPH_STRING PhGetTokenSecurityAttributeValueString(
 
         if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
         {
-            value = PhCreateStringFromUnicodeString(&attribute->Values.pString[ValueIndex]);
+            value = PhCreateStringFromUnicodeString(&attribute->Values.String[ValueIndex]);
         }
 
         PhFree(info);
@@ -2784,8 +2784,8 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
             PPH_STRING relativeIdName;
             PPH_STRING packageFamilyName;
 
-            relativeIdName = PhCreateStringFromUnicodeString(&attribute->Values.pString[1]);
-            packageFamilyName = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
+            relativeIdName = PhCreateStringFromUnicodeString(&attribute->Values.String[1]);
+            packageFamilyName = PhCreateStringFromUnicodeString(&attribute->Values.String[2]);
 
             applicationUserModelId = PhConcatStringRef3(
                 &packageFamilyName->sr,
@@ -2817,7 +2817,7 @@ PPH_STRING PhGetTokenPackageFullName(
 
         if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
         {
-            packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
+            packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.String[0]);
         }
 
         PhFree(info);
@@ -4038,50 +4038,93 @@ NTSTATUS PhSetFileRename(
     )
 {
     NTSTATUS status;
-    IO_STATUS_BLOCK ioStatusBlock;
-    ULONG renameInfoLength;
 
     if (WindowsVersion < WINDOWS_10_RS1)
     {
         PFILE_RENAME_INFORMATION renameInfo;
+        IO_STATUS_BLOCK ioStatusBlock;
+        ULONG renameInfoLength;
 
-        renameInfoLength = FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName) + (ULONG)NewFileName->Length;
-        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
-        renameInfo->ReplaceIfExists = ReplaceIfExists;
-        renameInfo->RootDirectory = RootDirectory;
-        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
-        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength);
 
-        status = NtSetInformationFile(
-            FileHandle,
-            &ioStatusBlock,
-            renameInfo,
-            renameInfoLength,
-            FileRenameInformation
-            );
+        if (renameInfo)
+        {
+            RtlZeroMemory(renameInfo, renameInfoLength);
+            renameInfo->ReplaceIfExists = ReplaceIfExists;
+            renameInfo->RootDirectory = RootDirectory;
+            renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+            RtlCopyMemory(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
 
-        _freea(renameInfo);
+            {
+                FILE_BASIC_INFORMATION basicInfo;
+
+                RtlZeroMemory(&basicInfo, sizeof(FILE_BASIC_INFORMATION));
+                basicInfo.FileAttributes = FILE_ATTRIBUTE_NORMAL;
+
+                PhSetFileBasicInformation(FileHandle, &basicInfo);
+            }
+
+            status = NtSetInformationFile(
+                FileHandle,
+                &ioStatusBlock,
+                renameInfo,
+                renameInfoLength,
+                FileRenameInformation
+                );
+
+            _freea(renameInfo);
+        }
+        else
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+        }
     }
     else
     {
         PFILE_RENAME_INFORMATION_EX renameInfo;
+        IO_STATUS_BLOCK ioStatusBlock;
+        ULONG renameInfoLength;
 
-        renameInfoLength = FIELD_OFFSET(FILE_RENAME_INFORMATION_EX, FileName) + (ULONG)NewFileName->Length;
-        renameInfo = _malloca(renameInfoLength); if (!renameInfo) return STATUS_NO_MEMORY;
-        renameInfo->Flags = FILE_RENAME_POSIX_SEMANTICS | FILE_RENAME_IGNORE_READONLY_ATTRIBUTE | (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0);
-        renameInfo->RootDirectory = RootDirectory;
-        renameInfo->FileNameLength = (ULONG)NewFileName->Length;
-        memcpy(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+        renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+        renameInfo = _malloca(renameInfoLength);
 
-        status = NtSetInformationFile(
-            FileHandle,
-            &ioStatusBlock,
-            renameInfo,
-            renameInfoLength,
-            FileRenameInformationEx
-            );
+        if (renameInfo)
+        {
+            RtlZeroMemory(renameInfo, renameInfoLength);
+            renameInfo->Flags = (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0) | FILE_RENAME_POSIX_SEMANTICS;
+            renameInfo->RootDirectory = RootDirectory;
+            renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+            RtlCopyMemory(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
 
-        _freea(renameInfo);
+            if (WindowsVersion >= WINDOWS_10_RS5)
+            {
+                SetFlag(renameInfo->Flags, FILE_RENAME_IGNORE_READONLY_ATTRIBUTE);
+            }
+            else
+            {
+                FILE_BASIC_INFORMATION basicInfo;
+
+                RtlZeroMemory(&basicInfo, sizeof(FILE_BASIC_INFORMATION));
+                basicInfo.FileAttributes = FILE_ATTRIBUTE_NORMAL;
+
+                PhSetFileBasicInformation(FileHandle, &basicInfo);
+            }
+
+            status = NtSetInformationFile(
+                FileHandle,
+                &ioStatusBlock,
+                renameInfo,
+                renameInfoLength,
+                FileRenameInformationEx
+                );
+
+            _freea(renameInfo);
+        }
+        else
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+        }
     }
 
     return status;

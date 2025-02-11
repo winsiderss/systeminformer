@@ -1241,9 +1241,9 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
-    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
         if (
             ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
@@ -1280,9 +1280,9 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
-    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
         if (
             ((ULONG_PTR)Rva >= (ULONG_PTR)sectionHeader->VirtualAddress) &&
@@ -2358,14 +2358,14 @@ NTSTATUS PhLoaderEntryRelocateImage(
     if (FlagOn(imageNtHeader->FileHeader.Characteristics, IMAGE_FILE_RELOCS_STRIPPED))
         return STATUS_SUCCESS;
 
-    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
     {
         PIMAGE_SECTION_HEADER sectionHeader;
         PVOID sectionHeaderAddress;
         SIZE_T sectionHeaderSize;
         ULONG sectionProtectionJunk = 0;
 
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
@@ -2416,7 +2416,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
         relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
     }
 
-    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
     {
         PIMAGE_SECTION_HEADER sectionHeader;
         PVOID sectionHeaderAddress;
@@ -2424,7 +2424,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
         ULONG sectionProtection = 0;
         ULONG sectionProtectionJunk = 0;
 
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 

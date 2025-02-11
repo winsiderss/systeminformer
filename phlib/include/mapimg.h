@@ -35,10 +35,10 @@ typedef struct _PH_MAPPED_IMAGE
                 PIMAGE_NT_HEADERS64 NtHeaders64;
                 PIMAGE_NT_HEADERS NtHeaders;
             };
-
-            ULONG NumberOfSections;
-            PIMAGE_SECTION_HEADER Sections;
+            
             USHORT Magic;
+            USHORT NumberOfSections;
+            PIMAGE_SECTION_HEADER Sections;
         };
 
         struct // ELF image
@@ -226,9 +226,9 @@ typedef struct _PH_REMOTE_MAPPED_IMAGE
         PIMAGE_NT_HEADERS64 NtHeaders64;
         PIMAGE_NT_HEADERS NtHeaders;
     };
-    ULONG NumberOfSections;
-    PIMAGE_SECTION_HEADER Sections;
     USHORT Magic;
+    USHORT NumberOfSections;
+    PIMAGE_SECTION_HEADER Sections;
     PVOID PageCache;
 } PH_REMOTE_MAPPED_IMAGE, *PPH_REMOTE_MAPPED_IMAGE;
 

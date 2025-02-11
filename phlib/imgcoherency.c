@@ -966,9 +966,9 @@ VOID PhpAnalyzeImageCoherencyCommon(
         {
             PhpAnalyzeImageCoherencyInspect(
                 (PBYTE)&Context->MappedImage.Sections[i],
-                sizeof(IMAGE_SECTION_HEADER),
+                IMAGE_SIZEOF_SECTION_HEADER,
                 (PBYTE)&Context->RemoteMappedImage.Sections[i],
-                sizeof(IMAGE_SECTION_HEADER),
+                IMAGE_SIZEOF_SECTION_HEADER,
                 Context,
                 0,
                 NULL,
@@ -981,7 +981,7 @@ VOID PhpAnalyzeImageCoherencyCommon(
             // There are a mismatched number of sections
             // Inflate the total bytes
             //
-            Context->TotalBytes += sizeof(IMAGE_SECTION_HEADER);
+            Context->TotalBytes += IMAGE_SIZEOF_SECTION_HEADER;
         }
     }
 

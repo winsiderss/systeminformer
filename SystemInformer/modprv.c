@@ -523,7 +523,7 @@ NTSTATUS PhpModuleQueryWorker(
                     if (characteristics != ULONG_MAX)
                         moduleItem->ImageDllCharacteristicsEx = characteristics;
 
-                    PhFree(debugEntry);
+                    PhFreePage(debugEntry);
                 }
 
                 if (!NT_SUCCESS(PhGetRemoteMappedImageGuardFlagsEx(

@@ -3497,8 +3497,8 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 &&
         PhEqualStringRef(Name, &winPkg, TRUE))
     {
-        ULONG upper = (ULONG)(Attribute->Values.pUint64[0] >> 32);
-        ULONG lower = (ULONG)Attribute->Values.pUint64[0];
+        ULONG upper = (ULONG)(Attribute->Values.Uint64[0] >> 32);
+        ULONG lower = (ULONG)Attribute->Values.Uint64[0];
         PH_STRING_BUILDER sb;
         PPH_STRING string;
 
@@ -3562,7 +3562,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         }
 
         PhInitFormatS(&format[count++], L" (0x");
-        PhInitFormatI64X(&format[count++], Attribute->Values.pUint64[0]);
+        PhInitFormatI64X(&format[count++], Attribute->Values.Uint64[0]);
         PhInitFormatS(&format[count++], L")");
 
         PhMoveReference(&string, PhFormat(format, count, 0));
@@ -3574,36 +3574,36 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     switch (Attribute->ValueType)
     {
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
-        PhInitFormatI64D(&format[0], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatI64D(&format[0], Attribute->Values.Int64[ValueIndex]);
         PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatI64X(&format[2], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatI64X(&format[2], Attribute->Values.Int64[ValueIndex]);
         PhInitFormatS(&format[3], L")");
         return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64:
-        PhInitFormatI64U(&format[0], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatI64U(&format[0], Attribute->Values.Uint64[ValueIndex]);
         PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatI64X(&format[2], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatI64X(&format[2], Attribute->Values.Uint64[ValueIndex]);
         PhInitFormatS(&format[3], L")");
         return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
-        return PhCreateStringFromUnicodeString(&Attribute->Values.pString[ValueIndex]);
+        return PhCreateStringFromUnicodeString(&Attribute->Values.String[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
         return PhFormatString(L"Version %llu: %.*s",
-            Attribute->Values.pFqbn[ValueIndex].Version,
-            Attribute->Values.pFqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
-            Attribute->Values.pFqbn[ValueIndex].Name.Buffer);
+            Attribute->Values.Fqbn[ValueIndex].Version,
+            Attribute->Values.Fqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
+            Attribute->Values.Fqbn[ValueIndex].Name.Buffer);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
         {
-            if (PhValidSid(Attribute->Values.pOctetString[ValueIndex].Value))
+            if (PhValidSid(Attribute->Values.OctetString[ValueIndex].Value))
             {
                 PPH_STRING name;
 
-                name = PhGetSidFullName(Attribute->Values.pOctetString[ValueIndex].Value, TRUE, NULL);
+                name = PhGetSidFullName(Attribute->Values.OctetString[ValueIndex].Value, TRUE, NULL);
 
                 if (name)
                     return name;
 
-                name = PhSidToStringSid(Attribute->Values.pOctetString[ValueIndex].Value);
+                name = PhSidToStringSid(Attribute->Values.OctetString[ValueIndex].Value);
 
                 if (name)
                     return name;
@@ -3611,7 +3611,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         }
         return PhCreateString(L"(Invalid SID)");
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
-        return PhCreateString(Attribute->Values.pInt64[ValueIndex] != 0 ? L"True" : L"False");
+        return PhCreateString(Attribute->Values.Int64[ValueIndex] != 0 ? L"True" : L"False");
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
         return PhCreateString(L"(Octet string)");
     default:
@@ -3816,7 +3816,7 @@ BOOLEAN PhpAddTokenAttributes(
     {
         for (i = 0; i < info->AttributeCount; i++)
         {
-            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->AttributeV1[i];
             PPH_STRING name;
             PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;

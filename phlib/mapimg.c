@@ -79,7 +79,7 @@ NTSTATUS PhInitializeMappedImage(
             ntHeaders,
             UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
             ntHeaders->FileHeader.SizeOfOptionalHeader +
-            ntHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER)
+            ntHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER
             );
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -518,9 +518,7 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     _In_ ULONG Rva
     )
 {
-    ULONG i;
-
-    for (i = 0; i < MappedImage->NumberOfSections; i++)
+    for (USHORT i = 0; i < MappedImage->NumberOfSections; i++)
     {
         if (
             (Rva >= MappedImage->Sections[i].VirtualAddress) &&
@@ -829,8 +827,12 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
 
     // Read one page and validate both headers.
 
-    dosHeader = PhAllocate(PAGE_SIZE);
-    memset(dosHeader, 0, PAGE_SIZE);
+    dosHeader = PhAllocatePageZero(PAGE_SIZE);
+
+    if (!dosHeader)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
 
     if (ReadVirtualMemoryCallback)
     {
@@ -854,7 +856,7 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
     }
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     // Check the initial MZ.
 
@@ -876,7 +878,7 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
 
     if (ntHeadersOffset + sizeof(IMAGE_NT_HEADERS) >= PAGE_SIZE)
     {
-        status = STATUS_NO_MEMORY;
+        status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
     }
 
@@ -922,11 +924,11 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
 
     ntHeadersSize = UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
         ntHeaders->FileHeader.SizeOfOptionalHeader +
-        RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        RemoteMappedImage->NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
 
     if (ntHeadersSize + ntHeadersOffset + sizeof(IMAGE_NT_HEADERS) >= PAGE_SIZE)
     {
-        status = STATUS_NO_MEMORY;
+        status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
     }
 
@@ -939,7 +941,7 @@ CleanupExit:
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(dosHeader);
+        PhFreePage(dosHeader);
     }
 
     return status;
@@ -968,7 +970,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
         RemoteMappedImage
         );
 
-    if (NT_SUCCESS(status) || status != STATUS_NO_MEMORY)
+    if (NT_SUCCESS(status) || status != STATUS_INSUFFICIENT_RESOURCES)
         return status;
 
     RemoteMappedImage->ViewBase = ViewBase;
@@ -1076,12 +1078,17 @@ NTSTATUS PhLoadRemoteMappedImageEx(
 
     ntHeadersSize = UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
         ntHeaders.FileHeader.SizeOfOptionalHeader +
-        RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        RemoteMappedImage->NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
 
     if (ntHeadersSize > UInt32x32To64(1024, 1024)) // 1 MB
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    RemoteMappedImage->NtHeaders = PhAllocateZero(ntHeadersSize);
+    RemoteMappedImage->NtHeaders = PhAllocatePageZero(ntHeadersSize);
+
+    if (!RemoteMappedImage->NtHeaders)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
 
     if (ReadVirtualMemoryCallback)
     {
@@ -1106,7 +1113,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(RemoteMappedImage->NtHeaders);
+        PhFreePage(RemoteMappedImage->NtHeaders);
         RemoteMappedImage->NtHeaders = NULL;
         return status;
     }
@@ -1122,9 +1129,9 @@ NTSTATUS PhUnloadRemoteMappedImage(
     )
 {
     if (RemoteMappedImage->PageCache)
-        PhFree(RemoteMappedImage->PageCache);
+        PhFreePage(RemoteMappedImage->PageCache);
     else
-        PhFree(RemoteMappedImage->NtHeaders);
+        PhFreePage(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
@@ -1197,10 +1204,10 @@ NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
         return STATUS_FAIL_CHECK;
 
     dataLength = dataDirectory->Size;
-    dataBuffer = PhAllocateZeroSafe(dataLength);
+    dataBuffer = PhAllocatePageZero(dataLength);
 
     if (!dataBuffer)
-        return STATUS_NO_MEMORY;
+        return STATUS_INSUFFICIENT_RESOURCES;
 
     if (ReadVirtualMemoryCallback)
     {
@@ -1225,7 +1232,7 @@ NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(dataBuffer);
+        PhFreePage(dataBuffer);
         return status;
     }
 
@@ -1288,11 +1295,11 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
             }
 
             dataLength = entry->SizeOfData;
-            dataBuffer = PhAllocateZeroSafe(dataLength);
+            dataBuffer = PhAllocatePageZero(dataLength);
 
             if (!dataBuffer)
             {
-                status = STATUS_NO_MEMORY;
+                status = STATUS_INSUFFICIENT_RESOURCES;
                 break;
             }
 
@@ -1328,14 +1335,14 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
             }
             else
             {
-                PhFree(dataBuffer);
+                PhFreePage(dataBuffer);
             }
 
             break;
         }
     }
 
-    PhFree(debugDirectory);
+    PhFreePage(debugDirectory);
 
     return status;
 }
@@ -1381,7 +1388,7 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
                 status = STATUS_NOT_FOUND;
             }
 
-            PhFree(config32);
+            PhFreePage(config32);
         }
     }
     else
@@ -1408,7 +1415,7 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
                 status = STATUS_NOT_FOUND;
             }
 
-            PhFree(config64);
+            PhFreePage(config64);
         }
     }
 
