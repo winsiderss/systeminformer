@@ -315,6 +315,23 @@ PhFreePage(
     _In_ _Frees_ptr_ PVOID Memory
     );
 
+FORCEINLINE
+PVOID
+PhAllocatePageZero(
+    _In_ SIZE_T Size
+    )
+{
+    PVOID buffer;
+
+    if (buffer = PhAllocatePage(Size, nullptr))
+    {
+        memset(buffer, 0, Size);
+        return buffer;
+    }
+
+    return nullptr;
+}
+
 PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
@@ -343,7 +360,7 @@ NTAPI
 PhAllocateVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID* BaseAddress,
-    _In_ SIZE_T RegionSize,
+    _In_ SIZE_T AllocationSize,
     _In_ ULONG AllocationType,
     _In_ ULONG Protection
     );
