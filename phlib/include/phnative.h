@@ -1570,6 +1570,22 @@ PhSetFileRename(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileIoPriorityHint(
+    _In_ HANDLE FileHandle,
+    _Out_ IO_PRIORITY_HINT* IoPriorityHint
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetFileIoPriorityHint(
+    _In_ HANDLE FileHandle,
+    _In_ IO_PRIORITY_HINT IoPriorityHint
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhFlushBuffersFile(
     _In_ HANDLE FileHandle
     );

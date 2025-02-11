@@ -1259,6 +1259,8 @@ VERIFY_RESULT PhVerifyFileCached(
         }
     }
 
+    PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
+
     {
         PPH_VERIFY_CACHE_ENTRY entry;
         PH_VERIFY_CACHE_ENTRY lookupEntry;

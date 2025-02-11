@@ -4130,6 +4130,50 @@ NTSTATUS PhSetFileRename(
     return status;
 }
 
+NTSTATUS PhGetFileIoPriorityHint(
+    _In_ HANDLE FileHandle,
+    _Out_ IO_PRIORITY_HINT* IoPriorityHint
+    )
+{
+    NTSTATUS status;
+    FILE_IO_PRIORITY_HINT_INFORMATION ioPriorityHint;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &ioStatusBlock,
+        &ioPriorityHint,
+        sizeof(FILE_IO_PRIORITY_HINT_INFORMATION),
+        FileIoPriorityHintInformation
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IoPriorityHint = ioPriorityHint.PriorityHint;
+
+    return status;
+}
+
+NTSTATUS PhSetFileIoPriorityHint(
+    _In_ HANDLE FileHandle,
+    _In_ IO_PRIORITY_HINT IoPriorityHint
+    )
+{
+    FILE_IO_PRIORITY_HINT_INFORMATION ioPriorityHint;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    ioPriorityHint.PriorityHint = IoPriorityHint;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &ioStatusBlock,
+        &ioPriorityHint,
+        sizeof(FILE_IO_PRIORITY_HINT_INFORMATION),
+        FileIoPriorityHintInformation
+        );
+}
+
 /**
  * Flushes the buffers of a file.
  * - Write any modified data for the given file from the Windows in-memory cache.
