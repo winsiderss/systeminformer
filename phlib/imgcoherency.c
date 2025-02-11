@@ -711,7 +711,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
     //
     // Here we will inspect each executable section.
     //
-    for (ULONG i = 0;
+    for (USHORT i = 0;
          i < max(Context->MappedImage.NumberOfSections,
                  Context->RemoteMappedImage.NumberOfSections);
          i++)
@@ -956,7 +956,7 @@ VOID PhpAnalyzeImageCoherencyCommon(
     //
     // Loop over the number of sections and include them in the calculation
     //
-    for (ULONG i = 0;
+    for (USHORT i = 0;
          i < max(Context->MappedImage.NumberOfSections,
                  Context->RemoteMappedImage.NumberOfSections);
          i++)
