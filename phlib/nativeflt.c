@@ -191,25 +191,34 @@ NTSTATUS PhFilterLoadUnload(
 
     filterLoadParametersLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
     filterLoadParameters = _malloca(filterLoadParametersLength);
-    filterLoadParameters->FilterNameSize = (USHORT)ServiceName->Length;
-    RtlCopyMemory(filterLoadParameters->FilterName, ServiceName->Buffer, ServiceName->Length);
 
-    status = NtDeviceIoControlFile(
-        fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &ioStatusBlock,
-        LoadDriver ? FLT_CTL_LOAD : FLT_CTL_UNLOAD,
-        filterLoadParameters,
-        filterLoadParametersLength,
-        NULL,
-        0
-        );
+    if (filterLoadParameters)
+    {
+        RtlZeroMemory(filterLoadParameters, filterLoadParametersLength);
+        filterLoadParameters->FilterNameSize = (USHORT)ServiceName->Length;
+        RtlCopyMemory(filterLoadParameters->FilterName, ServiceName->Buffer, ServiceName->Length);
+
+        status = NtDeviceIoControlFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &ioStatusBlock,
+            LoadDriver ? FLT_CTL_LOAD : FLT_CTL_UNLOAD,
+            filterLoadParameters,
+            filterLoadParametersLength,
+            NULL,
+            0
+            );
+
+        _freea(filterLoadParameters);
+    }
+    else
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+    }
 
     NtClose(fileHandle);
-
-    _freea(filterLoadParameters);
 
     return status;
 }
@@ -326,7 +335,7 @@ NTSTATUS PhFilterConnectCommunicationPort(
     ULONG eaLength;
     PFILE_FULL_EA_INFORMATION ea;
     PFLT_CONNECT_CONTEXT eaValue;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
 
     *Port = NULL;
 
@@ -354,12 +363,13 @@ NTSTATUS PhFilterConnectCommunicationPort(
              + FLT_PORT_FULL_EA_VALUE_SIZE
              + SizeOfContext;
 
-    ea = PhAllocateZeroSafe(eaLength);
+    ea = _malloca(eaLength);
     if (!ea)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    RtlZeroMemory(ea, eaLength);
     ea->Flags = 0;
     ea->EaNameLength = sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
     ea->EaValueLength = FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext;
@@ -394,16 +404,16 @@ NTSTATUS PhFilterConnectCommunicationPort(
     status = NtCreateFile(Port,
                           FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
                           &objectAttributes,
-                          &isb,
+                          &ioStatusBlock,
                           NULL,
                           0,
                           0,
                           FILE_OPEN_IF,
-                          Options & FLT_PORT_FLAG_SYNC_HANDLE ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
+                          FlagOn(Options, FLT_PORT_FLAG_SYNC_HANDLE) ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
                           ea,
                           eaLength);
 
-    PhFree(ea);
+    _freea(ea);
 
     return status;
 }
