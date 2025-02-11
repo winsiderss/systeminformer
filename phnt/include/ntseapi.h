@@ -232,11 +232,11 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTE_V1
     ULONG ValueCount;
     union
     {
-        PLONG64 pInt64;
-        PULONG64 pUint64;
-        PUNICODE_STRING pString;
-        PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE pFqbn;
-        PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE pOctetString;
+        PLONG64 Int64;
+        PULONG64 Uint64;
+        PUNICODE_STRING String;
+        PTOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE Fqbn;
+        PTOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE OctetString;
     } Values;
 } TOKEN_SECURITY_ATTRIBUTE_V1, *PTOKEN_SECURITY_ATTRIBUTE_V1;
 
@@ -250,11 +250,11 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTE_RELATIVE_V1
     ULONG ValueCount;
     union
     {
-        ULONG pInt64[ANYSIZE_ARRAY];
-        ULONG pUint64[ANYSIZE_ARRAY];
-        ULONG ppString[ANYSIZE_ARRAY];
-        ULONG pFqbn[ANYSIZE_ARRAY];
-        ULONG pOctetString[ANYSIZE_ARRAY];
+        ULONG Int64[ANYSIZE_ARRAY];
+        ULONG Uint64[ANYSIZE_ARRAY];
+        ULONG String[ANYSIZE_ARRAY];
+        ULONG Fqbn[ANYSIZE_ARRAY];
+        ULONG OctetString[ANYSIZE_ARRAY];
     } Values;
 } TOKEN_SECURITY_ATTRIBUTE_RELATIVE_V1, *PTOKEN_SECURITY_ATTRIBUTE_RELATIVE_V1;
 
@@ -271,8 +271,8 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
     ULONG AttributeCount;
     union
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
-    } Attribute;
+        PTOKEN_SECURITY_ATTRIBUTE_V1 AttributeV1;
+    };
 } TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
 
 // private
@@ -297,6 +297,25 @@ typedef struct _TOKEN_PROCESS_TRUST_LEVEL
 {
     PSID TrustLevelSid;
 } TOKEN_PROCESS_TRUST_LEVEL, *PTOKEN_PROCESS_TRUST_LEVEL;
+
+#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+typedef struct _TOKEN_LOGGING_INFORMATION
+{
+    TOKEN_TYPE TokenType;
+    TOKEN_ELEVATION TokenElevation;
+    TOKEN_ELEVATION_TYPE TokenElevationType;
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
+    DWORD IntegrityLevel;
+    SID_AND_ATTRIBUTES User;
+    PSID TrustLevelSid;
+    DWORD SessionId;
+    DWORD AppContainerNumber;
+    LUID AuthenticationId;
+    DWORD GroupCount;
+    DWORD GroupsLength;
+    PSID_AND_ATTRIBUTES Groups;
+} TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
+#endif
 
 //
 // Tokens
@@ -467,6 +486,18 @@ NtDuplicateToken(
     _Out_ PHANDLE NewTokenHandle
     );
 
+/**
+ * The NtQueryInformationToken routine retrieves a specified type of information about an access token. The calling process must have appropriate access rights to obtain the information.
+ *
+ * @param TokenHandle A handle to an existing access token from which information is to be retrieved. If TokenInformationClass is set to TokenSource, the handle must have TOKEN_QUERY_SOURCE access.
+ * For all other TokenInformationClass values, the handle must have TOKEN_QUERY access. 
+ * @param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
+ * @param TokenInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
+ * @param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * @param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationtoken
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -478,6 +509,16 @@ NtQueryInformationToken(
     _Out_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationToken routine modifies information in a specified token. The calling process must have appropriate access rights to set the information.
+ *
+ * @param TokenHandle A handle to an existing access token which information is to be modified.
+ * @param TokenInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be modified.
+ * @param TokenInformation Pointer to a caller-allocated buffer containing the information to be modified in the token.
+ * @param TokenInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntsetinformationtoken
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -488,6 +529,19 @@ NtSetInformationToken(
     _In_ ULONG TokenInformationLength
     );
 
+/**
+ * The NtAdjustPrivilegesToken routine enables or disables privileges in the specified access token.
+ *
+ * @param TokenHandle Handle to the token that contains the privileges to be modified. The handle must have TOKEN_ADJUST_PRIVILEGES access.
+ * @param DisableAllPrivileges Specifies whether the function disables all of the token's privileges. If this value is TRUE, the function disables all privileges and ignores the NewState parameter.
+ * If it is FALSE, the function modifies privileges based on the information pointed to by the NewState parameter.
+ * @param NewState A pointer to a TOKEN_PRIVILEGES structure that specifies an array of privileges and their attributes. If DisableAllPrivileges is TRUE, the function ignores this parameter.
+ * @param BufferLength Specifies the size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be zero if the PreviousState parameter is NULL.
+ * @param PreviousState A pointer to a buffer that the function fills with a TOKEN_PRIVILEGES structure that contains the previous state of any privileges that the function modifies.
+ * @param ReturnLength A pointer to a variable that receives the required size, in bytes, of the buffer pointed to by the PreviousState parameter. This parameter can be NULL if PreviousState is NULL.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
