@@ -441,7 +441,7 @@ NTSTATUS KphActivateDynData(
             ProbeInputBytes(DynData, DynDataLength);
             RtlCopyVolatileMemory(dynData, DynData, DynDataLength);
 
-            ProbeInputBytes(Signature, DynDataLength);
+            ProbeInputBytes(Signature, SignatureLength);
             RtlCopyVolatileMemory(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -468,7 +468,7 @@ Exit:
         KphFree(dynData, KPH_TAG_DYNDATA);
     }
 
-    if (signature && (signature != DynData))
+    if (signature && (signature != Signature))
     {
         KphFree(signature, KPH_TAG_DYNDATA);
     }
