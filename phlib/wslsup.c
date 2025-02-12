@@ -219,7 +219,7 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllTextWin32(PhGetString(lxssCommandLine), TRUE);
+        lxssCommandResult = PhFileReadAllText(PhGetString(lxssCommandLine), TRUE);
         PhDereferenceObject(lxssCommandLine);
     }
 
@@ -254,7 +254,7 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
 }
 
 _Success_(return)
-BOOLEAN PhLxssQueryDistroProcessEnvironment(
+BOOLEAN PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result
@@ -276,7 +276,7 @@ BOOLEAN PhLxssQueryDistroProcessEnvironment(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllTextWin32(PhGetString(lxssCommandLine), TRUE);
+        lxssCommandResult = PhFileReadAllText(PhGetString(lxssCommandLine), TRUE);
         PhDereferenceObject(lxssCommandLine);
     }
 

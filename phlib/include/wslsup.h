@@ -22,7 +22,7 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
     );
 
 _Success_(return)
-BOOLEAN PhLxssQueryDistroProcessEnvironment(
+BOOLEAN PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
     _Out_ PPH_STRING* Result

@@ -387,7 +387,14 @@ VOID PhpRefreshWslEnvironmentList(
         return;
     }
 
-    if (!PhLxssQueryDistroProcessEnvironment(&ProcessItem->FileName->sr, ProcessItem->LxssProcessId, &environment))
+    if (PhIsNullOrEmptyString(ProcessItem->FileName))
+    {
+        PhpSetEnvironmentListStatusMessage(Context, STATUS_OBJECT_NAME_INVALID);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        return;
+    }
+
+    if (!PhWslQueryDistroProcessEnvironment(&ProcessItem->FileName->sr, ProcessItem->LxssProcessId, &environment))
     {
         PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
         TreeNew_NodesStructured(Context->TreeNewHandle);
