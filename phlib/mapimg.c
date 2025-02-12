@@ -818,7 +818,7 @@ NTSTATUS PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, NtReadVirtualMemory, RemoteMappedImage);
+    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, nullptr, RemoteMappedImage);
 }
 
 NTSTATUS PhLoadRemoteMappedImagePageSize(
@@ -5711,7 +5711,7 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersion(
     _Out_ PULONG CHPEVersion
     )
 {
-    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, NtReadVirtualMemory, CHPEVersion);
+    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, nullptr, CHPEVersion);
 }
 
 NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(
@@ -5755,13 +5755,27 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(
             goto CleanupExit;
         }
 
-        status = ReadVirtualMemoryCallback(
-            RemoteMappedImage->ProcessHandle,
-            ULongToPtr(config32->CHPEMetadataPointer),
-            &chpe32,
-            sizeof(chpe32),
-            NULL
-            );
+        if (ReadVirtualMemoryCallback)
+        {
+            status = ReadVirtualMemoryCallback(
+                RemoteMappedImage->ProcessHandle,
+                ULongToPtr(config32->CHPEMetadataPointer),
+                &chpe32,
+                sizeof(chpe32),
+                NULL
+                );
+        }
+        else
+        {
+            status = NtReadVirtualMemory(
+                RemoteMappedImage->ProcessHandle,
+                ULongToPtr(config32->CHPEMetadataPointer),
+                &chpe32,
+                sizeof(chpe32),
+                NULL
+                );
+        }
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
@@ -5787,13 +5801,27 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(
             goto CleanupExit;
         }
 
-        status = ReadVirtualMemoryCallback(
-            RemoteMappedImage->ProcessHandle,
-            (PVOID)config64->CHPEMetadataPointer,
-            &chpe64,
-            sizeof(chpe64),
-            NULL
-            );
+        if (ReadVirtualMemoryCallback)
+        {
+            status = ReadVirtualMemoryCallback(
+                RemoteMappedImage->ProcessHandle,
+                (PVOID)config64->CHPEMetadataPointer,
+                &chpe64,
+                sizeof(chpe64),
+                NULL
+                );
+        }
+        else
+        {
+            status = NtReadVirtualMemory(
+                RemoteMappedImage->ProcessHandle,
+                (PVOID)config64->CHPEMetadataPointer,
+                &chpe64,
+                sizeof(chpe64),
+                NULL
+                );
+        }
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
@@ -5802,7 +5830,7 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(
 
 CleanupExit:
 
-    PhFree(entry);
+    PhFreePage(entry);
 
     return status;
 }
