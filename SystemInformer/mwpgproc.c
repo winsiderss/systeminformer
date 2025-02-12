@@ -935,6 +935,7 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_MISCELLANEOUS, L"&Miscellaneous", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ACTIVITY, L"Activity moderation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_SETCRITICAL, L"&Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_DETACHFROMDEBUGGER, L"&Detach from debugger", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Efficiency mode", NULL, NULL), ULONG_MAX);

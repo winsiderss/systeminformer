@@ -2856,6 +2856,120 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
     return success;
 }
 
+BOOLEAN PhUiSetActivityModeration(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    {
+        { SystemActivityModerationStateSystemManaged, L"System managed" },
+        { SystemActivityModerationStateUserManagedAllowThrottling, L"Allow activity moderation throttling" },
+        { SystemActivityModerationStateUserManagedDisableThrottling, L"Disable activity moderation throttling" },
+    };
+    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Save" },
+        { IDCANCEL, L"Cancel" },
+    };
+    NTSTATUS status;
+    SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS activityModerationInfo = { 0 };
+    TASKDIALOGCONFIG config;
+    ULONG buttonId;
+    ULONG moderationState;
+    LARGE_INTEGER startTime;
+    LARGE_INTEGER currentTime;
+    SYSTEMTIME startTimeFields;
+    PPH_STRING startTimeRelativeString = NULL;
+    PPH_STRING startTimeString = NULL;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Select the process activity moderation throttling state.";
+    config.nDefaultButton = IDCANCEL;
+    config.pRadioButtons = TaskDialogRadioButtonArray;
+    config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.hwndParent = WindowHandle;
+    config.cxWidth = 220;
+
+    if (PhIsNullOrEmptyString(Process->FileName))
+        return TRUE;
+
+    status = PhGetProcessActivityModerationState(
+        &Process->FileName->sr,
+        &activityModerationInfo
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        config.nDefaultRadioButton = activityModerationInfo.ModerationState;
+
+        PhQuerySystemTime(&currentTime);
+
+        if (activityModerationInfo.LastUpdatedTime.QuadPart < currentTime.QuadPart)
+        {
+            startTime = activityModerationInfo.LastUpdatedTime;
+            startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+            PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+            startTimeString = PhaFormatDateTime(&startTimeFields);
+        }
+    }
+    else
+    {
+        config.nDefaultRadioButton = SystemActivityModerationStateSystemManaged;
+    }
+
+    config.pszContent = PhaFormatString(
+        L"System-managed activity moderation settings are automatically removed by Windows when the executable is deleted or was last executed more than 7 days ago.\r\n\r\n"
+        L"Image: %s\r\nUpdated: %s",
+        PH_AUTO_T(PH_STRING, PhGetBaseName(Process->FileName))->Buffer,
+        (startTimeRelativeString && startTimeString) ? PhaFormatString(L"%s ago (%s)", PhGetString(startTimeRelativeString), PhGetString(startTimeString))->Buffer : L"N/A"
+        )->Buffer;
+
+    if (PhShowTaskDialog(
+        &config,
+        &buttonId,
+        &moderationState,
+        NULL
+        ) && buttonId == IDYES)
+    {
+        if (Process->IsPackagedProcess)
+        {
+            status = PhSetProcessActivityModerationState(
+                &Process->FileName->sr,
+                SystemActivityModerationAppTypePackaged,
+                moderationState
+                );
+        }
+        else
+        {
+            status = PhSetProcessActivityModerationState(
+                &Process->FileName->sr,
+                SystemActivityModerationAppTypeClassic,
+                moderationState
+                );
+        }
+    }
+    else
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"set background activity moderation for", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,

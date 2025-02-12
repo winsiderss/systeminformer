@@ -1659,6 +1659,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_ACTIVITY:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiSetActivityModeration(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_MISCELLANEOUS_SETCRITICAL:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();

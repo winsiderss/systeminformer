@@ -253,6 +253,14 @@ PhUiReduceWorkingSetProcesses(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetActivityModeration(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
