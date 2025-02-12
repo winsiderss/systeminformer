@@ -197,6 +197,120 @@ CleanupExit:
 }
 
 _Success_(return)
+BOOLEAN PhWslQueryDistroProcessCommandLine(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    )
+{
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssCommandLine = NULL;
+    PPH_STRING lxssDistroName = NULL;
+    PH_FORMAT format[5];
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
+        return FALSE;
+
+    PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
+    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatS(&format[2], L"\\proc\\");
+    PhInitFormatIU(&format[3], LxssProcessId);
+    PhInitFormatS(&format[4], L"\\cmdline");
+
+    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    {
+        lxssCommandResult = PhFileReadAllTextWin32(PhGetString(lxssCommandLine), TRUE);
+        PhDereferenceObject(lxssCommandLine);
+    }
+
+    PhDereferenceObject(lxssDistroName);
+
+    if (lxssCommandResult)
+    {
+        *Result = lxssCommandResult;
+        return TRUE;
+    }
+
+    return FALSE;
+
+    //PPH_STRING lxssCommandLine;
+    //PPH_STRING lxssCommandResult;
+    //PH_FORMAT format[3];
+    //
+    //PhInitFormatS(&format[0], L"cat /proc/");
+    //PhInitFormatIU(&format[1], LxssProcessId);
+    //PhInitFormatS(&format[2], L"/cmdline");
+    //lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    //
+    //if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+    //{
+    //    *Result = lxssCommandResult;
+    //    PhDereferenceObject(lxssCommandLine);
+    //    return TRUE;
+    //}
+    //
+    //PhDereferenceObject(lxssCommandLine);
+    //return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhLxssQueryDistroProcessEnvironment(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    )
+{
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssCommandLine = NULL;
+    PPH_STRING lxssDistroName = NULL;
+    PH_FORMAT format[5];
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
+        return FALSE;
+
+    PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
+    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatS(&format[2], L"\\proc\\");
+    PhInitFormatIU(&format[3], LxssProcessId);
+    PhInitFormatS(&format[4], L"\\environ");
+
+    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    {
+        lxssCommandResult = PhFileReadAllTextWin32(PhGetString(lxssCommandLine), TRUE);
+        PhDereferenceObject(lxssCommandLine);
+    }
+
+    PhDereferenceObject(lxssDistroName);
+
+    if (lxssCommandResult)
+    {
+        *Result = lxssCommandResult;
+        return TRUE;
+    }
+
+    return FALSE;
+
+    //PPH_STRING lxssCommandLine;
+    //PPH_STRING lxssCommandResult;
+    //PH_FORMAT format[3];
+    //
+    //PhInitFormatS(&format[0], L"cat /proc/");
+    //PhInitFormatIU(&format[1], LxssProcessId);
+    //PhInitFormatS(&format[2], L"/environ");
+    //lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+    //
+    //if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+    //{
+    //    *Result = lxssCommandResult;
+    //    PhDereferenceObject(lxssCommandLine);
+    //    return TRUE;
+    //}
+    //
+    //PhDereferenceObject(lxssCommandLine);
+    //return FALSE;
+}
+
+_Success_(return)
 BOOLEAN PhWslQueryRpmPackageFromFileName(
     _In_ PPH_STRING LxssDistribution,
     _In_ PPH_STRING LxssFileName,

@@ -20,6 +20,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <procprv.h>
+#include <wslsup.h>
 
 typedef enum _ENVIRONMENT_TREE_MENU_ITEM
 {
@@ -360,6 +361,71 @@ VOID PhpRefreshEnvironmentList(
         PhDestroyEnvironmentBlock(systemDefaultEnvironment);
     if (userDefaultEnvironment)
         PhDestroyEnvironmentBlock(userDefaultEnvironment);
+}
+
+VOID PhpRefreshWslEnvironmentList(
+    _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_STRING environment;
+    ULONG enumerationKey;
+    PH_ENVIRONMENT_VARIABLE variable;
+    PPH_ENVIRONMENT_ITEM item;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE processRootNode;
+    SIZE_T i;
+
+    PhpClearEnvironmentTree(Context);
+    processRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS, PhaCreateString(L"Process"), NULL);
+    PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, PhaCreateString(L"User"), NULL);
+    PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, PhaCreateString(L"System"), NULL);
+
+    if (!ProcessItem->LxssProcessId)
+    {
+        PhpSetEnvironmentListStatusMessage(Context, STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        return;
+    }
+
+    if (!PhLxssQueryDistroProcessEnvironment(&ProcessItem->FileName->sr, ProcessItem->LxssProcessId, &environment))
+    {
+        PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        return;
+    }
+
+    enumerationKey = 0;
+
+    while (PhEnumProcessEnvironmentVariables(PhGetString(environment), (ULONG)environment->Length, &enumerationKey, &variable))
+    {
+        PH_ENVIRONMENT_ITEM entry;
+
+        entry.Name = PhCreateString2(&variable.Name);
+        entry.Value = PhCreateString2(&variable.Value);
+
+        PhAddItemArray(&Context->Items, &entry);
+    }
+
+    for (i = 0; i < Context->Items.Count; i++)
+    {
+        item = PhItemArray(&Context->Items, i);
+
+        if (!item->Name)
+            continue;
+
+        PhpAddEnvironmentNode(
+            Context,
+            processRootNode,
+            PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS,
+            item->Name,
+            item->Value
+            );
+    }
+
+    PhApplyTreeNewFilters(&Context->TreeFilterSupport);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    PhClearReference(&environment);
 }
 
 NTSTATUS PhpEditDlgSetEnvironment(
@@ -1444,7 +1510,15 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             TreeNew_SetEmptyText(context->TreeNewHandle, &context->StatusMessage->sr, 0);
             PhLoadSettingsEnvironmentList(context);
 
-            PhpRefreshEnvironmentList(context, processItem);
+            if (processItem->IsSubsystemProcess)
+            {
+                PhpRefreshWslEnvironmentList(context, processItem);
+            }
+            else
+            {
+                PhpRefreshEnvironmentList(context, processItem);
+            }
+
             PhApplyTreeNewFilters(&context->TreeFilterSupport);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
@@ -1554,7 +1628,14 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                             if (PhpShowEditEnvDialog(hwndDlg, processItem, L"", NULL, &refresh) == IDOK && refresh)
                             {
-                                PhpRefreshEnvironmentList(context, processItem);
+                                if (processItem->IsSubsystemProcess)
+                                {
+                                    PhpRefreshWslEnvironmentList(context, processItem);
+                                }
+                                else
+                                {
+                                    PhpRefreshEnvironmentList(context, processItem);
+                                }
                             }
                         }
                         else
@@ -1570,7 +1651,14 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    PhpRefreshEnvironmentList(context, processItem);
+                    if (processItem->IsSubsystemProcess)
+                    {
+                        PhpRefreshWslEnvironmentList(context, processItem);
+                    }
+                    else
+                    {
+                        PhpRefreshEnvironmentList(context, processItem);
+                    }
                 }
                 break;
             case ID_SHOWCONTEXTMENU:
@@ -1589,7 +1677,14 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         &refresh
                         ) == IDOK && refresh)
                     {
-                        PhpRefreshEnvironmentList(context, context->ProcessItem);
+                        if (processItem->IsSubsystemProcess)
+                        {
+                            PhpRefreshWslEnvironmentList(context, processItem);
+                        }
+                        else
+                        {
+                            PhpRefreshEnvironmentList(context, processItem);
+                        }
                     }
                 }
                 break;
@@ -1609,7 +1704,14 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         &refresh
                         ) == IDOK && refresh)
                     {
-                        PhpRefreshEnvironmentList(context, context->ProcessItem);
+                        if (processItem->IsSubsystemProcess)
+                        {
+                            PhpRefreshWslEnvironmentList(context, processItem);
+                        }
+                        else
+                        {
+                            PhpRefreshEnvironmentList(context, processItem);
+                        }
                     }
                 }
                 break;
@@ -1638,7 +1740,14 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         item->NameText
                         );
 
-                    PhpRefreshEnvironmentList(context, context->ProcessItem);
+                    if (processItem->IsSubsystemProcess)
+                    {
+                        PhpRefreshWslEnvironmentList(context, processItem);
+                    }
+                    else
+                    {
+                        PhpRefreshEnvironmentList(context, processItem);
+                    }
 
                     if (status == STATUS_TIMEOUT)
                     {

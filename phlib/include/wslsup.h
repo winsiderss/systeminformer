@@ -14,6 +14,20 @@
 
 EXTERN_C_START
 
+_Success_(return)
+BOOLEAN PhWslQueryDistroProcessCommandLine(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    );
+
+_Success_(return)
+BOOLEAN PhLxssQueryDistroProcessEnvironment(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    );
+
 BOOLEAN PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRINGREF FileName
