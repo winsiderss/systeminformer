@@ -1694,7 +1694,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
 
-    if (PhEnableThemeSupport)
+    if (PhGetIntegerSetting(L"EnableThemeSupport")) // PhGetIntegerSetting required (dmex)
     {
         PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
     }
