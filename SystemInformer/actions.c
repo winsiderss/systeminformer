@@ -3089,7 +3089,7 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(WindowHandle, L"create PLM power request for", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"create execution required state for", Process, status, 0);
         return FALSE;
     }
 
