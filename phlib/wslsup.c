@@ -219,7 +219,49 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllText(&lxssCommandLine->sr, TRUE);
+        NTSTATUS status;
+        HANDLE fileHandle;
+
+        status = PhCreateFile(
+            &fileHandle,
+            &lxssCommandLine->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            lxssCommandResult = PhGetFileText(fileHandle, TRUE);
+            NtClose(fileHandle);
+        }
+        else if (status == STATUS_ACCESS_DENIED)
+        {
+            PPH_STRING lxssRootCommandLine;
+            PPH_STRING lxssRootCommandResult;
+
+            // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
+            // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
+            // We can workaround the issue by creating a root process using 'wsl.exe -u root' and pipe the /proc content via standard output.
+            // This is significantly slower (very slow) but works, and avoids hard requirements on user preferences and distro configuration.
+
+            PhInitFormatS(&format[0], L"cat /proc/");
+            PhInitFormatIU(&format[1], LxssProcessId);
+            PhInitFormatS(&format[2], L"/cmdline");
+
+            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            {
+                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                {
+                    lxssCommandResult = lxssRootCommandResult;
+                }
+
+                PhDereferenceObject(lxssRootCommandLine);
+            }
+        }
+
         PhDereferenceObject(lxssCommandLine);
     }
 
@@ -232,25 +274,6 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
     }
 
     return FALSE;
-
-    //PPH_STRING lxssCommandLine;
-    //PPH_STRING lxssCommandResult;
-    //PH_FORMAT format[3];
-    //
-    //PhInitFormatS(&format[0], L"cat /proc/");
-    //PhInitFormatIU(&format[1], LxssProcessId);
-    //PhInitFormatS(&format[2], L"/cmdline");
-    //lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
-    //
-    //if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
-    //{
-    //    *Result = lxssCommandResult;
-    //    PhDereferenceObject(lxssCommandLine);
-    //    return TRUE;
-    //}
-    //
-    //PhDereferenceObject(lxssCommandLine);
-    //return FALSE;
 }
 
 _Success_(return)
@@ -276,7 +299,49 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllText(&lxssCommandLine->sr, TRUE);
+        NTSTATUS status;
+        HANDLE fileHandle;
+
+        status = PhCreateFile(
+            &fileHandle,
+            &lxssCommandLine->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            lxssCommandResult = PhGetFileText(fileHandle, TRUE);
+            NtClose(fileHandle);
+        }
+        else if (status == STATUS_ACCESS_DENIED)
+        {
+            PPH_STRING lxssRootCommandLine;
+            PPH_STRING lxssRootCommandResult;
+
+            // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
+            // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
+            // We can workaround the issue by creating a root process using 'wsl.exe -u root' and pipe the /proc content via standard output.
+            // This is significantly slower (very slow) but works, and avoids hard requirements on user preferences and distro configuration.
+
+            PhInitFormatS(&format[0], L"cat /proc/");
+            PhInitFormatIU(&format[1], LxssProcessId);
+            PhInitFormatS(&format[2], L"/environ");
+
+            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            {
+                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                {
+                    lxssCommandResult = lxssRootCommandResult;
+                }
+
+                PhDereferenceObject(lxssRootCommandLine);
+            }
+        }
+
         PhDereferenceObject(lxssCommandLine);
     }
 
@@ -289,25 +354,6 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
     }
 
     return FALSE;
-
-    //PPH_STRING lxssCommandLine;
-    //PPH_STRING lxssCommandResult;
-    //PH_FORMAT format[3];
-    //
-    //PhInitFormatS(&format[0], L"cat /proc/");
-    //PhInitFormatIU(&format[1], LxssProcessId);
-    //PhInitFormatS(&format[2], L"/environ");
-    //lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
-    //
-    //if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
-    //{
-    //    *Result = lxssCommandResult;
-    //    PhDereferenceObject(lxssCommandLine);
-    //    return TRUE;
-    //}
-    //
-    //PhDereferenceObject(lxssCommandLine);
-    //return FALSE;
 }
 
 _Success_(return)
