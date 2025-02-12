@@ -1944,17 +1944,6 @@ PhSetProcessAffinityMask(
     _In_ KAFFINITY AffinityMask
     );
 
-#include <pshpack1.h>
-typedef struct _SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS
-{
-    LARGE_INTEGER LastUpdatedTime; // QuerySystemTime
-    SYSTEM_ACTIVITY_MODERATION_STATE ModerationState;
-    UCHAR Reserved[4];
-    SYSTEM_ACTIVITY_MODERATION_APP_TYPE AppType;
-    UCHAR Flags[4];
-} SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS;
-#include <poppack.h>
-
 PHLIBAPI
 NTSTATUS
 NTAPI
