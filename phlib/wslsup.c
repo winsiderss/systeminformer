@@ -219,7 +219,7 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllText(PhGetString(lxssCommandLine), TRUE);
+        lxssCommandResult = PhFileReadAllText(&lxssCommandLine->sr, TRUE);
         PhDereferenceObject(lxssCommandLine);
     }
 
@@ -276,7 +276,7 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
 
     if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
     {
-        lxssCommandResult = PhFileReadAllText(PhGetString(lxssCommandLine), TRUE);
+        lxssCommandResult = PhFileReadAllText(&lxssCommandLine->sr, TRUE);
         PhDereferenceObject(lxssCommandLine);
     }
 
