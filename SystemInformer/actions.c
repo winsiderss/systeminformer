@@ -3064,6 +3064,20 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 {
     NTSTATUS status;
 
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        if (!PhShowConfirmMessage(
+            WindowHandle,
+            L"change the execution required state",
+            PhaConcatStrings2(L"of ", Process->ProcessName->Buffer)->Buffer,
+            L"The process continues to run instead of being suspended or terminated by process lifetime management (PLM).",
+            FALSE
+            ))
+        {
+            return FALSE;
+        }
+    }
+
     if (PhIsProcessExecutionRequired(Process->ProcessId))
     {
         status = PhProcessExecutionRequiredDisable(Process->ProcessId);
