@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2024
+ *     jxy-s   2024-2025
  *
  */
 
@@ -39,9 +39,7 @@ NTSTATUS PhpFilterDeviceIoControl(
     NTSTATUS status;
 
     if (BytesReturned)
-    {
         *BytesReturned = 0;
-    }
 
     if (Overlapped)
     {
@@ -49,35 +47,37 @@ NTSTATUS PhpFilterDeviceIoControl(
 
         if (DEVICE_TYPE_FROM_CTL_CODE(IoControlCode) == FILE_DEVICE_FILE_SYSTEM)
         {
-            status = NtFsControlFile(Handle,
-                                     Overlapped->hEvent,
-                                     NULL,
-                                     Overlapped,
-                                     (PIO_STATUS_BLOCK)Overlapped,
-                                     IoControlCode,
-                                     InBuffer,
-                                     InBufferSize,
-                                     OutputBuffer,
-                                     OutputBufferSize);
+            status = NtFsControlFile(
+                Handle,
+                Overlapped->hEvent,
+                NULL,
+                Overlapped,
+                (PIO_STATUS_BLOCK)Overlapped,
+                IoControlCode,
+                InBuffer,
+                InBufferSize,
+                OutputBuffer,
+                OutputBufferSize
+                );
         }
         else
         {
-            status = NtDeviceIoControlFile(Handle,
-                                           Overlapped->hEvent,
-                                           NULL,
-                                           Overlapped,
-                                           (PIO_STATUS_BLOCK)Overlapped,
-                                           IoControlCode,
-                                           InBuffer,
-                                           InBufferSize,
-                                           OutputBuffer,
-                                           OutputBufferSize);
+            status = NtDeviceIoControlFile(
+                Handle,
+                Overlapped->hEvent,
+                NULL,
+                Overlapped,
+                (PIO_STATUS_BLOCK)Overlapped,
+                IoControlCode,
+                InBuffer,
+                InBufferSize,
+                OutputBuffer,
+                OutputBufferSize
+                );
         }
 
         if (NT_INFORMATION(status) && BytesReturned)
-        {
             *BytesReturned = (ULONG)Overlapped->InternalHigh;
-        }
     }
     else
     {
@@ -85,44 +85,43 @@ NTSTATUS PhpFilterDeviceIoControl(
 
         if (DEVICE_TYPE_FROM_CTL_CODE(IoControlCode) == FILE_DEVICE_FILE_SYSTEM)
         {
-            status = NtFsControlFile(Handle,
-                                     NULL,
-                                     NULL,
-                                     NULL,
-                                     &ioStatusBlock,
-                                     IoControlCode,
-                                     InBuffer,
-                                     InBufferSize,
-                                     OutputBuffer,
-                                     OutputBufferSize);
+            status = NtFsControlFile(
+                Handle,
+                NULL,
+                NULL,
+                NULL,
+                &ioStatusBlock,
+                IoControlCode,
+                InBuffer,
+                InBufferSize,
+                OutputBuffer,
+                OutputBufferSize
+                );
         }
         else
         {
-            status = NtDeviceIoControlFile(Handle,
-                                           NULL,
-                                           NULL,
-                                           NULL,
-                                           &ioStatusBlock,
-                                           IoControlCode,
-                                           InBuffer,
-                                           InBufferSize,
-                                           OutputBuffer,
-                                           OutputBufferSize);
+            status = NtDeviceIoControlFile(
+                Handle,
+                NULL,
+                NULL,
+                NULL,
+                &ioStatusBlock,
+                IoControlCode,
+                InBuffer,
+                InBufferSize,
+                OutputBuffer,
+                OutputBufferSize
+                );
         }
 
         if (status == STATUS_PENDING)
         {
-            status = NtWaitForSingleObject(Handle, FALSE, NULL);
-            if (NT_SUCCESS(status))
-            {
+            if (NT_SUCCESS(status = NtWaitForSingleObject(Handle, FALSE, NULL)))
                 status = ioStatusBlock.Status;
-            }
         }
 
         if (BytesReturned)
-        {
             *BytesReturned = (ULONG)ioStatusBlock.Information;
-        }
     }
 
     return status;
@@ -172,7 +171,7 @@ NTSTATUS PhFilterLoadUnload(
         );
     objectAttributes.SecurityQualityOfService = &filterSecurityQos;
 
-    status = NtCreateFile(
+    if (!NT_SUCCESS(status = NtCreateFile(
         &fileHandle,
         FILE_READ_ATTRIBUTES | GENERIC_WRITE | SYNCHRONIZE,
         &objectAttributes,
@@ -184,9 +183,7 @@ NTSTATUS PhFilterLoadUnload(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL,
         0
-        );
-
-    if (!NT_SUCCESS(status))
+        )))
         return status;
 
     filterLoadParametersLength = UFIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName[ServiceName->Length]) + sizeof(UNICODE_NULL);
@@ -244,14 +241,16 @@ NTSTATUS PhFilterSendMessage(
     _Out_ PULONG BytesReturned
     )
 {
-    return PhpFilterDeviceIoControl(Port,
-                                    FLT_CTL_SEND_MESSAGE,
-                                    InBuffer,
-                                    InBufferSize,
-                                    OutputBuffer,
-                                    OutputBufferSize,
-                                    BytesReturned,
-                                    NULL);
+    return PhpFilterDeviceIoControl(
+        Port,
+        FLT_CTL_SEND_MESSAGE,
+        InBuffer,
+        InBufferSize,
+        OutputBuffer,
+        OutputBufferSize,
+        BytesReturned,
+        NULL
+        );
 }
 
 /**
@@ -271,14 +270,16 @@ NTSTATUS PhFilterGetMessage(
     _Inout_ LPOVERLAPPED Overlapped
     )
 {
-    return PhpFilterDeviceIoControl(Port,
-                                    FLT_CTL_GET_MESSAGE,
-                                    NULL,
-                                    0,
-                                    MessageBuffer,
-                                    MessageBufferSize,
-                                    NULL,
-                                    Overlapped);
+    return PhpFilterDeviceIoControl(
+        Port,
+        FLT_CTL_GET_MESSAGE,
+        NULL,
+        0,
+        MessageBuffer,
+        MessageBufferSize,
+        NULL,
+        Overlapped
+        );
 }
 
 /**
@@ -296,14 +297,16 @@ NTSTATUS PhFilterReplyMessage(
     _In_ ULONG ReplyBufferSize
     )
 {
-    return PhpFilterDeviceIoControl(Port,
-                                    FLT_CTL_REPLY_MESSAGE,
-                                    ReplyBuffer,
-                                    ReplyBufferSize,
-                                    NULL,
-                                    0,
-                                    NULL,
-                                    NULL);
+    return PhpFilterDeviceIoControl(
+        Port,
+        FLT_CTL_REPLY_MESSAGE,
+        ReplyBuffer,
+        ReplyBufferSize,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
 }
 
 /**
@@ -339,11 +342,8 @@ NTSTATUS PhFilterConnectCommunicationPort(
 
     *Port = NULL;
 
-    if ((SizeOfContext > 0 && !ConnectionContext) ||
-        (SizeOfContext == 0 && ConnectionContext))
-    {
+    if ((SizeOfContext > 0 && !ConnectionContext) || (SizeOfContext == 0 && ConnectionContext))
         return STATUS_INVALID_PARAMETER;
-    }
 
     if (SizeOfContext >= FLT_PORT_CONTEXT_MAX)
         return STATUS_INTEGER_OVERFLOW;
@@ -359,15 +359,10 @@ NTSTATUS PhFilterConnectCommunicationPort(
     // Build the filter EA, this contains the port name and the context.
     //
 
-    eaLength = FLT_PORT_FULL_EA_SIZE
-             + FLT_PORT_FULL_EA_VALUE_SIZE
-             + SizeOfContext;
+    eaLength = FLT_PORT_FULL_EA_SIZE + FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext;
 
-    ea = _malloca(eaLength);
-    if (!ea)
-    {
+    if (!(ea = _malloca(eaLength)))
         return STATUS_INSUFFICIENT_RESOURCES;
-    }
 
     RtlZeroMemory(ea, eaLength);
     ea->Flags = 0;
@@ -380,38 +375,36 @@ NTSTATUS PhFilterConnectCommunicationPort(
     eaValue->SizeOfContext = SizeOfContext;
 
     if (SizeOfContext > 0)
-    {
-        RtlCopyMemory(eaValue->Context,
-                      ConnectionContext,
-                      SizeOfContext);
-    }
+        RtlCopyMemory(eaValue->Context, ConnectionContext, SizeOfContext);
 
     RtlInitUnicodeString(&objectName, FLT_MSG_DEVICE_NAME);
-    InitializeObjectAttributes(&objectAttributes,
-                               &objectName,
-                               OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
-                               NULL,
-                               NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
+        NULL,
+        NULL
+        );
     if (SecurityAttributes)
     {
         if (SecurityAttributes->bInheritHandle)
-        {
             objectAttributes.Attributes |= OBJ_INHERIT;
-        }
         objectAttributes.SecurityDescriptor = SecurityAttributes->lpSecurityDescriptor;
     }
 
-    status = NtCreateFile(Port,
-                          FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-                          &objectAttributes,
-                          &ioStatusBlock,
-                          NULL,
-                          0,
-                          0,
-                          FILE_OPEN_IF,
-                          FlagOn(Options, FLT_PORT_FLAG_SYNC_HANDLE) ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
-                          ea,
-                          eaLength);
+    status = NtCreateFile(
+        Port,
+        FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        0,
+        0,
+        FILE_OPEN_IF,
+        FlagOn(Options, FLT_PORT_FLAG_SYNC_HANDLE) ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
+        ea,
+        eaLength
+        );
 
     _freea(ea);
 
