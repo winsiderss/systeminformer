@@ -1526,6 +1526,41 @@ VOID NTAPI KsiDebugLogMessageCallback(
     InterlockedAddRelease64(&KsiBytesReceived, Informer->Message->Header.Size);
 }
 
+NTSTATUS NTAPI KsiDebugMonitorRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    ULONG64 lastMessagesReceived = 0;
+    ULONG64 lastBytesReceived = 0;
+
+    for (NOTHING; NOTHING; PhDelayExecution(500))
+    {
+        ULONG64 messagesReceived;
+        ULONG64 bytesReceived;
+
+        messagesReceived = ReadULong64Acquire(&KsiMessagesReceived);
+        bytesReceived = ReadULong64Acquire(&KsiBytesReceived);
+
+        if (lastMessagesReceived)
+        {
+            ULONG64 bytesDiff = (bytesReceived - lastBytesReceived);
+            ULONG64 messagesDiff = (messagesReceived - lastMessagesReceived);
+            PPH_STRING size;
+
+            size = PhFormatSize(bytesDiff, ULONG_MAX);
+
+            dprintf("KSI: %ls\t%llu\n", PhGetString(size), messagesDiff);
+
+            PhDereferenceObject(size);
+        }
+
+        lastMessagesReceived = messagesReceived;
+        lastBytesReceived = bytesReceived;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 VOID KsiDebugLogInitialize(
     VOID
     )
@@ -1579,6 +1614,8 @@ VOID KsiDebugLogInitialize(
 
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
+        PhCreateThread2(KsiDebugMonitorRoutine, NULL);
+
         PhRegisterCallback(
             &PhInformerCallback,
             KsiDebugLogMessageCallback,
