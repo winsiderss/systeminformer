@@ -1042,12 +1042,15 @@ namespace CustomBuildTool
             GithubRelease githubMirrorUpload = BuildUploadFilesToGithub();
 
             if (githubMirrorUpload == null)
+            {
+                Program.PrintColorMessage("build-github upload failed.", ConsoleColor.Red);
                 return false;
+            }
 
-            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
-            string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
-            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
-            string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
+            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-bin.zip");
+            string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-setup.exe");
+            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-bin.zip");
+            string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-setup.exe");
 
             if (string.IsNullOrWhiteSpace(canaryBinlink) ||
                 string.IsNullOrWhiteSpace(canarySetuplink) ||
@@ -1070,7 +1073,7 @@ namespace CustomBuildTool
 
         private static GithubRelease BuildUploadFilesToGithub()
         {
-            //if (!GithubReleases.DeleteRelease(Build.BuildShortVersion))
+            //if (!GithubReleases.DeleteRelease(Build.BuildLongVersion))
             //    return null;
 
             GithubRelease mirror = null;
@@ -1079,7 +1082,7 @@ namespace CustomBuildTool
             {
                 // Create a new github release.
 
-                var response = GithubReleases.CreateRelease(Build.BuildShortVersion);
+                var response = GithubReleases.CreateRelease(Build.BuildLongVersion);
 
                 if (response == null)
                 {
@@ -1098,7 +1101,7 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        var result = GithubReleases.UploadAssets(Build.BuildShortVersion, sourceFile, response.UploadUrl);
+                        var result = GithubReleases.UploadAssets(Build.BuildLongVersion, sourceFile, response.UploadUrl);
 
                         if (result == null)
                         {
