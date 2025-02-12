@@ -5527,6 +5527,84 @@ NTSTATUS PhSetProcessPriorityBoost(
     return status;
 }
 
+NTSTATUS PhGetProcessActivityModerationState(
+    _In_ PPH_STRINGREF ModerationIdentifier,
+    _Out_ PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS ModerationSettings
+    )
+{
+    NTSTATUS status;
+    SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration = { nullptr };
+    PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
+
+    status = NtQuerySystemInformation(
+        SystemActivityModerationUserSettings,
+        &activityModeration,
+        sizeof(SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhQueryValueKey(
+        activityModeration.UserKeyHandle,
+        ModerationIdentifier,
+        KeyValuePartialInformation,
+        &keyValueInfo
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (
+        keyValueInfo->Type != REG_BINARY ||
+        keyValueInfo->DataLength != sizeof(SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS)
+        )
+    {
+        status = STATUS_INVALID_KERNEL_INFO_VERSION;
+    }
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    RtlMoveMemory(
+        ModerationSettings,
+        keyValueInfo->Data,
+        sizeof(activityModeration)
+        );
+
+CleanupExit:
+    if (activityModeration.UserKeyHandle)
+    {
+        NtClose(activityModeration.UserKeyHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessActivityModerationState(
+    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ SYSTEM_ACTIVITY_MODERATION_APP_TYPE ModerationType,
+    _In_ SYSTEM_ACTIVITY_MODERATION_STATE ModerationState
+    )
+{
+    NTSTATUS status;
+    SYSTEM_ACTIVITY_MODERATION_INFO moderationInfo;
+
+    memset(&moderationInfo, 0, sizeof(SYSTEM_ACTIVITY_MODERATION_INFO));
+    moderationInfo.AppType = ModerationType;
+    moderationInfo.ModerationState = ModerationState;
+    PhStringRefToUnicodeString(ModerationIdentifier, &moderationInfo.Identifier);
+
+    status = NtSetSystemInformation(
+        SystemActivityModerationExeState,
+        &moderationInfo,
+        sizeof(SYSTEM_ACTIVITY_MODERATION_INFO)
+        );
+
+    return status;
+}
+
 /**
  * Sets a process' affinity mask.
  *
