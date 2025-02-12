@@ -63,11 +63,26 @@
 #define FILE_CONTAINS_EXTENDED_CREATE_INFORMATION   0x10000000
 #define FILE_VALID_EXTENDED_OPTION_FLAGS            0x10000000
 
+typedef struct _EXTENDED_CREATE_DUAL_OPLOCK_KEYS 
+{
+    //
+    //  Parent oplock key.
+    //  All-zero if not set.
+    //
+    GUID ParentOplockKey;
+    //
+    //  Target oplock key.
+    //  All-zero if not set.
+    //
+    GUID TargetOplockKey;
+} EXTENDED_CREATE_DUAL_OPLOCK_KEYS, *PEXTENDED_CREATE_DUAL_OPLOCK_KEYS;
+
 typedef struct _EXTENDED_CREATE_INFORMATION
 {
     LONGLONG ExtendedCreateFlags;
     PVOID EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION, *PEXTENDED_CREATE_INFORMATION;
 
 typedef struct _EXTENDED_CREATE_INFORMATION_32
@@ -75,6 +90,7 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
     LONGLONG ExtendedCreateFlags;
     void* POINTER_32 EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS POINTER_32 DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION_32, *PEXTENDED_CREATE_INFORMATION_32;
 
 #define EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY 0x00000001
