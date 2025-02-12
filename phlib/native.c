@@ -4039,7 +4039,7 @@ NTSTATUS PhSetFileRename(
 {
     NTSTATUS status;
 
-    if (WindowsVersion < WINDOWS_10_RS1)
+    if (WindowsVersion < WINDOWS_10_RS2)
     {
         PFILE_RENAME_INFORMATION renameInfo;
         IO_STATUS_BLOCK ioStatusBlock;
