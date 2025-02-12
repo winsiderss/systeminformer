@@ -6155,7 +6155,6 @@ WmiSetSingleItemW(
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
-
 NTSYSAPI
 ULONG
 NTAPI
