@@ -4061,6 +4061,11 @@ static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
             PhRemoveWindowContext(WindowHandle, MAXCHAR);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhSetApplicationWindowIconEx(WindowHandle, HIWORD(wParam));
+        }
+        break;
     case WM_PHSVC_ERROR:
         {
             PPH_STRING message;
@@ -4108,9 +4113,11 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
         {
             context->WindowHandle = WindowHandle;
 
-            PhSetApplicationWindowIcon(WindowHandle);
+            PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
 
             PhCenterWindow(WindowHandle, context->ParentWindowHandle);
+
+            PhRegisterWindowCallback(WindowHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             context->OldWndProc = PhGetWindowProcedure(WindowHandle);
             PhSetWindowContext(WindowHandle, MAXCHAR, context);
