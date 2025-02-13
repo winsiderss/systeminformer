@@ -1634,7 +1634,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
 
-    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
+    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
     {
         if (PhGetIntegerSetting(L"EnableWarningsRunas") && PhShowMessageOneTime(
             WindowHandle,
