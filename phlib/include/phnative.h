@@ -679,6 +679,16 @@ PhInvokeWindowProcedureRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetHandleInformationRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE RemoteHandle,
+    _In_ ULONG Mask,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetJobProcessIdList(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
