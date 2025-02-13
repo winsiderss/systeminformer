@@ -316,7 +316,7 @@ FORCEINLINE
 NTSTATUS
 PhHttpAddRequestHeadersSR(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PPH_STRINGREF Headers
+    _In_ PCPH_STRINGREF Headers
     )
 {
     return PhHttpAddRequestHeaders(
