@@ -3066,10 +3066,7 @@ NTSTATUS PhSetHandleInformationRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if ((BOOL)basicInformation.ExitStatus) // Read TEB->LastErrorStatus?
-        status = STATUS_SUCCESS;
-    else
-        status = STATUS_UNSUCCESSFUL;
+    status = basicInformation.ExitStatus;
 
 CleanupExit:
 
