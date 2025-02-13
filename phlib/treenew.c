@@ -1329,7 +1329,7 @@ VOID PhTnpOnContextMenu(
     PH_TREENEW_HIT_TEST hitTest;
     PH_TREENEW_CONTEXT_MENU contextMenu;
 
-    if (CursorScreenX == -1 && CursorScreenY == -1)
+    if (CursorScreenX == INT_ERROR && CursorScreenY == INT_ERROR)
     {
         ULONG i;
         BOOLEAN found;
@@ -2282,6 +2282,14 @@ VOID PhTnpUpdateSystemMetrics(
     Context->SmallIconWidth = PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi);
     Context->SmallIconHeight = PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi);
 
+    Context->CellMarginLeft = PhGetDpi(TNP_CELL_LEFT_MARGIN, Context->WindowDpi);
+    Context->CellMarginRight = PhGetDpi(TNP_CELL_RIGHT_MARGIN, Context->WindowDpi);
+    Context->IconRightPadding = PhGetDpi(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
+    Context->TextMarginPadding = PhGetDpi(6 + 6, Context->WindowDpi);
+    Context->HeaderTextPadding = PhGetDpi(5, Context->WindowDpi);
+    Context->HeaderTextMargin = PhGetDpi(2, Context->WindowDpi);
+    Context->HeaderRowMargin = PhGetDpi(1, Context->WindowDpi);
+
     if (Context->SystemDragX < 2)
         Context->SystemDragX = 2;
     if (Context->SystemDragY < 2)
@@ -2317,10 +2325,10 @@ VOID PhTnpUpdateTextMetrics(
                     Context->RowHeight += 1; // HACK
             }
 
-            Context->RowHeight += PhGetDpi(1, Context->WindowDpi); // HACK
+            Context->RowHeight += Context->HeaderRowMargin; // HACK
 
             if (!(Context->Style & TN_STYLE_THIN_ROWS))
-                Context->RowHeight += PhGetDpi(2, Context->WindowDpi); // HACK
+                Context->RowHeight += Context->HeaderTextMargin; // HACK
         }
 
         ReleaseDC(Context->Handle, hdc);
@@ -3120,8 +3128,8 @@ VOID PhTnpUpdateColumnHeaders(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    ULONG count;
-    ULONG i;
+    LONG count;
+    LONG i;
     HDITEM item;
     PPH_TREENEW_COLUMN column;
 
@@ -3139,7 +3147,7 @@ VOID PhTnpUpdateColumnHeaders(
 
     count = Header_GetItemCount(Context->HeaderHandle);
 
-    if (count != -1)
+    if (count != INT_ERROR)
     {
         for (i = 0; i < count; i++)
         {
@@ -3406,8 +3414,8 @@ VOID PhTnpAutoSizeColumnHeader(
 
                 if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
                 {
-                    if (newWidth < textSize.cx + PhGetDpi(6 + 6, Context->WindowDpi)) // HACK: Magic values (same as our cell margins?)
-                        newWidth = textSize.cx + PhGetDpi(6 + 6, Context->WindowDpi);
+                    if (newWidth < textSize.cx + Context->TextMarginPadding) // HACK: Magic values (same as our cell margins?)
+                        newWidth = textSize.cx + Context->TextMarginPadding;
                 }
 
                 ReleaseDC(Context->Handle, hdc);
@@ -3434,8 +3442,8 @@ VOID PhTnpAutoSizeColumnHeader(
 
                     if (GetTextExtentPoint32(hdc, headerString.Buffer, (ULONG)headerString.Length / sizeof(WCHAR), &textSize))
                     {
-                        if (newWidth < textSize.cx + PhGetDpi(6 + 6, Context->WindowDpi)) // HACK: Magic values (same as our cell margins?)
-                            newWidth = textSize.cx + PhGetDpi(6 + 6, Context->WindowDpi);
+                        if (newWidth < textSize.cx + Context->TextMarginPadding) // HACK: Magic values (same as our cell margins?)
+                            newWidth = textSize.cx + Context->TextMarginPadding;
                     }
 
                     ReleaseDC(Context->Handle, hdc);
@@ -3983,7 +3991,7 @@ VOID PhTnpHitTest(
                                 if (x >= currentX && x < currentX + width)
                                     HitTest->Flags |= TN_HIT_ITEM_ICON;
 
-                                currentX += width + PhGetDpi(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
+                                currentX += width + Context->IconRightPadding;
                             }
                         }
 
@@ -4357,8 +4365,10 @@ VOID PhTnpProcessMouseVWheel(
     SCROLLINFO scrollInfo;
     LONG oldPosition;
 
-    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, Context->WindowDpi))
+    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
+    {
         wheelScrollLines = PhGetDpi(3, Context->WindowDpi);
+    }
 
     // If page scrolling is enabled, use the number of visible rows.
     if (wheelScrollLines == ULONG_MAX)
@@ -4420,8 +4430,10 @@ VOID PhTnpProcessMouseHWheel(
     SCROLLINFO scrollInfo;
     LONG oldPosition;
 
-    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, Context->WindowDpi))
+    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
+    {
         wheelScrollChars = PhGetDpi(3, Context->WindowDpi);
+    }
 
     // Zero the remainder if the direction changed.
     if ((Context->HScrollRemainder > 0) != (Distance > 0))
@@ -4859,7 +4871,7 @@ VOID PhTnpProcessSearchKey(
         Context->SearchSingleCharMode = FALSE;
     }
 
-    searchEvent.FoundIndex = -1;
+    searchEvent.FoundIndex = INT_ERROR;
 
     if (Context->FocusNode)
     {
@@ -4897,7 +4909,7 @@ VOID PhTnpProcessSearchKey(
         }
     }
 
-    if (searchEvent.FoundIndex == -1 && !Context->SearchFailed)
+    if (searchEvent.FoundIndex == INT_ERROR && !Context->SearchFailed)
     {
         // No search result. Beep to indicate an error, and set the flag so we don't beep again. But
         // don't beep if the first character was a space, because that's used for other purposes
@@ -4947,7 +4959,7 @@ BOOLEAN PhTnpDefaultIncrementalSearch(
 
     startIndex = SearchEvent->StartIndex;
     currentIndex = startIndex;
-    foundIndex = -1;
+    foundIndex = INT_ERROR;
     firstTime = TRUE;
 
     while (TRUE)
@@ -5626,16 +5638,12 @@ VOID PhTnpPaint(
         textRect.left = 20;
         textRect.top = Context->HeaderHeight + PhGetDpi(10, Context->WindowDpi);
         textRect.right = viewRect.right - PhGetDpi(20, Context->WindowDpi);
-        textRect.bottom = viewRect.bottom - PhGetDpi(5, Context->WindowDpi);
+        textRect.bottom = viewRect.bottom - Context->HeaderTextPadding;
 
         if (Context->ThemeSupport)
-        {
             SetTextColor(hdc, PhThemeWindowTextColor);
-        }
         else
-        {
             SetTextColor(hdc, GetSysColor(COLOR_GRAYTEXT));
-        }
 
         DrawText(
             hdc,
@@ -5816,8 +5824,8 @@ VOID PhTnpDrawCell(
     height = Context->SmallIconHeight;
 
     // Initial margins used by default list view
-    textRect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, Context->WindowDpi);
-    textRect.right -= PhGetDpi(TNP_CELL_RIGHT_MARGIN, Context->WindowDpi);
+    textRect.left += Context->CellMarginLeft;
+    textRect.right -= Context->CellMarginRight;
 
     // icon margin = (height of row - height of small icon) / 2
     iconVerticalMargin = ((textRect.bottom - textRect.top) - height) / 2;
@@ -5932,7 +5940,7 @@ VOID PhTnpDrawCell(
                 ILS_NORMAL
                 );
 
-            textRect.left += width + PhGetDpi(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
+            textRect.left += width + Context->IconRightPadding;
         }
         else if (Node->Icon)
         {
@@ -5948,7 +5956,7 @@ VOID PhTnpDrawCell(
                 DI_NORMAL
                 );
 
-            textRect.left += width + PhGetDpi(TNP_ICON_RIGHT_PADDING, Context->WindowDpi);
+            textRect.left += width + Context->IconRightPadding;
         }
 
         if (needsClip)
@@ -6537,9 +6545,9 @@ PPH_TREENEW_COLUMN PhTnpHitTestHeader(
 
         hitTestInfo.pt = *Point;
         hitTestInfo.flags = 0;
-        hitTestInfo.iItem = -1;
+        hitTestInfo.iItem = INT_ERROR;
 
-        if (SendMessage(Context->HeaderHandle, HDM_HITTEST, 0, (LPARAM)&hitTestInfo) != -1 && hitTestInfo.iItem != -1)
+        if (SendMessage(Context->HeaderHandle, HDM_HITTEST, 0, (LPARAM)&hitTestInfo) != INT_ERROR && hitTestInfo.iItem != INT_ERROR)
         {
             HDITEM item;
 
@@ -6605,7 +6613,7 @@ BOOLEAN PhTnpGetHeaderTooltipText(
         if (!result)
             return FALSE;
 
-        if (textSize.cx + PhGetDpi(6 + 6, Context->WindowDpi) <= itemRect.right - itemRect.left) // HACK: Magic values (same as our cell margins?)
+        if (textSize.cx + Context->TextMarginPadding <= itemRect.right - itemRect.left) // HACK: Magic values (same as our cell margins?)
             return FALSE;
 
         Context->TooltipColumnId = column->Id;
@@ -6803,10 +6811,10 @@ BOOLEAN TnHeaderCustomPaint(
         textLength = (LONG)PhCountStringZ(column->Text);
 
         textRect = CustomDraw->rc;
-        textRect.left += PhGetDpi(5, Context->WindowDpi);
-        textRect.right -= PhGetDpi(5, Context->WindowDpi);
-        textRect.bottom -= PhGetDpi(5, Context->WindowDpi);
-        textRect.top += PhGetDpi(2, Context->WindowDpi);
+        textRect.left += Context->HeaderTextPadding;
+        textRect.right -= Context->HeaderTextPadding;
+        textRect.bottom -= Context->HeaderTextPadding;
+        textRect.top += Context->HeaderTextMargin;
 
         SetTextColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x8f, 0x8f, 0x8f) : RGB(97, 116, 139)); // RGB(178, 178, 178)
 
@@ -7051,7 +7059,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
             {
-                logFont.lfHeight -= PhGetDpi(2, context->WindowDpi);
+                logFont.lfHeight -= context->HeaderTextMargin;
                 context->HeaderBoldFontHandle = CreateFontIndirect(&logFont);
                 //context->HeaderBoldFontHandle = PhDuplicateFontWithNewHeight(fontHandle, -14);
             }

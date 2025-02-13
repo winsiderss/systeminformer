@@ -94,6 +94,15 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG FixedWidthMinimum;
     LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
 
+    LONG WheelScrollLines;
+    LONG TextMarginPadding;
+    LONG CellMarginLeft;
+    LONG CellMarginRight;
+    LONG IconRightPadding;
+    LONG HeaderTextPadding;
+    LONG HeaderTextMargin;
+    LONG HeaderRowMargin;
+
     PPH_TREENEW_NODE FocusNode;
     ULONG HotNodeIndex;
     ULONG MarkNodeIndex; // selection mark
