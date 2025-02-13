@@ -516,28 +516,11 @@ NTSTATUS PhGetProcedureAddressRemote(
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
     context.FileName = fileName;
 
-    {
-        PPH_STRING remoteFileName;
-
-        if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, mappedImage.ViewBase, &remoteFileName)))
-        {
-            if (PhEqualString(fileName, remoteFileName, FALSE))
-            {
-                context.DllBase = mappedImage.ViewBase;
-            }
-
-            PhDereferenceObject(remoteFileName);
-        }
-    }
-
-    if (!context.DllBase)
-    {
-        status = PhEnumProcessModulesLimited(
-            ProcessHandle,
-            PhpGetProcedureAddressRemoteLimitedCallback,
-            &context
-            );
-    }
+    status = PhEnumProcessModulesLimited(
+        ProcessHandle,
+        PhpGetProcedureAddressRemoteLimitedCallback,
+        &context
+        );
 
     if (!context.DllBase)
     {
