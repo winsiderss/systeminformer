@@ -633,6 +633,17 @@ INT_PTR CALLBACK TextDlgProc(
             //        PhCopyListViewInfoTip(getInfoTip, &tip);
             //    }
             //    break;
+            case LVN_GETEMPTYMARKUP:
+                {
+                    NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
+
+                    listview->dwFlags = EMF_CENTERED;
+                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying changelog...", _TRUNCATE);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                    return TRUE;
+                }
+                break;
             case NM_DBLCLK:
                 {
                     if (header->hwndFrom == context->ListViewHandle)
