@@ -187,7 +187,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", flags))
                         return;
@@ -196,7 +196,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
@@ -243,7 +243,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", flags))
                         return;
@@ -252,7 +252,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 if (!Build.CopyDebugEngineFiles(flags))
@@ -272,7 +272,7 @@ namespace CustomBuildTool
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
                         return;
@@ -281,7 +281,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))

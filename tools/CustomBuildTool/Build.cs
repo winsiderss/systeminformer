@@ -1674,43 +1674,28 @@ namespace CustomBuildTool
 
             string export_content = output.ToString().TrimEnd();
             string export_header = output_header.ToString().TrimEnd();
-            string export_backup = string.Empty;
-
-            if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
-            {
-                export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
-            }
 
             // Only write to the file if it has changed.
-            if (!string.Equals(content, export_content, StringComparison.OrdinalIgnoreCase) || !string.Equals(export_backup, export_content, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(content, export_content, StringComparison.OrdinalIgnoreCase))
             {
                 Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_content);
                 Utils.WriteAllText("SystemInformer\\SystemInformer.def.h", export_header);
-                Utils.WriteAllText("SystemInformer\\SystemInformer.def.bak", export_content);
+                Utils.WriteAllText("SystemInformer\\SystemInformer.def.bak", content);
             }
         }
 
         public static void ExportDefinitionsRevert()
         {
-            for (int i = 0; i < 10; i++)
+            try
             {
-                try
+                if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
                 {
-                    if (File.Exists("SystemInformer\\SystemInformer.def.bak"))
-                    {
-                        string export_backup = Utils.ReadAllText("SystemInformer\\SystemInformer.def.bak");
-
-                        Utils.WriteAllText("SystemInformer\\SystemInformer.def", export_backup);
-                    }
-
-                    break;
+                    File.Move("SystemInformer\\SystemInformer.def.bak", "SystemInformer\\SystemInformer.def", true);
                 }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-                }
-
-                Thread.Sleep(3000);
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
             }
         }
     }
