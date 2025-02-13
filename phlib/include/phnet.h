@@ -211,19 +211,17 @@ typedef struct _PH_HTTP_CONTEXT
     PVOID RequestHandle;
 } PH_HTTP_CONTEXT, *PPH_HTTP_CONTEXT;
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketCreate(
-    _Out_ PPH_HTTP_CONTEXT *HttpContext,
-    _In_opt_ PCWSTR HttpUserAgent
+PhHttpInitialize(
+    _Out_ PPH_HTTP_CONTEXT *HttpContext
     );
 
 PHLIBAPI
 VOID
 NTAPI
-PhHttpSocketDestroy(
+PhHttpDestroy(
     _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
@@ -237,7 +235,7 @@ typedef enum _PH_HTTP_SOCKET_CLOSE_TYPE
 PHLIBAPI
 VOID
 NTAPI
-PhHttpSocketClose(
+PhHttpClose(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PH_HTTP_SOCKET_CLOSE_TYPE Type
     );
@@ -247,11 +245,11 @@ PhHttpSocketClose(
 #define PH_HTTP_DEFAULT_HTTPS_PORT 443
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketConnect(
+PhHttpConnect(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR ServerName,
+    _In_ PCWSTR ServerName,
     _In_ USHORT ServerPort
     );
 
@@ -259,35 +257,36 @@ PhHttpSocketConnect(
 #define PH_HTTP_FLAG_REFRESH 0x2
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketBeginRequest(
+PhHttpBeginRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_opt_ PWSTR Method,
-    _In_ PWSTR UrlPath,
+    _In_ PCWSTR RequestMethod,
+    _In_ PCWSTR RequestPath,
     _In_ ULONG Flags
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketSendRequest(
+PhHttpSendRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_opt_ PVOID RequestData,
-    _In_opt_ ULONG RequestDataLength
+    _In_opt_ PVOID OptionalBuffer,
+    _In_opt_ ULONG OptionalLength,
+    _In_opt_ ULONG TotalLength
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketEndRequest(
+PhHttpReceiveResponse(
     _In_ PPH_HTTP_CONTEXT HttpContext
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketReadData(
+PhHttpReadData(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength,
@@ -295,9 +294,9 @@ PhHttpSocketReadData(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketWriteData(
+PhHttpWriteData(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength,
@@ -305,27 +304,41 @@ PhHttpSocketWriteData(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketAddRequestHeaders(
+PhHttpAddRequestHeaders(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR Headers,
+    _In_ PCWSTR Headers,
     _In_opt_ ULONG HeadersLength
     );
 
+FORCEINLINE
+NTSTATUS
+PhHttpAddRequestHeadersSR(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PPH_STRINGREF Headers
+    )
+{
+    return PhHttpAddRequestHeaders(
+        HttpContext,
+        Headers->Buffer,
+        (ULONG)Headers->Length / sizeof(WCHAR)
+        );
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhHttpSocketQueryHeaders(
+PhHttpQueryHeaders(
     _In_ PPH_HTTP_CONTEXT HttpContext
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhHttpSocketQueryHeaderString(
+PhHttpQueryHeaderString(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR HeaderString
+    _In_ PCWSTR HeaderString
     );
 
 // status codes
@@ -338,21 +351,19 @@ PhHttpSocketQueryHeaderString(
 #define PH_HTTP_QUERY_CONTENT_LENGTH 0x1
 #define PH_HTTP_QUERY_STATUS_CODE 0x2
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketQueryHeaderUlong(
+PhHttpQueryHeaderUlong(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG QueryValue,
     _Out_ PULONG HeaderValue
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketQueryHeaderUlong64(
+PhHttpQueryHeaderUlong64(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG QueryValue,
     _Out_ PULONG64 HeaderValue
@@ -361,28 +372,28 @@ PhHttpSocketQueryHeaderUlong64(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhHttpSocketQueryOptionString(
+PhHttpQueryOptionString(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ BOOLEAN SessionOption,
     _In_ ULONG QueryOption
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketReadDataToBuffer(
+PhHttpReadDataToBuffer(
     _In_ PVOID RequestHandle,
     _Out_ PVOID* Buffer,
     _Out_ ULONG* BufferLength
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
-PhHttpSocketDownloadString(
+PhHttpDownloadString(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ BOOLEAN Unicode
+    _In_ BOOLEAN Unicode,
+    _Out_ PVOID* StringBuffer
     );
 
 typedef struct _PH_HTTPDOWNLOAD_CONTEXT
@@ -401,7 +412,7 @@ typedef BOOLEAN (NTAPI *PPH_HTTPDOWNLOAD_CALLBACK)(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhHttpSocketDownloadToFile(
+PhHttpDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PPH_STRINGREF FileName,
     _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
@@ -412,30 +423,75 @@ PhHttpSocketDownloadToFile(
 #define PH_HTTP_FEATURE_KEEP_ALIVE 0x2
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketSetFeature(
+PhHttpSetFeature(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG Feature,
     _In_ BOOLEAN Enable
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSetOption(
+    _In_ PVOID HttpHandle,
+    _In_ ULONG Option,
+    _In_ ULONG Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSetOptionString(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG Option,
+    _In_ PPH_STRINGREF Value
+    );
+
+FORCEINLINE
+NTSTATUS
+PhWinHttpSetOptionStringZ(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG Option,
+    _In_ PCWSTR Value
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, Value);
+
+    return PhHttpSetOptionString(HttpContext, Option, &string);
+}
+
 #define PH_HTTP_SECURITY_IGNORE_UNKNOWN_CA 0x1
 #define PH_HTTP_SECURITY_IGNORE_CERT_DATE_INVALID 0x2
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketSetSecurity(
+PhHttpSetSecurity(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG Feature
     );
 
-_Success_(return)
+#define PH_HTTP_PROTOCOL_FLAG_HTTP2 0x1
+#define PH_HTTP_PROTOCOL_FLAG_HTTP3 0x2
+
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketParseUrl(
+PhHttpSetProtocal(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ BOOLEAN Session,
+    _In_ ULONG Protocal,
+    _In_ ULONG Timeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpCrackUrl(
     _In_ PPH_STRING Url,
     _Out_opt_ PPH_STRING *Host,
     _Out_opt_ PPH_STRING *Path,
@@ -445,14 +501,14 @@ PhHttpSocketParseUrl(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhHttpSocketGetErrorMessage(
+PhHttpGetErrorMessage(
     _In_ ULONG ErrorCode
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
-PhHttpSocketSetCredentials(
+PhHttpSetCredentials(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PCWSTR Name,
     _In_ PCWSTR Value

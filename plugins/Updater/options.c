@@ -215,49 +215,44 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     VOID
     )
 {
+    NTSTATUS status;
     PPH_LIST results = NULL;
     PPH_BYTES jsonString = NULL;
-    PPH_STRING userAgentString;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PVOID jsonRootObject = NULL;
     ULONG i;
     ULONG arrayLength;
 
-    userAgentString = PhUpdaterCreateUserAgentString();
-
-    if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-
-    if (!PhHttpSocketConnect(httpContext, L"api.github.com", PH_HTTP_DEFAULT_HTTPS_PORT))
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"api.github.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
         goto CleanupExit;
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        L"/repos/winsiderss/systeminformer/commits",
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, L"/repos/winsiderss/systeminformer/commits", PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
 
     if (!(jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE)))
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
+    }
 
     if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
+    }
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonRootObject)))
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
+    }
 
     if (arrayLength > 0)
     {
@@ -347,13 +342,16 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+    {
+        PhHttpDestroy(httpContext);
+    }
 
     if (jsonRootObject)
+    {
         PhFreeJsonObject(jsonRootObject);
+    }
 
     PhClearReference(&jsonString);
-    PhClearReference(&userAgentString);
 
     return results;
 }
@@ -519,7 +517,7 @@ INT_PTR CALLBACK TextDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_COMMITS);
             context->ListViewBoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, FALSE); // TRUE, TRUE (tooltips)
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -602,6 +600,13 @@ INT_PTR CALLBACK TextDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            LONG windowDpi = HIWORD(wParam);
+
+            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
         }
         break;
     case WM_COMMAND:

@@ -33,9 +33,6 @@
     <ClCompile Include="uninstall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="download.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="startpage.c">
       <Filter>Source Files\pages</Filter>
     </ClCompile>

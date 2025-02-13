@@ -47,24 +47,6 @@ VOID SetupShowBrowseDialog(
     }
 }
 
-NTSTATUS SetupDownloadProgressThread(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    if (!SetupQueryUpdateDataWithFailover(Context))
-        goto CleanupExit;
-
-    if (!UpdateDownloadUpdateData(Context))
-        goto CleanupExit;
-
-    PostMessage(Context->DialogHandle, SETUP_SHOWINSTALL, 0, 0);
-    return STATUS_SUCCESS;
-
-CleanupExit:
-    PostMessage(Context->DialogHandle, SETUP_SHOWERROR, 0, 0);
-    return STATUS_FAIL_CHECK;
-}
-
 static BOOLEAN SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -355,11 +337,7 @@ HRESULT CALLBACK SetupConfigPageCallbackProc(
                     return S_FALSE;
                 }
 
-#ifdef PH_BUILD_API
                 ShowInstallPageDialog(context);
-#else
-                ShowDownloadPageDialog(context);
-#endif
                 return S_FALSE;
             }
         }
@@ -413,11 +391,7 @@ HRESULT CALLBACK SetupDirectoryNonEmptyTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDNO)
             {
-#ifdef PH_BUILD_API
                 ShowInstallPageDialog(context);
-#else
-                ShowDownloadPageDialog(context);
-#endif
                 return S_FALSE;
             }
 
@@ -458,60 +432,6 @@ VOID ShowConfigDirectoryNonEmptyDialog(
     config.pszMainInstruction = L"WARNING";
     config.pszContent = L"The selected installation directory already contains files and data. "
         L"If you continue this directory and files will be deleted.\r\n\r\nDo you want to change the directory?";
-
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
-}
-
-HRESULT CALLBACK SetupDownloadPageCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
-    )
-{
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
-
-    switch (uMsg)
-    {
-    case TDN_NAVIGATED:
-        {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-
-            PhCreateThread2(SetupDownloadProgressThread, context);
-        }
-        break;
-    case TDN_BUTTON_CLICKED:
-        {
-            if ((INT)wParam == IDCANCEL)
-            {
-                return S_FALSE;
-            }
-        }
-        break;
-    }
-
-    return S_OK;
-}
-
-VOID ShowDownloadPageDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    TASKDIALOGCONFIG config;
-
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_SHOW_PROGRESS_BAR;
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
-    config.cxWidth = 200;
-    config.pfCallback = SetupDownloadPageCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Downloading System Informer...";
-    config.pszContent = L"Downloading System Informer...";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

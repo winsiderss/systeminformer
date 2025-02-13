@@ -60,5 +60,5 @@ VOID ShowVirusTotalUploadDialog(
     config.pfCallback = TaskDialogProcessingCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

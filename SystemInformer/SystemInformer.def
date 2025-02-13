@@ -631,6 +631,7 @@ EXPORTS
     PhResolveDevicePrefix
     PhRevertImpersonationToken
     PhSetFileAllocationSize
+    PhSetFileIoPriorityHint
     PhSetFilePosition
     PhSetFileSize
     PhSetFirmwareEnvironmentVariable
@@ -1142,28 +1143,29 @@ EXPORTS
     PhDnsQuery
     PhDnsQuery2
     PhHttpDnsQuery
-    PhHttpSocketAddRequestHeaders
-    PhHttpSocketBeginRequest
-    PhHttpSocketClose
-    PhHttpSocketConnect
-    PhHttpSocketCreate
-    PhHttpSocketDestroy
-    PhHttpSocketDownloadString
-    PhHttpSocketEndRequest
-    PhHttpSocketGetErrorMessage
-    PhHttpSocketParseUrl
-    PhHttpSocketQueryHeaderString
-    PhHttpSocketQueryHeaderUlong
-    PhHttpSocketQueryHeaderUlong64
-    PhHttpSocketQueryHeaders
-    PhHttpSocketQueryOptionString
-    PhHttpSocketReadData
-    PhHttpSocketReadDataToBuffer
-    PhHttpSocketSendRequest
-    PhHttpSocketSetCredentials
-    PhHttpSocketSetFeature
-    PhHttpSocketSetSecurity
-    PhHttpSocketWriteData
+    PhHttpAddRequestHeaders
+    PhHttpBeginRequest
+    PhHttpClose
+    PhHttpConnect
+    PhHttpCrackUrl
+    PhHttpInitialize
+    PhHttpDestroy
+    PhHttpDownloadString
+    PhHttpReceiveResponse
+    PhHttpGetErrorMessage
+    PhHttpQueryHeaderString
+    PhHttpQueryHeaderUlong
+    PhHttpQueryHeaderUlong64
+    PhHttpQueryHeaders
+    PhHttpQueryOptionString
+    PhHttpReadData
+    PhHttpReadDataToBuffer
+    PhHttpSendRequest
+    PhHttpSetCredentials
+    PhHttpSetFeature
+    PhHttpSetSecurity
+    PhHttpSetProtocal
+    PhHttpWriteData
 
 ; ksiuser
     KsiLevel

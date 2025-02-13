@@ -53,15 +53,15 @@ VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Context
     )
 {
-    //PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-    //
-    //optionsEntry->CreateSection(
-    //    L"OnlineChecks",
-    //    PluginInstance->DllBase,
-    //    MAKEINTRESOURCE(IDD_OPTIONS),
-    //    OptionsDlgProc,
-    //    NULL
-    //    );
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
+    
+    optionsEntry->CreateSection(
+        L"OnlineChecks",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        OptionsDlgProc,
+        NULL
+        );
 }
 
 VOID NTAPI MenuItemCallback(
@@ -82,19 +82,19 @@ VOID NTAPI MenuItemCallback(
         UploadToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD);
         break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
-        UploadServiceToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE);
+        UploadServiceToOnlineService(menuItem->OwnerWindow, menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE);
         break;
     case MENUITEM_JOTTI_UPLOAD:
         UploadToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD);
         break;
     case MENUITEM_JOTTI_UPLOAD_SERVICE:
-        UploadServiceToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD_SERVICE);
+        UploadServiceToOnlineService(menuItem->OwnerWindow, menuItem->Context, MENUITEM_JOTTI_UPLOAD_SERVICE);
         break;
     case MENUITEM_HYBRIDANALYSIS_UPLOAD:
         UploadToOnlineService(menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD);
         break;
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
-        UploadServiceToOnlineService(menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE);
+        UploadServiceToOnlineService(menuItem->OwnerWindow, menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE);
         break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
@@ -439,7 +439,7 @@ VOID NTAPI TreeNewMessageCallback(
 
             if (!VirusTotalScanningEnabled)
             {
-                static PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"Scanning disabled");
+                static CONST PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"Scanning disabled");
 
                 DrawText(
                     customDraw->Dc,
