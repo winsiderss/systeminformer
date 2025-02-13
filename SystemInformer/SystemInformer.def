@@ -29,6 +29,7 @@ EXPORTS
     PhCmLoadSettings
     PhCmSaveSettings
     PhCopyListView
+    PhCopyIListView
     PhCopyListViewInfoTip
     PhCreateKsiSettingsBlob
     PhCreateProcessPropContext
@@ -48,6 +49,7 @@ EXPORTS
     PhDoPropPageLayout
     PhDuplicateProcessInformation
     PhDuplicateProcessNodeList
+    PhEnumDeviceResources
     PhEnumNetworkItems
     PhEnumNetworkItemsByProcessId
     PhEnumProcessItems
@@ -70,6 +72,7 @@ EXPORTS
     PhGetFilterSupportServiceTreeList
     PhGetGeneralCallback
     PhGetImageListIcon
+    PhGetIListViewContextMenuPoint
     PhGetListViewContextMenuPoint
     PhGetPhReleaseChannel
     PhGetPhReleaseChannelString
@@ -105,6 +108,7 @@ EXPORTS
     PhInitializeTreeNewFilterSupport
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
+    PhInsertCopyIListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
     PhInvalidateAllProcessNodes
     PhIsProcessSuspended
@@ -159,6 +163,7 @@ EXPORTS
     PhShowChooseProcessDialog
     PhShowHandleObjectProperties1
     PhShowHandleObjectProperties2
+    PhShowHandlePropertiesEx
     PhShowIconNotification
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
@@ -219,6 +224,7 @@ EXPORTS
     PhUiDetachFromDebuggerProcess
     PhUiDisconnectFromPhSvc
     PhUiDisconnectSession
+    PhUiEmptyProcessMemoryWorkingSet
     PhUiFlushHeapProcesses
     PhUiFreeMemory
     PhUiFreezeTreeProcess
@@ -236,6 +242,7 @@ EXPORTS
     PhUiResumeProcesses
     PhUiResumeThreads
     PhUiResumeTreeProcess
+    PhUiSetActivityModeration
     PhUiSetAttributesHandle
     PhUiSetBoostPriorityProcess
     PhUiSetBoostPriorityProcesses
@@ -950,6 +957,7 @@ EXPORTS
 
 ; hndlinfo
     PhCallKphQueryFileInformationWithTimeout
+    PhCreateHandleItem
     PhCompareObjects
     PhEnumObjectTypes
     PhFormatNativeKeyName
