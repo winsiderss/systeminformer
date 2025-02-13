@@ -3782,7 +3782,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
                         PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->TimeStampText->sr;
+                        getCellText->Text = PhGetStringRef(node->TimeStampText);
                     }
                 }
                 break;
@@ -3796,7 +3796,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhLargeIntegerToLocalSystemTime(&systemTime, &node->FileLastWriteTime);
                         PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->FileModifiedTimeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileModifiedTimeText);
                     }
                 }
                 break;
@@ -3807,7 +3807,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->FileEndOfFile.QuadPart != 0)
                     {
                         PhMoveReference(&node->FileSizeText, PhFormatSize(node->FileEndOfFile.QuadPart, ULONG_MAX));
-                        getCellText->Text = node->FileSizeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileSizeText);
                     }
                 }
                 break;
@@ -3816,7 +3816,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->Children && node->Children->Count != 0)
                     {
                         PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
-                        getCellText->Text = node->SubprocessCountText->sr;
+                        getCellText->Text = PhGetStringRef(node->SubprocessCountText);
                     }
                 }
                 break;
@@ -3825,7 +3825,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (processItem->JobObjectId != 0)
                     {
                         PhMoveReference(&node->JobObjectIdText, PhFormatUInt64(processItem->JobObjectId, TRUE));
-                        getCellText->Text = node->JobObjectIdText->sr;
+                        getCellText->Text = PhGetStringRef(node->JobObjectIdText);
                     }
                 }
                 break;
@@ -3835,7 +3835,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         processItem->IsSecureProcess ||
                         processItem->IsProtectedProcess)
                     {
-                        getCellText->Text = processItem->ProtectionString->sr;
+                        getCellText->Text = PhGetStringRef(processItem->ProtectionString);
                     }
                 }
                 break;
@@ -3870,7 +3870,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
 
                     cpuUsage *= 100;
-                    cpuUsage = cpuUsage * PhCountBitsUlongPtr(processItem->AffinityMask);
+                    cpuUsage *= PhCountBitsUlongPtr(processItem->AffinityMask);
 
                     if (cpuUsage >= PhMaxPrecisionLimit)
                     {
@@ -4216,19 +4216,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ReferenceCount != 0)
                     {
                         PhMoveReference(&node->ReferenceCountText, PhFormatUInt64(node->ReferenceCount, FALSE));
-                        getCellText->Text = node->ReferenceCountText->sr;
+                        getCellText->Text = PhGetStringRef(node->ReferenceCountText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
             case PHPRTLC_LXSSPID:
                 {
-                    if (processItem->LxssProcessId)
+                    if (processItem->LxssProcessId != 0)
                     {
-                        PH_FORMAT format;
-
-                        PhInitFormatU(&format, processItem->LxssProcessId);
-
-                        PhMoveReference(&node->LxssProcessIdText, PhFormat(&format, 1, 0));
+                        PhMoveReference(&node->LxssProcessIdText, PhFormatUInt64(processItem->LxssProcessId, FALSE));
                         getCellText->Text = PhGetStringRef(node->LxssProcessIdText);
                     }
                     else
