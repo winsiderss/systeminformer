@@ -129,9 +129,9 @@ typedef enum _TOKEN_INFORMATION_CLASS
 #define TokenSandBoxInert 15 // q: ULONG
 #define TokenAuditPolicy 16 // q; s: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
 #define TokenOrigin 17 // q; s: TOKEN_ORIGIN (requires SeTcbPrivilege)
-#define TokenElevationType 18 // q: TOKEN_ELEVATION_TYPE
+//#define TokenElevationType 18 // q: TOKEN_ELEVATION_TYPE
 #define TokenLinkedToken 19 // q; s: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
-#define TokenElevation 20 // q: TOKEN_ELEVATION // 20
+//#define TokenElevation 20 // q: TOKEN_ELEVATION // 20
 #define TokenHasRestrictions 21 // q: ULONG
 #define TokenAccessInformation 22 // q: TOKEN_ACCESS_INFORMATION
 #define TokenVirtualizationAllowed 23 // q; s: ULONG (requires SeCreateTokenPrivilege)
