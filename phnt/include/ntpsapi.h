@@ -2245,6 +2245,7 @@ NtResumeThread(
     _Out_opt_ PULONG PreviousSuspendCount
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2256,6 +2257,7 @@ NTAPI
 NtGetCurrentProcessorNumber(
     VOID
     );
+#endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 /**
