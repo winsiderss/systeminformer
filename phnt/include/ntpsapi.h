@@ -3173,6 +3173,7 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
+#if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -3258,6 +3259,7 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
+#endif
 
 #endif
 
