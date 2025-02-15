@@ -1959,7 +1959,7 @@ NtQueryInformationProcess(
     );
 
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryInformationProcess64(

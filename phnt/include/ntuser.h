@@ -157,7 +157,7 @@ NtUserConsoleControl(
  * @param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
  * @return Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 ConsoleControl(
@@ -303,7 +303,7 @@ NtUserSetChildWindowNoActivate(
     );
 
 // User32 ordinal 2005
-NTSYSCALLAPI
+NTSYSAPI
 LOGICAL
 NTAPI
 SetChildWindowNoActivate(
@@ -953,7 +953,7 @@ NtUserSetInformationThread(
     _In_ ULONG ThreadInformationLength
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 BOOL
 NTAPI
 QuerySendMessage(
