@@ -648,18 +648,22 @@ NTSTATUS SetupExecuteApplication(
 {
     NTSTATUS status;
     PPH_STRING string;
+    PPH_STRING parameters;
 
     if (PhIsNullOrEmptyString(Context->SetupInstallPath))
         return FALSE;
 
     string = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+    parameters = PhCreateString(SETUP_APP_PARAMETERS);
+    if (Context->Hide)
+        PhMoveReference(&parameters, PhConcatStringRefZ(&parameters->sr, L" -hide"));
 
     if (PhDoesFileExistWin32(PhGetString(string)))
     {
         status = PhShellExecuteEx(
             Context->DialogHandle,
             PhGetString(string),
-            SETUP_APP_PARAMETERS,
+            PhGetString(parameters),
             NULL,
             SW_SHOW,
             PH_SHELL_EXECUTE_DEFAULT,
@@ -672,6 +676,7 @@ NTSTATUS SetupExecuteApplication(
         status = STATUS_OBJECT_PATH_NOT_FOUND;
     }
 
+    PhDereferenceObject(parameters);
     PhDereferenceObject(string);
     return status;
 }
