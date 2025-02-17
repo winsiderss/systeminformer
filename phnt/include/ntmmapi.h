@@ -774,7 +774,7 @@ NtReadVirtualMemory(
     );
 
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
@@ -842,7 +842,7 @@ NtWriteVirtualMemory(
  * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
  * @return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
@@ -909,7 +909,7 @@ NtQueryVirtualMemory(
  * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
  * @return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(
