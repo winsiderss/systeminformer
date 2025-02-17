@@ -990,6 +990,7 @@ NtLoadKey2(
     _In_ ULONG Flags
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Loads a registry key from a file with extended options.
  *
@@ -1016,6 +1017,7 @@ NtLoadKeyEx(
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
+#endif
 
 #if (PHNT_VERSION >= PHNT_20H1)
 // rev by tyranid
@@ -1143,6 +1145,7 @@ NtUnloadKey(
     _In_ POBJECT_ATTRIBUTES TargetKey
     );
 
+#if PHNT_VERSION >= PHNT_WS03
 /**
  * Unloads a registry key with additional flags.
  *
@@ -1158,6 +1161,7 @@ NtUnloadKey2(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ ULONG Flags
     );
+#endif
 
 /**
  * Unloads a registry key and optionally signals an event.
@@ -1255,6 +1259,7 @@ NtQueryOpenSubKeys(
     _Out_ PULONG HandleCount
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Queries the open subkeys of a registry key with additional information.
  *
@@ -1274,6 +1279,7 @@ NtQueryOpenSubKeysEx(
     _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
     _Out_ PULONG RequiredSize
     );
+#endif
 
 /**
  * Initializes the registry.
