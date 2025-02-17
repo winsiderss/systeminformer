@@ -70,6 +70,7 @@ typedef enum _SECURE_SETTING_VALUE_TYPE
     SecureSettingValueTypeUnknown = 4
 } SECURE_SETTING_VALUE_TYPE, *PSECURE_SETTING_VALUE_TYPE;
 
+#if (PHNT_VERSION >= PHNT_REDSTONE)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -82,7 +83,9 @@ NtQuerySecurityPolicy(
     _Out_writes_bytes_opt_(*ValueSize) PVOID Value,
     _Inout_ PULONG ValueSize
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_20H1)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -129,7 +132,9 @@ NtDirectGraphicsCall(
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _Out_ PULONG ReturnLength
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -163,6 +168,9 @@ NtSetInformationCpuPartition(
     _Reserved_ ULONG,
     _Reserved_ ULONG
     );
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // Process KeepAlive (also WakeCounter)
 
@@ -181,5 +189,7 @@ NtAcquireProcessActivityReference(
     _In_ HANDLE ParentProcessHandle,
     _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
     );
+
+#endif
 
 #endif

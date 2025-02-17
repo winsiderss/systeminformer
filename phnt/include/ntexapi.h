@@ -380,7 +380,9 @@ NtTranslateFilePath(
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
     _Inout_opt_ PULONG OutputFilePathLength
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
  *
@@ -6914,7 +6916,7 @@ NtQueryInformationAtom(
     FLG_ENABLE_HANDLE_EXCEPTIONS)
 
 // Licensing
-
+#if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6925,6 +6927,7 @@ NtQueryLicenseValue(
     _In_ ULONG DataSize,
     _Out_ PULONG ResultDataSize
     );
+#endif
 
 // Misc.
 
