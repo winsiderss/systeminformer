@@ -24,6 +24,7 @@
 #include <phsvc.h>
 #include <procprv.h>
 #include <devprv.h>
+#include <notifico.h>
 
 #include <ksisup.h>
 #include <settings.h>
@@ -1247,6 +1248,15 @@ VOID PhpInitializeSettings(
     if (PhStartupParameters.UpdateChannel)
     {
         PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
+    }
+
+    if (PhStartupParameters.ShowHidden && !PhNfIconsEnabled())
+    {
+        // HACK(jxy-s) The default used to be that system tray icons where enabled, this keeps the
+        // old behavior for automation workflows. If the user specified "-hide" then they want to
+        // start the program hidden to the system tray and not show any main window. If there are no
+        // system tray icons enabled then we need to enable them so the behavior is consistent.
+        PhSetStringSetting(L"IconSettings", L"2|1");
     }
 }
 

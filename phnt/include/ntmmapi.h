@@ -248,8 +248,8 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved : 3;
             ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
             ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
-            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
