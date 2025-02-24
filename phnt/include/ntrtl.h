@@ -8980,7 +8980,7 @@ LdrInitializeThunk(
 // Thread execution
 //
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDelayExecution(

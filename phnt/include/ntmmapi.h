@@ -248,8 +248,8 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved : 3;
             ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
             ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
-            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
@@ -774,7 +774,7 @@ NtReadVirtualMemory(
     );
 
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
@@ -842,7 +842,7 @@ NtWriteVirtualMemory(
  * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
  * @return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
@@ -909,7 +909,7 @@ NtQueryVirtualMemory(
  * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
  * @return NTSTATUS Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(

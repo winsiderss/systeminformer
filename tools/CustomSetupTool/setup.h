@@ -77,7 +77,9 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG SetupRemoveAppData: 1;
             ULONG SetupIsLegacyUpdate : 1;
             ULONG Silent : 1;
-            ULONG Spare : 29;
+            ULONG NoStart : 1;
+            ULONG Hide : 1;
+            ULONG Spare : 27;
         };
     };
 

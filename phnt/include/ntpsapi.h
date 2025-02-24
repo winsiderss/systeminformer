@@ -1959,7 +1959,7 @@ NtQueryInformationProcess(
     );
 
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 NtWow64QueryInformationProcess64(
@@ -2245,6 +2245,7 @@ NtResumeThread(
     _Out_opt_ PULONG PreviousSuspendCount
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2256,6 +2257,7 @@ NTAPI
 NtGetCurrentProcessorNumber(
     VOID
     );
+#endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 /**
@@ -3173,6 +3175,7 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
+#if (PHNT_VERSION >= PHNT_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -3258,6 +3261,7 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
+#endif
 
 #endif
 

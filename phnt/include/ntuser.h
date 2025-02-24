@@ -75,7 +75,7 @@ ULONG
 NTAPI
 NtUserGetClassName(
     _In_ HWND WindowHandle,
-    _In_ LONGLONG Real,
+    _In_ BOOL Real,
     _Out_ PUNICODE_STRING ClassName
     );
 
@@ -157,7 +157,7 @@ NtUserConsoleControl(
  * @param ConsoleInformationLength The size of the structure pointed to by the ConsoleInformation parameter.
  * @return Successful or errant status.
  */
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 ConsoleControl(
@@ -177,7 +177,7 @@ NTSYSCALLAPI
 HWINSTA
 NTAPI
 NtUserOpenWindowStation(
-    _In_ OBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK DesiredAccess
     );
 
@@ -185,13 +185,13 @@ NTSYSCALLAPI
 HWINSTA
 NTAPI
 NtUserCreateWindowStation(
-    _In_ OBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE KeyboardLayoutHandle,
     _In_opt_ PVOID KeyboardLayoutOffset,
     _In_opt_ PVOID NlsTableOffset,
     _In_opt_ PVOID KeyboardDescriptor,
-    _In_opt_ UNICODE_STRING LanguageIdString,
+    _In_opt_ PUNICODE_STRING LanguageIdString,
     _In_opt_ ULONG KeyboardLocale
     );
 
@@ -303,7 +303,7 @@ NtUserSetChildWindowNoActivate(
     );
 
 // User32 ordinal 2005
-NTSYSCALLAPI
+NTSYSAPI
 LOGICAL
 NTAPI
 SetChildWindowNoActivate(
@@ -430,7 +430,7 @@ NtUserBlockInput(
 NTSYSCALLAPI
 BOOL
 NTAPI
-tUserCalculatePopupWindowPosition(
+NtUserCalculatePopupWindowPosition(
     _In_ const POINT* anchorPoint,
     _In_ const SIZE* windowSize,
     _In_ ULONG flags,
@@ -448,10 +448,10 @@ NtUserChangeWindowMessageFilterEx(
     _Inout_opt_ PCHANGEFILTERSTRUCT ChangeFilterStruct
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 HWND
 NTAPI
-NtUserChildWindowFromPoint(
+ChildWindowFromPoint(
     _In_ HWND WindowHandle,
     _In_ POINT pt
     );
@@ -939,7 +939,6 @@ NtUserQueryInformationThread(
     _In_ HANDLE ThreadHandle,
     _In_ USERTHREADINFOCLASS ThreadInformationClass,
     _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
-    _In_ ULONG ThreadInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
 
@@ -953,7 +952,7 @@ NtUserSetInformationThread(
     _In_ ULONG ThreadInformationLength
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 BOOL
 NTAPI
 QuerySendMessage(
