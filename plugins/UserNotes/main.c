@@ -412,7 +412,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
         {
             context->WindowHandle = hwndDlg;
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -458,7 +458,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            PhTaskDialogNavigatePage(hwndDlg, &config);
                             return S_FALSE;
                         }
                     }
@@ -501,7 +501,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            PhTaskDialogNavigatePage(hwndDlg, &config);
                             return S_FALSE;
                         }
                     }
@@ -544,7 +544,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                                 config.pszContent = PhGetString(context->StatusMessage);
                             }
 
-                            SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                            PhTaskDialogNavigatePage(hwndDlg, &config);
                             return S_FALSE;
                         }
                     }

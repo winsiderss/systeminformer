@@ -320,7 +320,7 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
                     {
-                        PPH_STRINGREF value;
+                        PCPH_STRINGREF value;
 
                         if (value = PhGetProcessPriorityClassString(extendedLimits.BasicLimitInformation.PriorityClass))
                         {

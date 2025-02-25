@@ -96,8 +96,8 @@ static ULONG PhProcessTreeColumnHeaderTextCacheLength = 0;
 static PVOID PhProcessTreeColumnHeaderTextCache = NULL;
 
 static HDC GraphContext = NULL;
-static ULONG GraphContextWidth = 0;
-static ULONG GraphContextHeight = 0;
+static LONG GraphContextWidth = 0;
+static LONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
@@ -782,8 +782,8 @@ VOID PhTickProcessNodes(
 
 static VOID PhpNeedGraphContext(
     _In_ HDC hdc,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     BITMAPINFO bitmapInfo;
@@ -816,8 +816,8 @@ static VOID PhpNeedGraphContext(
     bitmapInfo.bmiHeader.biHeight = Height;
     bitmapInfo.bmiHeader.biBitCount = 32;
 
-    GraphContext = CreateCompatibleDC(NULL);
-    GraphBitmap = CreateDIBSection(GraphContext, &bitmapInfo, DIB_RGB_COLORS, &GraphBits, NULL, 0);
+    GraphContext = CreateCompatibleDC(hdc);
+    GraphBitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &GraphBits, NULL, 0);
     GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
@@ -3020,7 +3020,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->PriorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetProcessPriorityClassString(processItem->PriorityClass))
                         {
@@ -3341,7 +3341,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ELEVATION:
                 {
-                    PPH_STRINGREF elevationType;
+                    PCPH_STRINGREF elevationType;
 
                     if (PhGetElevationTypeString(!!processItem->IsElevated, processItem->ElevationType, &elevationType))
                     {

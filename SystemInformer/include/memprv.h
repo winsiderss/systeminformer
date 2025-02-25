@@ -175,15 +175,15 @@ VOID PhGetMemoryProtectionString(
     _Inout_z_ PWSTR String
     );
 
-PPH_STRINGREF PhGetMemoryStateString(
+PCPH_STRINGREF PhGetMemoryStateString(
     _In_ ULONG State
     );
 
-PPH_STRINGREF PhGetMemoryTypeString(
+PCPH_STRINGREF PhGetMemoryTypeString(
     _In_ ULONG Type
     );
 
-PPH_STRINGREF PhGetSigningLevelString(
+PCPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     );
 

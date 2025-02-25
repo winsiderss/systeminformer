@@ -915,7 +915,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                     }
                     else if (node->IsAllocationBase)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetMemoryTypeString(memoryItem->Type))
                         {
@@ -987,7 +987,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case PHMMTLC_SIGNING_LEVEL:
                 if (memoryItem->RegionType == MappedFileRegion && memoryItem->u.MappedFile.SigningLevelValid)
                 {
-                    PPH_STRINGREF string;
+                    PCPH_STRINGREF string;
 
                     if (string = PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel))
                     {

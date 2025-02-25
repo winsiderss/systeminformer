@@ -491,14 +491,14 @@ PhFindStringSiKeyValuePairs(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PWSTR *String
+    _Out_ PCWSTR *String
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
-            *String = (PWSTR)KeyValuePairs[i].Key;
+            *String = (PCWSTR)KeyValuePairs[i].Key;
             return TRUE;
         }
     }
@@ -540,7 +540,7 @@ PhIndexStringSiKeyValuePairs(
 {
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
     {
-        *String = (PWSTR)KeyValuePairs[Integer].Key;
+        *String = (PCWSTR)KeyValuePairs[Integer].Key;
         return TRUE;
     }
 
@@ -808,7 +808,19 @@ PhFormatUInt64(
     _In_ BOOLEAN GroupDigits
     );
 
-#define PhaFormatUInt64(Value, GroupDigits) PH_AUTO_T(PH_STRING, PhFormatUInt64((Value), (GroupDigits)))
+#define PhaFormatUInt64(Value, GroupDigits) \
+    PH_AUTO_T(PH_STRING, PhFormatUInt64((Value), (GroupDigits)))
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatUInt64BitratePrefix(
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN GroupDigits
+    );
+
+#define PhaFormatUInt64BitratePrefix(Value, GroupDigits) \
+    PH_AUTO_T(PH_STRING, PhFormatUInt64BitratePrefix((Value), (GroupDigits)))
 
 PHLIBAPI
 PPH_STRING
@@ -830,7 +842,8 @@ PhFormatSize(
     _In_ ULONG MaxSizeUnit
     );
 
-#define PhaFormatSize(Size, MaxSizeUnit) PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
+#define PhaFormatSize(Size, MaxSizeUnit) \
+    PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
 
 PHLIBAPI
 PPH_STRING

@@ -26,7 +26,7 @@
 #include <settings.h>
 #include <verify.h>
 
-static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
+static CONST PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
 static VOID NTAPI ModuleAddedHandler(
     _In_ PVOID Parameter,

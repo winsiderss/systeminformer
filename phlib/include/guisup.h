@@ -1824,9 +1824,8 @@ PhGetProcessDpiAwareness(
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
@@ -1850,7 +1849,6 @@ PhGetProcessGuiResources(
     _Out_ PULONG Total
     );
 
-_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1858,9 +1856,8 @@ PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,

@@ -628,12 +628,12 @@ _Success_(return)
 BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType,
-    _Out_ PPH_STRINGREF* ElevationTypeString
+    _Out_ PCPH_STRINGREF* ElevationTypeString
     )
 {
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
 
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhElevationTypePairs,
         sizeof(PhElevationTypePairs),
         (IsElevated ? 4 : 0) + (ULONG)ElevationType,
@@ -650,7 +650,7 @@ BOOLEAN PhGetElevationTypeString(
 _Success_(return)
 BOOLEAN PhGetImpersonationLevelString(
     _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
-    _Out_ PWSTR* ImpersonationLevelString
+    _Out_ PCWSTR* ImpersonationLevelString
     )
 {
     if (PhIndexStringSiKeyValuePairs(
@@ -669,7 +669,7 @@ BOOLEAN PhGetImpersonationLevelString(
 _Success_(return)
 BOOLEAN PhGetTokenTypeString(
     _In_ TOKEN_TYPE TokenType,
-    _Out_ PWSTR* TokenTypeString
+    _Out_ PCWSTR* TokenTypeString
     )
 {
     if (PhIndexStringSiKeyValuePairs(

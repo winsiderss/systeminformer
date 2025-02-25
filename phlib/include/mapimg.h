@@ -87,7 +87,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImageEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -96,7 +96,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImageHeaderPageSize(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -122,7 +122,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhMapViewOfEntireFileEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID* ViewBase,
     _Out_ PSIZE_T ViewSize

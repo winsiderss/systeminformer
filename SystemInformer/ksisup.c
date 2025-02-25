@@ -32,7 +32,7 @@ typedef struct _KSI_SUPPORT_DATA
     ULONG SizeOfImage;
 } KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
 
-static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
+static CONST PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;

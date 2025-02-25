@@ -2781,14 +2781,13 @@ BOOLEAN PhGetProcessDpiAwareness(
     return FALSE;
 }
 
-_Success_(return)
-BOOLEAN PhGetPhysicallyInstalledSystemMemory(
+NTSTATUS PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
     _Out_ PULONGLONG ReservedMemory
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *GetPhysicallyInstalledSystemMemory_I)(_Out_ PULONGLONG TotalMemoryInKilobytes) = NULL;
+    static typeof(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
@@ -2798,16 +2797,18 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
     }
 
     if (!GetPhysicallyInstalledSystemMemory_I)
-        return FALSE;
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
 
     if (GetPhysicallyInstalledSystemMemory_I(&physicallyInstalledSystemMemory))
     {
         *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
         *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 /**
@@ -2845,34 +2846,44 @@ NTSTATUS PhGetProcessGuiResources(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
-_Success_(return)
+/**
+ * Retrieves information about the active window or a specified GUI thread.
+ *
+ * \param ThreadId The identifier for the thread for which information is to be retrieved. If this parameter is NULL, the function returns information for the foreground thread.
+ * \param ThreadInfo A pointer to a GUITHREADINFO structure that receives information describing the thread.
+ * \return Returns the status code indicating the success or failure of the operation.
+ */
+NTSTATUS PhGetGUIThreadInfo(
+    _In_opt_ HANDLE ThreadId,
+    _Out_ PGUITHREADINFO ThreadInfo
+    )
+{
+    ThreadInfo->cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(HandleToUlong(ThreadId), ThreadInfo))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
 BOOLEAN PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     )
 {
     GUITHREADINFO info;
 
-    memset(&info, 0, sizeof(GUITHREADINFO));
-    info.cbSize = sizeof(GUITHREADINFO);
-
-    if (GetGUIThreadInfo(HandleToUlong(ThreadId), &info))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return NT_SUCCESS(PhGetGUIThreadInfo(ThreadId, &info));
 }
 
-_Success_(return)
-BOOLEAN PhGetSendMessageReceiver(
+NTSTATUS PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HWND (WINAPI *GetSendMessageReceiver_I)(
-        _In_ HANDLE ThreadId
-        );
+    static typeof(&GetSendMessageReceiver) GetSendMessageReceiver_I = nullptr;
     HWND windowHandle;
 
     // GetSendMessageReceiver is an undocumented function exported by
@@ -2886,15 +2897,17 @@ BOOLEAN PhGetSendMessageReceiver(
     }
 
     if (!GetSendMessageReceiver_I)
-        return FALSE;
-
-    if (windowHandle = GetSendMessageReceiver_I(ThreadId)) // && GetLastError() == ERROR_SUCCESS
     {
-        *WindowHandle = windowHandle;
-        return TRUE;
+        return STATUS_PROCEDURE_NOT_FOUND;
     }
 
-    return FALSE;
+    if (windowHandle = GetSendMessageReceiver_I(ThreadId))
+    {
+        *WindowHandle = windowHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 // rev from ExtractIconExW

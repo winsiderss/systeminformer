@@ -1434,7 +1434,7 @@ NTAPI
 PhGetTokenIntegrityLevelEx(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PPH_INTEGRITY_LEVEL IntegrityLevel,
-    _Out_opt_ PPH_STRINGREF* IntegrityString
+    _Out_opt_ PCPH_STRINGREF* IntegrityString
     );
 
 PHLIBAPI

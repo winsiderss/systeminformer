@@ -982,6 +982,7 @@ UpdateExit:
 
 static CONST PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
 {
+    SIP(SREF(L"Unknown"), PH_MODULE_TYPE_UNKNOWN),
     SIP(SREF(L"DLL"), PH_MODULE_TYPE_MODULE),
     SIP(SREF(L"Mapped file"), PH_MODULE_TYPE_MAPPED_FILE),
     SIP(SREF(L"WOW64 DLL"), PH_MODULE_TYPE_WOW64_MODULE),
@@ -991,11 +992,11 @@ static CONST PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
     SIP(SREF(L"Enclave module"), PH_MODULE_TYPE_ENCLAVE_MODULE),
 };
 
-PPH_STRINGREF PhGetModuleTypeName(
+PCPH_STRINGREF PhGetModuleTypeName(
     _In_ ULONG ModuleType
     )
 {
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhModuleTypePairs,
@@ -1025,11 +1026,11 @@ static CONST PH_KEY_VALUE_PAIR PhModuleLoadReasonTypePairs[] =
     SIP(SREF(L"Unknown"), LoadReasonUnknown),
 };
 
-PPH_STRINGREF PhGetModuleLoadReasonTypeName(
+PCPH_STRINGREF PhGetModuleLoadReasonTypeName(
     _In_ USHORT LoadReason
     )
 {
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhIndexStringRefSiKeyValuePairs(
         PhModuleLoadReasonTypePairs,
@@ -1041,7 +1042,7 @@ PPH_STRINGREF PhGetModuleLoadReasonTypeName(
         return string;
     }
 
-    return NULL;
+    return (PCPH_STRINGREF)PhModuleLoadReasonTypePairs[10].Key;
 }
 
 static CONST PH_KEY_VALUE_PAIR PhModuleEnclaveTypePairs[] =
@@ -1052,11 +1053,11 @@ static CONST PH_KEY_VALUE_PAIR PhModuleEnclaveTypePairs[] =
     SIP(SREF(L"VBS"), ENCLAVE_TYPE_VBS)
 };
 
-PPH_STRINGREF PhGetModuleEnclaveTypeName(
+PCPH_STRINGREF PhGetModuleEnclaveTypeName(
     _In_ ULONG EnclaveType
     )
 {
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
         PhModuleEnclaveTypePairs,

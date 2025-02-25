@@ -961,7 +961,7 @@ PPH_STRING PhpaGetSendMessageReceiver(
     WCHAR windowClass[64];
     PPH_STRING windowText;
 
-    if (!PhGetSendMessageReceiver(ThreadId, &windowHandle))
+    if (!NT_SUCCESS(PhGetSendMessageReceiver(ThreadId, &windowHandle)))
         return NULL;
 
     if (!NT_SUCCESS(PhGetWindowClientId(windowHandle, &clientId)))

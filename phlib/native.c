@@ -3321,11 +3321,11 @@ typedef struct _PH_INTEGRITY_LEVEL_STRING_ENTRY
 NTSTATUS PhGetTokenIntegrityLevelEx(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PPH_INTEGRITY_LEVEL IntegrityLevel,
-    _Out_opt_ PPH_STRINGREF* IntegrityString
+    _Out_opt_ PCPH_STRINGREF* IntegrityString
     )
 {
-    static PH_STRINGREF integrityLevelDefaultString = PH_STRINGREF_INIT(L"Other");
-    static PH_INTEGRITY_LEVEL_STRING_ENTRY integrityLevelStringTable[] =
+    static CONST PH_STRINGREF integrityLevelDefaultString = PH_STRINGREF_INIT(L"Other");
+    static CONST PH_INTEGRITY_LEVEL_STRING_ENTRY integrityLevelStringTable[] =
     {
         { PH_STRINGREF_INIT(L"Untrusted"), { .Mandatory = MandatoryLevelUntrusted } },
         { PH_STRINGREF_INIT(L"Low"), {.Mandatory = MandatoryLevelLow }},
@@ -3584,13 +3584,13 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
 
     if (TrustLevelString)
     {
-        static PH_STRINGREF ProtectionTypeString[] =
+        static CONST PH_STRINGREF ProtectionTypeString[] =
         {
             PH_STRINGREF_INIT(L"None"),
             PH_STRINGREF_INIT(L"Full"),
             PH_STRINGREF_INIT(L"Lite"),
         };
-        static PH_STRINGREF ProtectionLevelString[] =
+        static CONST PH_STRINGREF ProtectionLevelString[] =
         {
             PH_STRINGREF_INIT(L" (None)"),
             PH_STRINGREF_INIT(L" (WinTcb)"),
@@ -3599,8 +3599,8 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
             PH_STRINGREF_INIT(L" (Antimalware)"),
             PH_STRINGREF_INIT(L" (Authenticode)"),
         };
-        PPH_STRINGREF protectionTypeString = NULL;
-        PPH_STRINGREF protectionLevelString = NULL;
+        PCPH_STRINGREF protectionTypeString = NULL;
+        PCPH_STRINGREF protectionLevelString = NULL;
 
         switch (protectionType)
         {

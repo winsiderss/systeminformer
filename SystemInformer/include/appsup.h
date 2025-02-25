@@ -35,6 +35,7 @@ PhIsProcessSuspended(
     _In_ HANDLE ProcessId
     );
 
+PHAPPAPI
 BOOLEAN
 NTAPI
 PhIsProcessBackground(
@@ -42,7 +43,7 @@ PhIsProcessBackground(
     );
 
 PHAPPAPI
-PPH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetProcessPriorityClassString(
     _In_ ULONG PriorityClass

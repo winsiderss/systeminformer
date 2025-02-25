@@ -144,7 +144,7 @@ NTSTATUS PhLoadMappedImage(
 }
 
 NTSTATUS PhLoadMappedImageEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -201,7 +201,7 @@ NTSTATUS PhLoadMappedImageEx(
 }
 
 NTSTATUS PhLoadMappedImageHeaderPageSize(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -403,7 +403,7 @@ CleanupExit:
 }
 
 NTSTATUS PhMapViewOfEntireFileEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID *ViewBase,
     _Out_ PSIZE_T ViewSize

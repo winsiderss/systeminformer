@@ -20,6 +20,7 @@
 #include <emenu.h>
 
 #include <mainwnd.h>
+#include <notifico.h>
 #include <proctree.h>
 #include <phplug.h>
 #include <phsettings.h>
@@ -2036,6 +2037,21 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
+                                case PHP_OPTIONS_INDEX_HIDE_WHENCLOSED:
+                                case PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED:
+                                case PHP_OPTIONS_INDEX_START_HIDDEN:
+                                    {
+                                        if (!PhNfIconsEnabled())
+                                        {
+                                            PhShowInformation2(
+                                                PhOptionsWindowHandle,
+                                                L"Unable to configure this option.",
+                                                L"%s",
+                                                L"You need to enable at least one tray icon (View menu > Tray Icons) before enablinh the hide options."
+                                                );
+                                        }
+                                    }
+                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
                                     {
                                         PPH_STRING applicationFileName;

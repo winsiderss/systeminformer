@@ -84,11 +84,11 @@ VOID PhGetMemoryProtectionString(
     *string = UNICODE_NULL;
 }
 
-PPH_STRINGREF PhGetMemoryStateString(
+PCPH_STRINGREF PhGetMemoryStateString(
     _In_ ULONG State
     )
 {
-    static PH_STRINGREF MemoryStateString[] =
+    static CONST PH_STRINGREF MemoryStateString[] =
     {
         PH_STRINGREF_INIT(L"Unknown"),
         PH_STRINGREF_INIT(L"Commit"),
@@ -106,11 +106,11 @@ PPH_STRINGREF PhGetMemoryStateString(
         return &MemoryStateString[0];
 }
 
-PPH_STRINGREF PhGetMemoryTypeString(
+PCPH_STRINGREF PhGetMemoryTypeString(
     _In_ ULONG Type
     )
 {
-    static PH_STRINGREF MemoryTypeString[] =
+    static CONST PH_STRINGREF MemoryTypeString[] =
     {
         PH_STRINGREF_INIT(L"Unknown"),
         PH_STRINGREF_INIT(L"Private"),
@@ -128,11 +128,11 @@ PPH_STRINGREF PhGetMemoryTypeString(
         return &MemoryTypeString[0];
 }
 
-PPH_STRINGREF PhGetSigningLevelString(
+PCPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     )
 {
-    static PH_STRINGREF SigningLevelString[] =
+    static CONST PH_STRINGREF SigningLevelString[] =
     {
         PH_STRINGREF_INIT(L"Unchecked"),
         PH_STRINGREF_INIT(L"Unsigned"),
