@@ -217,6 +217,27 @@ BOOL NTAPI GetFileSizeEx_Stub(
     return NT_SUCCESS(PhGetFileSize(hFile, lpFileSize));
 }
 
+PVOID NTAPI GetProcAddress_Stub(
+    _In_ PVOID Module,
+    _In_ PCSTR Name
+    )
+{
+    PVOID baseAddress;
+
+    if (IS_INTRESOURCE(Name))
+        baseAddress = PhGetProcedureAddress(Module, nullptr, PtrToUshort(Name));
+    else
+        baseAddress = PhGetProcedureAddress(Module, Name, 0);
+
+    if (!baseAddress)
+    {
+        PhSetLastError(ERROR_PROC_NOT_FOUND);
+        return NULL;
+    }
+
+    return baseAddress;
+}
+
 BOOL NTAPI FlushFileBuffers_Stub(
     _In_ HANDLE hFile
     )
@@ -347,6 +368,7 @@ VOID WINAPI ReleaseSRWLockExclusive_Stub(
 
 DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetProcAddress = GetProcAddress_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
