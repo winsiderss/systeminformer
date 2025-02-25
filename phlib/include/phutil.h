@@ -535,7 +535,7 @@ PhIndexStringSiKeyValuePairs(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PWSTR *String
+    _Out_ PCWSTR *String
     )
 {
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
