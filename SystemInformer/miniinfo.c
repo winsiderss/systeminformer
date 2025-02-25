@@ -1829,6 +1829,8 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         PhMipSetPinned(pinned, FALSE);
                         PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
                     }
+
+                    if (node = PhMipGetSelectedGroupNode(listSection))
                     {
                         if (GetKeyState(VK_CONTROL) >= 0)
                         {
