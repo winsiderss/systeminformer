@@ -73,7 +73,7 @@ BOOLEAN PhpShowElevatePrompt(
     )
 {
     TASKDIALOGCONFIG config;
-    TASKDIALOG_BUTTON buttons[1] =
+    CONST TASKDIALOG_BUTTON buttons[1] =
     {
         { IDYES, L"Continue"}
     };
@@ -176,6 +176,8 @@ BOOLEAN PhpElevationLevelAndConnectToPhSvc(
  * cancelled elevation. If the value is TRUE, you need to
  * perform any necessary phsvc calls and use PhUiDisconnectFromPhSvc()
  * to disconnect from phsvc.
+ * \param Cancelled A variable which receives TRUE if the user cancelled
+ * the action and phsvc was started.
  *
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
@@ -1325,7 +1327,7 @@ BOOLEAN PhIsDangerousProcess(
     _In_ HANDLE ProcessId
     )
 {
-    static ULONG DangerousProcesses[] =
+    static CONST ULONG DangerousProcesses[] =
     {
         0x6ccbdb46, // csrss.exe
         0x5920bffe, // dwm.exe
@@ -2861,13 +2863,13 @@ BOOLEAN PhUiSetActivityModeration(
     _In_ PPH_PROCESS_ITEM Process
     )
 {
-    static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    static CONST TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
     {
         { SystemActivityModerationStateSystemManaged, L"System managed" },
         { SystemActivityModerationStateUserManagedAllowThrottling, L"Allow activity moderation throttling" },
         { SystemActivityModerationStateUserManagedDisableThrottling, L"Disable activity moderation throttling" },
     };
-    static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    static CONST TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     {
         { IDYES, L"Save" },
         { IDCANCEL, L"Cancel" },
@@ -3701,8 +3703,16 @@ VOID PhUiNavigateServiceErrorDialogPage(
     _In_opt_ PPH_STRING MainContent
     )
 {
+    static CONST TASKDIALOG_BUTTON buttons[1] =
+    {
+        { IDNO, L"Close" }
+    };
+    static CONST TASKDIALOG_BUTTON buttonsElevation[2] =
+    {
+        { IDYES, L"Continue" },
+        { IDNO, L"Cancel" },
+    };
     TASKDIALOGCONFIG config;
-    TASKDIALOG_BUTTON buttons[2];
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -3715,16 +3725,17 @@ VOID PhUiNavigateServiceErrorDialogPage(
     if (MainContent) config.pszContent = PhGetString(MainContent);
     config.cxWidth = 200;
 
-    buttons[0].nButtonID = IDYES;
-    buttons[0].pszButtonText = L"Continue";
-    buttons[1].nButtonID = IDNO;
-    buttons[1].pszButtonText = L"Cancel";
-
     if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
     {
-        config.cButtons = 2;
-        config.pButtons = buttons;
+        config.cButtons = RTL_NUMBER_OF(buttonsElevation);
+        config.pButtons = buttonsElevation;
         config.nDefaultButton = IDYES;
+    }
+    else
+    {
+        config.cButtons = RTL_NUMBER_OF(buttons);
+        config.pButtons = buttons;
+        config.nDefaultButton = IDNO;
     }
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
@@ -3822,7 +3833,7 @@ NTSTATUS PhpUiServicePendingStartCallback(
 
     InterlockedExchange(&Context->RequireElevation, FALSE);
 
-    if (serviceErrorList->Count)
+    if (serviceErrorList->Count && !PhGetOwnTokenAttributes().Elevated)
     {
         for (ULONG i = 0; i < serviceErrorList->Count; i++)
         {
@@ -4057,7 +4068,7 @@ static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, MAXCHAR);
         }
         break;
