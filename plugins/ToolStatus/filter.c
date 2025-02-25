@@ -132,7 +132,7 @@ BOOLEAN ProcessTreeFilterCallback(
     }
 
     {
-        PPH_STRINGREF value;
+        PCPH_STRINGREF value;
 
         if (value = PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass))
         {
