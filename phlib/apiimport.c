@@ -198,7 +198,9 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 
+//
 // CRT
+//
 
 #ifdef _WIN64
 
