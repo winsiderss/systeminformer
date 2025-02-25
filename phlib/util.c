@@ -2082,7 +2082,13 @@ PPH_STRING PhFormatUInt64(
     return PhFormat(&format, 1, 0);
 }
 
-// Formats using prefix (1000=1k, 1000000=1M, 1000000000000=1B) (dmex)
+/**
+ * Formats a 64-bit unsigned integer using Metric (SI) Prefixes (1000=1k, 1000000=1M, 1000000000000=1B)
+ * https://en.wikipedia.org/wiki/Metric_prefix
+ *
+ * \param Value The integer.
+ * \param GroupDigits TRUE to group digits, otherwise FALSE.
+ */
 PPH_STRING PhFormatUInt64Prefix(
     _In_ ULONG64 Value,
     _In_ BOOLEAN GroupDigits
@@ -2120,6 +2126,13 @@ PPH_STRING PhFormatUInt64Prefix(
     return PhFormat(format, 2, 0);
 }
 
+/**
+ * Formats a 64-bit unsigned integer using Data-rate (SI) Prefixes (1000=1Bps, 1000000=1Kbps, 1000000000000=1Mbps)
+ * https://en.wikipedia.org/wiki/Data-rate_units
+ *
+ * \param Value The integer.
+ * \param GroupDigits TRUE to group digits, otherwise FALSE.
+ */
 PPH_STRING PhFormatUInt64BitratePrefix(
     _In_ ULONG64 Value,
     _In_ BOOLEAN GroupDigits
@@ -3400,7 +3413,9 @@ PPH_STRING PhGetSystemDirectory(
     PhReferenceObject(systemDirectory);
 
     if (previousSystemDirectory = InterlockedExchangePointer(&cachedSystemDirectory, systemDirectory))
+    {
         PhDereferenceObject(previousSystemDirectory);
+    }
 
     return systemDirectory;
 }
