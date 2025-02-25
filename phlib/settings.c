@@ -73,7 +73,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_XXH32);
 }
 
 PPH_STRING PhSettingToString(

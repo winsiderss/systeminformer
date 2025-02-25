@@ -2974,7 +2974,7 @@ static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
 {
     PPH_FILE_VERSIONINFO_CACHE_ENTRY entry = Entry;
 
-    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 _Success_(return)

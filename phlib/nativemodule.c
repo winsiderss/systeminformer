@@ -756,7 +756,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     nativeEntry.ObsoleteLoadCount = Entry->ObsoleteLoadCount;
     nativeEntry.TlsIndex = Entry->TlsIndex;
     nativeEntry.TimeDateStamp = Entry->TimeDateStamp;
-    nativeEntry.OriginalBase = Entry->OriginalBase;
+    nativeEntry.OriginalBase = UlongToPtr(Entry->OriginalBase);
     nativeEntry.LoadTime = Entry->LoadTime;
     nativeEntry.BaseNameHashValue = Entry->BaseNameHashValue;
     nativeEntry.LoadReason = Entry->LoadReason;
@@ -1327,11 +1327,7 @@ NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
     {
         PMEMORY_BASIC_INFORMATION basicInfo = &MemoryBasicInfo[i];
 
-        if (
-            basicInfo->Type == MEM_MAPPED ||
-            basicInfo->Type == MEM_IMAGE ||
-            basicInfo->Type == SEC_PROTECTED_IMAGE ||
-            basicInfo->Type == (MEM_MAPPED | MEM_IMAGE | SEC_PROTECTED_IMAGE))
+        if (basicInfo->Type == MEM_MAPPED || basicInfo->Type == MEM_IMAGE)
         {
             if (basicInfo->Type == MEM_MAPPED)
                 type = PH_MODULE_TYPE_MAPPED_FILE;
@@ -1798,23 +1794,6 @@ NTSTATUS PhEnumProcessModulesLimited(
         &limitedParameters
         );
 
-    //if (!NT_SUCCESS(status))
-    //{
-    //    PH_ENUM_MAPPED_MODULES_PARAMETERS mappedParameters;
-    //
-    //    memset(&mappedParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
-    //    mappedParameters.BaseAddressHashtable = baseAddressHashtable;
-    //    mappedParameters.Callback = Callback;
-    //    mappedParameters.Context = Context;
-    //
-    //    status = PhEnumVirtualMemoryBulk(
-    //        ProcessHandle,
-    //        nullptr,
-    //        FALSE,
-    //        PhpEnumGenericMappedFilesAndImagesBulk,
-    //        &mappedParameters
-    //        );
-    //}
 
     PhDereferenceObject(baseAddressHashtable);
 

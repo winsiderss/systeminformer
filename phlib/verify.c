@@ -1101,7 +1101,7 @@ ULONG PhpVerifyCacheHashtableHashFunction(
 {
     PPH_VERIFY_CACHE_ENTRY entry = Entry;
 
-    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 VOID PhFlushVerifyCache(

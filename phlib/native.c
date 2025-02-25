@@ -12998,7 +12998,7 @@ static ULONG NTAPI PhKnownDllsHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
