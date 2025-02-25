@@ -13808,16 +13808,16 @@ NTSTATUS PhGetSystemCompressionStoreInformation(
 {
     NTSTATUS status;
     SYSTEM_STORE_INFORMATION storeInfo;
-    SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+    SM_STORE_COMPRESSION_INFORMATION_REQUEST compressionInfo;
 
-    memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
-    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
+    memset(&compressionInfo, 0, sizeof(SM_STORE_COMPRESSION_INFORMATION_REQUEST));
+    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION_V1;
 
     memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
     storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
     storeInfo.StoreInformationClass = MemCompressionInfoRequest;
     storeInfo.Data = &compressionInfo;
-    storeInfo.Length = sizeof(compressionInfo);
+    storeInfo.Length = SYSTEM_STORE_COMPRESSION_INFORMATION_SIZE_V1;
 
     status = NtQuerySystemInformation(
         SystemStoreInformation,
