@@ -37,6 +37,7 @@ EXTERN_C_START
 #include <ws2def.h>
 #include <windns.h>
 #include <nldef.h>
+#include <netiodef.h>
 #include <iphlpapi.h>
 #include <mstcpip.h>
 #include <icmpapi.h>
