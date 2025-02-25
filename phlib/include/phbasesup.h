@@ -3457,10 +3457,12 @@ C_ASSERT((FIELD_OFFSET(PH_HASHTABLE_ENTRY, Body) % MEMORY_ALLOCATION_ALIGNMENT) 
  *
  * \return TRUE if the entries are equal, otherwise FALSE.
  */
-typedef BOOLEAN (NTAPI *PPH_HASHTABLE_EQUAL_FUNCTION)(
+typedef _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI PH_HASHTABLE_EQUAL_FUNCTION(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
+typedef PH_HASHTABLE_EQUAL_FUNCTION* PPH_HASHTABLE_EQUAL_FUNCTION;
 
 /**
  * A hash function used by a hashtable.
@@ -3474,9 +3476,11 @@ typedef BOOLEAN (NTAPI *PPH_HASHTABLE_EQUAL_FUNCTION)(
  * same hash code.
  * \li Two different entries do not have to be given different hash codes.
  */
-typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
+typedef _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI PH_HASHTABLE_HASH_FUNCTION(
     _In_ PVOID Entry
     );
+typedef PH_HASHTABLE_HASH_FUNCTION* PPH_HASHTABLE_HASH_FUNCTION;
 
 // Use power-of-two sizes instead of primes
 #define PH_HASHTABLE_POWER_OF_TWO_SIZE
