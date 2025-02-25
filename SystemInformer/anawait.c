@@ -388,7 +388,7 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             &PhpaGetHandleString(context->ProcessHandle, handle)->sr
             );
     }
-    else if (NT_FUNC_MATCH("RemoveIoCompletion"))
+    else if (NT_FUNC_MATCH("RemoveIoCompletion") || NT_FUNC_MATCH("RemoveIoCompletionEx"))
     {
         HANDLE handle = StackFrame->Params[0];
 
@@ -523,14 +523,14 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     {
         ULONG numberOfHandles = PtrToUlong(StackFrame->Params[0]);
         PVOID addressOfHandles = StackFrame->Params[1];
-        WAIT_TYPE waitType = (WAIT_TYPE)StackFrame->Params[2];
+        WAIT_TYPE waitType = (WAIT_TYPE)PtrToUlong(StackFrame->Params[2]);
         BOOLEAN alertable = !!StackFrame->Params[3];
 
         if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
         {
             numberOfHandles = PtrToUlong(context->PrevParams[1]);
             addressOfHandles = context->PrevParams[2];
-            waitType = (WAIT_TYPE)context->PrevParams[3];
+            waitType = (WAIT_TYPE)PtrToUlong(context->PrevParams[3]);
             alertable = FALSE;
         }
 
