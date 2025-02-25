@@ -1902,7 +1902,9 @@ VOID PhMwpOnCommand(
                 if (placement.showCmd == SW_MINIMIZE)
                     ShowWindowAsync(PhMwpSelectedProcessWindowHandle, SW_RESTORE);
                 else
-                    SetForegroundWindow(PhMwpSelectedProcessWindowHandle);
+                    ShowWindowAsync(PhMwpSelectedProcessWindowHandle, SW_SHOW);
+
+                SetForegroundWindow(PhMwpSelectedProcessWindowHandle);
             }
         }
         break;
@@ -1934,7 +1936,15 @@ VOID PhMwpOnCommand(
         {
             if (IsWindow(PhMwpSelectedProcessWindowHandle))
             {
-                PostMessage(PhMwpSelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+                NTSTATUS status;
+
+                status = PhTerminateWindow(PhMwpSelectedProcessWindowHandle, TRUE);
+                //PostMessage(PhMwpSelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(WindowHandle, L"Unable to close the window.", status, 0);
+                }
             }
         }
         break;
