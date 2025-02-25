@@ -117,10 +117,40 @@ typedef struct _ULARGE_INTEGER_128
 // Functions
 //
 
-#ifndef _WIN64
-#define FASTCALL __fastcall
-#else
+#if defined(_WIN64)
 #define FASTCALL
+#else
+#define FASTCALL __fastcall
+#endif
+
+#if defined(_WIN64)
+#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
+#else
+#define POINTER_ALIGNMENT
+#endif
+
+#if defined(_WIN64) || defined(_M_ALPHA)
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
+#define MEMORY_ALLOCATION_ALIGNMENT 16
+#else
+#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MEMORY_ALLOCATION_ALIGNMENT 8
+#endif
+
+#ifndef DECLSPEC_NOALIAS
+#if _MSC_VER < 1900
+#define DECLSPEC_NOALIAS
+#else
+#define DECLSPEC_NOALIAS __declspec(noalias)
+#endif
+#endif
+
+#ifndef DECLSPEC_IMPORT
+#define DECLSPEC_IMPORT __declspec(dllimport)
+#endif
+
+#ifndef DECLSPEC_EXPORT
+#define DECLSPEC_EXPORT __declspec(dllexport)
 #endif
 
 //
@@ -192,7 +222,9 @@ UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
 // Balanced tree node
 //
 
+#ifndef RTL_BALANCED_NODE_RESERVED_PARENT_MASK
 #define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
+#endif
 
 typedef struct _RTL_BALANCED_NODE
 {
@@ -203,18 +235,20 @@ typedef struct _RTL_BALANCED_NODE
         {
             struct _RTL_BALANCED_NODE *Left;
             struct _RTL_BALANCED_NODE *Right;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     union
     {
         UCHAR Red : 1;
         UCHAR Balance : 2;
         ULONG_PTR ParentValue;
-    };
+    } DUMMYUNIONNAME2;
 } RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
 
+#ifndef RTL_BALANCED_NODE_GET_PARENT_POINTER
 #define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) \
     ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
+#endif
 
 //
 // Portability
@@ -479,20 +513,6 @@ typedef struct _KSYSTEM_TIME
 #define BYTES_TO_PAGES(Size) (((Size) >> PAGE_SHIFT) + (((Size) & PAGE_MASK) != 0))
 #endif
 
-#endif
-
-#if defined(_WIN64)
-#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
-#else
-#define POINTER_ALIGNMENT
-#endif
-
-#ifndef DECLSPEC_NOALIAS
-#if _MSC_VER < 1900
-#define DECLSPEC_NOALIAS
-#else
-#define DECLSPEC_NOALIAS __declspec(noalias)
-#endif
-#endif
+#endif // _NTDEF_
 
 #endif
