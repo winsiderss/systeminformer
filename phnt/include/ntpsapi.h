@@ -233,7 +233,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL (requires SeDebugPrivilege)
+    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
     ProcessHandleTable, // q: ULONG[] // since WINBLUE
     ProcessCheckStackExtentsMode, // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
     ProcessCommandLineInformation, // q: UNICODE_STRING // 60
@@ -1069,8 +1069,7 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     UNICODE_STRING TargetDevicePath;
 } PROCESS_REVOKE_FILE_HANDLES_INFORMATION, *PPROCESS_REVOKE_FILE_HANDLES_INFORMATION;
 
-// begin_private
-
+// rev
 #define PROCESS_WORKING_SET_CONTROL_VERSION 3
 
 /**
@@ -1078,10 +1077,33 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
  */
 typedef enum _PROCESS_WORKING_SET_OPERATION
 {
-    ProcessWorkingSetSwap,
-    ProcessWorkingSetEmpty,
+    ProcessWorkingSetSwap,              // Swap the working set of a process to disk. // (requires SeDebugPrivilege)
+    ProcessWorkingSetEmpty,             // Remove all pages from the working set of a process.
+    ProcessWorkingSetEmptyPrivatePages, // Remove private pages from the working set of a process.
     ProcessWorkingSetOperationMax
 } PROCESS_WORKING_SET_OPERATION;
+
+/**
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag indicates that the operation should target private pages in the working set.
+ * Private pages are those that are not shared with other processes.
+ */
+#define PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES 0x01
+/**
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES flag indicates that the operation should target shared pages in the working set.
+ * Shared pages are those that are shared between multiple processes.
+ */
+#define PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES  0x02
+/**
+ * The PROCESS_WORKING_SET_FLAG_COMPRESS flag indicates that the operation should compress the pages before they are removed from the working set.
+ * Compression is typically used in conjunction with other flags to specify that the pages should be compressed as part of the operation.
+ */
+#define PROCESS_WORKING_SET_FLAG_COMPRESS            0x08
+/**
+ * The PROCESS_WORKING_SET_FLAG_STORE flag indicates that the operation should store the compressed pages.
+ * This is useful when the compressed data might be needed later, allowing for efficient retrieval and decompression when required.
+ * This flag is typically used in conjunction with the PROCESS_WORKING_SET_FLAG_COMPRESS flag to specify that the compressed pages should be stored.
+ */
+#define PROCESS_WORKING_SET_FLAG_STORE               0x10
 
 /**
  * The PROCESS_WORKING_SET_CONTROL structure is used to control the working set of a process.
@@ -1426,8 +1448,6 @@ typedef struct _PROCESS_TEB_VALUE_INFORMATION
     ULONG_PTR Value;
 } PROCESS_TEB_VALUE_INFORMATION, *PPROCESS_TEB_VALUE_INFORMATION;
 
-// end_private
-
 /**
  * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
  *
@@ -1440,7 +1460,7 @@ NtQueryPortInformationProcess(
     VOID
     );
 
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 //
 // Thread information structures
