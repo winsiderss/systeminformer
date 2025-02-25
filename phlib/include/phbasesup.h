@@ -1195,8 +1195,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhSplitStringRefAtString(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ BOOLEAN IgnoreCase,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -1214,8 +1214,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhSplitStringRefEx(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ ULONG Flags,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart,
@@ -1230,14 +1230,14 @@ VOID
 NTAPI
 PhTrimStringRef(
     _Inout_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF CharSet,
+    _In_ PCPH_STRINGREF CharSet,
     _In_ ULONG Flags
     );
 
 FORCEINLINE
 LONG
 PhCompareStringRef2(
-    _In_ PPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String1,
     _In_ PCWSTR String2,
     _In_ BOOLEAN IgnoreCase
     )
@@ -1252,7 +1252,7 @@ PhCompareStringRef2(
 FORCEINLINE
 BOOLEAN
 PhEqualStringRef2(
-    _In_ PPH_STRINGREF String1,
+    _In_ PCPH_STRINGREF String1,
     _In_ PCWSTR String2,
     _In_ BOOLEAN IgnoreCase
     )
@@ -1286,7 +1286,7 @@ PhStartsWithStringRef(
 FORCEINLINE
 BOOLEAN
 PhStartsWithStringRef2(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ PCWSTR Prefix,
     _In_ BOOLEAN IgnoreCase
     )
@@ -1301,8 +1301,8 @@ PhStartsWithStringRef2(
 FORCEINLINE
 BOOLEAN
 PhEndsWithStringRef(
-    _In_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF Suffix,
+    _In_ PCPH_STRINGREF String,
+    _In_ PCPH_STRINGREF Suffix,
     _In_ BOOLEAN IgnoreCase
     )
 {
@@ -1320,7 +1320,7 @@ PhEndsWithStringRef(
 FORCEINLINE
 BOOLEAN
 PhEndsWithStringRef2(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ PCWSTR Suffix,
     _In_ BOOLEAN IgnoreCase
     )
@@ -1346,7 +1346,7 @@ PhSkipStringRef(
 FORCEINLINE
 VOID
 PhReverseStringRef(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     SIZE_T i;
@@ -1468,16 +1468,16 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateString3(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
-    _In_opt_ PPH_STRINGREF TrimCharSet
+    _In_opt_ PCPH_STRINGREF TrimCharSet
     );
 
 FORCEINLINE
 PPH_STRING
 NTAPI
 PhTrimStringZ(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
     _In_ PCWSTR TrimCharSet
     )
@@ -1523,7 +1523,7 @@ FORCEINLINE
 VOID
 PhUpperStringRefInto(
     _Inout_ PPH_STRINGREF Destination,
-    _In_ PPH_STRINGREF Source
+    _In_ PCPH_STRINGREF Source
     )
 {
     assert(Destination->Length >= Source->Length);
@@ -1546,7 +1546,7 @@ FORCEINLINE
 VOID
 PhLowerStringRefInto(
     _Inout_ PPH_STRINGREF Destination,
-    _In_ PPH_STRINGREF Source
+    _In_ PCPH_STRINGREF Source
     )
 {
     assert(Destination->Length >= Source->Length);
@@ -1719,7 +1719,7 @@ PhGetStringRef(
 FORCEINLINE
 PCWSTR
 PhGetStringRefZ(
-    _In_opt_ PPH_STRINGREF String
+    _In_opt_ PCPH_STRINGREF String
     )
 {
     if (String)
@@ -1788,7 +1788,7 @@ PhGetStringOrDefault(
 FORCEINLINE
 BOOLEAN
 PhIsNullOrEmptyStringRef(
-    _Pre_maybenull_ PPH_STRINGREF String
+    _Pre_maybenull_ PCPH_STRINGREF String
     )
 {
     return !(String && String->Length);
@@ -1938,8 +1938,8 @@ PhCompareStringWithNullSortOrder(
 FORCEINLINE
 LONG
 PhCompareStringRefWithNullSortOrder(
-    _In_opt_ PPH_STRINGREF String1,
-    _In_opt_ PPH_STRINGREF String2,
+    _In_opt_ PCPH_STRINGREF String1,
+    _In_opt_ PCPH_STRINGREF String2,
     _In_ PH_SORT_ORDER Order,
     _In_ BOOLEAN IgnoreCase
     )
@@ -2723,7 +2723,7 @@ NTAPI
 PhInsertStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -3955,7 +3955,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhHexStringToBuffer(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_writes_bytes_(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     );
 
@@ -3963,7 +3963,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhHexStringToBufferEx(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PVOID Buffer
     );
@@ -4012,7 +4012,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhStringToUInt64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
     _Out_opt_ PULONG64 Integer
     );
@@ -4021,7 +4021,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhStringToDouble(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Reserved_ ULONG Base,
     _Out_opt_ DOUBLE *Double
     );

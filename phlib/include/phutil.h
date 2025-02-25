@@ -458,13 +458,13 @@ BOOLEAN
 PhFindIntegerSiKeyValuePairsStringRef(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_ PULONG Integer
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
-        if (PhEqualStringRef((PPH_STRINGREF)KeyValuePairs[i].Key, String, TRUE))
+        if (PhEqualStringRef((PCPH_STRINGREF)KeyValuePairs[i].Key, String, TRUE))
         {
             *Integer = PtrToUlong(KeyValuePairs[i].Value);
             return TRUE;
@@ -733,7 +733,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhEscapeStringForMenuPrefix(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -866,7 +866,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhStringToGuid(
-    _In_ PPH_STRINGREF GuidString,
+    _In_ PCPH_STRINGREF GuidString,
     _Out_ PGUID Guid
     );
 
@@ -905,7 +905,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 _Success_(return)
@@ -979,7 +979,7 @@ BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     );
 
@@ -1333,7 +1333,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetTemporaryDirectory(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     );
 
 PHLIBAPI
@@ -1371,9 +1371,9 @@ NTSTATUS
 NTAPI
 PhCreateProcess(
     _In_ PCWSTR FileName,
-    _In_opt_ PPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PPH_STRINGREF CurrentDirectory,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
     _In_opt_ PPH_CREATE_PROCESS_INFO Information,
     _In_ ULONG Flags,
     _In_opt_ HANDLE ParentProcessHandle,
@@ -1581,7 +1581,7 @@ PPH_STRING
 NTAPI
 PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1604,7 +1604,7 @@ ULONG
 NTAPI
 PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1627,7 +1627,7 @@ ULONG64
 NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1934,7 +1934,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhParseCommandLinePart(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Inout_ PULONG_PTR Index
     );
 
@@ -1942,7 +1942,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhParseCommandLine(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _In_opt_ PPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
@@ -1954,7 +1954,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhEscapeCommandLinePart(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI

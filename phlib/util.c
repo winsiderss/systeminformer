@@ -1612,7 +1612,7 @@ BOOLEAN PhMatchWildcards(
  * \return The escaped string, with each ampersand replaced by 2 ampersands.
  */
 PPH_STRING PhEscapeStringForMenuPrefix(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -2345,7 +2345,7 @@ NTSTATUS PhFormatGuidToBuffer(
 }
 
 NTSTATUS PhStringToGuid(
-    _In_ PPH_STRINGREF GuidString,
+    _In_ PCPH_STRINGREF GuidString,
     _Out_ PGUID Guid
     )
 {
@@ -2403,7 +2403,7 @@ PVOID PhGetFileVersionInfo(
 }
 
 PVOID PhGetFileVersionInfoEx(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PVOID imageBaseAddress;
@@ -2811,7 +2811,7 @@ BOOLEAN PhInitializeImageVersionInfo(
 _Success_(return)
 BOOLEAN PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     )
 {
@@ -4200,7 +4200,7 @@ PPH_STRING PhGetKnownFolderPathEx(
 
 // rev from GetTempPath2W (dmex)
 PPH_STRING PhGetTemporaryDirectory(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     static PH_STRINGREF variableNameTmp = PH_STRINGREF_INIT(L"TMP");
@@ -4383,9 +4383,9 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  */
 NTSTATUS PhCreateProcess(
     _In_ PCWSTR FileName,
-    _In_opt_ PPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PPH_STRINGREF CurrentDirectory,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
     _In_opt_ PPH_CREATE_PROCESS_INFO Information,
     _In_ ULONG Flags,
     _In_opt_ HANDLE ParentProcessHandle,
@@ -5780,7 +5780,7 @@ PPH_STRING PhExpandKeyName(
  */
 PPH_STRING PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     )
 {
     PPH_STRING string = NULL;
@@ -5806,7 +5806,7 @@ PPH_STRING PhQueryRegistryString(
 
 ULONG PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     )
 {
     ULONG ulong = ULONG_MAX;
@@ -5828,7 +5828,7 @@ ULONG PhQueryRegistryUlong(
 
 ULONG64 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     )
 {
     ULONG64 ulong64 = ULLONG_MAX;
@@ -6929,7 +6929,7 @@ BOOLEAN PhFinalHash(
  * whitespace at this index. The index is updated to point to the end of the command line part.
  */
 PPH_STRING PhParseCommandLinePart(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Inout_ PULONG_PTR Index
     )
 {
@@ -7037,7 +7037,7 @@ PPH_STRING PhParseCommandLinePart(
  * \param Context A user-defined value to pass to \a Callback.
  */
 BOOLEAN PhParseCommandLine(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _In_opt_ PPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
@@ -7189,7 +7189,7 @@ BOOLEAN PhParseCommandLine(
  * \remarks Only the double quotation mark is escaped.
  */
 PPH_STRING PhEscapeCommandLinePart(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     static PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
@@ -7249,7 +7249,7 @@ PPH_STRING PhEscapeCommandLinePart(
  * the file was not found.
  */
 BOOLEAN PhParseCommandLineFuzzy(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Out_ PPH_STRINGREF FileName,
     _Out_ PPH_STRINGREF Arguments,
     _Out_opt_ PPH_STRING *FullFileName
@@ -7461,7 +7461,7 @@ PPH_LIST PhCommandLineToList(
 }
 
 PPH_STRING PhCommandLineQuoteSpaces(
-    _In_ PPH_STRINGREF CommandLine
+    _In_ PCPH_STRINGREF CommandLine
     )
 {
     static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
@@ -7900,7 +7900,7 @@ PVOID PhGetFileText(
 }
 
 PVOID PhFileReadAllText(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN Unicode
     )
 {
@@ -8477,7 +8477,7 @@ NTSTATUS PhDelayExecution(
 
 // rev from lucasg https://lucasg.github.io/2017/10/15/Api-set-resolution/ (dmex)
 PPH_STRING PhApiSetResolveToHost(
-    _In_ PPH_STRINGREF ApiSetName
+    _In_ PCPH_STRINGREF ApiSetName
     )
 {
     PAPI_SET_NAMESPACE apisetMap;
@@ -8738,7 +8738,7 @@ VOID PhFreeProcessSnapshot(
 
 NTSTATUS PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
-    _In_opt_ PPH_STRINGREF CommandInput,
+    _In_opt_ PCPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING *CommandOutput
     )
 {

@@ -273,7 +273,7 @@ NTSTATUS PhLoadLibraryAsResource(
 }
 
 NTSTATUS PhLoadLibraryAsImageResource(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _Out_opt_ PVOID *BaseAddress
     )
@@ -473,7 +473,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  */
 NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
@@ -801,7 +801,7 @@ PPH_STRING PhLoadString(
  * \param SourceString The indirect string from which the resource will be retrieved.
  */
 PPH_STRING PhLoadIndirectString(
-    _In_ PPH_STRINGREF SourceString
+    _In_ PCPH_STRINGREF SourceString
     )
 {
     PPH_STRING indirectString = NULL;
@@ -921,7 +921,7 @@ PPH_STRING PhGetDllFileName(
 
 _Success_(return)
 BOOLEAN PhGetLoaderEntryData(
-    _In_ PPH_STRINGREF BaseDllName,
+    _In_ PCPH_STRINGREF BaseDllName,
     _Out_opt_ PVOID* DllBase,
     _Out_opt_ ULONG* SizeOfImage,
     _Out_opt_ PPH_STRING* FullName
@@ -2499,7 +2499,7 @@ PPH_STRING PhGetExportNameFromOrdinal(
 }
 
 NTSTATUS PhLoaderEntryLoadDll(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PVOID* BaseAddress
     )
 {
@@ -2674,7 +2674,7 @@ NTSTATUS PhLoadAllImportsForDll(
 }
 
 NTSTATUS PhLoadPluginImage(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {

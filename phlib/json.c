@@ -420,7 +420,7 @@ PVOID PhGetJsonObjectAsArrayList(
 }
 
 PVOID PhLoadJsonObjectFromFile(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PPH_BYTES content;
@@ -445,7 +445,7 @@ static CONST PH_FLAG_MAPPING PhJsonFormatFlagMappings[] =
 };
 
 NTSTATUS PhSaveJsonObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID Object,
     _In_opt_ ULONG Flags
     )

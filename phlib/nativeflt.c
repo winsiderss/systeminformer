@@ -142,7 +142,7 @@ NTSTATUS PhpFilterDeviceIoControl(
  * \return Successful or errant status.
  */
 NTSTATUS PhFilterLoadUnload(
-    _In_ PPH_STRINGREF ServiceName,
+    _In_ PCPH_STRINGREF ServiceName,
     _In_ BOOLEAN LoadDriver
     )
 {

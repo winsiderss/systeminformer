@@ -2543,8 +2543,8 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtString(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ BOOLEAN IgnoreCase,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -2607,8 +2607,8 @@ BOOLEAN PhSplitStringRefAtString(
  * \return TRUE if a separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefEx(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ ULONG Flags,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart,
@@ -2825,7 +2825,7 @@ SeparatorNotFound:
 
 VOID PhTrimStringRef(
     _Inout_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF CharSet,
+    _In_ PCPH_STRINGREF CharSet,
     _In_ ULONG Flags
     )
 {
@@ -2993,17 +2993,6 @@ PPH_STRING PhCreateStringEx(
         memcpy(string->Buffer, Buffer, Length);
     }
 
-    if (Buffer)
-    {
-        SIZE_T len = string->Length;
-        SIZE_T len2 = PhCountStringZ(string->Buffer) * sizeof(WCHAR);
-
-        if (len != len2)
-        {
-            dprintf("PhTrimToNullTerminatorString\n");
-        }
-    }
-
     return string;
 }
 
@@ -3015,9 +3004,9 @@ PPH_STRING PhCreateStringEx(
  * \param TrimCharSet A string containing characters to trim. If NULL, no trimming is performed.
  */
 PPH_STRING PhCreateString3(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
-    _In_opt_ PPH_STRINGREF TrimCharSet
+    _In_opt_ PCPH_STRINGREF TrimCharSet
     )
 {
     PPH_STRING string;
@@ -4700,7 +4689,7 @@ VOID PhAppendFormatStringBuilder_V(
 VOID PhInsertStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     PhInsertStringBuilderEx(
@@ -6618,7 +6607,7 @@ ULONG64 PhExponentiate64(
  * \return TRUE if the string was successfully converted, otherwise FALSE.
  */
 BOOLEAN PhHexStringToBuffer(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_writes_bytes_(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     )
 {
@@ -6642,7 +6631,7 @@ BOOLEAN PhHexStringToBuffer(
 }
 
 BOOLEAN PhHexStringToBufferEx(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PVOID Buffer
     )
@@ -6765,7 +6754,7 @@ BOOLEAN PhBufferToHexStringBuffer(
  * \param Integer The resulting integer.
  */
 BOOLEAN PhpStringToInteger64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Base,
     _Out_opt_ PULONG64 Integer
     )
@@ -6904,7 +6893,7 @@ BOOLEAN PhStringToInteger64(
 
 _Success_(return)
 BOOLEAN PhStringToUInt64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
     _Out_opt_ PULONG64 Integer
     )
@@ -6975,7 +6964,7 @@ BOOLEAN PhStringToUInt64(
 }
 
 BOOLEAN PhpStringToDouble(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Base,
     _Out_ DOUBLE *Double
     )
@@ -7038,7 +7027,7 @@ BOOLEAN PhpStringToDouble(
  * \param Double The resulting double value.
  */
 BOOLEAN PhStringToDouble(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Reserved_ ULONG Base,
     _Out_opt_ DOUBLE *Double
     )

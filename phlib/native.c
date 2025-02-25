@@ -1394,7 +1394,7 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
 
 NTSTATUS PhQueryEnvironmentVariableStringRef(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Inout_opt_ PPH_STRINGREF Value
     )
 {
@@ -1420,7 +1420,7 @@ NTSTATUS PhQueryEnvironmentVariableStringRef(
 
 NTSTATUS PhQueryEnvironmentVariable(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Out_opt_ PPH_STRING* Value
     )
 {
@@ -1525,8 +1525,8 @@ NTSTATUS PhQueryEnvironmentVariable(
 
 NTSTATUS PhSetEnvironmentVariable(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
-    _In_opt_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Name,
+    _In_opt_ PCPH_STRINGREF Value
     )
 {
     NTSTATUS status;
@@ -2719,7 +2719,7 @@ NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
 
 ULONG64 PhGetTokenSecurityAttributeValueUlong64(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG ValueIndex
     )
 {
@@ -2743,7 +2743,7 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
 
 PPH_STRING PhGetTokenSecurityAttributeValueString(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG ValueIndex
     )
 {
@@ -4902,7 +4902,7 @@ NTSTATUS PhOpenDriver(
     _Out_ PHANDLE DriverHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     )
 {
     if (KsiLevel() == KphLevelMax)
@@ -5528,7 +5528,7 @@ NTSTATUS PhSetProcessPriorityBoost(
 }
 
 NTSTATUS PhGetProcessActivityModerationState(
-    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ PCPH_STRINGREF ModerationIdentifier,
     _Out_ PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS ModerationSettings
     )
 {
@@ -5583,7 +5583,7 @@ CleanupExit:
 }
 
 NTSTATUS PhSetProcessActivityModerationState(
-    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ PCPH_STRINGREF ModerationIdentifier,
     _In_ SYSTEM_ACTIVITY_MODERATION_APP_TYPE ModerationType,
     _In_ SYSTEM_ACTIVITY_MODERATION_STATE ModerationState
     )
@@ -6047,7 +6047,7 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
  */
 PSYSTEM_PROCESS_INFORMATION PhFindProcessInformationByImageName(
     _In_ PVOID Processes,
-    _In_ PPH_STRINGREF ImageName
+    _In_ PCPH_STRINGREF ImageName
     )
 {
     PSYSTEM_PROCESS_INFORMATION process;
@@ -6997,7 +6997,7 @@ NTSTATUS PhOpenDirectoryObject(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     )
 {
     NTSTATUS status;
@@ -7546,8 +7546,8 @@ NTSTATUS PhEnumFileHardLinks(
 NTSTATUS PhCreateSymbolicLinkObject(
     _Out_ PHANDLE LinkHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF LinkName
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF LinkName
     )
 {
     NTSTATUS status;
@@ -7587,7 +7587,7 @@ NTSTATUS PhCreateSymbolicLinkObject(
 NTSTATUS PhQuerySymbolicLinkObject(
     _Out_ PPH_STRING* LinkTarget,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     )
 {
     NTSTATUS status;
@@ -7901,7 +7901,7 @@ NTSTATUS PhGetVolumeMountPoints(
  */
 NTSTATUS PhGetVolumePathNamesForVolumeName(
     _In_ HANDLE DeviceHandle,
-    _In_ PPH_STRINGREF VolumeName,
+    _In_ PCPH_STRINGREF VolumeName,
     _Out_ PMOUNTMGR_VOLUME_PATHS* VolumePathNames
     )
 {
@@ -8192,7 +8192,7 @@ CleanupExit:
  * PhDereferenceObject() when you no longer need it.
  */
 PPH_STRING PhResolveDevicePrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     ULONG i;
@@ -8400,7 +8400,7 @@ PPH_STRING PhGetFileName(
 }
 
 PPH_STRING PhDosPathNameToNtPathName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_STRING newName = NULL;
@@ -8532,7 +8532,7 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
 }
 
 PPH_STRING PhGetNtPathRootPrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_STRING pathDevicePrefix = NULL;
@@ -8557,7 +8557,7 @@ PPH_STRING PhGetNtPathRootPrefix(
 }
 
 PPH_STRING PhGetExistingPathPrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_STRING existingPathPrefix = NULL;
@@ -8601,7 +8601,7 @@ PPH_STRING PhGetExistingPathPrefix(
 }
 
 PPH_STRING PhGetExistingPathPrefixWin32(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_STRING existingPathPrefix = NULL;
@@ -8644,7 +8644,7 @@ PPH_STRING PhGetExistingPathPrefixWin32(
 
 // rev from GetLongPathNameW (dmex)
 PPH_STRING PhGetLongPathName(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PPH_STRING longPathName = NULL;
@@ -8947,7 +8947,7 @@ NTSTATUS PhOpenKey(
  */
 NTSTATUS PhLoadAppKey(
     _Out_ PHANDLE KeyHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG Flags
     )
@@ -9167,7 +9167,7 @@ NTSTATUS PhQueryKeyLastWriteTime(
  */
 NTSTATUS PhQueryValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName,
+    _In_opt_ PCPH_STRINGREF ValueName,
     _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
     _Out_ PVOID *Buffer
     )
@@ -9224,7 +9224,7 @@ NTSTATUS PhQueryValueKey(
 
 NTSTATUS PhSetValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName,
+    _In_opt_ PCPH_STRINGREF ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
@@ -9257,7 +9257,7 @@ NTSTATUS PhSetValueKey(
 
 NTSTATUS PhDeleteValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     )
 {
     UNICODE_STRING valueName;
@@ -9925,7 +9925,7 @@ NTSTATUS PhOpenFileWin32Ex(
 
 NTSTATUS PhOpenFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_ ULONG ShareAccess,
@@ -10249,7 +10249,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
 }
 
 NTSTATUS PhQueryFullAttributesFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
@@ -10308,7 +10308,7 @@ NTSTATUS PhQueryAttributesFileWin32(
 }
 
 NTSTATUS PhQueryAttributesFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     )
 {
@@ -10355,7 +10355,7 @@ BOOLEAN PhDoesFileExistWin32(
 }
 
 BOOLEAN PhDoesFileExist(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -10394,7 +10394,7 @@ BOOLEAN PhDoesDirectoryExistWin32(
 }
 
 BOOLEAN PhDoesDirectoryExist(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -10516,7 +10516,7 @@ NTSTATUS PhDeleteFileWin32(
 }
 
 NTSTATUS PhDeleteFile(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -10571,7 +10571,7 @@ NTSTATUS PhDeleteFile(
 * \param DirectoryPath The directory path.
 */
 NTSTATUS PhCreateDirectory(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     )
 {
     PPH_STRING directoryPath;
@@ -10638,7 +10638,7 @@ NTSTATUS PhCreateDirectory(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhCreateDirectoryWin32(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     )
 {
     PPH_STRING directoryPath;
@@ -10707,7 +10707,7 @@ NTSTATUS PhCreateDirectoryWin32(
 }
 
 NTSTATUS PhCreateDirectoryFullPathWin32(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -10825,7 +10825,7 @@ static BOOLEAN PhDeleteDirectoryCallback(
 * \param DirectoryPath The directory path.
 */
 NTSTATUS PhDeleteDirectory(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     )
 {
     NTSTATUS status;
@@ -10872,7 +10872,7 @@ NTSTATUS PhDeleteDirectory(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhDeleteDirectoryWin32(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     )
 {
     NTSTATUS status;
@@ -10895,7 +10895,7 @@ NTSTATUS PhDeleteDirectoryWin32(
             directoryHandle,
             NULL,
             PhDeleteDirectoryCallback,
-            DirectoryPath
+            (PVOID)DirectoryPath
             );
 
         if (NT_SUCCESS(status))
@@ -10914,7 +10914,7 @@ NTSTATUS PhDeleteDirectoryWin32(
 }
 
 NTSTATUS PhDeleteDirectoryFullPath(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PH_STRINGREF directoryPart;
@@ -12304,8 +12304,8 @@ BOOLEAN PhIsFirmwareSupported(
 
 // rev from GetFirmwareEnvironmentVariableW (dmex)
 NTSTATUS PhGetFirmwareEnvironmentVariable(
-    _In_ PPH_STRINGREF VariableName,
-    _In_ PPH_STRINGREF VendorGuid,
+    _In_ PCPH_STRINGREF VariableName,
+    _In_ PCPH_STRINGREF VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
     _Out_opt_ PULONG ValueLength,
     _Out_opt_ PULONG ValueAttributes
@@ -12372,8 +12372,8 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
 }
 
 NTSTATUS PhSetFirmwareEnvironmentVariable(
-    _In_ PPH_STRINGREF VariableName,
-    _In_ PPH_STRINGREF VendorGuid,
+    _In_ PCPH_STRINGREF VariableName,
+    _In_ PCPH_STRINGREF VendorGuid,
     _In_reads_bytes_opt_(ValueLength) PVOID ValueBuffer,
     _In_ ULONG ValueLength,
     _In_ ULONG Attributes

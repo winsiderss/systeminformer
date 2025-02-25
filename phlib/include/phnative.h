@@ -440,7 +440,7 @@ NTSTATUS
 NTAPI
 PhQueryEnvironmentVariableStringRef(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Inout_opt_ PPH_STRINGREF Value
     );
 
@@ -477,7 +477,7 @@ NTSTATUS
 NTAPI
 PhQueryEnvironmentVariable(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Out_opt_ PPH_STRING* Value
     );
 
@@ -502,8 +502,8 @@ NTSTATUS
 NTAPI
 PhSetEnvironmentVariable(
     _In_opt_ PVOID Environment,
-    _In_ PPH_STRINGREF Name,
-    _In_opt_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Name,
+    _In_opt_ PCPH_STRINGREF Value
     );
 
 FORCEINLINE
@@ -901,7 +901,7 @@ ULONG64
 NTAPI
 PhGetTokenSecurityAttributeValueUlong64(
     _In_ HANDLE TokenHandle,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG ValueIndex
     );
 
@@ -1724,7 +1724,7 @@ PhOpenDriver(
     _Out_ PHANDLE DriverHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     );
 
 PHLIBAPI
@@ -1958,7 +1958,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessActivityModerationState(
-    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ PCPH_STRINGREF ModerationIdentifier,
     _Out_ PSYSTEM_ACTIVITY_MODERATION_APP_SETTINGS ModerationSettings
     );
 
@@ -1966,7 +1966,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetProcessActivityModerationState(
-    _In_ PPH_STRINGREF ModerationIdentifier,
+    _In_ PCPH_STRINGREF ModerationIdentifier,
     _In_ SYSTEM_ACTIVITY_MODERATION_APP_TYPE ModerationType,
     _In_ SYSTEM_ACTIVITY_MODERATION_STATE ModerationState
     );
@@ -2137,7 +2137,7 @@ PSYSTEM_PROCESS_INFORMATION
 NTAPI
 PhFindProcessInformationByImageName(
     _In_ PVOID Processes,
-    _In_ PPH_STRINGREF ImageName
+    _In_ PCPH_STRINGREF ImageName
     );
 
 PHLIBAPI
@@ -2267,7 +2267,7 @@ PhOpenDirectoryObject(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     );
 
 /**
@@ -2441,7 +2441,7 @@ NTAPI
 PhQuerySymbolicLinkObject(
     _Out_ PPH_STRING* LinkTarget,
     _In_opt_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF ObjectName
+    _In_ PCPH_STRINGREF ObjectName
     );
 
 FORCEINLINE
@@ -2485,7 +2485,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhResolveDevicePrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI
@@ -2522,7 +2522,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhDosPathNameToNtPathName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI
@@ -2539,21 +2539,21 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetNtPathRootPrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetExistingPathPrefix(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetExistingPathPrefixWin32(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 typedef enum _PH_MODULE_TYPE
@@ -2700,7 +2700,7 @@ NTSTATUS
 NTAPI
 PhLoadAppKey(
     _Out_ PHANDLE KeyHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG Flags
     );
@@ -2735,7 +2735,7 @@ NTSTATUS
 NTAPI
 PhQueryValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName,
+    _In_opt_ PCPH_STRINGREF ValueName,
     _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
     _Out_ PVOID *Buffer
     );
@@ -2745,7 +2745,7 @@ NTSTATUS
 NTAPI
 PhSetValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName,
+    _In_opt_ PCPH_STRINGREF ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
@@ -2780,7 +2780,7 @@ NTSTATUS
 NTAPI
 PhDeleteValueKey(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -2925,7 +2925,7 @@ NTSTATUS
 NTAPI
 PhOpenFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ HANDLE RootDirectory,
     _In_ ULONG ShareAccess,
@@ -3001,7 +3001,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryFullAttributesFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
@@ -3017,7 +3017,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryAttributesFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     );
 
@@ -3032,7 +3032,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesFileExist(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -3046,7 +3046,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesDirectoryExist(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -3067,7 +3067,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteFile(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -3101,21 +3101,21 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectoryWin32(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectory(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectoryFullPathWin32(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -3129,21 +3129,21 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteDirectory(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteDirectoryWin32(
-    _In_ PPH_STRINGREF DirectoryPath
+    _In_ PCPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteDirectoryFullPath(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -3687,8 +3687,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetFirmwareEnvironmentVariable(
-    _In_ PPH_STRINGREF VariableName,
-    _In_ PPH_STRINGREF VendorGuid,
+    _In_ PCPH_STRINGREF VariableName,
+    _In_ PCPH_STRINGREF VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
     _Out_opt_ PULONG ValueLength,
     _Out_opt_ PULONG ValueAttributes
@@ -3698,8 +3698,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetFirmwareEnvironmentVariable(
-    _In_ PPH_STRINGREF VariableName,
-    _In_ PPH_STRINGREF VendorGuid,
+    _In_ PCPH_STRINGREF VariableName,
+    _In_ PCPH_STRINGREF VendorGuid,
     _In_reads_bytes_opt_(ValueLength) PVOID ValueBuffer,
     _In_ ULONG ValueLength,
     _In_ ULONG Attributes
@@ -4158,7 +4158,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFilterLoadUnload(
-    _In_ PPH_STRINGREF ServiceName,
+    _In_ PCPH_STRINGREF ServiceName,
     _In_ BOOLEAN LoadDriver
     );
 
