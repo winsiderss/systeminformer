@@ -2280,12 +2280,14 @@ PhOpenDirectoryObject(
  *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
-typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
+typedef BOOLEAN _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+NTAPI PH_ENUM_DIRECTORY_OBJECTS(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_DIRECTORY_OBJECTS* PPH_ENUM_DIRECTORY_OBJECTS;
 
 PHLIBAPI
 NTSTATUS
@@ -2296,11 +2298,13 @@ PhEnumDirectoryObjects(
     _In_opt_ PVOID Context
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_FILE)(
+typedef _Function_class_(PH_ENUM_DIRECTORY_FILE)
+BOOLEAN NTAPI PH_ENUM_DIRECTORY_FILE(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_DIRECTORY_FILE* PPH_ENUM_DIRECTORY_FILE;
 
 PHLIBAPI
 NTSTATUS
@@ -2340,12 +2344,14 @@ PhEnumReparsePointInformation(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_OBJECT_ID)(
+typedef _Function_class_(PH_ENUM_OBJECT_ID)
+NTSTATUS NTAPI PH_ENUM_OBJECT_ID(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ SIZE_T InformationLength,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_OBJECT_ID* PPH_ENUM_OBJECT_ID;
 
 PHLIBAPI
 NTSTATUS
@@ -2364,11 +2370,13 @@ PhEnumObjectIdInformation(
     NULL \
     )
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_FILE_EA)(
+typedef _Function_class_(PH_ENUM_FILE_EA)
+NTSTATUS NTAPI PH_ENUM_FILE_EA(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_FULL_EA_INFORMATION Information,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_FILE_EA* PPH_ENUM_FILE_EA;
 
 PHLIBAPI
 NTSTATUS
@@ -2412,10 +2420,12 @@ PhEnumFileStreams(
     NULL \
     )
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_HARDLINKS)(
+typedef _Function_class_(PH_ENUM_FILE_HARDLINKS)
+BOOLEAN NTAPI PH_ENUM_FILE_HARDLINKS(
     _In_ PFILE_LINK_ENTRY_INFORMATION Information,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_FILE_HARDLINKS* PPH_ENUM_FILE_HARDLINKS;
 
 PHLIBAPI
 NTSTATUS
@@ -2546,13 +2556,17 @@ PhGetExistingPathPrefixWin32(
     _In_ PPH_STRINGREF Name
     );
 
-#define PH_MODULE_TYPE_MODULE 1
-#define PH_MODULE_TYPE_MAPPED_FILE 2
-#define PH_MODULE_TYPE_WOW64_MODULE 3
-#define PH_MODULE_TYPE_KERNEL_MODULE 4
-#define PH_MODULE_TYPE_MAPPED_IMAGE 5
-#define PH_MODULE_TYPE_ELF_MAPPED_IMAGE 6
-#define PH_MODULE_TYPE_ENCLAVE_MODULE 7
+typedef enum _PH_MODULE_TYPE
+{
+    PH_MODULE_TYPE_UNKNOWN = 0,
+    PH_MODULE_TYPE_MODULE = 1,
+    PH_MODULE_TYPE_MAPPED_FILE = 2,
+    PH_MODULE_TYPE_WOW64_MODULE = 3,
+    PH_MODULE_TYPE_KERNEL_MODULE = 4,
+    PH_MODULE_TYPE_MAPPED_IMAGE = 5,
+    PH_MODULE_TYPE_ELF_MAPPED_IMAGE = 6,
+    PH_MODULE_TYPE_ENCLAVE_MODULE = 7
+} PH_MODULE_TYPE;
 
 typedef struct _PH_MODULE_INFO
 {
@@ -2587,10 +2601,12 @@ typedef struct _PH_MODULE_INFO
  *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
-typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
+typedef _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_GENERIC_MODULES_CALLBACK(
     _In_ PPH_MODULE_INFO Module,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_GENERIC_MODULES_CALLBACK* PPH_ENUM_GENERIC_MODULES_CALLBACK;
 
 #define PH_ENUM_GENERIC_MAPPED_FILES 0x1
 #define PH_ENUM_GENERIC_MAPPED_IMAGES 0x2
