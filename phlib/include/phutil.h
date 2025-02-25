@@ -1961,7 +1961,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhParseCommandLineFuzzy(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Out_ PPH_STRINGREF FileName,
     _Out_ PPH_STRINGREF Arguments,
     _Out_opt_ PPH_STRING *FullFileName
@@ -1978,7 +1978,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCommandLineQuoteSpaces(
-    _In_ PPH_STRINGREF CommandLine
+    _In_ PCPH_STRINGREF CommandLine
     );
 
 PHLIBAPI
@@ -2048,7 +2048,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhFileReadAllText(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN Unicode
     );
 
@@ -2188,7 +2188,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhApiSetResolveToHost(
-    _In_ PPH_STRINGREF ApiSetName
+    _In_ PCPH_STRINGREF ApiSetName
     );
 
 PHLIBAPI
@@ -2243,7 +2243,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
-    _In_opt_ PPH_STRINGREF CommandInput,
+    _In_opt_ PCPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING* CommandOutput
     );
 
