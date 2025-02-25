@@ -198,7 +198,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     PVOID SwitchBackContext;
     RTL_BALANCED_NODE BaseAddressIndexNode;
     RTL_BALANCED_NODE MappingInfoIndexNode;
-    ULONG_PTR OriginalBase;
+    PVOID OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
     LDR_DLL_LOAD_REASON LoadReason; // since WIN8
