@@ -645,10 +645,11 @@ NTSTATUS KphQueryInformationProcess(
 
             info = ProcessInformation;
 
+            KphAcquireRWLockShared(&process->ThreadListLock);
+            KphAcquireRWLockShared(&process->ProtectionLock);
+
             __try
             {
-                KphAcquireRWLockShared(&process->ThreadListLock);
-                KphAcquireRWLockShared(&process->ProtectionLock);
 
                 info->ProcessState = KphGetProcessState(process);
 
@@ -670,9 +671,6 @@ NTSTATUS KphQueryInformationProcess(
                 info->NumberOfVerifiedImageLoads = process->NumberOfVerifiedImageLoads;
                 info->NumberOfUntrustedImageLoads = process->NumberOfUntrustedImageLoads;
 
-                KphReleaseRWLock(&process->ProtectionLock);
-                KphReleaseRWLock(&process->ThreadListLock);
-
                 info->UserWritableReferences = 0;
                 if (process->FileObject &&
                     process->FileObject->SectionObjectPointer)
@@ -687,8 +685,10 @@ NTSTATUS KphQueryInformationProcess(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 status = GetExceptionCode();
-                goto Exit;
             }
+
+            KphReleaseRWLock(&process->ProtectionLock);
+            KphReleaseRWLock(&process->ThreadListLock);
 
             break;
         }
