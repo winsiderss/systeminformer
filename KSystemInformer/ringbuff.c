@@ -278,7 +278,6 @@ NTSTATUS KphpCreateRingBufferSection(
     LARGE_INTEGER maximumSize;
     SIZE_T viewSize;
     PVOID kernelMappedBase;
-    ULONG priority;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -370,9 +369,8 @@ NTSTATUS KphpCreateRingBufferSection(
         goto Exit;
     }
 
-    priority = NormalPagePriority | MdlMappingNoExecute;
-
-    Section->KernelBase = MmGetSystemAddressForMdlSafe(Section->Mdl, priority);
+    Section->KernelBase = KphGetSystemAddressForMdl(Section->Mdl,
+                                                    NormalPagePriority);
     if (!Section->KernelBase)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
