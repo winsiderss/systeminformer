@@ -306,6 +306,34 @@ BOOLEAN KphIsValidMemoryRegion(
             (Region->End <= End));
 }
 
+
+//
+// C30030 - Probably allocating executable memory via specifying a
+// MM_PAGE_PRIORITY type without a bitwise OR with MdlMappingNoExecute
+//
+#pragma deprecated("MmGetSystemAddressForMdl")
+#pragma deprecated("MmGetSystemAddressForMdlSafe")
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Post_writable_byte_size_(Mdl->ByteCount)
+_At_(Mdl->MappedSystemVa, _Post_writable_byte_size_(Mdl->ByteCount))
+_Check_return_
+_Success_(return != NULL)
+FORCEINLINE
+PVOID
+KphpGetSystemAddressForMdl(
+    _Inout_ PMDL Mdl,
+    _In_ MM_PAGE_PRIORITY Priority
+    )
+{
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return MmGetSystemAddressForMdlSafe(Mdl, Priority | MdlMappingNoExecute);
+}
+#define KphGetSystemAddressForMdl(mdl, priority)                               \
+_Pragma("warning(push)")                                                       \
+_Pragma("warning(disable : 30030)")                                            \
+KphpGetSystemAddressForMdl(mdl, priority)                                      \
+_Pragma("warning(pop)")
+
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;

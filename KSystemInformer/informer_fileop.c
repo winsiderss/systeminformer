@@ -438,7 +438,6 @@ VOID KphpFltCopyBuffer(
     PVOID buffer;
     PMDL mdl;
     BOOLEAN unlockPages;
-    ULONG priority;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -477,11 +476,9 @@ VOID KphpFltCopyBuffer(
         goto Exit;
     }
 
-    priority = NormalPagePriority | MdlMappingNoExecute;
-
     if (Mdl)
     {
-        buffer = MmGetSystemAddressForMdlSafe(Mdl, priority);
+        buffer = KphGetSystemAddressForMdl(Mdl, NormalPagePriority);
         goto CopyBuffer;
     }
 
@@ -532,7 +529,7 @@ VOID KphpFltCopyBuffer(
         goto Exit;
     }
 
-    buffer = MmGetSystemAddressForMdlSafe(mdl, priority);
+    buffer = KphGetSystemAddressForMdl(mdl, NormalPagePriority);
 
 CopyBuffer:
 
