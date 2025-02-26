@@ -7,7 +7,6 @@
     <Rule Id="C6262" Action="None" />
     <Rule Id="C28023" Action="None" />
     <Rule Id="C28194" Action="None" />
-    <!-- TEMP REMOVE THIS -->
     <Rule Id="C28195" Action="None" />
   </Rules>
 </RuleSet>
