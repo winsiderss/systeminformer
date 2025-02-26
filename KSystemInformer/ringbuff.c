@@ -181,7 +181,7 @@ Exit:
  */
 VOID KphpCommitRingBuffer(
     _In_ PKPH_RING_BUFFER Ring,
-    _In_freesMem_ PVOID Buffer,
+    _In_aliasesMem_ PVOID Buffer,
     _In_ BOOLEAN Discard
     )
 {
