@@ -1148,7 +1148,7 @@ NTSTATUS KphQueryInformationObject(
             // work around this bug, we add some (generous) padding to our
             // allocation.
             //
-            allocateSize += sizeof(ULONGLONG);
+            allocateSize += sizeof(ULONG64);
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
@@ -1759,7 +1759,7 @@ NTSTATUS KphQueryInformationObject(
             {
                 allocateSize = sizeof(THREAD_NAME_INFORMATION);
             }
-            allocateSize += sizeof(ULONGLONG);
+            allocateSize += sizeof(ULONG64);
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
@@ -1955,7 +1955,7 @@ NTSTATUS KphQueryInformationObject(
             {
                 allocateSize = sizeof(UNICODE_STRING);
             }
-            allocateSize += sizeof(ULONGLONG);
+            allocateSize += sizeof(ULONG64);
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
