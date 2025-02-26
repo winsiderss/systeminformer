@@ -285,8 +285,11 @@ VOID KSIAPI KsiQueueWorkItem(
 {
     ObReferenceObject(WorkItem->DriverObject);
 
+#pragma prefast(push)
+#pragma prefast(disable: 28159) // obsolete function
 #pragma warning(suppress: 4996)
     ExQueueWorkItem(&WorkItem->WorkItem, QueueType);
+#pragma prefast(pop)
 }
 
 //

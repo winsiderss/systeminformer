@@ -325,6 +325,8 @@ NTSTATUS KSIAPI KphpInitializeClientObject(
 
     KPH_PAGED_CODE();
 
+    NT_ASSERT(Parameter);
+
     client = Object;
 
     client->Process = Parameter;
@@ -391,7 +393,7 @@ VOID KSIAPI KphpDeleteClientObject(
  *
  * \param[in] Object The client object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpFreeClientObject(
     _In_freesMem_ PVOID Object
@@ -1408,6 +1410,7 @@ NTSTATUS KphpCommsSendMessage(
                                     &timeout);
         if (!reply)
         {
+            NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
             continue;
         }
 
