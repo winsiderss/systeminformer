@@ -27,6 +27,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup>
+    <CodeAnalysisRuleSet>$(SystemInformerRoot)\Common.Kernel.ruleset</CodeAnalysisRuleSet>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
   </PropertyGroup>
