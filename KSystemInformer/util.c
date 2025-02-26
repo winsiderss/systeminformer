@@ -824,6 +824,12 @@ NTSTATUS KphQueryRegistryString(
         goto Exit;
     }
 
+    if (resultLength < sizeof(KEY_VALUE_PARTIAL_INFORMATION))
+    {
+        status = STATUS_INFO_LENGTH_MISMATCH;
+        goto Exit;
+    }
+
     status = RtlULongAdd(info->DataLength, sizeof(WCHAR), &length);
     if (!NT_SUCCESS(status))
     {
@@ -965,6 +971,12 @@ NTSTATUS KphQueryRegistryBinary(
         goto Exit;
     }
 
+    if (resultLength < sizeof(KEY_VALUE_PARTIAL_INFORMATION))
+    {
+        status = STATUS_INFO_LENGTH_MISMATCH;
+        goto Exit;
+    }
+
     info = (PKEY_VALUE_PARTIAL_INFORMATION)buffer;
 
     if (info->Type != REG_BINARY)
@@ -1022,7 +1034,7 @@ NTSTATUS KphQueryRegistryULong(
     )
 {
     NTSTATUS status;
-    BYTE buffer[sizeof(KEY_VALUE_PARTIAL_INFORMATION) + sizeof(ULONGLONG)];
+    BYTE buffer[sizeof(KEY_VALUE_PARTIAL_INFORMATION) + sizeof(ULONG64)];
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
@@ -1041,8 +1053,14 @@ NTSTATUS KphQueryRegistryULong(
         return status;
     }
 
+    if (resultLength < sizeof(KEY_VALUE_PARTIAL_INFORMATION))
+    {
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
     info = (PKEY_VALUE_PARTIAL_INFORMATION)buffer;
 
+#pragma prefast(suppress: 28199) // possibly uninitialized
     if (info->Type != REG_DWORD)
     {
         return STATUS_OBJECT_TYPE_MISMATCH;
@@ -1385,8 +1403,7 @@ BOOLEAN KphSinglePrivilegeCheck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpGetKernelFileName(
-    _Out_ _At_(FileName->Buffer, __drv_allocatesMem(Mem))
-    PUNICODE_STRING FileName
+    _Out_allocatesMem_ PUNICODE_STRING FileName
     )
 {
     NTSTATUS status;
