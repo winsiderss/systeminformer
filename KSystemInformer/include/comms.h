@@ -33,13 +33,13 @@ KPHM_HANDLER (
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     );
-typedef KPHM_HANDLER *PKPHM_HANDLER;
+typedef KPHM_HANDLER* PKPHM_HANDLER;
 
-#define KPHM_DEFINE_HANDLER(__Name__)                                          \
+#define KPHM_DEFINE_HANDLER(name)                                              \
 _Function_class_(KPHM_HANDLER)                                                 \
 _IRQL_requires_max_(PASSIVE_LEVEL)                                             \
 _Must_inspect_result_                                                          \
-NTSTATUS __Name__(                                                             \
+NTSTATUS name(                                                                 \
     _In_ PKPH_CLIENT Client,                                                   \
     _Inout_ PKPH_MESSAGE Message                                               \
     )
@@ -54,13 +54,13 @@ KPHM_REQUIRED_STATE (
     _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     );
-typedef KPHM_REQUIRED_STATE *PKPHM_REQUIRED_STATE;
+typedef KPHM_REQUIRED_STATE* PKPHM_REQUIRED_STATE;
 
-#define KPHM_DEFINE_REQUIRED_STATE(__Name__)                                   \
+#define KPHM_DEFINE_REQUIRED_STATE(name)                                       \
 _Function_class_(KPHM_REQUIRED_STATE)                                          \
 _IRQL_requires_max_(PASSIVE_LEVEL)                                             \
 _Must_inspect_result_                                                          \
-KPH_PROCESS_STATE __Name__(                                                    \
+KPH_PROCESS_STATE name(                                                        \
     _In_ PKPH_CLIENT Client,                                                   \
     _In_ PCKPH_MESSAGE Message                                                 \
     )
