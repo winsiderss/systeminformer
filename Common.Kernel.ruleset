@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Rules for KSystemInformer" Description="Code analysis rules for KSystemInformer." ToolsVersion="17.0">
+  <Include Path="AllRules.ruleset" Action="Default" />
+  <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
+    <Rule Id="C6014" Action="None" />
+    <Rule Id="C6320" Action="None" />
+    <Rule Id="C6262" Action="None" />
+    <Rule Id="C28023" Action="None" />
+    <Rule Id="C28194" Action="None" />
+    <Rule Id="C28195" Action="None" />
+  </Rules>
+</RuleSet>
