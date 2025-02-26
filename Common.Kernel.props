@@ -1,2 +1,6 @@
 <Project>
+  <!-- Global -->
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>$(SystemInformerRoot)\Common.Kernel.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
 </Project>
