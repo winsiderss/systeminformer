@@ -331,7 +331,7 @@ NTSTATUS KphpVerifySessionToken(
     targetState = KphGetProcessState(Target);
 
     if (((actorState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM) ||
-        ((actorState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM))
+        ((targetState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM))
     {
         status = STATUS_ACCESS_DENIED;
         goto Exit;
