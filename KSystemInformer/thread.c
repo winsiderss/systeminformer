@@ -770,7 +770,7 @@ NTSTATUS KphQueryInformationThread(
         case KphThreadIoCounters:
         {
             PIO_COUNTERS counters;
-            PULONGLONG value;
+            PULONG64 value;
 
             dyn = KphReferenceDynData();
 
