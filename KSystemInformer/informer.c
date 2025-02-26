@@ -232,7 +232,6 @@ BOOLEAN KphpInformerProcessIsFiltered(
  * \return TRUE if the informer is enabled, FALSE otherwise.
  */
 _IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
 BOOLEAN KphInformerIsEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT Process
@@ -263,7 +262,6 @@ BOOLEAN KphInformerIsEnabled(
  * \return TRUE if the informer is enabled, FALSE otherwise.
  */
 _IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
 BOOLEAN KphInformerIsEnabled2(
     _In_ PCKPH_INFORMER_SETTINGS Settings,
     _In_opt_ PKPH_PROCESS_CONTEXT ActorProcess,

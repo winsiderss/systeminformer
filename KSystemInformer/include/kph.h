@@ -455,6 +455,8 @@ VOID KphFree(
     _In_ ULONG Tag
     );
 
+#pragma prefast(push)
+#pragma prefast(disable: 28195) // acquire memory without doing so
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Return_allocatesMem_size_(NumberOfBytes)
 FORCEINLINE
@@ -473,10 +475,13 @@ PVOID KphpAllocateNPagedA(
 
     return KphAllocateNPaged(NumberOfBytes, Tag);
 }
+#pragma prefast(pop)
 
 #define KphAllocateNPagedA(NumberOfBytes, Tag, Stack)                          \
     KphpAllocateNPagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
 
+#pragma prefast(push)
+#pragma prefast(disable: 28195) // acquire memory without doing so
 _IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_size_(NumberOfBytes)
 FORCEINLINE
@@ -495,10 +500,13 @@ PVOID KphpAllocatePagedA(
 
     return KphAllocatePaged(NumberOfBytes, Tag);
 }
+#pragma prefast(pop)
 
 #define KphAllocatePagedA(NumberOfBytes, Tag, Stack)                           \
     KphpAllocatePagedA(NumberOfBytes, Tag, Stack, sizeof(Stack))
 
+#pragma prefast(push)
+#pragma prefast(disable: 6014) // leaking memory
 _IRQL_requires_max_(DISPATCH_LEVEL)
 FORCEINLINE
 VOID KphpFreeA(
@@ -512,6 +520,7 @@ VOID KphpFreeA(
         KphFree(Memory, Tag);
     }
 }
+#pragma prefast(pop)
 
 #define KphFreeA(Memory, Tag, Stack) KphpFreeA(Memory, Tag, Stack)
 
@@ -729,13 +738,12 @@ PVOID KphObpDecodeObject(
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-_Must_inspect_result_
 ULONG KphObpGetHandleAttributes(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-_Acquires_lock_(Process)
+_When_(NT_SUCCESS(return), _Acquires_lock_(Process))
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphReferenceProcessHandleTable(
@@ -775,7 +783,7 @@ _Must_inspect_result_
 NTSTATUS KphEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
-    _In_opt_ ULONG BufferLength,
+    _In_ ULONG BufferLength,
     _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     );

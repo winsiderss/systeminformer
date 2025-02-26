@@ -94,7 +94,7 @@ NTSTATUS KphpFltNameCacheFileNameLength(
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
-    FltGetVolumeName(FltObjects->Volume, NULL, &length);
+    (VOID)FltGetVolumeName(FltObjects->Volume, NULL, &length);
 
     length += FltObjects->FileObject->FileName.Length;
 
@@ -119,7 +119,7 @@ VOID KphpFltNameCacheCopyFileName(
 
     NT_ASSERT(FltObjects->FileObject && FltObjects->Volume);
 
-    FltGetVolumeName(FltObjects->Volume, FileName, NULL);
+    (VOID)FltGetVolumeName(FltObjects->Volume, FileName, NULL);
 
     RtlAppendUnicodeStringToString(FileName, &FltObjects->FileObject->FileName);
 }
@@ -483,7 +483,7 @@ NTSTATUS KphpFltGetVolumeName(
         return STATUS_OBJECT_NAME_NOT_FOUND;
     }
 
-    FltGetVolumeName(FltObjects->Volume, NULL, &length);
+    (VOID)FltGetVolumeName(FltObjects->Volume, NULL, &length);
 
     FltFileName->FileName = KphAllocateNPaged(length + sizeof(UNICODE_STRING),
                                               KPH_TAG_FLT_FILE_NAME);
@@ -501,7 +501,7 @@ NTSTATUS KphpFltGetVolumeName(
     FltFileName->FileName->Buffer = Add2Ptr(FltFileName->FileName,
                                             sizeof(UNICODE_STRING));
 
-    FltGetVolumeName(FltObjects->Volume, FltFileName->FileName, NULL);
+    (VOID)FltGetVolumeName(FltObjects->Volume, FltFileName->FileName, NULL);
 
     FltFileName->Type = KphFltFileNameTypeFileName;
 
@@ -845,7 +845,7 @@ PVOID KSIAPI KphpFltAllocateCachedFileName(
  *
  * \param[in] Object The object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpFltFreeCachedFileName(
     _In_freesMem_ PVOID Object

@@ -1012,6 +1012,8 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    NT_ASSERT(Parameter);
+
     thread = Object;
     threadObject = Parameter;
 
@@ -1937,7 +1939,7 @@ typedef struct _KPH_ENUM_CONTEXT
  * \return FALSE to keep enumerating if the object type is not what was asked
  * for or the return value from callers callback.
  */
-_Function_class_(CID_ENUMERATE_CALLBACK)
+_Function_class_(KPH_CID_ENUMERATE_CALLBACK)
 BOOLEAN KSIAPI KphpEnumerateContexts(
     _In_ PVOID Object,
     _In_opt_ PVOID Parameter

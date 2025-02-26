@@ -424,7 +424,7 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID KphpFltCopyBuffer(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PFLT_CALLBACK_DATA Data,
-    _In_opt_ KPH_MESSAGE_FIELD_ID FieldId,
+    _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_ BOOLEAN SystemBuffer,
     _Out_writes_bytes_to_opt_(DestLength, Length) PVOID DestBuffer,
     _In_ ULONG DestLength,

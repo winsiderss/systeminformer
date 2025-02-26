@@ -342,7 +342,7 @@ ObOpenObjectByName(
     _In_ POBJECT_TYPE ObjectType,
     _In_ KPROCESSOR_MODE AccessMode,
     _In_opt_ PACCESS_STATE AccessState,
-    _In_opt_ ACCESS_MASK DesiredAccess,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PVOID ParseContext,
     _Out_ PHANDLE Handle
     );
@@ -545,6 +545,7 @@ PsGetProcessJob(
     _In_ PEPROCESS Process
     );
 
+_When_(NT_SUCCESS(return), _Acquires_lock_(Process))
 NTKERNELAPI
 NTSTATUS
 NTAPI
@@ -552,6 +553,7 @@ PsAcquireProcessExitSynchronization(
     _In_ PEPROCESS Process
     );
 
+_Releases_lock_(Process)
 NTKERNELAPI
 VOID
 NTAPI

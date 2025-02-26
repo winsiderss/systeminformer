@@ -187,7 +187,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
  *
  * \param[in] Object Dynamic configuration object to delete.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpDeleteDynData(
     _In_freesMem_ PVOID Object
@@ -210,7 +210,7 @@ VOID KSIAPI KphpDeleteDynData(
  *
  * \param[in] Object Dynamic configuration object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KSIAPI KphpFreeDynData(
     _In_freesMem_ PVOID Object
@@ -594,6 +594,8 @@ VOID KphInitializeDynData(
                                      KphDynConfigLength,
                                      NULL,
                                      0);
+
+        NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,

@@ -820,6 +820,8 @@ NTSTATUS KphQueryVirtualMemory(
                                           0,
                                           &length);
 
+            NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
+
             if (thread->VmTlsCreateDataSection)
             {
                 thread->VmTlsCreateDataSection = NULL;
@@ -902,6 +904,8 @@ NTSTATUS KphQueryVirtualMemory(
                                           NULL,
                                           0,
                                           &length);
+
+            NT_ANALYSIS_ASSUME(NT_SUCCESS(status));
 
             if (thread->VmTlsMappedInformation)
             {

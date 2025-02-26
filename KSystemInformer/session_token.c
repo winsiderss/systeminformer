@@ -58,7 +58,7 @@ PVOID KSIAPI KphpAllocateSessionToken(
  *
  * \param[in] Object The session token object to free.
  */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
 VOID KSIAPI KphpFreeSessionToken(
     _In_freesMem_ PVOID Object
