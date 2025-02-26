@@ -60,7 +60,6 @@ PVOID KphObpDecodeObject(
 #endif
 }
 
-_Must_inspect_result_
 ULONG KphObpGetHandleAttributes(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
@@ -94,7 +93,7 @@ KPH_PAGED_FILE();
  *
  * \return Successful or errant status.
  */
-_Acquires_lock_(Process)
+_When_(NT_SUCCESS(return), _Acquires_lock_(Process))
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphReferenceProcessHandleTable(
@@ -321,7 +320,7 @@ Exit:
  *
  * \return FALSE
  */
-_Function_class_(PKPH_ENUM_PROCESS_HANDLES_CALLBACK)
+_Function_class_(KPH_ENUM_PROCESS_HANDLES_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 BOOLEAN KphpEnumerateProcessHandlesCallbck(
@@ -427,7 +426,7 @@ _Must_inspect_result_
 NTSTATUS KphEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
-    _In_opt_ ULONG BufferLength,
+    _In_ ULONG BufferLength,
     _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     )

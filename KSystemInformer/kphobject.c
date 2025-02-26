@@ -280,6 +280,13 @@ PKPH_OBJECT_TYPE KphGetObjectType(
     return &KphpObjectTypes[index];
 }
 
+//
+// Custom locking routines follow, disable pedantic prefast locking checks.
+//
+#pragma prefast(push)
+#pragma prefast(disable: 26165) // possibly failing to release lock
+#pragma prefast(disable: 26166) // possibly failing to acquire lock
+
 /**
  * \brief Acquires the atomic object reference lock shared.
  *
@@ -327,6 +334,7 @@ VOID KphpAtomicReleaseObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+
     ULONG_PTR object;
 
     object = InterlockedDecrementULongPtr(&ObjectRef->Object);
@@ -334,6 +342,7 @@ VOID KphpAtomicReleaseObjectLockShared(
     object = object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX;
 
     NT_ASSERT(object < KPH_ATOMIC_OBJECT_REF_SHARED_MAX);
+
 }
 
 /**
@@ -396,6 +405,11 @@ VOID KphpAtomicReleaseObjectLockExclusive(
 
     NT_ASSERT(result);
 }
+
+#pragma prefast(pop)
+//
+// End of custom locking routines.
+//
 
 /**
  * \brief Retrieves an addition object reference to an atomically managed
