@@ -1702,7 +1702,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100.f;
-                    cpuUsage *= PhCountBitsUlongPtr(threadItem->AffinityMask);  // linux style (dmex)
+                    cpuUsage *= threadItem->AffinityPopulationCount;  // linux style (dmex)
 
                     if (cpuUsage >= PhMaxPrecisionLimit)
                     {

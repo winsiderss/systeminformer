@@ -102,6 +102,7 @@ typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
     USHORT NumberOfProcessors;
     USHORT NumberOfProcessorGroups;
     PUSHORT ActiveProcessorCount;
+    PKAFFINITY ActiveProcessorsAffinityMasks;
 } PH_SYSTEM_PROCESSOR_INFORMATION, *PPH_SYSTEM_PROCESSOR_INFORMATION;
 
 extern PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation;

@@ -474,6 +474,7 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
+    if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
@@ -1244,12 +1245,35 @@ VOID PhpFillProcessItem(
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
-            ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
         }
-        else
+    }
+
+    // Affinity
+    {
+        ULONG affinitPopulationCount = 0;
+
+        ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
+
+        for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
         {
-            ProcessItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+            GROUP_AFFINITY affinity;
+
+            affinity.Group = i;
+
+            if (ProcessItem->QueryHandle &&
+                NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity)))
+            {
+                ProcessItem->AffinityMasks[i] = affinity.Mask;
+            }
+            else
+            {
+                ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+            }
+
+            affinitPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
         }
+
+        ProcessItem->AffinityPopulationCount = affinitPopulationCount;
     }
 
     // Process information
@@ -1406,7 +1430,7 @@ VOID PhpFillProcessItem(
             //}
         }
     }
-    
+
     // Known Process Type
     if (ProcessItem->FileName)
     {
@@ -2755,11 +2779,6 @@ VOID PhProcessProviderUpdate(
                         processItem->IsBackgroundProcess = basicInfo.IsBackground;
                         modified = TRUE;
                     }
-                    if (processItem->AffinityMask != basicInfo.BasicInfo.AffinityMask)
-                    {
-                        processItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
-                        modified = TRUE;
-                    }
                 }
                 else
                 {
@@ -2803,34 +2822,36 @@ VOID PhProcessProviderUpdate(
                         processItem->IsBackgroundProcess = FALSE;
                         modified = TRUE;
                     }
-                    if (processItem->AffinityMask != PhSystemBasicInformation.ActiveProcessorsAffinityMask)
-                    {
-                        processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
-                        modified = TRUE;
-                    }
                 }
             }
 
-            // Update the process affinity. Usually not frequently changed, do so lazily.
+            // Affinity, usually not frequently changed, do so lazily.
             if (runCount % 5 == 0)
             {
-                KAFFINITY oldAffinityMask;
-                KAFFINITY affinityMask;
+                ULONG affinityPopulationCount = 0;
 
-                oldAffinityMask = processItem->AffinityMask;
-
-                if (processItem->QueryHandle &&
-                    NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
+                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
                 {
-                    processItem->AffinityMask = affinityMask;
+                    GROUP_AFFINITY affinity;
+
+                    affinity.Group = i;
+
+                    if (processItem->QueryHandle &&
+                        NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                    {
+                        processItem->AffinityMasks[i] = affinity.Mask;
+                    }
+                    else
+                    {
+                        processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                    }
+
+                    affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
                 }
-                else
-                {
-                    processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
-                }
 
-                if (processItem->AffinityMask != oldAffinityMask)
+                if (processItem->AffinityPopulationCount != affinityPopulationCount)
                 {
+                    processItem->AffinityPopulationCount = affinityPopulationCount;
                     modified = TRUE;
                 }
             }

@@ -377,6 +377,8 @@ BOOLEAN PhInitializeProcessorInformation(
         PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
         PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
+        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
+        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
     }
     else
     {
@@ -402,10 +404,12 @@ BOOLEAN PhInitializeProcessorInformation(
             if (numberOfProcessorGroups > 1)
             {
                 PhSystemProcessorInformation.ActiveProcessorCount = PhAllocate(numberOfProcessorGroups * sizeof(USHORT));
+                PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(numberOfProcessorGroups * sizeof(KAFFINITY));
 
                 for (i = 0; i < numberOfProcessorGroups; i++)
                 {
                     PhSystemProcessorInformation.ActiveProcessorCount[i] = processorInformation->Group.GroupInfo[i].ActiveProcessorCount;
+                    PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i] = processorInformation->Group.GroupInfo[i].ActiveProcessorMask;
                 }
             }
 
@@ -426,6 +430,8 @@ BOOLEAN PhInitializeProcessorInformation(
             PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
             PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
             PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
+            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
+            PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
         }
     }
 
