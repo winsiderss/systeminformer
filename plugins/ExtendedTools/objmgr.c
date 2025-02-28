@@ -755,7 +755,7 @@ NTSTATUS EtTreeViewEnumDirectoryObjects(
 
             // enumerate \??
             EtEnumDirectoryObjectsCallback(
-                nullptr,
+                NULL,
                 &EtObjectManagerUserDirectoryObject,
                 &DirectoryObjectType,
                 &enumContext
@@ -2024,7 +2024,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
 
             if (!NT_SUCCESS(status))
             {
-                PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
             }
         }
 
