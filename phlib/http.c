@@ -129,38 +129,38 @@ VOID CALLBACK PhWinHttpStatusCallback(
     _In_ ULONG dwStatusInformationLength
     )
 {
-    switch (InternetStatus)
-    {
-    case WINHTTP_CALLBACK_STATUS_RESOLVING_NAME:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_RESOLVING_NAME\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_NAME_RESOLVED\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SENDING_REQUEST:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SENDING_REQUEST\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_REQUEST_SENT:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_SENT\n");
-        }
-        break;
+    //switch (InternetStatus)
+    //{
+    //case WINHTTP_CALLBACK_STATUS_RESOLVING_NAME:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_RESOLVING_NAME\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_NAME_RESOLVED\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SENDING_REQUEST:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SENDING_REQUEST\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_REQUEST_SENT:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_SENT\n");
+    //    }
+    //    break;
     //case WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE:
     //    {
     //        dprintf("WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE\n");
@@ -171,107 +171,107 @@ VOID CALLBACK PhWinHttpStatusCallback(
     //        dprintf("WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED\n");
     //    }
     //    break;
-    case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_HANDLE_CREATED:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CREATED\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_DETECTING_PROXY:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_DETECTING_PROXY\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_REDIRECT:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_REDIRECT\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SECURE_FAILURE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_READ_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_ERROR\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE\n");
-        }
-        break;
-    case WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE:
-        {
-            dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE\n");
-        }
-        break;
-    }
+    //case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_HANDLE_CREATED:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CREATED\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_DETECTING_PROXY:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_DETECTING_PROXY\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_REDIRECT:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_REDIRECT\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SECURE_FAILURE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_READ_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_REQUEST_ERROR\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE\n");
+    //    }
+    //    break;
+    //case WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE:
+    //    {
+    //        dprintf("WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE\n");
+    //    }
+    //    break;
+    //}
 }
 
 static NTSTATUS PhWinHttpOpen(
@@ -623,12 +623,12 @@ NTSTATUS PhHttpReceiveResponse(
             {
                 if (option & WINHTTP_PROTOCOL_FLAG_HTTP3)
                 {
-                    dprintf("[PH_HTTP] HTTP3 socket\n");
+                    dprintf("[PH_HTTP] %s", "HTTP3 socket\n");
                 }
 
                 if (option & WINHTTP_PROTOCOL_FLAG_HTTP2)
                 {
-                    dprintf("[PH_HTTP] HTTP2 socket\n");
+                    dprintf("[PH_HTTP] %s", "HTTP2 socket\n");
                 }
             }
         }
@@ -864,19 +864,28 @@ NTSTATUS PhHttpQueryHeaderUlong64(
         WINHTTP_NO_HEADER_INDEX
         ))
     {
-        PH_STRINGREF string;
-        ULONG64 integer;
-
-        string.Buffer = valueBuffer;
-        string.Length = valueLength;
-
-        if (PhStringToInteger64(&string, 10, &integer))
+        if (valueLength != 0)
         {
-            *HeaderValue = integer;
-            return STATUS_SUCCESS;
-        }
+            PH_STRINGREF string;
+            ULONG64 integer;
 
-        return STATUS_INTEGER_OVERFLOW;
+            string.Buffer = valueBuffer;
+            string.Length = valueLength;
+
+            if (PhStringToUInt64(&string, 10, &integer))
+            {
+                *HeaderValue = integer;
+                return STATUS_SUCCESS;
+            }
+            else
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+        }
+        else
+        {
+            return STATUS_DATA_LATE_ERROR;
+        }
     }
 
     return PhGetLastWinHttpErrorAsNtStatus();
@@ -1597,14 +1606,15 @@ HINTERNET PhCreateDohRequestHandle(
     return httpRequestHandle;
 }
 
-static typeof(&DnsQuery_W) DnsQuery_W_I = NULL;
+#define PHNT_DNSQUERY_FUTURE 1
+static __typeof__(&DnsQuery_W) DnsQuery_W_I = NULL;
 #if (PHNT_DNSQUERY_FUTURE)
-static typeof(&DnsQueryEx) DnsQueryEx_I = NULL;
-static typeof(&DnsCancelQuery) DnsCancelQuery_I = NULL;
+static __typeof__(&DnsQueryEx) DnsQueryEx_I = NULL;
+static __typeof__(&DnsCancelQuery) DnsCancelQuery_I = NULL;
 #endif
-static typeof(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
-static typeof(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
-static typeof(&DnsFree) DnsFree_I = NULL;
+static __typeof__(&DnsExtractRecordsFromMessage_W) DnsExtractRecordsFromMessage_W_I = NULL;
+static __typeof__(&DnsWriteQuestionToBuffer_W) DnsWriteQuestionToBuffer_W_I = NULL;
+static __typeof__(&DnsFree) DnsFree_I = NULL;
 
 static BOOLEAN PhDnsApiInitialized(
     VOID
@@ -1650,7 +1660,7 @@ static BOOLEAN PhDnsApiInitialized(
 }
 
 _Success_(return)
-static BOOLEAN PhCreateDnsMessageBuffer(
+static NTSTATUS PhCreateDnsMessageBuffer(
     _In_ PCWSTR Message,
     _In_ USHORT MessageType,
     _In_ USHORT MessageId,
@@ -1697,19 +1707,19 @@ static BOOLEAN PhCreateDnsMessageBuffer(
         if (BufferLength)
             *BufferLength = dnsBufferLength;
 
-        return TRUE;
+        return STATUS_SUCCESS;
     }
     else
     {
         if (dnsBuffer)
             PhFree(dnsBuffer);
 
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 }
 
 _Success_(return)
-static BOOLEAN PhParseDnsMessageBuffer(
+static NTSTATUS PhParseDnsMessageBuffer(
     _In_ USHORT Xid,
     _In_ PDNS_MESSAGE_BUFFER DnsReplyBuffer,
     _In_ ULONG DnsReplyBufferLength,
@@ -1721,7 +1731,7 @@ static BOOLEAN PhParseDnsMessageBuffer(
     PDNS_HEADER dnsRecordHeader;
 
     if (DnsReplyBufferLength > USHRT_MAX)
-        return FALSE;
+        return STATUS_NO_MEMORY;
 
     // DNS_BYTE_FLIP_HEADER_COUNTS
     dnsRecordHeader = &DnsReplyBuffer->MessageHead;
@@ -1732,7 +1742,7 @@ static BOOLEAN PhParseDnsMessageBuffer(
     dnsRecordHeader->AdditionalCount = _byteswap_ushort(dnsRecordHeader->AdditionalCount);
 
     if (dnsRecordHeader->Xid != Xid)
-        return FALSE;
+        return STATUS_FAIL_CHECK;
 
     status = DnsExtractRecordsFromMessage_W_I(
         DnsReplyBuffer,
@@ -1748,10 +1758,10 @@ static BOOLEAN PhParseDnsMessageBuffer(
         if (DnsRecordList)
             *DnsRecordList = dnsRecordList;
 
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 // Cloudflare DNS over HTTPs (DoH)
@@ -1771,13 +1781,15 @@ static BOOLEAN PhParseDnsMessageBuffer(
 // 2001:4860:4860::8888
 // 2001:4860:4860::8844
 //
-PDNS_RECORD PhHttpDnsQuery(
+NTSTATUS PhHttpDnsQuery(
     _In_opt_ PCWSTR DnsServerAddress,
     _In_ PCWSTR DnsQueryMessage,
-    _In_ USHORT DnsQueryMessageType
+    _In_ USHORT DnsQueryMessageType,
+    _Out_ PDNS_RECORD* DnsQueryRecord
     )
 {
     static volatile USHORT seed = 0;
+    NTSTATUS status;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
     PDNS_MESSAGE_BUFFER dnsSendBuffer = NULL;
@@ -1788,20 +1800,20 @@ PDNS_RECORD PhHttpDnsQuery(
     USHORT dnsQueryId;
 
     if (!PhDnsApiInitialized())
-        return NULL;
+        return STATUS_UNSUCCESSFUL;
 
     dnsQueryId = _InterlockedIncrement16(&seed);
 
-    if (!PhCreateDnsMessageBuffer(
+    status = PhCreateDnsMessageBuffer(
         DnsQueryMessage,
         DnsQueryMessageType,
         dnsQueryId,
         &dnsSendBuffer,
         &dnsSendBufferLength
-        ))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     if (!(httpConnectionHandle = PhCreateDohConnectionHandle(DnsServerAddress)))
         goto CleanupExit;
@@ -1819,11 +1831,15 @@ PDNS_RECORD PhHttpDnsQuery(
         0
         ))
     {
+        status = PhGetLastWinHttpErrorAsNtStatus();
         goto CleanupExit;
     }
 
     if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+    {
+        status = PhGetLastWinHttpErrorAsNtStatus();
         goto CleanupExit;
+    }
 
 #if DEBUG
     {
@@ -1839,35 +1855,35 @@ PDNS_RECORD PhHttpDnsQuery(
         {
             if (option & WINHTTP_PROTOCOL_FLAG_HTTP3)
             {
-                dprintf("[DOH] HTTP3 socket\n");
+                dprintf("[DOH] %s", "HTTP3 socket\n");
             }
     
             if (option & WINHTTP_PROTOCOL_FLAG_HTTP2)
             {
-                dprintf("[DOH] HTTP2 socket\n");
+                dprintf("[DOH] %s", "HTTP2 socket\n");
             }
         }
     }
 #endif
 
-    if (!PhHttpReadDataToBuffer(
+    status = PhHttpReadDataToBuffer(
         httpRequestHandle,
         &dnsReceiveBuffer,
         &dnsReceiveBufferLength
-        ))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!PhParseDnsMessageBuffer(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhParseDnsMessageBuffer(
         dnsQueryId,
         dnsReceiveBuffer,
         dnsReceiveBufferLength,
         &dnsRecordList
-        ))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
 CleanupExit:
     if (httpRequestHandle)
@@ -1877,7 +1893,12 @@ CleanupExit:
     if (dnsSendBuffer)
         PhFree(dnsSendBuffer);
 
-    return dnsRecordList;
+    if (NT_SUCCESS(status))
+    {
+        *DnsQueryRecord = dnsRecordList;
+    }
+
+    return status;
 }
 
 PDNS_RECORD PhDnsQuery(
@@ -1886,19 +1907,23 @@ PDNS_RECORD PhDnsQuery(
     _In_ USHORT DnsQueryMessageType
     )
 {
+    NTSTATUS status;
     PDNS_RECORD dnsRecordList;
 
-    dnsRecordList = PhHttpDnsQuery(
+    if (!PhDnsApiInitialized())
+        return NULL;
+
+    status = PhHttpDnsQuery(
         DnsServerAddress,
         DnsQueryMessage,
-        DnsQueryMessageType
+        DnsQueryMessageType,
+        &dnsRecordList
         );
 
-    if (!dnsRecordList && PhDnsApiInitialized())
+    if (NT_SUCCESS(status))
     {
         if (DnsServerAddress)
         {
-            NTSTATUS status;
             IP4_ARRAY dnsServerAddressList;
             IN_ADDR dnsQueryServerAddressIpv4;
             USHORT dnsQueryServerAddressPort;
@@ -2258,7 +2283,7 @@ PDNS_RECORD PhDnsQuery3(
         NtWaitForSingleObject(
             dnsQueryContext->QueryCompletedEvent,
             FALSE,
-            PhTimeoutFromMilliseconds(&timeout, -MINLONGLONG)
+            PhTimeoutFromMilliseconds(&timeout, INFINITE)
             );
     }
 
