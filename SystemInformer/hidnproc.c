@@ -637,7 +637,7 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
         NtClose(processHandle);
     }
 
-    return nullptr;
+    return NULL;
 }
 
 NTSTATUS PhpEnumZombieProcessesBruteForce(

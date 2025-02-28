@@ -480,7 +480,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName = nullptr;
+    PPH_STRING fileName = NULL;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;

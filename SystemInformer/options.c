@@ -3284,10 +3284,10 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
 typedef struct _COLOR_ITEM
 {
-    PWSTR SettingName;
-    PWSTR UseSettingName;
-    PWSTR Name;
-    PWSTR Description;
+    PCWSTR SettingName;
+    PCWSTR UseSettingName;
+    PCWSTR Name;
+    PCWSTR Description;
 
     BOOLEAN CurrentUse;
     COLORREF CurrentColor;

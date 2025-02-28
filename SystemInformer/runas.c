@@ -724,8 +724,8 @@ BOOLEAN PhRunAsGetLogonSid(
     _Out_ PSID* LogonSid
     )
 {
-    PSID userSid = nullptr;
-    PSID groupSid = nullptr;
+    PSID userSid = NULL;
+    PSID groupSid = NULL;
     HANDLE tokenHandle;
 
     if (NT_SUCCESS(PhOpenProcessToken(

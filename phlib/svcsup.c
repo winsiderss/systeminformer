@@ -336,7 +336,7 @@ NTSTATUS PhOpenService(
         return STATUS_SUCCESS;
     }
 
-    *ServiceHandle = nullptr;
+    *ServiceHandle = NULL;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -435,7 +435,7 @@ NTSTATUS PhCreateService(
         }
         else
         {
-            *ServiceHandle = nullptr;
+            *ServiceHandle = NULL;
             status = PhGetLastWin32ErrorAsNtStatus();
         }
 

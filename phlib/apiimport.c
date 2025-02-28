@@ -132,13 +132,13 @@ PVOID PhpImportProcedureNative(
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
-typeof(&(Name)) Name##_Import(VOID) \
+__typeof__(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (__typeof__(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 /**
@@ -148,13 +148,13 @@ typeof(&(Name)) Name##_Import(VOID) \
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
-typeof(&(Name)) Name##_Import(VOID) \
+__typeof__(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (__typeof__(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
@@ -227,7 +227,7 @@ PVOID NTAPI GetProcAddress_Stub(
     PVOID baseAddress;
 
     if (IS_INTRESOURCE(Name))
-        baseAddress = PhGetProcedureAddress(Module, nullptr, PtrToUshort(Name));
+        baseAddress = PhGetProcedureAddress(Module, NULL, PtrToUshort(Name));
     else
         baseAddress = PhGetProcedureAddress(Module, Name, 0);
 

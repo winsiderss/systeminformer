@@ -2344,7 +2344,7 @@ BOOLEAN PhUiThawTreeProcess(
         return FALSE;
     }
 
-    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, nullptr))
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, NULL))
     {
         NtClose(freezeHandle);
     }
@@ -5301,7 +5301,7 @@ BOOLEAN PhUiRestartServices(
 
             if (NT_SUCCESS(status))
             {
-                status = PhStartService(serviceHandle, 0, nullptr);
+                status = PhStartService(serviceHandle, 0, NULL);
 
                 if (NT_SUCCESS(status))
                     success = TRUE;

@@ -53,7 +53,7 @@ EXTERN_C PCWSTR WindowsVersionName;
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
-#define dprintf(format, ...) DbgPrint(format __VA_OPT__(,) __VA_ARGS__)
+#define dprintf(format, ...) DbgPrint(format, __VA_ARGS__)
 #else
 #define dprintf(format, ...)
 #endif

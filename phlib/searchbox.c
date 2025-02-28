@@ -680,19 +680,19 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (context->CaseButton.TooltipHandle)
             {
                 DestroyWindow(context->CaseButton.TooltipHandle);
-                context->CaseButton.TooltipHandle = nullptr;
+                context->CaseButton.TooltipHandle = NULL;
             }
 
             if (context->RegexButton.TooltipHandle)
             {
                 DestroyWindow(context->RegexButton.TooltipHandle);
-                context->RegexButton.TooltipHandle = nullptr;
+                context->RegexButton.TooltipHandle = NULL;
             }
 
             if (context->SearchButton.TooltipHandle)
             {
                 DestroyWindow(context->SearchButton.TooltipHandle);
-                context->SearchButton.TooltipHandle = nullptr;
+                context->SearchButton.TooltipHandle = NULL;
             }
 
             PhpSearchControlDestroyBufferedContext(context);

@@ -46,7 +46,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_TOKEN_ATTRIBUTES attributes = { nullptr };
+    static PH_TOKEN_ATTRIBUTES attributes = { NULL };
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -1560,7 +1560,7 @@ NTSTATUS PhGetProcessSectionFileName(
     PVOID viewBase;
 
     viewSize = PAGE_SIZE;
-    viewBase = nullptr;
+    viewBase = NULL;
 
     status = NtMapViewOfSection(
         SectionHandle,
@@ -1568,7 +1568,7 @@ NTSTATUS PhGetProcessSectionFileName(
         &viewBase,
         0,
         0,
-        nullptr,
+        NULL,
         &viewSize,
         ViewUnmap,
         0,
@@ -5533,7 +5533,7 @@ NTSTATUS PhGetProcessActivityModerationState(
     )
 {
     NTSTATUS status;
-    SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration = { nullptr };
+    SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration = { NULL };
     PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
 
     status = NtQuerySystemInformation(
@@ -6345,7 +6345,7 @@ NTSTATUS PhEnumHandlesGeneric(
             {
                 PPROCESS_HANDLE_TABLE_ENTRY_INFO handle = &handles->Handles[i];
 
-                convertedHandles->Handles[i].Object = nullptr;
+                convertedHandles->Handles[i].Object = NULL;
                 convertedHandles->Handles[i].UniqueProcessId = ProcessId;
                 convertedHandles->Handles[i].HandleValue = handle->HandleValue;
                 convertedHandles->Handles[i].GrantedAccess = handle->GrantedAccess;
@@ -13037,7 +13037,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         return TRUE;
 
     viewSize = PAGE_SIZE;
-    viewBase = nullptr;
+    viewBase = NULL;
 
     status = NtMapViewOfSection(
         sectionHandle,
@@ -13103,7 +13103,7 @@ VOID PhInitializeKnownDlls(
         PhEnumDirectoryObjects(
             directoryHandle,
             PhpKnownDllObjectsCallback,
-            nullptr
+            NULL
             );
         NtClose(directoryHandle);
     }

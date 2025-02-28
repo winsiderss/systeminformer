@@ -527,7 +527,7 @@ PIMAGE_SECTION_HEADER PhMappedImageSectionByName(
             &MappedImage->Sections[i],
             sectionName,
             RTL_NUMBER_OF(sectionName),
-            nullptr
+            NULL
             ) && PhEqualStringZ(sectionName, Name, IgnoreCase))
         {
             return &MappedImage->Sections[i];
@@ -818,7 +818,7 @@ NTSTATUS PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, nullptr, RemoteMappedImage);
+    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, NULL, RemoteMappedImage);
 }
 
 NTSTATUS PhLoadRemoteMappedImagePageSize(
@@ -5711,7 +5711,7 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersion(
     _Out_ PULONG CHPEVersion
     )
 {
-    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, nullptr, CHPEVersion);
+    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, NULL, CHPEVersion);
 }
 
 NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(

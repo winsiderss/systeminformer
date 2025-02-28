@@ -164,14 +164,8 @@ typedef GUID *PGUID;
 typedef const GUID* PCGUID;
 #endif
 
+#ifndef GUID_NULL
 DEFINE_GUID(GUID_NULL, 0x00000000L, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-#if __STDC_VERSION__ >= 202311L
-#ifndef __cplusplus
-#define nullptr ((void *)0)
 #endif
-typedef typeof(nullptr) nullptr_t;
-#endif
-#include <stddef.h>
 
 #endif

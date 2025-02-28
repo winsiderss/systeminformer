@@ -965,7 +965,7 @@ PhGetListViewInterface(
     _In_ HWND ListViewHandle
     )
 {
-    IListView* listviewInterface = nullptr;
+    IListView* listviewInterface = NULL;
 
     SendMessage(
         ListViewHandle,

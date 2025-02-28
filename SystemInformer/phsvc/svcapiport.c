@@ -208,7 +208,7 @@ BOOLEAN PhSvcHandleVerify(
         info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
         info.FileHandle = fileHandle;
 
-        if (NT_SUCCESS(PhVerifyFileEx(&info, &result, nullptr, nullptr)))
+        if (NT_SUCCESS(PhVerifyFileEx(&info, &result, NULL, NULL)))
         {
             if (result == VrTrusted)
             {

@@ -257,7 +257,6 @@
     <ClInclude Include="jsonc\snprintf_compat.h" />
     <ClInclude Include="jsonc\strdup_compat.h" />
     <ClInclude Include="jsonc\strerror_override.h" />
-    <ClInclude Include="jsonc\strerror_override_private.h" />
     <ClInclude Include="jsonc\vasprintf_compat.h" />
     <ClInclude Include="maxminddb\data-pool.h" />
     <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
@@ -282,7 +281,6 @@
     <ClInclude Include="tlsh\tlsh_util.h" />
     <ClInclude Include="tlsh\tlsh_win_version.h" />
     <ClInclude Include="tlsh\tlsh_wrapper.h" />
-    <ClInclude Include="tlsh\win_version.h" />
     <ClInclude Include="xxhash\xxhashwrapper.h" />
     <ClInclude Include="xxhash\xxhash.h" />
   </ItemGroup>

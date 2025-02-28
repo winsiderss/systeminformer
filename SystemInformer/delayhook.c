@@ -1281,15 +1281,15 @@ VOID PhRegisterHeaderSuperClass(
 
 // Detours export procedure hooks
 
-static typeof(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
-static typeof(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
-static typeof(&DrawThemeText) DefaultDrawThemeText = NULL;
-static typeof(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
-static typeof(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
-static typeof(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
-static typeof(&GetThemeColor) DefaultGetThemeColor = NULL;
-static typeof(&SystemParametersInfoW) DefaultSystemParametersInfo = NULL;
-static typeof(&CreateWindowExW) DefaultCreateWindowEx = NULL;
+static __typeof__(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
+static __typeof__(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
+static __typeof__(&DrawThemeText) DefaultDrawThemeText = NULL;
+static __typeof__(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
+static __typeof__(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
+static __typeof__(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
+static __typeof__(&GetThemeColor) DefaultGetThemeColor = NULL;
+static __typeof__(&SystemParametersInfoW) DefaultSystemParametersInfo = NULL;
+static __typeof__(&CreateWindowExW) DefaultCreateWindowEx = NULL;
 
 // uxtheme.dll ordinal 49
 static HTHEME(WINAPI* DefaultOpenNcThemeData)(

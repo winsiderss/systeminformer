@@ -753,7 +753,7 @@ NTSTATUS PhGetThreadApartmentState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -844,7 +844,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -1058,7 +1058,7 @@ NTSTATUS PhGetThreadSocketState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;

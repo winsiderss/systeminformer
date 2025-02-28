@@ -438,7 +438,7 @@ NTSTATUS PhQueryCloseHandle(
         ObjectHandleFlagInformation,
         &objectInfo,
         sizeof(objectInfo),
-        nullptr
+        NULL
         );
 
     if (NT_SUCCESS(status) && objectInfo.ProtectFromClose)

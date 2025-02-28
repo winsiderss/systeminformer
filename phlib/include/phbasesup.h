@@ -323,13 +323,13 @@ PhAllocatePageZero(
 {
     PVOID buffer;
 
-    if (buffer = PhAllocatePage(Size, nullptr))
+    if (buffer = PhAllocatePage(Size, NULL))
     {
         memset(buffer, 0, Size);
         return buffer;
     }
 
-    return nullptr;
+    return NULL;
 }
 
 PHLIBAPI

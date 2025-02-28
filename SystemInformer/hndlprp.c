@@ -950,7 +950,7 @@ VOID PhpUpdateHandleGeneral(
                             PPH_STRING name;
 
                             clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
-                            clientId.UniqueThread = nullptr;
+                            clientId.UniqueThread = NULL;
 
                             name = PhGetClientIdName(&clientId);
                             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);

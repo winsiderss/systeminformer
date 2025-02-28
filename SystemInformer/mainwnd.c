@@ -2626,7 +2626,7 @@ VOID PhMwpSaveSettings(
 
         if (!NT_SUCCESS(status))
         {
-            PhShowStatus(nullptr, L"Unable to save application settings.", status, 0);
+            PhShowStatus(NULL, L"Unable to save application settings.", status, 0);
         }
     }
 }

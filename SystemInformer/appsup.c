@@ -2045,7 +2045,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
     context->ListViewHandle = ListViewHandle;
-    context->ListViewClass = nullptr;
+    context->ListViewClass = NULL;
     context->Id = lvHitInfo.iItem;
     context->SubId = lvHitInfo.iSubItem;
     context->MenuItemText = menuItemText;

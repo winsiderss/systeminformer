@@ -210,7 +210,7 @@ HDC PhGetScreenDC(
     VOID
     )
 {
-    static HDC hdc = nullptr;
+    static HDC hdc = NULL;
 
     if (hdc == NULL)
     {
@@ -230,7 +230,7 @@ HGDIOBJ PhGetStockObject(
     _In_ LONG Index
     )
 {
-    static HBRUSH brush[STOCK_LAST + 1] = { nullptr };
+    static HBRUSH brush[STOCK_LAST + 1] = { NULL };
 
     assert(Index <= STOCK_LAST);
 
@@ -510,7 +510,7 @@ BOOLEAN PhSetChildWindowNoActivate(
         _In_ HWND WindowHandle
         );
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+    static __typeof__(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -518,7 +518,7 @@ BOOLEAN PhSetChildWindowNoActivate(
 
         if (baseAddress = PhLoadLibrary(L"user32.dll"))
         {
-            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, nullptr, 2005);
+            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 2005);
         }
 
         PhEndInitOnce(&initOnce);
@@ -2787,7 +2787,7 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
+    static __typeof__(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
@@ -2883,7 +2883,7 @@ NTSTATUS PhGetSendMessageReceiver(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&GetSendMessageReceiver) GetSendMessageReceiver_I = nullptr;
+    static __typeof__(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
     HWND windowHandle;
 
     // GetSendMessageReceiver is an undocumented function exported by

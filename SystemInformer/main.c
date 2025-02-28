@@ -558,7 +558,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, nullptr);
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
 }
 
 VOID PhInitializeCommonControls(

@@ -1079,7 +1079,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
                     if (!NT_SUCCESS(status))
                     {
-                        PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                        PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
                     }
                 }
             }

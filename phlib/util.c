@@ -1003,7 +1003,7 @@ VOID PhShowStatus(
         if (Message)
             PhShowError2(WindowHandle, Message, L"%s", PhGetString(statusMessage));
         else
-            PhShowError2(WindowHandle, L"Unable to perform the operation.", PhGetString(statusMessage));
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", PhGetString(statusMessage));
 
         PhDereferenceObject(statusMessage);
     }
@@ -2288,7 +2288,7 @@ NTSTATUS PhFormatGuidToBuffer(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
+    static __typeof__(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
@@ -5552,8 +5552,8 @@ VOID PhShellExploreFile(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
-    static typeof(&SHParseDisplayName) SHParseDisplayName_I = NULL;
+    static __typeof__(&SHOpenFolderAndSelectItems) SHOpenFolderAndSelectItems_I = NULL;
+    static __typeof__(&SHParseDisplayName) SHParseDisplayName_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9033,7 +9033,7 @@ HRESULT PhDevGetObjects(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevGetObjects) DevGetObjects_I = NULL;
+    static __typeof__(&DevGetObjects) DevGetObjects_I = NULL;
     HRESULT status;
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9078,7 +9078,7 @@ VOID PhDevFreeObjects(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevFreeObjects) DevFreeObjects_I = NULL;
+    static __typeof__(&DevFreeObjects) DevFreeObjects_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9110,7 +9110,7 @@ HRESULT PhDevGetObjectProperties(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevGetObjectProperties) DevGetObjectProperties_I = NULL;
+    static __typeof__(&DevGetObjectProperties) DevGetObjectProperties_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9144,7 +9144,7 @@ VOID PhDevFreeObjectProperties(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevFreeObjectProperties) DevFreeObjectProperties_I = NULL;
+    static __typeof__(&DevFreeObjectProperties) DevFreeObjectProperties_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9178,7 +9178,7 @@ HRESULT PhDevCreateObjectQuery(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevCreateObjectQuery) DevGetObjectProperties_I = NULL;
+    static __typeof__(&DevCreateObjectQuery) DevGetObjectProperties_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -9213,7 +9213,7 @@ VOID PhDevCloseObjectQuery(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&DevCloseObjectQuery) DevCloseObjectQuery_I = NULL;
+    static __typeof__(&DevCloseObjectQuery) DevCloseObjectQuery_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
