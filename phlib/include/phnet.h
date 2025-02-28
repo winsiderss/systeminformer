@@ -515,15 +515,18 @@ PhHttpSetCredentials(
     _In_ PCWSTR Value
     );
 
+//
 // DNS
+//
 
 PHLIBAPI
-PDNS_RECORD
+NTSTATUS
 NTAPI
 PhHttpDnsQuery(
     _In_opt_ PCWSTR DnsServerAddress,
     _In_ PCWSTR DnsQueryMessage,
-    _In_ USHORT DnsQueryMessageType
+    _In_ USHORT DnsQueryMessageType,
+    _Out_ PDNS_RECORD* DnsQueryRecord
     );
 
 PHLIBAPI
