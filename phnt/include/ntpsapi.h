@@ -292,6 +292,8 @@ typedef enum _PROCESSINFOCLASS
     ProcessSlistRollbackInformation,
     ProcessNetworkIoCounters, // q: PROCESS_NETWORK_COUNTERS
     ProcessFindFirstThreadByTebValue, // PROCESS_TEB_VALUE_INFORMATION
+    ProcessEnclaveAddressSpaceRestriction, // since 25H2
+    ProcessAvailableCpus,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
