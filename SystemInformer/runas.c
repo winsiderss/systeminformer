@@ -320,11 +320,11 @@ BOOLEAN PhpEnumerateRecentProgramsToComboBox(
 }
 
 NTSTATUS PhpEnumerateAccountsToComboBox(
-    _In_ PPH_STRING AccountName,
+    _In_ PPH_STRINGREF AccountName,
     _In_ PVOID Context
     )
 {
-    ComboBox_AddString(Context, PhGetString(AccountName));
+    ComboBox_AddString(Context, PhGetStringRefZ(AccountName));
     return STATUS_SUCCESS;
 }
 

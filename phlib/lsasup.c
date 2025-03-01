@@ -1173,13 +1173,16 @@ NTSTATUS PhEnumerateAccounts(
     static ULONG (WINAPI* NetApiBufferFree_I)(
         _Frees_ptr_opt_ PVOID Buffer
         );
-    typedef struct _USER_INFO_0
+    typedef struct _USER_INFO_10
     {
-        PWSTR usri0_name;
-    } USER_INFO_0, *PUSER_INFO_0;
+        PWSTR usri10_name;
+        PWSTR usri10_comment;
+        PWSTR usri10_usr_comment;
+        PWSTR usri10_full_name;
+    } USER_INFO_10, *PUSER_INFO_10;
     #define FILTER_NORMAL_ACCOUNT (0x0002)
     ULONG status;
-    PUSER_INFO_0 userinfoArray = NULL;
+    PUSER_INFO_10 userinfoArray = NULL;
     ULONG userinfoEntriesRead = 0;
     ULONG userinfoTotalEntries = 0;
 
@@ -1201,7 +1204,7 @@ NTSTATUS PhEnumerateAccounts(
 
     NetUserEnum_I(
         NULL,
-        0,
+        10,
         FILTER_NORMAL_ACCOUNT,
         &userinfoArray,
         ULONG_MAX,
@@ -1218,7 +1221,7 @@ NTSTATUS PhEnumerateAccounts(
 
     status = NetUserEnum_I(
         NULL,
-        0,
+        10,
         FILTER_NORMAL_ACCOUNT,
         &userinfoArray,
         ULONG_MAX,
@@ -1229,45 +1232,21 @@ NTSTATUS PhEnumerateAccounts(
 
     if (status == ERROR_SUCCESS)
     {
-        PPH_STRING userName;
-        PPH_STRING userDomainName = NULL;
-
-        if (userName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        for (ULONG i = 0; i < userinfoEntriesRead; i++)
         {
-            userDomainName = PhGetBaseDirectory(userName);
-            PhDereferenceObject(userName);
-        }
+            PUSER_INFO_10 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_10) * i);
 
-        if (userDomainName)
-        {
-            for (ULONG i = 0; i < userinfoEntriesRead; i++)
+            if (entry->usri10_full_name)
             {
-                PUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
+                PH_STRINGREF string;
 
-                if (entry->usri0_name)
+                PhInitializeStringRefLongHint(&string, entry->usri10_full_name);
+
+                if (!NT_SUCCESS(Callback(&string, Context)))
                 {
-                    PPH_STRING usernameString;
-                    PH_STRINGREF usri10String;
-
-                    PhInitializeStringRefLongHint(&usri10String, entry->usri0_name);
-
-                    usernameString = PhConcatStringRef3(
-                        &userDomainName->sr,
-                        &PhNtPathSeperatorString,
-                        &usri10String
-                        );
-
-                    if (!NT_SUCCESS(Callback(usernameString, Context)))
-                    {
-                        PhDereferenceObject(usernameString);
-                        break;
-                    }
-
-                    PhDereferenceObject(usernameString);
+                    break;
                 }
             }
-
-            PhDereferenceObject(userDomainName);
         }
     }
 
