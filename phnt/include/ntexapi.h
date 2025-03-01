@@ -1854,7 +1854,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemLoadGdiDriverInSystemSpace, // s: SYSTEM_GDI_DRIVER_INFORMATION (kernel-mode only) (same as SystemLoadGdiDriverInformation)
     SystemNumaProcessorMap, // q: SYSTEM_NUMA_INFORMATION
     SystemPrefetcherInformation, // q; s: PREFETCHER_INFORMATION // PfSnQueryPrefetcherInformation
-    SystemExtendedProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
+    SystemExtendedProcessInformation, // q: SYSTEM_EXTENDED_PROCESS_INFORMATION
     SystemRecommendedSharedDataAlignment, // q: ULONG // KeGetRecommendedSharedDataAlignment
     SystemComPlusPackage, // q; s: ULONG
     SystemNumaAvailableMemory, // q: SYSTEM_NUMA_INFORMATION // 60
@@ -1945,7 +1945,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureBootInformation, // q: SYSTEM_SECUREBOOT_INFORMATION
     SystemEntropyInterruptTimingRawInformation, // q; s: SYSTEM_ENTROPY_TIMING_INFORMATION
     SystemPortableWorkspaceEfiLauncherInformation, // q: SYSTEM_PORTABLE_WORKSPACE_EFI_LAUNCHER_INFORMATION
-    SystemFullProcessInformation, // q: SYSTEM_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION (requires admin)
+    SystemFullProcessInformation, // q: SYSTEM_EXTENDED_PROCESS_INFORMATION with SYSTEM_PROCESS_INFORMATION_EXTENSION (requires admin)
     SystemKernelDebuggerInformationEx, // q: SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
     SystemBootMetadataInformation, // 150 // (requires SeTcbPrivilege)
     SystemSoftRebootInformation, // q: ULONG
@@ -2210,41 +2210,11 @@ typedef struct _SYSTEM_THREAD_INFORMATION
     KWAIT_REASON WaitReason;
 } SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
 
-// private
-typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
-{
-    union
-    {
-        SYSTEM_THREAD_INFORMATION ThreadInfo;
-        struct
-        {
-            ULONGLONG KernelTime;
-            ULONGLONG UserTime;
-            ULONGLONG CreateTime;
-            ULONG WaitTime;
-            PVOID StartAddress;
-            CLIENT_ID ClientId;
-            KPRIORITY Priority;
-            KPRIORITY BasePriority;
-            ULONG ContextSwitches;
-            KTHREAD_STATE ThreadState;
-            KWAIT_REASON WaitReason;
-        };
-    };
-    ULONG_PTR StackBase;
-    ULONG_PTR StackLimit;
-    PVOID Win32StartAddress;
-    PVOID TebBase; // since VISTA
-    ULONG_PTR Reserved2;
-    ULONG_PTR Reserved3;
-    ULONG_PTR Reserved4;
-} SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
-
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;
     ULONG NumberOfThreads;
-    LARGE_INTEGER WorkingSetPrivateSize; // since VISTA
+    ULONGLONG WorkingSetPrivateSize; // since VISTA
     ULONG HardFaultCount; // since WIN7
     ULONG NumberOfThreadsHighWatermark; // since WIN7
     ULONGLONG CycleTime; // since WIN7
@@ -2277,9 +2247,77 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     LARGE_INTEGER WriteTransferCount;
     LARGE_INTEGER OtherTransferCount;
     SYSTEM_THREAD_INFORMATION Threads[1]; // SystemProcessInformation
-    // SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1]; // SystemExtendedProcessinformation
-    // SYSTEM_EXTENDED_THREAD_INFORMATION + SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
+{
+    union
+    {
+        SYSTEM_THREAD_INFORMATION ThreadInfo;
+        struct
+        {
+            ULONGLONG KernelTime;
+            ULONGLONG UserTime;
+            ULONGLONG CreateTime;
+            ULONG WaitTime;
+            PVOID StartAddress;
+            CLIENT_ID ClientId;
+            KPRIORITY Priority;
+            KPRIORITY BasePriority;
+            ULONG ContextSwitches;
+            KTHREAD_STATE ThreadState;
+            KWAIT_REASON WaitReason;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+    ULONG_PTR StackBase;
+    ULONG_PTR StackLimit;
+    PVOID Win32StartAddress;
+    PVOID TebBase; // since VISTA
+    ULONG_PTR Reserved2;
+    ULONG_PTR Reserved3;
+    ULONG_PTR Reserved4;
+} SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
+
+typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG NumberOfThreads;
+    ULONGLONG WorkingSetPrivateSize; // since VISTA
+    ULONG HardFaultCount; // since WIN7
+    ULONG NumberOfThreadsHighWatermark;
+    ULONGLONG CycleTime;
+    ULONGLONG CreateTime;
+    ULONGLONG UserTime;
+    ULONGLONG KernelTime;
+    UNICODE_STRING ImageName;
+    KPRIORITY BasePriority;
+    HANDLE UniqueProcessId;
+    HANDLE InheritedFromUniqueProcessId;
+    ULONG HandleCount;
+    ULONG SessionId;
+    ULONG_PTR UniqueProcessKey; // since VISTA
+    SIZE_T PeakVirtualSize;
+    SIZE_T VirtualSize;
+    ULONG PageFaultCount;
+    SIZE_T PeakWorkingSetSize;
+    SIZE_T WorkingSetSize;
+    SIZE_T QuotaPeakPagedPoolUsage;
+    SIZE_T QuotaPagedPoolUsage;
+    SIZE_T QuotaPeakNonPagedPoolUsage;
+    SIZE_T QuotaNonPagedPoolUsage;
+    SIZE_T PagefileUsage;
+    SIZE_T PeakPagefileUsage;
+    SIZE_T PrivatePageCount;
+    ULONGLONG ReadOperationCount;
+    ULONGLONG WriteOperationCount;
+    ULONGLONG OtherOperationCount;
+    ULONGLONG ReadTransferCount;
+    ULONGLONG WriteTransferCount;
+    ULONGLONG OtherTransferCount;
+    SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1];
+    // SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
+} SYSTEM_EXTENDED_PROCESS_INFORMATION, *PSYSTEM_EXTENDED_PROCESS_INFORMATION;
 
 typedef struct _SYSTEM_CALL_COUNT_INFORMATION
 {
@@ -2346,8 +2384,8 @@ typedef struct _SYSTEM_FLAGS_INFORMATION
             ULONG LdrTopDown : 1;               // FLG_LDR_TOP_DOWN
             ULONG EnableHandleExceptions : 1;   // FLG_ENABLE_HANDLE_EXCEPTIONS
             ULONG DisableProtDlls : 1;          // FLG_DISABLE_PROTDLLS
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } SYSTEM_FLAGS_INFORMATION, *PSYSTEM_FLAGS_INFORMATION;
 
 // private
@@ -2527,7 +2565,7 @@ typedef struct _SYSTEM_POOLTAG
     {
         UCHAR Tag[4];
         ULONG TagUlong;
-    };
+    } DUMMYUNIONNAME;
     ULONG PagedAllocs;
     ULONG PagedFrees;
     SIZE_T PagedUsed;
@@ -3044,7 +3082,7 @@ typedef struct _SYSTEM_NUMA_INFORMATION
         GROUP_AFFINITY ActiveProcessorsGroupAffinity[MAXIMUM_NODE_COUNT];
         ULONGLONG AvailableMemory[MAXIMUM_NODE_COUNT];
         ULONGLONG Pad[MAXIMUM_NODE_COUNT * 2];
-    };
+    } DUMMYUNIONNAME;
 } SYSTEM_NUMA_INFORMATION, *PSYSTEM_NUMA_INFORMATION;
 
 typedef struct _SYSTEM_PROCESSOR_POWER_INFORMATION
@@ -3349,8 +3387,8 @@ typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
             ULONGLONG DbgBugCheckRecovery : 1; // 24H2
             ULONGLONG DbgFASR : 1;
             ULONGLONG DbgUseCachedBcd : 1;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, *PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
 
 // private
@@ -3732,9 +3770,9 @@ typedef struct _SM_STORE_BASIC_PARAMS
             ULONG LockActiveRegions : 1;
             ULONG VirtualRegions : 1;
             ULONG Spare : 13;
-        };
+        } DUMMYSTRUCTNAME;
         ULONG StoreFlags;
-    };
+    } DUMMYUNIONNAME;
     ULONG Granularity;
     ULONG RegionSize;
     ULONG RegionCountMax;
@@ -4484,8 +4522,8 @@ typedef struct _SYSTEM_PAGEFILE_INFORMATION_EX
             ULONG TotalInUse;
             ULONG PeakUsage;
             UNICODE_STRING PageFileName;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 
     ULONG MinimumSize;
     ULONG MaximumSize;
@@ -4517,7 +4555,7 @@ typedef union _ENERGY_STATE_DURATION
         ULONG LastChangeTime;
         ULONG Duration : 31;
         ULONG IsInState : 1;
-    };
+    } DUMMYSTRUCTNAME;
 } ENERGY_STATE_DURATION, *PENERGY_STATE_DURATION;
 
 typedef struct _PROCESS_ENERGY_VALUES
@@ -4536,8 +4574,8 @@ typedef struct _PROCESS_ENERGY_VALUES
             ENERGY_STATE_DURATION ForegroundDuration;
             ENERGY_STATE_DURATION DesktopVisibleDuration;
             ENERGY_STATE_DURATION PSMForegroundDuration;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONG CompositionRendered;
     ULONG CompositionDirtyGenerated;
     ULONG CompositionDirtyPropagated;
@@ -4577,8 +4615,8 @@ typedef struct _PROCESS_ENERGY_VALUES_EXTENSION
             TIMELINE_BITMAP AudioOutTimeline;
             TIMELINE_BITMAP DisplayRequiredTimeline;
             TIMELINE_BITMAP KeyboardInputTimeline;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 
     union // REDSTONE3
     {
@@ -4590,8 +4628,8 @@ typedef struct _PROCESS_ENERGY_VALUES_EXTENSION
             ENERGY_STATE_DURATION AudioOutDuration;
             ENERGY_STATE_DURATION DisplayRequiredDuration;
             ENERGY_STATE_DURATION PSMBackgroundDuration;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 
     ULONG KeyboardInput;
     ULONG MouseInput;
@@ -4628,8 +4666,8 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
             ULONG Classification : 4; // SYSTEM_PROCESS_CLASSIFICATION
             ULONG BackgroundActivityModerated : 1;
             ULONG Spare : 26;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONG UserSidOffset;
     ULONG PackageFullNameOffset; // since THRESHOLD
     PROCESS_ENERGY_VALUES EnergyValues; // since THRESHOLD
@@ -4666,7 +4704,7 @@ typedef struct _OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2
     ULONG Version;
     ULONG AbnormalResetOccurred;
     ULONG OfflineMemoryDumpCapable;
-    LARGE_INTEGER ResetDataAddress;
+    PVOID ResetDataAddress;
     ULONG ResetDataSize;
 } OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2, *POFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2;
 
@@ -4806,8 +4844,8 @@ typedef struct _SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
             ULONG ConditionalLockdown : 1;
             ULONG NoLockdown : 1;
             ULONG Lockdown : 1;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     union
     {
         ULONG HVCIOptions;
@@ -4817,8 +4855,8 @@ typedef struct _SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
             ULONG HVCIStrict : 1;
             ULONG HVCIDebug : 1;
             ULONG HVCISpare : 29;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONGLONG Version;
     GUID PolicyGuid;
 } SYSTEM_CODEINTEGRITYPOLICY_INFORMATION, *PSYSTEM_CODEINTEGRITYPOLICY_INFORMATION;
@@ -4878,7 +4916,7 @@ typedef struct _KAFFINITY_EX
     {
         ULONG_PTR Bitmap[1];
         ULONG_PTR StaticBitmap[32];
-    };
+    } DUMMYUNIONNAME;
 } KAFFINITY_EX, *PKAFFINITY_EX;
 
 // private
@@ -5093,8 +5131,8 @@ typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
             ULONG L1DataCacheFlushSupported : 1;
             ULONG L1TerminalFaultMitigationPresent : 1;
             ULONG Reserved : 18;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
 
 // private
@@ -5221,8 +5259,8 @@ typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
             ULONG ReservedFlag : 1; // SModeAdminlessEnabled
             ULONG AllowDeviceOwnerProtectionDowngrade : 1;
             ULONG Reserved : 30;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } SYSTEM_SECURITY_MODEL_INFORMATION, *PSYSTEM_SECURITY_MODEL_INFORMATION;
 
 // private
@@ -5273,8 +5311,8 @@ typedef struct _SYSTEM_SHADOW_STACK_INFORMATION
             ULONG KernelCetAuditModeEnabled : 1;
             ULONG ReservedForKernelCet : 6; // since Windows 10 build 21387
             ULONG Reserved : 16;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } SYSTEM_SHADOW_STACK_INFORMATION, *PSYSTEM_SHADOW_STACK_INFORMATION;
 
 // private
