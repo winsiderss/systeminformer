@@ -856,6 +856,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                             if (node = PhFindProcessNode(UlongToHandle(RestoreSearchSelectedProcessId)))
                             {
+                                SystemInformer_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(node);
                             }
 
