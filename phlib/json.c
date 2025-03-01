@@ -591,20 +591,14 @@ static PPH_BYTES PhXmlSaveString(
     )
 {
     mxml_options_t* options;
-    PH_BYTES_BUILDER stringBuilder;
-    BOOLEAN success;
-
-    PhInitializeBytesBuilder(&stringBuilder, 0x8000);
+    PPH_BYTES string;
 
     options = mxmlOptionsNew();
-    mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
-    success = !!mxmlSaveIO(XmlRootObject, options, mxml_io_callback, &stringBuilder);
+    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));;
     mxmlOptionsDelete(options);
 
-    if (success) return PhFinalBytesBuilderBytes(&stringBuilder);
-    PhDeleteBytesBuilder(&stringBuilder);
-    return NULL;
+    return string;
 }
 
 PVOID PhLoadXmlObjectFromString(
