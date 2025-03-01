@@ -13839,6 +13839,72 @@ NTSTATUS PhGetSystemCompressionStoreInformation(
     return status;
 }
 
+// rev from PsmServiceExtHost!RmpMemoryMonitorEmptySystemStore (dmex)
+NTSTATUS PhSystemCompressionStoreTrimRequest(
+    VOID
+    )
+{
+    NTSTATUS status;
+    SYSTEM_STORE_INFORMATION storeInfo;
+    SM_SYSTEM_STORE_TRIM_REQUEST trimRequestInfo;
+    PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
+
+    status = PhGetSystemCompressionStoreInformation(&compressionInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+    
+    memset(&trimRequestInfo, 0, sizeof(SM_SYSTEM_STORE_TRIM_REQUEST));
+    trimRequestInfo.Version = SYSTEM_STORE_TRIM_INFORMATION_VERSION_V1;
+    trimRequestInfo.PagesToTrim = BYTES_TO_PAGES(compressionInfo.WorkingSetSize);
+    //trimRequestInfo.PartitionHandle = MEMORY_CURRENT_PARTITION_HANDLE;
+
+    memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
+    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
+    storeInfo.StoreInformationClass = SystemStoreTrimRequest;
+    storeInfo.Data = &trimRequestInfo;
+    storeInfo.Length = SYSTEM_STORE_TRIM_INFORMATION_SIZE_V1;
+
+    status = NtQuerySystemInformation(
+        SystemStoreInformation,
+        &storeInfo,
+        sizeof(SYSTEM_STORE_INFORMATION),
+        NULL
+        );
+
+    return status;
+}
+
+NTSTATUS PhSystemCompressionStoreHighMemoryPriorityRequest(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SetHighMemoryPriority
+    )
+{
+    NTSTATUS status;
+    SYSTEM_STORE_INFORMATION storeInfo;
+    SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST memoryPriorityInfo;
+
+    memset(&memoryPriorityInfo, 0, sizeof(SM_STORE_HIGH_MEMORY_PRIORITY_REQUEST));
+    memoryPriorityInfo.Version = SYSTEM_STORE_HIGH_MEM_PRIORITY_INFORMATION_VERSION;
+    memoryPriorityInfo.SetHighMemoryPriority = SetHighMemoryPriority;
+    memoryPriorityInfo.ProcessHandle = ProcessHandle;
+
+    memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
+    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
+    storeInfo.StoreInformationClass = StoreHighMemoryPriorityRequest;
+    storeInfo.Data = &memoryPriorityInfo;
+    storeInfo.Length = SYSTEM_STORE_TRIM_INFORMATION_SIZE_V1;
+
+    status = NtQuerySystemInformation(
+        SystemStoreInformation,
+        &storeInfo,
+        sizeof(SYSTEM_STORE_INFORMATION),
+        NULL
+        );
+
+    return status;
+}
+
 NTSTATUS PhGetSystemFileCacheSize(
     _Out_ PSYSTEM_FILECACHE_INFORMATION CacheInfo
     )
