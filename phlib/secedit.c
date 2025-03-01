@@ -254,7 +254,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->RefCount = 1;
 
     info->WindowHandle = WindowHandle;
-    info->ObjectName = PhCreateString(ObjectName);
+    info->ObjectName = ObjectName ? PhCreateString(ObjectName) : PhReferenceEmptyString();
     info->ObjectType = PhCreateString(ObjectType);
     info->ObjectTypeMask = PhSecurityObjectType(info->ObjectType);
     info->OpenObject = OpenObject;
