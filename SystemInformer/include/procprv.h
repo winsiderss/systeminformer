@@ -271,7 +271,7 @@ typedef struct _PH_PROCESS_ITEM
 
     VM_COUNTERS_EX VmCounters;
     IO_COUNTERS IoCounters;
-    SIZE_T WorkingSetPrivateSize; // since VISTA
+    ULONGLONG WorkingSetPrivateSize; // since VISTA
     ULONG PeakNumberOfThreads; // since WIN7
     ULONG HardFaultCount; // since WIN7
 
