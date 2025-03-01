@@ -91,6 +91,7 @@ ipch/
 ##########################
 
 **/bin/
+**/out/
 build/output/
 plugins-extra/
 sdk/
