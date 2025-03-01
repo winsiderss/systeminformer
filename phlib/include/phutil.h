@@ -162,7 +162,9 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
+//
 // NLS
+//
 
 PHLIBAPI
 LANGID
@@ -192,7 +194,9 @@ PhGetUserLocaleInfoBool(
     _In_ LCTYPE LCType
     );
 
+//
 // Time
+//
 
 PHLIBAPI
 VOID
@@ -234,7 +238,9 @@ PhSystemTimeToTzSpecificLocalTime(
     _Out_ PSYSTEMTIME LocalTime
     );
 
+//
 // Error messages
+//
 
 PHLIBAPI
 PPH_STRING

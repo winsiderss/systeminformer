@@ -22,7 +22,9 @@ PhBaseInitialization(
     VOID
     );
 
+//
 // Threads
+//
 
 #ifdef DEBUG
 typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
@@ -93,7 +95,9 @@ PhQueueUserWorkItem(
     _In_opt_ PVOID Argument
     );
 
+//
 // Misc. system
+//
 
 PHLIBAPI
 ULONGLONG
@@ -209,7 +213,9 @@ PhSecondsSince1970ToTime(
     _Out_ PLARGE_INTEGER Time
     );
 
+//
 // Heap
+//
 
 PHLIBAPI
 _May_raise_
@@ -420,7 +426,9 @@ PhAllocateZeroSafe(
     return NULL;
 }
 
+//
 // Singly linked list
+//
 
 // rev from RtlInitializeSListHead (dmex)
 FORCEINLINE
@@ -568,7 +576,9 @@ PhTestEvent(
     return (BOOLEAN)Event->Set;
 }
 
+//
 // Barrier
+//
 
 #define PH_BARRIER_COUNT_SHIFT 0
 #define PH_BARRIER_COUNT_MASK (((LONG_PTR)1 << (sizeof(ULONG_PTR) * 8 / 2 - 1)) - 1)
@@ -618,7 +628,9 @@ PhInitializeBarrier(
     PhInitializeQueuedLock(&Barrier->WakeEvent);
 }
 
+//
 // Rundown protection
+//
 
 #define PH_RUNDOWN_ACTIVE 0x1
 #define PH_RUNDOWN_REF_SHIFT 1
@@ -3093,11 +3105,13 @@ PhRemoveItemsList(
  * \li A negative value if \a Item1 < \a Item2, and
  * \li 0 if \a Item1 = \a Item2.
  */
-typedef LONG (NTAPI *PPH_COMPARE_FUNCTION)(
+typedef _Function_class_(PH_COMPARE_FUNCTION)
+LONG NTAPI PH_COMPARE_FUNCTION(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
     );
+typedef PH_COMPARE_FUNCTION* PPH_COMPARE_FUNCTION;
 
 // Pointer list
 
@@ -4168,7 +4182,9 @@ PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     );
 
+//
 // Thread Local Storage (TLS)
+//
 
 PHLIBAPI
 ULONG
@@ -4849,7 +4865,9 @@ PhGetLastWin32ErrorAsNtStatus(
     return PhDosErrorToNtStatus(PhGetLastError());
 }
 
+//
 // Generic tree definitions
+//
 
 typedef enum _PH_TREE_ENUMERATION_ORDER
 {
@@ -4860,7 +4878,9 @@ typedef enum _PH_TREE_ENUMERATION_ORDER
 #define PhIsLeftChildElement(Links) ((Links)->Parent->Left == (Links))
 #define PhIsRightChildElement(Links) ((Links)->Parent->Right == (Links))
 
+//
 // avltree
+//
 
 typedef struct _PH_AVL_LINKS
 {
