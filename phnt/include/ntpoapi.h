@@ -108,7 +108,8 @@
 #define SessionAllowExternalDmaDevices 95 // POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 #define SendSuspendResumeNotification 96 // since WIN11
 #define BlackBoxRecorderDirectAccessBuffer 97
-#define PowerInformationLevelMaximum 98
+#define SystemPowerSourceState 98 // since 25H2
+#define PowerInformationLevelMaximum 99
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
