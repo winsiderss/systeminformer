@@ -7949,6 +7949,40 @@ PVOID PhFileReadAllTextWin32(
     return string;
 }
 
+NTSTATUS PhFileWriteAllText(
+    _In_ PCPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF String
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_WRITE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhWriteFile(
+            fileHandle,
+            String->Buffer,
+            (ULONG)String->Length,
+            NULL,
+            NULL
+            );
+
+        NtClose(fileHandle);
+    }
+
+    return status;
+}
+
 HRESULT PhGetClassObjectDllBase(
     _In_ PVOID DllBase,
     _In_ REFCLSID Rclsid,
