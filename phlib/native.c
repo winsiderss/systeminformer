@@ -5472,6 +5472,7 @@ NTSTATUS PhSetProcessPagePriority(
     _In_ ULONG PagePriority
     )
 {
+    // See also PhSetVirtualMemoryPagePriority (dmex)
     NTSTATUS status;
     PAGE_PRIORITY_INFORMATION pagePriorityInfo;
 
@@ -13582,7 +13583,7 @@ NTSTATUS PhPrefetchVirtualMemory(
 //    _In_ HANDLE ProcessHandle,
 //    _In_ PVOID VirtualAddress,
 //    _In_ SIZE_T NumberOfBytes,
-//    _In_ OFFER_PRIORITY Priority
+//    _In_ MEMORY_PAGE_PRIORITY_INFORMATION Priority
 //    )
 //{
 //    NTSTATUS status;
@@ -13644,7 +13645,33 @@ NTSTATUS PhPrefetchVirtualMemory(
 //
 //    return status;
 //}
-//
+
+NTSTATUS PhSetVirtualMemoryPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG PagePriority,
+    _In_ PVOID VirtualAddress,
+    _In_ SIZE_T NumberOfBytes
+    )
+{
+    NTSTATUS status;
+    MEMORY_RANGE_ENTRY virtualMemoryRange;
+
+    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
+    virtualMemoryRange.VirtualAddress = VirtualAddress;
+    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
+
+    status = PhpSetInformationVirtualMemory(
+        ProcessHandle,
+        VmPagePriorityInformation,
+        1,
+        &virtualMemoryRange,
+        &PagePriority,
+        sizeof(PagePriority)
+        );
+
+    return status;
+}
+
 // rev from SetProcessValidCallTargets (dmex)
 //NTSTATUS PhSetProcessValidCallTarget(
 //    _In_ HANDLE ProcessHandle,

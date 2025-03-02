@@ -2798,11 +2798,13 @@ PhDeleteValueKeyZ(
     return PhDeleteValueKey(KeyHandle, &valueName);
 }
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
+typedef _Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_KEY_CALLBACK(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_KEY_CALLBACK* PPH_ENUM_KEY_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
@@ -3899,6 +3901,16 @@ PhPrefetchVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_RANGE_ENTRY VirtualAddresses
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetVirtualMemoryPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG PagePriority,
+    _In_ PVOID VirtualAddress,
+    _In_ SIZE_T NumberOfBytes
     );
 
 PHLIBAPI

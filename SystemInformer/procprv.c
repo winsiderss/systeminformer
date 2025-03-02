@@ -1587,7 +1587,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->UserTime = Process->UserTime;
     ProcessItem->NumberOfHandles = Process->HandleCount;
     ProcessItem->NumberOfThreads = Process->NumberOfThreads;
-    ProcessItem->WorkingSetPrivateSize = (SIZE_T)Process->WorkingSetPrivateSize.QuadPart;
+    ProcessItem->WorkingSetPrivateSize = Process->WorkingSetPrivateSize;
     ProcessItem->PeakNumberOfThreads = Process->NumberOfThreadsHighWatermark;
     ProcessItem->HardFaultCount = Process->HardFaultCount;
 
