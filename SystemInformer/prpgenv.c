@@ -182,13 +182,31 @@ VOID PhpSetEnvironmentListStatusMessage(
     }
 }
 
+BOOLEAN NTAPI PhEnumEnvironmentKeyValueCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_ PPH_ENVIRONMENT_CONTEXT Context
+    )
+{
+    if (Context && Information->Type == REG_SZ)
+    {
+        PH_ENVIRONMENT_ITEM entry;
+
+        entry.Name = PhCreateStringEx(Information->Name, Information->NameLength);
+        entry.Value = PhCreateStringEx(PTR_ADD_OFFSET(Information, Information->DataOffset), Information->DataLength);
+
+        PhAddItemArray(&Context->Items, &entry);
+    }
+
+    return TRUE;
+}
+
 VOID PhpRefreshEnvironmentList(
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
     PVOID environment;
     ULONG environmentLength;
     ULONG enumerationKey;
@@ -206,73 +224,131 @@ VOID PhpRefreshEnvironmentList(
     userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, PhaCreateString(L"System"), NULL);
 
-    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
     {
-        status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            ProcessItem->ProcessId
-            );
-    }
-    else
-    {
-        PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
-        TreeNew_NodesStructured(Context->TreeNewHandle);
-        return;
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhpSetEnvironmentListStatusMessage(Context, status);
-        TreeNew_NodesStructured(Context->TreeNewHandle);
-        return;
-    }
-
-    if (NT_SUCCESS(status))
-    {
-        HANDLE tokenHandle;
+        static CONST PH_STRINGREF environmentKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Session Manager\\Environment");
+        HANDLE keyHandle;
 
         PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE);
 
-        if (NT_SUCCESS(PhOpenProcessToken(
-            processHandle,
-            TOKEN_QUERY | TOKEN_DUPLICATE,
-            &tokenHandle
-            )))
+        SIZE_T variableLength = 0;
+        PWSTR variableName = systemDefaultEnvironment;
+
+        while (*variableName)
         {
-            PhCreateEnvironmentBlock(&userDefaultEnvironment, tokenHandle, FALSE);
-            NtClose(tokenHandle);
+            variableLength += PhCountStringZ(variableName);
+            variableName += variableLength + 1;
         }
 
-        status = PhGetProcessEnvironment(
-            processHandle,
-            !!ProcessItem->IsWow64Process,
-            &environment,
-            &environmentLength
+        enumerationKey = 0;
+
+        while (PhEnumProcessEnvironmentVariables(systemDefaultEnvironment, (ULONG)variableLength * sizeof(WCHAR), &enumerationKey, &variable))
+        {
+            PH_ENVIRONMENT_ITEM entry;
+
+            entry.Name = PhCreateString2(&variable.Name);
+            entry.Value = PhCreateString2(&variable.Value);
+
+            PhAddItemArray(&Context->Items, &entry);
+        }
+
+        status = PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_LOCAL_MACHINE,
+            &environmentKeyName,
+            0
             );
 
         if (NT_SUCCESS(status))
         {
-            enumerationKey = 0;
+            status = PhEnumerateValueKey(
+                keyHandle,
+                KeyValueFullInformation,
+                PhEnumEnvironmentKeyValueCallback,
+                Context
+                );
+            NtClose(keyHandle);
+        }
 
-            while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
-            {
-                PH_ENVIRONMENT_ITEM entry;
+        if (!NT_SUCCESS(status))
+        {
+            PhpSetEnvironmentListStatusMessage(Context, status);
+            TreeNew_NodesStructured(Context->TreeNewHandle);
+            return;
+        }
 
-                entry.Name = PhCreateString2(&variable.Name);
-                entry.Value = PhCreateString2(&variable.Value);
+    }
+    else
+    {
+        HANDLE processHandle = NULL;
 
-                PhAddItemArray(&Context->Items, &entry);
-            }
-
-            PhFreePage(environment);
+        if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+        {
+            status = PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                ProcessItem->ProcessId
+                );
         }
         else
         {
-            PhpSetEnvironmentListStatusMessage(Context, status);
+            status = STATUS_INVALID_CID;
         }
 
-        NtClose(processHandle);
+        if (!NT_SUCCESS(status))
+        {
+            PhpSetEnvironmentListStatusMessage(Context, status);
+            TreeNew_NodesStructured(Context->TreeNewHandle);
+            return;
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            HANDLE tokenHandle;
+
+            PhCreateEnvironmentBlock(&systemDefaultEnvironment, NULL, FALSE);
+
+            if (NT_SUCCESS(PhOpenProcessToken(
+                processHandle,
+                TOKEN_QUERY | TOKEN_DUPLICATE,
+                &tokenHandle
+                )))
+            {
+                PhCreateEnvironmentBlock(&userDefaultEnvironment, tokenHandle, FALSE);
+                NtClose(tokenHandle);
+            }
+
+            status = PhGetProcessEnvironment(
+                processHandle,
+                !!ProcessItem->IsWow64Process,
+                &environment,
+                &environmentLength
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                enumerationKey = 0;
+
+                while (PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable))
+                {
+                    PH_ENVIRONMENT_ITEM entry;
+
+                    entry.Name = PhCreateString2(&variable.Name);
+                    entry.Value = PhCreateString2(&variable.Value);
+
+                    PhAddItemArray(&Context->Items, &entry);
+                }
+
+                PhFreePage(environment);
+            }
+            else
+            {
+                PhpSetEnvironmentListStatusMessage(Context, status);
+            }
+
+            NtClose(processHandle);
+        }
     }
 
     for (i = 0; i < Context->Items.Count; i++)
@@ -1048,6 +1124,7 @@ VOID PhpExpandAllEnvironmentNodes(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_ENVIRONMENT_CONTEXT context = (PPH_ENVIRONMENT_CONTEXT)_context; \
     PPHP_PROCESS_ENVIRONMENT_TREENODE node1 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE*)_elem1; \
     PPHP_PROCESS_ENVIRONMENT_TREENODE node2 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE*)_elem2; \
     int sortResult = 0;
@@ -1056,7 +1133,7 @@ VOID PhpExpandAllEnvironmentNodes(
     if (sortResult == 0) \
          sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
     \
-    return PhModifySort(sortResult, ((PPH_ENVIRONMENT_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 LONG PhpEnvironmentTreeNewPostSortFunction(
@@ -1067,20 +1144,20 @@ LONG PhpEnvironmentTreeNewPostSortFunction(
     )
 {
     if (Result == 0)
-        Result = uintptrcmp((ULONG_PTR)((PPHP_PROCESS_ENVIRONMENT_TREENODE)Node1)->Node.Index, (ULONG_PTR)((PPHP_PROCESS_ENVIRONMENT_TREENODE)Node2)->Node.Index);
+        Result = uintcmp(((PPHP_PROCESS_ENVIRONMENT_TREENODE)Node1)->Node.Index, ((PPHP_PROCESS_ENVIRONMENT_TREENODE)Node2)->Node.Index);
 
     return PhModifySort(Result, SortOrder);
 }
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->NameText, node2->NameText, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Value)
 {
-    sortResult = PhCompareStringWithNull(node1->ValueText, node2->ValueText, FALSE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ValueText, node2->ValueText, context->TreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
