@@ -340,11 +340,11 @@ typedef enum _THREADINFOCLASS
     ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
     ThreadContainerId, // q: GUID
     ThreadNameInformation, // qs: THREAD_NAME_INFORMATION (requires THREAD_SET_LIMITED_INFORMATION)
-    ThreadSelectedCpuSets,
+    ThreadSelectedCpuSets, // q: ULONG[]
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // q: GROUP_AFFINITY // since THRESHOLD2
     ThreadDynamicCodePolicyInfo, // q: ULONG; s: ULONG (NtCurrentThread)
-    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables
+    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
     ThreadWorkOnBehalfTicket, // RTL_WORK_ON_BEHALF_TICKET_EX
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive, // s: ULONG; s: 0 disables, otherwise enables
@@ -354,7 +354,7 @@ typedef enum _THREADINFOCLASS
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,
-    ThreadStrongerBadHandleChecks, // since 22H1
+    ThreadStrongerBadHandleChecks, // NtCurrentThread // since 22H1
     ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority, // q: ULONG
     ThreadUpdateLockOwnership, // THREAD_LOCK_OWNERSHIP // since 24H2
