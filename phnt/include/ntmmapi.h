@@ -949,7 +949,7 @@ NtFlushVirtualMemory(
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation, // MEMORY_PREFETCH_INFORMATION
-    VmPagePriorityInformation, // OFFER_PRIORITY
+    VmPagePriorityInformation, // MEMORY_PAGE_PRIORITY_INFORMATION
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation, // REDSTONE3
     VmImageHotPatchInformation, // 19H1
@@ -984,6 +984,22 @@ typedef struct _MEMORY_PREFETCH_INFORMATION
     ULONG Flags;
 } MEMORY_PREFETCH_INFORMATION, *PMEMORY_PREFETCH_INFORMATION;
 
+// VmPagePriorityInformation
+#define MEMORY_PAGE_PRIORITY_LOWEST          0
+#define MEMORY_PAGE_PRIORITY_VERY_LOW        1
+#define MEMORY_PAGE_PRIORITY_LOW             2
+#define MEMORY_PAGE_PRIORITY_MEDIUM          3
+#define MEMORY_PAGE_PRIORITY_BELOW_NORMAL    4
+#define MEMORY_PAGE_PRIORITY_NORMAL          5
+#define MEMORY_PAGE_PRIORITY_HIGH            6
+#define MEMORY_PAGE_PRIORITY_REALTIME        7
+
+typedef struct _MEMORY_PAGE_PRIORITY_INFORMATION
+{
+    ULONG PagePriority;
+} MEMORY_PAGE_PRIORITY_INFORMATION, *PMEMORY_PAGE_PRIORITY_INFORMATION;
+
+// VmCfgCallTargetInformation
 typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 {
     ULONG NumberOfEntries;
