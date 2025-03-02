@@ -2195,59 +2195,66 @@ typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
     ULONGLONG SleepTimeBias;
 } SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
 
+/**
+ * The SYSTEM_THREAD_INFORMATION structure contains information about a thread running on a system.
+ * https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/e82d73e4-cedb-4077-9099-d58f3459722f
+ */
 typedef struct _SYSTEM_THREAD_INFORMATION
 {
-    LARGE_INTEGER KernelTime;
-    LARGE_INTEGER UserTime;
-    LARGE_INTEGER CreateTime;
-    ULONG WaitTime;
-    PVOID StartAddress;
-    CLIENT_ID ClientId;
-    KPRIORITY Priority;
-    KPRIORITY BasePriority;
-    ULONG ContextSwitches;
-    KTHREAD_STATE ThreadState;
-    KWAIT_REASON WaitReason;
+    LARGE_INTEGER KernelTime;       // Number of 100-nanosecond intervals spent executing kernel code.
+    LARGE_INTEGER UserTime;         // Number of 100-nanosecond intervals spent executing user code.
+    LARGE_INTEGER CreateTime;       // System time when the thread was created.
+    ULONG WaitTime;                 // Time spent in ready queue or waiting (depending on the thread state).
+    PVOID StartAddress;             // Start address of the thread.
+    CLIENT_ID ClientId;             // ID of the thread and the process owning the thread.
+    KPRIORITY Priority;             // Dynamic thread priority.
+    KPRIORITY BasePriority;         // Base thread priority.
+    ULONG ContextSwitches;          // Total context switches.
+    KTHREAD_STATE ThreadState;      // Current thread state.
+    KWAIT_REASON WaitReason;        // The reason the thread is waiting.
 } SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
 
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
-    ULONG NextEntryOffset;
-    ULONG NumberOfThreads;
-    ULONGLONG WorkingSetPrivateSize; // since VISTA
-    ULONG HardFaultCount; // since WIN7
-    ULONG NumberOfThreadsHighWatermark; // since WIN7
-    ULONGLONG CycleTime; // since WIN7
-    LARGE_INTEGER CreateTime;
+    ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
+    ULONG NumberOfThreads;                  // The NumberOfThreads member contains the number of threads in the process.
+    ULONGLONG WorkingSetPrivateSize;        // since VISTA
+    ULONG HardFaultCount;                   // since WIN7
+    ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
+    ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
+    LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes resullting in an incorrect value.
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
-    UNICODE_STRING ImageName;
+    UNICODE_STRING ImageName;               // The file name of the executable image.
     KPRIORITY BasePriority;
     HANDLE UniqueProcessId;
     HANDLE InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG_PTR UniqueProcessKey; // since VISTA (requires SystemExtendedProcessInformation)
-    SIZE_T PeakVirtualSize;
-    SIZE_T VirtualSize;
-    ULONG PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PeakPagefileUsage;
-    SIZE_T PrivatePageCount;
-    LARGE_INTEGER ReadOperationCount;
-    LARGE_INTEGER WriteOperationCount;
-    LARGE_INTEGER OtherOperationCount;
-    LARGE_INTEGER ReadTransferCount;
-    LARGE_INTEGER WriteTransferCount;
-    LARGE_INTEGER OtherTransferCount;
-    SYSTEM_THREAD_INFORMATION Threads[1]; // SystemProcessInformation
+    ULONG_PTR UniqueProcessKey;             // since VISTA (requires SystemExtendedProcessInformation)
+    SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
+    SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
+    ULONG PageFaultCount;                   // The member of page faults for data that is not currently in memory. 
+    SIZE_T PeakWorkingSetSize;              // The peak size, in kilobytes, of the working set of the process.
+    SIZE_T WorkingSetSize;                  // The number of pages visible to the process in physical memory. These pages are resident and available for use without triggering a page fault.
+    SIZE_T QuotaPeakPagedPoolUsage;         // The peak quota charged to the process for pool usage, in bytes.
+    SIZE_T QuotaPagedPoolUsage;             // The quota charged to the process for paged pool usage, in bytes.
+    SIZE_T QuotaPeakNonPagedPoolUsage;      // The peak quota charged to the process for nonpaged pool usage, in bytes.
+    SIZE_T QuotaNonPagedPoolUsage;          // The current quota charged to the process for nonpaged pool usage.
+    SIZE_T PagefileUsage;                   // The PagefileUsage member contains the number of bytes of page file storage in use by the process.
+    SIZE_T PeakPagefileUsage;               // The maximum number of bytes of page-file storage used by the process.
+    SIZE_T PrivatePageCount;                // The number of memory pages allocated for the use by the process.
+    LARGE_INTEGER ReadOperationCount;       // The total number of read operations performed.
+    LARGE_INTEGER WriteOperationCount;      // The total number of write operations performed.
+    LARGE_INTEGER OtherOperationCount;      // The total number of I/O operations performed other than read and write operations.
+    LARGE_INTEGER ReadTransferCount;        // The total number of bytes read during a read operation.
+    LARGE_INTEGER WriteTransferCount;       // The total number of bytes written during a write operation.
+    LARGE_INTEGER OtherTransferCount;       // The total number of bytes transferred during operations other than read and write operations.
+    SYSTEM_THREAD_INFORMATION Threads[1];   // This type is not defined in the structure but was added for convenience.
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
+
+#define SYSTEM_PROCESS_INFORMATION_SIZE \
+    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_PROCESS_INFORMATION, OtherTransferCount)
 
 // private
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
