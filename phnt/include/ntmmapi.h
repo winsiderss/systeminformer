@@ -528,7 +528,7 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Priority : 3;
     ULONGLONG NonTradeable : 1;
     ULONGLONG Reserved : 3;
-} MEMORY_FRAME_INFORMATION;
+} MEMORY_FRAME_INFORMATION, *PMEMORY_FRAME_INFORMATION;
 
 // private
 typedef struct _FILEOFFSET_INFORMATION
@@ -536,7 +536,7 @@ typedef struct _FILEOFFSET_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG Offset : 48; // mapped files
     ULONGLONG Reserved : 7;
-} FILEOFFSET_INFORMATION;
+} FILEOFFSET_INFORMATION, *PFILEOFFSET_INFORMATION;
 
 // private
 typedef struct _PAGEDIR_INFORMATION
@@ -544,7 +544,7 @@ typedef struct _PAGEDIR_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG PageDirectoryBase : 48; // private pages
     ULONGLONG Reserved : 7;
-} PAGEDIR_INFORMATION;
+} PAGEDIR_INFORMATION, *PPAGEDIR_INFORMATION;
 
 // private
 typedef struct _UNIQUE_PROCESS_INFORMATION
@@ -984,16 +984,20 @@ typedef struct _MEMORY_PREFETCH_INFORMATION
     ULONG Flags;
 } MEMORY_PREFETCH_INFORMATION, *PMEMORY_PREFETCH_INFORMATION;
 
-// VmPagePriorityInformation
-#define MEMORY_PAGE_PRIORITY_LOWEST          0
-#define MEMORY_PAGE_PRIORITY_VERY_LOW        1
-#define MEMORY_PAGE_PRIORITY_LOW             2
-#define MEMORY_PAGE_PRIORITY_MEDIUM          3
-#define MEMORY_PAGE_PRIORITY_BELOW_NORMAL    4
-#define MEMORY_PAGE_PRIORITY_NORMAL          5
-#define MEMORY_PAGE_PRIORITY_HIGH            6
-#define MEMORY_PAGE_PRIORITY_REALTIME        7
+//
+// Page/memory priorities.
+//
 
+#define MEMORY_PRIORITY_LOWEST           0
+#define MEMORY_PRIORITY_VERY_LOW         1
+#define MEMORY_PRIORITY_LOW              2
+#define MEMORY_PRIORITY_MEDIUM           3
+#define MEMORY_PRIORITY_BELOW_NORMAL     4
+#define MEMORY_PRIORITY_NORMAL           5
+#define MEMORY_PRIORITY_ABOVE_NORMAL     6 // rev
+#define MEMORY_PRIORITY_HIGH             7 // rev
+
+// VmPagePriorityInformation
 typedef struct _MEMORY_PAGE_PRIORITY_INFORMATION
 {
     ULONG PagePriority;
