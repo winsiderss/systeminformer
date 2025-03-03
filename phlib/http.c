@@ -1908,7 +1908,7 @@ PDNS_RECORD PhDnsQuery(
     )
 {
     NTSTATUS status;
-    PDNS_RECORD dnsRecordList;
+    PDNS_RECORD dnsRecordList = NULL;  // Initialize to NULL
 
     if (!PhDnsApiInitialized())
         return NULL;

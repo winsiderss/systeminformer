@@ -93,7 +93,7 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
 
                 PhShowWarning2(
                     WindowHandle,
-                    L"Unable to query service trigger information."
+                    L"Unable to query service trigger information.",
                     L"%s",
                     PhGetStringOrDefault(errorMessage, L"Unknown error.")
                     );
