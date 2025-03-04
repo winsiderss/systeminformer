@@ -98,7 +98,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle && UpdateGraphs)
         ToolbarUpdateGraphs();
 
-    if (ToolStatusConfig.StatusBarEnabled)
+    if (ToolStatusConfig.StatusBarEnabled && StatusBarHandle && UpdateGraphs)
         StatusBarUpdate(FALSE);
 
     TaskbarUpdateEvents();
