@@ -132,7 +132,7 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
                     rect = PhRectangleToRect(windowRectangle);
                     dpiValue = PhGetMonitorDpi(&rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                     MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -239,7 +239,7 @@ INT_PTR CALLBACK EtTpmEditorDlgProc(
                 break;
             case IDC_TPM_WRITE:
                 {
-                    PhShowWarning(NULL, L"TPM write not yet implemented");
+                    PhShowWarning(NULL, L"Unable to write to the TPM", L"TPM write not yet implemented");
                     return TRUE;
                 }
                 break;
