@@ -595,7 +595,7 @@ static PPH_BYTES PhXmlSaveString(
 
     options = mxmlOptionsNew();
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
-    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));;
+    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
     mxmlOptionsDelete(options);
 
     return string;

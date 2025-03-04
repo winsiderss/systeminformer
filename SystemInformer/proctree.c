@@ -1952,7 +1952,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateWs)
 {
-    sortResult = uintptrcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
+    sortResult = uint64cmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
 }
 END_SORT_FUNCTION
 

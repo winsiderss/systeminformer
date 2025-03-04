@@ -290,9 +290,9 @@ PhShowMessage(
     ...
     );
 
-#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
+#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 PHLIBAPI
 LONG

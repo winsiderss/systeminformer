@@ -1042,7 +1042,14 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 {
                     if (memoryItem->Priority != 0)
                     {
-                        PhMoveReference(&node->PriorityText, PhFormatUInt64(memoryItem->Priority, TRUE));
+                        PH_FORMAT format[4];
+
+                        PhInitFormatSR(&format[0], *PhGetMemoryPagePriorityString((ULONG)memoryItem->Priority));
+                        PhInitFormatS(&format[1], L" (");
+                        PhInitFormatU(&format[2], (ULONG)memoryItem->Priority);
+                        PhInitFormatS(&format[3], L")");
+
+                        PhMoveReference(&node->PriorityText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = PhGetStringRef(node->PriorityText);
                     }
                 }

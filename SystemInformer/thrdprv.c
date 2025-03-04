@@ -987,6 +987,7 @@ VOID PhpThreadProviderUpdate(
             if (WindowsVersion >= WINDOWS_11_22H2 && threadItem->ThreadHandle)
             {
                 POWER_THROTTLING_THREAD_STATE powerThrottlingState;
+
                 if (NT_SUCCESS(PhGetThreadPowerThrottlingState(threadItem->ThreadHandle, &powerThrottlingState)))
                 {
                     if (powerThrottlingState.ControlMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED &&
