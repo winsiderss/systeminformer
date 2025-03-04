@@ -1150,7 +1150,7 @@ EXPORTS
     PhDnsFree
     PhDnsQuery
     PhDnsQuery2
-    PhHttpDnsQuery
+    PhDnsReverseLookupNameFromAddress
     PhHttpAddRequestHeaders
     PhHttpBeginRequest
     PhHttpClose

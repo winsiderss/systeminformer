@@ -520,6 +520,14 @@ PhHttpSetCredentials(
 //
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhDnsReverseLookupNameFromAddress(
+    _In_ ULONG Type,
+    _In_ PVOID Address
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhHttpDnsQuery(

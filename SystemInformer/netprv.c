@@ -570,7 +570,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
 {
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString;
+    PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList;
 
     switch (Address->Type)
@@ -589,6 +589,8 @@ PPH_STRING PhGetHostNameFromAddressEx(
             {
                 dnsLocalQuery = TRUE;
             }
+
+            dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_IPV4_NETWORK_TYPE, &Address->InAddr);
         }
         break;
     case PH_IPV6_NETWORK_TYPE:
@@ -603,11 +605,13 @@ PPH_STRING PhGetHostNameFromAddressEx(
             {
                 dnsLocalQuery = TRUE;
             }
+
+            dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_IPV6_NETWORK_TYPE, &Address->In6Addr);
         }
         break;
     }
 
-    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
+    if (PhIsNullOrEmptyString(dnsReverseNameString))
         return NULL;
 
     if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)

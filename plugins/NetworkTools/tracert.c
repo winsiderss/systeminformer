@@ -73,109 +73,6 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-PPH_STRING PhpGetDnsReverseNameFromAddress(
-    _In_ PTRACERT_RESOLVE_WORKITEM Address
-    )
-{
-#define IP4_REVERSE_DOMAIN_STRING_LENGTH (IP4_ADDRESS_STRING_LENGTH + sizeof(DNS_IP4_REVERSE_DOMAIN_STRING_W) + 1)
-#define IP6_REVERSE_DOMAIN_STRING_LENGTH (IP6_ADDRESS_STRING_LENGTH + sizeof(DNS_IP6_REVERSE_DOMAIN_STRING_W) + 1)
-
-    switch (Address->Type)
-    {
-    case PH_IPV4_NETWORK_TYPE:
-        {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
-            IN_ADDR inAddr4 = ((PSOCKADDR_IN)&Address->SocketAddress)->sin_addr;
-            PH_FORMAT format[9];
-            SIZE_T returnLength;
-            WCHAR reverseNameBuffer[IP4_REVERSE_DOMAIN_STRING_LENGTH];
-
-            PhInitFormatU(&format[0], inAddr4.s_impno);
-            PhInitFormatC(&format[1], L'.');
-            PhInitFormatU(&format[2], inAddr4.s_lh);
-            PhInitFormatC(&format[3], L'.');
-            PhInitFormatU(&format[4], inAddr4.s_host);
-            PhInitFormatC(&format[5], L'.');
-            PhInitFormatU(&format[6], inAddr4.s_net);
-            PhInitFormatC(&format[7], L'.');
-            PhInitFormatSR(&format[8], reverseLookupDomainNameSr);
-
-            if (PhFormatToBuffer(
-                format,
-                RTL_NUMBER_OF(format),
-                reverseNameBuffer,
-                sizeof(reverseNameBuffer),
-                &returnLength
-                ))
-            {
-                PH_STRINGREF reverseNameString;
-
-                reverseNameString.Buffer = reverseNameBuffer;
-                reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
-
-                return PhCreateString2(&reverseNameString);
-            }
-            else
-            {
-                return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
-            }
-        }
-        break;
-    case PH_IPV6_NETWORK_TYPE:
-        {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
-            IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&Address->SocketAddress)->sin6_addr;
-            PH_STRING_BUILDER stringBuilder;
-
-            // DNS_MAX_IP6_REVERSE_NAME_LENGTH
-            PhInitializeStringBuilder(&stringBuilder, IP6_REVERSE_DOMAIN_STRING_LENGTH);
-
-            for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
-            {
-                PH_FORMAT format[4];
-                SIZE_T returnLength;
-                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
-
-                PhInitFormatX(&format[0], inAddr6.s6_addr[i] & 0xF);
-                PhInitFormatC(&format[1], L'.');
-                PhInitFormatX(&format[2], (inAddr6.s6_addr[i] >> 4) & 0xF);
-                PhInitFormatC(&format[3], L'.');
-
-                if (PhFormatToBuffer(
-                    format,
-                    RTL_NUMBER_OF(format),
-                    reverseNameBuffer,
-                    sizeof(reverseNameBuffer),
-                    &returnLength
-                    ))
-                {
-                    PhAppendStringBuilderEx(
-                        &stringBuilder,
-                        reverseNameBuffer,
-                        returnLength - sizeof(UNICODE_NULL)
-                        );
-                }
-                else
-                {
-                    PhAppendFormatStringBuilder(
-                        &stringBuilder,
-                        L"%hhx.%hhx.",
-                        inAddr6.s6_addr[i] & 0xF,
-                        (inAddr6.s6_addr[i] >> 4) & 0xF
-                        );
-                }
-            }
-
-            PhAppendStringBuilder(&stringBuilder, &reverseLookupDomainNameSr);
-
-            return PhFinalStringBuilderString(&stringBuilder);
-        }
-        break;
-    }
-
-    return NULL;
-}
-
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
@@ -183,7 +80,7 @@ NTSTATUS TracertHostnameLookupCallback(
     PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString;
+    PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList;
 
     if (workitem->Type == PH_IPV4_NETWORK_TYPE)
@@ -199,6 +96,8 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             dnsLocalQuery = TRUE;
         }
+
+        dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_IPV4_NETWORK_TYPE, &inAddr4);
     }
     else if (workitem->Type == PH_IPV6_NETWORK_TYPE)
     {
@@ -211,9 +110,11 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             dnsLocalQuery = TRUE;
         }
+
+        dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_IPV6_NETWORK_TYPE, &inAddr6);
     }
 
-    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(workitem)))
+    if (PhIsNullOrEmptyString(dnsReverseNameString))
     {
         PhFree(workitem);
         return STATUS_FAIL_CHECK;
