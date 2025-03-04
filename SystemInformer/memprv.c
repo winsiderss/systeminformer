@@ -128,89 +128,78 @@ PCPH_STRINGREF PhGetMemoryTypeString(
         return &MemoryTypeString[0];
 }
 
+static CONST PH_KEY_VALUE_PAIR SigningLevelString[] =
+{
+    SIP(SREF(L"Unchecked"), SE_SIGNING_LEVEL_UNCHECKED),
+    SIP(SREF(L"Unsigned"), SE_SIGNING_LEVEL_UNSIGNED),
+    SIP(SREF(L"Enterprise"), SE_SIGNING_LEVEL_ENTERPRISE),
+    SIP(SREF(L"Developer"), SE_SIGNING_LEVEL_DEVELOPER),
+    SIP(SREF(L"Authenticode"), SE_SIGNING_LEVEL_AUTHENTICODE),
+    SIP(SREF(L"Custom 2"), SE_SIGNING_LEVEL_CUSTOM_2),
+    SIP(SREF(L"StoreApp"), SE_SIGNING_LEVEL_STORE),
+    SIP(SREF(L"Antimalware"), SE_SIGNING_LEVEL_ANTIMALWARE),
+    SIP(SREF(L"Microsoft"), SE_SIGNING_LEVEL_MICROSOFT),
+    SIP(SREF(L"Custom 4"), SE_SIGNING_LEVEL_CUSTOM_4),
+    SIP(SREF(L"Custom 5"), SE_SIGNING_LEVEL_CUSTOM_5),
+    SIP(SREF(L"CodeGen"), SE_SIGNING_LEVEL_DYNAMIC_CODEGEN),
+    SIP(SREF(L"Windows"), SE_SIGNING_LEVEL_WINDOWS),
+    SIP(SREF(L"Custom 7"), SE_SIGNING_LEVEL_CUSTOM_7),
+    SIP(SREF(L"WinTcb"), SE_SIGNING_LEVEL_WINDOWS_TCB),
+    SIP(SREF(L"Custom 6"), SE_SIGNING_LEVEL_CUSTOM_6)
+};
+
+static_assert(ARRAYSIZE(SigningLevelString) == SE_SIGNING_LEVEL_CUSTOM_6 + 1, "SigningLevelString must equal SE_SIGNING_LEVEL_MAX");
+
 PCPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     )
 {
-    static CONST PH_STRINGREF SigningLevelString[] =
-    {
-        PH_STRINGREF_INIT(L"Unchecked"),
-        PH_STRINGREF_INIT(L"Unsigned"),
-        PH_STRINGREF_INIT(L"Enterprise"),
-        PH_STRINGREF_INIT(L"Developer"),
-        PH_STRINGREF_INIT(L"Authenticode"),
-        PH_STRINGREF_INIT(L"Custom"),
-        PH_STRINGREF_INIT(L"StoreApp"),
-        PH_STRINGREF_INIT(L"Antimalware"),
-        PH_STRINGREF_INIT(L"Microsoft"),
-        PH_STRINGREF_INIT(L"Custom"),
-        PH_STRINGREF_INIT(L"Custom"),
-        PH_STRINGREF_INIT(L"CodeGen"),
-        PH_STRINGREF_INIT(L"Windows"),
-        PH_STRINGREF_INIT(L"Custom"),
-        PH_STRINGREF_INIT(L"WinTcb"),
-        PH_STRINGREF_INIT(L"Custom"),
-    };
+    PCPH_STRINGREF string;
 
-    static_assert(ARRAYSIZE(SigningLevelString) == SE_SIGNING_LEVEL_CUSTOM_6 + 1, "SigningLevelString must equal SE_SIGNING_LEVEL_MAX");
-
-    switch (SigningLevel)
+    if (PhIndexStringRefSiKeyValuePairs(
+        SigningLevelString,
+        sizeof(SigningLevelString),
+        SigningLevel,
+        &string
+        ))
     {
-    case SE_SIGNING_LEVEL_UNCHECKED:
-    case SE_SIGNING_LEVEL_UNSIGNED:
-    case SE_SIGNING_LEVEL_ENTERPRISE:
-    case SE_SIGNING_LEVEL_DEVELOPER:
-    case SE_SIGNING_LEVEL_AUTHENTICODE:
-    case SE_SIGNING_LEVEL_CUSTOM_2:
-    case SE_SIGNING_LEVEL_STORE:
-    case SE_SIGNING_LEVEL_ANTIMALWARE:
-    case SE_SIGNING_LEVEL_MICROSOFT:
-    case SE_SIGNING_LEVEL_CUSTOM_4:
-    case SE_SIGNING_LEVEL_CUSTOM_5:
-    case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
-    case SE_SIGNING_LEVEL_WINDOWS:
-    case SE_SIGNING_LEVEL_CUSTOM_7:
-    case SE_SIGNING_LEVEL_WINDOWS_TCB:
-    case SE_SIGNING_LEVEL_CUSTOM_6:
-        return &SigningLevelString[SigningLevel];
+        return string;
     }
 
-    assert(FALSE);
     return NULL;
+}
 
-    //switch (SigningLevel)
-    //{
-    //    case SE_SIGNING_LEVEL_UNCHECKED:
-    //        return L"Unchecked";
-    //    case SE_SIGNING_LEVEL_UNSIGNED:
-    //        return L"Unsigned";
-    //    case SE_SIGNING_LEVEL_ENTERPRISE:
-    //        return L"Enterprise";
-    //    case SE_SIGNING_LEVEL_DEVELOPER:
-    //        return L"Developer";
-    //    case SE_SIGNING_LEVEL_AUTHENTICODE:
-    //        return L"Authenticode";
-    //    case SE_SIGNING_LEVEL_STORE:
-    //        return L"StoreApp";
-    //    case SE_SIGNING_LEVEL_ANTIMALWARE:
-    //        return L"Antimalware";
-    //    case SE_SIGNING_LEVEL_MICROSOFT:
-    //        return L"Microsoft";
-    //    case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
-    //        return L"CodeGen";
-    //    case SE_SIGNING_LEVEL_WINDOWS:
-    //        return L"Windows";
-    //    case SE_SIGNING_LEVEL_WINDOWS_TCB:
-    //        return L"WinTcb";
-    //    case SE_SIGNING_LEVEL_CUSTOM_2:
-    //    case SE_SIGNING_LEVEL_CUSTOM_4:
-    //    case SE_SIGNING_LEVEL_CUSTOM_5:
-    //    case SE_SIGNING_LEVEL_CUSTOM_6:
-    //    case SE_SIGNING_LEVEL_CUSTOM_7:
-    //        return L"Custom";
-    //    default:
-    //        return L"";
-    //}
+static CONST PH_KEY_VALUE_PAIR MemoryPriorityString[] =
+{
+    SIP(SREF(L"Lowest"), MEMORY_PRIORITY_LOWEST),
+    SIP(SREF(L"Very low"), MEMORY_PRIORITY_VERY_LOW),
+    SIP(SREF(L"Low"), MEMORY_PRIORITY_LOW),
+    SIP(SREF(L"Medium"), MEMORY_PRIORITY_MEDIUM),
+    SIP(SREF(L"Below normal"), MEMORY_PRIORITY_BELOW_NORMAL),
+    SIP(SREF(L"Normal"), MEMORY_PRIORITY_NORMAL),
+    SIP(SREF(L"Above normal"), MEMORY_PRIORITY_ABOVE_NORMAL),
+    SIP(SREF(L"High"), MEMORY_PRIORITY_HIGH),
+};
+
+static_assert(ARRAYSIZE(MemoryPriorityString) == MEMORY_PRIORITY_HIGH + 1, "MemoryPriorityString must equal MEMORY_PRIORITY_HIGH");
+
+PCPH_STRINGREF PhGetMemoryPagePriorityString(
+    _In_ ULONG PagePriority
+    )
+{
+    PCPH_STRINGREF string;
+
+    if (PhIndexStringRefSiKeyValuePairs(
+        MemoryPriorityString,
+        sizeof(MemoryPriorityString),
+        PagePriority,
+        &string
+        ))
+    {
+        return string;
+    }
+
+    return NULL;
 }
 
 PPH_STRING PhGetMemoryRegionTypeExString(
