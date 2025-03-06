@@ -3735,7 +3735,7 @@ PPH_STRING PhGetApplicationDirectoryFileName(
     if (applicationDirectory)
     {
         applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
-        PhReferenceObject(applicationDirectory);
+        PhDereferenceObject(applicationDirectory);
     }
 
     return applicationFileName;
