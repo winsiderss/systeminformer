@@ -628,7 +628,7 @@ FORCEINLINE VOID UStrToUStr32(
 // Convert the number of native pages to sub x86-pages
 //
 #define Wow64GetNumberOfX86Pages(NativePages) \
-    (NativePages * (PAGE_SIZE_X86NT >> PAGE_SHIFT_X86NT))
+    ((NativePages) * (PAGE_SIZE_X86NT >> PAGE_SHIFT_X86NT))
 
 //
 // Macro to round to the nearest page size
