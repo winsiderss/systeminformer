@@ -1719,6 +1719,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_LOCKS:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowProcessLocksDialog(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_PAGEPRIORITY_VERYLOW:
     case ID_PAGEPRIORITY_LOW:
     case ID_PAGEPRIORITY_MEDIUM:

@@ -480,6 +480,11 @@ VOID PhShowProcessHeapsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhShowProcessLocksDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // hidnproc
 
 VOID PhShowZombieProcessesDialog(

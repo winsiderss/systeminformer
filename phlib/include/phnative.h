@@ -3457,6 +3457,15 @@ PhQueryProcessHeapInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryProcessLockInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PULONG NumberOfLocks,
+    _Out_ PRTL_PROCESS_LOCK_INFORMATION* Locks
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetMachineTypeAttributes(
     _In_ USHORT Machine,
     _Out_ MACHINE_ATTRIBUTES* Attributes

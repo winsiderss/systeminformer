@@ -11758,6 +11758,75 @@ NTSTATUS PhQueryProcessHeapInformation(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS PhQueryProcessLockInformation(
+    _In_ HANDLE ProcessId,
+    _Out_ PULONG NumberOfLocks,
+    _Out_ PRTL_PROCESS_LOCK_INFORMATION* Locks
+    )
+{
+    NTSTATUS status;
+    PRTL_DEBUG_INFORMATION debugBuffer = NULL;
+    PH_ARRAY array;
+
+    for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
+    {
+        if (!(debugBuffer = RtlCreateQueryDebugBuffer(i, FALSE)))
+            return STATUS_UNSUCCESSFUL;
+
+        status = RtlQueryProcessDebugInformation(
+            ProcessId,
+            RTL_QUERY_PROCESS_LOCKS,
+            debugBuffer
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            RtlDestroyQueryDebugBuffer(debugBuffer);
+            debugBuffer = NULL;
+        }
+
+        if (NT_SUCCESS(status) || status != STATUS_NO_MEMORY)
+            break;
+
+        if (2 * i <= i)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!debugBuffer->Locks)
+    {
+        // The RtlQueryProcessDebugInformation function has two bugs on some versions
+        // when querying the ProcessId for a frozen (suspended) immersive process. (dmex)
+        //
+        // 1) It'll deadlock the current thread for 30 seconds.
+        // 2) It'll return STATUS_SUCCESS but with a NULL Heaps buffer.
+        //
+        // A workaround was implemented using PhCreateExecutionRequiredRequest() (dmex)
+
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    PhInitializeArray(&array, sizeof(RTL_PROCESS_LOCK_INFORMATION), debugBuffer->Locks->NumberOfLocks);
+
+    for (ULONG i = 0; i < debugBuffer->Locks->NumberOfLocks; i++)
+    {
+        PhAddItemArray(&array, &debugBuffer->Locks->Locks[i]);
+    }
+
+    *NumberOfLocks = (ULONG)PhFinalArrayCount(&array);
+    *Locks = PhFinalArrayItems(&array);
+
+    RtlDestroyQueryDebugBuffer(debugBuffer);
+
+    return STATUS_SUCCESS;
+}
+
 // Queries if the specified architecture is supported on the current system,
 // either natively or by any form of compatibility or emulation layer.
 // rev from kernelbase!GetMachineTypeAttributes (dmex)
