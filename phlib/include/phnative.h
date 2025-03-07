@@ -1982,6 +1982,14 @@ PhSetProcessGroupAffinity(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessPowerThrottlingState(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPOWER_THROTTLING_PROCESS_STATE PowerThrottlingState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetProcessPowerThrottlingState(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG ControlMask,

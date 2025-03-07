@@ -5667,6 +5667,41 @@ NTSTATUS PhSetProcessGroupAffinity(
 }
 
 /**
+ * Query the power throttling state for a specified process.
+ *
+ * \param ProcessHandle The handle to the target process.
+ * \param PowerThrottlingState The control and state masks indicating the current power throttling of the process.
+ * \param StateMask The state mask specifying the power throttling states to set.
+ * \return The NTSTATUS code indicating the success or failure of the operation.
+ */
+NTSTATUS PhGetProcessPowerThrottlingState(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPOWER_THROTTLING_PROCESS_STATE PowerThrottlingState
+    )
+{
+    NTSTATUS status;
+    POWER_THROTTLING_PROCESS_STATE processPowerThrottlingState;
+
+    memset(&processPowerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
+    processPowerThrottlingState.Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPowerThrottlingState,
+        &processPowerThrottlingState,
+        sizeof(POWER_THROTTLING_PROCESS_STATE),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PowerThrottlingState = processPowerThrottlingState;
+    }
+
+    return status;
+}
+
+/**
  * Sets the power throttling state for a specified process.
  *
  * \param ProcessHandle The handle to the target process.
