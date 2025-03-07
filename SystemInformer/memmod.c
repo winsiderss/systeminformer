@@ -532,7 +532,7 @@ INT_PTR CALLBACK PhPageModifiedDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetIntegerPairSetting(L"MemoryModifiedWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"MemoryModifiedWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"MemoryModifiedWindowPosition", L"MemoryModifiedWindowSize", WindowHandle);
             else
                 PhCenterWindow(WindowHandle, context->ParentWindowHandle);

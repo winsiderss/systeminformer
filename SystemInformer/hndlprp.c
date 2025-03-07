@@ -1985,7 +1985,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             if (!PhPluginsEnabled || !context->OwnerPlugin)
             {
                 // HACK
-                if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
+                if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
                     PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
                 else
                     PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK

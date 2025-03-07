@@ -147,7 +147,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"ZombieProcessesWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"ZombieProcessesWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));

@@ -395,7 +395,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     rect = PhRectangleToRect(windowRectangle);
     dpiValue = PhGetMonitorDpi(&rect);
 
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue)->Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;

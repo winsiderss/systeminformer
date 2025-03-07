@@ -324,7 +324,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_DISKWRITEBYTESDELTA:
@@ -333,7 +333,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_DISKTOTALBYTESDELTA:
@@ -343,7 +343,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskReadRawDelta.Delta), &number);
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, DiskWriteRawDelta.Delta), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKRECEIVES:
@@ -370,7 +370,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKSENDBYTES:
@@ -379,7 +379,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKTOTALBYTES:
@@ -389,7 +389,7 @@ VOID EtProcessTreeNewMessage(
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveRaw), &number);
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendRaw), &number);
 
-                    EtFormatSize(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKRECEIVESDELTA:
@@ -398,7 +398,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkReceiveDelta.Delta), &number);
 
-                    EtFormatInt64(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKSENDSDELTA:
@@ -407,7 +407,7 @@ VOID EtProcessTreeNewMessage(
 
                     PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(ET_PROCESS_BLOCK, NetworkSendDelta.Delta), &number);
 
-                    EtFormatInt64(number, block, message);
+                    EtFormatRate(number, block, message);
                 }
                 break;
             case ETPRTNC_NETWORKRECEIVEBYTESDELTA:

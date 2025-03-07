@@ -89,7 +89,6 @@ VOID PhEnumSettings(
 
 // begin_phapppub
 
-_May_raise_
 PHLIBAPI
 ULONG
 NTAPI
@@ -97,7 +96,6 @@ PhGetIntegerStringRefSetting(
     _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
 PH_INTEGER_PAIR
 NTAPI
@@ -105,9 +103,8 @@ PhGetIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
-PH_SCALABLE_INTEGER_PAIR
+PPH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
@@ -115,7 +112,6 @@ PhGetScalableIntegerPairStringRefSetting(
     _In_ LONG dpiValue
     );
 
-_May_raise_
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -123,7 +119,6 @@ PhGetStringRefSetting(
     _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
@@ -132,7 +127,6 @@ PhSetIntegerStringRefSetting(
     _In_ ULONG Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
@@ -141,16 +135,14 @@ PhSetIntegerPairStringRefSetting(
     _In_ PH_INTEGER_PAIR Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
@@ -160,7 +152,6 @@ PhSetScalableIntegerPairStringRefSetting2(
     _In_ LONG dpiValue
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
@@ -198,7 +189,7 @@ PhGetIntegerPairSetting(
 }
 
 FORCEINLINE
-PH_SCALABLE_INTEGER_PAIR
+PPH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
@@ -314,7 +305,7 @@ VOID
 NTAPI
 PhSetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     )
 {
     PH_STRINGREF name;
@@ -406,6 +397,20 @@ PhLoadWindowPlacementFromSetting(
     _In_ HWND WindowHandle
     );
 
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidWindowPlacementFromSetting(
+    _In_opt_ PCWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetScalableIntegerPairStringRefSetting(&name, FALSE, 0)->X != 0;
+}
+
 PHLIBAPI
 VOID
 NTAPI
@@ -496,6 +501,7 @@ PhSaveCustomColorList(
     _In_ PULONG CustomColorList,
     _In_ ULONG CustomColorCount
     );
+
 // end_phapppub
 
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))

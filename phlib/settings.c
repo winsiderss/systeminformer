@@ -306,6 +306,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -313,13 +314,10 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     }
     else
     {
-        setting = NULL;
+        value = 0;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 
     return value;
 }
@@ -334,6 +332,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -341,58 +340,53 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     }
     else
     {
-        setting = NULL;
+        RtlZeroMemory(&value, sizeof(PH_INTEGER_PAIR));
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
     return value;
 }
 
-_May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
+PPH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     )
 {
     PPH_SETTING setting;
-    PH_SCALABLE_INTEGER_PAIR value;
+    PPH_SCALABLE_INTEGER_PAIR value;
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
-        value = *(PPH_SCALABLE_INTEGER_PAIR)setting->u.Pointer;
+        value = setting->u.Pointer;
     }
     else
     {
-        setting = NULL;
+        value = NULL;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
     if (ScaleToCurrent)
     {
-        if (value.Scale != dpiValue && value.Scale != 0)
+        if (value->Scale != dpiValue && value->Scale != 0)
         {
-            value.X = PhMultiplyDivideSigned(value.X, dpiValue, value.Scale);
-            value.Y = PhMultiplyDivideSigned(value.Y, dpiValue, value.Scale);
-            value.Scale = dpiValue;
+            value->X = PhMultiplyDivideSigned(value->X, dpiValue, value->Scale);
+            value->Y = PhMultiplyDivideSigned(value->Y, dpiValue, value->Scale);
+            value->Scale = dpiValue;
         }
     }
 
     return value;
 }
 
-_May_raise_ PPH_STRING PhGetStringRefSetting(
+PPH_STRING PhGetStringRefSetting(
     _In_ PCPH_STRINGREF Name
     )
 {
@@ -402,6 +396,7 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -409,45 +404,34 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
         {
             PhSetReference(&value, setting->u.Pointer);
         }
-        else
-        {
-            // Set to NULL, create an empty string
-            // outside of the lock.
-            value = NULL;
-        }
-    }
-    else
-    {
-        setting = NULL;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
-    if (!value)
+    if (PhIsNullOrEmptyString(value))
+    {
         value = PhReferenceEmptyString();
+    }
 
     return value;
 }
 
-_May_raise_ BOOLEAN PhGetBinarySetting(
-    _In_ PCWSTR Name,
+BOOLEAN PhGetBinarySetting(
+    _In_ PCPH_STRINGREF Name,
     _Out_ PVOID Buffer
     )
 {
     PPH_STRING setting;
     BOOLEAN result;
 
-    setting = PhGetStringSetting(Name);
+    setting = PhGetStringRefSetting(Name);
     result = PhHexStringToBuffer(&setting->sr, (PUCHAR)Buffer);
     PhDereferenceObject(setting);
 
     return result;
 }
 
-_May_raise_ VOID PhSetIntegerStringRefSetting(
+VOID PhSetIntegerStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ ULONG Value
     )
@@ -457,6 +441,7 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -464,9 +449,6 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 _May_raise_ VOID PhSetIntegerPairStringRefSetting(
@@ -478,6 +460,7 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -485,14 +468,11 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
@@ -500,17 +480,15 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
         PhpFreeSettingValue(ScalableIntegerPairSettingType, setting);
-        setting->u.Pointer = PhAllocateCopy(&Value, sizeof(PH_SCALABLE_INTEGER_PAIR));
+        setting->u.Pointer = PhAllocateCopy(Value, sizeof(PH_SCALABLE_INTEGER_PAIR));
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
@@ -521,9 +499,11 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
 {
     PH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
 
+    ZeroMemory(&scalableIntegerPair, sizeof(PH_SCALABLE_INTEGER_PAIR));
     scalableIntegerPair.Pair = Value;
     scalableIntegerPair.Scale = dpiValue;
-    PhSetScalableIntegerPairStringRefSetting(Name, scalableIntegerPair);
+
+    PhSetScalableIntegerPairStringRefSetting(Name, &scalableIntegerPair);
 }
 
 _May_raise_ VOID PhSetStringRefSetting(
@@ -536,6 +516,7 @@ _May_raise_ VOID PhSetStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -544,9 +525,6 @@ _May_raise_ VOID PhSetStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 VOID PhpFreeIgnoredSetting(
@@ -920,7 +898,7 @@ VOID PhLoadWindowPlacementFromSetting(
         //dpi = PhGetMonitorDpi(&rect);
         dpi = PhGetWindowDpi(WindowHandle);
 
-        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
+        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
         // Let the window adjust for the minimum size if needed.
@@ -961,7 +939,7 @@ VOID PhLoadWindowPlacementFromSetting(
             //dpi = PhGetMonitorDpi(&rect);
             dpi = PhGetWindowDpi(WindowHandle);
 
-            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
+            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
             flags &= ~SWP_NOSIZE;
         }
         else

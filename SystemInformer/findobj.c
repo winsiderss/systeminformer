@@ -1237,7 +1237,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"FindObjWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"FindObjWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);

@@ -188,7 +188,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
             MinimumSize.bottom = 150;
             MapDialogRect(hwndDlg, &MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"LogWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"LogWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
