@@ -161,6 +161,30 @@ PhSetStringRefSetting(
     );
 
 FORCEINLINE
+VOID
+PhScalableIntegerPairToScale(
+    _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair,
+    _In_ LONG Scale
+    )
+{
+    if (ScalableIntegerPair->Scale != Scale && ScalableIntegerPair->Scale != 0)
+    {
+        ScalableIntegerPair->X = PhMultiplyDivideSigned(ScalableIntegerPair->X, Scale, ScalableIntegerPair->Scale);
+        ScalableIntegerPair->Y = PhMultiplyDivideSigned(ScalableIntegerPair->Y, Scale, ScalableIntegerPair->Scale);
+        ScalableIntegerPair->Scale = Scale;
+    }
+}
+
+FORCEINLINE
+VOID
+PhScalableIntegerPairScaleToDefault(
+    _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair
+    )
+{
+    PhScalableIntegerPairToScale(ScalableIntegerPair, USER_DEFAULT_SCREEN_DPI);
+}
+
+FORCEINLINE
 ULONG
 NTAPI
 PhGetIntegerSetting(
@@ -390,6 +414,15 @@ PhGetSetting(
 
 PHLIBAPI
 VOID
+NTAPI
+PhLoadWindowPlacementFromRectangle(
+    _In_ PCWSTR PositionSettingName,
+    _In_ PCWSTR SizeSettingName,
+    _Inout_ PPH_RECTANGLE WindowRectangle
+    );
+
+PHLIBAPI
+BOOLEAN
 NTAPI
 PhLoadWindowPlacementFromSetting(
     _In_opt_ PCWSTR PositionSettingName,

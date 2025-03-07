@@ -1007,8 +1007,8 @@ VOID PhDrawTrayIconText(
     textRectangle.Height = textSize.cy;
 
     // Save the rectangles.
-    DrawInfo->TextRect = PhRectangleToRect(textRectangle);
-    DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
+    PhRectangleToRect(&DrawInfo->TextRect, &textRectangle);
+    PhRectangleToRect(&DrawInfo->TextBoxRect, &boxRectangle);
 
     SetBkMode(hdc, TRANSPARENT);
 

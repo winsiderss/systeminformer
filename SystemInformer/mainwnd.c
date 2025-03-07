@@ -95,7 +95,7 @@ BOOLEAN PhMainWndInitialization(
 
     memset(&windowRectangle, 0, sizeof(PH_RECTANGLE));
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRect = PhRectangleToRect(windowRectangle);
+    PhRectangleToRect(&windowRect, &windowRectangle);
     windowDpi = PhGetMonitorDpi(&windowRect);
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi)->Pair;
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);

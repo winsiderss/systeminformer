@@ -287,6 +287,19 @@ PhGetMonitorDpi(
     _In_ LPCRECT rect
     );
 
+FORCEINLINE
+LONG
+PhGetMonitorDpiFromRect(
+    _In_ PPH_RECTANGLE Rectangle
+    )
+{
+    RECT rect;
+
+    PhRectangleToRect(&rect, Rectangle);
+
+    return PhGetMonitorDpi(&rect);
+}
+
 PHLIBAPI
 LONG
 NTAPI

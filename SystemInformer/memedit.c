@@ -279,7 +279,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                     RECT rect;
                     LONG dpiValue;
 
-                    rect = PhRectangleToRect(windowRectangle);
+                    PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(&rect);
 
                     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;

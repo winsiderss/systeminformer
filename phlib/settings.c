@@ -296,7 +296,7 @@ VOID PhEnumSettings(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ ULONG PhGetIntegerStringRefSetting(
+ULONG PhGetIntegerStringRefSetting(
     _In_ PCPH_STRINGREF Name
     )
 {
@@ -306,7 +306,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
-    assert(setting);
+    assert(setting && setting->Type == IntegerSettingType);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -322,7 +322,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     return value;
 }
 
-_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
+PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name
     )
 {
@@ -332,7 +332,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
-    assert(setting);
+    assert(setting && setting->Type == IntegerPairSettingType);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -360,7 +360,7 @@ PPH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
-    assert(setting);
+    assert(setting && setting->Type == ScalableIntegerPairSettingType);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
@@ -396,7 +396,7 @@ PPH_STRING PhGetStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
-    assert(setting);
+    assert(setting && setting->Type == StringSettingType);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -451,7 +451,7 @@ VOID PhSetIntegerStringRefSetting(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ VOID PhSetIntegerPairStringRefSetting(
+VOID PhSetIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     )
@@ -470,7 +470,7 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
+VOID PhSetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ PPH_SCALABLE_INTEGER_PAIR Value
     )
@@ -491,7 +491,7 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
+VOID PhSetScalableIntegerPairStringRefSetting2(
     _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
@@ -506,7 +506,7 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
     PhSetScalableIntegerPairStringRefSetting(Name, &scalableIntegerPair);
 }
 
-_May_raise_ VOID PhSetStringRefSetting(
+VOID PhSetStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF Value
     )
@@ -880,7 +880,32 @@ PPH_SETTING PhGetSetting(
     return setting;
 }
 
-VOID PhLoadWindowPlacementFromSetting(
+VOID PhLoadWindowPlacementFromRectangle(
+    _In_ PCWSTR PositionSettingName,
+    _In_ PCWSTR SizeSettingName,
+    _Inout_ PPH_RECTANGLE WindowRectangle
+    )
+{
+    PH_INTEGER_PAIR windowIntegerPair = { 0 };
+    PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
+    LONG windowDpi;
+    RECT windowRect;
+
+    windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
+    scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
+
+    memset(WindowRectangle, 0, sizeof(PH_RECTANGLE));
+    WindowRectangle->Position = windowIntegerPair;
+    WindowRectangle->Size = scalableIntegerPair->Pair;
+
+    PhRectangleToRect(&windowRect, WindowRectangle);
+    windowDpi = PhGetMonitorDpi(&windowRect);
+
+    PhScalableIntegerPairToScale(scalableIntegerPair, windowDpi);
+    PhAdjustRectangleToWorkingArea(NULL, WindowRectangle);
+}
+
+BOOLEAN PhLoadWindowPlacementFromSetting(
     _In_opt_ PCWSTR PositionSettingName,
     _In_opt_ PCWSTR SizeSettingName,
     _In_ HWND WindowHandle
@@ -888,23 +913,45 @@ VOID PhLoadWindowPlacementFromSetting(
 {
     if (PositionSettingName && SizeSettingName)
     {
+        PH_INTEGER_PAIR windowIntegerPair = { 0 };
+        PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
         PH_RECTANGLE windowRectangle = { 0 };
         LONG dpi;
-        //RECT rect;
         RECT rectForAdjust;
 
-        windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-        //rect = PhRectangleToRect(windowRectangle);
-        //dpi = PhGetMonitorDpi(&rect);
-        dpi = PhGetWindowDpi(WindowHandle);
+        windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
+        scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
+        windowRectangle.Position = windowIntegerPair;
+        windowRectangle.Size = scalableIntegerPair->Pair;
 
-        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
+        if (windowRectangle.Position.X == 0)
+            return FALSE;
+
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
+        // Update the window position before querying the DPI or changing the size. (dmex)
+        SetWindowPos(
+            WindowHandle,
+            NULL,
+            windowRectangle.Left,
+            windowRectangle.Top,
+            0,
+            0,
+            SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
+            );
+
+        //dpi = PhGetMonitorDpiFromRect(&windowRectangle);
+        dpi = PhGetWindowDpi(WindowHandle);
+        PhScalableIntegerPairToScale(scalableIntegerPair, dpi);
+
+        RtlZeroMemory(&windowRectangle, sizeof(PH_RECTANGLE));
+        windowRectangle.Position = windowIntegerPair;
+        windowRectangle.Size = scalableIntegerPair->Pair;
+
         // Let the window adjust for the minimum size if needed.
-        rectForAdjust = PhRectangleToRect(windowRectangle);
+        PhRectangleToRect(&rectForAdjust, &windowRectangle);
         SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
-        windowRectangle = PhRectToRectangle(rectForAdjust);
+        PhRectToRectangle(&windowRectangle, &rectForAdjust);
 
         MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
             windowRectangle.Width, windowRectangle.Height, FALSE);
@@ -961,6 +1008,8 @@ VOID PhLoadWindowPlacementFromSetting(
 
         SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, size.X, size.Y, flags);
     }
+
+    return TRUE;
 }
 
 VOID PhSaveWindowPlacementToSetting(
@@ -972,11 +1021,11 @@ VOID PhSaveWindowPlacementToSetting(
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-    RECT rect;
+    //RECT rect;
     LONG dpi;
 
     GetWindowPlacement(WindowHandle, &placement);
-    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
+    PhRectToRectangle(&windowRectangle, &placement.rcNormalPosition);
 
     // The rectangle is in workspace coordinates. Convert the values back to screen coordinates.
     if (GetMonitorInfo(MonitorFromRect(&placement.rcNormalPosition, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
@@ -985,8 +1034,9 @@ VOID PhSaveWindowPlacementToSetting(
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
     }
 
-    rect = PhRectangleToRect(windowRectangle);
-    dpi = PhGetMonitorDpi(&rect); // PhGetWindowDpi(WindowHandle);
+    //PhRectangleToRect(&rect, &windowRectangle);
+    //dpi = PhGetMonitorDpi(&rect);
+    dpi = PhGetWindowDpi(WindowHandle);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);

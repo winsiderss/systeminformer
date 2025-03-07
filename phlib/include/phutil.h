@@ -71,35 +71,29 @@ typedef struct _PH_RECTANGLE
 } PH_RECTANGLE, *PPH_RECTANGLE;
 
 FORCEINLINE
-PH_RECTANGLE
+VOID
 PhRectToRectangle(
-    _In_ RECT Rect
+    _Inout_ PPH_RECTANGLE Rectangle,
+    _In_ PRECT Rect
     )
 {
-    PH_RECTANGLE rectangle;
-
-    rectangle.Left = Rect.left;
-    rectangle.Top = Rect.top;
-    rectangle.Width = Rect.right - Rect.left;
-    rectangle.Height = Rect.bottom - Rect.top;
-
-    return rectangle;
+    Rectangle->Left = Rect->left;
+    Rectangle->Top = Rect->top;
+    Rectangle->Width = Rect->right - Rect->left;
+    Rectangle->Height = Rect->bottom - Rect->top;
 }
 
 FORCEINLINE
-RECT
+VOID
 PhRectangleToRect(
-    _In_ PH_RECTANGLE Rectangle
+    _Inout_ PRECT Rect,
+    _In_ PPH_RECTANGLE Rectangle
     )
 {
-    RECT rect;
-
-    rect.left = Rectangle.Left;
-    rect.top = Rectangle.Top;
-    rect.right = Rectangle.Left + Rectangle.Width;
-    rect.bottom = Rectangle.Top + Rectangle.Height;
-
-    return rect;
+    Rect->left = Rectangle->Left;
+    Rect->top = Rectangle->Top;
+    Rect->right = Rectangle->Left + Rectangle->Width;
+    Rect->bottom = Rectangle->Top + Rectangle->Height;
 }
 
 FORCEINLINE
@@ -114,20 +108,17 @@ PhConvertRect(
 }
 
 FORCEINLINE
-RECT
+VOID
 PhMapRect(
-    _In_ RECT InnerRect,
-    _In_ RECT OuterRect
+    _Inout_ PRECT Rect,
+    _In_ PRECT InnerRect,
+    _In_ PRECT OuterRect
     )
 {
-    RECT rect;
-
-    rect.left = InnerRect.left - OuterRect.left;
-    rect.top = InnerRect.top - OuterRect.top;
-    rect.right = InnerRect.right - OuterRect.left;
-    rect.bottom = InnerRect.bottom - OuterRect.top;
-
-    return rect;
+    Rect->left = InnerRect->left - OuterRect->left;
+    Rect->top = InnerRect->top - OuterRect->top;
+    Rect->right = InnerRect->right - OuterRect->left;
+    Rect->bottom = InnerRect->bottom - OuterRect->top;
 }
 
 PHLIBAPI
@@ -563,6 +554,8 @@ PhIndexStringRefSiKeyValuePairs(
     _Out_ PCPH_STRINGREF* String
     )
 {
+    assert(KeyValuePairs[0].Value == 0); // Values must be zero based
+
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
     {
         *String = (PCPH_STRINGREF)KeyValuePairs[Integer].Key;

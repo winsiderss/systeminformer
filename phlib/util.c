@@ -33,7 +33,6 @@ DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
 DECLSPEC_SELECTANY USHORT PhMaxPrecisionUnit = 2;
 DECLSPEC_SELECTANY FLOAT PhMaxPrecisionLimit = 0.01f;
 
-
 /**
  * Ensures a rectangle is positioned within the specified bounds.
  *
@@ -101,7 +100,7 @@ VOID PhAdjustRectangleToWorkingArea(
     {
         RECT rect;
 
-        rect = PhRectangleToRect(*Rectangle);
+        PhRectangleToRect(&rect, Rectangle);
         monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
     }
 
@@ -109,7 +108,7 @@ VOID PhAdjustRectangleToWorkingArea(
     {
         PH_RECTANGLE bounds;
 
-        bounds = PhRectToRectangle(monitorInfo.rcWork);
+        PhRectToRectangle(&bounds, &monitorInfo.rcWork);
         PhAdjustRectangleToBounds(Rectangle, &bounds);
     }
 }
@@ -136,8 +135,9 @@ VOID PhCenterWindow(
 
         GetWindowRect(WindowHandle, &rect);
         GetWindowRect(ParentWindowHandle, &parentRect);
-        rectangle = PhRectToRectangle(rect);
-        parentRectangle = PhRectToRectangle(parentRect);
+
+        PhRectToRectangle(&rectangle, &rect);
+        PhRectToRectangle(&parentRectangle, &parentRect);
 
         PhCenterRectangle(&rectangle, &parentRectangle);
         PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
@@ -158,8 +158,9 @@ VOID PhCenterWindow(
             PH_RECTANGLE bounds;
 
             GetWindowRect(WindowHandle, &rect);
-            rectangle = PhRectToRectangle(rect);
-            bounds = PhRectToRectangle(monitorInfo.rcWork);
+
+            PhRectToRectangle(&rectangle, &rect);
+            PhRectToRectangle(&bounds, &monitorInfo.rcWork);
 
             PhCenterRectangle(&rectangle, &bounds);
             MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,

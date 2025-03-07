@@ -648,7 +648,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
 
         // Calculate the margin from the original rectangle.
         GetWindowRect(Handle, &margin);
-        margin = PhMapRect(margin, dialogRect);
+        PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
         item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);

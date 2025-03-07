@@ -696,7 +696,7 @@ VOID PhMipCalculateWindowRectangle(
     PhLoadWindowPlacementFromSetting(NULL, L"MiniInfoWindowSize", PhMipContainerWindow);
     GetWindowRect(PhMipContainerWindow, &windowRect);
     SendMessage(PhMipContainerWindow, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&windowRect); // Adjust for the minimum size.
-    windowRectangle = PhRectToRectangle(windowRect);
+    PhRectToRectangle(&windowRectangle, &windowRect);
 
     point.Left = SourcePoint->x;
     point.Top = SourcePoint->y;
@@ -748,8 +748,7 @@ VOID PhMipCalculateWindowRectangle(
             }
         }
 
-        bounds = PhRectToRectangle(monitorInfo.rcWork);
-
+        PhRectToRectangle(&bounds, &monitorInfo.rcWork);
         PhAdjustRectangleToBounds(&windowRectangle, &bounds);
     }
 
