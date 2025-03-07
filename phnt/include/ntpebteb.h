@@ -1279,10 +1279,10 @@ typedef struct _TEB
 
 #ifdef _WIN64
 //static_assert(sizeof(TEB) == 0x1850); // WIN11
-static_assert(sizeof(TEB) == 0x1878); // 24H2
+static_assert(sizeof(TEB) == 0x1878, "Size of TEB is incorrect"); // 24H2
 #else
 //static_assert(sizeof(TEB) == 0x1018); // WIN11
-static_assert(sizeof(TEB) == 0x1038); // 24H2
+static_assert(sizeof(TEB) == 0x1038, "Size of TEB is incorrect"); // 24H2
 #endif
 
 #endif
