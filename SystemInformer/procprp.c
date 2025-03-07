@@ -400,6 +400,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     RECT rect;
     LONG dpiValue;
 
+    PhLoadWindowPlacementFromSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
     PhRectangleToRect(&rect, &windowRectangle);
