@@ -479,10 +479,20 @@ BOOLEAN GeoLiteMoveUpdateToFile(
 
     // Get the current database filename.
 
-    if (GeoLiteDatabaseType)
-        existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
+    if (SystemInformer_IsPortableMode())
+    {
+        if (GeoLiteDatabaseType)
+            existingFileName = PhGetApplicationDirectoryFileName(&GeoDbCityFileName, FALSE);
+        else
+            existingFileName = PhGetApplicationDirectoryFileName(&GeoDbCountryFileName, FALSE);
+    }
     else
-        existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
+    {
+        if (GeoLiteDatabaseType)
+            existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
+        else
+            existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
+    }
 
     if (PhIsNullOrEmptyString(existingFileName))
     {
