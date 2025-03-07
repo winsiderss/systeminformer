@@ -477,25 +477,10 @@ VOID FindNetworkAdapters(
 
                 adapterEntry = PhAllocateZero(sizeof(NET_ENUM_ENTRY));
                 adapterEntry->DeviceGuidString = PhQueryRegistryStringZ(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DevicePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &adapterEntry->DeviceGuidString->sr);
+                adapterEntry->DevicePath = PhConcatStringRef2(&PhNtDevicePathPrefix, &adapterEntry->DeviceGuidString->sr);
                 adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64Z(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64Z(keyHandle, L"NetLuidIndex");
                 PhStringToGuid(&adapterEntry->DeviceGuidString->sr, &deviceGuid);
-
-                {
-                    MIB_IF_ROW2 interfaceRow = { 0 };
-                    DV_NETADAPTER_ID id;
-
-                    memset(&id, 0, sizeof(DV_NETADAPTER_ID));
-                    id.InterfaceLuid = adapterEntry->DeviceLuid;
-                    id.InterfaceIndex = 0;
-
-                    if (NetworkAdapterQueryInterfaceRow(&id, MibIfEntryNormalWithoutStatistics, &interfaceRow))
-                    {
-                        //adapterEntry->InterfaceIndex = interfaceRow.InterfaceIndex;
-                        adapterEntry->SoftwareDevice = !interfaceRow.InterfaceAndOperStatusFlags.ConnectorPresent;
-                    }
-                }
 
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,
@@ -520,6 +505,26 @@ VOID FindNetworkAdapters(
                     adapterEntry->DevicePresent = TRUE;
 
                     NtClose(deviceHandle);
+                }
+
+                {
+                    MIB_IF_ROW2 interfaceRow = { 0 };
+                    DV_NETADAPTER_ID id;
+
+                    memset(&id, 0, sizeof(DV_NETADAPTER_ID));
+                    id.InterfaceLuid = adapterEntry->DeviceLuid;
+                    id.InterfaceIndex = 0;
+
+                    if (NetworkAdapterQueryInterfaceRow(&id, MibIfEntryNormalWithoutStatistics, &interfaceRow))
+                    {
+                        //adapterEntry->InterfaceIndex = interfaceRow.InterfaceIndex;
+                        adapterEntry->SoftwareDevice = !interfaceRow.InterfaceAndOperStatusFlags.ConnectorPresent;
+
+                        if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
+                        {
+                            adapterEntry->DeviceName = PhCreateString(interfaceRow.Description);
+                        }
+                    }
                 }
 
                 if (PhIsNullOrEmptyString(adapterEntry->DeviceName))

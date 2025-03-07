@@ -321,8 +321,6 @@ VOID FindGraphicsDevices(
     fakeLuid.HighPart = LONG_MAX;
     fakeLuid.LowPart = ULONG_MAX;
 
-    deviceList = PhCreateList(10);
-
     if (SUCCEEDED(PhDevGetObjects(
         DevObjectTypeDeviceInterface,
         DevQueryFlagNone,
@@ -334,6 +332,8 @@ VOID FindGraphicsDevices(
         &deviceObjects
         )))
     {
+        deviceList = PhCreateList(deviceCount);
+
         for (ULONG i = 0; i < deviceCount; i++)
         {
             PDEV_OBJECT device = &deviceObjects[i];
@@ -465,6 +465,10 @@ VOID FindGraphicsDevices(
         }
 
         PhDevFreeObjects(deviceCount, deviceObjects);
+    }
+    else
+    {
+        return;
     }
 
     // Sort the entries

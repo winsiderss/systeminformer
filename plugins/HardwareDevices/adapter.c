@@ -298,7 +298,7 @@ VOID InitializeNetAdapterId(
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
     PhSetReference(&Id->InterfaceGuidString, InterfaceGuidString);
-    Id->InterfacePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &InterfaceGuidString->sr);
+    Id->InterfacePath = PhConcatStringRef2(&PhNtDevicePathPrefix, &InterfaceGuidString->sr); // PhNtDosDevicesPrefix
 
     if (NT_SUCCESS(PhStringToGuid(&InterfaceGuidString->sr, &Id->InterfaceGuid)))
     {
