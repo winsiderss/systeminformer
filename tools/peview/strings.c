@@ -976,6 +976,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
                 break;
             }
         }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:

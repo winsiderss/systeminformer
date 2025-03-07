@@ -244,6 +244,7 @@ VOID PvEnumerateExceptionEntries(
                 break;
             case 3: // undocumented
                 PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Reserved"); // ?
+                break;
             default:
                 break;
             }

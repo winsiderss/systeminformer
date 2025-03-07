@@ -1028,7 +1028,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_KEYUP:
     case WM_SETTEXT:
         PhpSearchUpdateText(hWnd, context, FALSE);
-        __fallthrough;
+        RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        break;
     case WM_KILLFOCUS:
         RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;

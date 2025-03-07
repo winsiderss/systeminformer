@@ -1903,6 +1903,7 @@ VOID PhMwpOnCommand(
                 PhDereferenceObject(processItem);
             }
         }
+        break;
     case ID_WINDOW_BRINGTOFRONT:
         {
             if (IsWindow(PhMwpSelectedProcessWindowHandle))
