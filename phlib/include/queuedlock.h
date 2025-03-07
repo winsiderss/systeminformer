@@ -37,7 +37,7 @@ extern "C" {
 
 typedef struct _PH_QUEUED_LOCK
 {
-    volatile ULONG_PTR Value;
+    ULONG_PTR Value;
 } PH_QUEUED_LOCK, *PPH_QUEUED_LOCK;
 
 #define PH_QUEUED_LOCK_INIT { 0 }
