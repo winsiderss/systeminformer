@@ -842,6 +842,8 @@ NTSTATUS UpdateDownloadThread(
 
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
+    if (PhWindowsVersion >= WINDOWS_11 && !NT_SUCCESS(status = PhHttpSetProtocal(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000)))
+        goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(downloadHostPath), httpPort)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0))))
