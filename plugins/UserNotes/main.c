@@ -13,7 +13,9 @@
 #include "usernotes.h"
 #include <toolstatusintf.h>
 #include <commdlg.h>
+#include <d3dkmthk.h>
 #include <mapimg.h>
+#include <mapldr.h>
 
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -806,6 +808,141 @@ VOID ShowProcessPagePriorityDialog(
     PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhFree(context);
+}
+
+
+NTSTATUS PhD3DKMTGetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
+    )
+{
+    static __typeof__(&D3DKMTGetProcessSchedulingPriorityClass) D3DKMTGetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTGetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTGetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTGetProcessSchedulingPriorityClass_I)
+        return FALSE;
+
+    return D3DKMTGetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
+}
+
+NTSTATUS PhD3DKMTSetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _In_ D3DKMT_SCHEDULINGPRIORITYCLASS SchedulingPriorityClass
+    )
+{
+    static __typeof__(&D3DKMTSetProcessSchedulingPriorityClass) D3DKMTSetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTSetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTSetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTSetProcessSchedulingPriorityClass_I)
+        return FALSE;
+
+    return D3DKMTSetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
+}
+
+VOID ShowProcessD3DKMTPriorityDialog(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    D3DKMT_SCHEDULINGPRIORITYCLASS priorityClass;
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhD3DKMTGetProcessSchedulingPriorityClass(processHandle, &priorityClass);
+        NtClose(processHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+        {
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME, L"Realtime" },
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH, L"High" },
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_ABOVE_NORMAL, L"Above normal" },
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL, L"Normal" },
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL, L"Below normal" },
+            { D3DKMT_SCHEDULINGPRIORITYCLASS_IDLE, L"Idle" },
+        };
+        static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+        {
+            { IDYES, L"Save" },
+            { IDCANCEL, L"Cancel" },
+        };
+        TASKDIALOGCONFIG config;
+        ULONG selectedButton = 0;
+
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
+        config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
+        config.hMainIcon = PhGetApplicationIcon(FALSE);
+        config.pszWindowTitle = L"D3DKMT scheduling priority";
+        config.pszMainInstruction = L"Select the graphics scheduling priority.";
+        config.pszContent = L"Note: Realtime priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
+        config.nDefaultButton = IDCANCEL;
+        config.nDefaultRadioButton = priorityClass;
+        config.pRadioButtons = TaskDialogRadioButtonArray;
+        config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+        config.pButtons = TaskDialogButtonArray;
+        config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+        config.hwndParent = MenuItem->OwnerWindow;
+        config.cxWidth = 200;
+
+        if (PhShowTaskDialog(&config, NULL, &selectedButton, NULL))
+        {
+            status = PhOpenProcess(
+                &processHandle,
+                PROCESS_SET_INFORMATION,
+                ProcessItem->ProcessId
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhD3DKMTSetProcessSchedulingPriorityClass(processHandle, selectedButton);
+                NtClose(processHandle);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(MenuItem->OwnerWindow, L"Unable to update graphics scheduling priority", status, 0);
+            }
+        }
+    }
+    else
+    {
+        PhShowStatus(MenuItem->OwnerWindow, L"Unable to query graphics scheduling priority", status, 0);
+    }
 }
 
 VOID NTAPI MenuItemCallback(
@@ -1664,6 +1801,11 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
+    case PROCESS_D3DKMT_ID:
+        {
+            ShowProcessD3DKMTPriorityDialog(menuItem, processItem);
+        }
+        break;
     }
 
     PhDereferenceObject(processItem);
@@ -2261,6 +2403,7 @@ VOID ProcessMenuInitializingCallback(
     PPH_EMENU_ITEM miscMenuItem;
     PPH_EMENU_ITEM collapseMenuItem;
     PPH_EMENU_ITEM highlightMenuItem;
+    PPH_EMENU_ITEM gdiHandlesMenuItem;
     PDB_OBJECT object;
 
     if (menuInfo->u.Process.NumberOfProcesses != 1)
@@ -2282,6 +2425,12 @@ VOID ProcessMenuInitializingCallback(
     PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Col&lapse by default", NULL), 0);
     PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_HIGHLIGHT_ID, L"Highligh&t", UlongToPtr(highlightPresent)), 1);
     PhInsertEMenuItem(miscMenuItem, PhCreateEMenuSeparator(), 2);
+
+    if (gdiHandlesMenuItem = PhFindEMenuItem(miscMenuItem, 0, NULL, PHAPP_ID_MISCELLANEOUS_GDIHANDLES))
+    {
+        ULONG index = PhIndexOfEMenuItem(miscMenuItem, gdiHandlesMenuItem);
+        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_D3DKMT_ID, L"Graphics priority...", NULL), index + 1);
+    }
 
     LockDb();
 
