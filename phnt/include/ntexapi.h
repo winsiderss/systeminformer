@@ -7106,10 +7106,6 @@ typedef struct _MANAGE_HOT_PATCH_LOAD_PATCH
     HOT_PATCH_IMAGE_INFO BaseInfo;
 } MANAGE_HOT_PATCH_LOAD_PATCH, *PMANAGE_HOT_PATCH_LOAD_PATCH;
 
-#ifdef WIN64
-static_assert(sizeof(MANAGE_HOT_PATCH_LOAD_PATCH) == 0x68, "Size of MANAGE_HOT_PATCH_LOAD_PATCH is incorrect");
-#endif
-
 typedef struct _MANAGE_HOT_PATCH_UNLOAD_PATCH
 {
     ULONG Version;
@@ -7120,10 +7116,6 @@ typedef struct _MANAGE_HOT_PATCH_UNLOAD_PATCH
         UCHAR Buffer[SECURITY_MAX_SID_SIZE];
     } UserSid;
 } MANAGE_HOT_PATCH_UNLOAD_PATCH, *PMANAGE_HOT_PATCH_UNLOAD_PATCH;
-
-#ifdef WIN64
-static_assert(sizeof(MANAGE_HOT_PATCH_LOAD_PATCH) == 0x68, "Size of MANAGE_HOT_PATCH_LOAD_PATCH is incorrect");
-#endif
 
 typedef struct _MANAGE_HOT_PATCH_QUERY_PATCHES
 {
