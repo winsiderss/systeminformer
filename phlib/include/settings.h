@@ -408,7 +408,7 @@ PhValidWindowPlacementFromSetting(
 
     PhInitializeStringRef(&name, Name);
 
-    return PhGetScalableIntegerPairStringRefSetting(&name, FALSE, 0)->X != 0;
+    return PhGetIntegerPairStringRefSetting(&name).X != 0;
 }
 
 PHLIBAPI
