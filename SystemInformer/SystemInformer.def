@@ -597,6 +597,7 @@ EXPORTS
     PhGetProcessIsDotNetEx
     PhGetProcessMappedFileName
     PhGetProcessPebString
+    PhGetProcessPowerThrottlingState
     PhGetProcessPriorityClass
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
