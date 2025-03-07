@@ -1043,7 +1043,7 @@ PVOID PhAllocatePageAligned(
     _In_ SIZE_T Alignment
     )
 {
-    return _aligned_malloc(Size, Alignment);;
+    return _aligned_malloc(Size, Alignment);
 
     //NTSTATUS status;
     //PVOID baseAddress = NULL;
