@@ -475,7 +475,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     dpiValue = PhGetWindowDpi(hwnd);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue)->Pair;
 
     if (!windowRectangle.Position.X)
         return;
