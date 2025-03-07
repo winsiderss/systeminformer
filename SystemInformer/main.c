@@ -248,7 +248,7 @@ INT WINAPI wWinMain(
         {
             PhSetProcessPowerThrottlingState(
                 NtCurrentProcess(),
-                PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION,
                 0  // Disable synthetic timer resolution.
                 );
         }
