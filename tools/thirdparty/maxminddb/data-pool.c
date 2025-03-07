@@ -12,7 +12,7 @@
 // Allocate an MMDB_data_pool_s. It initially has space for size
 // MMDB_entry_data_list_s structs.
 MMDB_data_pool_s *data_pool_new(size_t const size) {
-    MMDB_data_pool_s* const pool = calloc(1, sizeof(MMDB_data_pool_s));
+    MMDB_data_pool_s *const pool = calloc(1, sizeof(MMDB_data_pool_s));
     if (!pool) {
         return NULL;
     }
@@ -28,7 +28,6 @@ MMDB_data_pool_s *data_pool_new(size_t const size) {
         data_pool_destroy(pool);
         return NULL;
     }
-    memset(pool->blocks[0], 0, pool->size * sizeof(MMDB_entry_data_list_s));
     pool->blocks[0]->pool = pool;
 
     pool->sizes[0] = size;
@@ -96,7 +95,6 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
     if (!pool->blocks[new_index]) {
         return NULL;
     }
-    memset(pool->blocks[new_index], 0, new_size * sizeof(MMDB_entry_data_list_s));
 
     // We don't need to set this, but it's useful for introspection in tests.
     pool->blocks[new_index]->pool = pool;
@@ -160,9 +158,13 @@ int main(void) {
 }
 
 static void test_can_multiply(void) {
-    { ok(can_multiply(SIZE_MAX, 1, SIZE_MAX), "1*SIZE_MAX is ok"); }
+    {
+        ok(can_multiply(SIZE_MAX, 1, SIZE_MAX), "1*SIZE_MAX is ok");
+    }
 
-    { ok(!can_multiply(SIZE_MAX, 2, SIZE_MAX), "2*SIZE_MAX is not ok"); }
+    {
+        ok(!can_multiply(SIZE_MAX, 2, SIZE_MAX), "2*SIZE_MAX is not ok");
+    }
 
     {
         ok(can_multiply(SIZE_MAX, 10240, sizeof(MMDB_entry_data_list_s)),
