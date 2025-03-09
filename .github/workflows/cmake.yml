@@ -1,0 +1,39 @@
+name: cmake-continuous-integration
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: ['windows-latest']
+        platform: ['x64', 'Win32', 'ARM64']
+        config: ['Debug', 'Release']
+        generator: ['Ninja', 'Visual Studio 17 2022']
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.config }} ${{ matrix.platform }} ${{ matrix.generator }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Nuget Packages
+      run: nuget restore .\packages.config -PackagesDirectory .\packages\
+    - name: Build Init
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_init.cmd
+    - name: Generate
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.platform }} generate
+    - name: Build
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_cmake.cmd "${{ matrix.generator }}" ${{ matrix.config }} ${{ matrix.platform }} build

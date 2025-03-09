@@ -1,21 +1,27 @@
-set(PROJECT_NAME NetworkTools)
+#
+# Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+#
+# This file is part of System Informer.
+#
 
-################################################################################
-# Source groups
-################################################################################
-set(Header_Files
+set(HEADERS
     "nettools.h"
     "resource.h"
     "tracert.h"
 )
-source_group("Header Files" FILES ${Header_Files})
+source_group("Header Files" FILES ${HEADERS})
 
-set(Resource_Files__Images
+set(RESOURCES
+    "version.rc"
+)
+source_group("Resource Files" FILES ${RESOURCES})
+
+set(RESOURCES_IMAGES
     "resources/licence.txt"
 )
-source_group("Resource Files\\Images" FILES ${Resource_Files__Images})
+source_group("Resource Files\\Images" FILES ${RESOURCES_IMAGES})
 
-set(Source_Files
+set(SOURCES
     "country.c"
     "main.c"
     "options.c"
@@ -27,122 +33,25 @@ set(Source_Files
     "update.c"
     "whois.c"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${SOURCES})
 
 set(ALL_FILES
-    ${Header_Files}
-    ${Resource_Files__Images}
-    ${Source_Files}
+    ${HEADERS}
+    ${RESOURCES}
+    ${RESOURCES_IMAGES}
+    ${SOURCES}
 )
 
-################################################################################
-# Target
-################################################################################
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+si_add_plugin(NetworkTools ${ALL_FILES})
 
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-################################################################################
-# Includes for CMake from *.props
-################################################################################
-#use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "../Plugins.cmake")
-
-set(ROOT_NAMESPACE NetworkTools)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
+target_link_libraries(NetworkTools PRIVATE
+    thirdparty
+    delayimp
+    iphlpapi
+    ws2_32
 )
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-endif()
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
 
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:iphlpapi.dll;
-            /DELAYLOAD:ws2_32.dll;
-            /DEBUG:FULL
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:iphlpapi.dll;
-            /DELAYLOAD:ws2_32.dll;
-            /DEBUG:FULL
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:iphlpapi.dll;
-            /DELAYLOAD:ws2_32.dll;
-            /DEBUG:FULL
-        )
-    endif()
-endif()
-
-################################################################################
-# Dependencies
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "iphlpapi;"
-        "ws2_32"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "iphlpapi;"
-        "ws2_32"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "iphlpapi;"
-        "ws2_32"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
-
+target_link_options(NetworkTools PRIVATE
+    /DELAYLOAD:iphlpapi.dll
+    /DELAYLOAD:ws2_32.dll
+)

@@ -1,9 +1,10 @@
-set(PROJECT_NAME ExtendedTools)
+#
+# Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+#
+# This file is part of System Informer.
+#
 
-################################################################################
-# Source groups
-################################################################################
-set(Header_Files
+set(HEADERS
     "disktabp.h"
     "efi_guid_list.h"
     "etwmini.h"
@@ -22,9 +23,9 @@ set(Header_Files
     "resource.h"
     "tpm.h"
 )
-source_group("Header Files" FILES ${Header_Files})
+source_group("Header Files" FILES ${HEADERS})
 
-set(Header_Files__PresentMon
+set(HEADERS_PRESENTMON
     "PresentMon/ETW/Microsoft_Windows_D3D9.h"
     "PresentMon/ETW/Microsoft_Windows_Dwm_Core.h"
     "PresentMon/ETW/Microsoft_Windows_DXGI.h"
@@ -35,11 +36,9 @@ set(Header_Files__PresentMon
     "PresentMon/PresentMonTraceConsumer.hpp"
     "PresentMon/TraceConsumer.hpp"
 )
-source_group("Header Files\\PresentMon" FILES ${Header_Files__PresentMon})
+source_group("Header Files\\PresentMon" FILES ${HEADERS_PRESENTMON})
 
-source_group("Resource Files" FILES ${Resource_Files})
-
-set(Source_Files
+set(SOURCES
     "counters.c"
     "disktab.c"
     "etwdisk.c"
@@ -77,9 +76,14 @@ set(Source_Files
     "waitchain.c"
     "wswatch.c"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${SOURCES})
 
-set(Source_Files__Neural
+set(RESOURCES,
+    "version.rc"
+)
+source_group("Resource Files" FILES ${RESOURCES})
+
+set(SOURCES_NEURAL
     "npudetails.c"
     "npumini.c"
     "npumon.c"
@@ -87,17 +91,17 @@ set(Source_Files__Neural
     "npuprprp.c"
     "npusys.c"
 )
-source_group("Source Files\\Neural" FILES ${Source_Files__Neural})
+source_group("Source Files\\Neural" FILES ${SOURCES_NEURAL})
 
-set(Source_Files__PresentMon
+set(SOURCES_PRESENTMON
     "PresentMon/PresentMon.cpp"
     "PresentMon/PresentMonTraceConsumer.cpp"
     "PresentMon/TraceConsumer.cpp"
     "PresentMon/TraceSession.cpp"
 )
-source_group("Source Files\\PresentMon" FILES ${Source_Files__PresentMon})
+source_group("Source Files\\PresentMon" FILES ${SOURCES_PRESENTMON})
 
-set(Source_Files__Video
+set(SOURCES_VIDEO
     "gpudetails.c"
     "gpumini.c"
     "gpumon.c"
@@ -105,141 +109,33 @@ set(Source_Files__Video
     "gpuprprp.c"
     "gpusys.c"
 )
-source_group("Source Files\\Video" FILES ${Source_Files__Video})
+source_group("Source Files\\Video" FILES ${SOURCES_VIDEO})
 
 set(ALL_FILES
-    ${Header_Files}
-    ${Header_Files__PresentMon}
-    ${Resource_Files}
-    ${Source_Files}
-    ${Source_Files__Neural}
-    ${Source_Files__PresentMon}
-    ${Source_Files__Video}
+    ${HEADERS}
+    ${HEADERS_PRESENTMON}
+    ${RESOURCES}
+    ${SOURCES}
+    ${SOURCES_NEURAL}
+    ${SOURCES_PRESENTMON}
+    ${SOURCES_VIDEO}
 )
 
-################################################################################
-# Target
-################################################################################
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+si_add_plugin(ExtendedTools ${ALL_FILES})
 
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-################################################################################
-# Includes for CMake from *.props
-################################################################################
-#use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "../Plugins.cmake")
-
-set(ROOT_NAMESPACE ExtendedTools)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
+target_link_libraries(ExtendedTools PRIVATE
+    delayimp
+    cfgmgr32
+    oleaut32
+    tdh
+    tbs
+    winsta
 )
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-endif()
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
 
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:tdh.dll;
-            /DELAYLOAD:tbs.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG:FULL
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:tdh.dll;
-            /DELAYLOAD:tbs.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG:FULL
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:tdh.dll;
-            /DELAYLOAD:tbs.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG:FULL
-        )
-    endif()
-endif()
-
-################################################################################
-# Dependencies
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "cfgmgr32;"
-        "pdh;"
-        "tbs;"
-        "winsta"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "cfgmgr32;"
-        "pdh;"
-        "tbs;"
-        "winsta"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "cfgmgr32;"
-        "pdh;"
-        "tbs;"
-        "winsta"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
-
+target_link_options(ExtendedTools PRIVATE
+    /DELAYLOAD:cfgmgr32.dll
+    /DELAYLOAD:oleaut32.dll
+    /DELAYLOAD:tdh.dll
+    /DELAYLOAD:tbs.dll
+    /DELAYLOAD:winsta.dll
+)

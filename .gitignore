@@ -89,9 +89,9 @@ ipch/
 **/vcpkg_installed/
 
 # CMake files
-build/.cmake/
-build/CMakeCache.txt
-build/CMakeFiles/
+**/.cmake/
+**/CMakeCache.txt
+**/CMakeFiles/
 
 # JSON Compilation Database
 **/compile_commands.json
@@ -111,7 +111,11 @@ memory-bank/
 build/output/
 plugins-extra/
 sdk/
+target/
 tools/thirdparty/vcpkg_installed/*
+
+bin-cmake/
+build-*/
 
 !KSystemInformer/bin-signed/*/ksi.dll
 !KSystemInformer/bin-signed/*/ksi.pdb

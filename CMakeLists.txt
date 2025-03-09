@@ -1,94 +1,45 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
+#
+# Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+#
+# This file is part of System Informer.
+#
 
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+cmake_minimum_required(VERSION 3.30.0 FATAL_ERROR)
 
-project(SystemInformer C CXX)
+project(SystemInformer)
 
-################################################################################
-# Set target arch type if empty. Visual studio solution generator provides it.
-################################################################################
-if(NOT CMAKE_VS_PLATFORM_NAME)
-    set(CMAKE_VS_PLATFORM_NAME "x64")
-endif()
-message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
+set(SI_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(commands)
 
-if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"))
-    message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
-endif()
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
-################################################################################
-# Global configuration types
-################################################################################
-set(CMAKE_CONFIGURATION_TYPES
-    "Debug"
-    "Release"
-    CACHE STRING "" FORCE
-)
+option(SI_WITH_CORE "configure core projects" ON)
+option(SI_WITH_PLUGINS "configure plugin projects" OFF)
+option(SI_WITH_KERNEL "configure kernel projects" OFF)
+option(SI_WITH_PREFAST "enables prefast analysis" OFF)
+option(SI_WITH_WPP_USER "enables user mode WPP trace" OFF)
+option(SI_WITH_WPP_KERNEL "enables kernel mode WPP trace" ON)
+# TODO change this to bin once we fully transition to cmake
+# set up to allow user to disable with "" or "OFF"
+set(SI_OUTPUT_DIR "${SI_ROOT}/bin-cmake" CACHE PATH "output directory")
 
-################################################################################
-# Global compiler options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_C_FLAGS "")
-    set(CMAKE_C_FLAGS_DEBUG "/MTd")
-    set(CMAKE_C_FLAGS_RELEASE "/MT")
-    set(CMAKE_CXX_FLAGS "")
-    set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
-    set(CMAKE_CXX_FLAGS_RELEASE "/MT")
+if(SI_WITH_CORE)
+    add_subdirectory(SystemInformer)
+    add_subdirectory(phnt)
+    add_subdirectory(phlib)
+    add_subdirectory(tools)
 endif()
 
-################################################################################
-# Global linker options
-################################################################################
-if(MSVC)
-    # remove default flags provided with CMake for MSVC
-    set(CMAKE_EXE_LINKER_FLAGS "")
-    set(CMAKE_MODULE_LINKER_FLAGS "")
-    set(CMAKE_SHARED_LINKER_FLAGS "")
-    set(CMAKE_STATIC_LINKER_FLAGS "")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS}")
-    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS}")
+if(SI_WITH_PLUGINS)
+    add_subdirectory(plugins)
 endif()
 
-################################################################################
-# Nuget packages function stub.
-################################################################################
-function(use_package TARGET PACKAGE VERSION)
-    message(WARNING "No implementation of use_package. Create yours. "
-                    "Package \"${PACKAGE}\" with version \"${VERSION}\" "
-                    "for target \"${TARGET}\" is ignored!")
-endfunction()
+if(SI_WITH_KERNEL)
+    message(FATAL_ERROR "Kernel mode projects are not supported")
+    add_subdirectory(KSystemInformer)
+endif()
 
-################################################################################
-# Common utils
-################################################################################
-include(CMake/Utils.cmake)
-
-################################################################################
-# Additional Global Settings(add specific info there)
-################################################################################
-include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
-
-################################################################################
-# Use solution folders feature
-################################################################################
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-################################################################################
-# Sub-projects
-################################################################################
-add_subdirectory(kphlib)
-add_subdirectory(phlib)
-add_subdirectory(SystemInformer)
-add_subdirectory(tools/peview)
+if(SI_WITH_CORE OR SI_WITH_KERNEL)
+    add_subdirectory(kphlib)
+endif()

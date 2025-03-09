@@ -1,9 +1,10 @@
-set(PROJECT_NAME SystemInformer)
+#
+# Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+#
+# This file is part of System Informer.
+#
 
-################################################################################
-# Source groups
-################################################################################
-set(Headers
+set(HEADERS
     "include/actions.h"
     "include/appsup.h"
     "include/colmgr.h"
@@ -56,14 +57,12 @@ set(Headers
     "resource.h"
     "sdk/phdk.h"
 )
-source_group("Headers" FILES ${Headers})
+source_group("Header Files" FILES ${HEADERS})
 
-set(Module
+set(RESOURCES
+    "version.rc"
     "SystemInformer.def"
-)
-source_group("Module" FILES ${Module})
-
-set(Resources
+    "SystemInformer.rc"
     "resources/application.ico"
     "resources/capslist.txt"
     "resources/case_sensitive_modern_dark.svg"
@@ -80,9 +79,9 @@ set(Resources
     "resources/systeminformer.png"
     "SystemInformer.ico"
 )
-source_group("Resources" FILES ${Resources})
+source_group("Resource Files" FILES ${RESOURCES})
 
-set(System_Informer
+set(SOURCES
     "about.c"
     "actions.c"
     "admintask.c"
@@ -186,408 +185,63 @@ set(System_Informer
     "thrdstk.c"
     "thrdstks.c"
     "tokprp.c"
-)
-source_group("System Informer" FILES ${System_Informer})
-
-set(phsvc
+    "usrlist.c"
     "phsvc/clapi.c"
     "phsvc/svcapi.c"
     "phsvc/svcapiport.c"
     "phsvc/svcclient.c"
     "phsvc/svcmain.c"
 )
-source_group("phsvc" FILES ${phsvc})
+source_group("Source Files" FILES ${SOURCES})
 
 set(ALL_FILES
-    ${Headers}
-    ${Module}
-    ${Resources}
-    ${System_Informer}
-    ${phsvc}
+    ${HEADERS}
+    ${RESOURCES}
+    ${SOURCES}
 )
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MTd_StaticDebug")
+si_add_executable(SystemInformer WIN32 ${ALL_FILES})
 
-################################################################################
-# Target
-################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+set_target_properties(SystemInformer PROPERTIES ENABLE_EXPORTS TRUE)
 
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE SystemInformer)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
+target_include_directories(SystemInformer PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-################################################################################
-# Output directory
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-endif()
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-endif()
-################################################################################
-# MSVC runtime library
-################################################################################
-get_property(MSVC_RUNTIME_LIBRARY_DEFAULT TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY)
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-        $<$<CONFIG:Debug>:
-            MultiThreadedDebug
-        >
-        $<$<CONFIG:Release>:
-            MultiThreaded
-        >
-        $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-        $<$<CONFIG:Debug>:
-            MultiThreadedDebug
-        >
-        $<$<CONFIG:Release>:
-            MultiThreaded
-        >
-        $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    string(CONCAT "MSVC_RUNTIME_LIBRARY_STR"
-        $<$<CONFIG:Debug>:
-            MultiThreadedDebug
-        >
-        $<$<CONFIG:Release>:
-            MultiThreaded
-        >
-        $<$<NOT:$<OR:$<CONFIG:Debug>,$<CONFIG:Release>>>:${MSVC_RUNTIME_LIBRARY_DEFAULT}>
-    )
-endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUNTIME_LIBRARY_STR})
 
-################################################################################
-# Include directories
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-endif()
+target_include_directories(SystemInformer INTERFACE
+    "${SI_ROOT}/sdk/include"
+)
 
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG;"
-            "DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_PHLIB_;"
-        "_PHAPP_;"
-        "_WINDOWS;"
-        "WIN64;"
-        "$ENV{ExternalCompilerOptions};"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG;"
-            "DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_PHLIB_;"
-        "_PHAPP_;"
-        "_WINDOWS;"
-        "WIN32;"
-        "$ENV{ExternalCompilerOptions};"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG;"
-            "DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_PHLIB_;"
-        "_PHAPP_;"
-        "_WINDOWS;"
-        "WIN64;"
-        "$ENV{ExternalCompilerOptions};"
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
+target_compile_definitions(SystemInformer PRIVATE
+    _PHAPP_
+)
 
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:cf
-            >
-            /MP;
-            /std:c++latest;
-            /sdl;
-            /GF;
-            /Gz;
-            /Gy;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:cf
-            >
-            /MP;
-            /std:c++latest;
-            /sdl;
-            /GF;
-            /Gz;
-            /Gy;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:xfg;
-                /guard:cf
-            >
-            /MP;
-            /std:c++latest;
-            /sdl;
-            /GF;
-            /Gz;
-            /Gy;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:setupapi.dll;
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:aclui.dll;
-            /DELAYLOAD:comdlg32.dll;
-            /DELAYLOAD:gdiplus.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:winhttp.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG;
-            /MACHINE:ARM64;
-            /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:setupapi.dll;
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:aclui.dll;
-            /DELAYLOAD:comdlg32.dll;
-            /DELAYLOAD:gdiplus.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:winhttp.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG;
-            /MACHINE:X86;
-            /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /DELAYLOAD:setupapi.dll;
-            /DELAYLOAD:cfgmgr32.dll;
-            /DELAYLOAD:aclui.dll;
-            /DELAYLOAD:comdlg32.dll;
-            /DELAYLOAD:gdiplus.dll;
-            /DELAYLOAD:oleaut32.dll;
-            /DELAYLOAD:winhttp.dll;
-            /DELAYLOAD:winsta.dll;
-            /DEBUG;
-            /MACHINE:X64;
-            /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
-        )
-    endif()
-endif()
-
-################################################################################
-# Post build events
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    add_custom_command_if(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMANDS
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    add_custom_command_if(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMANDS
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    add_custom_command_if(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMANDS
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND   $<CONFIG:Debug> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -kphsign "$<SHELL_PATH:${OUTPUT_DIRECTORY}>${TARGET_NAME}$ENV{TargetExt}"
-        COMMAND $<CONFIG:Release> "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/>tools\\CustomBuildTool\\bin\\Release\\$ENV{PROCESSOR_ARCHITECTURE}\\CustomBuildTool.exe" -sdk -$<CONFIG> -${CMAKE_VS_PLATFORM_NAME}
-    )
-endif()
-
-################################################################################
-# Dependencies
-################################################################################
-add_dependencies(${PROJECT_NAME}
-    kphlib
+target_link_libraries(SystemInformer PRIVATE
+    phnt
     phlib
+    kphlib_um
+    setupapi
+    cfgmgr32
+    aclui
+    comctl32
+    dnsapi
+    ntdll
+    userenv
+    wbemuuid
+    windowscodecs
+    winhttp
+    winsta
 )
 
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "setupapi;"
-        "cfgmgr32;"
-        "aclui;"
-        "comctl32;"
-        "dnsapi;"
-        "ntdll;"
-        "phlib;"
-        "userenv;"
-        "wbemuuid;"
-        "windowscodecs;"
-        "winhttp;"
-        "winsta;"
-        "kphlib_um"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "setupapi;"
-        "cfgmgr32;"
-        "aclui;"
-        "comctl32;"
-        "dnsapi;"
-        "ntdll;"
-        "phlib;"
-        "userenv;"
-        "wbemuuid;"
-        "windowscodecs;"
-        "winhttp;"
-        "winsta;"
-        "kphlib_um"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "setupapi;"
-        "cfgmgr32;"
-        "aclui;"
-        "comctl32;"
-        "dnsapi;"
-        "ntdll;"
-        "phlib;"
-        "userenv;"
-        "wbemuuid;"
-        "windowscodecs;"
-        "winhttp;"
-        "winsta;"
-        "kphlib_um"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+target_link_options(SystemInformer PRIVATE
+    /DELAYLOAD:setupapi.dll
+    /DELAYLOAD:cfgmgr32.dll
+    /DELAYLOAD:aclui.dll
+    /DELAYLOAD:comdlg32.dll
+    /DELAYLOAD:gdiplus.dll
+    /DELAYLOAD:oleaut32.dll
+    /DELAYLOAD:winhttp.dll
+    /DELAYLOAD:winsta.dll
+)
 
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_SOURCE_DIR}/phlib/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_SOURCE_DIR}/phlib/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_SOURCE_DIR}/phlib/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-endif()
+si_sdkbuild(SystemInformer)
