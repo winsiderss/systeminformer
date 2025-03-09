@@ -97,6 +97,7 @@ ipch/
 build/output/
 plugins-extra/
 sdk/
+target/
 tools/thirdparty/vcpkg_installed/*
 
 !KSystemInformer/bin-signed/*/ksi.dll

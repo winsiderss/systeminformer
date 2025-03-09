@@ -1,9 +1,12 @@
-set(PROJECT_NAME phlib)
+#
+# Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+#
+# This file is part of System Informer.
+#
 
-################################################################################
-# Source groups
-################################################################################
-set(Header_Files
+project(phlib)
+
+set(HEADERS
     "circbuf_i.h"
     "format_i.h"
     "include/apiimport.h"
@@ -77,9 +80,9 @@ set(Header_Files
     "include/workqueuep.h"
     "include/wslsup.h"
 )
-source_group("Header Files" FILES ${Header_Files})
+source_group("Header Files" FILES ${HEADERS})
 
-set(Source_Files
+set(SOURCES
     "apiimport.c"
     "appresolver.c"
     "appruntime.c"
@@ -123,7 +126,9 @@ set(Source_Files
     "native.c"
     "nativeflt.c"
     "nativemodule.c"
+    "nativetoken.c"
     "nativepipe.c"
+    "nativesocket.c"
     "nativethread.c"
     "nativeuser.c"
     "provider.c"
@@ -146,238 +151,32 @@ set(Source_Files
     "workqueue.c"
     "wslsup.c"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("Source Files" FILES ${SOURCES})
 
 set(ALL_FILES
-    ${Header_Files}
-    ${Source_Files}
+    ${HEADERS}
+    ${SOURCES}
 )
 
-################################################################################
-# Target
-################################################################################
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+si_add_library(phlib STATIC ${ALL_FILES})
 
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE phlib)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
+target_include_directories(phlib PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-################################################################################
-# Output directory
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        OUTPUT_DIRECTORY_DEBUG   "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-        OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/$<CONFIG>$ENV{PlatformArchitecture}/"
-    )
-endif()
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-endif()
-################################################################################
-# Include directories
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phnt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../phlib/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../kphlib/include"
-    )
-endif()
-
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "DEBUG;"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "WIN64;"
-            "NDEBUG;"
-            "_WINDOWS"
-        ">"
-        "_PHLIB_;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "DEBUG;"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "WIN32;"
-            "NDEBUG;"
-            "_WINDOWS"
-        ">"
-        "_PHLIB_;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "DEBUG;"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "WIN64;"
-            "NDEBUG;"
-            "_WINDOWS"
-        ">"
-        "_PHLIB_;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
-
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:cf
-            >
-            /permissive-;
-            /MP;
-            /std:c++latest;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:cf
-            >
-            /permissive-;
-            /MP;
-            /std:c++latest;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /d1nodatetime;
-                /guard:cf
-            >
-            /permissive-;
-            /MP;
-            /std:c++latest;
-            /W3;
-            /WX;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            /utf-8;
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /MACHINE:ARM64
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /MACHINE:X86
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            /MACHINE:X64
-        )
-    endif()
-endif()
-
-################################################################################
-# Dependencies
-################################################################################
-add_dependencies(${PROJECT_NAME}
-    kphlib
+target_compile_definitions(phlib PUBLIC
+    _PHLIB_
 )
 
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "kphlib_um;"
-        "thirdparty;"
-        "gdiplus"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "kphlib_um;"
-        "thirdparty;"
-        "gdiplus"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "kphlib_um;"
-        "thirdparty;"
-        "gdiplus"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+target_link_libraries(phlib PRIVATE
+    phnt
+    kphlib_um
+    thirdparty
+    gdiplus
+)
 
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
-    target_link_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../tools/thirdparty/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-    target_link_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../tools/thirdparty/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_link_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_SOURCE_DIR}/kphlib/bin/$<CONFIG>$ENV{PlatformArchitecture};"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../tools/thirdparty/bin/$<CONFIG>$ENV{PlatformArchitecture}"
-    )
-endif()
+add_library(phlib_interface INTERFACE)
+
+target_include_directories(phlib_interface INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
