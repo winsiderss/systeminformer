@@ -700,11 +700,13 @@ NTSTATUS PhLoadSettings(
     return STATUS_SUCCESS;
 }
 
-PSTR PhpSettingsSaveCallback(
+PCSTR PhpSettingsSaveCallback(
+    _In_ PVOID cbdata,
     _In_ PVOID node,
-    _In_ LONG position
+    _In_ LONG when
     )
 {
+#define MXML_WS_BEFORE_OPEN 0
 #define MXML_WS_AFTER_OPEN 1
 #define MXML_WS_AFTER_CLOSE 3
 
@@ -715,12 +717,14 @@ PSTR PhpSettingsSaveCallback(
 
     if (PhEqualBytesZ(elementName, "setting", TRUE))
     {
-        if (position == MXML_WS_AFTER_CLOSE)
+        if (when == MXML_WS_BEFORE_OPEN)
+            return "  ";
+        else if (when == MXML_WS_AFTER_CLOSE)
             return "\r\n";
     }
     else if (PhEqualBytesZ(elementName, "settings", TRUE))
     {
-        if (position == MXML_WS_AFTER_OPEN)
+        if (when == MXML_WS_AFTER_OPEN)
             return "\r\n";
     }
 

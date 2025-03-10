@@ -595,6 +595,12 @@ static PPH_BYTES PhXmlSaveString(
 
     options = mxmlOptionsNew();
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
+
+    if (XmlSaveCallback)
+    {
+        mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
+    }
+
     string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
     mxmlOptionsDelete(options);
 
