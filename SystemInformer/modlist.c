@@ -131,9 +131,6 @@ VOID PhDeleteModuleList(
 
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
 
-    if (Context->BoldFont)
-        DeleteFont(Context->BoldFont);
-
     PhCmDeleteManager(&Context->Cm);
 
     for (i = 0; i < Context->NodeList->Count; i++)
@@ -468,7 +465,7 @@ VOID PhInvalidateAllModuleNodes(
 
         memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
         moduleNode->ValidMask = 0;
-        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR);
+        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR | TN_CACHE_FONT);
     }
 
     InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
@@ -1333,9 +1330,6 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             // Make the executable file module item bold.
             if (node->ModuleItem->IsFirst)
             {
-                if (!context->BoldFont)
-                    context->BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(hwnd), FW_BOLD);
-
                 getNodeFont->Font = context->BoldFont ? context->BoldFont : NULL;
                 getNodeFont->Flags = TN_CACHE;
                 return TRUE;

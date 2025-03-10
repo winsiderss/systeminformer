@@ -695,6 +695,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ListContext.ProcessId = processItem->ProcessId;
             modulesContext->ListContext.ProcessCreateTime = processItem->CreateTime;
             modulesContext->ListContext.HasServices = processItem->ServiceList && processItem->ServiceList->Count != 0;
+            modulesContext->ListContext.BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(modulesContext->TreeNewHandle), FW_BOLD);
 
             // Initialize the search box. (dmex)
             PhCreateSearchControl(
@@ -778,6 +779,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhSaveSettingsModuleList(&modulesContext->ListContext);
             PhDeleteModuleList(&modulesContext->ListContext);
 
+            if (modulesContext->ListContext.BoldFont)
+            {
+                DeleteFont(modulesContext->ListContext.BoldFont);
+            }
+
             PhClearReference(&modulesContext->ErrorMessage);
             PhFree(modulesContext);
         }
@@ -792,6 +798,15 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, modulesContext->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            HFONT fontHandle = modulesContext->ListContext.BoldFont;
+            modulesContext->ListContext.BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(modulesContext->TreeNewHandle), FW_BOLD);
+            if (fontHandle) DeleteFont(fontHandle);
+
+            PhInvalidateAllModuleNodes(&modulesContext->ListContext);
         }
         break;
     case WM_COMMAND:
