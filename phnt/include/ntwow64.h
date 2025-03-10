@@ -7,7 +7,9 @@
 #ifndef _NTWOW64_H
 #define _NTWOW64_H
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <ntxcapi.h>
+#endif
 
 #define WOW64_SYSTEM_DIRECTORY "SysWOW64"
 #define WOW64_SYSTEM_DIRECTORY_U L"SysWOW64"
