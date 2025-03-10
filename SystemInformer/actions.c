@@ -4277,74 +4277,6 @@ static BOOLEAN PhpShowContinueMessageServices(
     }
 }
 
-static NTSTATUS PhpCheckServiceStatus(
-    _In_ SC_HANDLE ServiceHandle,
-    _In_ ULONG CurrentState,
-    _In_ ULONG WaitForState)
-{
-    NTSTATUS status;
-    SERVICE_STATUS_PROCESS serviceStatus;
-    ULONG64 serviceTicks;
-    ULONG serviceCheck;
-
-    status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
-
-    if (!NT_SUCCESS(status))
-        return status;
-    if (serviceStatus.dwCurrentState == WaitForState)
-        return STATUS_SUCCESS;
-
-    serviceTicks = NtGetTickCount64();
-    serviceCheck = serviceStatus.dwCheckPoint;
-
-    while (
-        serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
-        )
-    {
-        ULONG statusWaitHint = serviceStatus.dwWaitHint / 10;
-
-        if (statusWaitHint < 1000)
-            statusWaitHint = 1000;
-        if (statusWaitHint > 10000)
-            statusWaitHint = 10000;
-
-        PhDelayExecution(statusWaitHint);
-
-        status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (serviceStatus.dwCurrentState == WaitForState)
-            return STATUS_SUCCESS;
-
-        if (!(
-            serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
-            ))
-        {
-            return STATUS_SUCCESS;
-        }
-
-        if (serviceStatus.dwCheckPoint > serviceCheck)
-        {
-            serviceTicks = NtGetTickCount64();
-            serviceCheck = serviceStatus.dwCheckPoint;
-        }
-        else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
-        {
-            // Service doesn't report progress.
-        }
-    }
-
-    return status;
-}
-
 static BOOLEAN PhpShowErrorService(
     _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
@@ -5252,6 +5184,52 @@ BOOLEAN PhUiDeleteService(
     return success;
 }
 
+static NTSTATUS PhUiServiceRestartCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+)
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhStopService(serviceHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhWaitForServiceStatus(
+                serviceHandle,
+                SERVICE_STOPPED,
+                60 * 1000
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhStartService(serviceHandle, 0, NULL);
+
+                if (NT_SUCCESS(status))
+                {
+                    status = PhWaitForServiceStatus(
+                        serviceHandle,
+                        SERVICE_RUNNING,
+                        60 * 1000
+                        );
+                }
+            }
+        }
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
+}
+
 BOOLEAN PhUiRestartServices(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM* Services,
@@ -5266,13 +5244,13 @@ BOOLEAN PhUiRestartServices(
     {
         PhShowServiceProgressDialog(
             WindowHandle,
-            L"stop",
+            L"restart",
             L"Restarting a service might prevent the system from functioning properly.",
             FALSE,
             Services,
             NumberOfServices,
-            PhUiServiceStopCallback,
-            PhSvcControlServiceStop
+            PhUiServiceRestartCallback,
+            PhSvcControlServiceRestart
             );
         return FALSE;
     }
@@ -5293,7 +5271,11 @@ BOOLEAN PhUiRestartServices(
         SC_HANDLE serviceHandle;
 
         success = FALSE;
-        status = PhOpenService(&serviceHandle, SERVICE_START | SERVICE_STOP, PhGetString(Services[i]->Name));
+        status = PhOpenService(
+            &serviceHandle,
+            SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP,
+            PhGetString(Services[i]->Name)
+            );
 
         if (NT_SUCCESS(status))
         {
@@ -5301,10 +5283,30 @@ BOOLEAN PhUiRestartServices(
 
             if (NT_SUCCESS(status))
             {
-                status = PhStartService(serviceHandle, 0, NULL);
+                status = PhWaitForServiceStatus(
+                    serviceHandle,
+                    SERVICE_STOPPED,
+                    60 * 1000
+                    );
 
                 if (NT_SUCCESS(status))
-                    success = TRUE;
+                {
+                    status = PhStartService(serviceHandle, 0, NULL);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        status = PhWaitForServiceStatus(
+                            serviceHandle,
+                            SERVICE_RUNNING,
+                            60 * 1000
+                            );
+
+                        if (NT_SUCCESS(status))
+                        {
+                            success = TRUE;
+                        }
+                    }
+                }
             }
 
             PhCloseServiceHandle(serviceHandle);
@@ -5326,7 +5328,7 @@ BOOLEAN PhUiRestartServices(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Services[i]->Name), PhSvcControlServiceStop)))
+                    if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Services[i]->Name), PhSvcControlServiceRestart)))
                         success = TRUE;
                     else
                         PhpShowErrorService(WindowHandle, L"restart", Services[i], status, 0);

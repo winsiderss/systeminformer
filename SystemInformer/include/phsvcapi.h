@@ -113,7 +113,8 @@ typedef enum _PHSVC_API_CONTROLSERVICE_COMMAND
     PhSvcControlServiceContinue,
     PhSvcControlServicePause,
     PhSvcControlServiceStop,
-    PhSvcControlServiceDelete
+    PhSvcControlServiceDelete,
+    PhSvcControlServiceRestart
 } PHSVC_API_CONTROLSERVICE_COMMAND;
 
 typedef union _PHSVC_API_CONTROLSERVICE
