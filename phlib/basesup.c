@@ -3300,6 +3300,7 @@ PPH_STRING PhConcatStringRef4(
  * Creates a string using format specifiers.
  *
  * \param Format The format-control string.
+ * \param ... The list of arguments.
  */
 PPH_STRING PhFormatString(
     _In_ _Printf_format_string_ PCWSTR Format,
