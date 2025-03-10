@@ -645,9 +645,17 @@ VOID PhTnpOnDpiChanged(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
+    LONG oldWindowDpi = Context->WindowDpi;
+
+    PhTnpSetRedraw(Context, FALSE);
+
     PhTnpUpdateSystemMetrics(Context);
     PhTnpUpdateTextMetrics(Context);
     PhTnpUpdateThemeData(Context);
+    PhTnpUpdateColumnHeadersDpiChanged(Context, oldWindowDpi, Context->WindowDpi);
+
+    PhTnpSetRedraw(Context, TRUE);
+
     PhTnpLayout(Context);
 }
 
@@ -3157,6 +3165,48 @@ VOID PhTnpUpdateColumnHeaders(
                 column->s.ViewIndex = i;
                 column->Width = item.cxy;
                 column->DisplayIndex = item.iOrder;
+            }
+        }
+    }
+}
+
+VOID PhTnpUpdateColumnHeadersDpiChanged(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG OldWindowDpi,
+    _In_ LONG NewWindowDpi
+    )
+{
+    LONG count;
+    LONG i;
+    HDITEM item;
+    PPH_TREENEW_COLUMN column;
+
+    item.mask = HDI_WIDTH | HDI_LPARAM;
+
+    // Fixed column
+
+    if (Context->FixedColumnVisible && Header_GetItem(Context->FixedHeaderHandle, 0, &item))
+    {
+        column = Context->FixedColumn;
+        column->Width = PhMultiplyDivideSigned(item.cxy, NewWindowDpi, OldWindowDpi);
+
+        PhTnpChangeColumn(Context, TN_COLUMN_WIDTH, column->Id, column);
+    }
+
+    // Normal columns
+
+    count = Header_GetItemCount(Context->HeaderHandle);
+
+    if (count != INT_ERROR)
+    {
+        for (i = 0; i < count; i++)
+        {
+            if (Header_GetItem(Context->HeaderHandle, i, &item))
+            {
+                column = (PPH_TREENEW_COLUMN)item.lParam;
+                column->Width = PhMultiplyDivideSigned(item.cxy, NewWindowDpi, OldWindowDpi);
+
+                PhTnpChangeColumn(Context, TN_COLUMN_WIDTH, column->Id, column);
             }
         }
     }

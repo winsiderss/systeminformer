@@ -969,7 +969,7 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
         if (PositionSettingName)
         {
             position = PhGetIntegerPairSetting(PositionSettingName);
-            flags &= ~SWP_NOMOVE;
+            ClearFlag(flags, SWP_NOMOVE);
         }
         else
         {
@@ -985,15 +985,13 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
             //rect = PhRectangleToRect(windowRectangle);
             //dpi = PhGetMonitorDpi(&rect);
             dpi = PhGetWindowDpi(WindowHandle);
-
             size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
-            flags &= ~SWP_NOSIZE;
+            ClearFlag(flags, SWP_NOSIZE);
         }
         else
         {
             RECT windowRect;
 
-            // Make sure the window doesn't get positioned on disconnected monitors. (dmex)
             //size.X = 16;
             //size.Y = 16;
             GetWindowRect(WindowHandle, &windowRect);

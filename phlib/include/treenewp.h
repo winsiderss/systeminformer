@@ -534,6 +534,12 @@ VOID PhTnpUpdateColumnHeaders(
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpUpdateColumnHeadersDpiChanged(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG OldWindowDpi,
+    _In_ LONG NewWindowDpi
+    );
+
 VOID PhTnpProcessResizeColumn(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
