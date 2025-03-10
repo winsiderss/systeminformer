@@ -73,18 +73,16 @@ PhGuiSupportUpdateSystemMetrics(
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
@@ -1887,17 +1885,19 @@ PhExtractIcon(
     _Out_opt_ HICON *IconSmall
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
+    _In_ LONG IconLargeWidth,
+    _In_ LONG IconLargeHeight,
+    _In_ LONG IconSmallWidth,
+    _In_ LONG IconSmallHeight,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall,
-    _In_ LONG WindowDpi
+    _Out_opt_ HICON *IconSmall
     );
 
 // Imagelist support
@@ -2109,6 +2109,16 @@ PhLoadImageFormatFromResource(
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
     _In_ PH_IMAGE_FORMAT_TYPE Format,
+    _In_ LONG Width,
+    _In_ LONG Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
     _In_ LONG Width,
     _In_ LONG Height
     );
@@ -2455,14 +2465,14 @@ HFONT
 NTAPI
 PhCreateFont(
     _In_opt_ PCWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG Dpi
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
+        -(LONG)PhMultiplyDivide(Size, Dpi, 72),
         0,
         0,
         0,

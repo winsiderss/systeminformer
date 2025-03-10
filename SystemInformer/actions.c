@@ -5379,15 +5379,15 @@ BOOLEAN PhUiCloseConnections(
     for (i = 0; i < NumberOfConnections; i++)
     {
         if (
-            Connections[i]->ProtocolType != PH_TCP4_NETWORK_PROTOCOL ||
+            Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
             Connections[i]->State != MIB_TCP_STATE_ESTAB
             )
             continue;
 
         tcpRow.dwState = MIB_TCP_STATE_DELETE_TCB;
-        tcpRow.dwLocalAddr = Connections[i]->LocalEndpoint.Address.Ipv4;
+        tcpRow.dwLocalAddr = Connections[i]->LocalEndpoint.Address.InAddr.s_addr;
         tcpRow.dwLocalPort = _byteswap_ushort((USHORT)Connections[i]->LocalEndpoint.Port);
-        tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
+        tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.InAddr.s_addr;
         tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
 
         if ((result = SetTcpEntry_I(&tcpRow)) != NO_ERROR)

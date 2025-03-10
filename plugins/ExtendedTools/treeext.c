@@ -1394,10 +1394,10 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
         if (SUCCEEDED(INetFwMgr_IsPortAllowed(
             manager,
             imageFileNameBStr,
-            (NetworkItem->ProtocolType & PH_IPV6_NETWORK_TYPE) ? NET_FW_IP_VERSION_V6 : NET_FW_IP_VERSION_V4,
+            (NetworkItem->ProtocolType & PH_NETWORK_TYPE_IPV6) ? NET_FW_IP_VERSION_V6 : NET_FW_IP_VERSION_V4,
             NetworkItem->LocalEndpoint.Port,
             localAddressBStr,
-            (NetworkItem->ProtocolType & PH_UDP_PROTOCOL_TYPE) ? NET_FW_IP_PROTOCOL_UDP : NET_FW_IP_PROTOCOL_TCP,
+            (NetworkItem->ProtocolType & PH_PROTOCOL_TYPE_UDP) ? NET_FW_IP_PROTOCOL_UDP : NET_FW_IP_PROTOCOL_TCP,
             &allowed,
             &restricted
             )))

@@ -245,7 +245,7 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
     EFI_DRIVER_ENTRY DriverEntry;
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
-#if (PHNT_VERSION >= PHNT_WINXP)
+#if (PHNT_VERSION >= PHNT_WINDOWS_XP)
 /**
  * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
  *
@@ -380,9 +380,9 @@ NtTranslateFilePath(
     _Out_writes_bytes_opt_(*OutputFilePathLength) PFILE_PATH OutputFilePath,
     _Inout_opt_ PULONG OutputFilePathLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_XP)
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
  *
@@ -468,7 +468,7 @@ NtSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 typedef enum _FILTER_BOOT_OPTION_OPERATION
 {
@@ -478,7 +478,7 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
     FilterBootOptionOperationMax
 } FILTER_BOOT_OPTION_OPERATION;
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 /**
  * The NtFilterBootOption routine filters boot options based on the specified operation, object type, and element type.
  *
@@ -499,7 +499,7 @@ NtFilterBootOption(
     _In_reads_bytes_opt_(DataSize) PVOID Data,
     _In_ ULONG DataSize
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 //
 // Event
@@ -583,7 +583,7 @@ NtSetEvent(
     _Out_opt_ PLONG PreviousState
     );
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * The NtSetEventEx routine sets an event object to the signaled state and optionally acquires a lock.
  *
@@ -598,7 +598,7 @@ NtSetEventEx(
     _In_ HANDLE ThreadId,
     _In_opt_ PRTL_SRWLOCK Lock
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
  * The NtSetEventBoostPriority routine sets an event object to the signaled state and boosts the priority of threads waiting on the event.
@@ -1097,7 +1097,7 @@ NtSetTimer(
     _Out_opt_ PBOOLEAN PreviousState
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1107,7 +1107,7 @@ NtSetTimerEx(
     _Inout_updates_bytes_opt_(TimerSetInformationLength) PVOID TimerSetInformation,
     _In_ ULONG TimerSetInformationLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1128,7 +1128,7 @@ NtQueryTimer(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1147,9 +1147,9 @@ NtSetIRTimer(
     _In_opt_ PLARGE_INTEGER DueTime
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1162,7 +1162,7 @@ NtCreateTimer2(
     _In_ ACCESS_MASK DesiredAccess
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 typedef struct _T2_SET_PARAMETERS_V0
 {
@@ -1173,7 +1173,7 @@ typedef struct _T2_SET_PARAMETERS_V0
 
 typedef PVOID PT2_CANCEL_PARAMETERS;
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1193,9 +1193,11 @@ NtCancelTimer2(
     _In_ PT2_CANCEL_PARAMETERS Parameters
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+//
 // Profile
+//
 
 #define PROFILE_CONTROL 0x0001
 #define PROFILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | PROFILE_CONTROL)
@@ -1215,7 +1217,7 @@ NtCreateProfile(
     _In_ KAFFINITY Affinity
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1231,7 +1233,7 @@ NtCreateProfileEx(
     _In_ USHORT GroupCount,
     _In_reads_(GroupCount) PGROUP_AFFINITY GroupAffinity
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1309,18 +1311,22 @@ NtWaitForKeyedEvent(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+//
 // UMS
+//
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUmsThreadYield(
     _In_ PVOID SchedulerParam
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
+//
 // WNF
+//
 
 // begin_private
 
@@ -1379,7 +1385,7 @@ typedef struct _WNF_DELIVERY_DESCRIPTOR
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1462,9 +1468,9 @@ NtUnsubscribeWnfStateChange(
     _In_ PCWNF_STATE_NAME StateName
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1485,9 +1491,11 @@ NtSetWnfProcessNotificationEvent(
     _In_ HANDLE NotificationEvent
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+//
 // Worker factory
+//
 
 // begin_rev
 
@@ -1563,7 +1571,7 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1632,7 +1640,7 @@ typedef struct _WORKER_FACTORY_DEFERRED_WORK
     ULONG Flags;
 } WORKER_FACTORY_DEFERRED_WORK, *PWORKER_FACTORY_DEFERRED_WORK;
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1655,9 +1663,9 @@ NtWaitForWorkViaWorkerFactory(
     _Out_ PFILE_IO_COMPLETION_INFORMATION MiniPacket
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 //
 // Time
@@ -1729,7 +1737,7 @@ NtSetTimerResolution(
     );
 
 //
-// Performance Counter
+// Performance Counters
 //
 
 NTSYSCALLAPI
@@ -1740,8 +1748,15 @@ NtQueryPerformanceCounter(
     _Out_opt_ PLARGE_INTEGER PerformanceFrequency
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 // rev
+/**
+ * The NtQueryAuxiliaryCounterFrequency routine queries the auxiliary counter frequency. (The auxiliary counter is generally the HPET hardware timer).
+ *
+ * @param AuxiliaryCounterFrequency A pointer to an output buffer that contains the specified auxiliary counter frequency. If the auxiliary counter is not supported, the value in the output buffer will be undefined.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1750,6 +1765,17 @@ NtQueryAuxiliaryCounterFrequency(
     );
 
 // rev
+/**
+ * The NtConvertBetweenAuxiliaryCounterAndPerformanceCounter routine converts the specified performance counter value to the corresponding auxiliary counter value;
+ * optionally provides the estimated conversion error in nanoseconds due to latencies and maximum possible drift.
+ *
+ * @param ConvertAuxiliaryToPerformanceCounter  If TRUE, the value will be converted from AUX to QPC. If FALSE, the value will be converted from QPC to AUX.
+ * @param PerformanceOrAuxiliaryCounterValue The performance counter value to convert.
+ * @param ConvertedValue On success, contains the converted auxiliary counter value. Will be undefined if the function fails.
+ * @param ConversionError On success, contains the estimated conversion error, in nanoseconds. Will be undefined if the function fails.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1759,9 +1785,11 @@ NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
     _Out_ PULONG64 ConvertedValue,
     _Out_opt_ PULONG64 ConversionError
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 
+//
 // LUIDs
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1770,7 +1798,9 @@ NtAllocateLocallyUniqueId(
     _Out_ PLUID Luid
     );
 
+//
 // UUIDs
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1789,9 +1819,11 @@ NtAllocateUuids(
     _Out_ PCHAR Seed
     );
 
-// System Information
-
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
+//
+// System Information
+//
 
 // rev
 // private
@@ -3083,7 +3115,7 @@ typedef struct _SYSTEM_GDI_DRIVER_INFORMATION
     PIMAGE_EXPORT_DIRECTORY ExportSectionPointer;
     ULONG ImageLength;
 } SYSTEM_GDI_DRIVER_INFORMATION, *PSYSTEM_GDI_DRIVER_INFORMATION;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // geoffchappell
 #ifdef _WIN64
@@ -3278,7 +3310,7 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_INFORMATION
     ULONG TableBufferLength;
     _Field_size_bytes_(TableBufferLength) UCHAR TableBuffer[1];
 } SYSTEM_FIRMWARE_TABLE_INFORMATION, *PSYSTEM_FIRMWARE_TABLE_INFORMATION;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
@@ -3294,7 +3326,7 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_HANDLER
     PFNFTH FirmwareTableHandler;
     PVOID DriverObject;
 } SYSTEM_FIRMWARE_TABLE_HANDLER, *PSYSTEM_FIRMWARE_TABLE_HANDLER;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // private
 typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
@@ -5022,7 +5054,7 @@ typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
     ULONG WoW64Container : 1;
     ULONG ReservedZero0 : 11;
 } SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION, *PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
-#endif
+#endif // NTDDI_WIN10_FE
 
 // private
 typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
@@ -5607,7 +5639,7 @@ NtQuerySystemInformation(
     _Out_opt_ PULONG ReturnLength
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5619,7 +5651,7 @@ NtQuerySystemInformationEx(
     _In_ ULONG SystemInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6722,7 +6754,9 @@ NtGetTickCount(
 #endif
 }
 
+//
 // Locale
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6747,7 +6781,7 @@ NtQueryInstallUILanguage(
     _Out_ LANGID *InstallUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSCALLAPI
 NTSTATUS
@@ -6756,7 +6790,7 @@ NtFlushInstallUILanguage(
     _In_ LANGID InstallUILanguage,
     _In_ ULONG SetComittedFlag
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6772,7 +6806,7 @@ NtSetDefaultUILanguage(
     _In_ LANGID DefaultUILanguageId
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSCALLAPI
 NTSTATUS
@@ -6780,13 +6814,13 @@ NTAPI
 NtIsUILanguageComitted(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 // NLS
 
 // begin_private
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6809,7 +6843,7 @@ NtGetNlsSectionPtr(
     _Out_ PULONG SectionSize
     );
 
-#if (PHNT_VERSION < PHNT_WIN7)
+#if (PHNT_VERSION < PHNT_WINDOWS_7)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6827,7 +6861,7 @@ NtReleaseCMFViewOwnership(
     VOID
     );
 
-#endif
+#endif // PHNT_VERSION < PHNT_WINDOWS_7
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6850,11 +6884,13 @@ NtGetMUIRegistryInfo(
     _Out_ PVOID Data
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 // end_private
 
+//
 // Global atoms
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6865,7 +6901,7 @@ NtAddAtom(
     _Out_opt_ PRTL_ATOM Atom
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #define ATOM_FLAG_GLOBAL 0x2
 
@@ -6880,7 +6916,7 @@ NtAddAtomEx(
     _In_ ULONG Flags
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 NTSYSCALLAPI
 NTSTATUS
@@ -6929,7 +6965,9 @@ NtQueryInformationAtom(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Global flags
+//
 
 #define FLG_STOP_ON_EXCEPTION 0x00000001 // uk
 #define FLG_SHOW_LDR_SNAPS 0x00000002 // uk
@@ -7010,7 +7048,7 @@ NtQueryInformationAtom(
     FLG_ENABLE_HANDLE_EXCEPTIONS)
 
 // Licensing
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7058,7 +7096,7 @@ NtDisplayString(
 
 // Boot graphics
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -7195,7 +7233,7 @@ static_assert(sizeof(MANAGE_HOT_PATCH_CHECK_ENABLED) == 0x8, "Size of MANAGE_HOT
 static_assert(sizeof(MANAGE_HOT_PATCH_CREATE_PATCH_SECTION) == 0x28, "Size of MANAGE_HOT_PATCH_CREATE_PATCH_SECTION is incorrect");
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 NTSYSCALLAPI
 NTSTATUS
@@ -7206,7 +7244,7 @@ NtManageHotPatch(
     _In_ ULONG HotPatchInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 

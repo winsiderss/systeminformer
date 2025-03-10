@@ -200,7 +200,7 @@ VOID EtProcessNetworkEvent(
         Event->ClientId.UniqueProcess
         );
 
-    if (!networkItem && FlagOn(Event->ProtocolType, PH_UDP_PROTOCOL_TYPE))
+    if (!networkItem && FlagOn(Event->ProtocolType, PH_PROTOCOL_TYPE_UDP))
     {
         PH_IP_ENDPOINT networkEndpoint;
 

@@ -13,100 +13,10 @@
 #ifndef _PH_GUISUPP_H
 #define _PH_GUISUPP_H
 
-typedef HTHEME (WINAPI* _OpenThemeDataForDpi)(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList,
-    _In_ UINT DpiValue
-    );
-
-typedef HTHEME (WINAPI* _OpenThemeData)(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList
-    );
-
-typedef HRESULT (WINAPI* _CloseThemeData)(
-    _In_ HTHEME ThemeHandle
-    );
-
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    _In_ HWND WindowHandle,
-    _In_opt_ PCWSTR SubAppName,
-    _In_opt_ PCWSTR SubIdList
-    );
-
-typedef BOOL (WINAPI *_IsThemeActive)(
-    VOID
-    );
-
-typedef BOOL (WINAPI *_IsThemePartDefined)(
-    _In_ HTHEME hTheme,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeBackground)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_ const RECT *pRect,
-    _In_opt_ const RECT *pClipRect
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeText)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_reads_(cchText) LPCWSTR pszText,
-    _In_ LONG cchText,
-    _In_ ULONG dwTextFlags,
-    _Reserved_ ULONG dwTextFlags2,
-    _In_ LPCRECT pRect
-    );
-
-typedef HRESULT(WINAPI* _DrawThemeTextEx)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_reads_(cchText) LPCWSTR pszText,
-    _In_ LONG cchText,
-    _In_ ULONG dwTextFlags,
-    _Inout_ LPRECT pRect,
-    _In_opt_ const PVOID pOptions // DTTOPTS*
-    );
-
 typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ HTHEME ThemeHandle,
     _Out_writes_z_(BufferLength) PWSTR Buffer,
     _In_ ULONG BufferLength
-    );
-
-typedef HRESULT (WINAPI* _GetThemeColor)(
-    _In_ HTHEME hTheme,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_ LONG iPropId,
-    _Out_ COLORREF* pColor
-    );
-
-typedef HRESULT (WINAPI *_GetThemeInt)(
-    _In_ HTHEME hTheme,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_ LONG iPropId,
-    _Out_ LONG*piVal
-    );
-
-typedef HRESULT (WINAPI* _GetThemePartSize)(
-    _In_ HTHEME hTheme,
-    _In_opt_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_opt_ LPCRECT prc,
-    _In_ enum THEMESIZE eSize,
-    _Out_ SIZE* psz
     );
 
 typedef BOOL(WINAPI* _AllowDarkModeForWindow)(
@@ -118,36 +28,8 @@ typedef BOOL(WINAPI* _IsDarkModeAllowedForWindow)(
     _In_ HWND WindowHandle
     );
 
-typedef HRESULT (WINAPI* _GetDpiForMonitor)(
-    _In_ HMONITOR hmonitor,
-    _In_ enum MONITOR_DPI_TYPE dpiType,
-    _Out_ PLONG dpiX,
-    _Out_ PLONG dpiY
-    );
-
-typedef LONG (WINAPI* _GetDpiForWindow)(
-    _In_ HWND hwnd
-    );
-
-typedef LONG (WINAPI* _GetDpiForSystem)(
-    VOID
-    );
-
 typedef LONG (WINAPI* _GetDpiForSession)(
     VOID
-    );
-
-typedef LONG (WINAPI* _GetSystemMetricsForDpi)(
-    _In_ LONG Index,
-    _In_ LONG dpi
-    );
-
-typedef BOOL (WINAPI* _SystemParametersInfoForDpi)(
-    _In_ ULONG uiAction,
-    _In_ ULONG uiParam,
-    _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-    _In_ ULONG fWinIni,
-    _In_ ULONG dpi
     );
 
 // Comctl32

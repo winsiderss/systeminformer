@@ -469,7 +469,9 @@ PhQueryDepthSList(
 #endif
 }
 
+//
 // Event
+//
 
 #define PH_EVENT_SET 0x1
 #define PH_EVENT_SET_SHIFT 0
@@ -501,8 +503,6 @@ typedef struct _PH_EVENT
     };
     HANDLE EventHandle;
 } PH_EVENT, *PPH_EVENT;
-
-static_assert(sizeof(PH_EVENT) == sizeof(ULONG_PTR) + sizeof(HANDLE));
 
 #define PH_EVENT_INIT { { PH_EVENT_REFCOUNT_INC }, NULL }
 
@@ -748,7 +748,9 @@ PhWaitForRundownProtection(
         PhfWaitForRundownProtection(Protection);
 }
 
+//
 // One-time initialization
+//
 
 #define PH_INITONCE_SHIFT 31
 #define PH_INITONCE_INITIALIZING (0x1 << PH_INITONCE_SHIFT)
@@ -2604,7 +2606,9 @@ PhConvertBytesToUtf16(
     return PhConvertUtf8ToUtf16Ex(String->Buffer, String->Length);
 }
 
+//
 // String builder
+//
 
 /**
  * A string builder structure.
@@ -2780,7 +2784,9 @@ PhRemoveEndStringBuilder(
         );
 }
 
+//
 // Byte string builder
+//
 
 /**
  * A byte string builder structure.
@@ -2876,7 +2882,9 @@ PhAppendFormatBytesBuilder(
     ...
     );
 
+//
 // Array
+//
 
 /** An array structure. Storage is automatically allocated for new elements. */
 typedef struct _PH_ARRAY
@@ -3204,7 +3212,9 @@ PhEnumPointerList(
     return FALSE;
 }
 
+//
 // Hash
+//
 
 typedef struct _PH_HASH_ENTRY
 {
@@ -3444,7 +3454,9 @@ PhResizeHashSet(
     *NumberOfBuckets = NewNumberOfBuckets;
 }
 
+//
 // Hashtable
+//
 
 extern PPH_OBJECT_TYPE PhHashtableType;
 
@@ -3714,7 +3726,9 @@ PhHashIntPtr(
 #endif
 }
 
+//
 // Simple hashtable
+//
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 #define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
@@ -3835,7 +3849,9 @@ PhFreeToFreeList(
     _In_ PVOID Memory
     );
 
+//
 // Callback
+//
 
 /**
  * A callback function.
@@ -3843,10 +3859,12 @@ PhFreeToFreeList(
  * \param Parameter A value given to all callback functions being notified.
  * \param Context A user-defined value passed to PhRegisterCallback().
  */
-typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
+typedef _Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI PH_CALLBACK_FUNCTION(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
+typedef PH_CALLBACK_FUNCTION *PPH_CALLBACK_FUNCTION;
 
 /** A callback registration structure. */
 typedef struct _PH_CALLBACK_REGISTRATION
@@ -4890,12 +4908,12 @@ typedef struct _PH_AVL_LINKS
     LONG Balance;
 } PH_AVL_LINKS, *PPH_AVL_LINKS;
 
-struct _PH_AVL_TREE;
-
-typedef LONG (NTAPI *PPH_AVL_TREE_COMPARE_FUNCTION)(
+typedef _Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
+LONG NTAPI PH_AVL_TREE_COMPARE_FUNCTION(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
     );
+typedef PH_AVL_TREE_COMPARE_FUNCTION* PPH_AVL_TREE_COMPARE_FUNCTION;
 
 typedef struct _PH_AVL_TREE
 {
@@ -5001,11 +5019,13 @@ PhPredecessorElementAvlTree(
     _In_ PPH_AVL_LINKS Element
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_AVL_TREE_CALLBACK)(
+typedef _Function_class_(PH_ENUM_AVL_TREE_CALLBACK)
+BOOLEAN NTAPI PH_ENUM_AVL_TREE_CALLBACK(
     _In_ PPH_AVL_TREE Tree,
     _In_ PPH_AVL_LINKS Element,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_AVL_TREE_CALLBACK *PPH_ENUM_AVL_TREE_CALLBACK;
 
 PHLIBAPI
 VOID

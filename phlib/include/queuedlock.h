@@ -62,7 +62,7 @@ typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
     ULONG Flags;
 } PH_QUEUED_WAIT_BLOCK, *PPH_QUEUED_WAIT_BLOCK;
 
-static_assert((sizeof(PH_QUEUED_WAIT_BLOCK) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
+static_assert((sizeof(PH_QUEUED_WAIT_BLOCK) % MEMORY_ALLOCATION_ALIGNMENT) == 0, "PH_QUEUED_WAIT_BLOCK alignment invalid");
 
 BOOLEAN PhQueuedLockInitialization(
     VOID

@@ -231,7 +231,7 @@ BcdExportStore(
     _In_ PCUNICODE_STRING BcdFilePath
     );
 
-#if (PHNT_VERSION > PHNT_WIN11)
+#if (PHNT_VERSION > PHNT_WINDOWS_11)
 /**
  * Exports the BCD store to a file with additional flags.
  *

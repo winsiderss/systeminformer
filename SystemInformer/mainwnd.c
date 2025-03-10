@@ -643,11 +643,17 @@ VOID PhMwpOnSettingChange(
     _In_opt_ PCWSTR Metric
     )
 {
-    PhInitializeFont(WindowHandle, 0);
+    {
+        HFONT oldFont = PhApplicationFont;
+        PhApplicationFont = PhInitializeFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
+    }
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont(WindowHandle, 0);
+        HFONT oldFont = PhMonospaceFont;
+        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
     }
 
     if (Action == 0 && Metric)
@@ -4415,12 +4421,12 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     }
     else
     {
-        PhInitializeMonospaceFont(hwnd, LayoutWindowDpi);
+        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
         return;
     }
 
     PhMonospaceFont = newFont;
-
     if (oldFont) DeleteFont(oldFont);
 }
 

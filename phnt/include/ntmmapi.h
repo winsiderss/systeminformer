@@ -716,7 +716,7 @@ NtAllocateVirtualMemory(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 _Must_inspect_result_
 _When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
@@ -785,7 +785,7 @@ NtWow64ReadVirtualMemory64(
     _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Reads virtual memory from a process with extended options.
  *
@@ -1018,7 +1018,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1076,7 +1076,7 @@ NtCreateSection(
     _In_opt_ HANDLE FileHandle
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1118,7 +1118,7 @@ NtMapViewOfSection(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1143,7 +1143,7 @@ NtUnmapViewOfSection(
     _In_opt_ PVOID BaseAddress
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1332,7 +1332,7 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1400,7 +1400,7 @@ NtAllocateUserPhysicalPages(
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1506,7 +1506,7 @@ NtFlushWriteBuffer(
 // Enclave support
 //
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS

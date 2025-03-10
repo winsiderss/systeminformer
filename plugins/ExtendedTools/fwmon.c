@@ -578,7 +578,7 @@ PPH_STRING EtFwGetNameFromAddress(
 
     switch (Address->Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
                 return NULL;
@@ -593,10 +593,10 @@ PPH_STRING EtFwGetNameFromAddress(
                 dnsLocalQuery = TRUE;
             }
 
-            addressReverseString = PhDnsReverseLookupNameFromAddress(PH_IPV4_NETWORK_TYPE, &Address->InAddr);
+            addressReverseString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV4, &Address->InAddr);
         }
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
                 return NULL;
@@ -609,7 +609,7 @@ PPH_STRING EtFwGetNameFromAddress(
                 dnsLocalQuery = TRUE;
             }
 
-            addressReverseString = PhDnsReverseLookupNameFromAddress(PH_IPV6_NETWORK_TYPE, &Address->In6Addr);
+            addressReverseString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV6, &Address->In6Addr);
         }
         break;
     }
@@ -1157,7 +1157,7 @@ BOOLEAN EtFwLookupAddressClass(
 {
     switch (Address->Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             PIN_ADDR inAddr = (PIN_ADDR)&Address->Ipv4;
 
@@ -1211,7 +1211,7 @@ BOOLEAN EtFwLookupAddressClass(
             }
         }
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             PIN6_ADDR inAddr6 = (PIN6_ADDR)&Address->Ipv6;
 
@@ -1266,7 +1266,7 @@ BOOLEAN EtFwLookupAddressScope(
 {
     switch (Address->Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             switch (Ipv4AddressScope((PUCHAR)&Address->Ipv4))
             {
@@ -1315,7 +1315,7 @@ BOOLEAN EtFwLookupAddressScope(
             }
         }
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             switch (Ipv6AddressScope((PUCHAR)&Address->Ipv6))
             {
@@ -1777,8 +1777,8 @@ VOID CALLBACK EtFwEventCallback(
         {
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
-                entry.LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                entry.LocalEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.localAddrV4);
+                entry.LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+                entry.LocalEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEvent->header.localAddrV4);
             }
 
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
@@ -1788,8 +1788,8 @@ VOID CALLBACK EtFwEventCallback(
 
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
-                entry.RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                entry.RemoteEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.remoteAddrV4);
+                entry.RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+                entry.RemoteEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEvent->header.remoteAddrV4);
             }
 
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
@@ -1801,7 +1801,7 @@ VOID CALLBACK EtFwEventCallback(
         {
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
-                entry.LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                entry.LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
                 memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
             }
 
@@ -1812,7 +1812,7 @@ VOID CALLBACK EtFwEventCallback(
 
             if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
-                entry.RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                entry.RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
                 memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEvent->header.remoteAddrV6.byteArray16, 16);
             }
 

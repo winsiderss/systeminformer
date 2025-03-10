@@ -139,7 +139,13 @@ NtCallbackReturn(
     _In_ NTSTATUS Status
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+/**
+ * The NtFlushProcessWriteBuffers routine flushes the write queue of each processor that is running a thread of the current process.
+ *
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-flushprocesswritebuffers
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

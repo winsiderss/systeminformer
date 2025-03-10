@@ -792,17 +792,17 @@ typedef struct _PEB
 } PEB, * PPEB;
 
 #ifdef _WIN64
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
-//static_assert(sizeof(PEB) == 0x7B0); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x7B8); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x7d0); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x7B0, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x7B8, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x7C8, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x7d0, "Size of PEB is incorrect"); // WIN11
 #else
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
-//static_assert(sizeof(PEB) == 0x468); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x470); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x488); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x468, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x470, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x480, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x488, "Size of PEB is incorrect"); // WIN11
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -1278,10 +1278,10 @@ typedef struct _TEB
 } TEB, *PTEB;
 
 #ifdef _WIN64
-//static_assert(sizeof(TEB) == 0x1850); // WIN11
+//static_assert(sizeof(TEB) == 0x1850, "Size of TEB is incorrect"); // WIN11
 static_assert(sizeof(TEB) == 0x1878, "Size of TEB is incorrect"); // 24H2
 #else
-//static_assert(sizeof(TEB) == 0x1018); // WIN11
+//static_assert(sizeof(TEB) == 0x1018, "Size of TEB is incorrect"); // WIN11
 static_assert(sizeof(TEB) == 0x1038, "Size of TEB is incorrect"); // 24H2
 #endif
 

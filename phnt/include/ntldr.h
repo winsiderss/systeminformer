@@ -262,7 +262,7 @@ LdrGetDllHandleEx(
     _Out_ PVOID *DllHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -273,7 +273,7 @@ LdrGetDllHandleByMapping(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -285,7 +285,7 @@ LdrGetDllHandleByName(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -346,7 +346,7 @@ LdrGetProcedureAddress(
 // rev
 #define LDR_GET_PROCEDURE_ADDRESS_DONT_RECORD_FORWARDER 0x00000001
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -369,7 +369,7 @@ LdrGetKnownDllSectionHandle(
     _Out_ PHANDLE Section
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -443,7 +443,7 @@ LdrProcessRelocationBlock(
     _In_ LONG_PTR Diff
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
 PIMAGE_BASE_RELOCATION
 NTAPI
@@ -509,7 +509,7 @@ typedef struct _LDR_VERIFY_IMAGE_INFO
     USHORT ImageCharacteristics;
 } LDR_VERIFY_IMAGE_INFO, *PLDR_VERIFY_IMAGE_INFO;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -520,7 +520,7 @@ LdrVerifyImageMatchesChecksumEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 NTSYSAPI
 NTSTATUS
@@ -569,7 +569,7 @@ VOID NTAPI LDR_DLL_NOTIFICATION_FUNCTION(
     );
 typedef LDR_DLL_NOTIFICATION_FUNCTION* PLDR_DLL_NOTIFICATION_FUNCTION;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Registers for notification when a DLL is first loaded. This notification occurs before dynamic linking takes place.
  *
@@ -622,7 +622,7 @@ typedef struct _LDR_FAILURE_DATA
     WCHAR AdditionalInfo[0x20];
 } LDR_FAILURE_DATA, *PLDR_FAILURE_DATA;
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 NTSYSAPI
 PLDR_FAILURE_DATA
 NTAPI
@@ -676,7 +676,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 } PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
 // rev
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
 
@@ -715,7 +715,7 @@ typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
 } RTL_SCPCFG_NTDLL_EXPORTS, *PRTL_SCPCFG_NTDLL_EXPORTS;
 
 // rev
-#if (PHNT_VERSION >= PHNT_WIN11_24H2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
 NTSYSAPI RTL_SCPCFG_NTDLL_EXPORTS RtlpScpCfgNtdllExports;
 #endif
 
@@ -723,7 +723,7 @@ NTSYSAPI RTL_SCPCFG_NTDLL_EXPORTS RtlpScpCfgNtdllExports;
 // Load as data table
 //
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // private
 NTSYSAPI
@@ -823,7 +823,7 @@ LdrFindResourceDirectory_U(
     _Out_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 /**
  * The LdrResFindResource function finds a resource in a DLL.
  *
@@ -1201,7 +1201,7 @@ PVOID NTAPI DELAYLOAD_FAILURE_SYSTEM_ROUTINE(
     );
 typedef DELAYLOAD_FAILURE_SYSTEM_ROUTINE* PDELAYLOAD_FAILURE_SYSTEM_ROUTINE;
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev from QueryOptionalDelayLoadedAPI
 /**
  * Determines whether the specified function in a delay-loaded DLL is available on the system.
@@ -1224,7 +1224,7 @@ LdrQueryOptionalDelayLoadedAPI(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev from ResolveDelayLoadedAPI
 /**
  * Locates the target function of the specified import and replaces the function pointer in the import thunk with the target of the function implementation.
@@ -1337,7 +1337,7 @@ LdrShutdownThread(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -1347,7 +1347,7 @@ LdrSetImplicitPathOptions(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 #ifdef PHNT_INLINE_TYPEDEFS
 /**
  * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
@@ -1379,7 +1379,7 @@ LdrControlFlowGuardEnforced(
 #endif
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 /**
  * The LdrControlFlowGuardEnforcedWithExportSuppression function checks if Control Flow Guard is
  * enforced with export suppression.
@@ -1399,7 +1399,7 @@ LdrControlFlowGuardEnforcedWithExportSuppression(
 }
 #endif
 
-#if (PHNT_VERSION >= PHNT_19H1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_19H1)
 // rev
 NTSYSAPI
 BOOLEAN
@@ -1409,7 +1409,7 @@ LdrIsModuleSxsRedirected(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -1441,7 +1441,7 @@ typedef struct _LDR_SOFTWARE_ENCLAVE
     PLDR_DATA_TABLE_ENTRY BCryptPrimitivesModule;
 } LDR_SOFTWARE_ENCLAVE, *PLDR_SOFTWARE_ENCLAVE;
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev from CreateEnclave
 /**
@@ -1597,7 +1597,7 @@ LdrSetDllManifestProber(
     _In_ PVOID Routine
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
 #endif
 

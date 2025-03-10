@@ -561,7 +561,7 @@ BOOLEAN NetworkTreeFilterCallback(
     }
 
     {
-        if (FlagOn(networkNode->NetworkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
+        if (FlagOn(networkNode->NetworkItem->ProtocolType, PH_PROTOCOL_TYPE_TCP))
         {
             PCPH_STRINGREF stateName;
 

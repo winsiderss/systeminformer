@@ -545,7 +545,7 @@ typedef struct _POWER_REQUEST
             ULONG PowerRequestCount[POWER_REQUEST_SUPPORTED_TYPES_V1];
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V1;
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
         struct
         {
             ULONG SupportedRequestMask;
@@ -553,7 +553,7 @@ typedef struct _POWER_REQUEST
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V2;
 #endif
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
         struct
         {
             ULONG SupportedRequestMask;
@@ -561,7 +561,7 @@ typedef struct _POWER_REQUEST
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V3;
 #endif
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
         struct
         {
             ULONG SupportedRequestMask;
@@ -917,7 +917,7 @@ NtSetThreadExecutionState(
     _Out_ EXECUTION_STATE *PreviousFlags
     );
 
-#if (PHNT_VERSION < PHNT_WIN7)
+#if (PHNT_VERSION < PHNT_WINDOWS_7)
 /**
  * Requests the system resume latency.
  *

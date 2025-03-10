@@ -1616,7 +1616,7 @@ PPH_STRING PhDnsReverseLookupNameFromAddress(
 
     switch (Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             static CONST PH_STRINGREF reverseLookupDomainName = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
             PIN_ADDR inAddrV4 = Address;
@@ -1654,7 +1654,7 @@ PPH_STRING PhDnsReverseLookupNameFromAddress(
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
             }
         }
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             static CONST PH_STRINGREF reverseLookupDomainName = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
             PIN6_ADDR inAddrV6 = Address;

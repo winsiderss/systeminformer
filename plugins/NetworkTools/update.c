@@ -211,35 +211,10 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
-
-    // Check http request status.
-
-    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
-
-    if (httpStatus != PH_HTTP_STATUS_OK)
-    {
-        switch (httpStatus)
-        {
-        case 401:
-            status = STATUS_ACCESS_DENIED;
-            break;
-        default:
-            status = STATUS_UNEXPECTED_NETWORK_ERROR;
-            break;
-        }
-
-        goto CleanupExit;
-    }
-
     if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &httpContentLength)))
         goto CleanupExit;
-
-    if (httpContentLength == 0)
-    {
-        status = STATUS_DATA_LATE_ERROR;
-        goto CleanupExit;
-    }
 
     // Update status message.
 
@@ -311,7 +286,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     status = PhCreateFileWin32Ex(
         &tempFileHandle,
         PhGetString(httpHeaderFileName),
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_GENERIC_WRITE,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,

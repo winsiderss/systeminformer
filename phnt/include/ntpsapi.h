@@ -59,7 +59,7 @@
 #define PROCESS_SET_LIMITED_INFORMATION 0x2000
 #endif
 #ifndef PROCESS_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
 #else
 #define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
@@ -110,7 +110,7 @@
 #define THREAD_RESUME 0x1000
 #endif
 #ifndef THREAD_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
 #else
 #define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3FF)
@@ -137,7 +137,7 @@
 #define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
 #endif
 #ifndef JOB_OBJECT_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
 #else
 #define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
@@ -1256,9 +1256,11 @@ typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
 #define POWER_THROTTLING_PROCESS_CURRENT_VERSION 1
+
 #define POWER_THROTTLING_PROCESS_EXECUTION_SPEED 0x1
 #define POWER_THROTTLING_PROCESS_DELAYTIMERS 0x2
 #define POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION 0x4 // since WIN11
+
 #define POWER_THROTTLING_PROCESS_VALID_FLAGS \
     ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED | POWER_THROTTLING_PROCESS_DELAYTIMERS | POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
 
@@ -2013,7 +2015,7 @@ NtSetInformationProcess(
 
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves a handle to the next process in the system.
  *
@@ -2072,7 +2074,7 @@ typedef enum _PROCESS_STATE_CHANGE_TYPE
     ProcessStateChangeMax,
 } PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a process.
  *
@@ -2125,7 +2127,7 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
     ThreadStateChangeMax,
 } THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a thread.
  *
@@ -2267,7 +2269,7 @@ NtResumeThread(
     _Out_opt_ PULONG PreviousSuspendCount
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2281,7 +2283,7 @@ NtGetCurrentProcessorNumber(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2405,7 +2407,7 @@ NtTestAlert(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
  * Sends an alert to the specified thread.
@@ -2421,7 +2423,7 @@ NtAlertThreadByThreadId(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Sends an alert to the specified thread by its thread ID, with an optional lock.
  *
@@ -2457,7 +2459,7 @@ NtAlertMultipleThreadByThreadId(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
  * Waits for an alert to be delivered to the specified thread.
@@ -2603,7 +2605,7 @@ NtQueueApcThread(
  */
 #define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
@@ -2645,7 +2647,7 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
 #define QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC 0x00000001
 #define QUEUE_USER_APC_FLAGS_CALLBACK_DATA_CONTEXT 0x00010000 // APC_CALLBACK_DATA_CONTEXT
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Queues an Asynchronous Procedure Call (APC) to a specified thread.
  *
@@ -3197,7 +3199,7 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -3679,7 +3681,7 @@ NtCreateJobSet(
     _In_ ULONG Flags
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3704,7 +3706,7 @@ typedef enum _MEMORY_RESERVE_TYPE
     MemoryReserveTypeMax
 } MEMORY_RESERVE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Allocates a memory reserve object.
  *
@@ -3777,7 +3779,7 @@ typedef enum _PSSNT_QUERY_INFORMATION_CLASS
 
 #define PSSNT_SIGNATURE_PSSD 'PSSD' // 0x50535344
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
 /**
  * Captures a snapshot of the specified process.
@@ -3888,7 +3890,7 @@ typedef struct _NTPSS_MEMORY_BULK_INFORMATION
     PVOID NextValidAddress;
 } NTPSS_MEMORY_BULK_INFORMATION, *PNTPSS_MEMORY_BULK_INFORMATION;
 
-#if (PHNT_VERSION >= PHNT_20H1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
 /**
  * Captures virtual address space bulk information for a process.

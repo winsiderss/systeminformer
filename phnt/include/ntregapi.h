@@ -609,7 +609,7 @@ NtCreateKey(
     _Out_opt_ PULONG Disposition
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Creates a new registry key or opens an existing one, and it associates the key with a transaction.
  *
@@ -656,7 +656,7 @@ NtOpenKey(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Opens an existing registry key and associates the key with a transaction.
  *
@@ -677,7 +677,7 @@ NtOpenKeyTransacted(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Opens an existing registry key with extended options.
  *
@@ -990,7 +990,7 @@ NtLoadKey2(
     _In_ ULONG Flags
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Loads a registry key from a file with extended options.
  *
@@ -1019,7 +1019,7 @@ NtLoadKeyEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_20H1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev by tyranid
 /**
  * Loads a registry key from a file with extended parameters.
@@ -1145,7 +1145,7 @@ NtUnloadKey(
     _In_ POBJECT_ATTRIBUTES TargetKey
     );
 
-#if PHNT_VERSION >= PHNT_WS03
+#if PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 /**
  * Unloads a registry key with additional flags.
  *
@@ -1259,7 +1259,7 @@ NtQueryOpenSubKeys(
     _Out_ PULONG HandleCount
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Queries the open subkeys of a registry key with additional information.
  *
@@ -1322,7 +1322,7 @@ NtLockProductActivationKeys(
     _Out_opt_ ULONG *pSafeMode
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Freezes the registry and prevents changes from being flushed to disk.
  *
@@ -1337,7 +1337,7 @@ NtFreezeRegistry(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Thaws the registry and enables flushing changes to disk.
  *
@@ -1351,7 +1351,7 @@ NtThawRegistry(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
  * Creates a registry transaction.
  *
@@ -1369,7 +1369,7 @@ NTSTATUS NtCreateRegistryTransaction(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
  * Opens a registry transaction.
  *
@@ -1385,7 +1385,7 @@ NTSTATUS NtOpenRegistryTransaction(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
  * Commits a registry transaction.
  *
@@ -1399,7 +1399,7 @@ NTSTATUS NtCommitRegistryTransaction(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
  * Rolls back a registry transaction.
  *

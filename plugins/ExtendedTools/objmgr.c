@@ -17,6 +17,7 @@
 
 #include <kphcomms.h>
 #include <kphuser.h>
+#include <ntuser.h>
 
 static PH_STRINGREF EtObjectManagerRootDirectoryObject = PH_STRINGREF_INIT(L"\\"); // RtlNtPathSeparatorString
 static PH_STRINGREF EtObjectManagerUserDirectoryObject = PH_STRINGREF_INIT(L"??"); // RtlDosDevicesPrefix
@@ -1572,19 +1573,7 @@ NTSTATUS EtObjectManagerOpenHandle(
         case EtObjectAlpcPort:
             {
                 static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                static NTSTATUS (NTAPI* NtAlpcConnectPortEx_I)(
-                    _Out_ PHANDLE PortHandle,
-                    _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
-                    _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
-                    _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
-                    _In_ ULONG Flags,
-                    _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
-                    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-                    _Inout_opt_ PSIZE_T BufferLength,
-                    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
-                    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
-                    _In_opt_ PLARGE_INTEGER Timeout
-                    ) = NULL;
+                static __typeof__(&NtAlpcConnectPortEx) NtAlpcConnectPortEx_I = NULL;
                 LARGE_INTEGER timeout;
 
                 if (PhBeginInitOnce(&initOnce))
@@ -1754,10 +1743,7 @@ NTSTATUS EtObjectManagerOpenHandle(
         case EtObjectWindowStation:
             {
                 static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                static HWINSTA (NTAPI* NtUserOpenWindowStation_I)(
-                    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-                    _In_ ACCESS_MASK DesiredAccess
-                    );
+                static __typeof__(&NtUserOpenWindowStation) NtUserOpenWindowStation_I = NULL;
                 HANDLE windowStationHandle;
 
                 if (PhBeginInitOnce(&initOnce))
@@ -1810,11 +1796,7 @@ NTSTATUS EtObjectManagerOpenHandle(
         case EtObjectMemoryPartition:
             {
                 static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                static NTSTATUS (NTAPI *NtOpenPartition_I)(
-                    _Out_ PHANDLE PartitionHandle,
-                    _In_ ACCESS_MASK DesiredAccess,
-                    _In_ POBJECT_ATTRIBUTES ObjectAttributes
-                    );
+                static __typeof__(&NtOpenPartition) NtOpenPartition_I = NULL;
 
                 if (PhBeginInitOnce(&initOnce))
                 {
@@ -1831,11 +1813,7 @@ NTSTATUS EtObjectManagerOpenHandle(
         case EtObjectCpuPartition:
             {
                 static PH_INITONCE initOnce = PH_INITONCE_INIT;
-                static NTSTATUS(NTAPI * NtOpenCpuPartition_I)(
-                    _Out_ PHANDLE CpuPartitionHandle,
-                    _In_ ACCESS_MASK DesiredAccess,
-                    _In_ POBJECT_ATTRIBUTES ObjectAttributes
-                    );
+                static __typeof__(&NtOpenCpuPartition) NtOpenCpuPartition_I = NULL;
 
                 if (PhBeginInitOnce(&initOnce))
                 {

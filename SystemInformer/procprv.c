@@ -4025,9 +4025,12 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
                 &FileName->sr,
                 NativeFileName,
                 0,
+                PhGetSystemMetrics(SM_CXICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYICON, SystemDpi),
+                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
                 &largeIcon,
-                &smallIcon,
-                SystemDpi
+                &smallIcon
                 );
         }
     }
@@ -4037,9 +4040,12 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             &FileName->sr,
             NativeFileName,
             0,
+            PhGetSystemMetrics(SM_CXICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYICON, SystemDpi),
+            PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
             &largeIcon,
-            &smallIcon,
-            SystemDpi
+            &smallIcon
             );
     }
 
