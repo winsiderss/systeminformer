@@ -1,4 +1,4 @@
-﻿CertCloseStore
+CertCloseStore
 CertOpenStore
 CreateEnvironmentBlock
 DestroyEnvironmentBlock
@@ -35,3 +35,9 @@ INVALID_HANDLE_VALUE
 S_OK
 TRUST_E_SUBJECT_FORM_UNKNOWN
 WIN32_FILE_ATTRIBUTE_DATA
+IMAGE_EXPORT_DIRECTORY
+ImageDirectoryEntryToData
+ImageDirectoryEntryToDataEx
+ImageRvaToVa
+MapAndLoad
+UnMapAndLoad

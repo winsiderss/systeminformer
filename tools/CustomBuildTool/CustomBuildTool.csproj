@@ -120,6 +120,7 @@
     <Using Include="Windows.Win32.Storage.FileSystem" />
     <Using Include="Windows.Win32.System.Diagnostics.Debug" />
     <Using Include="Windows.Win32.System.Registry" />
+    <Using Include="Windows.Win32.System.SystemServices" />
     <Using Include="Windows.Win32.System.Threading" />
   </ItemGroup>
   <ItemGroup>

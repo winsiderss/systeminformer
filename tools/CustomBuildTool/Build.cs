@@ -371,6 +371,49 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool BuildValidateExportDefinitions(BuildFlags Flags)
+        {
+            string[] Build_Wow64_Files =
+            [
+                "SystemInformer.exe",
+            ];
+
+            foreach (string file in Build_Wow64_Files)
+            {
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
+                            return false;
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
+                            return false;
+                    }
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
+                            return false;
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
+                            return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
         public static bool BuildPublicHeaderFiles()
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);

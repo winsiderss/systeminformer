@@ -737,6 +737,53 @@ namespace CustomBuildTool
 
             return fileTime;
         }
+
+        public static bool ValidateImageExports(string FileName)
+        {
+            LOADED_IMAGE loadedMappedImage = default;
+            IMAGE_EXPORT_DIRECTORY* exportDirectory;
+
+            try
+            {
+                if (!PInvoke.MapAndLoad(FileName, null, out LOADED_IMAGE LoadedImage, false, true))
+                    return false;
+
+                try
+                {
+                    exportDirectory = (IMAGE_EXPORT_DIRECTORY*)PInvoke.ImageDirectoryEntryToData(
+                        LoadedImage.MappedAddress, false,
+                        IMAGE_DIRECTORY_ENTRY.IMAGE_DIRECTORY_ENTRY_EXPORT, out uint DirectorySize
+                        );
+
+                    if (exportDirectory != null)
+                    {
+                        if (exportDirectory->NumberOfNames == 0)
+                            return true;
+
+                        Program.PrintColorMessage("Exported functions missing from module export definition file: ", ConsoleColor.Yellow);
+
+                        uint* exportNameTable = (uint*)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportDirectory->AddressOfNames, null);
+
+                        for (uint i = 0; i < exportDirectory->NumberOfNames; i++)
+                        {
+                            var exportName = Marshal.PtrToStringUTF8((nint)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportNameTable[i], null));
+
+                            Program.PrintColorMessage($"{i}: {exportName}", ConsoleColor.Yellow);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage($"ValidateImageExports: {ex}", ConsoleColor.Red);
+                }
+            }
+            finally
+            {
+                PInvoke.UnMapAndLoad(ref loadedMappedImage);
+            }
+
+            return false;
+        }
     }
 
     public class BuildUpdateRequest
