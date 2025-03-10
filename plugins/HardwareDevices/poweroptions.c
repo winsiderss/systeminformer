@@ -611,7 +611,7 @@ VOID LoadRaplDeviceImages(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG bufferSize;
     PPH_STRING deviceIconPath;
@@ -662,9 +662,9 @@ VOID LoadRaplDeviceImages(
         (INT)index,
         PhGetSystemMetrics(SM_CXICON, dpiValue),
         PhGetSystemMetrics(SM_CYICON, dpiValue),
-        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-        &smallIcon,
+        0,
+        0,
+        &largeIcon,
         NULL
         ))
     {
@@ -676,10 +676,9 @@ VOID LoadRaplDeviceImages(
             1
             );
 
-        PhImageListAddIcon(imageList, smallIcon);
-        DestroyIcon(smallIcon);
-
+        PhImageListAddIcon(imageList, largeIcon);
         ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+        DestroyIcon(largeIcon);
     }
 
     PhDereferenceObject(deviceIconPath);

@@ -595,7 +595,7 @@ VOID LoadDiskDriveImages(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG bufferSize;
     PPH_STRING deviceIconPath;
@@ -645,9 +645,9 @@ VOID LoadDiskDriveImages(
         (INT)index,
         PhGetSystemMetrics(SM_CXICON, dpiValue),
         PhGetSystemMetrics(SM_CYICON, dpiValue),
-        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-        &smallIcon,
+        0,
+        0,
+        &largeIcon,
         NULL
         ))
     {
@@ -659,10 +659,9 @@ VOID LoadDiskDriveImages(
             1
             );
 
-        PhImageListAddIcon(imageList, smallIcon);
-        DestroyIcon(smallIcon);
-
+        PhImageListAddIcon(imageList, largeIcon);
         ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+        DestroyIcon(largeIcon);
     }
 
     PhDereferenceObject(deviceIconPath);

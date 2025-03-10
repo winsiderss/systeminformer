@@ -768,7 +768,7 @@ VOID LoadNetworkAdapterImages(
     _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
@@ -823,7 +823,17 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(
+                    &dllIconPath->sr,
+                    FALSE,
+                    (INT)index,
+                    PhGetSystemMetrics(SM_CXICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYICON, dpiValue),
+                    0,
+                    0,
+                    &largeIcon,
+                    NULL
+                    ))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
                         PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CXSMICON)
@@ -833,9 +843,9 @@ VOID LoadNetworkAdapterImages(
                         1
                         );
 
-                    PhImageListAddIcon(imageList, smallIcon);
+                    PhImageListAddIcon(imageList, largeIcon);
                     ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
-                    DestroyIcon(smallIcon);
+                    DestroyIcon(largeIcon);
                 }
 
                 PhDereferenceObject(dllIconPath);

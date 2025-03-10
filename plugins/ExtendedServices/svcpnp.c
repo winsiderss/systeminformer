@@ -346,7 +346,7 @@ VOID EspLoadDeviceInstanceImage(
     _In_ INT ItemIndex
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
@@ -407,15 +407,15 @@ VOID EspLoadDeviceInstanceImage(
                     (INT)index,
                     PhGetSystemMetrics(SM_CXICON, dpiValue),
                     PhGetSystemMetrics(SM_CYICON, dpiValue),
-                    PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                    PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-                    &smallIcon,
+                    0,
+                    0,
+                    &largeIcon,
                     NULL
                     ))
                 {
-                    INT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
+                    INT imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
                     PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
-                    DestroyIcon(smallIcon);
+                    DestroyIcon(largeIcon);
                 }
 
                 PhDereferenceObject(dllIconPath);
