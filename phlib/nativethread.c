@@ -192,7 +192,6 @@ NTSTATUS PhTerminateThread(
     return status;
 }
 
-
 /*
  * Retrieves the context of a thread.
  *
@@ -211,6 +210,32 @@ NTSTATUS PhGetContextThread(
     status = NtGetContextThread(
         ThreadHandle,
         ThreadContext
+        );
+
+    return status;
+}
+
+NTSTATUS PhGetThreadTebInformationAtomic(
+    _In_ HANDLE ThreadHandle,
+    _Inout_bytecount_(BytesToRead) PVOID TebInformation,
+    _In_ ULONG TebOffset,
+    _In_ ULONG BytesToRead
+    )
+{
+    NTSTATUS status;
+    THREAD_TEB_INFORMATION threadInfo;
+    ULONG returnLength;
+
+    threadInfo.TebInformation = TebInformation;
+    threadInfo.TebOffset = TebOffset; // FIELD_OFFSET(TEB, Value);
+    threadInfo.BytesToRead = BytesToRead; // RTL_FIELD_SIZE(TEB, Value);
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadTebInformationAtomic,
+        &threadInfo,
+        sizeof(THREAD_TEB_INFORMATION),
+        &returnLength
         );
 
     return status;
