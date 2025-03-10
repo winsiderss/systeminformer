@@ -656,7 +656,17 @@ VOID LoadRaplDeviceImages(
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
 
-    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(
+        &deviceIconPath->sr,
+        FALSE,
+        (INT)index,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        &smallIcon,
+        NULL
+        ))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)

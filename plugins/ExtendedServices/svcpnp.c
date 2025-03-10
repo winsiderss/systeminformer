@@ -401,7 +401,17 @@ VOID EspLoadDeviceInstanceImage(
             {
                 dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
-                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(
+                    &dllIconPath->sr,
+                    FALSE,
+                    (INT)index,
+                    PhGetSystemMetrics(SM_CXICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYICON, dpiValue),
+                    PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                    &smallIcon,
+                    NULL
+                    ))
                 {
                     INT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
                     PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
