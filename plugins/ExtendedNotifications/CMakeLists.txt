@@ -104,3 +104,23 @@ if(MSVC)
     endif()
 endif()
 
+
+################################################################################
+# Include directories
+################################################################################
+if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        "../include",
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/include"
+    )
+elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        "../include",
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/include"
+    )
+elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        "../include",
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../sdk/include"
+    )
+endif()

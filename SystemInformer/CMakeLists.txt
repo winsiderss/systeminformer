@@ -391,7 +391,7 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             /utf-8;
             ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
+            /Zc:preprocessor;
         )
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
         target_compile_options(${PROJECT_NAME} PRIVATE
@@ -410,7 +410,7 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             /utf-8;
             ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
+            /Zc:preprocessor;
         )
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         target_compile_options(${PROJECT_NAME} PRIVATE
@@ -430,7 +430,7 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             /utf-8;
             ${DEFAULT_CXX_EXCEPTION_HANDLING};
-            /Zc:preprocessor
+            /Zc:preprocessor;
         )
     endif()
     if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "ARM64")
@@ -446,7 +446,7 @@ if(MSVC)
             /DEBUG;
             /MACHINE:ARM64;
             /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
+            /NATVIS:${CMAKE_SOURCE_DIR}/SystemInformer.natvis;
         )
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
         target_link_options(${PROJECT_NAME} PRIVATE
@@ -461,7 +461,7 @@ if(MSVC)
             /DEBUG;
             /MACHINE:X86;
             /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
+            /NATVIS:${CMAKE_SOURCE_DIR}/SystemInformer.natvis;
         )
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         target_link_options(${PROJECT_NAME} PRIVATE
@@ -476,7 +476,7 @@ if(MSVC)
             /DEBUG;
             /MACHINE:X64;
             /SUBSYSTEM:WINDOWS;
-            /NATVIS:$(SolutionDir)/SystemInformer.natvis;
+            /NATVIS:${CMAKE_SOURCE_DIR}/SystemInformer.natvis;
         )
     endif()
 endif()
