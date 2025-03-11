@@ -111,6 +111,7 @@ EXPORTS
     PhInsertCopyIListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
     PhInvalidateAllProcessNodes
+    PhIsProcessBackground
     PhIsProcessSuspended
     PhLoadSymbolProviderOptions
     PhLogMessageEntry
