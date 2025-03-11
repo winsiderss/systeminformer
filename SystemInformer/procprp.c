@@ -354,7 +354,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 MinimumSize.left = 0;
             }
 
-            return TRUE;
+            return 0;
         }
         break;
     }
