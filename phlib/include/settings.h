@@ -161,6 +161,26 @@ PhSetStringRefSetting(
     );
 
 FORCEINLINE
+LONG
+PhScaleToDisplay(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
+}
+
+FORCEINLINE
+LONG
+PhScaleToDefault(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
+}
+
+FORCEINLINE
 VOID
 PhScalableIntegerPairToScale(
     _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair,

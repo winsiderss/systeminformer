@@ -2656,7 +2656,10 @@ BOOLEAN PhTnpAddColumn(
 
     if (realColumn->DpiScaleOnAdd)
     {
-        realColumn->Width = PhGetDpi(realColumn->Width, Context->WindowDpi);
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            realColumn->Width = PhGetDpi(realColumn->Width, Context->WindowDpi);
+        }
         realColumn->DpiScaleOnAdd = FALSE;
     }
 

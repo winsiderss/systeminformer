@@ -705,15 +705,33 @@ LONG PhGetWindowDpi(
     )
 {
     LONG dpi;
-    RECT windowRect;
 
-    dpi = PhGetDpiValue(WindowHandle, NULL);
-
-    if (dpi == 0)
+    if (WindowsVersion >= WINDOWS_10)
     {
-        if (PhGetWindowRect(WindowHandle, &windowRect))
+        RECT windowRect;
+
+        dpi = PhGetDpiValue(WindowHandle, NULL);
+
+        if (dpi == 0)
         {
-            dpi = PhGetDpiValue(NULL, &windowRect);
+            if (PhGetWindowRect(WindowHandle, &windowRect))
+            {
+                dpi = PhGetDpiValue(NULL, &windowRect);
+            }
+        }
+    }
+    else
+    {
+        HDC screenHdc;
+
+        if (screenHdc = GetDC(WindowHandle))
+        {
+            dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            ReleaseDC(WindowHandle, screenHdc);
+        }
+        else
+        {
+            dpi = USER_DEFAULT_SCREEN_DPI;
         }
     }
 
@@ -780,7 +798,11 @@ LONG PhGetDpiValue(
         {
             dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
             ReleaseDC(NULL, screenHdc);
-            return dpi_x;
+
+            if (dpi_x != 0)
+            {
+                return dpi_x;
+            }
         }
     }
 

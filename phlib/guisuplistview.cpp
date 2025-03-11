@@ -34,7 +34,7 @@ LONG PhAddListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width < 0 ? -Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -59,7 +59,7 @@ LONG PhAddIListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width < 0 ? -Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
