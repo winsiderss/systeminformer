@@ -2300,6 +2300,16 @@ ZwMakeTemporaryObject(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwManageHotPatch(
+    _In_ HOT_PATCH_INFORMATION_CLASS HotPatchInformationClass,
+    _Out_writes_bytes_opt_(HotPatchInformationLength) PVOID HotPatchInformation,
+    _In_ ULONG HotPatchInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwManagePartition(
     _In_ HANDLE TargetHandle,
     _In_opt_ HANDLE SourceHandle,
