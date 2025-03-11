@@ -4331,6 +4331,10 @@ RtlCrc64(
 #define GlobalDataIdQpcData 17
 #define GlobalDataIdQpcBias 18
 
+#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
+typedef ULONG RTL_SYSTEM_GLOBAL_DATA_ID;
+#endif
+
 NTSYSAPI
 ULONG
 NTAPI
