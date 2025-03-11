@@ -57,9 +57,14 @@ BOOLEAN NTAPI PhpZombieProcessesCallback(
     _In_opt_ PVOID Context
     );
 
-PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
+VOID PhZombieProcessesUpdateListView(
+    _In_ PPH_LIST UpdateList
+    );
+
+NTSTATUS PhpCreateProcessItemForZombieProcess(
     _In_ HWND WindowHandle,
-    _In_ PPH_ZOMBIE_PROCESS_ENTRY Entry
+    _In_ PPH_ZOMBIE_PROCESS_ENTRY Entry,
+    _Out_ PPH_PROCESS_ITEM* ProcessItem
     );
 
 static HWND PhZombieProcessesWindowHandle = NULL;
@@ -91,6 +96,75 @@ VOID PhShowZombieProcessesDialog(
         ShowWindow(PhZombieProcessesWindowHandle, SW_SHOW);
     else
         SetForegroundWindow(PhZombieProcessesWindowHandle);
+}
+
+VOID PhZombieProcessesCleanupList(
+    _In_ PPH_LIST UpdateList
+    )
+{
+    if (ProcessesList)
+    {
+        for (ULONG i = 0; i < ProcessesList->Count; i++)
+        {
+            PPH_ZOMBIE_PROCESS_ENTRY entry = ProcessesList->Items[i];
+
+            if (entry->FileName)
+                PhDereferenceObject(entry->FileName);
+
+            PhFree(entry);
+        }
+
+        PhDereferenceObject(ProcessesList);
+    }
+
+    if (UpdateList)
+    {
+        for (ULONG i = 0; i < UpdateList->Count; i++)
+        {
+            PPH_ZOMBIE_PROCESS_ENTRY entry = UpdateList->Items[i];
+
+            if (entry->FileName)
+                PhDereferenceObject(entry->FileName);
+
+            PhFree(entry);
+        }
+
+        PhDereferenceObject(UpdateList);
+    }
+    {
+        PPH_STRING string = PhFormatString(L"%u zombie process(es), %u terminated process(es).",
+            NumberOfZombieProcesses, NumberOfTerminatedProcesses);
+        PhSetDialogItemText(PhZombieProcessesWindowHandle, IDC_DESCRIPTION, string->Buffer);
+        InvalidateRect(GetDlgItem(PhZombieProcessesWindowHandle, IDC_DESCRIPTION), NULL, TRUE);
+        PhDereferenceObject(string);
+    }
+}
+
+ NTSTATUS PhZombieProcessesThread(
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PPH_LIST processList;
+
+    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, FALSE);
+    ListView_DeleteAllItems(PhZombieProcessesListViewHandle);
+    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
+
+    processList = PhCreateList(100);
+
+    status = PhEnumZombieProcesses(
+        ProcessesMethod,
+        PhpZombieProcessesCallback,
+        processList
+        );
+
+    if (PhZombieProcessesWindowHandle)
+        PostMessage(PhZombieProcessesWindowHandle, WM_PH_UPDATE_DIALOG, status, (LPARAM)processList);
+    else
+        PhZombieProcessesCleanupList(processList);
+
+    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK PhpZombieProcessesDlgProc(
@@ -162,6 +236,8 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhSaveWindowPlacementToSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"ZombieProcessesListViewColumns", PhZombieProcessesListViewHandle);
 
+            PhZombieProcessesCleanupList(NULL);
+
             PhZombieProcessesWindowHandle = NULL;
         }
         break;
@@ -177,27 +253,11 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                 break;
             case IDC_SCAN:
                 {
-                    NTSTATUS status;
                     PPH_STRING method;
 
                     method = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_METHOD)));
 
-                    if (ProcessesList)
-                    {
-                        ULONG i;
-
-                        for (i = 0; i < ProcessesList->Count; i++)
-                        {
-                            PPH_ZOMBIE_PROCESS_ENTRY entry = ProcessesList->Items[i];
-
-                            if (entry->FileName)
-                                PhDereferenceObject(entry->FileName);
-
-                            PhFree(entry);
-                        }
-
-                        PhDereferenceObject(ProcessesList);
-                    }
+                    PhZombieProcessesCleanupList(NULL);
 
                     ProcessesList = PhCreateList(40);
 
@@ -217,28 +277,9 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                     NumberOfZombieProcesses = 0;
                     NumberOfTerminatedProcesses = 0;
 
-                    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, FALSE);
-                    ListView_DeleteAllItems(PhZombieProcessesListViewHandle);
-                    status = PhEnumZombieProcesses(
-                        ProcessesMethod,
-                        PhpZombieProcessesCallback,
-                        NULL
-                        );
-                    ExtendedListView_SortItems(PhZombieProcessesListViewHandle);
-                    ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_SCAN), FALSE);
 
-                    if (NT_SUCCESS(status))
-                    {
-                        PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION,
-                            PhaFormatString(L"%u zombie process(es), %u terminated process(es).",
-                            NumberOfZombieProcesses, NumberOfTerminatedProcesses)->Buffer
-                            );
-                        InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);
-                    }
-                    else
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to perform the scan", status, 0);
-                    }
+                    PhCreateThread2(PhZombieProcessesThread, NULL);
                 }
                 break;
             case IDC_TERMINATE:
@@ -423,16 +464,19 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
                         if (entry)
                         {
+                            NTSTATUS status;
                             PPH_PROCESS_ITEM processItem;
 
-                            if (processItem = PhpCreateProcessItemForZombieProcess(hwndDlg, entry))
+                            status = PhpCreateProcessItemForZombieProcess(hwndDlg, entry, &processItem);
+
+                            if (NT_SUCCESS(status))
                             {
                                 SystemInformer_ShowProcessProperties(processItem);
                                 PhDereferenceObject(processItem);
                             }
                             else
                             {
-                                PhShowStatus(hwndDlg, L"Unable to create a process structure for the selected process.", STATUS_NO_MEMORY, 0);
+                                PhShowStatus(hwndDlg, L"Unable to create a process structure for the selected process.", status, 0);
                             }
                         }
                     }
@@ -513,6 +557,34 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             }
         }
         break;
+    case WM_PH_UPDATE_DIALOG:
+        {
+            NTSTATUS status = (NTSTATUS)wParam;
+            PPH_LIST list = (PPH_LIST)lParam;
+
+            ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, FALSE);
+            ListView_DeleteAllItems(PhZombieProcessesListViewHandle);
+            PhZombieProcessesUpdateListView(list);
+            ExtendedListView_SortItems(PhZombieProcessesListViewHandle);
+            ExtendedListView_SetRedraw(PhZombieProcessesListViewHandle, TRUE);
+
+            if (NT_SUCCESS(status))
+            {
+                PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhaFormatString(
+                    L"%u zombie process(es), %u terminated process(es).",
+                    NumberOfZombieProcesses,
+                    NumberOfTerminatedProcesses
+                    )->Buffer);
+                InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);
+            }
+            else
+            {
+                PhShowStatus(hwndDlg, L"Unable to perform the scan", status, 0);
+            }
+
+            EnableWindow(GetDlgItem(hwndDlg, IDC_SCAN), TRUE);
+        }
+        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -550,7 +622,7 @@ COLORREF NTAPI PhpZombieProcessesColorFunction(
     {
     case UnknownProcess:
     case ZombieProcess:
-        return RGB(0xff, 0x00, 0x00);
+        return RGB(229, 186, 208);
     case TerminatedProcess:
         return RGB(0x77, 0x77, 0x77);
     }
@@ -560,40 +632,68 @@ COLORREF NTAPI PhpZombieProcessesColorFunction(
 
 BOOLEAN NTAPI PhpZombieProcessesCallback(
     _In_ PPH_ZOMBIE_PROCESS_ENTRY Process,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_ZOMBIE_PROCESS_ENTRY entry;
-    INT lvItemIndex;
-    WCHAR pidString[PH_INT32_STR_LEN_1];
+
+    for (ULONG i = 0; i < ((PPH_LIST)Context)->Count; i++)
+    {
+        PPH_ZOMBIE_PROCESS_ENTRY item = ((PPH_LIST)Context)->Items[i];
+
+        if (item->ProcessId == Process->ProcessId)
+        {
+            return TRUE; // duplicate
+        }
+    }
 
     entry = PhAllocateCopy(Process, sizeof(PH_ZOMBIE_PROCESS_ENTRY));
 
     if (entry->FileName)
         PhReferenceObject(entry->FileName);
 
-    PhAddItemList(ProcessesList, entry);
-
-    lvItemIndex = PhAddListViewItem(
-        PhZombieProcessesListViewHandle,
-        MAXINT,
-        PhGetStringOrDefault(PH_AUTO(PhGetFileName(entry->FileName)), L"(unknown)"),
-        entry
-        );
-    PhPrintUInt32(pidString, HandleToUlong(entry->ProcessId));
-    PhSetListViewSubItem(PhZombieProcessesListViewHandle, lvItemIndex, 1, pidString);
+    PhAddItemList(Context, entry);
 
     if (entry->Type == ZombieProcess)
-        NumberOfZombieProcesses++;
+        InterlockedIncrement(&NumberOfZombieProcesses);
     else if (entry->Type == TerminatedProcess)
-        NumberOfTerminatedProcesses++;
+        InterlockedIncrement(&NumberOfTerminatedProcesses);
 
     return TRUE;
 }
 
-PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
+VOID PhZombieProcessesUpdateListView(
+    _In_ PPH_LIST UpdateList
+    )
+{
+    for (ULONG i = 0; i < UpdateList->Count; i++)
+    {
+        PPH_ZOMBIE_PROCESS_ENTRY entry = UpdateList->Items[i];
+        INT lvItemIndex;
+        WCHAR pidString[PH_INT32_STR_LEN_1];
+
+        if (entry->FileName)
+        {
+            PhMoveReference(&entry->FileName, PhGetFileName(entry->FileName));
+        }
+
+        lvItemIndex = PhAddListViewItem(
+            PhZombieProcessesListViewHandle,
+            MAXINT,
+            PhGetStringOrDefault(entry->FileName, L"(unknown)"),
+            entry
+            );
+        PhPrintUInt32(pidString, HandleToUlong(entry->ProcessId));
+        PhSetListViewSubItem(PhZombieProcessesListViewHandle, lvItemIndex, 1, pidString);
+
+        PhAddItemList(ProcessesList, entry);
+    }
+}
+
+NTSTATUS PhpCreateProcessItemForZombieProcess(
     _In_ HWND WindowHandle,
-    _In_ PPH_ZOMBIE_PROCESS_ENTRY Entry
+    _In_ PPH_ZOMBIE_PROCESS_ENTRY Entry,
+    _Out_ PPH_PROCESS_ITEM* ProcessItem
     )
 {
     NTSTATUS status;
@@ -603,10 +703,13 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
     if (Entry->Type == NormalProcess)
     {
         if (processItem = PhReferenceProcessItem(Entry->ProcessId))
-            return processItem;
+        {
+            *ProcessItem = processItem;
+            return STATUS_SUCCESS;
+        }
     }
 
-    if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
+    if (ProcessesMethod != CsrHandlesScanMethod)
     {
         status = PhOpenProcess(
             &processHandle,
@@ -631,13 +734,14 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForZombieProcess(
             Entry->Type == TerminatedProcess
             ))
         {
-            return processItem;
+            *ProcessItem = processItem;
+            return STATUS_SUCCESS;
         }
 
         NtClose(processHandle);
     }
 
-    return NULL;
+    return status;
 }
 
 NTSTATUS PhpEnumZombieProcessesBruteForce(
@@ -892,10 +996,10 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                     entry.FileName = fileName;
                     entry.Type = ZombieProcess;
 
-                    if (basicInfo.IsProcessDeleting)
-                        entry.Type = TerminatedProcess;
+                    //if (basicInfo.IsProcessDeleting)
+                    //    entry.Type = TerminatedProcess;
 
-                    if (!context->Callback(&entry, Context))
+                    if (!context->Callback(&entry, context->Context))
                         goto CleanupExit;
 
                     PhDereferenceObject(entry.FileName);
@@ -905,7 +1009,7 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                     entry.FileName = NULL;
                     entry.Type = UnknownProcess;
 
-                    if (!context->Callback(&entry, Context))
+                    if (!context->Callback(&entry, context->Context))
                         goto CleanupExit;
                 }
             }
@@ -1120,7 +1224,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
             {
                 PETW_TRACE_PROVIDER_INSTANCE_INFO instance;
                 HANDLE processHandle;
-                PVOID processes;
+                //PVOID processes;
 
                 for (instance = PH_FIRST_ETW_GUID(traceGuidInfo);
                     instance;
@@ -1131,9 +1235,14 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
                     if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, UlongToHandle(instance->Pid))))
                     {
-                        if (NT_SUCCESS(PhEnumProcesses(&processes)))
+                        PPH_PROCESS_ITEM processItem;
+
+                        processItem = PhReferenceProcessItem(UlongToHandle(instance->Pid));
+         
+                        //if (NT_SUCCESS(PhEnumProcesses(&processes)))
                         {
-                            if (!PhFindProcessInformation(processes, UlongToHandle(instance->Pid)))
+                            //if (!PhFindProcessInformation(processes, UlongToHandle(instance->Pid)))
+                            if (!processItem)
                             {
                                 PH_ZOMBIE_PROCESS_ENTRY process;
                                 PPH_STRING fileName;
@@ -1168,8 +1277,10 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                 }
                             }
 
-                            PhFree(processes);
+                            //PhFree(processes);
                         }
+
+                        PhClearReference(&processItem);
 
                         NtClose(processHandle);
                     }
@@ -1210,7 +1321,6 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
     return status;
 }
-
 
 NTSTATUS PhpEnumNtdllHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
@@ -1285,8 +1395,8 @@ NTSTATUS PhpEnumNtdllHandles(
 
                                 if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
                                 {
-                                    if (basicInfo.IsProcessDeleting)
-                                        process.Type = TerminatedProcess;
+                                    //if (basicInfo.IsProcessDeleting)
+                                    //    process.Type = TerminatedProcess;
                                 }
 
                                 if (!Callback(&process, Context))
