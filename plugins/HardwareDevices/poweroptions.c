@@ -676,9 +676,12 @@ VOID LoadRaplDeviceImages(
             1
             );
 
-        PhImageListAddIcon(imageList, largeIcon);
-        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
-        DestroyIcon(largeIcon);
+        if (imageList)
+        {
+            PhImageListAddIcon(imageList, largeIcon);
+            ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+            DestroyIcon(largeIcon);
+        }
     }
 
     PhDereferenceObject(deviceIconPath);

@@ -134,7 +134,10 @@ VOID RebarCreateOrUpdateWindow(
         {
             if (ToolBarHandle)
             {
-                SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+                if (ToolBarImageList)
+                {
+                    SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+                }
 
                 // Remove all buttons.
                 ToolbarRemoveButons();

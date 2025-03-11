@@ -413,9 +413,12 @@ VOID EspLoadDeviceInstanceImage(
                     NULL
                     ))
                 {
-                    INT imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
-                    PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
-                    DestroyIcon(largeIcon);
+                    if (Context->ImageList)
+                    {
+                        INT imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
+                        PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
+                        DestroyIcon(largeIcon);
+                    }
                 }
 
                 PhDereferenceObject(dllIconPath);
@@ -754,7 +757,11 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
                 ILC_MASK | ILC_COLOR32,
                 1, 1
                 );
-            ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
+
+            if (context->ImageList)
+            {
+                ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
+            }
 
             if (context->ServiceItem->Type & SERVICE_DRIVER)
             {

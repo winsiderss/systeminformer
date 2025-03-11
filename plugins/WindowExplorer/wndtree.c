@@ -175,11 +175,15 @@ VOID WeInitializeWindowTreeImageList(
                 200,
                 200
                 );
-            PhImageListSetBkColor(Context->NodeImageList, CLR_NONE);
-            TreeNew_SetImageList(Context->TreeNewHandle, Context->NodeImageList);
 
-            PhGetStockApplicationIcon(&iconSmall, NULL);
-            PhImageListAddIcon(Context->NodeImageList, iconSmall);
+            if (Context->NodeImageList)
+            {
+                PhImageListSetBkColor(Context->NodeImageList, CLR_NONE);
+                TreeNew_SetImageList(Context->TreeNewHandle, Context->NodeImageList);
+
+                PhGetStockApplicationIcon(&iconSmall, NULL);
+                PhImageListAddIcon(Context->NodeImageList, iconSmall);
+            }
         }
         else
         {
