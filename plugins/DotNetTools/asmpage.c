@@ -1717,6 +1717,7 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
 
     for (ULONG i = 0; i < appdomainlist->Count; i++)
     {
+        static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"AppDomain: ");
         PDN_PROCESS_APPDOMAIN_ENTRY entry = appdomainlist->Items[i];
         PDNA_NODE parentNode;
 
@@ -1727,7 +1728,10 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
         parentNode->Type = DNA_TYPE_APPDOMAIN;
         parentNode->u.AppDomain.AppDomainID = entry->AppDomainID;
         parentNode->u.AppDomain.AppDomainType = entry->AppDomainType;
-        parentNode->u.AppDomain.DisplayName = PhConcatStrings2(L"AppDomain: ", entry->AppDomainName->Buffer);
+        parentNode->u.AppDomain.DisplayName = PhFormatString(L"%s [%s]",
+            PH_AUTO_T(PH_STRING, PhConcatStringRef2(&string, &entry->AppDomainName->sr))->Buffer,
+            PhGetStringOrDefault(entry->AppDomainStage, L"Unknown")
+            );
         parentNode->StructureText = parentNode->u.AppDomain.DisplayName->sr;
         parentNode->IdText = FormatToHexString(entry->AppDomainID);
         parentNode->RootNode = TRUE;
