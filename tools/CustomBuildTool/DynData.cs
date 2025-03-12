@@ -328,6 +328,8 @@ typedef struct _KPH_DYN_CONFIG
             if (string.IsNullOrWhiteSpace(OutDir))
                 return true;
 
+            Win32.CreateDirectory(OutDir);
+
             string configFile = $"{OutDir}\\ksidyn.bin";
 
             if (File.Exists(configFile))
@@ -353,7 +355,6 @@ typedef struct _KPH_DYN_CONFIG
             }
             else
             {
-                Directory.CreateDirectory(OutDir);
                 Utils.WriteAllBytes(configFile, config);
 
                 bool configFileSig = Verify.CreateSigFile("kph", configFile, StrictChecks);
