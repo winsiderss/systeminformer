@@ -2494,19 +2494,19 @@ HFONT
 NTAPI
 PhCreateCommonFont(
     _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
+    _In_ LONG Weight,
+    _In_opt_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
     HFONT fontHandle;
     LOGFONT logFont;
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
         return NULL;
 
     fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
+        -PhMultiplyDivideSigned(Size, WindowDpi, 72),
         0,
         0,
         0,
@@ -2525,8 +2525,10 @@ PhCreateCommonFont(
     if (!fontHandle)
         return NULL;
 
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
+    if (WindowHandle)
+    {
+        SetWindowFont(WindowHandle, fontHandle, TRUE);
+    }
 
     return fontHandle;
 }
