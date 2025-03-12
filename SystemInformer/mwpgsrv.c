@@ -219,37 +219,8 @@ BOOLEAN PhMwpMicrosoftServiceTreeFilter(
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-    if (PhEnableServiceQueryStage2)
-    {
-        if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
-        {
-            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
-
-            if (PhEqualStringRef(&serviceNode->ServiceItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
-                return FALSE;
-        }
-    }
-    else
-    {
-        if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->FileName))
-        {
-            PH_IMAGE_VERSION_INFO versionInfo;
-
-            if (PhInitializeImageVersionInfo(&versionInfo, PhGetString(serviceNode->ServiceItem->FileName)))
-            {
-                static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
-
-                // Note: This is how msconfig determines default services. (dmex)
-                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
-                {
-                    PhDeleteImageVersionInfo(&versionInfo);
-                    return FALSE;
-                }
-
-                PhDeleteImageVersionInfo(&versionInfo);
-            }
-        }
-    }
+    if (serviceNode->ServiceItem->MicrosoftService)
+        return FALSE;
 
     return TRUE;
 }

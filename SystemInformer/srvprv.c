@@ -68,6 +68,8 @@ typedef struct _PH_SERVICE_QUERY_S1_DATA
     PH_SERVICE_QUERY_DATA Header;
 
     PPH_IMAGELIST_ITEM IconEntry;
+    //PH_IMAGE_VERSION_INFO VersionInfo;
+    BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S1_DATA, *PPH_SERVICE_QUERY_S1_DATA;
 
 typedef struct _PH_SERVICE_QUERY_S2_DATA
@@ -76,6 +78,7 @@ typedef struct _PH_SERVICE_QUERY_S2_DATA
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
+    BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S2_DATA, *PPH_SERVICE_QUERY_S2_DATA;
 
 VOID NTAPI PhpServiceItemDeleteProcedure(
@@ -457,8 +460,27 @@ VOID PhServiceQueryStage1(
             Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, 0, NULL, PhSystemDpi);
         }
 
-        // Version info.
-        //PhInitializeImageVersionInfo(&Data->VersionInfo, fileName->Buffer);
+        if (!PhEnableProcessQueryStage2)
+        {
+            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+            PH_IMAGE_VERSION_INFO versionInfo;
+
+            if (PhInitializeImageVersionInfoCached(
+                &versionInfo, // Data->VersionInfo
+                fileName,
+                FALSE,
+                PhEnableVersionShortText
+                ))
+            {
+                // Note: This is how msconfig determines default services. (dmex)
+                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                {
+                    Data->MicrosoftService = TRUE;
+                }
+
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+        }
     }
 }
 
@@ -478,6 +500,16 @@ VOID PhServiceQueryStage2(
             FALSE,
             FALSE
             );
+
+        if (!PhIsNullOrEmptyString(Data->VerifySignerName))
+        {
+            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+
+            if (PhEqualStringRef(&Data->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+            {
+                Data->MicrosoftService = TRUE;
+            }
+        }
     }
 }
 
@@ -562,6 +594,7 @@ VOID PhpFillServiceItemStage1(
 
     serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    serviceItem->MicrosoftService = !!Data->MicrosoftService;
 
     // Note: Queue stage 2 processing after filling stage1 process data.
 
@@ -579,6 +612,7 @@ VOID PhpFillServiceItemStage2(
 
     serviceItem->VerifyResult = Data->VerifyResult;
     PhMoveReference(&serviceItem->VerifySignerName, Data->VerifySignerName);
+    serviceItem->MicrosoftService = !!Data->MicrosoftService;
 }
 
 VOID PhFlushServiceQueryData(
