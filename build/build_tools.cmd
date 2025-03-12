@@ -11,7 +11,6 @@ if not defined VSINSTALLPATH (
    goto end
 )
 
-
 :: Pre-cleanup (required since dotnet doesn't cleanup)
 if exist "tools\CustomBuildTool\bin\" (
    rmdir /S /Q "tools\CustomBuildTool\bin\"
