@@ -9056,7 +9056,6 @@ PPH_STRING PhGetActiveComputerName(
     return computerName;
 }
 
-_Check_return_
 HRESULT PhDevGetObjects(
     _In_ DEV_OBJECT_TYPE ObjectType,
     _In_ DEV_QUERY_FLAGS QueryFlags,
@@ -9068,25 +9067,12 @@ HRESULT PhDevGetObjects(
     _Outptr_result_buffer_maybenull_(*ObjectCount) const DEV_OBJECT** Objects
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevGetObjects) DevGetObjects_I = NULL;
     HRESULT status;
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
 
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjects", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!DevGetObjects_I)
+    if (!DevGetObjects_Import())
         return E_FAIL;
 
-    status = DevGetObjects_I(
+    status = DevGetObjects_Import()(
         ObjectType,
         QueryFlags,
         RequestedPropertiesCount,
@@ -9113,28 +9099,12 @@ VOID PhDevFreeObjects(
     _In_reads_(ObjectCount) const DEV_OBJECT* Objects
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevFreeObjects) DevFreeObjects_I = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
+    if (DevFreeObjects_Import())
     {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevFreeObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (DevFreeObjects_I)
-    {
-        DevFreeObjects_I(ObjectCount, Objects);
+        DevFreeObjects_Import()(ObjectCount, Objects);
     }
 }
 
-_Check_return_
 HRESULT PhDevGetObjectProperties(
     _In_ DEV_OBJECT_TYPE ObjectType,
     _In_ PCWSTR ObjectId,
@@ -9145,25 +9115,10 @@ HRESULT PhDevGetObjectProperties(
     _Outptr_result_buffer_(*PropertiesCount) const DEVPROPERTY** Properties
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevGetObjectProperties) DevGetObjectProperties_I = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjectProperties_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjectProperties", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!DevGetObjectProperties_I)
+    if (!DevGetObjectProperties_Import())
         return E_FAIL;
 
-    return DevGetObjectProperties_I(
+    return DevGetObjectProperties_Import()(
         ObjectType,
         ObjectId,
         QueryFlags,
@@ -9179,28 +9134,12 @@ VOID PhDevFreeObjectProperties(
     _In_reads_(PropertiesCount) const DEVPROPERTY* Properties
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevFreeObjectProperties) DevFreeObjectProperties_I = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
+    if (DevFreeObjectProperties_Import())
     {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevFreeObjectProperties_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjectProperties", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (DevFreeObjectProperties_I)
-    {
-        DevFreeObjectProperties_I(PropertiesCount, Properties);
+        DevFreeObjectProperties_Import()(PropertiesCount, Properties);
     }
 }
 
-_Check_return_
 HRESULT PhDevCreateObjectQuery(
     _In_ DEV_OBJECT_TYPE ObjectType,
     _In_ DEV_QUERY_FLAGS QueryFlags,
@@ -9213,25 +9152,10 @@ HRESULT PhDevCreateObjectQuery(
     _Out_ PHDEVQUERY DevQuery
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevCreateObjectQuery) DevGetObjectProperties_I = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjectProperties_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevCreateObjectQuery", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!DevGetObjectProperties_I)
+    if (!DevCreateObjectQuery_Import())
         return E_FAIL;
 
-    return DevGetObjectProperties_I(
+    return DevCreateObjectQuery_Import()(
         ObjectType,
         QueryFlags,
         RequestedPropertiesCount,
@@ -9248,24 +9172,9 @@ VOID PhDevCloseObjectQuery(
     _In_ HDEVQUERY QueryHandle
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static __typeof__(&DevCloseObjectQuery) DevCloseObjectQuery_I = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
+    if (DevCloseObjectQuery_Import())
     {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevCloseObjectQuery_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevCloseObjectQuery", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (DevCloseObjectQuery_I)
-    {
-        DevCloseObjectQuery_I(QueryHandle);
+        DevCloseObjectQuery_Import()(QueryHandle);
     }
 }
 

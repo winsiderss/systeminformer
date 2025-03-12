@@ -189,6 +189,13 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtPssCaptureVaSpaceBulk);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevGetObjects);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevFreeObjects);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevGetObjectProperties);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevFreeObjectProperties);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCreateObjectQuery);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCloseObjectQuery);
+
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
 
 PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
