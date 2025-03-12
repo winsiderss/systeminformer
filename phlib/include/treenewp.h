@@ -199,7 +199,9 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderCustomDraw : 1;
             ULONG HeaderMouseActive : 1;
             ULONG HeaderDragging : 1;
-            ULONG HeaderUnused : 29;
+            ULONG HeaderUnused : 28;
+
+            ULONG FillerBoxVisible : 1;
         };
     };
 
@@ -217,6 +219,8 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG HeaderColumnCacheMax;
     PPH_STRINGREF HeaderStringCache;
     PVOID HeaderTextCache;
+
+    ULONG64 ScrollTickCount;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(

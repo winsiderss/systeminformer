@@ -2035,6 +2035,7 @@ LRESULT PhTnpOnUserMessage(
             parts->FixedWidth = Context->FixedWidth;
             parts->NormalLeft = Context->NormalLeft;
             parts->NormalWidth = Context->TotalViewX;
+            parts->ScrollTickCount = (NtGetTickCount64() - Context->ScrollTickCount);
         }
         return TRUE;
     case TNM_GETFIXEDCOLUMN:
@@ -5117,13 +5118,19 @@ VOID PhTnpUpdateScrollBars(
 
     if (contentHeight > height && contentHeight != 0)
     {
-        ShowWindow(Context->VScrollHandle, SW_SHOW);
-        Context->VScrollVisible = TRUE;
+        if (!Context->VScrollVisible)
+        {
+            ShowWindow(Context->VScrollHandle, SW_SHOW);
+            Context->VScrollVisible = TRUE;
+        }
     }
     else
     {
-        ShowWindow(Context->VScrollHandle, SW_HIDE);
-        Context->VScrollVisible = FALSE;
+        if (Context->VScrollVisible)
+        {
+            ShowWindow(Context->VScrollHandle, SW_HIDE);
+            Context->VScrollVisible = FALSE;
+        }
     }
 
     // Horizontal scroll bar
@@ -5148,13 +5155,19 @@ VOID PhTnpUpdateScrollBars(
 
     if (contentWidth > width && contentWidth != 0)
     {
-        ShowWindow(Context->HScrollHandle, SW_SHOW);
-        Context->HScrollVisible = TRUE;
+        if (!Context->HScrollVisible)
+        {
+            ShowWindow(Context->HScrollHandle, SW_SHOW);
+            Context->HScrollVisible = TRUE;
+        }
     }
     else
     {
-        ShowWindow(Context->HScrollHandle, SW_HIDE);
-        Context->HScrollVisible = FALSE;
+        if (Context->HScrollVisible)
+        {
+            ShowWindow(Context->HScrollHandle, SW_HIDE);
+            Context->HScrollVisible = FALSE;
+        }
     }
 
     if ((Context->HScrollVisible != oldHScrollVisible) && Context->FixedDividerVisible && Context->AnimateDivider)
@@ -5169,7 +5182,22 @@ VOID PhTnpUpdateScrollBars(
     if (deltaRows != 0 || deltaX != 0)
         PhTnpProcessScroll(Context, deltaRows, deltaX);
 
-    ShowWindow(Context->FillerBoxHandle, (Context->VScrollVisible && Context->HScrollVisible) ? SW_SHOW : SW_HIDE);
+    if (Context->VScrollVisible && Context->HScrollVisible)
+    {
+        if (!Context->FillerBoxVisible)
+        {
+            ShowWindow(Context->FillerBoxHandle, SW_SHOW);
+            Context->FillerBoxVisible = TRUE;
+        }
+    }
+    else
+    {
+        if (Context->FillerBoxVisible)
+        {
+            ShowWindow(Context->FillerBoxHandle, SW_HIDE);
+            Context->FillerBoxVisible = FALSE;
+        }
+    }
 }
 
 VOID PhTnpScroll(
@@ -5299,6 +5327,8 @@ VOID PhTnpProcessScroll(
 
         PhTnpLayoutHeader(Context);
     }
+
+    Context->ScrollTickCount = NtGetTickCount64();
 }
 
 BOOLEAN PhTnpCanScroll(
