@@ -1284,13 +1284,20 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        const SIZE_T nSkipSize = should_skip_sytem_range_size(pbTry);
-        if (nSkipSize) {
+        SIZE_T nSkipSize = should_skip_sytem_range_size(pbTry);
+        if (nSkipSize)
         {
             // Skip region reserved for system DLLs, but preserve address space entropy.
             pbTry += nSkipSize;
             continue;
         }
+
+        //if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound)
+        //{
+        //    // Skip region reserved for system DLLs, but preserve address space entropy.
+        //    pbTry += 0x08000000;
+        //    continue;
+        //}
 
         ZeroMemory(&mbi, sizeof(mbi));
 
@@ -1342,27 +1349,27 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
 static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 {
-    PBYTE pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
+    PBYTE pbTryn = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
 
     DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 
-    while (pbTry > pbLo) 
+    while (pbTryn > pbLo)
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        DETOUR_TRACE(("  Try %p\n", pbTry));
+        DETOUR_TRACE(("  Try %p\n", pbTryn));
 
-        const SIZE_T nSkipSize = should_skip_sytem_range_size(pbTry);
+        const SIZE_T nSkipSize = should_skip_sytem_range_size(pbTryn);
         if (nSkipSize)
         {
             // Skip region reserved for system DLLs, but preserve address space entropy.
-            pbTry -= nSkipSize;
+            pbTryn -= nSkipSize;
             continue;
         }
 
         ZeroMemory(&mbi, sizeof(mbi));
 
-        if (!NT_SUCCESS(NtQueryVirtualMemory(NtCurrentProcess(), (PVOID)pbTry, MemoryBasicInformation, &mbi, sizeof(mbi), nullptr)))
+        if (!NT_SUCCESS(NtQueryVirtualMemory(NtCurrentProcess(), (PVOID)pbTryn, MemoryBasicInformation, &mbi, sizeof(mbi), nullptr)))
             break;
 
         DETOUR_TRACE(("  Try %p => %p..%p %6lx\n",
@@ -1375,7 +1382,7 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
         {
             NTSTATUS status;
             SIZE_T size = DETOUR_REGION_SIZE;
-            PVOID address = pbTry;
+            PVOID address = pbTryn;
 
             status = NtAllocateVirtualMemory(
                 NtCurrentProcess(),
@@ -1395,11 +1402,11 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
                 return nullptr;
             }
 
-            pbTry -= DETOUR_REGION_SIZE;
+            pbTryn -= DETOUR_REGION_SIZE;
         }
         else 
         {
-            pbTry = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
+            pbTryn = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
         }
     }
 
