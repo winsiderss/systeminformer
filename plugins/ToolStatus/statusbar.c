@@ -35,6 +35,7 @@ ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
     ID_STATUS_MAX_IO_PROCESS,
     ID_STATUS_SELECTEDWORKINGSET,
     ID_STATUS_SELECTEDPRIVATEBYTES,
+    ID_STATUS_KSICOUNTER,
 };
 
 VOID StatusBarLoadDefault(
@@ -185,6 +186,8 @@ PWSTR StatusBarGetText(
         return L"Selected process WS";
     case ID_STATUS_SELECTEDPRIVATEBYTES:
         return L"Selected process private bytes";
+    case ID_STATUS_KSICOUNTER:
+        return L"KSI status";
     }
 
     return L"ERROR";
@@ -635,6 +638,30 @@ VOID StatusBarUpdate(
 
                 PhDereferenceObjects(processes, numberOfProcesses);
                 PhFree(processes);
+            }
+            break;
+        case ID_STATUS_KSICOUNTER:
+            {
+                ULONG status;
+                ULONG64 duration;
+                ULONG64 counterUp;
+                ULONG64 counterDown;
+                PH_FORMAT format[5];
+
+                if (PhQueryKphCounters(&status, &duration, &counterUp, &counterDown))
+                {
+                    PhInitFormatI64U(&format[0], duration);
+                    PhInitFormatS(&format[1], L", ");
+                    PhInitFormatI64U(&format[2], counterUp);
+                    PhInitFormatS(&format[3], L", ");
+                    PhInitFormatI64U(&format[4], counterDown);
+                    PhFormatToBuffer(format, 5, text[count], sizeof(text[count]), &textLength[count]);
+                }
+                else
+                {
+                    PhInitFormatS(&format[0], L"error");
+                    PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
+                }
             }
             break;
         }

@@ -457,7 +457,7 @@ VOID PhShowKsiMessage(
 }
 
 NTSTATUS PhRestartSelf(
-    _In_ PPH_STRINGREF AdditionalCommandLine
+    _In_ PCPH_STRINGREF AdditionalCommandLine
     )
 {
 #ifndef DEBUG
@@ -1105,7 +1105,7 @@ VOID KsiConnect(
         if ((level == KphLevelHigh) &&
             !PhStartupParameters.KphStartupMax)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1113,7 +1113,7 @@ VOID KsiConnect(
             !PhStartupParameters.KphStartupMax &&
             !PhStartupParameters.KphStartupHigh)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1477,4 +1477,37 @@ PVOID PhCreateKsiSettingsBlob(
     PhFreeJsonObject(object);
 
     return string;
+}
+
+BOOLEAN PhQueryKphCounters(
+    _Out_ PULONG Status,
+    _Out_ PULONG64 Duration,
+    _Out_ PULONG64 CounterUp,
+    _Out_ PULONG64 CounterDown
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterStop;
+    LARGE_INTEGER performanceCounter;
+    ULONG64 performanceCounterDuration;
+    ULONG64 performanceCounterUp;
+    ULONG64 performanceCounterDown;
+
+    if (KsiLevel() < KphLevelHigh)
+        return FALSE;
+
+    PhQueryPerformanceCounter(&performanceCounterStart);
+    status = KphQueryPerformanceCounter(&performanceCounter, NULL);
+    PhQueryPerformanceCounter(&performanceCounterStop);
+
+    performanceCounterDuration = performanceCounterStop.QuadPart - performanceCounterStart.QuadPart;
+    performanceCounterUp = performanceCounter.QuadPart - performanceCounterStart.QuadPart;
+    performanceCounterDown = performanceCounterStop.QuadPart - performanceCounter.QuadPart;
+
+    *Status = status;
+    *Duration = performanceCounterDuration;
+    *CounterUp = performanceCounterUp;
+    *CounterDown = performanceCounterDown;
+    return TRUE;
 }

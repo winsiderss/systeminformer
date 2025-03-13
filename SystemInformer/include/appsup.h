@@ -658,6 +658,16 @@ NTAPI
 PhCreateKsiSettingsBlob( // ksisup.c
     VOID
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhQueryKphCounters( // ksisup.c
+    _Out_ PULONG Status,
+    _Out_ PULONG64 Duration,
+    _Out_ PULONG64 CounterUp,
+    _Out_ PULONG64 CounterDown
+    );
 // end_phapppub
 
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name, dpiValue) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue) // phapppub
