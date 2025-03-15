@@ -1479,11 +1479,10 @@ PVOID PhCreateKsiSettingsBlob(
     return string;
 }
 
-BOOLEAN PhQueryKphCounters(
-    _Out_ PULONG Status,
+NTSTATUS PhQueryKphCounters(
     _Out_ PULONG64 Duration,
-    _Out_ PULONG64 CounterUp,
-    _Out_ PULONG64 CounterDown
+    _Out_ PULONG64 DurationDown,
+    _Out_ PULONG64 DurationUp
     )
 {
     NTSTATUS status;
@@ -1491,23 +1490,30 @@ BOOLEAN PhQueryKphCounters(
     LARGE_INTEGER performanceCounterStop;
     LARGE_INTEGER performanceCounter;
     ULONG64 performanceCounterDuration;
-    ULONG64 performanceCounterUp;
     ULONG64 performanceCounterDown;
+    ULONG64 performanceCounterUp;
 
-    if (KsiLevel() < KphLevelHigh)
-        return FALSE;
+    if (KsiLevel() < KphLevelLow)
+    {
+        *Duration = 0;
+        *DurationDown = 0;
+        *DurationUp = 0;
+        status = STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        PhQueryPerformanceCounter(&performanceCounterStart);
+        status = KphQueryPerformanceCounter(&performanceCounter, NULL);
+        PhQueryPerformanceCounter(&performanceCounterStop);
 
-    PhQueryPerformanceCounter(&performanceCounterStart);
-    status = KphQueryPerformanceCounter(&performanceCounter, NULL);
-    PhQueryPerformanceCounter(&performanceCounterStop);
+        performanceCounterDuration = performanceCounterStop.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterDown = performanceCounter.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterUp = performanceCounterStop.QuadPart - performanceCounter.QuadPart;
 
-    performanceCounterDuration = performanceCounterStop.QuadPart - performanceCounterStart.QuadPart;
-    performanceCounterUp = performanceCounter.QuadPart - performanceCounterStart.QuadPart;
-    performanceCounterDown = performanceCounterStop.QuadPart - performanceCounter.QuadPart;
+        *Duration = performanceCounterDuration;
+        *DurationDown = performanceCounterDown;
+        *DurationUp = performanceCounterUp;
+    }
 
-    *Status = status;
-    *Duration = performanceCounterDuration;
-    *CounterUp = performanceCounterUp;
-    *CounterDown = performanceCounterDown;
-    return TRUE;
+    return status;
 }
