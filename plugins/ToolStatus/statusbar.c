@@ -12,6 +12,8 @@
 
 #include "toolstatus.h"
 
+#include <kphuser.h>
+
 HWND StatusBarHandle = NULL;
 ULONG StatusBarMaxWidths[MAX_STATUSBAR_ITEMS];
 PPH_LIST StatusBarItemList = NULL;
@@ -642,25 +644,28 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_KSICOUNTER:
             {
-                ULONG status;
                 ULONG64 duration;
-                ULONG64 counterUp;
-                ULONG64 counterDown;
-                PH_FORMAT format[5];
+                ULONG64 durationDown;
+                ULONG64 durationUp;
+                PH_FORMAT format[6];
 
-                if (PhQueryKphCounters(&status, &duration, &counterUp, &counterDown))
+                PhQueryKphCounters(&duration, &durationDown, &durationUp);
+
+                PhInitFormatS(&format[0], L"KSI: ");
+
+                if (KsiLevel() == KphLevelNone)
                 {
-                    PhInitFormatI64U(&format[0], duration);
-                    PhInitFormatS(&format[1], L", ");
-                    PhInitFormatI64U(&format[2], counterUp);
-                    PhInitFormatS(&format[3], L", ");
-                    PhInitFormatI64U(&format[4], counterDown);
-                    PhFormatToBuffer(format, 5, text[count], sizeof(text[count]), &textLength[count]);
+                    PhInitFormatS(&format[1], L"not connected");
+                    PhFormatToBuffer(format, 2, text[count], sizeof(text[count]), &textLength[count]);
                 }
                 else
                 {
-                    PhInitFormatS(&format[0], L"error");
-                    PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
+                    PhInitFormatI64U(&format[1], duration);
+                    PhInitFormatS(&format[2], L", D ");
+                    PhInitFormatI64U(&format[3], durationDown);
+                    PhInitFormatS(&format[4], L", U ");
+                    PhInitFormatI64U(&format[5], durationUp);
+                    PhFormatToBuffer(format, 6, text[count], sizeof(text[count]), &textLength[count]);
                 }
             }
             break;

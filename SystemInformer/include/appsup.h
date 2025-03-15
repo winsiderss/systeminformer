@@ -660,13 +660,12 @@ PhCreateKsiSettingsBlob( // ksisup.c
     );
 
 PHAPPAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhQueryKphCounters( // ksisup.c
-    _Out_ PULONG Status,
     _Out_ PULONG64 Duration,
-    _Out_ PULONG64 CounterUp,
-    _Out_ PULONG64 CounterDown
+    _Out_ PULONG64 DurationDown,
+    _Out_ PULONG64 DurationUp
     );
 // end_phapppub
 
