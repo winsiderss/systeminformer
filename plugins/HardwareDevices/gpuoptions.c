@@ -33,7 +33,7 @@ typedef struct _GPU_ENUM_ENTRY
 
     PPH_STRING DevicePath;
     PPH_STRING DeviceName;
-    //LUID AdapterLuid;
+    LUID AdapterLuid;
 } GPU_ENUM_ENTRY, *PGPU_ENUM_ENTRY;
 
 static int __cdecl GraphicsDeviceEntryCompareFunction(
@@ -211,7 +211,7 @@ VOID AddGraphicsDeviceToListView(
         Context->ListViewHandle,
         DevicePresent ? 0 : 1,
         MAXINT,
-        DeviceName->Buffer,
+        PhGetString(DeviceName),
         newId
         );
 
@@ -298,136 +298,117 @@ VOID FindGraphicsDevices(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
+    ULONG deviceIndex = 0;
+    ULONG deviceCount = 0;
+    PDEV_OBJECT deviceObjects = NULL;
+    LUID fakeLuid;
 
-    if (PhWindowsVersion >= WINDOWS_10)
+    const DEVPROPCOMPKEY deviceProperties[] =
     {
-        if (CM_Get_Device_Interface_List_Size(
-            &deviceInterfaceListLength,
-            (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
-            NULL,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
-        {
-            return;
-        }
-    }
-    else
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, NULL },
+    };
+
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
     {
-        if (CM_Get_Device_Interface_List_Size(
-            &deviceInterfaceListLength,
-            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-            NULL,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
-        {
-            return;
-        }
-    }
+        {DEVPROP_OPERATOR_OR_OPEN, {0}},
+        {DEVPROP_OPERATOR_EQUALS,{{DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL}, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DISPLAY_DEVICE_ARRIVAL}},
+        {DEVPROP_OPERATOR_EQUALS,{{DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL}, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_COMPUTE_DEVICE_ARRIVAL}},
+        {DEVPROP_OPERATOR_OR_CLOSE, {0}}
+    };
 
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+    fakeLuid.HighPart = LONG_MAX;
+    fakeLuid.LowPart = ULONG_MAX;
 
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (SUCCEEDED(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
     {
-        if (CM_Get_Device_Interface_List(
-            (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
-            NULL,
-            deviceInterfaceList,
-            deviceInterfaceListLength,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
-        {
-            PhFree(deviceInterfaceList);
-            return;
-        }
-    }
-    else
-    {
-        if (CM_Get_Device_Interface_List(
-            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-            NULL,
-            deviceInterfaceList,
-            deviceInterfaceListLength,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
-        {
-            PhFree(deviceInterfaceList);
-            return;
-        }
-    }
+        deviceList = PhCreateList(deviceCount);
 
-    deviceList = PhCreateList(10);
-
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
-    {
-        DEVPROPTYPE devicePropertyType;
-        DEVINST deviceInstanceHandle;
-        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
-
-        if (CM_Get_Device_Interface_Property(
-            deviceInterface,
-            &DEVPKEY_Device_InstanceId,
-            &devicePropertyType,
-            (PBYTE)deviceInstanceId,
-            &deviceInstanceIdLength,
-            0
-            ) == CR_SUCCESS)
+        for (ULONG i = 0; i < deviceCount; i++)
         {
-            if (CM_Locate_DevNode(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS)
+            PDEV_OBJECT device = &deviceObjects[i];
+            D3DKMT_HANDLE adapterHandle;
+            PGPU_ENUM_ENTRY entry;
+            ULONG propertyCount;
+            const DEVPROPERTY* propertyList;
+            DEVPROPCOMPKEY requestedProperties[] =
             {
-                D3DKMT_HANDLE adapterHandle;
-                PGPU_ENUM_ENTRY entry;
+                { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
+                { DEVPKEY_Device_LocationInfo, DEVPROP_STORE_SYSTEM, NULL },
+                { DEVPKEY_Gpu_PhysicalAdapterIndex, DEVPROP_STORE_SYSTEM, NULL },
+                { DEVPKEY_Gpu_Luid, DEVPROP_STORE_SYSTEM, NULL },
+            };
 
-                entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
-                entry->DeviceIndex = ++deviceIndex;
-                entry->DevicePath = PhCreateString(deviceInterface);
-                entry->DeviceName = GraphicsQueryDeviceDescription(deviceInstanceHandle);
+            entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
+            entry->DeviceIndex = ++deviceIndex;
+            entry->DevicePath = PhCreateString(device->pszObjectId);
 
-                if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
+            entry->AdapterLuid = fakeLuid;
+            fakeLuid.HighPart--;
+
+            if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
+            {
+                GX_ADAPTER_ATTRIBUTES adapterAttributes;
+
+                entry->DevicePresent = TRUE;
+
+                if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
+                    adapterHandle,
+                    &adapterAttributes
+                    )))
                 {
-                    GX_ADAPTER_ATTRIBUTES adapterAttributes;
-
-                    entry->DevicePresent = TRUE;
-
-                    if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
-                        adapterHandle,
-                        &adapterAttributes
-                        )))
-                    {
-                        entry->NpuDevice = !!adapterAttributes.TypeNpu;
-                    }
-
-                    if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
-                        entry->SoftwareDevice = TRUE;
-
-                    GraphicsCloseAdapterHandle(adapterHandle);
+                    entry->NpuDevice = !!adapterAttributes.TypeNpu;
                 }
 
-                if (entry->DevicePresent)
+                if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
+                    entry->SoftwareDevice = TRUE;
+
+                GraphicsCloseAdapterHandle(adapterHandle);
+            }
+
+            if (PhIsNullOrEmptyString(entry->DeviceName))
+            {
+                PhSetReference(&entry->DeviceName, entry->DevicePath);
+            }
+
+            if (entry->DevicePresent)
+            {
+                PPH_STRING locationString = NULL;
+
+                if (SUCCEEDED(PhDevGetObjectProperties(
+                    DevObjectTypeDevice,
+                    device->pProperties[0].Buffer,
+                    DevQueryFlagNone,
+                    RTL_NUMBER_OF(requestedProperties),
+                    requestedProperties,
+                    &propertyCount,
+                    &propertyList
+                    )))
                 {
-                    ULONG adapterIndex;
-                    PPH_STRING locationString = NULL;
-                    PPH_STRING locationInfoString;
+                    PH_STRINGREF string;
 
-                    locationInfoString = GraphicsQueryDevicePropertyString(
-                        deviceInstanceHandle,
-                        &DEVPKEY_Device_LocationInfo
-                        );
+                    string.Buffer = propertyList[0].Buffer;
+                    string.Length = propertyList[0].BufferSize ? propertyList[0].BufferSize - sizeof(UNICODE_NULL) : 0;
+                    entry->DeviceName = PhLoadIndirectString(&string);
 
-                    if (locationInfoString && GraphicsQueryDeviceInterfaceAdapterIndex(deviceInterface, &adapterIndex))
+                    if (propertyList[1].BufferSize)
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
                         WCHAR formatBuffer[512];
 
                         PhInitFormatS(&format[0], entry->NpuDevice ? L"NPU " : L"GPU ");
-                        PhInitFormatU(&format[1], adapterIndex);
+                        PhInitFormatU(&format[1], *(PULONG)propertyList[2].Buffer);
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
                         {
@@ -439,6 +420,9 @@ VOID FindGraphicsDevices(
                         }
                     }
 
+                    if (propertyList[3].BufferSize >= sizeof(LUID))
+                        entry->AdapterLuid = *(PLUID)propertyList[3].Buffer;
+
                     if (locationString)
                     {
                         PhMoveReference(&entry->DeviceName, PhFormatString(
@@ -449,15 +433,43 @@ VOID FindGraphicsDevices(
                         PhDereferenceObject(locationString);
                     }
 
-                    PhClearReference(&locationInfoString);
+                    PhDevFreeObjectProperties(propertyCount, propertyList);
                 }
+            }
 
+            // Avoid duplicates, querying for GUID_DISPLAY_DEVICE_ARRIVAL and
+            // GUID_COMPUTE_DEVICE_ARRIVAL together will return duplicates.
+            BOOLEAN duplicate = FALSE;
+            for (ULONG i = 0; i < deviceList->Count; i++)
+            {
+                PGPU_ENUM_ENTRY currentEntry = deviceList->Items[i];
+
+                if (currentEntry->AdapterLuid.HighPart == entry->AdapterLuid.HighPart &&
+                    currentEntry->AdapterLuid.LowPart == entry->AdapterLuid.LowPart)
+                {
+                    duplicate = TRUE;
+                    break;
+                }
+            }
+
+            if (duplicate)
+            {
+                PhClearReference(&entry->DeviceName);
+                PhClearReference(&entry->DevicePath);
+                PhFree(entry);
+            }
+            else
+            {
                 PhAddItemList(deviceList, entry);
             }
         }
-    }
 
-    PhFree(deviceInterfaceList);
+        PhDevFreeObjects(deviceCount, deviceObjects);
+    }
+    else
+    {
+        return;
+    }
 
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), GraphicsDeviceEntryCompareFunction);
@@ -618,7 +630,7 @@ VOID LoadGraphicsDeviceImages(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG bufferSize;
     PPH_STRING deviceIconPath;
@@ -663,7 +675,17 @@ VOID LoadGraphicsDeviceImages(
 
     dpiValue = PhGetWindowDpi(Context->ListViewHandle);
 
-    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(
+        &deviceIconPath->sr,
+        FALSE,
+        (INT)index,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        0,
+        0,
+        &largeIcon,
+        NULL
+        ))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
@@ -673,10 +695,12 @@ VOID LoadGraphicsDeviceImages(
             1
             );
 
-        PhImageListAddIcon(imageList, smallIcon);
-        DestroyIcon(smallIcon);
-
-        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+        if (imageList)
+        {
+            PhImageListAddIcon(imageList, largeIcon);
+            ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+            DestroyIcon(largeIcon);
+        }
     }
 
     PhDereferenceObject(deviceIconPath);
@@ -694,11 +718,11 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_GPU_OPTIONS_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetDialogContext(hwndDlg, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetDialogContext(hwndDlg);
     }
 
     if (context == NULL)
@@ -747,7 +771,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveDialogContext(hwndDlg);
             PhFree(context);
         }
         break;

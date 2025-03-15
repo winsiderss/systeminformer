@@ -73,7 +73,7 @@ BOOLEAN PhpShowElevatePrompt(
     )
 {
     TASKDIALOGCONFIG config;
-    TASKDIALOG_BUTTON buttons[1] =
+    CONST TASKDIALOG_BUTTON buttons[1] =
     {
         { IDYES, L"Continue"}
     };
@@ -176,6 +176,8 @@ BOOLEAN PhpElevationLevelAndConnectToPhSvc(
  * cancelled elevation. If the value is TRUE, you need to
  * perform any necessary phsvc calls and use PhUiDisconnectFromPhSvc()
  * to disconnect from phsvc.
+ * \param Cancelled A variable which receives TRUE if the user cancelled
+ * the action and phsvc was started.
  *
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
@@ -1325,7 +1327,7 @@ BOOLEAN PhIsDangerousProcess(
     _In_ HANDLE ProcessId
     )
 {
-    static ULONG DangerousProcesses[] =
+    static CONST ULONG DangerousProcesses[] =
     {
         0x6ccbdb46, // csrss.exe
         0x5920bffe, // dwm.exe
@@ -2342,7 +2344,7 @@ BOOLEAN PhUiThawTreeProcess(
         return FALSE;
     }
 
-    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, nullptr))
+    if (freezeHandle = InterlockedExchangePointer(&Process->FreezeHandle, NULL))
     {
         NtClose(freezeHandle);
     }
@@ -2856,6 +2858,120 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
     return success;
 }
 
+BOOLEAN PhUiSetActivityModeration(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    static CONST TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
+    {
+        { SystemActivityModerationStateSystemManaged, L"System managed" },
+        { SystemActivityModerationStateUserManagedAllowThrottling, L"Allow activity moderation throttling" },
+        { SystemActivityModerationStateUserManagedDisableThrottling, L"Disable activity moderation throttling" },
+    };
+    static CONST TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Save" },
+        { IDCANCEL, L"Cancel" },
+    };
+    NTSTATUS status;
+    SYSTEM_ACTIVITY_MODERATION_APP_SETTINGS activityModerationInfo = { 0 };
+    TASKDIALOGCONFIG config;
+    ULONG buttonId;
+    ULONG moderationState;
+    LARGE_INTEGER startTime;
+    LARGE_INTEGER currentTime;
+    SYSTEMTIME startTimeFields;
+    PPH_STRING startTimeRelativeString = NULL;
+    PPH_STRING startTimeString = NULL;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Select the process activity moderation throttling state.";
+    config.nDefaultButton = IDCANCEL;
+    config.pRadioButtons = TaskDialogRadioButtonArray;
+    config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.hwndParent = WindowHandle;
+    config.cxWidth = 220;
+
+    if (PhIsNullOrEmptyString(Process->FileName))
+        return TRUE;
+
+    status = PhGetProcessActivityModerationState(
+        &Process->FileName->sr,
+        &activityModerationInfo
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        config.nDefaultRadioButton = activityModerationInfo.ModerationState;
+
+        PhQuerySystemTime(&currentTime);
+
+        if (activityModerationInfo.LastUpdatedTime.QuadPart < currentTime.QuadPart)
+        {
+            startTime = activityModerationInfo.LastUpdatedTime;
+            startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+            PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+            startTimeString = PhaFormatDateTime(&startTimeFields);
+        }
+    }
+    else
+    {
+        config.nDefaultRadioButton = SystemActivityModerationStateSystemManaged;
+    }
+
+    config.pszContent = PhaFormatString(
+        L"System-managed activity moderation settings are automatically removed by Windows when the executable is deleted or was last executed more than 7 days ago.\r\n\r\n"
+        L"Image: %s\r\nUpdated: %s",
+        PH_AUTO_T(PH_STRING, PhGetBaseName(Process->FileName))->Buffer,
+        (startTimeRelativeString && startTimeString) ? PhaFormatString(L"%s ago (%s)", PhGetString(startTimeRelativeString), PhGetString(startTimeString))->Buffer : L"N/A"
+        )->Buffer;
+
+    if (PhShowTaskDialog(
+        &config,
+        &buttonId,
+        &moderationState,
+        NULL
+        ) && buttonId == IDYES)
+    {
+        if (Process->IsPackagedProcess)
+        {
+            status = PhSetProcessActivityModerationState(
+                &Process->FileName->sr,
+                SystemActivityModerationAppTypePackaged,
+                moderationState
+                );
+        }
+        else
+        {
+            status = PhSetProcessActivityModerationState(
+                &Process->FileName->sr,
+                SystemActivityModerationAppTypeClassic,
+                moderationState
+                );
+        }
+    }
+    else
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"set background activity moderation for", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -3064,6 +3180,20 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 {
     NTSTATUS status;
 
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        if (!PhShowConfirmMessage(
+            WindowHandle,
+            L"change the execution required state",
+            PhaConcatStrings2(L"of ", Process->ProcessName->Buffer)->Buffer,
+            L"The process continues to run instead of being suspended or terminated by process lifetime management (PLM).",
+            FALSE
+            ))
+        {
+            return FALSE;
+        }
+    }
+
     if (PhIsProcessExecutionRequired(Process->ProcessId))
     {
         status = PhProcessExecutionRequiredDisable(Process->ProcessId);
@@ -3075,7 +3205,7 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(WindowHandle, L"create PLM power request for", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"create execution required state for", Process, status, 0);
         return FALSE;
     }
 
@@ -3573,8 +3703,16 @@ VOID PhUiNavigateServiceErrorDialogPage(
     _In_opt_ PPH_STRING MainContent
     )
 {
+    static CONST TASKDIALOG_BUTTON buttons[1] =
+    {
+        { IDNO, L"Close" }
+    };
+    static CONST TASKDIALOG_BUTTON buttonsElevation[2] =
+    {
+        { IDYES, L"Continue" },
+        { IDNO, L"Cancel" },
+    };
     TASKDIALOGCONFIG config;
-    TASKDIALOG_BUTTON buttons[2];
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -3587,16 +3725,17 @@ VOID PhUiNavigateServiceErrorDialogPage(
     if (MainContent) config.pszContent = PhGetString(MainContent);
     config.cxWidth = 200;
 
-    buttons[0].nButtonID = IDYES;
-    buttons[0].pszButtonText = L"Continue";
-    buttons[1].nButtonID = IDNO;
-    buttons[1].pszButtonText = L"Cancel";
-
     if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
     {
-        config.cButtons = 2;
-        config.pButtons = buttons;
+        config.cButtons = RTL_NUMBER_OF(buttonsElevation);
+        config.pButtons = buttonsElevation;
         config.nDefaultButton = IDYES;
+    }
+    else
+    {
+        config.cButtons = RTL_NUMBER_OF(buttons);
+        config.pButtons = buttons;
+        config.nDefaultButton = IDNO;
     }
 
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
@@ -3694,7 +3833,7 @@ NTSTATUS PhpUiServicePendingStartCallback(
 
     InterlockedExchange(&Context->RequireElevation, FALSE);
 
-    if (serviceErrorList->Count)
+    if (serviceErrorList->Count && !PhGetOwnTokenAttributes().Elevated)
     {
         for (ULONG i = 0; i < serviceErrorList->Count; i++)
         {
@@ -3929,8 +4068,13 @@ static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, MAXCHAR);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetApplicationWindowIconEx(WindowHandle, HIWORD(wParam));
         }
         break;
     case WM_PHSVC_ERROR:
@@ -3980,9 +4124,11 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
         {
             context->WindowHandle = WindowHandle;
 
-            PhSetApplicationWindowIcon(WindowHandle);
+            PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
 
             PhCenterWindow(WindowHandle, context->ParentWindowHandle);
+
+            PhRegisterWindowCallback(WindowHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             context->OldWndProc = PhGetWindowProcedure(WindowHandle);
             PhSetWindowContext(WindowHandle, MAXCHAR, context);
@@ -4129,74 +4275,6 @@ static BOOLEAN PhpShowContinueMessageServices(
     {
         return TRUE;
     }
-}
-
-static NTSTATUS PhpCheckServiceStatus(
-    _In_ SC_HANDLE ServiceHandle,
-    _In_ ULONG CurrentState,
-    _In_ ULONG WaitForState)
-{
-    NTSTATUS status;
-    SERVICE_STATUS_PROCESS serviceStatus;
-    ULONG64 serviceTicks;
-    ULONG serviceCheck;
-
-    status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
-
-    if (!NT_SUCCESS(status))
-        return status;
-    if (serviceStatus.dwCurrentState == WaitForState)
-        return STATUS_SUCCESS;
-
-    serviceTicks = NtGetTickCount64();
-    serviceCheck = serviceStatus.dwCheckPoint;
-
-    while (
-        serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
-        serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
-        )
-    {
-        ULONG statusWaitHint = serviceStatus.dwWaitHint / 10;
-
-        if (statusWaitHint < 1000)
-            statusWaitHint = 1000;
-        if (statusWaitHint > 10000)
-            statusWaitHint = 10000;
-
-        PhDelayExecution(statusWaitHint);
-
-        status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (serviceStatus.dwCurrentState == WaitForState)
-            return STATUS_SUCCESS;
-
-        if (!(
-            serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
-            serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
-            ))
-        {
-            return STATUS_SUCCESS;
-        }
-
-        if (serviceStatus.dwCheckPoint > serviceCheck)
-        {
-            serviceTicks = NtGetTickCount64();
-            serviceCheck = serviceStatus.dwCheckPoint;
-        }
-        else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
-        {
-            // Service doesn't report progress.
-        }
-    }
-
-    return status;
 }
 
 static BOOLEAN PhpShowErrorService(
@@ -5106,6 +5184,52 @@ BOOLEAN PhUiDeleteService(
     return success;
 }
 
+static NTSTATUS PhUiServiceRestartCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+)
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhStopService(serviceHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhWaitForServiceStatus(
+                serviceHandle,
+                SERVICE_STOPPED,
+                60 * 1000
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhStartService(serviceHandle, 0, NULL);
+
+                if (NT_SUCCESS(status))
+                {
+                    status = PhWaitForServiceStatus(
+                        serviceHandle,
+                        SERVICE_RUNNING,
+                        60 * 1000
+                        );
+                }
+            }
+        }
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
+}
+
 BOOLEAN PhUiRestartServices(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM* Services,
@@ -5120,13 +5244,13 @@ BOOLEAN PhUiRestartServices(
     {
         PhShowServiceProgressDialog(
             WindowHandle,
-            L"stop",
+            L"restart",
             L"Restarting a service might prevent the system from functioning properly.",
             FALSE,
             Services,
             NumberOfServices,
-            PhUiServiceStopCallback,
-            PhSvcControlServiceStop
+            PhUiServiceRestartCallback,
+            PhSvcControlServiceRestart
             );
         return FALSE;
     }
@@ -5147,7 +5271,11 @@ BOOLEAN PhUiRestartServices(
         SC_HANDLE serviceHandle;
 
         success = FALSE;
-        status = PhOpenService(&serviceHandle, SERVICE_START | SERVICE_STOP, PhGetString(Services[i]->Name));
+        status = PhOpenService(
+            &serviceHandle,
+            SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP,
+            PhGetString(Services[i]->Name)
+            );
 
         if (NT_SUCCESS(status))
         {
@@ -5155,10 +5283,30 @@ BOOLEAN PhUiRestartServices(
 
             if (NT_SUCCESS(status))
             {
-                status = PhStartService(serviceHandle, 0, nullptr);
+                status = PhWaitForServiceStatus(
+                    serviceHandle,
+                    SERVICE_STOPPED,
+                    60 * 1000
+                    );
 
                 if (NT_SUCCESS(status))
-                    success = TRUE;
+                {
+                    status = PhStartService(serviceHandle, 0, NULL);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        status = PhWaitForServiceStatus(
+                            serviceHandle,
+                            SERVICE_RUNNING,
+                            60 * 1000
+                            );
+
+                        if (NT_SUCCESS(status))
+                        {
+                            success = TRUE;
+                        }
+                    }
+                }
             }
 
             PhCloseServiceHandle(serviceHandle);
@@ -5180,7 +5328,7 @@ BOOLEAN PhUiRestartServices(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Services[i]->Name), PhSvcControlServiceStop)))
+                    if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Services[i]->Name), PhSvcControlServiceRestart)))
                         success = TRUE;
                     else
                         PhpShowErrorService(WindowHandle, L"restart", Services[i], status, 0);
@@ -5233,15 +5381,15 @@ BOOLEAN PhUiCloseConnections(
     for (i = 0; i < NumberOfConnections; i++)
     {
         if (
-            Connections[i]->ProtocolType != PH_TCP4_NETWORK_PROTOCOL ||
+            Connections[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
             Connections[i]->State != MIB_TCP_STATE_ESTAB
             )
             continue;
 
         tcpRow.dwState = MIB_TCP_STATE_DELETE_TCB;
-        tcpRow.dwLocalAddr = Connections[i]->LocalEndpoint.Address.Ipv4;
+        tcpRow.dwLocalAddr = Connections[i]->LocalEndpoint.Address.InAddr.s_addr;
         tcpRow.dwLocalPort = _byteswap_ushort((USHORT)Connections[i]->LocalEndpoint.Port);
-        tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
+        tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.InAddr.s_addr;
         tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
 
         if ((result = SetTcpEntry_I(&tcpRow)) != NO_ERROR)

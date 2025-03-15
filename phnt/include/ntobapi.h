@@ -214,7 +214,7 @@ NtWaitForMultipleObjects(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -254,7 +254,7 @@ NtClose(
     _In_ _Post_ptr_invalid_ HANDLE Handle
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -279,7 +279,7 @@ NtCreateDirectoryObject(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -340,6 +340,12 @@ typedef struct _OBJECT_BOUNDARY_ENTRY
 {
     BOUNDARY_ENTRY_TYPE EntryType;
     ULONG EntrySize;
+    //union
+    //{
+    //    WCHAR Name[1];
+    //    PSID Sid;
+    //    PSID IntegrityLabel;
+    //};
 } OBJECT_BOUNDARY_ENTRY, *POBJECT_BOUNDARY_ENTRY;
 
 // rev
@@ -360,9 +366,10 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
             ULONG Reserved : 31;
         };
     };
+    //OBJECT_BOUNDARY_ENTRY Entries[1];
 } OBJECT_BOUNDARY_DESCRIPTOR, *POBJECT_BOUNDARY_DESCRIPTOR;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -434,7 +441,7 @@ typedef enum _SYMBOLIC_LINK_INFO_CLASS
     MaxnSymbolicLinkInfoClass
 } SYMBOLIC_LINK_INFO_CLASS;
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

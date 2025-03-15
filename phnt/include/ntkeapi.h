@@ -46,52 +46,54 @@ typedef enum _KHETERO_CPU_POLICY
 } KHETERO_CPU_POLICY, *PKHETERO_CPU_POLICY;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
+/**
+ * KWAIT_REASON identifies the reasons for context switches or the current waiting state.
+ */
 typedef enum _KWAIT_REASON
 {
-    Executive,
-    FreePage,
-    PageIn,
-    PoolAllocation,
-    DelayExecution,
-    Suspended,
-    UserRequest,
-    WrExecutive,
-    WrFreePage,
-    WrPageIn,
-    WrPoolAllocation,
-    WrDelayExecution,
-    WrSuspended,
-    WrUserRequest,
-    WrEventPair,
-    WrQueue,
-    WrLpcReceive,
-    WrLpcReply,
-    WrVirtualMemory,
-    WrPageOut,
-    WrRendezvous,
-    WrKeyedEvent,
-    WrTerminated,
-    WrProcessInSwap,
-    WrCpuRateControl,
-    WrCalloutStack,
-    WrKernel,
-    WrResource,
-    WrPushLock,
-    WrMutex,
-    WrQuantumEnd,
-    WrDispatchInt,
-    WrPreempted,
-    WrYieldExecution,
-    WrFastMutex,
-    WrGuardedMutex,
-    WrRundown,
-    WrAlertByThreadId,
-    WrDeferredPreempt,
-    WrPhysicalFault,
-    WrIoRing,
-    WrMdlCache,
-    WrRcu,
+    Executive,               // Waiting for an executive event.
+    FreePage,                // Waiting for a free page.
+    PageIn,                  // Waiting for a page to be read in.
+    PoolAllocation,          // Waiting for a pool allocation.
+    DelayExecution,          // Waiting due to a delay execution.           // NtDelayExecution
+    Suspended,               // Waiting because the thread is suspended.    // NtSuspendThread
+    UserRequest,             // Waiting due to a user request.              // NtWaitForSingleObject
+    WrExecutive,             // Waiting for an executive event.
+    WrFreePage,              // Waiting for a free page.
+    WrPageIn,                // Waiting for a page to be read in.
+    WrPoolAllocation,        // Waiting for a pool allocation.
+    WrDelayExecution,        // Waiting due to a delay execution.
+    WrSuspended,             // Waiting because the thread is suspended.
+    WrUserRequest,           // Waiting due to a user request.
+    WrEventPair,             // Waiting for an event pair.                  // NtCreateEventPair
+    WrQueue,                 // Waiting for a queue.                        // NtRemoveIoCompletion
+    WrLpcReceive,            // Waiting for an LPC receive.
+    WrLpcReply,              // Waiting for an LPC reply.
+    WrVirtualMemory,         // Waiting for virtual memory.
+    WrPageOut,               // Waiting for a page to be written out.
+    WrRendezvous,            // Waiting for a rendezvous.
+    WrKeyedEvent,            // Waiting for a keyed event.                  // NtCreateKeyedEvent
+    WrTerminated,            // Waiting for thread termination.
+    WrProcessInSwap,         // Waiting for a process to be swapped in.
+    WrCpuRateControl,        // Waiting for CPU rate control.
+    WrCalloutStack,          // Waiting for a callout stack.
+    WrKernel,                // Waiting for a kernel event.
+    WrResource,              // Waiting for a resource.
+    WrPushLock,              // Waiting for a push lock.
+    WrMutex,                 // Waiting for a mutex.
+    WrQuantumEnd,            // Waiting for the end of a quantum.
+    WrDispatchInt,           // Waiting for a dispatch interrupt.
+    WrPreempted,             // Waiting because the thread was preempted.
+    WrYieldExecution,        // Waiting to yield execution.
+    WrFastMutex,             // Waiting for a fast mutex.
+    WrGuardedMutex,          // Waiting for a guarded mutex.
+    WrRundown,               // Waiting for a rundown.
+    WrAlertByThreadId,       // Waiting for an alert by thread ID.
+    WrDeferredPreempt,       // Waiting for a deferred preemption.
+    WrPhysicalFault,         // Waiting for a physical fault.
+    WrIoRing,                // Waiting for an I/O ring.
+    WrMdlCache,              // Waiting for an MDL cache.
+    WrRcu,                   // Waiting for read-copy-update (RCU) synchronization.
     MaximumWaitReason
 } KWAIT_REASON, *PKWAIT_REASON;
 
@@ -137,7 +139,13 @@ NtCallbackReturn(
     _In_ NTSTATUS Status
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+/**
+ * The NtFlushProcessWriteBuffers routine flushes the write queue of each processor that is running a thread of the current process.
+ *
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-flushprocesswritebuffers
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

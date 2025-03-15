@@ -94,6 +94,15 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG FixedWidthMinimum;
     LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
 
+    LONG WheelScrollLines;
+    LONG TextMarginPadding;
+    LONG CellMarginLeft;
+    LONG CellMarginRight;
+    LONG IconRightPadding;
+    LONG HeaderTextPadding;
+    LONG HeaderTextMargin;
+    LONG HeaderRowMargin;
+
     PPH_TREENEW_NODE FocusNode;
     ULONG HotNodeIndex;
     ULONG MarkNodeIndex; // selection mark
@@ -190,7 +199,9 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderCustomDraw : 1;
             ULONG HeaderMouseActive : 1;
             ULONG HeaderDragging : 1;
-            ULONG HeaderUnused : 29;
+            ULONG HeaderUnused : 28;
+
+            ULONG FillerBoxVisible : 1;
         };
     };
 
@@ -208,6 +219,8 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG HeaderColumnCacheMax;
     PPH_STRINGREF HeaderStringCache;
     PVOID HeaderTextCache;
+
+    ULONG64 ScrollTickCount;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -523,6 +536,12 @@ VOID PhTnpDeleteColumnHeader(
 
 VOID PhTnpUpdateColumnHeaders(
     _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpUpdateColumnHeadersDpiChanged(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG OldWindowDpi,
+    _In_ LONG NewWindowDpi
     );
 
 VOID PhTnpProcessResizeColumn(

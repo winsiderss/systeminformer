@@ -108,7 +108,8 @@
 #define SessionAllowExternalDmaDevices 95 // POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 #define SendSuspendResumeNotification 96 // since WIN11
 #define BlackBoxRecorderDirectAccessBuffer 97
-#define PowerInformationLevelMaximum 98
+#define SystemPowerSourceState 98 // since 25H2
+#define PowerInformationLevelMaximum 99
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
@@ -142,48 +143,48 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
 //    UserUnknown = 0xff
 //} POWER_USER_PRESENCE_TYPE, *PPOWER_USER_PRESENCE_TYPE;
 
-//typedef struct _POWER_USER_PRESENCE 
+//typedef struct _POWER_USER_PRESENCE
 //{
 //    POWER_USER_PRESENCE_TYPE PowerUserPresence;
 //} POWER_USER_PRESENCE, *PPOWER_USER_PRESENCE;
 
-//typedef struct _POWER_SESSION_CONNECT 
+//typedef struct _POWER_SESSION_CONNECT
 //{
 //    BOOLEAN Connected;  // TRUE - connected, FALSE - disconnected
 //    BOOLEAN Console;    // TRUE - console, FALSE - TS (not used for Connected = FALSE)
 //} POWER_SESSION_CONNECT, *PPOWER_SESSION_CONNECT;
 
-//typedef struct _POWER_SESSION_TIMEOUTS 
+//typedef struct _POWER_SESSION_TIMEOUTS
 //{
 //    ULONG InputTimeout;
 //    ULONG DisplayTimeout;
 //} POWER_SESSION_TIMEOUTS, *PPOWER_SESSION_TIMEOUTS;
 
-//typedef struct _POWER_SESSION_RIT_STATE 
+//typedef struct _POWER_SESSION_RIT_STATE
 //{
 //    BOOLEAN Active;  // TRUE - RIT input received, FALSE - RIT timeout
 //    ULONG64 LastInputTime; // last input time held for this session
 //} POWER_SESSION_RIT_STATE, *PPOWER_SESSION_RIT_STATE;
 
-//typedef struct _POWER_SESSION_WINLOGON 
+//typedef struct _POWER_SESSION_WINLOGON
 //{
 //    ULONG SessionId; // the Win32k session identifier
 //    BOOLEAN Console; // TRUE - for console session, FALSE - for remote session
 //    BOOLEAN Locked; // TRUE - lock, FALSE - unlock
 //} POWER_SESSION_WINLOGON, *PPOWER_SESSION_WINLOGON;
 
-//typedef struct _POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES 
+//typedef struct _POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 //{
 //    BOOLEAN IsAllowed;
 //} POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES, *PPOWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES;
 //
-//typedef struct _POWER_IDLE_RESILIENCY 
+//typedef struct _POWER_IDLE_RESILIENCY
 //{
 //    ULONG CoalescingTimeout;
 //    ULONG IdleResiliencyPeriod;
 //} POWER_IDLE_RESILIENCY, *PPOWER_IDLE_RESILIENCY;
 
-//typedef struct _RESUME_PERFORMANCE 
+//typedef struct _RESUME_PERFORMANCE
 //{
 //    ULONG PostTimeMs;
 //    ULONGLONG TotalResumeTimeMs;
@@ -206,7 +207,7 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
                                  PO_REASON_STATE_S4 | \
                                  PO_REASON_STATE_S4FIRM)
 
-typedef struct _SYSTEM_POWER_LOGGING_ENTRY 
+typedef struct _SYSTEM_POWER_LOGGING_ENTRY
 {
     ULONG Reason;
     ULONG States;
@@ -227,7 +228,7 @@ typedef enum _POWER_STATE_DISABLED_TYPE
 #define POWER_STATE_DISABLED_TYPE_MAX  8
 
 _Struct_size_bytes_(sizeof(SYSTEM_POWER_STATE_DISABLE_REASON) + PowerReasonLength)
-typedef struct _SYSTEM_POWER_STATE_DISABLE_REASON 
+typedef struct _SYSTEM_POWER_STATE_DISABLE_REASON
 {
     BOOLEAN AffectedState[POWER_STATE_DISABLED_TYPE_MAX];
     ULONG PowerReasonCode;
@@ -418,7 +419,7 @@ typedef struct _PROCESSOR_IDLE_STATES
 //
 //#define PROCESSOR_IDLESTATE_POLICY_COUNT 0x3
 //
-//typedef struct 
+//typedef struct
 //{
 //    ULONG TimeCheck;
 //    UCHAR DemotePercent;
@@ -426,10 +427,10 @@ typedef struct _PROCESSOR_IDLE_STATES
 //    UCHAR Spare[2];
 //} PROCESSOR_IDLESTATE_INFO, *PPROCESSOR_IDLESTATE_INFO;
 //
-//typedef struct 
+//typedef struct
 //{
 //    USHORT Revision;
-//    union 
+//    union
 //    {
 //        USHORT AsUSHORT;
 //        struct
@@ -544,7 +545,7 @@ typedef struct _POWER_REQUEST
             ULONG PowerRequestCount[POWER_REQUEST_SUPPORTED_TYPES_V1];
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V1;
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
         struct
         {
             ULONG SupportedRequestMask;
@@ -552,7 +553,7 @@ typedef struct _POWER_REQUEST
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V2;
 #endif
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
         struct
         {
             ULONG SupportedRequestMask;
@@ -560,7 +561,7 @@ typedef struct _POWER_REQUEST
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V3;
 #endif
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
         struct
         {
             ULONG SupportedRequestMask;
@@ -880,12 +881,12 @@ typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 /**
  * The NtPowerInformation routine sets or retrieves system power information.
- * 
- * @param InformationLevel Specifies the requested information level, which indicates the specific power information to be set or retrieved. 
- * @param InputBuffer Optional pointer to a caller-allocated input buffer. 
- * @param InputBufferLength Size, in bytes, of the buffer at InputBuffer. 
- * @param OutputBuffer Optional pointer to an output buffer. The type depends on the InformationLevel requested. 
- * @param OutputBufferLength Size, in bytes, of the output buffer. 
+ *
+ * @param InformationLevel Specifies the requested information level, which indicates the specific power information to be set or retrieved.
+ * @param InputBuffer Optional pointer to a caller-allocated input buffer.
+ * @param InputBufferLength Size, in bytes, of the buffer at InputBuffer.
+ * @param OutputBuffer Optional pointer to an output buffer. The type depends on the InformationLevel requested.
+ * @param OutputBufferLength Size, in bytes, of the output buffer.
  * @return Successful or errant status.
  */
 NTSYSCALLAPI
@@ -916,7 +917,7 @@ NtSetThreadExecutionState(
     _Out_ EXECUTION_STATE *PreviousFlags
     );
 
-#if (PHNT_VERSION < PHNT_WIN7)
+#if (PHNT_VERSION < PHNT_WINDOWS_7)
 /**
  * Requests the system resume latency.
  *
@@ -951,7 +952,7 @@ NtInitiatePowerAction(
     );
 
 /**
- * Initiates a power action of the current system. Depending on the Flags parameter, the function either 
+ * Initiates a power action of the current system. Depending on the Flags parameter, the function either
  * suspends operation immediately or requests permission from all applications and device drivers before doing so.
  *
  * @param SystemAction The system power action.

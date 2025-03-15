@@ -201,9 +201,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="resources\pooltag.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="resources\callback.ico" />
     <Image Include="resources\cpu.ico" />
     <Image Include="resources\device.ico" />

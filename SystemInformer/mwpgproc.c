@@ -935,12 +935,14 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_MISCELLANEOUS, L"&Miscellaneous", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ACTIVITY, L"Activity moderation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_SETCRITICAL, L"&Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_DETACHFROMDEBUGGER, L"&Detach from debugger", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Efficiency mode", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_EXECUTIONREQUIRED, L"Execution required", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_GDIHANDLES, L"GDI &handles...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_LOCKS, L"Locks...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_FLUSHHEAPS, L"Flush heaps", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_PAGESMODIFIED, L"Modified pages...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_REDUCEWORKINGSET, L"Reduce working &set", NULL, NULL), ULONG_MAX);

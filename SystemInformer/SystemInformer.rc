@@ -44,6 +44,7 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // PNG
@@ -1552,6 +1553,7 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,347,286
     PUSHBUTTON      "Refresh",IDC_REFRESH,240,291,50,14
     DEFPUSHBUTTON   "Close",IDOK,294,291,50,14
+    LTEXT           "Status",IDC_STATE,4,294,20,8
 END
 
 IDD_CHOOSENEW DIALOGEX 0, 0, 270, 120
@@ -2160,6 +2162,10 @@ BEGIN
         RIGHTMARGIN, 253
         TOPMARGIN, 7
         BOTTOMMARGIN, 253
+    END
+
+    IDD_MODIFIEDPAGES, DIALOG
+    BEGIN
     END
 
     IDD_CHOOSENEW, DIALOG

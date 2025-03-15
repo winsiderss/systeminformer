@@ -132,6 +132,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     };
                     PVOID fileDialog;
                     PPH_STRING fileName = NULL;
+                    PPH_STRING string;
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
@@ -147,6 +148,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                     {
                         GeoLiteUpdateFromConfigFile(fileName);
                     }
+
+                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
+                    PhSetDialogItemText(WindowHandle, IDC_GEOIDTEXT, PhGetStringOrEmpty(string));
+                    string = PhaGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+                    PhSetDialogItemText(WindowHandle, IDC_KEYTEXT, PhGetStringOrEmpty(string));
                 }
                 break;
             }
@@ -270,7 +276,7 @@ VOID GeoLiteUpdateFromConfigFile(
 
     content = PhFileReadAllTextWin32(PhGetString(FileName), TRUE);
 
-    if (!PhIsNullOrEmptyString(content))
+    if (PhIsNullOrEmptyString(content))
         return;
 
     remainingPart = PhGetStringRef(content);

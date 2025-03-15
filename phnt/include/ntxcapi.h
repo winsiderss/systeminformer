@@ -31,7 +31,7 @@ RtlRaiseException(
     _In_ PEXCEPTION_RECORD ExceptionRecord
     );
 
-#if (PHNT_VERSION >= PHNT_20H1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
 NTSYSAPI
 VOID
@@ -50,7 +50,7 @@ RtlRaiseNoncontinuableException(
     _In_ PEXCEPTION_RECORD ExceptionRecord,
     _In_ PCONTEXT ContextRecord
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 NTSYSCALLAPI
 NTSTATUS
@@ -60,7 +60,7 @@ NtContinue(
     _In_ BOOLEAN TestAlert
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 typedef enum _KCONTINUE_TYPE
 {
     KCONTINUE_UNWIND,
@@ -97,7 +97,7 @@ NtContinueEx(
 //{
 //    return NtContinueEx(ContextRecord, (PCONTINUE_ARGUMENT)TestAlert);
 //}
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 NTSYSCALLAPI
 NTSTATUS
@@ -109,7 +109,7 @@ NtRaiseException(
     );
 
 _Analysis_noreturn_
-NTSYSCALLAPI
+NTSYSAPI
 DECLSPEC_NORETURN
 VOID
 NTAPI

@@ -76,7 +76,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)..\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -116,7 +116,7 @@
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <SetChecksum>true</SetChecksum>
-      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -127,7 +127,6 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="download.c" />
     <ClCompile Include="extract.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="install.c" />

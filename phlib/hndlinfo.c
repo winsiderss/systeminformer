@@ -389,7 +389,14 @@ NTSTATUS PhGetObjectName(
 
     if (NT_SUCCESS(status))
     {
-        *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
+        if (RtlIsNullOrEmptyUnicodeString(&buffer->Name))
+        {
+            status = STATUS_OBJECT_NAME_INVALID;
+        }
+        else
+        {
+            *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
+        }
     }
 
     PhFree(buffer);
@@ -431,7 +438,7 @@ NTSTATUS PhQueryCloseHandle(
         ObjectHandleFlagInformation,
         &objectInfo,
         sizeof(objectInfo),
-        nullptr
+        NULL
         );
 
     if (NT_SUCCESS(status) && objectInfo.ProtectFromClose)
@@ -608,7 +615,7 @@ PPH_STRING PhGetEtwPublisherName(
     _In_ PGUID Guid
     )
 {
-    static PH_STRINGREF publishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
+    static CONST PH_STRINGREF publishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
     PPH_STRING guidString;
     PPH_STRING keyName;
     HANDLE keyHandle;
@@ -902,70 +909,83 @@ PPH_STRING PhStdGetClientIdNameEx(
     PPH_STRING result;
     PPH_STRING processName = NULL;
     PPH_STRING threadName = NULL;
-    PH_STRINGREF processNameRef;
-    PH_STRINGREF threadNameRef;
+    PH_STRINGREF processNameStringRef;
+    PH_STRINGREF threadNameStringRef;
     HANDLE processHandle;
     HANDLE threadHandle;
-    ULONG isProcessTerminated = FALSE;
-    BOOLEAN isThreadTerminated = FALSE;
+    BOOLEAN processIsTerminated = FALSE;
+    BOOLEAN threadIsTerminated = FALSE;
 
-    if (ProcessName)
-    {
-        // Use the supplied name
-        processNameRef.Length = ProcessName->Length;
-        processNameRef.Buffer = ProcessName->Buffer;
-    }
-    else
+    PhInitializeStringRef(&processNameStringRef, L"unnamed process");
+    PhInitializeStringRef(&threadNameStringRef, L"unnamed thread");
+
+    if (PhIsNullOrEmptyString(ProcessName))
     {
         if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
         {
-            if (processName = PhGetKernelFileName2())
+            if (processName = PhGetKernelFileName())
             {
                 PhMoveReference(&processName, PhGetBaseName(processName));
-                processNameRef.Length = processName->Length;
-                processNameRef.Buffer = processName->Buffer;
-            }
-            else
-            {
-                PhInitializeStringRef(&processNameRef, L"Unknown process");
+                processNameStringRef.Length = processName->Length;
+                processNameStringRef.Buffer = processName->Buffer;
             }
         }
         else
         {
             // Determine the name of the process ourselves (diversenok)
-            if (NT_SUCCESS(PhGetProcessImageFileNameById(
+            if (ClientId->UniqueProcess && NT_SUCCESS(PhGetProcessImageFileNameById(
                 ClientId->UniqueProcess,
                 NULL,
                 &processName
                 )))
             {
-                processNameRef.Length = processName->Length;
-                processNameRef.Buffer = processName->Buffer;
-            }
-            else
-            {
-                PhInitializeStringRef(&processNameRef, L"Unknown process");
+                processNameStringRef.Length = processName->Length;
+                processNameStringRef.Buffer = processName->Buffer;
             }
         }
     }
-
-    // Check if the process is alive, but only if we didn't get its name
-    if (!ProcessName && NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        SYNCHRONIZE,
-        ClientId->UniqueProcess
-        )))
+    else
     {
-        LARGE_INTEGER timeout = { 0 };
-
-        // Waiting with zero timeout checks for termination
-        if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
-            isProcessTerminated = TRUE;
-
-        PhQueryCloseHandle(processHandle);
+        processNameStringRef.Length = ProcessName->Length;
+        processNameStringRef.Buffer = ProcessName->Buffer;
     }
 
-    PhInitializeStringRef(&threadNameRef, L"unnamed thread");
+    if (ClientId->UniqueProcess)
+    {
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            SYNCHRONIZE,
+            ClientId->UniqueProcess
+            )))
+        {
+            LARGE_INTEGER timeout = { 0 };
+
+            // Check if the process is alive
+            if (NtWaitForSingleObject(processHandle, FALSE, &timeout) == STATUS_WAIT_0)
+                processIsTerminated = TRUE;
+
+            PhQueryCloseHandle(processHandle);
+        }
+
+        //if (PhIsNullOrEmptyString(ProcessName) && NT_SUCCESS(PhOpenProcessClientId(
+        //    &processHandle,
+        //    PROCESS_QUERY_LIMITED_INFORMATION,
+        //    ClientId
+        //    )))
+        //{
+        //    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+        //
+        //    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
+        //    {
+        //        if (basicInfo.IsProcessDeleting)
+        //        {
+        //            isProcessTerminated = TRUE;
+        //        }
+        //    }
+        //
+        //    PhQueryCloseHandle(processHandle);
+        //}
+    }
 
     if (ClientId->UniqueThread)
     {
@@ -976,16 +996,13 @@ PPH_STRING PhStdGetClientIdNameEx(
             )))
         {
             // Check if the thread is alive
-            PhGetThreadIsTerminated(
-                threadHandle,
-                &isThreadTerminated
-                );
+            PhGetThreadIsTerminated(threadHandle, &threadIsTerminated);
 
             // Use the name of the thread if available
             if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)))
             {
-                threadNameRef.Length = threadName->Length;
-                threadNameRef.Buffer = threadName->Buffer;
+                threadNameStringRef.Length = threadName->Length;
+                threadNameStringRef.Buffer = threadName->Buffer;
             }
 
             PhQueryCloseHandle(threadHandle);
@@ -999,13 +1016,13 @@ PPH_STRING PhStdGetClientIdNameEx(
         PH_FORMAT format[10];
 
         // L"%s%.*s (%lu): %s%.*s (%lu)"
-        PhInitFormatS(&format[0], isProcessTerminated ? L"Terminated " : L"");
-        PhInitFormatSR(&format[1], processNameRef);
+        PhInitFormatS(&format[0], processIsTerminated ? L"Terminated " : L"");
+        PhInitFormatSR(&format[1], processNameStringRef);
         PhInitFormatS(&format[2], L" (");
         PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
         PhInitFormatS(&format[4], L"): ");
-        PhInitFormatS(&format[5], isThreadTerminated ? L"terminated " : L"");
-        PhInitFormatSR(&format[6], threadNameRef);
+        PhInitFormatS(&format[5], threadIsTerminated ? L"Terminated " : L"");
+        PhInitFormatSR(&format[6], threadNameStringRef);
         PhInitFormatS(&format[7], L" (");
         PhInitFormatU(&format[8], HandleToUlong(ClientId->UniqueThread));
         PhInitFormatC(&format[9], L')');
@@ -1017,8 +1034,8 @@ PPH_STRING PhStdGetClientIdNameEx(
         PH_FORMAT format[5];
 
         // L"%s%.*s (%lu)"
-        PhInitFormatS(&format[0], isProcessTerminated ? L"Terminated " : L"");
-        PhInitFormatSR(&format[1], processNameRef);
+        PhInitFormatS(&format[0], processIsTerminated ? L"Terminated " : L"");
+        PhInitFormatSR(&format[1], processNameStringRef);
         PhInitFormatS(&format[2], L" (");
         PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
         PhInitFormatC(&format[4], L')');
@@ -1028,21 +1045,18 @@ PPH_STRING PhStdGetClientIdNameEx(
 
     //result = PhFormatString(
     //    ClientId->UniqueThread ? L"%s%.*s (%lu): %s%.*s (%lu)" : L"%s%.*s (%lu)",
-    //    isProcessTerminated ? L"Terminated " : L"",
-    //    processNameRef.Length / sizeof(WCHAR),
-    //    processNameRef.Buffer,
+    //    processIsTerminated ? L"Terminated " : L"",
+    //    processNameStringRef.Length / sizeof(WCHAR),
+    //    processNameStringRef.Buffer,
     //    HandleToUlong(ClientId->UniqueProcess),
-    //    isThreadTerminated ? L"terminated " : L"",
-    //    threadNameRef.Length / sizeof(WCHAR),
-    //    threadNameRef.Buffer,
+    //    threadIsTerminated ? L"terminated " : L"",
+    //    threadNameStringRef.Length / sizeof(WCHAR),
+    //    threadNameStringRef.Buffer,
     //    HandleToUlong(ClientId->UniqueThread)
     //    );
 
-    if (processName)
-        PhDereferenceObject(processName);
-
-    if (threadName)
-        PhDereferenceObject(threadName);
+    PhClearReference(&processName);
+    PhClearReference(&threadName);
 
     return result;
 }
@@ -1088,7 +1102,7 @@ NTSTATUS PhpGetBestObjectName(
         // Convert the file name to a DOS file name.
         bestObjectName = PhResolveDevicePrefix(&ObjectName->sr);
 
-        if (!bestObjectName)
+        if (PhIsNullOrEmptyString(bestObjectName))
         {
             if (PhEnableProcessHandlePnPDeviceNameSupport)
             {
@@ -1099,7 +1113,7 @@ NTSTATUS PhpGetBestObjectName(
                 }
             }
 
-            if (!bestObjectName)
+            if (PhIsNullOrEmptyString(bestObjectName))
             {
                 // The file doesn't have a DOS filename and doesn't have a PnP friendly name.
                 PhSetReference(&bestObjectName, ObjectName);
@@ -1744,8 +1758,10 @@ NTSTATUS PhpGetBestObjectName(
 
 CleanupExit:
 
-    if (!bestObjectName)
+    if (PhIsNullOrEmptyString(bestObjectName))
+    {
         PhSetReference(&bestObjectName, ObjectName);
+    }
 
     *BestObjectName = bestObjectName;
 
@@ -1949,7 +1965,14 @@ NTSTATUS PhGetHandleInformationEx(
 
     if (!NT_SUCCESS(status))
     {
-        if (ksienabled && PhEqualString2(typeName, L"File", TRUE))
+        if (
+            (ksienabled && PhEqualString2(typeName, L"File", TRUE)) ||
+            PhEqualString2(typeName, L"EtwRegistration", TRUE) ||
+            PhEqualString2(typeName, L"Process", TRUE) ||
+            PhEqualString2(typeName, L"Thread", TRUE) ||
+            PhEqualString2(typeName, L"Token", TRUE) ||
+            PhEqualString2(typeName, L"ALPC Port", TRUE)
+            )
         {
             // PhpGetBestObjectName can provide us with a name.
             objectName = PhReferenceEmptyString();

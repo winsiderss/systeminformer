@@ -96,6 +96,29 @@ VOID PhEmSetObjectExtension(
 }
 
 /**
+ * Gets the object for an extension.
+ *
+ * \param AppContext The application context.
+ * \param ObjectType The type of object for which an extension has been registered.
+ * \param Extension The object extension.
+ */
+PVOID PhEmGetObject(
+    _In_ PPH_EM_APP_CONTEXT AppContext,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_EM_OBJECT_EXTENSION objectExtension;
+
+    objectExtension = AppContext->Extensions[ObjectType];
+
+    if (!objectExtension)
+        return NULL;
+
+    return PTR_SUB_OFFSET(Extension, PhEmObjectTypeState[ObjectType].InitialSize + objectExtension->ExtensionOffset);
+}
+
+/**
  * Gets the object extension for an object.
  *
  * \param AppContext The application context.

@@ -42,37 +42,41 @@ PPH_BYTES VirusTotalTimeString(
     return string;
 }
 
-PPH_STRING VirusTotalStringToTime(
-    _In_ PPH_STRING Time
+PPH_STRING VirusTotalRelativeTimeString(
+    _In_ PLARGE_INTEGER Time
     )
 {
-    PPH_STRING result = NULL;
-    SYSTEMTIME time = { 0 };
-    SYSTEMTIME localTime = { 0 };
-    INT count;
+    LARGE_INTEGER time;
+    LARGE_INTEGER currentTime;
+    SYSTEMTIME timeFields;
+    PPH_STRING timeRelativeString;
+    PPH_STRING timeString;
 
-    count = swscanf(
-        PhGetString(Time),
-        L"%hu-%hu-%hu %hu:%hu:%hu",
-        &time.wYear,
-        &time.wMonth,
-        &time.wDay,
-        &time.wHour,
-        &time.wMinute,
-        &time.wSecond
-        );
+    time = *Time;
+    PhQuerySystemTime(&currentTime);
+    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
 
-    if (count == 6)
-    {
-        if (PhSystemTimeToTzSpecificLocalTime(&time, &localTime))
-        {
-            result = PhFormatDateTime(&localTime);
-        }
-    }
+    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+    timeString = PhaFormatDateTime(&timeFields);
+
+    return PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+}
+
+PPH_STRING VirusTotalDateToTime(
+    _In_ ULONG TimeDateStamp
+    )
+{
+    PPH_STRING result;
+    LARGE_INTEGER time;
+    SYSTEMTIME systemTime;
+
+    PhSecondsSince1970ToTime(TimeDateStamp, &time);
+    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+    result = VirusTotalRelativeTimeString(&time);
+    //result = PhFormatDateTime(&systemTime);
 
     return result;
 }
-
 
 VOID VirusTotalBuildJsonArray(
     _In_ PVIRUSTOTAL_FILE_HASH_ENTRY Entry,
@@ -83,17 +87,9 @@ VOID VirusTotalBuildJsonArray(
     FILE_NETWORK_OPEN_INFORMATION fileAttributeInfo;
     PPH_STRING hashString = NULL;
 
-    if (NT_SUCCESS(PhQueryFullAttributesFileWin32(
-        Entry->FileName->Buffer,
-        &fileAttributeInfo
-        )))
-    {
-        Entry->CreationTime = VirusTotalTimeString(&fileAttributeInfo.CreationTime);
-    }
-
-    if (NT_SUCCESS(PhCreateFileWin32(
+    if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
-        Entry->FileName->Buffer,
+        &Entry->FileName->sr,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -101,6 +97,14 @@ VOID VirusTotalBuildJsonArray(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT // FILE_OPEN_FOR_BACKUP_INTENT
         )))
     {
+        if (NT_SUCCESS(PhGetFileFullAttributesInformation(
+            fileHandle,
+            &fileAttributeInfo
+            )))
+        {
+            Entry->CreationTime = VirusTotalTimeString(&fileAttributeInfo.CreationTime);
+        }
+
         if (NT_SUCCESS(HashFileAndResetPosition(
             fileHandle,
             &fileAttributeInfo.EndOfFile,
@@ -127,117 +131,113 @@ VOID VirusTotalBuildJsonArray(
 }
 
 PPH_BYTES VirusTotalSendHttpRequest(
-    _In_ PPH_BYTES JsonArray
+    _In_ PPH_BYTES JsonArray,
+    _In_ PPH_STRING FilePat
     )
 {
+    NTSTATUS status;
     PPH_BYTES subRequestBuffer = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING urlPathString = NULL;
+    PPH_STRING urlHeaderString = NULL;
 
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
+    urlPathString = PhConcatStrings2(L"...", L"...");
+    urlHeaderString = PhConcatStrings2(L"x-\x0061\x0070\x0069\x006B\x0065\x0079: ", PhGetStringOrEmpty(FilePat));
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-
-    if (!PhHttpSocketConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT))
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
         goto CleanupExit;
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        L"POST",
-        urlPathString->Buffer,
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", urlPathString->Buffer, PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketAddRequestHeaders(httpContext, L"Content-Type: application/json", 0))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &urlHeaderString->sr)))
         goto CleanupExit;
-
-    if (!PhHttpSocketSendRequest(httpContext, JsonArray->Buffer, (ULONG)JsonArray->Length))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
         goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
         goto CleanupExit;
-
-    if (!(subRequestBuffer = PhHttpSocketDownloadString(httpContext, FALSE)))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, JsonArray->Buffer, (ULONG)JsonArray->Length, (ULONG)JsonArray->Length)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &subRequestBuffer)))
         goto CleanupExit;
 
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+    {
+        PhHttpDestroy(httpContext);
+    }
 
-    PhClearReference(&urlPathString);
+    if (urlHeaderString)
+    {
+        PhDereferenceObject(urlHeaderString);
+    }
+
+    if (urlPathString)
+    {
+        PhDereferenceObject(urlPathString);
+    }
 
     if (JsonArray)
+    {
         PhDereferenceObject(JsonArray);
+    }
 
     return subRequestBuffer;
 }
 
 PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
-    _In_ PPH_STRING FileHash
+    _In_ PPH_STRING FileHash,
+    _In_ PPH_STRING FilePat
     )
 {
+    NTSTATUS status;
     PVIRUSTOTAL_FILE_REPORT result = NULL;
     PPH_BYTES jsonString = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING urlPathString = NULL;
+    PPH_STRING urlHeaderString = NULL;
     PVOID jsonRootObject = NULL;
     PVOID jsonScanObject;
 
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
-    {
-        goto CleanupExit;
-    }
+    urlPathString = PhConcatStrings2(L"/api/v3/files/", PhGetStringOrEmpty(FileHash));
+    urlHeaderString = PhConcatStrings2(L"x-\x0061\x0070\x0069\x006B\x0065\x0079: ", PhGetStringOrEmpty(FilePat));
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        L"www.virustotal.com",
-        PH_HTTP_DEFAULT_HTTPS_PORT
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        L"POST",
-        PhGetString(urlPathString),
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketAddRequestHeaders(httpContext, L"Content-Type: application/json", 0))
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(urlPathString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &urlHeaderString->sr)))
         goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
         goto CleanupExit;
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
 
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
         goto CleanupExit;
 
-    result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT));
-    result->ResponseCode = PhGetJsonValueAsUInt64(jsonRootObject, "response_code");
-    result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
-    result->PermaLink = PhGetJsonValueAsString(jsonRootObject, "permalink");
-    result->ScanDate = PhGetJsonValueAsString(jsonRootObject, "scan_date");
-    result->ScanId = PhGetJsonValueAsString(jsonRootObject, "scan_id");
-    result->Total = PhFormatUInt64(PhGetJsonValueAsUInt64(jsonRootObject, "total"), FALSE);
-    result->Positives = PhFormatUInt64(PhGetJsonValueAsUInt64(jsonRootObject, "positives"), FALSE);
-    //result->Md5 = PhGetJsonValueAsString(jsonRootObject, "md5");
-    //result->Sha1 = PhGetJsonValueAsString(jsonRootObject, "sha1");
-    //result->Sha256 = PhGetJsonValueAsString(jsonRootObject, "sha256");
+    PVOID dataObject = PhGetJsonObject(jsonRootObject, "data");
+    PVOID attributesObject = PhGetJsonObject(dataObject, "attributes");
+    PVOID statsObject = PhGetJsonObject(attributesObject, "last_analysis_stats");
 
-    if (jsonScanObject = PhGetJsonObject(jsonRootObject, "scans"))
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT));
+    result->ScanDate = PhFormatUInt64(PhGetJsonValueAsUInt64(attributesObject, "last_analysis_date"), FALSE);
+    result->ScanId = PhGetJsonValueAsString(dataObject, "id");
+    result->Total = PhFormatUInt64(PhGetJsonValueAsUInt64(statsObject, "undetected"), FALSE);
+    result->Positives = PhFormatUInt64(PhGetJsonValueAsUInt64(statsObject, "malicious"), FALSE);
+
+    if (jsonScanObject = PhGetJsonObject(attributesObject, "last_analysis_results"))
     {
         PPH_LIST jsonArrayList;
 
@@ -252,10 +252,10 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
 
                 entry = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
                 entry->Vendor = PhConvertUtf8ToUtf16(object->Key);
-                entry->Detected = PhGetJsonObjectBool(object->Entry, "detected");
-                entry->EngineVersion = PhGetJsonValueAsString(object->Entry, "version");
+                //entry->Detected = PhGetJsonObjectBool(object->Entry, "detected");
+                entry->EngineVersion = PhGetJsonValueAsString(object->Entry, "engine_version");
                 entry->DetectionName = PhGetJsonValueAsString(object->Entry, "result");
-                entry->DatabaseDate = PhGetJsonValueAsString(object->Entry, "update");
+                entry->DatabaseDate = PhGetJsonValueAsString(object->Entry, "engine_update");
                 PhAddItemList(result->ScanResults, entry);
 
                 PhFree(object);
@@ -268,12 +268,29 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+    {
+        PhHttpDestroy(httpContext);
+    }
 
     if (jsonRootObject)
+    {
         PhFreeJsonObject(jsonRootObject);
+    }
 
-    PhClearReference(&jsonString);
+    if (urlHeaderString)
+    {
+        PhDereferenceObject(urlHeaderString);
+    }
+
+    if (urlPathString)
+    {
+        PhDereferenceObject(urlPathString);
+    }
+
+    if (jsonString)
+    {
+        PhDereferenceObject(jsonString);
+    }
 
     return result;
 }
@@ -282,8 +299,6 @@ VOID VirusTotalFreeFileReport(
     _In_ PVIRUSTOTAL_FILE_REPORT FileReport
     )
 {
-    PhClearReference(&FileReport->StatusMessage);
-    PhClearReference(&FileReport->PermaLink);
     PhClearReference(&FileReport->ScanId);
     PhClearReference(&FileReport->ScanDate);
     PhClearReference(&FileReport->Positives);
@@ -310,49 +325,38 @@ VOID VirusTotalFreeFileReport(
 }
 
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
-    _In_ PPH_STRING FileHash
+    _In_ PPH_STRING FileHash,
+    _In_ PPH_STRING FilePat
     )
 {
+    NTSTATUS status;
     PVIRUSTOTAL_API_RESPONSE result = NULL;
     PPH_BYTES jsonString = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING urlPathString = NULL;
+    PPH_STRING urlHeaderString = NULL;
     PVOID jsonRootObject = NULL;
 
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
-    {
-        goto CleanupExit;
-    }
+    urlPathString = PhConcatStrings2(L"/api/v3/.../", PhGetStringOrEmpty(FileHash));
+    urlHeaderString = PhConcatStrings2(L"x-\x0061\x0070\x0069\x006B\x0065\x0079: ", PhGetStringOrEmpty(FilePat));
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        L"www.virustotal.com",
-        PH_HTTP_DEFAULT_HTTPS_PORT
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        L"POST",
-        PhGetString(urlPathString),
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketAddRequestHeaders(httpContext, L"Content-Type: application/json", 0))
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", PhGetString(urlPathString), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
-
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &urlHeaderString->sr)))
         goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
         goto CleanupExit;
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
 
     if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
@@ -367,12 +371,29 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+    {
+        PhHttpDestroy(httpContext);
+    }
 
     if (jsonRootObject)
+    {
         PhFreeJsonObject(jsonRootObject);
+    }
 
-    PhClearReference(&jsonString);
+    if (urlHeaderString)
+    {
+        PhDereferenceObject(urlHeaderString);
+    }
+
+    if (urlPathString)
+    {
+        PhDereferenceObject(urlPathString);
+    }
+
+    if (jsonString)
+    {
+        PhDereferenceObject(jsonString);
+    }
 
     return result;
 }
@@ -386,71 +407,4 @@ VOID VirusTotalFreeFileReScan(
     PhClearReference(&FileReScan->ScanId);
 
     PhFree(FileReScan);
-}
-
-PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
-    _In_ PPH_STRING IpAddress
-    )
-{
-    PVIRUSTOTAL_API_RESPONSE result = NULL;
-    PPH_BYTES jsonString = NULL;
-    PPH_HTTP_CONTEXT httpContext = NULL;
-    PPH_STRING urlPathString = NULL;
-    PVOID jsonRootObject = NULL;
-
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
-    {
-        goto CleanupExit;
-    }
-
-    if (!PhHttpSocketConnect(
-        httpContext,
-        L"www.virustotal.com",
-        PH_HTTP_DEFAULT_HTTPS_PORT
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        L"POST",
-        PhGetString(urlPathString),
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (!PhHttpSocketAddRequestHeaders(httpContext, L"Content-Type: application/json", 0))
-        goto CleanupExit;
-
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-        goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
-        goto CleanupExit;
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
-        goto CleanupExit;
-
-    if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
-        goto CleanupExit;
-
-    result = PhAllocateZero(sizeof(VIRUSTOTAL_API_RESPONSE));
-    //result->ResponseCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
-    //result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
-    //result->PermaLink = PhGetJsonValueAsString(jsonRootObject, "permalink");
-    //result->ScanId = PhGetJsonValueAsString(jsonRootObject, "scan_id");
-
-CleanupExit:
-
-    if (httpContext)
-        PhHttpSocketDestroy(httpContext);
-
-    if (jsonRootObject)
-        PhFreeJsonObject(jsonRootObject);
-
-    PhClearReference(&jsonString);
-    return result;
 }

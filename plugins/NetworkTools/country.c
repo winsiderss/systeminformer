@@ -405,7 +405,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
             return FALSE;
     }
 
-    if (RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
+    if (RemoteAddress.Type == PH_NETWORK_TYPE_IPV4)
     {
         SOCKADDR_IN ipv4SockAddr;
 
@@ -483,7 +483,7 @@ BOOLEAN LookupSockInAddr4CountryCode(
     PH_IP_ADDRESS remoteAddress;
 
     memset(&remoteAddress, 0, sizeof(PH_IP_ADDRESS));
-    remoteAddress.Type = PH_IPV4_NETWORK_TYPE;
+    remoteAddress.Type = PH_NETWORK_TYPE_IPV4;
     remoteAddress.InAddr = RemoteAddress;
 
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
@@ -499,7 +499,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     PH_IP_ADDRESS remoteAddress;
 
     memset(&remoteAddress, 0, sizeof(PH_IP_ADDRESS));
-    remoteAddress.Type = PH_IPV6_NETWORK_TYPE;
+    remoteAddress.Type = PH_NETWORK_TYPE_IPV6;
     remoteAddress.In6Addr = RemoteAddress;
 
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);

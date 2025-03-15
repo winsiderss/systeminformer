@@ -26,7 +26,7 @@ typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     _In_ PVOID ApcContext
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // winbase:CreateThreadpool
 NTSYSAPI
@@ -63,7 +63,7 @@ TpSetPoolMinThreads(
     _In_ ULONG MinThreads
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // winbase:QueryThreadpoolStackInformation
 NTSYSAPI
 NTSTATUS
@@ -256,7 +256,7 @@ TpSetTimer(
     _In_opt_ ULONG WindowLength
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // winbase:SetThreadpoolTimerEx
 NTSYSAPI
 NTSTATUS
@@ -315,7 +315,7 @@ TpSetWait(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // winbase:SetThreadpoolWaitEx
 NTSYSAPI
 NTSTATUS
@@ -403,7 +403,7 @@ TpAllocAlpcCompletion(
     _In_opt_ PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS

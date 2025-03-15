@@ -1338,7 +1338,7 @@ BOOLEAN PhFppInsertFreeList(
     )
 {
     ULONG oldSegmentIndex;
-    PPH_FP_BLOCK_HEADER oldSegmentFirstBlock = nullptr;
+    PPH_FP_BLOCK_HEADER oldSegmentFirstBlock = NULL;
     PPH_FP_SEGMENT_HEADER oldSegmentHeader;
 
     oldSegmentIndex = Pool->Header->FreeLists[FreeListIndex];
@@ -1385,11 +1385,11 @@ BOOLEAN PhFppRemoveFreeList(
     )
 {
     ULONG flinkSegmentIndex;
-    PPH_FP_BLOCK_HEADER flinkSegmentFirstBlock = nullptr;
-    PPH_FP_SEGMENT_HEADER flinkSegmentHeader = nullptr;
+    PPH_FP_BLOCK_HEADER flinkSegmentFirstBlock = NULL;
+    PPH_FP_SEGMENT_HEADER flinkSegmentHeader = NULL;
     ULONG blinkSegmentIndex;
-    PPH_FP_BLOCK_HEADER blinkSegmentFirstBlock = nullptr;
-    PPH_FP_SEGMENT_HEADER blinkSegmentHeader = nullptr;
+    PPH_FP_BLOCK_HEADER blinkSegmentFirstBlock = NULL;
+    PPH_FP_SEGMENT_HEADER blinkSegmentHeader = NULL;
 
     flinkSegmentIndex = SegmentHeader->FreeFlink;
     blinkSegmentIndex = SegmentHeader->FreeBlink;

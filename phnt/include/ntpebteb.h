@@ -249,13 +249,13 @@ typedef struct _PEB
         BOOLEAN BitField;
         struct
         {
-            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).  
+            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).
             BOOLEAN IsProtectedProcess : 1;             // The process is a protected process.
-            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.         
-            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.            
+            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.
+            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.
             BOOLEAN IsPackagedProcess : 1;              // The process is a packaged store process (APPX/MSIX).
-            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.      
-            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).            
+            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.
+            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).
             BOOLEAN IsLongPathAwareProcess : 1;         // The process is long path aware.
         };
     };
@@ -314,7 +314,7 @@ typedef struct _PEB
         struct
         {
             ULONG ProcessInJob : 1;                 // The process is part of a job.
-            ULONG ProcessInitializing : 1;          // The process is initializing. 
+            ULONG ProcessInitializing : 1;          // The process is initializing.
             ULONG ProcessUsingVEH : 1;              // The process is using VEH.
             ULONG ProcessUsingVCH : 1;              // The process is using VCH.
             ULONG ProcessUsingFTH : 1;              // The process is using FTH.
@@ -402,7 +402,45 @@ typedef struct _PEB
     //
     // Global flags for the system.
     //
-    ULONG NtGlobalFlag;
+    union
+    {
+        ULONG NtGlobalFlag;
+        struct
+        {
+            ULONG StopOnException : 1;          // FLG_STOP_ON_EXCEPTION
+            ULONG ShowLoaderSnaps : 1;          // FLG_SHOW_LDR_SNAPS
+            ULONG DebugInitialCommand : 1;      // FLG_DEBUG_INITIAL_COMMAND
+            ULONG StopOnHungGUI : 1;            // FLG_STOP_ON_HUNG_GUI
+            ULONG HeapEnableTailCheck : 1;      // FLG_HEAP_ENABLE_TAIL_CHECK
+            ULONG HeapEnableFreeCheck : 1;      // FLG_HEAP_ENABLE_FREE_CHECK
+            ULONG HeapValidateParameters : 1;   // FLG_HEAP_VALIDATE_PARAMETERS
+            ULONG HeapValidateAll : 1;          // FLG_HEAP_VALIDATE_ALL
+            ULONG ApplicationVerifier : 1;      // FLG_APPLICATION_VERIFIER
+            ULONG MonitorSilentProcessExit : 1; // FLG_MONITOR_SILENT_PROCESS_EXIT
+            ULONG PoolEnableTagging : 1;        // FLG_POOL_ENABLE_TAGGING
+            ULONG HeapEnableTagging : 1;        // FLG_HEAP_ENABLE_TAGGING
+            ULONG UserStackTraceDb : 1;         // FLG_USER_STACK_TRACE_DB
+            ULONG KernelStackTraceDb : 1;       // FLG_KERNEL_STACK_TRACE_DB
+            ULONG MaintainObjectTypeList : 1;   // FLG_MAINTAIN_OBJECT_TYPELIST
+            ULONG HeapEnableTagByDll : 1;       // FLG_HEAP_ENABLE_TAG_BY_DLL
+            ULONG DisableStackExtension : 1;    // FLG_DISABLE_STACK_EXTENSION
+            ULONG EnableCsrDebug : 1;           // FLG_ENABLE_CSRDEBUG
+            ULONG EnableKDebugSymbolLoad : 1;   // FLG_ENABLE_KDEBUG_SYMBOL_LOAD
+            ULONG DisablePageKernelStacks : 1;  // FLG_DISABLE_PAGE_KERNEL_STACKS
+            ULONG EnableSystemCritBreaks : 1;   // FLG_ENABLE_SYSTEM_CRIT_BREAKS
+            ULONG HeapDisableCoalescing : 1;    // FLG_HEAP_DISABLE_COALESCING
+            ULONG EnableCloseExceptions : 1;    // FLG_ENABLE_CLOSE_EXCEPTIONS
+            ULONG EnableExceptionLogging : 1;   // FLG_ENABLE_EXCEPTION_LOGGING
+            ULONG EnableHandleTypeTagging : 1;  // FLG_ENABLE_HANDLE_TYPE_TAGGING
+            ULONG HeapPageAllocs : 1;           // FLG_HEAP_PAGE_ALLOCS
+            ULONG DebugInitialCommandEx : 1;    // FLG_DEBUG_INITIAL_COMMAND_EX
+            ULONG DisableDbgPrint : 1;          // FLG_DISABLE_DBGPRINT
+            ULONG CritSecEventCreation : 1;     // FLG_CRITSEC_EVENT_CREATION
+            ULONG LdrTopDown : 1;               // FLG_LDR_TOP_DOWN
+            ULONG EnableHandleExceptions : 1;   // FLG_ENABLE_HANDLE_EXCEPTIONS
+            ULONG DisableProtDlls : 1;          // FLG_DISABLE_PROTDLLS
+        } NtGlobalFlags;
+    };
 
     //
     // Timeout for critical sections.
@@ -432,7 +470,7 @@ typedef struct _PEB
     //
     // Number of process heaps.
     //
-    ULONG NumberOfHeaps;        
+    ULONG NumberOfHeaps;
 
     //
     // Maximum number of process heaps.
@@ -604,12 +642,20 @@ typedef struct _PEB
 
     //
     // Packaged process feature state.
-    // 
-    ULONG AppModelFeatureState;
+    //
+    union
+    {
+        ULONG AppModelFeatureState;
+        struct
+        {
+            ULONG ForegroundBoostProcesses : 1;
+            ULONG AppModelFeatureStateReserved : 31;
+        };
+    };
 
     //
     // SpareUlongs
-    // 
+    //
     ULONG SpareUlongs[2];
 
     //
@@ -746,17 +792,17 @@ typedef struct _PEB
 } PEB, * PPEB;
 
 #ifdef _WIN64
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
-//static_assert(sizeof(PEB) == 0x7B0); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x7B8); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x7d0); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x7B0, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x7B8, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x7C8, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x7d0, "Size of PEB is incorrect"); // WIN11
 #else
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
-//static_assert(sizeof(PEB) == 0x468); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x470); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x488); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x468, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x470, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x480, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x488, "Size of PEB is incorrect"); // WIN11
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -1128,7 +1174,7 @@ typedef struct _TEB
 
     //
     // The preferred processor for the curremt thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
-    // 
+    //
     union
     {
         PROCESSOR_NUMBER CurrentIdealProcessor;
@@ -1144,7 +1190,7 @@ typedef struct _TEB
 
     //
     // The minimum size of the stack available during any stack overflow exceptions. (SetThreadStackGuarantee)
-    // 
+    //
     ULONG GuaranteedStackBytes;
 
     //
@@ -1232,11 +1278,11 @@ typedef struct _TEB
 } TEB, *PTEB;
 
 #ifdef _WIN64
-//static_assert(sizeof(TEB) == 0x1850); // WIN11
-static_assert(sizeof(TEB) == 0x1878); // 24H2
+//static_assert(sizeof(TEB) == 0x1850, "Size of TEB is incorrect"); // WIN11
+static_assert(sizeof(TEB) == 0x1878, "Size of TEB is incorrect"); // 24H2
 #else
-//static_assert(sizeof(TEB) == 0x1018); // WIN11
-static_assert(sizeof(TEB) == 0x1038); // 24H2
+//static_assert(sizeof(TEB) == 0x1018, "Size of TEB is incorrect"); // WIN11
+static_assert(sizeof(TEB) == 0x1038, "Size of TEB is incorrect"); // 24H2
 #endif
 
 #endif

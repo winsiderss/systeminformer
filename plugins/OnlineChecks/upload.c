@@ -14,7 +14,7 @@
 
 PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
-SERVICE_INFO UploadServiceInfo[] =
+CONST SERVICE_INFO UploadServiceInfo[] =
 {
     { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
     { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/v2/submit/file", L"file" },
@@ -35,7 +35,7 @@ VOID RaiseUploadError(
     if (!Context->DialogHandle)
         return;
 
-    if (message = PhHttpSocketGetErrorMessage(ErrorCode))
+    if (message = PhHttpGetErrorMessage(ErrorCode))
     {
         PhMoveReference(&Context->ErrorString, PhFormatString(
             L"[%lu] %s",
@@ -57,7 +57,7 @@ VOID RaiseUploadError(
     PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
 }
 
-PSERVICE_INFO GetUploadServiceInfo(
+CONST SERVICE_INFO* GetUploadServiceInfo(
     _In_ ULONG Id
     )
 {
@@ -90,13 +90,9 @@ VOID UploadContextDeleteProcedure(
     PhClearReference(&context->BaseFileName);
     PhClearReference(&context->LaunchCommand);
     PhClearReference(&context->Detected);
-    PhClearReference(&context->MaxDetected);
-    PhClearReference(&context->UploadUrl);
-    PhClearReference(&context->ReAnalyseUrl);
     PhClearReference(&context->FirstAnalysisDate);
     PhClearReference(&context->LastAnalysisDate);
     PhClearReference(&context->LastAnalysisUrl);
-    PhClearReference(&context->LastAnalysisAgo);
 }
 
 VOID TaskDialogFreeContext(
@@ -162,6 +158,7 @@ NTSTATUS HashFileAndResetPosition(
     PhGetThreadIoPriority(NtCurrentThread(), &ioPriority);
     PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_LOWEST);
     PhSetThreadIoPriority(NtCurrentThread(), IoPriorityVeryLow);
+    PhSetFileIoPriorityHint(FileHandle, IoPriorityVeryLow);
 
     PhInitializeHash(&hashContext, Algorithm);
 
@@ -222,79 +219,78 @@ NTSTATUS HashFileAndResetPosition(
 
 PPH_BYTES PerformSubRequest(
     _In_ PUPLOAD_CONTEXT Context,
-    _In_ PWSTR HostName,
-    _In_ PWSTR ObjectName
+    _In_ PCWSTR HostName,
+    _In_ PCWSTR ObjectName
     )
 {
+    NTSTATUS status;
     PPH_BYTES result = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
 
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
     {
-        RaiseUploadError(Context, L"Unable to create the http socket.", GetLastError());
+        RaiseUploadError(Context, L"Unable to create the http socket.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketConnect(httpContext, HostName, PH_HTTP_DEFAULT_HTTPS_PORT))
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, HostName, PH_HTTP_DEFAULT_HTTPS_PORT)))
     {
-        RaiseUploadError(Context, L"Unable to connect to the service.", GetLastError());
+        RaiseUploadError(Context, L"Unable to connect to the service.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        ObjectName,
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, ObjectName, PH_HTTP_FLAG_SECURE)))
     {
-        RaiseUploadError(Context, L"Unable to create the request.", GetLastError());
+        RaiseUploadError(Context, L"Unable to create the request.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (
-        Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD ||
-        Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
-        )
+    if (Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD || Context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE)
     {
-        PPH_STRING httpHeader;
+        PPH_STRING httpHeaderString;
 
-        httpHeader = PhFormatString(
-            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs",
-            ""
+        httpHeaderString = PhConcatStrings2(
+            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079: ",
+            PhGetStringOrEmpty(Context->HybridPat)
             );
+        PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr);
+        PhClearReference(&httpHeaderString);
+    }
+    else if (Context->Service == MENUITEM_VIRUSTOTAL_UPLOAD || Context->Service == MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE)
+    {
+        static CONST PH_STRINGREF httpHeader = PH_STRINGREF_INIT(L"accept: application/json");
+        PhHttpAddRequestHeadersSR(httpContext, &httpHeader);
 
-        PhHttpSocketAddRequestHeaders(
-            httpContext,
-            httpHeader->Buffer,
-            (ULONG)httpHeader->Length / sizeof(WCHAR)
+        PPH_STRING httpHeaderString = PhConcatStrings2(
+            L"x-\x0061\x0070\x0069\x006B\x0065\x0079: ",
+            PhGetStringOrEmpty(Context->TotalPat)
             );
-
-        PhClearReference(&httpHeader);
+        PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr);
+        PhClearReference(&httpHeaderString);
     }
 
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
     {
-        RaiseUploadError(Context, L"Unable to send the request.", GetLastError());
+        RaiseUploadError(Context, L"Unable to send the request.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
     {
-        RaiseUploadError(Context, L"Unable to receive the request.", GetLastError());
+        RaiseUploadError(Context, L"Unable to receive the request.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!(result = PhHttpSocketDownloadString(httpContext, FALSE)))
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &result)))
     {
-        RaiseUploadError(Context, L"Unable to download the response.", GetLastError());
+        RaiseUploadError(Context, L"Unable to download the response.", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+        PhHttpDestroy(httpContext);
 
     return result;
 }
@@ -320,7 +316,7 @@ NTSTATUS UploadFileThreadStart(
     PPH_STRING httpHostName = NULL;
     PPH_STRING httpHostPath = NULL;
     USHORT httpHostPort = 0;
-    PSERVICE_INFO serviceInfo = NULL;
+    CONST SERVICE_INFO* serviceInfo = NULL;
     PPH_STRING postBoundary = NULL;
     PPH_BYTES asciiPostData = NULL;
     PPH_BYTES asciiFooterData = NULL;
@@ -330,6 +326,12 @@ NTSTATUS UploadFileThreadStart(
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     serviceInfo = GetUploadServiceInfo(context->Service);
+
+    if (PhIsNullOrEmptyString(context->FileUpload))
+    {
+        RaiseUploadError(context, L"Unable to upload the file", PhNtStatusToDosError(STATUS_FAIL_CHECK));
+        goto CleanupExit;
+    }
 
     if (!NT_SUCCESS(status = PhCreateFile(
         &fileHandle,
@@ -345,42 +347,14 @@ NTSTATUS UploadFileThreadStart(
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketCreate(&httpContext, L"SystemInformer_3.0_A2D1C96D_D25915D9"))
-    {
+    if (!NT_SUCCESS(status = PhHttpCrackUrl(context->FileUpload, &httpHostName, &httpHostPath, &httpHostPort)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketParseUrl(
-        context->UploadUrl,
-        &httpHostName,
-        &httpHostPath,
-        &httpHostPort
-        ))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketConnect(
-        httpContext,
-        PhGetString(httpHostName),
-        httpHostPort
-        ))
-    {
-        RaiseUploadError(context, L"Unable to connect to the service", GetLastError());
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(httpHostName), httpHostPort)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        L"POST",
-        PhGetString(httpHostPath),
-        PH_HTTP_FLAG_REFRESH | (httpHostPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
-        ))
-    {
-        RaiseUploadError(context, L"Unable to create the request", GetLastError());
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", PhGetString(httpHostPath), (httpHostPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0))))
         goto CleanupExit;
-    }
 
     PhInitializeStringBuilder(&httpRequestHeaders, DOS_MAX_PATH_LENGTH);
     PhInitializeStringBuilder(&httpPostHeader, DOS_MAX_PATH_LENGTH);
@@ -450,27 +424,27 @@ NTSTATUS UploadFileThreadStart(
 
         PhAppendFormatStringBuilder(
             &httpRequestHeaders,
-            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079:%hs\r\n",
-            ""
+            L"\x0061\x0070\x0069\x002D\x006B\x0065\x0079: %s\r\n",
+            PhGetStringOrEmpty(context->HybridPat)
             );
 
         PhAppendFormatStringBuilder(
             &httpRequestHeaders,
             L"Content-Type: multipart/form-data; boundary=%s\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
 
         // POST boundary header.
         PhAppendFormatStringBuilder(
             &httpPostHeader,
             L"--%s\r\nContent-Disposition: form-data; name=\"environment_id\"\r\n\r\n%hu\r\n",
-            postBoundary->Buffer,
+            PhGetStringOrEmpty(postBoundary),
             environmentId
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
             L"--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\n\r\n",
-            postBoundary->Buffer,
+            PhGetStringOrEmpty(postBoundary),
             PhGetStringOrEmpty(context->BaseFileName)
             );
 
@@ -478,7 +452,7 @@ NTSTATUS UploadFileThreadStart(
         PhAppendFormatStringBuilder(
             &httpPostFooter,
             L"\r\n--%s--\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
     }
     else if (context->Service == MENUITEM_JOTTI_UPLOAD)
@@ -486,14 +460,14 @@ NTSTATUS UploadFileThreadStart(
         PhAppendFormatStringBuilder(
             &httpRequestHeaders,
             L"Content-Type: multipart/form-data; boundary=%s\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
 
         // POST boundary header.
         PhAppendFormatStringBuilder(
             &httpPostHeader,
             L"\r\n--%s\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -502,7 +476,7 @@ NTSTATUS UploadFileThreadStart(
         PhAppendFormatStringBuilder(
             &httpPostHeader,
             L"--%s\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -519,15 +493,27 @@ NTSTATUS UploadFileThreadStart(
         PhAppendFormatStringBuilder(
             &httpPostFooter,
             L"\r\n--%s--\r\n",
-            postBoundary->Buffer
+            PhGetStringOrEmpty(postBoundary)
             );
     }
     else
     {
+        // HTTP request headers
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"accept: application/json\r\n"
+            );
+
         PhAppendFormatStringBuilder(
             &httpRequestHeaders,
             L"Content-Type: multipart/form-data; boundary=%s\r\n",
             postBoundary->Buffer
+            );
+
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
+            L"x-\x0061\x0070\x0069\x006B\x0065\x0079: %s\r\n",
+            PhGetStringOrEmpty(context->TotalPat)
             );
 
         // POST boundary header
@@ -556,36 +542,29 @@ NTSTATUS UploadFileThreadStart(
     }
 
     // add headers
-    if (!PhHttpSocketAddRequestHeaders(
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(
         httpContext,
         httpRequestHeaders.String->Buffer,
         (ULONG)httpRequestHeaders.String->Length / sizeof(WCHAR)
-        ))
+        )))
     {
-        RaiseUploadError(context, L"Unable to add request headers", GetLastError());
+        RaiseUploadError(context, L"Unable to add request headers", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
     if (context->Service == MENUITEM_JOTTI_UPLOAD)
     {
-        PPH_STRING ajaxHeader = PhCreateString(L"X-Requested-With: XMLHttpRequest");
-
-        PhHttpSocketAddRequestHeaders(
-            httpContext,
-            ajaxHeader->Buffer,
-            (ULONG)ajaxHeader->Length / sizeof(WCHAR)
-            );
-
-        PhDereferenceObject(ajaxHeader);
+        static const PH_STRINGREF ajaxHeader = PH_STRINGREF_INIT(L"X-Requested-With: XMLHttpRequest");
+        PhHttpAddRequestHeaders(httpContext, ajaxHeader.Buffer, (ULONG)ajaxHeader.Length / sizeof(WCHAR));
     }
 
     // Calculate the total request length.
     totalUploadLength = (ULONG)httpPostHeader.String->Length / sizeof(WCHAR) + context->TotalFileLength + (ULONG)httpPostFooter.String->Length / sizeof(WCHAR);
 
     // Send the request.
-    if (!PhHttpSocketSendRequest(httpContext, NULL, totalUploadLength))
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, totalUploadLength, totalUploadLength)))
     {
-        RaiseUploadError(context, L"Unable to send the request", GetLastError());
+        RaiseUploadError(context, L"Unable to send the request", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
@@ -597,14 +576,14 @@ NTSTATUS UploadFileThreadStart(
     PhQuerySystemTime(&timeStart);
 
     // Write the header
-    if (!PhHttpSocketWriteData(
+    if (!NT_SUCCESS(status = PhHttpWriteData(
         httpContext,
         asciiPostData->Buffer,
         (ULONG)asciiPostData->Length,
         &totalPostHeaderWritten
-        ))
+        )))
     {
-        RaiseUploadError(context, L"Unable to write the post header", GetLastError());
+        RaiseUploadError(context, L"Unable to write the post header", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
@@ -643,9 +622,9 @@ NTSTATUS UploadFileThreadStart(
             break;
         }
 
-        if (!PhHttpSocketWriteData(httpContext, buffer, (ULONG)isb.Information, &totalWriteLength))
+        if (!NT_SUCCESS(status = PhHttpWriteData(httpContext, buffer, (ULONG)isb.Information, &totalWriteLength)))
         {
-            RaiseUploadError(context, L"Unable to upload the file data", GetLastError());
+            RaiseUploadError(context, L"Unable to upload the file data", PhNtStatusToDosError(status));
             goto CleanupExit;
         }
 
@@ -686,30 +665,26 @@ NTSTATUS UploadFileThreadStart(
     }
 
     // Write the footer bytes
-    if (!PhHttpSocketWriteData(
+    if (!NT_SUCCESS(status = PhHttpWriteData(
         httpContext,
         asciiFooterData->Buffer,
         (ULONG)asciiFooterData->Length,
         &totalPostFooterWritten
-        ))
+        )))
     {
-        RaiseUploadError(context, L"Unable to write the post footer", GetLastError());
+        RaiseUploadError(context, L"Unable to write the post footer", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketEndRequest(httpContext))
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
     {
-        RaiseUploadError(context, L"Unable to receive the response", GetLastError());
+        RaiseUploadError(context, L"Unable to receive the response", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketQueryHeaderUlong(
-        httpContext,
-        PH_HTTP_QUERY_STATUS_CODE,
-        &httpStatus
-        ))
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
     {
-        RaiseUploadError(context, L"Unable to query http headers", GetLastError());
+        RaiseUploadError(context, L"Unable to query http headers", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
@@ -729,9 +704,9 @@ NTSTATUS UploadFileThreadStart(
                 PVOID jsonRootObject;
                 INT64 errorCode;
 
-                if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+                if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
                 {
-                    RaiseUploadError(context, L"Unable to download the response.", GetLastError());
+                    RaiseUploadError(context, L"Unable to download the response.", PhNtStatusToDosError(status));
                     goto CleanupExit;
                 }
 
@@ -786,9 +761,9 @@ NTSTATUS UploadFileThreadStart(
                 PVOID jsonRootObject;
                 PVOID jsonDataObject;
 
-                if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+                if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request.", GetLastError());
+                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(status));
                     goto CleanupExit;
                 }
 
@@ -796,7 +771,7 @@ NTSTATUS UploadFileThreadStart(
                 {
                     PVIRUSTOTAL_FILE_REPORT fileReport;
 
-                    if (fileReport = VirusTotalRequestFileReport(context->FileHash))
+                    if (fileReport = VirusTotalRequestFileReport(context->FileHash, context->TotalPat))
                     {
                         VirusTotalFreeFileReport(fileReport);
                     }
@@ -851,9 +826,9 @@ NTSTATUS UploadFileThreadStart(
                 PPH_BYTES jsonString;
                 PVOID jsonRootObject;
 
-                if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+                if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                    RaiseUploadError(context, L"Unable to complete the request", PhNtStatusToDosError(status));
                     goto CleanupExit;
                 }
 
@@ -899,7 +874,7 @@ NTSTATUS UploadFileThreadStart(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+        PhHttpDestroy(httpContext);
 
     if (context->TaskbarListClass)
         PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
@@ -938,7 +913,7 @@ NTSTATUS UploadCheckThreadStart(
     BOOLEAN fileExists = FALSE;
     LARGE_INTEGER fileSize64;
     PPH_BYTES subRequestBuffer = NULL;
-    PSERVICE_INFO serviceInfo = NULL;
+    CONST SERVICE_INFO* serviceInfo = NULL;
     PPH_STRING subObjectName = NULL;
     HANDLE fileHandle = NULL;
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
@@ -1011,7 +986,7 @@ NTSTATUS UploadCheckThreadStart(
             PVOID rootJsonObject;
 
             // Create the default upload URL.
-            context->UploadUrl = PhFormatString(
+            context->FileUpload = PhFormatString(
                 L"https://%s%s",
                 serviceInfo->HostName,
                 serviceInfo->UploadObjectName
@@ -1077,7 +1052,7 @@ NTSTATUS UploadCheckThreadStart(
             }
 
             context->FileHash = tempHashString;
-            subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", PhGetString(context->FileHash));
+            subObjectName = PhConcatStrings2(L"/api/v3/files/", PhGetString(context->FileHash));
 
             if (!(subRequestBuffer = PerformSubRequest(
                 context,
@@ -1090,63 +1065,26 @@ NTSTATUS UploadCheckThreadStart(
 
             if (rootJsonObject = PhCreateJsonParserEx(subRequestBuffer, FALSE))
             {
-                if (context->FileExists = PhGetJsonObjectBool(rootJsonObject, "file_exists"))
+                PVOID dataObject = PhGetJsonObject(rootJsonObject, "data");
+                PVOID attributesObject = PhGetJsonObject(dataObject, "attributes");
+                PVOID statsObject = PhGetJsonObject(attributesObject, "last_analysis_stats");
+
+                context->Detected = PhFormatUInt64(PhGetJsonValueAsUInt64(statsObject, "malicious"), FALSE);
+                context->FirstAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "first_submission_date"));
+                context->LastAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "last_submission_date"));
+
+                //if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
+                //{
+                //    PhMoveReference(&context->ReAnalyseUrl, PhFormatString(
+                //        L"%s%s",
+                //        L"https://www.virustotal.com",
+                //        PhGetString(context->ReAnalyseUrl)
+                //        ));
+                //}
+                //
+                if (context->VtApiUpload)
                 {
-                    INT64 detected = 0;
-                    INT64 detectedMax = 0;
-                    PVOID detectionRatio;
-
-                    if (detectionRatio = PhGetJsonObject(rootJsonObject, "detection_ratio"))
-                    {
-                        detected = PhGetJsonArrayLong64(detectionRatio, 0);
-                        detectedMax = PhGetJsonArrayLong64(detectionRatio, 1);
-                    }
-
-                    context->Detected = PhFormatUInt64(detected, FALSE);
-                    context->MaxDetected = PhFormatUInt64(detectedMax, FALSE);
-                    context->UploadUrl = PhGetJsonValueAsString(rootJsonObject, "upload_url");
-                    context->ReAnalyseUrl = PhGetJsonValueAsString(rootJsonObject, "reanalyse_url");
-                    context->LastAnalysisUrl = PhGetJsonValueAsString(rootJsonObject, "last_analysis_url");
-                    context->FirstAnalysisDate = PhGetJsonValueAsString(rootJsonObject, "first_analysis_date");
-                    context->LastAnalysisDate = PhGetJsonValueAsString(rootJsonObject, "last_analysis_date");
-                    context->LastAnalysisAgo = PhGetJsonValueAsString(rootJsonObject, "last_analysis_ago");
-
-                    PhMoveReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
-                    PhMoveReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
-
-                    if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
-                    {
-                        PhMoveReference(&context->ReAnalyseUrl, PhFormatString(
-                            L"%s%s",
-                            L"https://www.virustotal.com",
-                            PhGetString(context->ReAnalyseUrl)
-                            ));
-                    }
-
-                    if (context->VtApiUpload)
-                    {
-                        PhMoveReference(&context->UploadUrl, PhFormatString(
-                            L"%s%s?\x0061\x0070\x0069\x006B\x0065\x0079=%S&resource=%s",
-                            L"https://www.virustotal.com",
-                            L"/vtapi/v2/file/scan",
-                            "",
-                            PhGetString(context->FileHash)
-                            ));
-                    }
-
-                    PhMoveReference(&context->LaunchCommand, PhFormatString(
-                        L"https://www.virustotal.com/file/%s/analysis/",
-                        PhGetString(context->FileHash)
-                        ));
-
-                    if (!PhIsNullOrEmptyString(context->UploadUrl))
-                    {
-                        PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
-                    }
-                    else
-                    {
-                        RaiseUploadError(context, L"Unable to parse the UploadUrl.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
-                    }
+                    PhMoveReference(&context->FileUpload, PhCreateString(L"https://www.virustotal.com/api/v3/files"));
                 }
                 else
                 {
@@ -1154,49 +1092,34 @@ NTSTATUS UploadCheckThreadStart(
                     PPH_BYTES vt3UploadRequestBuffer;
                     PVOID vt3RootJsonObject;
 
-                    if (context->VtApiUpload)
+                    vt3UploadUrl = PhCreateString(L"/api/v3/files/upload_url");
+
+                    if (!(vt3UploadRequestBuffer = PerformSubRequest(
+                        context,
+                        serviceInfo->HostName,
+                        vt3UploadUrl->Buffer
+                        )))
                     {
-                        PhMoveReference(&context->UploadUrl, PhFormatString(
-                            L"%s%s?\x0061\x0070\x0069\x006B\x0065\x0079=%S&resource=%s",
-                            L"https://www.virustotal.com",
-                            L"/vtapi/v2/file/scan",
-                            "",
-                            PhGetString(context->FileHash)
-                            ));
+                        PhDereferenceObject(vt3UploadUrl);
+                        goto CleanupExit;
                     }
-                    else
+                    PhDereferenceObject(vt3UploadUrl);
+
+                    if (vt3RootJsonObject = PhCreateJsonParserEx(vt3UploadRequestBuffer, FALSE))
                     {
-                        vt3UploadUrl = PhCreateString(L"/ui/files/upload_url");
-
-                        if (!(vt3UploadRequestBuffer = PerformSubRequest(
-                            context,
-                            serviceInfo->HostName,
-                            vt3UploadUrl->Buffer
-                            )))
-                        {
-                            PhDereferenceObject(vt3UploadUrl);
-                            goto CleanupExit;
-                        }
-
-                        if (vt3RootJsonObject = PhCreateJsonParserEx(vt3UploadRequestBuffer, FALSE))
-                        {
-                            context->UploadUrl = PhGetJsonValueAsString(vt3RootJsonObject, "data");
-                            PhFreeJsonObject(vt3RootJsonObject);
-                        }
-
-                        PhClearReference(&vt3UploadRequestBuffer);
+                        PhMoveReference(&context->FileUpload, PhGetJsonValueAsString(vt3RootJsonObject, "data"));
+                        PhFreeJsonObject(vt3RootJsonObject);
                     }
 
-                    // No file found... Start the upload.
-                    if (!PhIsNullOrEmptyString(context->UploadUrl))
-                    {
-                        PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
-                    }
-                    else
-                    {
-                        RaiseUploadError(context, L"Received invalid VT3 response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
-                    }
+                    PhClearReference(&vt3UploadRequestBuffer);
                 }
+
+                PhMoveReference(&context->LaunchCommand, PhFormatString(
+                    L"https://www.virustotal.com/file/%s/analysis/",
+                    PhGetString(context->FileHash)
+                    ));
+
+                PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
 
                 PhFreeJsonObject(rootJsonObject);
             }
@@ -1210,7 +1133,7 @@ NTSTATUS UploadCheckThreadStart(
     case MENUITEM_JOTTI_UPLOAD_SERVICE:
         {
             // Create the default upload URL.
-            context->UploadUrl = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
+            context->FileUpload = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
 
             // Start the upload.
             PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
@@ -1238,13 +1161,13 @@ NTSTATUS UploadRecheckThreadStart(
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
     PVIRUSTOTAL_API_RESPONSE fileRescan;
 
-    if (fileRescan = VirusTotalRequestFileReScan(context->FileHash))
+    if (fileRescan = VirusTotalRequestFileReScan(context->FileHash, context->TotalPat))
     {
         if (fileRescan->ResponseCode == 1)
         {
-            PhSwapReference(&context->ReAnalyseUrl, fileRescan->PermaLink);
+            //PhSwapReference(&context->ReAnalyseUrl, fileRescan->PermaLink);
 
-            PhShellExecute(NULL, PhGetString(context->ReAnalyseUrl), NULL);
+            //PhShellExecute(NULL, PhGetString(context->ReAnalyseUrl), NULL);
 
             SendMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
@@ -1272,20 +1195,13 @@ NTSTATUS ViewReportThreadStart(
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
     PVIRUSTOTAL_FILE_REPORT fileReport;
 
-    if (fileReport = VirusTotalRequestFileReport(context->FileHash))
+    if (fileReport = VirusTotalRequestFileReport(context->FileHash, context->TotalPat))
     {
-        if (fileReport->ResponseCode == 1)
-        {
-            PhSwapReference(&context->LaunchCommand, fileReport->PermaLink);
+        PhSwapReference(&context->LaunchCommand, PhConcatStrings2(L"https://www.virustotal.com/gui/file/", PhGetString(context->FileHash)));
 
-            PhShellExecute(NULL, PhGetString(context->LaunchCommand), NULL);
+        PhShellExecute(NULL, PhGetString(context->LaunchCommand), NULL);
 
-            SendMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
-        }
-        else
-        {
-            RaiseUploadError(context, L"VirusTotal ViewReport API error.", (ULONG)fileReport->ResponseCode);
-        }
+        SendMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
 
         VirusTotalFreeFileReport(fileReport);
     }
@@ -1318,7 +1234,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
 
             TaskDialogFreeContext(context);
@@ -1407,6 +1323,17 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             HWND windowHandle = SystemInformer_GetWindowHandle();
 
             context->DialogHandle = hwndDlg;
+            context->HybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANAL_DEFAULT_PAT);
+            context->TotalPat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
+
+            if (PhIsNullOrEmptyString(context->HybridPat))
+            {
+                context->HybridPat = PhConcatStrings(6,
+                    L"4kc4k0ck8c48k", L"gkoccosc8o0",
+                    L"g0g0cccggg8", L"4gg0cw8ssw8",
+                    L"ogk0cw0g0cw", L"4s00ccs"
+                    );
+            }
 
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(windowHandle) && !IsMinimized(windowHandle)) ? windowHandle : NULL);
@@ -1416,9 +1343,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             PhTaskbarListCreate(&context->TaskbarListClass);
 
-            context->DialogWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DialogWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, 0xF, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, TaskDialogSubclassProc);
 
             ShowVirusTotalUploadDialog(context);
         }
@@ -1435,7 +1362,6 @@ NTSTATUS ShowUploadDialogThread(
     PH_AUTO_POOL autoPool;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
-    BOOL checked = FALSE;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -1444,9 +1370,7 @@ NTSTATUS ShowUploadDialogThread(
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
-
-    // Start TaskDialog bootstrap
-    TaskDialogIndirect(&config, NULL, NULL, &checked);
+    PhShowTaskDialog(&config, NULL, NULL, NULL);
 
     PhDeleteAutoPool(&autoPool);
 
@@ -1473,10 +1397,11 @@ VOID UploadToOnlineService(
     context->FileName = FileName;
     context->BaseFileName = PhGetBaseName(context->FileName);
 
-    PhCreateThread2(ShowUploadDialogThread, (PVOID)context);
+    PhCreateThread2(ShowUploadDialogThread, context);
 }
 
 VOID UploadServiceToOnlineService(
+    _In_opt_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG Service
     )
@@ -1502,10 +1427,10 @@ VOID UploadServiceToOnlineService(
         context->FileName = serviceFileName;
         context->BaseFileName = PhGetBaseName(context->FileName);
 
-        PhCreateThread2(ShowUploadDialogThread, (PVOID)context);
+        PhCreateThread2(ShowUploadDialogThread, context);
     }
     else
     {
-        PhShowStatus(SystemInformer_GetWindowHandle(), L"Unable to query the service.", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to query the service.", status, 0);
     }
 }

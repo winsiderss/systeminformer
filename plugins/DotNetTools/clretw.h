@@ -168,7 +168,7 @@ typedef struct _ModuleLoadUnloadRundown_V1
     ULONG64 AssemblyID;
     ULONG ModuleFlags; // ModuleFlags
     ULONG Reserved1;
-    WCHAR ModuleILPath[1];
+    UNALIGNED WCHAR ModuleILPath[1];
     // WCHAR ModuleNativePath[1];
     // USHORT ClrInstanceID;
 } ModuleLoadUnloadRundown_V1, *PModuleLoadUnloadRundown_V1;
@@ -179,7 +179,7 @@ typedef struct _ModuleLoadUnloadRundown_V2
     ULONG64 AssemblyID;
     ULONG ModuleFlags; // ModuleFlags
     ULONG Reserved1;
-    WCHAR ModuleILPath[1];
+    UNALIGNED WCHAR ModuleILPath[1];
     // WCHAR ModuleNativePath[1];
     // USHORT ClrInstanceID;
     // GUID ManagedPdbSignature;
@@ -196,7 +196,7 @@ typedef struct _AssemblyLoadUnloadRundown_V1
     ULONG64 AppDomainID;
     ULONG64 BindingID;
     ULONG AssemblyFlags; // AssemblyFlags
-    WCHAR FullyQualifiedAssemblyName[1];
+    UNALIGNED WCHAR FullyQualifiedAssemblyName[1];
     // USHORT ClrInstanceID;
 } AssemblyLoadUnloadRundown_V1, *PAssemblyLoadUnloadRundown_V1;
 
@@ -204,7 +204,7 @@ typedef struct _AppDomainLoadUnloadRundown_V1
 {
     ULONG64 AppDomainID;
     ULONG AppDomainFlags; // AppDomainFlags
-    WCHAR AppDomainName[1];
+    UNALIGNED WCHAR AppDomainName[1];
     // ULONG AppDomainIndex;
     // USHORT ClrInstanceID;
 } AppDomainLoadUnloadRundown_V1, *PAppDomainLoadUnloadRundown_V1;
@@ -223,7 +223,7 @@ typedef struct _RuntimeInformationRundown
     USHORT VMQfeNumber;
     ULONG StartupFlags; // StartupFlags
     UCHAR StartupMode; // StartupMode
-    WCHAR CommandLine[1];
+    UNALIGNED WCHAR CommandLine[1];
     // GUID ComObjectGuid;
     // WCHAR RuntimeDllPath[1];
 } RuntimeInformationRundown, *PRuntimeInformationRundown;

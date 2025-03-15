@@ -630,6 +630,7 @@ typedef struct _PH_TREENEW_VIEW_PARTS
     LONG FixedWidth;
     LONG NormalLeft;
     LONG NormalWidth;
+    ULONG64 ScrollTickCount;
 } PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
 
 PHLIBAPI

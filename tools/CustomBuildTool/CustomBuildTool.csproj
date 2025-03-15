@@ -120,20 +120,21 @@
     <Using Include="Windows.Win32.Storage.FileSystem" />
     <Using Include="Windows.Win32.System.Diagnostics.Debug" />
     <Using Include="Windows.Win32.System.Registry" />
+    <Using Include="Windows.Win32.System.SystemServices" />
     <Using Include="Windows.Win32.System.Threading" />
   </ItemGroup>
   <ItemGroup>
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
     <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
     <PackageReference Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.38.0" />
+    <PackageReference Include="SharpCompress" Version="0.39.0" />
   </ItemGroup>
 </Project>
   

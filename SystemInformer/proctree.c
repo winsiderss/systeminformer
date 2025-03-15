@@ -96,8 +96,8 @@ static ULONG PhProcessTreeColumnHeaderTextCacheLength = 0;
 static PVOID PhProcessTreeColumnHeaderTextCache = NULL;
 
 static HDC GraphContext = NULL;
-static ULONG GraphContextWidth = 0;
-static ULONG GraphContextHeight = 0;
+static LONG GraphContextWidth = 0;
+static LONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
@@ -782,8 +782,8 @@ VOID PhTickProcessNodes(
 
 static VOID PhpNeedGraphContext(
     _In_ HDC hdc,
-    _In_ ULONG Width,
-    _In_ ULONG Height
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
     BITMAPINFO bitmapInfo;
@@ -816,8 +816,8 @@ static VOID PhpNeedGraphContext(
     bitmapInfo.bmiHeader.biHeight = Height;
     bitmapInfo.bmiHeader.biBitCount = 32;
 
-    GraphContext = CreateCompatibleDC(NULL);
-    GraphBitmap = CreateDIBSection(GraphContext, &bitmapInfo, DIB_RGB_COLORS, &GraphBits, NULL, 0);
+    GraphContext = CreateCompatibleDC(hdc);
+    GraphBitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &GraphBits, NULL, 0);
     GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
@@ -1952,7 +1952,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateWs)
 {
-    sortResult = uintptrcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
+    sortResult = uint64cmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
 }
 END_SORT_FUNCTION
 
@@ -3020,7 +3020,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->PriorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetProcessPriorityClassString(processItem->PriorityClass))
                         {
@@ -3341,7 +3341,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ELEVATION:
                 {
-                    PPH_STRINGREF elevationType;
+                    PCPH_STRINGREF elevationType;
 
                     if (PhGetElevationTypeString(!!processItem->IsElevated, processItem->ElevationType, &elevationType))
                     {
@@ -3782,7 +3782,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
                         PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->TimeStampText->sr;
+                        getCellText->Text = PhGetStringRef(node->TimeStampText);
                     }
                 }
                 break;
@@ -3796,7 +3796,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhLargeIntegerToLocalSystemTime(&systemTime, &node->FileLastWriteTime);
                         PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->FileModifiedTimeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileModifiedTimeText);
                     }
                 }
                 break;
@@ -3807,7 +3807,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->FileEndOfFile.QuadPart != 0)
                     {
                         PhMoveReference(&node->FileSizeText, PhFormatSize(node->FileEndOfFile.QuadPart, ULONG_MAX));
-                        getCellText->Text = node->FileSizeText->sr;
+                        getCellText->Text = PhGetStringRef(node->FileSizeText);
                     }
                 }
                 break;
@@ -3816,7 +3816,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->Children && node->Children->Count != 0)
                     {
                         PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
-                        getCellText->Text = node->SubprocessCountText->sr;
+                        getCellText->Text = PhGetStringRef(node->SubprocessCountText);
                     }
                 }
                 break;
@@ -3825,7 +3825,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (processItem->JobObjectId != 0)
                     {
                         PhMoveReference(&node->JobObjectIdText, PhFormatUInt64(processItem->JobObjectId, TRUE));
-                        getCellText->Text = node->JobObjectIdText->sr;
+                        getCellText->Text = PhGetStringRef(node->JobObjectIdText);
                     }
                 }
                 break;
@@ -3835,7 +3835,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         processItem->IsSecureProcess ||
                         processItem->IsProtectedProcess)
                     {
-                        getCellText->Text = processItem->ProtectionString->sr;
+                        getCellText->Text = PhGetStringRef(processItem->ProtectionString);
                     }
                 }
                 break;
@@ -3870,7 +3870,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
 
                     cpuUsage *= 100;
-                    cpuUsage = cpuUsage * PhCountBitsUlongPtr(processItem->AffinityMask);
+                    cpuUsage *= processItem->AffinityPopulationCount;
 
                     if (cpuUsage >= PhMaxPrecisionLimit)
                     {
@@ -4216,19 +4216,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ReferenceCount != 0)
                     {
                         PhMoveReference(&node->ReferenceCountText, PhFormatUInt64(node->ReferenceCount, FALSE));
-                        getCellText->Text = node->ReferenceCountText->sr;
+                        getCellText->Text = PhGetStringRef(node->ReferenceCountText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
             case PHPRTLC_LXSSPID:
                 {
-                    if (processItem->LxssProcessId)
+                    if (processItem->LxssProcessId != 0)
                     {
-                        PH_FORMAT format;
-
-                        PhInitFormatU(&format, processItem->LxssProcessId);
-
-                        PhMoveReference(&node->LxssProcessIdText, PhFormat(&format, 1, 0));
+                        PhMoveReference(&node->LxssProcessIdText, PhFormatUInt64(processItem->LxssProcessId, FALSE));
                         getCellText->Text = PhGetStringRef(node->LxssProcessIdText);
                     }
                     else

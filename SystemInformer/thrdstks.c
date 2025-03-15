@@ -1413,7 +1413,7 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
                         {
                             PPH_PROCESS_PROPCONTEXT propContext;
 
-                            if (propContext = PhCreateProcessPropContext(nullptr, processItem))
+                            if (propContext = PhCreateProcessPropContext(NULL, processItem))
                             {
                                 PhShowProcessProperties(propContext);
                                 PhDereferenceObject(propContext);
@@ -1450,7 +1450,7 @@ BOOLEAN NTAPI PhpThreadStacksTreeNewCallback(
                         {
                             PPH_PROCESS_PROPCONTEXT propContext;
 
-                            if (propContext = PhCreateProcessPropContext(nullptr, processItem))
+                            if (propContext = PhCreateProcessPropContext(NULL, processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, threadId);
                                 PhShowProcessProperties(propContext);

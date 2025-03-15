@@ -32,8 +32,7 @@ typedef struct _KSI_SUPPORT_DATA
     ULONG SizeOfImage;
 } KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
 
-static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
-static PPH_STRING KsiKernelFileName = NULL;
+static CONST PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;
@@ -56,43 +55,16 @@ VOID KsiDebugLogFinalize(
     );
 #endif
 
-PPH_STRING KsiGetKernelFileNameInternal(
-    VOID
-    )
-{
-    NTSTATUS status;
-    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
-    PRTL_PROCESS_MODULES modules;
-    ULONG modulesLength;
-
-    modules = (PRTL_PROCESS_MODULES)buffer;
-    modulesLength = sizeof(buffer);
-
-    status = NtQuerySystemInformation(
-        SystemModuleInformation,
-        modules,
-        modulesLength,
-        &modulesLength
-        );
-
-    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
-        return NULL;
-    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
-        return NULL;
-
-    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-}
-
 PPH_STRING KsiGetKernelFileName(
     VOID
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING KsiKernelFileName = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        KsiKernelFileName = KsiGetKernelFileNameInternal();
-
+        KsiKernelFileName = PhGetKernelFileName();
         PhEndInitOnce(&initOnce);
     }
 
@@ -485,7 +457,7 @@ VOID PhShowKsiMessage(
 }
 
 NTSTATUS PhRestartSelf(
-    _In_ PPH_STRINGREF AdditionalCommandLine
+    _In_ PCPH_STRINGREF AdditionalCommandLine
     )
 {
 #ifndef DEBUG
@@ -1133,7 +1105,7 @@ VOID KsiConnect(
         if ((level == KphLevelHigh) &&
             !PhStartupParameters.KphStartupMax)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1141,7 +1113,7 @@ VOID KsiConnect(
             !PhStartupParameters.KphStartupMax &&
             !PhStartupParameters.KphStartupHigh)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1505,4 +1477,43 @@ PVOID PhCreateKsiSettingsBlob(
     PhFreeJsonObject(object);
 
     return string;
+}
+
+NTSTATUS PhQueryKphCounters(
+    _Out_ PULONG64 Duration,
+    _Out_ PULONG64 DurationDown,
+    _Out_ PULONG64 DurationUp
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterStop;
+    LARGE_INTEGER performanceCounter;
+    ULONG64 performanceCounterDuration;
+    ULONG64 performanceCounterDown;
+    ULONG64 performanceCounterUp;
+
+    if (KsiLevel() < KphLevelLow)
+    {
+        *Duration = 0;
+        *DurationDown = 0;
+        *DurationUp = 0;
+        status = STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        PhQueryPerformanceCounter(&performanceCounterStart);
+        status = KphQueryPerformanceCounter(&performanceCounter, NULL);
+        PhQueryPerformanceCounter(&performanceCounterStop);
+
+        performanceCounterDuration = performanceCounterStop.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterDown = performanceCounter.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterUp = performanceCounterStop.QuadPart - performanceCounter.QuadPart;
+
+        *Duration = performanceCounterDuration;
+        *DurationDown = performanceCounterDown;
+        *DurationUp = performanceCounterUp;
+    }
+
+    return status;
 }

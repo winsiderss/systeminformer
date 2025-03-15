@@ -138,11 +138,11 @@ VOID PhInitializeCallbacks(
     );
 
 BOOLEAN PhIsPluginDisabled(
-    _In_ PPH_STRINGREF BaseName
+    _In_ PCPH_STRINGREF BaseName
     );
 
 VOID PhSetPluginDisabled(
-    _In_ PPH_STRINGREF BaseName,
+    _In_ PCPH_STRINGREF BaseName,
     _In_ BOOLEAN Disable
     );
 
@@ -476,6 +476,11 @@ VOID PhShowGdiHandlesDialog(
 // heapinfo
 
 VOID PhShowProcessHeapsDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhShowProcessLocksDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
@@ -878,7 +883,7 @@ _Success_(return)
 BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType,
-    _Out_ PPH_STRINGREF* ElevationTypeString
+    _Out_ PCPH_STRINGREF* ElevationTypeString
     );
 
 VOID PhShowTokenProperties(

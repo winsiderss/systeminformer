@@ -25,17 +25,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -49,24 +49,36 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 185, 87
+IDD_OPTIONS DIALOGEX 0, 0, 313, 200
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Enable VirusTotal scanning",IDC_ENABLE_VIRUSTOTAL,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,7,101,10
     CONTROL         "Enable VirusTotal detection highlighting",IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT,
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,20,141,10
+    EDITTEXT        IDC_HYBRIDTEXT,16,71,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    LTEXT           "API key:",IDC_STATIC,16,60,95,8
+    PUSHBUTTON      "Change",IDC_APIKEYIDBTN,246,71,50,14
+    GROUPBOX        "Hybrid Analysis",IDC_STATIC,7,45,300,52
+    EDITTEXT        IDC_VTEXT,16,130,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    LTEXT           "API key:",IDC_STATIC,16,119,95,8
+    PUSHBUTTON      "Change",IDC_VTKEYIDBTN,246,130,50,14
+    GROUPBOX        "VirusTotal",IDC_STATIC,7,104,300,52
 END
 
-IDD_VIRUSTOTAL DIALOGEX 0, 0, 259, 261
+IDD_OPTIONSKEY DIALOGEX 0, 0, 309, 68
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "VirusTotal"
+CAPTION "Update Key"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Refresh",IDC_REFRESH,207,245,50,14
-    CONTROL         "",IDC_SCANRESULTS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,255,241
+    DEFPUSHBUTTON   "Save",IDYES,198,47,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,252,47,50,14
+    EDITTEXT        IDC_KEY_EDIT,7,24,295,14,ES_AUTOHSCROLL
+    LTEXT           "Paste the key below:",IDC_KEYTEXT_L,7,7,172,8
+    CONTROL         "Checkout <a href="""">How-to-generate-a-license-key</a>",IDC_HELPLINK,
+                    "SysLink",WS_TABSTOP,7,47,136,14
 END
 
 
@@ -81,22 +93,32 @@ BEGIN
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 179
+        RIGHTMARGIN, 307
         TOPMARGIN, 7
-        BOTTOMMARGIN, 80
+        BOTTOMMARGIN, 193
     END
 
-    IDD_VIRUSTOTAL, DIALOG
+    IDD_OPTIONSKEY, DIALOG
     BEGIN
-        LEFTMARGIN, 2
-        RIGHTMARGIN, 257
-        TOPMARGIN, 2
-        BOTTOMMARGIN, 259
     END
 END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OPTIONSKEY AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

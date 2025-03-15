@@ -73,7 +73,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_XXH32);
 }
 
 PPH_STRING PhSettingToString(
@@ -138,7 +138,7 @@ PPH_STRING PhSettingToString(
 
 BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF StringRef,
+    _In_ PCPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
     _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
@@ -260,7 +260,7 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PH_SETTING lookupSetting;
@@ -296,8 +296,8 @@ VOID PhEnumSettings(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ ULONG PhGetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name
+ULONG PhGetIntegerStringRefSetting(
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -306,6 +306,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting && setting->Type == IntegerSettingType);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -313,19 +314,16 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
     }
     else
     {
-        setting = NULL;
+        value = 0;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
     return value;
 }
 
-_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name
+PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -334,6 +332,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting && setting->Type == IntegerPairSettingType);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -341,59 +340,54 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
     }
     else
     {
-        setting = NULL;
+        RtlZeroMemory(&value, sizeof(PH_INTEGER_PAIR));
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
     return value;
 }
 
-_May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+PPH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     )
 {
     PPH_SETTING setting;
-    PH_SCALABLE_INTEGER_PAIR value;
+    PPH_SCALABLE_INTEGER_PAIR value;
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting && setting->Type == ScalableIntegerPairSettingType);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
-        value = *(PPH_SCALABLE_INTEGER_PAIR)setting->u.Pointer;
+        value = setting->u.Pointer;
     }
     else
     {
-        setting = NULL;
+        value = NULL;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
     if (ScaleToCurrent)
     {
-        if (value.Scale != dpiValue && value.Scale != 0)
+        if (value->Scale != dpiValue && value->Scale != 0)
         {
-            value.X = PhMultiplyDivideSigned(value.X, dpiValue, value.Scale);
-            value.Y = PhMultiplyDivideSigned(value.Y, dpiValue, value.Scale);
-            value.Scale = dpiValue;
+            value->X = PhMultiplyDivideSigned(value->X, dpiValue, value->Scale);
+            value->Y = PhMultiplyDivideSigned(value->Y, dpiValue, value->Scale);
+            value->Scale = dpiValue;
         }
     }
 
     return value;
 }
 
-_May_raise_ PPH_STRING PhGetStringRefSetting(
-    _In_ PPH_STRINGREF Name
+PPH_STRING PhGetStringRefSetting(
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -402,6 +396,7 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting && setting->Type == StringSettingType);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -409,46 +404,35 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
         {
             PhSetReference(&value, setting->u.Pointer);
         }
-        else
-        {
-            // Set to NULL, create an empty string
-            // outside of the lock.
-            value = NULL;
-        }
-    }
-    else
-    {
-        setting = NULL;
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-
-    if (!value)
+    if (PhIsNullOrEmptyString(value))
+    {
         value = PhReferenceEmptyString();
+    }
 
     return value;
 }
 
-_May_raise_ BOOLEAN PhGetBinarySetting(
-    _In_ PCWSTR Name,
+BOOLEAN PhGetBinarySetting(
+    _In_ PCPH_STRINGREF Name,
     _Out_ PVOID Buffer
     )
 {
     PPH_STRING setting;
     BOOLEAN result;
 
-    setting = PhGetStringSetting(Name);
+    setting = PhGetStringRefSetting(Name);
     result = PhHexStringToBuffer(&setting->sr, (PUCHAR)Buffer);
     PhDereferenceObject(setting);
 
     return result;
 }
 
-_May_raise_ VOID PhSetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+VOID PhSetIntegerStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG Value
     )
 {
@@ -457,6 +441,7 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -464,13 +449,10 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+VOID PhSetIntegerPairStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     )
 {
@@ -478,6 +460,7 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -485,14 +468,11 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+VOID PhSetScalableIntegerPairStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
@@ -500,35 +480,35 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
         PhpFreeSettingValue(ScalableIntegerPairSettingType, setting);
-        setting->u.Pointer = PhAllocateCopy(&Value, sizeof(PH_SCALABLE_INTEGER_PAIR));
+        setting->u.Pointer = PhAllocateCopy(Value, sizeof(PH_SCALABLE_INTEGER_PAIR));
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
-    _In_ PPH_STRINGREF Name,
+VOID PhSetScalableIntegerPairStringRefSetting2(
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     )
 {
     PH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
 
+    ZeroMemory(&scalableIntegerPair, sizeof(PH_SCALABLE_INTEGER_PAIR));
     scalableIntegerPair.Pair = Value;
     scalableIntegerPair.Scale = dpiValue;
-    PhSetScalableIntegerPairStringRefSetting(Name, scalableIntegerPair);
+
+    PhSetScalableIntegerPairStringRefSetting(Name, &scalableIntegerPair);
 }
 
-_May_raise_ VOID PhSetStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF Value
+VOID PhSetStringRefSetting(
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Value
     )
 {
     PPH_SETTING setting;
@@ -536,6 +516,7 @@ _May_raise_ VOID PhSetStringRefSetting(
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
+    assert(setting);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -544,9 +525,6 @@ _May_raise_ VOID PhSetStringRefSetting(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 VOID PhpFreeIgnoredSetting(
@@ -645,7 +623,7 @@ VOID PhConvertIgnoredSettings(
 }
 
 NTSTATUS PhLoadSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -722,11 +700,13 @@ NTSTATUS PhLoadSettings(
     return STATUS_SUCCESS;
 }
 
-PSTR PhpSettingsSaveCallback(
+PCSTR PhpSettingsSaveCallback(
+    _In_ PVOID cbdata,
     _In_ PVOID node,
-    _In_ LONG position
+    _In_ LONG when
     )
 {
+#define MXML_WS_BEFORE_OPEN 0
 #define MXML_WS_AFTER_OPEN 1
 #define MXML_WS_AFTER_CLOSE 3
 
@@ -737,12 +717,14 @@ PSTR PhpSettingsSaveCallback(
 
     if (PhEqualBytesZ(elementName, "setting", TRUE))
     {
-        if (position == MXML_WS_AFTER_CLOSE)
+        if (when == MXML_WS_BEFORE_OPEN)
+            return "  ";
+        else if (when == MXML_WS_AFTER_CLOSE)
             return "\r\n";
     }
     else if (PhEqualBytesZ(elementName, "settings", TRUE))
     {
-        if (position == MXML_WS_AFTER_OPEN)
+        if (when == MXML_WS_AFTER_OPEN)
             return "\r\n";
     }
 
@@ -751,8 +733,8 @@ PSTR PhpSettingsSaveCallback(
 
 PVOID PhpCreateSettingElement(
     _Inout_ PVOID ParentNode,
-    _In_ PPH_STRINGREF SettingName,
-    _In_ PPH_STRINGREF SettingValue
+    _In_ PCPH_STRINGREF SettingName,
+    _In_ PCPH_STRINGREF SettingValue
     )
 {
     PVOID settingNode;
@@ -777,7 +759,7 @@ PVOID PhpCreateSettingElement(
 }
 
 NTSTATUS PhSaveSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -820,6 +802,9 @@ NTSTATUS PhSaveSettings(
         );
     PhFreeXmlObject(topNode);
 
+    if (status == STATUS_SHARING_VIOLATION) // Skip multiple instances (dmex)
+        status = STATUS_SUCCESS;
+
     return status;
 }
 
@@ -848,8 +833,8 @@ VOID PhResetSettings(
 
 VOID PhAddSetting(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF DefaultValue
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF DefaultValue
     )
 {
     PH_SETTING setting;
@@ -887,7 +872,7 @@ VOID PhAddSettings(
 }
 
 PPH_SETTING PhGetSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
@@ -899,7 +884,32 @@ PPH_SETTING PhGetSetting(
     return setting;
 }
 
-VOID PhLoadWindowPlacementFromSetting(
+VOID PhLoadWindowPlacementFromRectangle(
+    _In_ PCWSTR PositionSettingName,
+    _In_ PCWSTR SizeSettingName,
+    _Inout_ PPH_RECTANGLE WindowRectangle
+    )
+{
+    PH_INTEGER_PAIR windowIntegerPair = { 0 };
+    PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
+    LONG windowDpi;
+    RECT windowRect;
+
+    windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
+    scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
+
+    memset(WindowRectangle, 0, sizeof(PH_RECTANGLE));
+    WindowRectangle->Position = windowIntegerPair;
+    WindowRectangle->Size = scalableIntegerPair->Pair;
+
+    PhRectangleToRect(&windowRect, WindowRectangle);
+    windowDpi = PhGetMonitorDpi(&windowRect);
+
+    PhScalableIntegerPairToScale(scalableIntegerPair, windowDpi);
+    PhAdjustRectangleToWorkingArea(NULL, WindowRectangle);
+}
+
+BOOLEAN PhLoadWindowPlacementFromSetting(
     _In_opt_ PCWSTR PositionSettingName,
     _In_opt_ PCWSTR SizeSettingName,
     _In_ HWND WindowHandle
@@ -907,23 +917,45 @@ VOID PhLoadWindowPlacementFromSetting(
 {
     if (PositionSettingName && SizeSettingName)
     {
+        PH_INTEGER_PAIR windowIntegerPair = { 0 };
+        PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
         PH_RECTANGLE windowRectangle = { 0 };
         LONG dpi;
-        //RECT rect;
         RECT rectForAdjust;
 
-        windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-        //rect = PhRectangleToRect(windowRectangle);
-        //dpi = PhGetMonitorDpi(&rect);
-        dpi = PhGetWindowDpi(WindowHandle);
+        windowIntegerPair = PhGetIntegerPairSetting(PositionSettingName);
+        scalableIntegerPair = PhGetScalableIntegerPairSetting(SizeSettingName, FALSE, 0);
+        windowRectangle.Position = windowIntegerPair;
+        windowRectangle.Size = scalableIntegerPair->Pair;
 
-        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
+        if (windowRectangle.Position.X == 0)
+            return FALSE;
+
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
+        // Update the window position before querying the DPI or changing the size. (dmex)
+        SetWindowPos(
+            WindowHandle,
+            NULL,
+            windowRectangle.Left,
+            windowRectangle.Top,
+            0,
+            0,
+            SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER
+            );
+
+        //dpi = PhGetMonitorDpiFromRect(&windowRectangle);
+        dpi = PhGetWindowDpi(WindowHandle);
+        PhScalableIntegerPairToScale(scalableIntegerPair, dpi);
+
+        RtlZeroMemory(&windowRectangle, sizeof(PH_RECTANGLE));
+        windowRectangle.Position = windowIntegerPair;
+        windowRectangle.Size = scalableIntegerPair->Pair;
+
         // Let the window adjust for the minimum size if needed.
-        rectForAdjust = PhRectangleToRect(windowRectangle);
+        PhRectangleToRect(&rectForAdjust, &windowRectangle);
         SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
-        windowRectangle = PhRectToRectangle(rectForAdjust);
+        PhRectToRectangle(&windowRectangle, &rectForAdjust);
 
         MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
             windowRectangle.Width, windowRectangle.Height, FALSE);
@@ -941,7 +973,7 @@ VOID PhLoadWindowPlacementFromSetting(
         if (PositionSettingName)
         {
             position = PhGetIntegerPairSetting(PositionSettingName);
-            flags &= ~SWP_NOMOVE;
+            ClearFlag(flags, SWP_NOMOVE);
         }
         else
         {
@@ -957,15 +989,13 @@ VOID PhLoadWindowPlacementFromSetting(
             //rect = PhRectangleToRect(windowRectangle);
             //dpi = PhGetMonitorDpi(&rect);
             dpi = PhGetWindowDpi(WindowHandle);
-
-            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
-            flags &= ~SWP_NOSIZE;
+            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi)->Pair;
+            ClearFlag(flags, SWP_NOSIZE);
         }
         else
         {
             RECT windowRect;
 
-            // Make sure the window doesn't get positioned on disconnected monitors. (dmex)
             //size.X = 16;
             //size.Y = 16;
             GetWindowRect(WindowHandle, &windowRect);
@@ -980,6 +1010,8 @@ VOID PhLoadWindowPlacementFromSetting(
 
         SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, size.X, size.Y, flags);
     }
+
+    return TRUE;
 }
 
 VOID PhSaveWindowPlacementToSetting(
@@ -991,11 +1023,11 @@ VOID PhSaveWindowPlacementToSetting(
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-    RECT rect;
+    //RECT rect;
     LONG dpi;
 
     GetWindowPlacement(WindowHandle, &placement);
-    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
+    PhRectToRectangle(&windowRectangle, &placement.rcNormalPosition);
 
     // The rectangle is in workspace coordinates. Convert the values back to screen coordinates.
     if (GetMonitorInfo(MonitorFromRect(&placement.rcNormalPosition, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
@@ -1004,8 +1036,9 @@ VOID PhSaveWindowPlacementToSetting(
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
     }
 
-    rect = PhRectangleToRect(windowRectangle);
-    dpi = PhGetMonitorDpi(&rect); // PhGetWindowDpi(WindowHandle);
+    //PhRectangleToRect(&rect, &windowRectangle);
+    //dpi = PhGetMonitorDpi(&rect);
+    dpi = PhGetWindowDpi(WindowHandle);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
@@ -1023,8 +1056,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     ULONG columnIndex;
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
     ULONG maxOrder;
-    LONG scale;
-    LONG dpi;
+    LONG dpi = 0;
 
 #ifdef DEBUG
     HWND headerHandle = ListView_GetHeader(ListViewHandle);
@@ -1034,29 +1066,14 @@ BOOLEAN PhLoadListViewColumnSettings(
     if (PhIsNullOrEmptyString(Settings))
         return FALSE;
 
-    dpi = PhGetWindowDpi(ListViewHandle);
-
     remainingPart = Settings->sr;
     columnIndex = 0;
     memset(orderArray, 0, sizeof(orderArray));
     maxOrder = 0;
 
-    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
+    if (WindowsVersion >= WINDOWS_10)
     {
-        PH_STRINGREF scalePart;
-        LONG64 integer;
-
-        PhSkipStringRef(&remainingPart, sizeof(WCHAR));
-        PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
-
-        if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
-            return FALSE;
-
-        scale = (LONG)integer;
-    }
-    else
-    {
-        scale = dpi;
+        dpi = PhGetWindowDpi(ListViewHandle);
     }
 
     while (remainingPart.Length != 0)
@@ -1101,11 +1118,8 @@ BOOLEAN PhLoadListViewColumnSettings(
 
         width = (LONG)integer;
 
-        if (scale != dpi && scale != 0)
-            width = PhMultiplyDivideSigned(width, dpi, scale);
-
         lvColumn.mask = LVCF_WIDTH;
-        lvColumn.cx = width;
+        lvColumn.cx = WindowsVersion >= WINDOWS_10 ? PhScaleToDisplay(width, dpi) : width;
         ListView_SetColumn(ListViewHandle, columnIndex, &lvColumn);
 
         columnIndex++;
@@ -1129,25 +1143,25 @@ PPH_STRING PhSaveListViewColumnSettings(
 
     dpiValue = PhGetWindowDpi(ListViewHandle);
 
-    {
-        PH_FORMAT format[3];
-        SIZE_T returnLength;
-        WCHAR buffer[PH_INT64_STR_LEN_1];
-
-        // @%lu|
-        PhInitFormatC(&format[0], L'@');
-        PhInitFormatU(&format[1], dpiValue);
-        PhInitFormatC(&format[2], L'|');
-
-        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
-        {
-            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
-        }
-        else
-        {
-            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
-        }
-    }
+    //{
+    //    PH_FORMAT format[3];
+    //    SIZE_T returnLength;
+    //    WCHAR buffer[PH_INT64_STR_LEN_1];
+    //
+    //    // @%lu|
+    //    PhInitFormatC(&format[0], L'@');
+    //    PhInitFormatU(&format[1], dpiValue);
+    //    PhInitFormatC(&format[2], L'|');
+    //
+    //    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+    //    {
+    //        PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+    //    }
+    //    else
+    //    {
+    //        PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
+    //    }
+    //}
 
     lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
 
@@ -1160,7 +1174,7 @@ PPH_STRING PhSaveListViewColumnSettings(
         // %u,%u|
         PhInitFormatU(&format[0], lvColumn.iOrder);
         PhInitFormatC(&format[1], L',');
-        PhInitFormatU(&format[2], lvColumn.cx);
+        PhInitFormatU(&format[2], WindowsVersion >= WINDOWS_10 ? PhScaleToDefault(lvColumn.cx, dpiValue) : lvColumn.cx);
         PhInitFormatC(&format[3], L'|');
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
@@ -1173,7 +1187,7 @@ PPH_STRING PhSaveListViewColumnSettings(
                 &stringBuilder,
                 L"%u,%u|",
                 lvColumn.iOrder,
-                lvColumn.cx
+                WindowsVersion >= WINDOWS_10 ? PhScaleToDefault(lvColumn.cx, dpiValue) : lvColumn.cx
                 );
         }
         i++;
@@ -1196,8 +1210,7 @@ BOOLEAN PhLoadIListViewColumnSettings(
     ULONG columnIndex;
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
     ULONG maxOrder;
-    LONG scale;
-    LONG dpi;
+    LONG dpi = 0;
 
     if (!SUCCEEDED(IListView_GetHeaderControl(ListView, &headerHandle)))
         return FALSE;
@@ -1207,29 +1220,28 @@ BOOLEAN PhLoadIListViewColumnSettings(
     if (PhIsNullOrEmptyString(Settings))
         return FALSE;
 
-    dpi = PhGetWindowDpi(headerHandle);
-
     remainingPart = Settings->sr;
     columnIndex = 0;
     memset(orderArray, 0, sizeof(orderArray));
     maxOrder = 0;
 
-    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
+    //if (remainingPart.Length != 0 && remainingPart.Buffer[0] == L'@')
+    //{
+    //    PH_STRINGREF scalePart;
+    //    LONG64 integer;
+    //
+    //    PhSkipStringRef(&remainingPart, sizeof(WCHAR));
+    //    PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
+    //
+    //    if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
+    //        return FALSE;
+    //
+    //    scale = (LONG)integer;
+    //}
+
+    if (WindowsVersion >= WINDOWS_10)
     {
-        PH_STRINGREF scalePart;
-        LONG64 integer;
-
-        PhSkipStringRef(&remainingPart, sizeof(WCHAR));
-        PhSplitStringRefAtChar(&remainingPart, L'|', &scalePart, &remainingPart);
-
-        if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
-            return FALSE;
-
-        scale = (LONG)integer;
-    }
-    else
-    {
-        scale = dpi;
+        dpi = PhGetWindowDpi(headerHandle);
     }
 
     while (remainingPart.Length != 0)
@@ -1274,11 +1286,8 @@ BOOLEAN PhLoadIListViewColumnSettings(
 
         width = (LONG)integer;
 
-        if (scale != dpi && scale != 0)
-            width = PhMultiplyDivideSigned(width, dpi, scale);
-
         lvColumn.mask = LVCF_WIDTH;
-        lvColumn.cx = width;
+        lvColumn.cx = WindowsVersion >= WINDOWS_10 ? PhScaleToDisplay(width, dpi) : width;
         IListView_SetColumn(ListView, columnIndex, &lvColumn);
 
         columnIndex++;
@@ -1297,34 +1306,37 @@ PPH_STRING PhSaveIListViewColumnSettings(
     PH_STRING_BUILDER stringBuilder;
     ULONG i = 0;
     LVCOLUMN lvColumn;
-    LONG dpiValue;
+    LONG dpiValue = 0;
 
     if (!SUCCEEDED(IListView_GetHeaderControl(ListView, &headerHandle)))
         return NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 20);
 
-    dpiValue = PhGetWindowDpi(headerHandle);
-
+    if (WindowsVersion >= WINDOWS_10)
     {
-        PH_FORMAT format[3];
-        SIZE_T returnLength;
-        WCHAR buffer[PH_INT64_STR_LEN_1];
-
-        // @%lu|
-        PhInitFormatC(&format[0], L'@');
-        PhInitFormatU(&format[1], dpiValue);
-        PhInitFormatC(&format[2], L'|');
-
-        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
-        {
-            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
-        }
-        else
-        {
-            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
-        }
+        dpiValue = PhGetWindowDpi(headerHandle);
     }
+
+    //{
+    //    PH_FORMAT format[3];
+    //    SIZE_T returnLength;
+    //    WCHAR buffer[PH_INT64_STR_LEN_1];
+    //
+    //    // @%lu|
+    //    PhInitFormatC(&format[0], L'@');
+    //    PhInitFormatU(&format[1], dpiValue);
+    //    PhInitFormatC(&format[2], L'|');
+    //
+    //    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+    //    {
+    //        PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+    //    }
+    //    else
+    //    {
+    //        PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
+    //    }
+    //}
 
     memset(&lvColumn, 0, sizeof(LVCOLUMN));
     lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
@@ -1338,7 +1350,7 @@ PPH_STRING PhSaveIListViewColumnSettings(
         // %u,%u|
         PhInitFormatU(&format[0], lvColumn.iOrder);
         PhInitFormatC(&format[1], L',');
-        PhInitFormatU(&format[2], lvColumn.cx);
+        PhInitFormatU(&format[2], WindowsVersion >= WINDOWS_10 ? PhScaleToDefault(lvColumn.cx, dpiValue) : lvColumn.cx);
         PhInitFormatC(&format[3], L'|');
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
@@ -1351,7 +1363,7 @@ PPH_STRING PhSaveIListViewColumnSettings(
                 &stringBuilder,
                 L"%u,%u|",
                 lvColumn.iOrder,
-                lvColumn.cx
+                WindowsVersion >= WINDOWS_10 ? PhScaleToDefault(lvColumn.cx, dpiValue) : lvColumn.cx
                 );
         }
         i++;

@@ -20,7 +20,7 @@
 
 EXTERN_C_START
 
-#define PH_DECLARE_IMPORT(Name) typeof(&Name) Name##_Import(VOID)
+#define PH_DECLARE_IMPORT(Name) __typeof__(&(Name)) Name##_Import(VOID)
 
 // Ntdll
 
@@ -57,6 +57,15 @@ PH_DECLARE_IMPORT(NtPssCaptureVaSpaceBulk);
 
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DECLARE_IMPORT(ConvertStringSecurityDescriptorToSecurityDescriptorW);
+
+// Cfgmgr32
+
+PH_DECLARE_IMPORT(DevGetObjects);
+PH_DECLARE_IMPORT(DevFreeObjects);
+PH_DECLARE_IMPORT(DevGetObjectProperties);
+PH_DECLARE_IMPORT(DevFreeObjectProperties);
+PH_DECLARE_IMPORT(DevCreateObjectQuery);
+PH_DECLARE_IMPORT(DevCloseObjectQuery);
 
 // Shlwapi
 

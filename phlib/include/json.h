@@ -264,7 +264,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhLoadJsonObjectFromFile(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 #define PH_JSON_TO_STRING_PLAIN 0x0001
@@ -275,7 +275,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID Object,
     _In_opt_ ULONG Flags
     );
@@ -293,7 +293,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     );
 
@@ -301,7 +301,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhSaveXmlObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     );
@@ -421,12 +421,12 @@ typedef PVOID (NTAPI* PH_XML_LOAD_OBJECT_FROM_STRING)(
     );
 
 typedef NTSTATUS (NTAPI* PH_XML_LOAD_OBJECT_FROM_FILE)(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootNode
     );
 
 typedef NTSTATUS (NTAPI* PH_XML_SAVE_OBJECT_TO_FILE)(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     );

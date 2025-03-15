@@ -253,6 +253,14 @@ PhUiReduceWorkingSetProcesses(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetActivityModeration(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiSetVirtualizationProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -421,6 +429,15 @@ NTAPI
 PhUiDeleteService(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiRestartServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
     );
 
 PHAPPAPI

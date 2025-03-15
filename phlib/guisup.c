@@ -21,6 +21,7 @@
 #include <commoncontrols.h>
 #include <shellscalingapi.h>
 #include <wincodec.h>
+#include <uxtheme.h>
 
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -60,26 +61,26 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowContextHashTable = NULL;
 static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
 
-static _OpenThemeDataForDpi OpenThemeDataForDpi_I = NULL;
-static _OpenThemeData OpenThemeData_I = NULL;
-static _CloseThemeData CloseThemeData_I = NULL;
-static _SetWindowTheme SetWindowTheme_I = NULL;
-static _IsThemeActive IsThemeActive_I = NULL;
-static _IsThemePartDefined IsThemePartDefined_I = NULL;
+static __typeof__(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
+static __typeof__(&OpenThemeData) OpenThemeData_I = NULL;
+static __typeof__(&CloseThemeData) CloseThemeData_I = NULL;
+static __typeof__(&SetWindowTheme) SetWindowTheme_I = NULL;
+static __typeof__(&IsThemeActive) IsThemeActive_I = NULL;
+static __typeof__(&IsThemePartDefined) IsThemePartDefined_I = NULL;
 static _GetThemeClass GetThemeClass_I = NULL;
-static _GetThemeColor GetThemeColor_I = NULL;
-static _GetThemeInt GetThemeInt_I = NULL;
-static _GetThemePartSize GetThemePartSize_I = NULL;
-static _DrawThemeBackground DrawThemeBackground_I = NULL;
-static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
+static __typeof__(&GetThemeColor) GetThemeColor_I = NULL;
+static __typeof__(&GetThemeInt) GetThemeInt_I = NULL;
+static __typeof__(&GetThemePartSize) GetThemePartSize_I = NULL;
+static __typeof__(&DrawThemeBackground) DrawThemeBackground_I = NULL;
+static __typeof__(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
-static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
-static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
-static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
+static __typeof__(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
+static __typeof__(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
+static __typeof__(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 //static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
-static _GetSystemMetricsForDpi GetSystemMetricsForDpi_I = NULL;
-static _SystemParametersInfoForDpi SystemParametersInfoForDpi_I = NULL;
+static __typeof__(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
+static __typeof__(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
 static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
@@ -162,43 +163,56 @@ VOID PhGuiSupportUpdateSystemMetrics(
     PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
 }
 
-VOID PhInitializeFont(
-    _In_ HWND WindowHandle,
+HFONT PhInitializeFont(
     _In_ LONG WindowDpi
     )
 {
-    LONG windowDpi = WindowDpi ? WindowDpi : PhGetWindowDpi(WindowHandle);
-    HFONT oldFont = PhApplicationFont;
+    HFONT fontHandle;
 
-    if (
-        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, windowDpi)) &&
-        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, windowDpi))
-        )
-    {
-        PhApplicationFont = PhCreateMessageFont(windowDpi);
-    }
+    if (fontHandle = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
+        return fontHandle;
+    if (fontHandle = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
+        return fontHandle;
+    if (fontHandle = PhCreateMessageFont(WindowDpi))
+        return fontHandle;
 
-    if (oldFont) DeleteFont(oldFont);
+    return GetStockFont(DEFAULT_GUI_FONT);
 }
 
-VOID PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle,
+HFONT PhInitializeMonospaceFont(
     _In_ LONG WindowDpi
     )
 {
-    LONG windowDpi = WindowDpi ? WindowDpi : PhGetWindowDpi(WindowHandle);
-    HFONT oldFont = PhMonospaceFont;
+    HFONT fontHandle;
 
-    if (
-        !(PhMonospaceFont = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, windowDpi)) &&
-        !(PhMonospaceFont = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN, windowDpi)) &&
-        !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, windowDpi))
-        )
+    if (fontHandle = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+        return fontHandle;
+    if (fontHandle = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+        return fontHandle;
+    if (fontHandle = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+        return fontHandle;
+
+    //{
+    //    NONCLIENTMETRICS metrics;
+    //
+    //    memset(&metrics, 0, sizeof(NONCLIENTMETRICS));
+    //    metrics.cbSize = sizeof(NONCLIENTMETRICS);
+    //
+    //    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, WindowDpi))
+    //    {
+    //        return CreateFontIndirect(&metrics.lfMessageFont);
+    //    }
+    //}
+
+    LOGFONT logFont;
+
+    if (GetObject(GetStockFont(SYSTEM_FIXED_FONT), sizeof(LOGFONT), &logFont))
     {
-        PhMonospaceFont = GetStockFont(SYSTEM_FIXED_FONT);
+        logFont.lfWeight = -(LONG)PhMultiplyDivide(logFont.lfWeight, WindowDpi, 72);
+        return CreateFontIndirect(&logFont);
     }
 
-    if (oldFont) DeleteFont(oldFont);
+    return GetStockFont(SYSTEM_FIXED_FONT);
 }
 
 /**
@@ -210,7 +224,7 @@ HDC PhGetScreenDC(
     VOID
     )
 {
-    static HDC hdc = nullptr;
+    static HDC hdc = NULL;
 
     if (hdc == NULL)
     {
@@ -230,7 +244,7 @@ HGDIOBJ PhGetStockObject(
     _In_ LONG Index
     )
 {
-    static HBRUSH brush[STOCK_LAST + 1] = { nullptr };
+    static HBRUSH brush[STOCK_LAST + 1] = { NULL };
 
     assert(Index <= STOCK_LAST);
 
@@ -369,7 +383,7 @@ BOOLEAN PhGetThemePartSize(
     if (!GetThemePartSize_I)
         return FALSE;
 
-    return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, Flags, Size));
+    return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, (enum THEMESIZE)Flags, Size));
 }
 
 BOOLEAN PhDrawThemeBackground(
@@ -510,7 +524,7 @@ BOOLEAN PhSetChildWindowNoActivate(
         _In_ HWND WindowHandle
         );
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
+    static __typeof__(SetChildWindowNoActivate) SetChildWindowNoActivate_I = NULL; // NtUserSetChildWindowNoActivate
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -518,7 +532,7 @@ BOOLEAN PhSetChildWindowNoActivate(
 
         if (baseAddress = PhLoadLibrary(L"user32.dll"))
         {
-            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, nullptr, 2005);
+            SetChildWindowNoActivate_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 2005);
         }
 
         PhEndInitOnce(&initOnce);
@@ -691,15 +705,33 @@ LONG PhGetWindowDpi(
     )
 {
     LONG dpi;
-    RECT windowRect;
 
-    dpi = PhGetDpiValue(WindowHandle, NULL);
-
-    if (dpi == 0)
+    if (WindowsVersion >= WINDOWS_10)
     {
-        if (PhGetWindowRect(WindowHandle, &windowRect))
+        RECT windowRect;
+
+        dpi = PhGetDpiValue(WindowHandle, NULL);
+
+        if (dpi == 0)
         {
-            dpi = PhGetDpiValue(NULL, &windowRect);
+            if (PhGetWindowRect(WindowHandle, &windowRect))
+            {
+                dpi = PhGetDpiValue(NULL, &windowRect);
+            }
+        }
+    }
+    else
+    {
+        HDC screenHdc;
+
+        if (screenHdc = GetDC(WindowHandle))
+        {
+            dpi = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            ReleaseDC(WindowHandle, screenHdc);
+        }
+        else
+        {
+            dpi = USER_DEFAULT_SCREEN_DPI;
         }
     }
 
@@ -766,7 +798,11 @@ LONG PhGetDpiValue(
         {
             dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
             ReleaseDC(NULL, screenHdc);
-            return dpi_x;
+
+            if (dpi_x != 0)
+            {
+                return dpi_x;
+            }
         }
     }
 
@@ -1327,17 +1363,18 @@ VOID PhGetStockApplicationIcon(
         }
         else
         {
-            PH_STRINGREF imageFileName;
-
-            PhInitializeStringRef(&imageFileName, L"\\SystemRoot\\System32\\imageres.dll");
+            static PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\imageres.dll");
 
             PhExtractIconEx(
                 &imageFileName,
                 TRUE,
                 11,
+                PhGetSystemMetrics(SM_CXICON, systemDpi),
+                PhGetSystemMetrics(SM_CYICON, systemDpi),
+                PhGetSystemMetrics(SM_CXSMICON, systemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, systemDpi),
                 &largeIcon,
-                &smallIcon,
-                systemDpi
+                &smallIcon
                 );
         }
     }
@@ -2643,9 +2680,7 @@ BOOLEAN PhIsImmersiveProcess(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI* IsImmersiveProcess_I)(
-        _In_ HANDLE ProcessHandle
-        ) = NULL;
+    static __typeof__(&IsImmersiveProcess) IsImmersiveProcess_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2692,14 +2727,9 @@ BOOLEAN PhGetProcessDpiAwareness(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static DPI_AWARENESS_CONTEXT (WINAPI* GetDpiAwarenessContextForProcess_I)(
-        _In_ HANDLE hprocess) = NULL;
-    static BOOL (WINAPI* AreDpiAwarenessContextsEqual_I)(
-        _In_ DPI_AWARENESS_CONTEXT dpiContextA,
-        _In_ DPI_AWARENESS_CONTEXT dpiContextB) = NULL;
-    static BOOL (WINAPI* GetProcessDpiAwarenessInternal_I)(
-        _In_ HANDLE hprocess,
-        _Out_ ULONG* value) = NULL;
+    static __typeof__(&GetDpiAwarenessContextForProcess) GetDpiAwarenessContextForProcess_I = NULL;
+    static __typeof__(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
+    static BOOL (WINAPI* GetProcessDpiAwarenessInternal_I)(_In_ HANDLE hprocess, _Out_ PROCESS_DPI_AWARENESS* value) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2759,7 +2789,7 @@ BOOLEAN PhGetProcessDpiAwareness(
 
     if (GetProcessDpiAwarenessInternal_I)
     {
-        ULONG dpiAwareness = 0;
+        PROCESS_DPI_AWARENESS dpiAwareness = PROCESS_DPI_UNAWARE;
 
         if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
         {
@@ -2781,14 +2811,13 @@ BOOLEAN PhGetProcessDpiAwareness(
     return FALSE;
 }
 
-_Success_(return)
-BOOLEAN PhGetPhysicallyInstalledSystemMemory(
+NTSTATUS PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
     _Out_ PULONGLONG ReservedMemory
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *GetPhysicallyInstalledSystemMemory_I)(_Out_ PULONGLONG TotalMemoryInKilobytes) = NULL;
+    static __typeof__(&GetPhysicallyInstalledSystemMemory) GetPhysicallyInstalledSystemMemory_I = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
@@ -2798,16 +2827,18 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
     }
 
     if (!GetPhysicallyInstalledSystemMemory_I)
-        return FALSE;
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
 
     if (GetPhysicallyInstalledSystemMemory_I(&physicallyInstalledSystemMemory))
     {
         *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
         *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 /**
@@ -2845,34 +2876,44 @@ NTSTATUS PhGetProcessGuiResources(
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
-_Success_(return)
+/**
+ * Retrieves information about the active window or a specified GUI thread.
+ *
+ * \param ThreadId The identifier for the thread for which information is to be retrieved. If this parameter is NULL, the function returns information for the foreground thread.
+ * \param ThreadInfo A pointer to a GUITHREADINFO structure that receives information describing the thread.
+ * \return Returns the status code indicating the success or failure of the operation.
+ */
+NTSTATUS PhGetGUIThreadInfo(
+    _In_opt_ HANDLE ThreadId,
+    _Out_ PGUITHREADINFO ThreadInfo
+    )
+{
+    ThreadInfo->cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(HandleToUlong(ThreadId), ThreadInfo))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
 BOOLEAN PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     )
 {
     GUITHREADINFO info;
 
-    memset(&info, 0, sizeof(GUITHREADINFO));
-    info.cbSize = sizeof(GUITHREADINFO);
-
-    if (GetGUIThreadInfo(HandleToUlong(ThreadId), &info))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return NT_SUCCESS(PhGetGUIThreadInfo(ThreadId, &info));
 }
 
-_Success_(return)
-BOOLEAN PhGetSendMessageReceiver(
+NTSTATUS PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HWND (WINAPI *GetSendMessageReceiver_I)(
-        _In_ HANDLE ThreadId
-        );
+    static __typeof__(&GetSendMessageReceiver) GetSendMessageReceiver_I = NULL;
     HWND windowHandle;
 
     // GetSendMessageReceiver is an undocumented function exported by
@@ -2886,15 +2927,17 @@ BOOLEAN PhGetSendMessageReceiver(
     }
 
     if (!GetSendMessageReceiver_I)
-        return FALSE;
-
-    if (windowHandle = GetSendMessageReceiver_I(ThreadId)) // && GetLastError() == ERROR_SUCCESS
     {
-        *WindowHandle = windowHandle;
-        return TRUE;
+        return STATUS_PROCEDURE_NOT_FOUND;
     }
 
-    return FALSE;
+    if (windowHandle = GetSendMessageReceiver_I(ThreadId))
+    {
+        *WindowHandle = windowHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 // rev from ExtractIconExW
@@ -2949,8 +2992,7 @@ BOOLEAN PhExtractIcon(
     return FALSE;
 }
 
-_Success_(return)
-BOOLEAN PhLoadIconFromResourceDirectory(
+NTSTATUS PhLoadIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
     _In_ LONG ResourceIndex,
@@ -2982,9 +3024,9 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     }
 
     if (resourceIndex == resourceCount)
-        return FALSE;
+        return STATUS_RESOURCE_TYPE_NOT_FOUND;
     if (!resourceType[resourceIndex].DataIsDirectory)
-        return FALSE;
+        return STATUS_RESOURCE_TYPE_NOT_FOUND;
 
     // Find the name
     nameDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceType[resourceIndex].OffsetToDirectory);
@@ -3007,9 +3049,9 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     }
 
     if (resourceIndex >= resourceCount)
-        return FALSE;
+        return STATUS_RESOURCE_NAME_NOT_FOUND;
     if (!resourceName[resourceIndex].DataIsDirectory)
-        return FALSE;
+        return STATUS_RESOURCE_NAME_NOT_FOUND;
 
     // Find the language
     languageDirectory = PTR_ADD_OFFSET(ResourceDirectory, resourceName[resourceIndex].OffsetToDirectory);
@@ -3018,17 +3060,17 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     resourceIndex = 0; // use the first entry
 
     if (resourceLanguage[resourceIndex].DataIsDirectory)
-        return FALSE;
+        return STATUS_RESOURCE_LANG_NOT_FOUND;
 
     resourceData = PTR_ADD_OFFSET(ResourceDirectory, resourceLanguage[resourceIndex].OffsetToData);
 
     if (!resourceData)
-        return FALSE;
+        return STATUS_RESOURCE_DATA_NOT_FOUND;
 
     resourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
 
     if (!resourceBuffer)
-        return FALSE;
+        return STATUS_RESOURCE_DATA_NOT_FOUND;
 
     if (ResourceLength)
         *ResourceLength = resourceData->Size;
@@ -3039,7 +3081,7 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
     // PhLoadResource(ImageBaseAddress, MAKEINTRESOURCE(ResourceIndex), ResourceType, &resourceLength, &resourceBuffer);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 #ifndef MAKEFOURCC
@@ -3057,15 +3099,18 @@ typedef struct _NEWHEADER
     USHORT ResourceCount;
 } NEWHEADER, *PNEWHEADER;
 
-HICON PhCreateIconFromResourceDirectory(
+NTSTATUS PhCreateIconFromResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ResourceDirectory,
     _In_ PVOID IconDirectory,
     _In_ LONG Width,
     _In_ LONG Height,
-    _In_ ULONG Flags
+    _In_ ULONG Flags,
+    _Out_opt_ HICON* IconHandle
     )
 {
+    NTSTATUS status;
+    HICON iconHandle;
     LONG iconResourceId;
     ULONG iconResourceLength;
     PVOID iconResourceBuffer;
@@ -3078,20 +3123,20 @@ HICON PhCreateIconFromResourceDirectory(
         Flags
         )))
     {
-        return NULL;
+        return PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (!PhLoadIconFromResourceDirectory(
+    status = PhLoadIconFromResourceDirectory(
         MappedImage,
         ResourceDirectory,
         -iconResourceId,
         RT_ICON,
         &iconResourceLength,
         &iconResourceBuffer
-        ))
-    {
-        return NULL;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (
         ((PBITMAPINFOHEADER)iconResourceBuffer)->biSize != sizeof(BITMAPINFOHEADER) &&
@@ -3100,10 +3145,10 @@ HICON PhCreateIconFromResourceDirectory(
         ((PBITMAPCOREHEADER)iconResourceBuffer)->bcSize != MAKEFOURCC('J', 'P', 'E', 'G')
         )
     {
-        return NULL;
+        return STATUS_RESOURCE_TYPE_NOT_FOUND;
     }
 
-    return CreateIconFromResourceEx(
+    if (!(iconHandle = CreateIconFromResourceEx(
         iconResourceBuffer,
         iconResourceLength,
         TRUE,
@@ -3111,7 +3156,13 @@ HICON PhCreateIconFromResourceDirectory(
         Width,
         Height,
         Flags
-        );
+        )))
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    *IconHandle = iconHandle;
+    return STATUS_SUCCESS;
 }
 
 // rev from LdrLoadAlternateResourceModuleEx and GetMunResourceModuleForEnumIfExist (dmex)
@@ -3120,6 +3171,7 @@ HICON PhCreateIconFromResourceDirectory(
  *
  * \param FileName A string containing a file name.
  * \param NativeFileName The type of name format.
+ * \param FilePathType
  * \param ResourceFileName A pointer to the MUN filename.
  *
  * \return Successful or errant status.
@@ -3127,10 +3179,10 @@ HICON PhCreateIconFromResourceDirectory(
  * \remarks LdrLoadAlternateResourceModuleEx and GetMunResourceModuleForEnumIfExist always search the parent directory
  * and this function has the same logic and semantics. For example: C:\Windows\explorer.exe -> C:\SystemResources\explorer.exe.mun
  */
-_Success_(return)
-BOOLEAN PhGetSystemResourcesFileName(
+NTSTATUS PhGetSystemResourcesFileName(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
+    _In_ RTL_PATH_TYPE FilePathType,
     _Out_ PPH_STRING* ResourceFileName
     )
 {
@@ -3142,16 +3194,16 @@ BOOLEAN PhGetSystemResourcesFileName(
     PH_STRINGREF baseNamePart;
 
     if (WindowsVersion < WINDOWS_10_19H1)
-        return FALSE;
-    if (PhDetermineDosPathNameType(FileName) == RtlPathTypeUncAbsolute)
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
+    if (FilePathType == RtlPathTypeUncAbsolute)
+        return STATUS_OBJECT_PATH_SYNTAX_BAD;
     if (!PhGetBasePath(FileName, &directoryPart, &fileNamePart))
-        return FALSE;
+        return STATUS_OBJECT_PATH_INVALID;
 
     if (directoryPart.Length && fileNamePart.Length)
     {
         if (!PhGetBasePath(&directoryPart, &baseNamePart, NULL))
-            return FALSE;
+            return STATUS_OBJECT_PATH_INVALID;
 
         fileName = PhConcatStringRef4(
             &baseNamePart,
@@ -3165,7 +3217,7 @@ BOOLEAN PhGetSystemResourcesFileName(
             if (PhDoesFileExist(&fileName->sr))
             {
                 *ResourceFileName = fileName;
-                return TRUE;
+                return STATUS_SUCCESS;
             }
         }
         else
@@ -3173,14 +3225,14 @@ BOOLEAN PhGetSystemResourcesFileName(
             if (PhDoesFileExistWin32(PhGetString(fileName)))
             {
                 *ResourceFileName = fileName;
-                return TRUE;
+                return STATUS_SUCCESS;
             }
         }
 
         PhClearReference(&fileName);
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 /**
@@ -3189,23 +3241,28 @@ BOOLEAN PhGetSystemResourcesFileName(
  * \param FileName A string containing a file name.
  * \param NativeFileName The type of name format.
  * \param IconIndex The zero-based index of the icon within the group or a negative number for a specific resource identifier.
+ * \param IconLargeWidth
+ * \param IconLargeHeight
+ * \param IconSmallWidth
+ * \param IconSmallHeight
  * \param IconLarge A handle to the large icon within the group or handle to the an icon from the resource identifier.
  * \param IconSmall A handle to the small icon within the group or handle to the an icon from the resource identifier.
- * \param WindowDpi The DPI to use for scaling the metric.
  *
  * \return Successful or errant status.
  *
  * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
  * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
  */
-_Success_(return)
-BOOLEAN PhExtractIconEx(
+NTSTATUS PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
+    _In_ LONG IconLargeWidth,
+    _In_ LONG IconLargeHeight,
+    _In_ LONG IconSmallWidth,
+    _In_ LONG IconSmallHeight,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall,
-    _In_ LONG WindowDpi
+    _Out_opt_ HICON *IconSmall
     )
 {
     NTSTATUS status;
@@ -3223,9 +3280,16 @@ BOOLEAN PhExtractIconEx(
     fileNameType = PhDetermineDosPathNameType(FileName);
 
     if (!(fileNameType == RtlPathTypeRooted || fileNameType == RtlPathTypeDriveAbsolute))
-        return FALSE;
+        return STATUS_OBJECT_PATH_SYNTAX_BAD;
 
-    if (PhGetSystemResourcesFileName(FileName, NativeFileName, &resourceFileName))
+    status = PhGetSystemResourcesFileName(
+        FileName,
+        NativeFileName,
+        fileNameType,
+        &resourceFileName
+        );
+
+    if (NT_SUCCESS(status))
     {
         fileName.Buffer = resourceFileName->Buffer;
         fileName.Length = resourceFileName->Length;
@@ -3285,43 +3349,51 @@ BOOLEAN PhExtractIconEx(
 
     __try
     {
-        if (!PhLoadIconFromResourceDirectory(
+        status = PhLoadIconFromResourceDirectory(
             &mappedImage,
             resourceDirectory,
             IconIndex,
             RT_GROUP_ICON,
             &iconDirectoryResourceLength,
             &iconDirectoryResource
-            ))
-        {
+            );
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
         if (iconDirectoryResource->ResourceType != RES_ICON)
             goto CleanupExit;
 
         if (IconLarge)
         {
-            iconLarge = PhCreateIconFromResourceDirectory(
+            status = PhCreateIconFromResourceDirectory(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXICON, WindowDpi),
-                PhGetSystemMetrics(SM_CYICON, WindowDpi),
-                LR_DEFAULTCOLOR
+                IconLargeWidth,
+                IconLargeHeight,
+                LR_DEFAULTCOLOR,
+                &iconLarge
                 );
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
         }
 
         if (IconSmall)
         {
-            iconSmall = PhCreateIconFromResourceDirectory(
+            status = PhCreateIconFromResourceDirectory(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXSMICON, WindowDpi),
-                PhGetSystemMetrics(SM_CYSMICON, WindowDpi),
-                LR_DEFAULTCOLOR
+                IconSmallWidth,
+                IconSmallHeight,
+                LR_DEFAULTCOLOR,
+                &iconSmall
                 );
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
         }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -3391,17 +3463,27 @@ HIMAGELIST PhImageListCreate(
         &imageList
         );
 
-    if (FAILED(status))
-        return NULL;
+    if (SUCCEEDED(status))
+    {
+        status = IImageList2_Initialize(
+            imageList,
+            Width,
+            Height,
+            Flags,
+            InitialCount,
+            GrowCount
+            );
+    }
 
-    status = IImageList2_Initialize(
-        imageList,
-        Width,
-        Height,
-        Flags,
-        InitialCount,
-        GrowCount
-        );
+    //if (FAILED(status))
+    //{
+    //    status = ImageList_CoCreateInstance(
+    //        &CLSID_ImageList,
+    //        NULL,
+    //        &IID_IImageList,
+    //        &imageList
+    //        );
+    //}
 
     if (FAILED(status))
         return NULL;
@@ -4011,7 +4093,7 @@ HBITMAP PhLoadImageFromAddress(
     BOOLEAN success = FALSE;
     HBITMAP bitmapHandle = NULL;
     PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicImagingFactory;
+    IWICImagingFactory* wicImagingFactory = NULL;
     IWICStream* wicBitmapStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicBitmapDecoder = NULL;
@@ -4598,4 +4680,35 @@ VOID PhEnumerateRecentList(
     }
 
     FreeMRUList_I(listHandle);
+}
+
+/**
+ * Forcibly closes the specified window.
+ *
+ * @param WindowHandle A handle to the window to be closed.
+ * @param Force If TRUE, force the destruction of the window if an initial attempt to gently close the window using WM_CLOSE fails. If FALSE, only WM_CLOSE is attempted.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endtask
+ */
+NTSTATUS PhTerminateWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Force
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* EndTask_I)(_In_ HWND hWnd, _In_ BOOL fShutDown, _In_ BOOL fForce) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        EndTask_I = PhGetDllProcedureAddress(L"user32.dll", "EndTask", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!EndTask_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (EndTask_I(WindowHandle, FALSE, !!Force))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }

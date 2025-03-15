@@ -137,10 +137,10 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                     RECT rect;
                     LONG dpiValue;
 
-                    rect = PhRectangleToRect(windowRectangle);
+                    PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(&rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue)->Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                     MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,

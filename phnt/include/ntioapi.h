@@ -63,11 +63,26 @@
 #define FILE_CONTAINS_EXTENDED_CREATE_INFORMATION   0x10000000
 #define FILE_VALID_EXTENDED_OPTION_FLAGS            0x10000000
 
+typedef struct _EXTENDED_CREATE_DUAL_OPLOCK_KEYS 
+{
+    //
+    //  Parent oplock key.
+    //  All-zero if not set.
+    //
+    GUID ParentOplockKey;
+    //
+    //  Target oplock key.
+    //  All-zero if not set.
+    //
+    GUID TargetOplockKey;
+} EXTENDED_CREATE_DUAL_OPLOCK_KEYS, *PEXTENDED_CREATE_DUAL_OPLOCK_KEYS;
+
 typedef struct _EXTENDED_CREATE_INFORMATION
 {
     LONGLONG ExtendedCreateFlags;
     PVOID EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION, *PEXTENDED_CREATE_INFORMATION;
 
 typedef struct _EXTENDED_CREATE_INFORMATION_32
@@ -75,6 +90,7 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
     LONGLONG ExtendedCreateFlags;
     void* POINTER_32 EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS POINTER_32 DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION_32, *PEXTENDED_CREATE_INFORMATION_32;
 
 #define EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY 0x00000001
@@ -446,7 +462,7 @@ typedef struct _FILE_END_OF_FILE_INFORMATION
     LARGE_INTEGER EndOfFile;
 } FILE_END_OF_FILE_INFORMATION, *PFILE_END_OF_FILE_INFORMATION;
 
-//#if (PHNT_VERSION >= PHNT_REDSTONE5)
+//#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 #define FLAGS_END_OF_FILE_INFO_EX_EXTEND_PAGING             0x00000001
 #define FLAGS_END_OF_FILE_INFO_EX_NO_EXTRA_PAGING_EXTEND    0x00000002
 #define FLAGS_END_OF_FILE_INFO_EX_TIME_CONSTRAINED          0x00000004
@@ -636,7 +652,7 @@ typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
  */
 typedef struct _FILE_MAILSLOT_SET_INFORMATION
 {
-    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs. 
+    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
 } FILE_MAILSLOT_SET_INFORMATION, *PFILE_MAILSLOT_SET_INFORMATION;
 
 /**
@@ -826,7 +842,7 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
 
 #ifndef FILE_INVALID_FILE_ID
 #define FILE_INVALID_FILE_ID ((LONGLONG)-1LL)
-#endif
+#endif // FILE_INVALID_FILE_ID
 
 #define FILE_ID_IS_INVALID(FID) ((FID).QuadPart == FILE_INVALID_FILE_ID)
 
@@ -1088,7 +1104,7 @@ typedef struct _FILE_STAT_BASIC_INFORMATION
     LARGE_INTEGER VolumeSerialNumber;
     FILE_ID_128 FileId128;
 } FILE_STAT_BASIC_INFORMATION, *PFILE_STAT_BASIC_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
@@ -1132,7 +1148,7 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG LxDeviceIdMajor;
     ULONG LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION
 {
@@ -1146,7 +1162,7 @@ typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG Flags;
 } FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
@@ -1720,7 +1736,7 @@ NtFlushBuffersFile(
 #define FLUSH_FLAGS_FLUSH_AND_PURGE 0x00000008 // 24H2
 
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1744,7 +1760,7 @@ NtQueryInformationFile(
     _In_ FILE_INFORMATION_CLASS FileInformationClass
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1792,7 +1808,7 @@ NtQueryDirectoryFile(
 #define FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY 0x00000008
 #define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010 // RS5
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1890,7 +1906,7 @@ NtCancelIoFile(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1901,7 +1917,7 @@ NtCancelIoFileEx(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2128,7 +2144,7 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
     ULONG FileNameLength;
     WCHAR FileName[1];
 } FILE_NOTIFY_EXTENDED_INFORMATION, *PFILE_NOTIFY_EXTENDED_INFORMATION;
-#endif
+#endif // NTDDI_WIN10_RS5
 
 #define FILE_NAME_FLAG_HARDLINK      0    // not part of a name pair
 #define FILE_NAME_FLAG_NTFS          0x01 // NTFS name in a name pair
@@ -2162,7 +2178,7 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
 } FILE_NOTIFY_FULL_INFORMATION, *PFILE_NOTIFY_FULL_INFORMATION;
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2280,7 +2296,7 @@ NtSetIoCompletion(
     _In_ ULONG_PTR IoStatusInformation
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2305,7 +2321,7 @@ NtRemoveIoCompletion(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 typedef struct _FILE_IO_COMPLETION_INFORMATION
 {
@@ -2325,11 +2341,13 @@ NtRemoveIoCompletionEx(
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_ BOOLEAN Alertable
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
+//
 // Wait completion packet
+//
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2362,71 +2380,31 @@ NtCancelWaitCompletionPacket(
     _In_ BOOLEAN RemoveSignaledPacket
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-// Sessions
-
-typedef enum _IO_SESSION_EVENT
-{
-    IoSessionEventIgnore,
-    IoSessionEventCreated,
-    IoSessionEventTerminated,
-    IoSessionEventConnected,
-    IoSessionEventDisconnected,
-    IoSessionEventLogon,
-    IoSessionEventLogoff,
-    IoSessionEventMax
-} IO_SESSION_EVENT;
-
-typedef enum _IO_SESSION_STATE
-{
-    IoSessionStateCreated = 1,
-    IoSessionStateInitialized = 2,
-    IoSessionStateConnected = 3,
-    IoSessionStateDisconnected = 4,
-    IoSessionStateDisconnectedLoggedOn = 5,
-    IoSessionStateLoggedOn = 6,
-    IoSessionStateLoggedOff = 7,
-    IoSessionStateTerminated = 8,
-    IoSessionStateMax
-} IO_SESSION_STATE;
-
-// Sessions
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtOpenSession(
-    _Out_ PHANDLE SessionHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+NtCopyFileChunk(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE EventHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PULONG SourceKey,
+    _In_opt_ PULONG DestKey,
+    _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtNotifyChangeSession(
-    _In_ HANDLE SessionHandle,
-    _In_ ULONG ChangeSequenceNumber,
-    _In_ PLARGE_INTEGER ChangeTimeStamp,
-    _In_ IO_SESSION_EVENT Event,
-    _In_ IO_SESSION_STATE NewState,
-    _In_ IO_SESSION_STATE PreviousState,
-    _In_reads_bytes_opt_(PayloadSize) PVOID Payload,
-    _In_ ULONG PayloadSize
-    );
-#endif
-
+//
 // I/O Ring
+//
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2465,9 +2443,11 @@ NtSetInformationIoRing(
     _In_ ULONG IoRingInformationLength,
     _In_ PVOID IoRingInformation
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
+//
 // Other types
+//
 
 typedef enum _INTERFACE_TYPE
 {
@@ -2827,7 +2807,9 @@ typedef struct _FILE_MAILSLOT_PEEK_BUFFER
     ULONG MessageLength;
 } FILE_MAILSLOT_PEEK_BUFFER, *PFILE_MAILSLOT_PEEK_BUFFER;
 
+//
 // Mount manager FS control definitions
+//
 
 #define MOUNTMGR_DEVICE_NAME L"\\Device\\MountPointManager"
 #define MOUNTMGRCONTROLTYPE 0x0000006D // 'm'
@@ -3034,7 +3016,12 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
      (s)->Length == 98 && \
      (s)->Buffer[1] == '?')
 
+//
 // Filter manager
+//
+
+#define FLT_PORT_CONNECT 0x0001
+#define FLT_PORT_ALL_ACCESS (FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL)
 
 // rev
 #define FLT_SYMLINK_NAME     L"\\Global??\\FltMgr"

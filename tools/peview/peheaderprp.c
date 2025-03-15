@@ -568,7 +568,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
     ULONG lastRawDataAddress = 0;
     ULONG64 lastRawDataOffset = 0;
 
-    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    for (USHORT i = 0; i < PvMappedImage.NumberOfSections; i++)
     {
         if (PvMappedImage.Sections[i].PointerToRawData > lastRawDataAddress)
         {

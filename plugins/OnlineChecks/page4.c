@@ -57,5 +57,5 @@ VOID VirusTotalShowErrorDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = TaskDialogErrorProc;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

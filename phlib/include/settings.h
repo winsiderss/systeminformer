@@ -22,8 +22,8 @@ EXTERN_C_START
 
 #define ADD_SETTING_WRAPPER(Type, Name, DefaultValue) \
 { \
-    static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
-    static PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
+    static CONST PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
+    static CONST PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
     PhAddSetting(Type, &name, &defaultValue); \
 }
 
@@ -71,7 +71,7 @@ PPH_STRING PhSettingToString(
 
 BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF StringRef,
+    _In_ PCPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
     _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
@@ -89,85 +89,120 @@ VOID PhEnumSettings(
 
 // begin_phapppub
 
-_May_raise_
 PHLIBAPI
 ULONG
 NTAPI
 PhGetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
 PH_INTEGER_PAIR
 NTAPI
 PhGetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
-PH_SCALABLE_INTEGER_PAIR
+PPH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     );
 
-_May_raise_
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    _In_ PCPH_STRINGREF Name,
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting2(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     );
 
-_May_raise_
 PHLIBAPI
 VOID
 NTAPI
 PhSetStringRefSetting(
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Value
     );
+
+FORCEINLINE
+LONG
+PhScaleToDisplay(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
+}
+
+FORCEINLINE
+LONG
+PhScaleToDefault(
+    _In_ LONG Value,
+    _In_ LONG Scale
+    )
+{
+    return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
+}
+
+FORCEINLINE
+VOID
+PhScalableIntegerPairToScale(
+    _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair,
+    _In_ LONG Scale
+    )
+{
+    if (ScalableIntegerPair->Scale != Scale && ScalableIntegerPair->Scale != 0)
+    {
+        ScalableIntegerPair->X = PhMultiplyDivideSigned(ScalableIntegerPair->X, Scale, ScalableIntegerPair->Scale);
+        ScalableIntegerPair->Y = PhMultiplyDivideSigned(ScalableIntegerPair->Y, Scale, ScalableIntegerPair->Scale);
+        ScalableIntegerPair->Scale = Scale;
+    }
+}
+
+FORCEINLINE
+VOID
+PhScalableIntegerPairScaleToDefault(
+    _In_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair
+    )
+{
+    PhScalableIntegerPairToScale(ScalableIntegerPair, USER_DEFAULT_SCREEN_DPI);
+}
 
 FORCEINLINE
 ULONG
@@ -198,7 +233,7 @@ PhGetIntegerPairSetting(
 }
 
 FORCEINLINE
-PH_SCALABLE_INTEGER_PAIR
+PPH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
@@ -284,7 +319,7 @@ VOID
 NTAPI
 PhSetStringSetting2(
     _In_ PCWSTR Name,
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Value
     )
 {
     PH_STRINGREF name;
@@ -314,7 +349,7 @@ VOID
 NTAPI
 PhSetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    _In_ PPH_SCALABLE_INTEGER_PAIR Value
     )
 {
     PH_STRINGREF name;
@@ -355,11 +390,11 @@ VOID PhConvertIgnoredSettings(
     );
 
 NTSTATUS PhLoadSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 NTSTATUS PhSaveSettings(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 VOID PhResetSettings(
@@ -371,8 +406,8 @@ VOID PhResetSettings(
 
 VOID PhAddSetting(
     _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF DefaultValue
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF DefaultValue
     );
 
 typedef struct _PH_SETTING_CREATE
@@ -394,17 +429,40 @@ PHLIBAPI
 PPH_SETTING
 NTAPI
 PhGetSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PHLIBAPI
 VOID
+NTAPI
+PhLoadWindowPlacementFromRectangle(
+    _In_ PCWSTR PositionSettingName,
+    _In_ PCWSTR SizeSettingName,
+    _Inout_ PPH_RECTANGLE WindowRectangle
+    );
+
+PHLIBAPI
+BOOLEAN
 NTAPI
 PhLoadWindowPlacementFromSetting(
     _In_opt_ PCWSTR PositionSettingName,
     _In_opt_ PCWSTR SizeSettingName,
     _In_ HWND WindowHandle
     );
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidWindowPlacementFromSetting(
+    _In_opt_ PCWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetIntegerPairStringRefSetting(&name).X != 0;
+}
 
 PHLIBAPI
 VOID
@@ -466,6 +524,22 @@ PhSaveListViewGroupStatesToSetting(
 PHLIBAPI
 VOID
 NTAPI
+PhLoadIListViewColumnsFromSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSaveIListViewColumnsToSetting(
+    _In_ PCWSTR Name,
+    _In_ IListView* ListViewClass
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhLoadCustomColorList(
     _In_ PCWSTR Name,
     _In_ PULONG CustomColorList,
@@ -480,6 +554,7 @@ PhSaveCustomColorList(
     _In_ PULONG CustomColorList,
     _In_ ULONG CustomColorCount
     );
+
 // end_phapppub
 
 #define PH_GET_INTEGER_CACHED_SETTING(Name) ((PhCs##Name) = PhGetIntegerSetting(TEXT(#Name)))

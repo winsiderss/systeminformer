@@ -33,8 +33,48 @@ C_ASSERT(sizeof(_DETOUR_ALIGN) == 1);
 //
 // Region reserved for system DLLs, which cannot be used for trampolines.
 //
-static PVOID s_pSystemRegionLowerBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x70000000));
-static PVOID s_pSystemRegionUpperBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x80000000));
+// On Windows 10, ntdll.dll is mapped at random location (ASLR) within a
+// range near the top of the usermode address space.
+// After that, further system DLLs are mapped top down within this range.
+// In the bottom of the range is reached, the allocator wraps to the top.
+//
+// We also want to exlcude any pages that share a CFG bitmap page with a system DLL
+// so leave an additional a 1MB buffer on each side of the range.
+//
+#if defined(DETOURS_64BIT)
+// On X64 the range is 0x7FF800000000..0x7FFFFFFF0000 - which is 32GB!
+// So we likely must allocate in the system DLL range to be +/- 2GB.
+// But we want to avoid at least the first 1GB that will be used for system DLLs.
+// Due to wrapping, this may be two seperate ranges.
+static PVOID    s_pSystemRegionUpperBound = (PVOID)((ULONG_PTR)GetModuleHandleW(L"ntdll.dll") + (ULONG_PTR)0x100000);
+static PVOID    s_pSystemRegionLowerBound = (PVOID)((ULONG_PTR)s_pSystemRegionUpperBound < (ULONG_PTR)0x7FF83F000000 ?
+                                                    (ULONG_PTR)0x7FF7FF000000 : ((ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)0x40000000));
+static SIZE_T   s_pSystemRegionSize       = (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // up to 1GB
+static SIZE_T   s_pSystemRegion2Size       = (SIZE_T)0x40000000 - s_pSystemRegionSize;
+static PVOID    s_pSystemRegion2UpperBound = (PVOID)(ULONG_PTR)0x800000000000;
+static PVOID    s_pSystemRegion2LowerBound = (PVOID)((ULONG_PTR)s_pSystemRegion2UpperBound - s_pSystemRegion2Size);
+#else
+// On X86 the range was originally 0x70000000..0x80000000
+// However, since Windows 8, the range is now 0x50000000..0x78000000
+// Reference: Windows Internals, 7th Edition, page 368
+// We just exclude both ranges.
+static PVOID    s_pSystemRegionUpperBound = (PVOID)((ULONG_PTR)0x80000000);
+static PVOID    s_pSystemRegionLowerBound = (PVOID)((ULONG_PTR)0x50000000 - 0x100000);
+static SIZE_T   s_pSystemRegionSize       = (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // 769MB
+#endif
+
+inline SIZE_T should_skip_sytem_range_size(PBYTE pbTry)
+{
+    if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) {
+        return s_pSystemRegionSize;
+    }
+#if defined(DETOURS_64BIT)
+    if (pbTry >= s_pSystemRegion2LowerBound && pbTry <= s_pSystemRegion2UpperBound) {
+        return s_pSystemRegion2Size;
+    }
+#endif
+    return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1244,12 +1284,20 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) 
+        SIZE_T nSkipSize = should_skip_sytem_range_size(pbTry);
+        if (nSkipSize)
         {
             // Skip region reserved for system DLLs, but preserve address space entropy.
-            pbTry += 0x08000000;
+            pbTry += nSkipSize;
             continue;
         }
+
+        //if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound)
+        //{
+        //    // Skip region reserved for system DLLs, but preserve address space entropy.
+        //    pbTry += 0x08000000;
+        //    continue;
+        //}
 
         ZeroMemory(&mbi, sizeof(mbi));
 
@@ -1301,26 +1349,27 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
 static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 {
-    PBYTE pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
+    PBYTE pbTryn = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
 
     DETOUR_TRACE((" Looking for free region in %p..%p from %p:\n", pbLo, pbHi, pbTry));
 
-    while (pbTry > pbLo) 
+    while (pbTryn > pbLo)
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        DETOUR_TRACE(("  Try %p\n", pbTry));
+        DETOUR_TRACE(("  Try %p\n", pbTryn));
 
-        if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) 
+        const SIZE_T nSkipSize = should_skip_sytem_range_size(pbTryn);
+        if (nSkipSize)
         {
             // Skip region reserved for system DLLs, but preserve address space entropy.
-            pbTry -= 0x08000000;
+            pbTryn -= nSkipSize;
             continue;
         }
 
         ZeroMemory(&mbi, sizeof(mbi));
 
-        if (!NT_SUCCESS(NtQueryVirtualMemory(NtCurrentProcess(), (PVOID)pbTry, MemoryBasicInformation, &mbi, sizeof(mbi), nullptr)))
+        if (!NT_SUCCESS(NtQueryVirtualMemory(NtCurrentProcess(), (PVOID)pbTryn, MemoryBasicInformation, &mbi, sizeof(mbi), nullptr)))
             break;
 
         DETOUR_TRACE(("  Try %p => %p..%p %6lx\n",
@@ -1333,7 +1382,7 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
         {
             NTSTATUS status;
             SIZE_T size = DETOUR_REGION_SIZE;
-            PVOID address = pbTry;
+            PVOID address = pbTryn;
 
             status = NtAllocateVirtualMemory(
                 NtCurrentProcess(),
@@ -1353,15 +1402,30 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
                 return nullptr;
             }
 
-            pbTry -= DETOUR_REGION_SIZE;
+            pbTryn -= DETOUR_REGION_SIZE;
         }
         else 
         {
-            pbTry = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
+            pbTryn = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
         }
     }
 
     return nullptr;
+}
+
+// Return pbTarget clamped into [pLo, pHi] range.
+
+static PBYTE detour_clamp(PBYTE pbTarget,
+                          PDETOUR_TRAMPOLINE pLo,
+                          PDETOUR_TRAMPOLINE pHi)
+{
+    if (pbTarget < (PBYTE)pLo) {
+        return (PBYTE)pLo;
+    }
+    if (pbTarget > (PBYTE)pHi) {
+        return (PBYTE)pHi;
+    }
+    return pbTarget;
 }
 
 static PVOID detour_alloc_trampoline_allocate_new(PBYTE pbTarget,
@@ -1377,32 +1441,32 @@ static PVOID detour_alloc_trampoline_allocate_new(PBYTE pbTarget,
     // Try looking 1GB below or lower.
     if (pbTry == nullptr && pbTarget > reinterpret_cast<PBYTE>(0x40000000)) 
     {
-        pbTry = detour_alloc_region_from_hi(reinterpret_cast<PBYTE>(pLo), pbTarget - 0x40000000);
+        pbTry = detour_alloc_region_from_hi((PBYTE)pLo, detour_clamp(pbTarget - 0x40000000, pLo, pHi));
     }
     // Try looking 1GB above or higher.
     if (pbTry == nullptr && pbTarget < reinterpret_cast<PBYTE>(0xffffffff40000000))
     {
-        pbTry = detour_alloc_region_from_lo(pbTarget + 0x40000000, reinterpret_cast<PBYTE>(pHi));
+        pbTry = detour_alloc_region_from_lo(detour_clamp(pbTarget + 0x40000000, pLo, pHi), (PBYTE)pHi);
     }
     // Try looking 1GB below or higher.
     if (pbTry == nullptr && pbTarget > reinterpret_cast<PBYTE>(0x40000000)) 
     {
-        pbTry = detour_alloc_region_from_lo(pbTarget - 0x40000000, pbTarget);
+        pbTry = detour_alloc_region_from_lo(detour_clamp(pbTarget - 0x40000000, pLo, pHi), detour_clamp(pbTarget, pLo, pHi));
     }
     // Try looking 1GB above or lower.
     if (pbTry == nullptr && pbTarget < reinterpret_cast<PBYTE>(0xffffffff40000000)) 
     {
-        pbTry = detour_alloc_region_from_hi(pbTarget, pbTarget + 0x40000000);
+        pbTry = detour_alloc_region_from_hi(detour_clamp(pbTarget, pLo, pHi), detour_clamp(pbTarget + 0x40000000, pLo, pHi));
     }
 #endif
 
     // Try anything below.
     if (pbTry == nullptr) {
-        pbTry = detour_alloc_region_from_hi(reinterpret_cast<PBYTE>(pLo), pbTarget);
+        pbTry = detour_alloc_region_from_hi((PBYTE)pLo, detour_clamp(pbTarget, pLo, pHi));
     }
     // try anything above.
     if (pbTry == nullptr) {
-        pbTry = detour_alloc_region_from_lo(pbTarget, reinterpret_cast<PBYTE>(pHi));
+        pbTry = detour_alloc_region_from_lo(detour_clamp(pbTarget, pLo, pHi), (PBYTE)pHi);
     }
 
     return pbTry;
@@ -1943,7 +2007,7 @@ typedef ULONG_PTR DETOURS_EIP_TYPE;
                 if (o->fIsRemove) {
                     if (cxt.DETOURS_EIP >= (DETOURS_EIP_TYPE)(ULONG_PTR)o->pTrampoline &&
                         cxt.DETOURS_EIP < (DETOURS_EIP_TYPE)((ULONG_PTR)o->pTrampoline
-                                                             + sizeof(o->pTrampoline))
+                                                             + sizeof(*o->pTrampoline))
                        ) {
 
                         cxt.DETOURS_EIP = (DETOURS_EIP_TYPE)

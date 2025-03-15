@@ -1159,153 +1159,135 @@ NTSTATUS PhEnumerateAccounts(
     _In_opt_ PVOID Context
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static ULONG (WINAPI* NetUserEnum_I)( // NET_API_STATUS
-        _In_ PCWSTR servername,
-        _In_ ULONG level,
-        _In_ ULONG filter,
-        _Out_ PVOID* bufptr,
-        _In_ ULONG prefmaxlen,
-        _Out_ PULONG entriesread,
-        _Out_ PULONG totalentries,
-        _Inout_ PULONG resume_handle
-        );
-    static ULONG (WINAPI* NetApiBufferFree_I)(
-        _Frees_ptr_opt_ PVOID Buffer
-        );
-    typedef struct _USER_INFO_0
-    {
-        PWSTR usri0_name;
-    } USER_INFO_0, *PUSER_INFO_0;
-    #define FILTER_NORMAL_ACCOUNT (0x0002)
-    ULONG status;
-    PUSER_INFO_0 userinfoArray = NULL;
-    ULONG userinfoEntriesRead = 0;
-    ULONG userinfoTotalEntries = 0;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (baseAddress = PhLoadLibrary(L"netapi32.dll"))
-        {
-            NetUserEnum_I = PhGetDllBaseProcedureAddress(baseAddress, "NetUserEnum", 0);
-            NetApiBufferFree_I = PhGetDllBaseProcedureAddress(baseAddress, "NetApiBufferFree", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!(NetUserEnum_I && NetApiBufferFree_I))
-        return STATUS_UNSUCCESSFUL;
-
-    NetUserEnum_I(
-        NULL,
-        0,
-        FILTER_NORMAL_ACCOUNT,
-        &userinfoArray,
-        ULONG_MAX,
-        &userinfoEntriesRead,
-        &userinfoTotalEntries,
-        NULL
-        );
-
-    if (userinfoArray)
-    {
-        NetApiBufferFree_I(userinfoArray);
-        userinfoArray = NULL;
-    }
-
-    status = NetUserEnum_I(
-        NULL,
-        0,
-        FILTER_NORMAL_ACCOUNT,
-        &userinfoArray,
-        ULONG_MAX,
-        &userinfoEntriesRead,
-        &userinfoTotalEntries,
-        NULL
-        );
-
-    if (status == ERROR_SUCCESS)
-    {
-        PPH_STRING userName;
-        PPH_STRING userDomainName = NULL;
-
-        if (userName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
-        {
-            userDomainName = PhGetBaseDirectory(userName);
-            PhDereferenceObject(userName);
-        }
-
-        if (userDomainName)
-        {
-            for (ULONG i = 0; i < userinfoEntriesRead; i++)
-            {
-                PUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
-
-                if (entry->usri0_name)
-                {
-                    PPH_STRING usernameString;
-                    PH_STRINGREF usri10String;
-
-                    PhInitializeStringRefLongHint(&usri10String, entry->usri0_name);
-
-                    usernameString = PhConcatStringRef3(
-                        &userDomainName->sr,
-                        &PhNtPathSeperatorString,
-                        &usri10String
-                        );
-
-                    if (!NT_SUCCESS(Callback(usernameString, Context)))
-                    {
-                        PhDereferenceObject(usernameString);
-                        break;
-                    }
-
-                    PhDereferenceObject(usernameString);
-                }
-            }
-
-            PhDereferenceObject(userDomainName);
-        }
-    }
-
-    if (userinfoArray)
-        NetApiBufferFree_I(userinfoArray);
-
-    //LSA_HANDLE policyHandle;
-    //LSA_ENUMERATION_HANDLE enumerationContext = 0;
-    //PLSA_ENUMERATION_INFORMATION buffer;
-    //ULONG count;
-    //PPH_STRING name;
-    //SID_NAME_USE nameUse;
-    //
-    //if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+    //static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    //static ULONG (WINAPI* NetUserEnum_I)( // NET_API_STATUS
+    //    _In_ PCWSTR servername,
+    //    _In_ ULONG level,
+    //    _In_ ULONG filter,
+    //    _Out_ PVOID* bufptr,
+    //    _In_ ULONG prefmaxlen,
+    //    _Out_ PULONG entriesread,
+    //    _Out_ PULONG totalentries,
+    //    _Inout_ PULONG resume_handle
+    //    );
+    //static ULONG (WINAPI* NetApiBufferFree_I)(
+    //    _Frees_ptr_opt_ PVOID Buffer
+    //    );
+    //typedef struct _USER_INFO_0
     //{
-    //    while (NT_SUCCESS(LsaEnumerateAccounts(
-    //        policyHandle,
-    //        &enumerationContext,
-    //        &buffer,
-    //        0x100,
-    //        &count
-    //        )))
+    //    LPWSTR usri0_name;
+    //} USER_INFO_0, *PUSER_INFO_0;
+    //#define FILTER_NORMAL_ACCOUNT (0x0002)
+    //ULONG status;
+    //PUSER_INFO_0 userinfoArray = NULL;
+    //ULONG userinfoEntriesRead = 0;
+    //ULONG userinfoTotalEntries = 0;
+    //
+    //if (PhBeginInitOnce(&initOnce))
+    //{
+    //    PVOID baseAddress;
+    //
+    //    if (baseAddress = PhLoadLibrary(L"netapi32.dll"))
     //    {
-    //        for (i = 0; i < count; i++)
-    //        {
-    //            name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
-    //            if (name)
-    //            {
-    //                if (nameUse == SidTypeUser)
-    //                    ComboBox_AddString(ComboBoxHandle, name->Buffer);
-    //                PhDereferenceObject(name);
-    //            }
-    //        }
-    //        LsaFreeMemory(buffer);
+    //        NetUserEnum_I = PhGetDllBaseProcedureAddress(baseAddress, "NetUserEnum", 0);
+    //        NetApiBufferFree_I = PhGetDllBaseProcedureAddress(baseAddress, "NetApiBufferFree", 0);
     //    }
     //
-    //    LsaClose(policyHandle);
+    //    PhEndInitOnce(&initOnce);
     //}
+    //
+    //if (!(NetUserEnum_I && NetApiBufferFree_I))
+    //    return STATUS_UNSUCCESSFUL;
+    //
+    //NetUserEnum_I(
+    //    NULL,
+    //    0,
+    //    FILTER_NORMAL_ACCOUNT,
+    //    &userinfoArray,
+    //    ULONG_MAX,
+    //    &userinfoEntriesRead,
+    //    &userinfoTotalEntries,
+    //    NULL
+    //    );
+    //
+    //if (userinfoArray)
+    //{
+    //    NetApiBufferFree_I(userinfoArray);
+    //    userinfoArray = NULL;
+    //}
+    //
+    //status = NetUserEnum_I(
+    //    NULL,
+    //    0,
+    //    FILTER_NORMAL_ACCOUNT,
+    //    &userinfoArray,
+    //    ULONG_MAX,
+    //    &userinfoEntriesRead,
+    //    &userinfoTotalEntries,
+    //    NULL
+    //    );
+    //
+    //if (status == ERROR_SUCCESS)
+    //{
+    //    for (ULONG i = 0; i < userinfoEntriesRead; i++)
+    //    {
+    //        PUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
+    //
+    //        if (entry->usri0_name)
+    //        {
+    //            PH_STRINGREF string;
+    //
+    //            PhInitializeStringRefLongHint(&string, entry->usri0_name);
+    //
+    //            if (!NT_SUCCESS(Callback(&string, Context)))
+    //            {
+    //                break;
+    //            }
+    //        }
+    //    }
+    //}
+    //
+    //if (userinfoArray)
+    //    NetApiBufferFree_I(userinfoArray);
+
+    LSA_HANDLE policyHandle;
+    LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    PLSA_ENUMERATION_INFORMATION buffer;
+    ULONG count;
+    ULONG i;
+    PPH_STRING name;
+    SID_NAME_USE nameUse;
+    
+    if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+    {
+        while (NT_SUCCESS(LsaEnumerateAccounts(
+            policyHandle,
+            &enumerationContext,
+            &buffer,
+            0x100,
+            &count
+            )))
+        {
+            for (i = 0; i < count; i++)
+            {
+                name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
+                if (name)
+                {
+                    if (nameUse == SidTypeUser)
+                    {
+                        if (!NT_SUCCESS(Callback(&name->sr, Context)))
+                        {
+                            break;
+                        }
+                    }
+                    PhDereferenceObject(name);
+                }
+            }
+            LsaFreeMemory(buffer);
+        }
+    
+        LsaClose(policyHandle);
+    }
 
     return STATUS_UNSUCCESSFUL;
 }

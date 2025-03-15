@@ -517,6 +517,7 @@ BOOLEAN QueryUpdateData(
     _In_ PWSTR ServerName
     )
 {
+    NTSTATUS status;
     BOOLEAN success = FALSE;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_BYTES jsonString = NULL;
@@ -527,53 +528,47 @@ BOOLEAN QueryUpdateData(
     ULONG buildVersion;
     ULONG revisionVersion;
 
-    if (!PhHttpSocketCreate(&httpContext, NULL))
-    {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
+    status = PhHttpInitialize(&httpContext);
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        ServerName,
-        PH_HTTP_DEFAULT_HTTPS_PORT
-        ))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    if (!Context->SwitchingChannel)
-        Context->Channel = PhGetPhReleaseChannel();
+    status = PhHttpConnect(httpContext, ServerName, PH_HTTP_DEFAULT_HTTPS_PORT);
 
-    switch (Context->Channel)
-    {
-    case PhReleaseChannel:
-        urlPath = L"/update.php?channel=release";
-        break;
-    //case PhPreviewChannel:
-    //    urlPath = L"/update.php?channel=preview";
-    //    break;
-    case PhCanaryChannel:
-        urlPath = L"/update.php?channel=canary";
-        break;
-    //case PhDeveloperChannel:
-    //    urlPath = L"/update.php?channel=developer";
-    //    break;
-    default:
-        Context->ErrorCode = ERROR_UNKNOWN_PATCH;
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        urlPath,
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
     {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
+        if (!Context->SwitchingChannel)
+        {
+            Context->Channel = PhGetPhReleaseChannel();
+        }
+
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            urlPath = L"/update.php?channel=release";
+            break;
+       //case PhPreviewChannel:
+       //    urlPath = L"/update.php?channel=preview";
+       //    break;
+        case PhCanaryChannel:
+            urlPath = L"/update.php?channel=canary";
+            break;
+       //case PhDeveloperChannel:
+       //    urlPath = L"/update.php?channel=developer";
+       //    break;
+        default:
+            status = STATUS_PATCH_CONFLICT;
+            goto CleanupExit;
+        }
+
+        if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, urlPath, PH_HTTP_FLAG_SECURE)))
+        {
+            goto CleanupExit;
+        }
+
+        PhHttpSetFeature(httpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
     }
 
     {
@@ -583,40 +578,29 @@ BOOLEAN QueryUpdateData(
 
         if (versionHeader = UpdateVersionString())
         {
-            PhHttpSocketAddRequestHeaders(httpContext, versionHeader->Buffer, (ULONG)versionHeader->Length / sizeof(WCHAR));
+            PhHttpAddRequestHeaders(httpContext, versionHeader->Buffer, (ULONG)versionHeader->Length / sizeof(WCHAR));
             PhDereferenceObject(versionHeader);
         }
 
         if (windowsHeader = UpdateWindowsString())
         {
-            PhHttpSocketAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
+            PhHttpAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
             PhDereferenceObject(windowsHeader);
         }
 
         if (platformHeader = UpdatePlatformSupportString())
         {
-            PhHttpSocketAddRequestHeaders(httpContext, platformHeader->Buffer, (ULONG)platformHeader->Length / sizeof(WCHAR));
+            PhHttpAddRequestHeaders(httpContext, platformHeader->Buffer, (ULONG)platformHeader->Length / sizeof(WCHAR));
             PhDereferenceObject(platformHeader);
         }
     }
 
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketEndRequest(httpContext))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
-    }
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
-    }
 
     if (!(jsonObject = PhCreateJsonParserEx(jsonString, FALSE)))
         goto CleanupExit;
@@ -672,7 +656,7 @@ BOOLEAN QueryUpdateData(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+        PhHttpDestroy(httpContext);
     if (jsonString)
         PhDereferenceObject(jsonString);
 
@@ -826,6 +810,7 @@ NTSTATUS UpdateDownloadThread(
     )
 {
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
+    NTSTATUS status;
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
@@ -850,74 +835,41 @@ NTSTATUS UpdateDownloadThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
-    if (!PhHttpSocketParseUrl(
-        context->SetupFileDownloadUrl,
-        &downloadHostPath,
-        &downloadUrlPath,
-        &httpPort
-        ))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpCrackUrl(context->SetupFileDownloadUrl, &downloadHostPath, &downloadUrlPath, &httpPort)))
         goto CleanupExit;
-    }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
-    if (!PhHttpSocketCreate(&httpContext, NULL))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    }
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        PhGetString(downloadHostPath),
-        httpPort
-        ))
-    {
-        context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
+    PhHttpSetProtocal(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000);
 
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        PhGetString(downloadUrlPath),
-        PH_HTTP_FLAG_REFRESH | (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
-        ))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(downloadHostPath), httpPort)))
         goto CleanupExit;
-    }
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0))))
+        goto CleanupExit;
+
+    PhHttpSetFeature(httpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
-    }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
-    if (!PhHttpSocketEndRequest(httpContext))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength))
-    {
-        context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength)))
         goto CleanupExit;
-    }
 
     httpBufferLength = PAGE_SIZE;
     httpBuffer = PhAllocateSafe(httpBufferLength);
 
     if (!httpBuffer)
     {
-        context->ErrorCode = ERROR_OUTOFMEMORY;
+        status = STATUS_NO_MEMORY;
         goto CleanupExit;
     }
 
@@ -927,14 +879,12 @@ NTSTATUS UpdateDownloadThread(
     PhDereferenceObject(string);
 
     {
-        NTSTATUS status;
-
         // Create temporary path.
         context->SetupFilePath = UpdateParseDownloadFileName(context, downloadUrlPath);
 
         if (PhIsNullOrEmptyString(context->SetupFilePath))
         {
-            context->ErrorCode = ERROR_FILE_HANDLE_REVOKED;
+            status = STATUS_FILE_HANDLE_REVOKED;
             goto CleanupExit;
         }
 
@@ -954,10 +904,7 @@ NTSTATUS UpdateDownloadThread(
             );
 
         if (!NT_SUCCESS(status))
-        {
-            context->ErrorCode = PhNtStatusToDosError(status);
             goto CleanupExit;
-        }
     }
 
     // Initialize hash algorithm.
@@ -970,11 +917,10 @@ NTSTATUS UpdateDownloadThread(
     while (TRUE)
     {
         // Download the data.
-        if (!PhHttpSocketReadData(httpContext, httpBuffer, httpBufferLength, &bytesDownloaded))
-        {
-            context->ErrorCode = GetLastError();
+        status = PhHttpReadData(httpContext, httpBuffer, httpBufferLength, &bytesDownloaded);
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
         // If we get zero bytes, the file was uploaded or there was an error
         if (bytesDownloaded == 0)
@@ -988,7 +934,7 @@ NTSTATUS UpdateDownloadThread(
         UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded);
 
         // Write the downloaded bytes to disk.
-        if (!NT_SUCCESS(NtWriteFile(
+        if (!NT_SUCCESS(status = NtWriteFile(
             tempFileHandle,
             NULL,
             NULL,
@@ -1006,7 +952,7 @@ NTSTATUS UpdateDownloadThread(
         // Check the number of bytes written are the same we downloaded.
         if (bytesDownloaded != isb.Information)
         {
-            context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
+            status = STATUS_DATA_CHECKSUM_ERROR;
             goto CleanupExit;
         }
 
@@ -1069,12 +1015,14 @@ NTSTATUS UpdateDownloadThread(
     }
     else
     {
-        context->ErrorCode = PhNtStatusToDosError(STATUS_DATA_CHECKSUM_ERROR);
+        status = STATUS_DATA_CHECKSUM_ERROR;
     }
 
 CleanupExit:
+    context->ErrorCode = PhNtStatusToDosError(status);
+
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+        PhHttpDestroy(httpContext);
     if (hashContext)
         UpdaterDestroyHash(hashContext);
     if (tempFileHandle)
@@ -1130,7 +1078,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         {
             context->Cancel = TRUE;
 
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
 
             PhUnregisterWindowCallback(hwndDlg);
@@ -1209,6 +1157,13 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            LONG windowDpi = HIWORD(wParam);
+
+            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
+        }
+        break;
     //case WM_PARENTNOTIFY:
     //    {
     //        if (wParam == WM_CREATE)
@@ -1274,14 +1229,14 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             PhCenterWindow(hwndDlg, SystemInformer_GetWindowHandle());
 
             // Create the Taskdialog icons.
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             // Subclass the Taskdialog.
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, TaskDialogSubclassProc);
 
             if (context->StartupCheck)
             {

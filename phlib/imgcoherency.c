@@ -711,7 +711,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
     //
     // Here we will inspect each executable section.
     //
-    for (ULONG i = 0;
+    for (USHORT i = 0;
          i < max(Context->MappedImage.NumberOfSections,
                  Context->RemoteMappedImage.NumberOfSections);
          i++)
@@ -956,7 +956,7 @@ VOID PhpAnalyzeImageCoherencyCommon(
     //
     // Loop over the number of sections and include them in the calculation
     //
-    for (ULONG i = 0;
+    for (USHORT i = 0;
          i < max(Context->MappedImage.NumberOfSections,
                  Context->RemoteMappedImage.NumberOfSections);
          i++)
@@ -966,9 +966,9 @@ VOID PhpAnalyzeImageCoherencyCommon(
         {
             PhpAnalyzeImageCoherencyInspect(
                 (PBYTE)&Context->MappedImage.Sections[i],
-                sizeof(IMAGE_SECTION_HEADER),
+                IMAGE_SIZEOF_SECTION_HEADER,
                 (PBYTE)&Context->RemoteMappedImage.Sections[i],
-                sizeof(IMAGE_SECTION_HEADER),
+                IMAGE_SIZEOF_SECTION_HEADER,
                 Context,
                 0,
                 NULL,
@@ -981,7 +981,7 @@ VOID PhpAnalyzeImageCoherencyCommon(
             // There are a mismatched number of sections
             // Inflate the total bytes
             //
-            Context->TotalBytes += sizeof(IMAGE_SECTION_HEADER);
+            Context->TotalBytes += IMAGE_SIZEOF_SECTION_HEADER;
         }
     }
 

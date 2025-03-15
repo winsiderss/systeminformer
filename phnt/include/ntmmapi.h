@@ -14,7 +14,7 @@
 #define PAGE_NOACCESS 0x01              // Disables all access to the committed region of pages. An attempt to read from, write to, or execute the committed region results in an access violation.
 #define PAGE_READONLY 0x02              // Enables read-only access to the committed region of pages. An attempt to write or execute the committed region results in an access violation.
 #define PAGE_READWRITE 0x04             // Enables read-only or read/write access to the committed region of pages.
-#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object. 
+#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object.
 #define PAGE_EXECUTE 0x10               // Enables execute access to the committed region of pages. An attempt to write to the committed region results in an access violation.
 #define PAGE_EXECUTE_READ 0x20          // Enables execute or read-only access to the committed region of pages. An attempt to write to the committed region results in an access violation.
 #define PAGE_EXECUTE_READWRITE 0x40     // Enables execute, read-only, or read/write access to the committed region of pages.
@@ -23,7 +23,7 @@
 #define PAGE_NOCACHE 0x200              // Sets all pages to be non-cachable. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 #define PAGE_WRITECOMBINE 0x400         // Sets all pages to be write-combined. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object. 
+#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object.
 #define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000 // Pages in the region contain a thread control structure (TCS) from the Intel Software Guard Extensions programming model.
 #define PAGE_TARGETS_NO_UPDATE      0x40000000 // Pages in the region will not update the CFG bitmap when the protection changes. The default behavior for VirtualProtect is to mark all locations as valid call targets for CFG.
 #define PAGE_TARGETS_INVALID        0x40000000 // Pages in the region are excluded from the CFG bitmap as valid targets. Any indirect call to locations in those pages will terminate the process using the __fastfail intrinsic.
@@ -248,8 +248,8 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved : 3;
             ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
             ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
-            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
@@ -528,7 +528,7 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Priority : 3;
     ULONGLONG NonTradeable : 1;
     ULONGLONG Reserved : 3;
-} MEMORY_FRAME_INFORMATION;
+} MEMORY_FRAME_INFORMATION, *PMEMORY_FRAME_INFORMATION;
 
 // private
 typedef struct _FILEOFFSET_INFORMATION
@@ -536,7 +536,7 @@ typedef struct _FILEOFFSET_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG Offset : 48; // mapped files
     ULONGLONG Reserved : 7;
-} FILEOFFSET_INFORMATION;
+} FILEOFFSET_INFORMATION, *PFILEOFFSET_INFORMATION;
 
 // private
 typedef struct _PAGEDIR_INFORMATION
@@ -544,7 +544,7 @@ typedef struct _PAGEDIR_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG PageDirectoryBase : 48; // private pages
     ULONGLONG Reserved : 7;
-} PAGEDIR_INFORMATION;
+} PAGEDIR_INFORMATION, *PPAGEDIR_INFORMATION;
 
 // private
 typedef struct _UNIQUE_PROCESS_INFORMATION
@@ -716,7 +716,7 @@ NtAllocateVirtualMemory(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 _Must_inspect_result_
 _When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
@@ -785,7 +785,7 @@ NtWow64ReadVirtualMemory64(
     _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Reads virtual memory from a process with extended options.
  *
@@ -949,7 +949,7 @@ NtFlushVirtualMemory(
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation, // MEMORY_PREFETCH_INFORMATION
-    VmPagePriorityInformation, // OFFER_PRIORITY
+    VmPagePriorityInformation, // MEMORY_PAGE_PRIORITY_INFORMATION
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation, // REDSTONE3
     VmImageHotPatchInformation, // 19H1
@@ -984,6 +984,26 @@ typedef struct _MEMORY_PREFETCH_INFORMATION
     ULONG Flags;
 } MEMORY_PREFETCH_INFORMATION, *PMEMORY_PREFETCH_INFORMATION;
 
+//
+// Page/memory priorities.
+//
+
+#define MEMORY_PRIORITY_LOWEST           0
+#define MEMORY_PRIORITY_VERY_LOW         1
+#define MEMORY_PRIORITY_LOW              2
+#define MEMORY_PRIORITY_MEDIUM           3
+#define MEMORY_PRIORITY_BELOW_NORMAL     4
+#define MEMORY_PRIORITY_NORMAL           5
+#define MEMORY_PRIORITY_ABOVE_NORMAL     6 // rev
+#define MEMORY_PRIORITY_HIGH             7 // rev
+
+// VmPagePriorityInformation
+typedef struct _MEMORY_PAGE_PRIORITY_INFORMATION
+{
+    ULONG PagePriority;
+} MEMORY_PAGE_PRIORITY_INFORMATION, *PMEMORY_PAGE_PRIORITY_INFORMATION;
+
+// VmCfgCallTargetInformation
 typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 {
     ULONG NumberOfEntries;
@@ -998,7 +1018,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1056,7 +1076,7 @@ NtCreateSection(
     _In_opt_ HANDLE FileHandle
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1098,7 +1118,7 @@ NtMapViewOfSection(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1123,7 +1143,7 @@ NtUnmapViewOfSection(
     _In_opt_ PVOID BaseAddress
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1163,7 +1183,21 @@ NtAreMappedFilesTheSame(
 
 #endif
 
-// Partitions
+//
+// Memory Partitions
+//
+
+#ifndef MEMORY_CURRENT_PARTITION_HANDLE
+#define MEMORY_CURRENT_PARTITION_HANDLE         ((HANDLE)(LONG_PTR)-1)
+#endif
+
+#ifndef MEMORY_SYSTEM_PARTITION_HANDLE
+#define MEMORY_SYSTEM_PARTITION_HANDLE          ((HANDLE)(LONG_PTR)-2)
+#endif
+
+#ifndef MEMORY_EXISTING_VAD_PARTITION_HANDLE
+#define MEMORY_EXISTING_VAD_PARTITION_HANDLE    ((HANDLE)(LONG_PTR)-3)
+#endif
 
 #ifndef MEMORY_PARTITION_QUERY_ACCESS
 #define MEMORY_PARTITION_QUERY_ACCESS 0x0001
@@ -1298,7 +1332,7 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1366,7 +1400,7 @@ NtAllocateUserPhysicalPages(
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1390,10 +1424,25 @@ NtFreeUserPhysicalPages(
 
 #endif
 
+//
 // Misc.
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * Retrieves the addresses of the pages that are written to in a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose watch information is to be queried.
+ * @param Flags Additional flags for the operation. To reset the write-tracking state, set this parameter to WRITE_WATCH_FLAG_RESET. Otherwise, set this parameter to zero.
+ * @param BaseAddress The base address of the memory region for which to retrieve write-tracking information. This address must a region that is allocated using MEM_WRITE_WATCH.
+ * @param RegionSize The size of the memory region for which to retrieve write-tracking information, in bytes.
+ * @param UserAddressArray A pointer to a buffer that receives an array of page addresses that have been written to since the region has been allocated or the write-tracking state has been reset.
+ * @param EntriesInUserAddressArray On input, this variable indicates the size of the UserAddressArray array. On output, the variable receives the number of page addresses that are returned in the array.
+ * @param Granularity A pointer to a variable that receives the page size, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-getwritewatch
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1407,6 +1456,15 @@ NtGetWriteWatch(
     _Out_ PULONG Granularity
     );
 
+/**
+ * Resets the write-tracking state for a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose watch information is to be reset.
+ * @param BaseAddress A pointer to the base address of the memory region for which to reset the write-tracking state.
+ * @param RegionSize The size of the memory region for which to reset the write-tracking information, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-resetwritewatch
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1444,8 +1502,11 @@ NtFlushWriteBuffer(
 
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+//
 // Enclave support
+//
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS

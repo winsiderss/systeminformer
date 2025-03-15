@@ -109,6 +109,7 @@ typedef struct _DN_PROCESS_APPDOMAIN_ENTRY
     ULONG32 AppDomainType;
     ULONG32 AppDomainNumber;
     ULONG64 AppDomainID;
+    PPH_STRING AppDomainStage;
     PPH_STRING AppDomainName;
     PPH_LIST AssemblyList;
 } DN_PROCESS_APPDOMAIN_ENTRY, *PDN_PROCESS_APPDOMAIN_ENTRY;

@@ -2,6 +2,13 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
+set BUILD_TOOL="tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe"
+
+if not exist %BUILD_TOOL% (
+    echo Build tool not found. Run build\build_init.cmd first.
+    exit /b 1
+)
+
 set BUILD_CONFIGURATION=Debug
 set BUILD_TARGET=Build
 set PREFAST_ANALYSIS=
@@ -47,7 +54,7 @@ for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual S
 )
 
 if not defined VSINSTALLPATH (
-    echo [-] Visual Studio not found 
+    echo [-] Visual Studio not found
     goto end
 )
 

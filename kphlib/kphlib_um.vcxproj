@@ -151,7 +151,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -174,7 +174,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -198,7 +198,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -223,7 +223,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -249,7 +249,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -274,7 +274,7 @@
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SolutionDir)build\build_dyndata.cmd" "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

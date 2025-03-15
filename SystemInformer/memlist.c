@@ -915,7 +915,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                     }
                     else if (node->IsAllocationBase)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetMemoryTypeString(memoryItem->Type))
                         {
@@ -945,54 +945,76 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 break;
             case PHMMTLC_SIZE:
-                PhMoveReference(&node->SizeText, PhFormatSize(memoryItem->RegionSize, ULONG_MAX));
-                getCellText->Text = PhGetStringRef(node->SizeText);
+                {
+                    PhMoveReference(&node->SizeText, PhFormatSize(memoryItem->RegionSize, ULONG_MAX));
+                    getCellText->Text = PhGetStringRef(node->SizeText);
+                }
                 break;
             case PHMMTLC_PROTECTION:
-                if (node->ProtectionText[0] != UNICODE_NULL)
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
+                {
+                    if (node->ProtectionText[0] != UNICODE_NULL)
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
+                }
                 break;
             case PHMMTLC_USE:
-                PhpUpdateMemoryNodeUseText(node);
-                getCellText->Text = PhGetStringRef(node->UseText);
+                {
+                    PhpUpdateMemoryNodeUseText(node);
+                    getCellText->Text = PhGetStringRef(node->UseText);
+                }
                 break;
             case PHMMTLC_TOTALWS:
-                PhMoveReference(&node->TotalWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->TotalWorkingSetPages * PAGE_SIZE));
-                getCellText->Text = PhGetStringRef(node->TotalWsText);
+                {
+                    PhMoveReference(&node->TotalWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->TotalWorkingSetPages * PAGE_SIZE));
+                    getCellText->Text = PhGetStringRef(node->TotalWsText);
+                }
                 break;
             case PHMMTLC_PRIVATEWS:
-                PhMoveReference(&node->PrivateWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->PrivateWorkingSetPages * PAGE_SIZE));
-                getCellText->Text = PhGetStringRef(node->PrivateWsText);
+                {
+                    PhMoveReference(&node->PrivateWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->PrivateWorkingSetPages * PAGE_SIZE));
+                    getCellText->Text = PhGetStringRef(node->PrivateWsText);
+                }
                 break;
             case PHMMTLC_SHAREABLEWS:
-                PhMoveReference(&node->ShareableWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->ShareableWorkingSetPages * PAGE_SIZE));
-                getCellText->Text = PhGetStringRef(node->ShareableWsText);
+                {
+                    PhMoveReference(&node->ShareableWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->ShareableWorkingSetPages * PAGE_SIZE));
+                    getCellText->Text = PhGetStringRef(node->ShareableWsText);
+                }
                 break;
             case PHMMTLC_SHAREDWS:
-                PhMoveReference(&node->SharedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->SharedWorkingSetPages * PAGE_SIZE));
-                getCellText->Text = PhGetStringRef(node->SharedWsText);
+                {
+                    PhMoveReference(&node->SharedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->SharedWorkingSetPages * PAGE_SIZE));
+                    getCellText->Text = PhGetStringRef(node->SharedWsText);
+                }
                 break;
             case PHMMTLC_LOCKEDWS:
-                PhMoveReference(&node->LockedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->LockedWorkingSetPages * PAGE_SIZE));
-                getCellText->Text = PhGetStringRef(node->LockedWsText);
+                {
+                    PhMoveReference(&node->LockedWsText, PhpFormatSizeIfNonZero((ULONG64)memoryItem->LockedWorkingSetPages * PAGE_SIZE));
+                    getCellText->Text = PhGetStringRef(node->LockedWsText);
+                }
                 break;
             case PHMMTLC_COMMITTED:
-                PhMoveReference(&node->CommittedText, PhpFormatSizeIfNonZero(memoryItem->CommittedSize));
-                getCellText->Text = PhGetStringRef(node->CommittedText);
+                {
+                    PhMoveReference(&node->CommittedText, PhpFormatSizeIfNonZero(memoryItem->CommittedSize));
+                    getCellText->Text = PhGetStringRef(node->CommittedText);
+                }
                 break;
             case PHMMTLC_PRIVATE:
-                PhMoveReference(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
-                getCellText->Text = PhGetStringRef(node->PrivateText);
+                {
+                    PhMoveReference(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
+                    getCellText->Text = PhGetStringRef(node->PrivateText);
+                }
                 break;
             case PHMMTLC_SIGNING_LEVEL:
-                if (memoryItem->RegionType == MappedFileRegion && memoryItem->u.MappedFile.SigningLevelValid)
                 {
-                    PPH_STRINGREF string;
-
-                    if (string = PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel))
+                    if (memoryItem->RegionType == MappedFileRegion && memoryItem->u.MappedFile.SigningLevelValid)
                     {
-                        getCellText->Text.Length = string->Length;
-                        getCellText->Text.Buffer = string->Buffer;
+                        PCPH_STRINGREF string;
+
+                        if (string = PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel))
+                        {
+                            getCellText->Text.Length = string->Length;
+                            getCellText->Text.Buffer = string->Buffer;
+                        }
                     }
                 }
                 break;
@@ -1042,7 +1064,14 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 {
                     if (memoryItem->Priority != 0)
                     {
-                        PhMoveReference(&node->PriorityText, PhFormatUInt64(memoryItem->Priority, TRUE));
+                        PH_FORMAT format[4];
+
+                        PhInitFormatSR(&format[0], *PhGetMemoryPagePriorityString((ULONG)memoryItem->Priority));
+                        PhInitFormatS(&format[1], L" (");
+                        PhInitFormatU(&format[2], (ULONG)memoryItem->Priority);
+                        PhInitFormatS(&format[3], L")");
+
+                        PhMoveReference(&node->PriorityText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = PhGetStringRef(node->PriorityText);
                     }
                 }

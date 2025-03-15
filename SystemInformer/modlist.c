@@ -131,9 +131,6 @@ VOID PhDeleteModuleList(
 
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
 
-    if (Context->BoldFont)
-        DeleteFont(Context->BoldFont);
-
     PhCmDeleteManager(&Context->Cm);
 
     for (i = 0; i < Context->NodeList->Count; i++)
@@ -413,15 +410,15 @@ VOID PhpDestroyModuleNode(
 
     PhClearReference(&ModuleNode->TooltipText);
 
-    PhClearReference(&ModuleNode->FileNameWin32);
-    PhClearReference(&ModuleNode->SizeText);
-    PhClearReference(&ModuleNode->TimeStampText);
-    PhClearReference(&ModuleNode->LoadTimeText);
-    PhClearReference(&ModuleNode->FileModifiedTimeText);
-    PhClearReference(&ModuleNode->FileSizeText);
-    PhClearReference(&ModuleNode->ImageCoherencyText);
-    PhClearReference(&ModuleNode->ServiceText);
-    PhClearReference(&ModuleNode->EnclaveSizeText);
+    if (ModuleNode->FileNameWin32) PhDereferenceObject(ModuleNode->FileNameWin32);
+    if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
+    if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
+    if (ModuleNode->LoadTimeText) PhDereferenceObject(ModuleNode->LoadTimeText);
+    if (ModuleNode->FileModifiedTimeText) PhDereferenceObject(ModuleNode->FileModifiedTimeText);
+    if (ModuleNode->FileSizeText) PhDereferenceObject(&ModuleNode->FileSizeText);
+    if (ModuleNode->ImageCoherencyText) PhDereferenceObject(ModuleNode->ImageCoherencyText);
+    if (ModuleNode->ServiceText) PhDereferenceObject(ModuleNode->ServiceText);
+    if (ModuleNode->EnclaveSizeText) PhDereferenceObject(ModuleNode->EnclaveSizeText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -468,7 +465,7 @@ VOID PhInvalidateAllModuleNodes(
 
         memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
         moduleNode->ValidMask = 0;
-        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR);
+        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR | TN_CACHE_FONT);
     }
 
     InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
@@ -925,8 +922,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_SIZE:
                 {
-                    if (!node->SizeText)
-                        node->SizeText = PhFormatSize(moduleItem->Size, ULONG_MAX);
+                    if (PhIsNullOrEmptyString(node->SizeText))
+                    {
+                        PhMoveReference(&node->SizeText, PhFormatSize(moduleItem->Size, ULONG_MAX));
+                    }
 
                     getCellText->Text = PhGetStringRef(node->SizeText);
                 }
@@ -952,7 +951,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_TYPE:
                 {
-                    PPH_STRINGREF string;
+                    PCPH_STRINGREF string;
 
                     if (string = PhGetModuleTypeName(moduleItem->Type))
                     {
@@ -966,22 +965,24 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
-                if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                 {
-                    if (moduleItem->LoadCount != USHRT_MAX)
+                    if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
+                        moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
-                        PhPrintUInt32(node->LoadCountText, moduleItem->LoadCount);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
+                        if (moduleItem->LoadCount != USHRT_MAX)
+                        {
+                            PhPrintUInt32(node->LoadCountText, moduleItem->LoadCount);
+                            PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
+                        }
+                        else
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"Static");
+                        }
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Static");
+                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
-                }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
                 }
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
@@ -1000,10 +1001,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
-                if (PhEnableProcessQueryStage2)
-                    getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
-                else
-                    PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
+                {
+                    if (PhEnableProcessQueryStage2)
+                        getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
+                    else
+                        PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
+                }
                 break;
             case PHMOTLC_ASLR:
                 {
@@ -1066,7 +1069,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                              moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                              moduleItem->Type == PH_MODULE_TYPE_ENCLAVE_MODULE)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetModuleLoadReasonTypeName(moduleItem->LoadReason))
                         {
@@ -1086,7 +1089,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_FILEMODIFIEDTIME:
                 {
-                    if (moduleItem->FileLastWriteTime.QuadPart != 0)
+                    if (moduleItem->FileLastWriteTime.QuadPart != 0 && moduleItem->FileLastWriteTime.QuadPart != -1)
                     {
                         SYSTEMTIME systemTime;
 
@@ -1098,7 +1101,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_FILESIZE:
                 {
-                    if (moduleItem->FileEndOfFile.QuadPart != -1)
+                    if (moduleItem->FileEndOfFile.QuadPart != 0 && moduleItem->FileEndOfFile.QuadPart != -1)
                     {
                         PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, ULONG_MAX));
                         getCellText->Text = node->FileSizeText->sr;
@@ -1107,14 +1110,18 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_ENTRYPOINT:
                 {
-                    if (moduleItem->EntryPoint != 0)
+                    if (moduleItem->EntryPoint)
+                    {
                         PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EntryPointAddressString);
+                    }
                 }
                 break;
             case PHMOTLC_PARENTBASEADDRESS:
                 {
-                    if (moduleItem->ParentBaseAddress != 0)
+                    if (moduleItem->ParentBaseAddress)
+                    {
                         PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
+                    }
                 }
                 break;
             case PHMOTLC_CET:
@@ -1177,12 +1184,16 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_ORIGINALNAME:
-                getCellText->Text = PhGetStringRef(moduleItem->FileName);
+                {
+                    getCellText->Text = PhGetStringRef(moduleItem->FileName);
+                }
                 break;
             case PHMOTLC_SERVICE:
                 {
-                    if (!node->FileNameWin32)
-                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+                    if (PhIsNullOrEmptyString(node->FileNameWin32))
+                    {
+                        PhMoveReference(&node->FileNameWin32, PhGetFileName(moduleItem->FileName));
+                    }
 
                     if (node->FileNameWin32 && context->HasServices)
                     {
@@ -1202,7 +1213,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->EnclaveBaseAddress)
                     {
-                        PPH_STRINGREF string;
+                        PCPH_STRINGREF string;
 
                         if (string = PhGetModuleEnclaveTypeName(moduleItem->EnclaveType))
                         {
@@ -1219,15 +1230,20 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ENCLAVE_BASE_ADDRESS:
                 {
                     if (moduleItem->EnclaveBaseAddress)
+                    {
                         PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EnclaveBaseAddressString);
+                    }
                 }
                 break;
             case PHMOTLC_ENCLAVE_SIZE:
                 {
                     if (moduleItem->EnclaveBaseAddress)
                     {
-                        if (!node->EnclaveSizeText)
-                            node->EnclaveSizeText = PhFormatSize(moduleItem->EnclaveSize, ULONG_MAX);
+                        if (PhIsNullOrEmptyString(node->EnclaveSizeText))
+                        {
+                            PhMoveReference(&node->EnclaveSizeText, PhFormatSize(moduleItem->EnclaveSize, ULONG_MAX));
+                        }
+
                         getCellText->Text = PhGetStringRef(node->EnclaveSizeText);
                     }
                 }
@@ -1314,9 +1330,6 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             // Make the executable file module item bold.
             if (node->ModuleItem->IsFirst)
             {
-                if (!context->BoldFont)
-                    context->BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(hwnd), FW_BOLD);
-
                 getNodeFont->Font = context->BoldFont ? context->BoldFont : NULL;
                 getNodeFont->Flags = TN_CACHE;
                 return TRUE;
@@ -1333,8 +1346,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!node->TooltipText)
             {
-                if (!node->FileNameWin32)
-                    node->FileNameWin32 = PhGetFileName(node->ModuleItem->FileName);
+                if (PhIsNullOrEmptyString(node->FileNameWin32))
+                {
+                    PhMoveReference(&node->FileNameWin32, PhGetFileName(node->ModuleItem->FileName));
+                }
 
                 node->TooltipText = PhFormatImageVersionInfo(
                     node->FileNameWin32,

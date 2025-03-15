@@ -132,13 +132,13 @@ PVOID PhpImportProcedureNative(
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT(Module, Name) \
-typeof(&(Name)) Name##_Import(VOID) \
+__typeof__(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
+    return (__typeof__(&(Name)))PhpImportProcedure(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 /**
@@ -148,13 +148,13 @@ typeof(&(Name)) Name##_Import(VOID) \
  * @param Name The name of the procedure.
  */
 #define PH_DEFINE_IMPORT_NATIVE(Module, Name) \
-typeof(&(Name)) Name##_Import(VOID) \
+__typeof__(&(Name)) Name##_Import(VOID) \
 { \
     static PH_INITONCE initOnce = PH_INITONCE_INIT; \
     static PVOID cache = NULL; \
     static ULONG_PTR cookie = 0; \
 \
-    return (typeof(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
+    return (__typeof__(&(Name)))PhpImportProcedureNative(&initOnce, &cache, &cookie, Module, #Name); \
 }
 
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
@@ -189,6 +189,13 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtPssCaptureVaSpaceBulk);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevGetObjects);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevFreeObjects);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevGetObjectProperties);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevFreeObjectProperties);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCreateObjectQuery);
+PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCloseObjectQuery);
+
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
 
 PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
@@ -198,7 +205,9 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 
+//
 // CRT
+//
 
 #ifdef _WIN64
 
@@ -215,6 +224,27 @@ BOOL NTAPI GetFileSizeEx_Stub(
     )
 {
     return NT_SUCCESS(PhGetFileSize(hFile, lpFileSize));
+}
+
+PVOID NTAPI GetProcAddress_Stub(
+    _In_ PVOID Module,
+    _In_ PCSTR Name
+    )
+{
+    PVOID baseAddress;
+
+    if (IS_INTRESOURCE(Name))
+        baseAddress = PhGetProcedureAddress(Module, NULL, PtrToUshort(Name));
+    else
+        baseAddress = PhGetProcedureAddress(Module, Name, 0);
+
+    if (!baseAddress)
+    {
+        PhSetLastError(ERROR_PROC_NOT_FOUND);
+        return NULL;
+    }
+
+    return baseAddress;
 }
 
 BOOL NTAPI FlushFileBuffers_Stub(
@@ -347,6 +377,7 @@ VOID WINAPI ReleaseSRWLockExclusive_Stub(
 
 DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY LPCVOID __imp_GetProcAddress = GetProcAddress_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
 DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;

@@ -56,7 +56,7 @@ static NTSTATUS PhJsonErrorToNtStatus(
     case json_tokener_error_parse_utf8_string:
         return STATUS_FAIL_CHECK;
     case json_tokener_error_memory:
-        return STATUS_NO_MEMORY;
+        return STATUS_INSUFFICIENT_RESOURCES;
     case json_tokener_error_size:
         return STATUS_BUFFER_TOO_SMALL;
     }
@@ -420,7 +420,7 @@ PVOID PhGetJsonObjectAsArrayList(
 }
 
 PVOID PhLoadJsonObjectFromFile(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     )
 {
     PPH_BYTES content;
@@ -445,7 +445,7 @@ static CONST PH_FLAG_MAPPING PhJsonFormatFlagMappings[] =
 };
 
 NTSTATUS PhSaveJsonObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID Object,
     _In_opt_ ULONG Flags
     )
@@ -591,20 +591,20 @@ static PPH_BYTES PhXmlSaveString(
     )
 {
     mxml_options_t* options;
-    PH_BYTES_BUILDER stringBuilder;
-    BOOLEAN success;
-
-    PhInitializeBytesBuilder(&stringBuilder, 0x8000);
+    PPH_BYTES string;
 
     options = mxmlOptionsNew();
-    mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, nullptr);
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
-    success = !!mxmlSaveIO(XmlRootObject, options, mxml_io_callback, &stringBuilder);
+
+    if (XmlSaveCallback)
+    {
+        mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
+    }
+
+    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
     mxmlOptionsDelete(options);
 
-    if (success) return PhFinalBytesBuilderBytes(&stringBuilder);
-    PhDeleteBytesBuilder(&stringBuilder);
-    return NULL;
+    return string;
 }
 
 PVOID PhLoadXmlObjectFromString(
@@ -627,7 +627,7 @@ PVOID PhLoadXmlObjectFromString(
 }
 
 NTSTATUS PhLoadXmlObjectFromFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     )
 {
@@ -682,7 +682,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
 }
 
 NTSTATUS PhSaveXmlObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     )

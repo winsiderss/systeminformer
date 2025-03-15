@@ -71,35 +71,29 @@ typedef struct _PH_RECTANGLE
 } PH_RECTANGLE, *PPH_RECTANGLE;
 
 FORCEINLINE
-PH_RECTANGLE
+VOID
 PhRectToRectangle(
-    _In_ RECT Rect
+    _Inout_ PPH_RECTANGLE Rectangle,
+    _In_ PRECT Rect
     )
 {
-    PH_RECTANGLE rectangle;
-
-    rectangle.Left = Rect.left;
-    rectangle.Top = Rect.top;
-    rectangle.Width = Rect.right - Rect.left;
-    rectangle.Height = Rect.bottom - Rect.top;
-
-    return rectangle;
+    Rectangle->Left = Rect->left;
+    Rectangle->Top = Rect->top;
+    Rectangle->Width = Rect->right - Rect->left;
+    Rectangle->Height = Rect->bottom - Rect->top;
 }
 
 FORCEINLINE
-RECT
+VOID
 PhRectangleToRect(
-    _In_ PH_RECTANGLE Rectangle
+    _Inout_ PRECT Rect,
+    _In_ PPH_RECTANGLE Rectangle
     )
 {
-    RECT rect;
-
-    rect.left = Rectangle.Left;
-    rect.top = Rectangle.Top;
-    rect.right = Rectangle.Left + Rectangle.Width;
-    rect.bottom = Rectangle.Top + Rectangle.Height;
-
-    return rect;
+    Rect->left = Rectangle->Left;
+    Rect->top = Rectangle->Top;
+    Rect->right = Rectangle->Left + Rectangle->Width;
+    Rect->bottom = Rectangle->Top + Rectangle->Height;
 }
 
 FORCEINLINE
@@ -114,20 +108,17 @@ PhConvertRect(
 }
 
 FORCEINLINE
-RECT
+VOID
 PhMapRect(
-    _In_ RECT InnerRect,
-    _In_ RECT OuterRect
+    _Inout_ PRECT Rect,
+    _In_ PRECT InnerRect,
+    _In_ PRECT OuterRect
     )
 {
-    RECT rect;
-
-    rect.left = InnerRect.left - OuterRect.left;
-    rect.top = InnerRect.top - OuterRect.top;
-    rect.right = InnerRect.right - OuterRect.left;
-    rect.bottom = InnerRect.bottom - OuterRect.top;
-
-    return rect;
+    Rect->left = InnerRect->left - OuterRect->left;
+    Rect->top = InnerRect->top - OuterRect->top;
+    Rect->right = InnerRect->right - OuterRect->left;
+    Rect->bottom = InnerRect->bottom - OuterRect->top;
 }
 
 PHLIBAPI
@@ -162,7 +153,9 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
+//
 // NLS
+//
 
 PHLIBAPI
 LANGID
@@ -192,7 +185,9 @@ PhGetUserLocaleInfoBool(
     _In_ LCTYPE LCType
     );
 
+//
 // Time
+//
 
 PHLIBAPI
 VOID
@@ -234,7 +229,9 @@ PhSystemTimeToTzSpecificLocalTime(
     _Out_ PSYSTEMTIME LocalTime
     );
 
+//
 // Error messages
+//
 
 PHLIBAPI
 PPH_STRING
@@ -284,9 +281,9 @@ PhShowMessage(
     ...
     );
 
-#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowError(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+#define PhShowWarning(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
+#define PhShowInformation(WindowHandle, Format, ...) PhShowMessage(WindowHandle, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 PHLIBAPI
 LONG
@@ -320,9 +317,9 @@ PhShowMessage2(
 #define TD_SHIELD_ICON          MAKEINTRESOURCEW(-4)
 #endif
 
-#define PhShowError2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowWarning2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
-#define PhShowInformation2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format __VA_OPT__(,) __VA_ARGS__)
+#define PhShowError2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format, __VA_ARGS__)
+#define PhShowWarning2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format, __VA_ARGS__)
+#define PhShowInformation2(WindowHandle, Title, Format, ...) PhShowMessage2(WindowHandle, TD_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, __VA_ARGS__)
 
 PHLIBAPI
 BOOLEAN
@@ -458,13 +455,13 @@ BOOLEAN
 PhFindIntegerSiKeyValuePairsStringRef(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_ PULONG Integer
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
-        if (PhEqualStringRef((PPH_STRINGREF)KeyValuePairs[i].Key, String, TRUE))
+        if (PhEqualStringRef((PCPH_STRINGREF)KeyValuePairs[i].Key, String, TRUE))
         {
             *Integer = PtrToUlong(KeyValuePairs[i].Value);
             return TRUE;
@@ -491,14 +488,14 @@ PhFindStringSiKeyValuePairs(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PWSTR *String
+    _Out_ PCWSTR *String
     )
 {
     for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
         if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
-            *String = (PWSTR)KeyValuePairs[i].Key;
+            *String = (PCWSTR)KeyValuePairs[i].Key;
             return TRUE;
         }
     }
@@ -535,12 +532,12 @@ PhIndexStringSiKeyValuePairs(
     _In_ PCPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ ULONG Integer,
-    _Out_ PWSTR *String
+    _Out_ PCWSTR *String
     )
 {
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
     {
-        *String = (PWSTR)KeyValuePairs[Integer].Key;
+        *String = (PCWSTR)KeyValuePairs[Integer].Key;
         return TRUE;
     }
 
@@ -557,6 +554,8 @@ PhIndexStringRefSiKeyValuePairs(
     _Out_ PCPH_STRINGREF* String
     )
 {
+    assert(KeyValuePairs[0].Value == 0); // Values must be zero based
+
     if (Integer < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR))
     {
         *String = (PCPH_STRINGREF)KeyValuePairs[Integer].Key;
@@ -733,7 +732,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhEscapeStringForMenuPrefix(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -808,7 +807,19 @@ PhFormatUInt64(
     _In_ BOOLEAN GroupDigits
     );
 
-#define PhaFormatUInt64(Value, GroupDigits) PH_AUTO_T(PH_STRING, PhFormatUInt64((Value), (GroupDigits)))
+#define PhaFormatUInt64(Value, GroupDigits) \
+    PH_AUTO_T(PH_STRING, PhFormatUInt64((Value), (GroupDigits)))
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatUInt64BitratePrefix(
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN GroupDigits
+    );
+
+#define PhaFormatUInt64BitratePrefix(Value, GroupDigits) \
+    PH_AUTO_T(PH_STRING, PhFormatUInt64BitratePrefix((Value), (GroupDigits)))
 
 PHLIBAPI
 PPH_STRING
@@ -830,7 +841,8 @@ PhFormatSize(
     _In_ ULONG MaxSizeUnit
     );
 
-#define PhaFormatSize(Size, MaxSizeUnit) PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
+#define PhaFormatSize(Size, MaxSizeUnit) \
+    PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
 
 PHLIBAPI
 PPH_STRING
@@ -853,7 +865,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhStringToGuid(
-    _In_ PPH_STRINGREF GuidString,
+    _In_ PCPH_STRINGREF GuidString,
     _Out_ PGUID Guid
     );
 
@@ -892,7 +904,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PPH_STRINGREF FileName
+    _In_ PCPH_STRINGREF FileName
     );
 
 _Success_(return)
@@ -966,7 +978,7 @@ BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     );
 
@@ -1320,7 +1332,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetTemporaryDirectory(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     );
 
 PHLIBAPI
@@ -1358,9 +1370,9 @@ NTSTATUS
 NTAPI
 PhCreateProcess(
     _In_ PCWSTR FileName,
-    _In_opt_ PPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PPH_STRINGREF CurrentDirectory,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
     _In_opt_ PPH_CREATE_PROCESS_INFO Information,
     _In_ ULONG Flags,
     _In_opt_ HANDLE ParentProcessHandle,
@@ -1568,7 +1580,7 @@ PPH_STRING
 NTAPI
 PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1591,7 +1603,7 @@ ULONG
 NTAPI
 PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1614,7 +1626,7 @@ ULONG64
 NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
+    _In_opt_ PCPH_STRINGREF ValueName
     );
 
 FORCEINLINE
@@ -1921,7 +1933,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhParseCommandLinePart(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Inout_ PULONG_PTR Index
     );
 
@@ -1929,7 +1941,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhParseCommandLine(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _In_opt_ PPH_COMMAND_LINE_OPTION Options,
     _In_ ULONG NumberOfOptions,
     _In_ ULONG Flags,
@@ -1941,14 +1953,14 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhEscapeCommandLinePart(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
 PhParseCommandLineFuzzy(
-    _In_ PPH_STRINGREF CommandLine,
+    _In_ PCPH_STRINGREF CommandLine,
     _Out_ PPH_STRINGREF FileName,
     _Out_ PPH_STRINGREF Arguments,
     _Out_opt_ PPH_STRING *FullFileName
@@ -1965,7 +1977,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCommandLineQuoteSpaces(
-    _In_ PPH_STRINGREF CommandLine
+    _In_ PCPH_STRINGREF CommandLine
     );
 
 PHLIBAPI
@@ -2035,7 +2047,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhFileReadAllText(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN Unicode
     );
 
@@ -2175,7 +2187,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhApiSetResolveToHost(
-    _In_ PPH_STRINGREF ApiSetName
+    _In_ PCPH_STRINGREF ApiSetName
     );
 
 PHLIBAPI
@@ -2230,7 +2242,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
-    _In_opt_ PPH_STRINGREF CommandInput,
+    _In_opt_ PCPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING* CommandOutput
     );
 
@@ -2276,7 +2288,6 @@ typedef struct _DEVPROP_FILTER_EXPRESSION DEVPROP_FILTER_EXPRESSION, *PDEVPROP_F
 typedef struct _DEV_OBJECT DEV_OBJECT, *PDEV_OBJECT;
 
 PHLIBAPI
-_Check_return_
 HRESULT
 NTAPI
 PhDevGetObjects(
@@ -2305,7 +2316,6 @@ typedef enum _DEVPROPSTORE DEVPROPSTORE, *PDEVPROPSTORE;
 typedef ULONG DEVPROPTYPE, *PDEVPROPTYPE;
 typedef struct _DEVPROPCOMPKEY DEVPROPCOMPKEY, *PDEVPROPCOMPKEY;
 
-_Check_return_
 PHLIBAPI
 HRESULT
 NTAPI
@@ -2327,7 +2337,6 @@ PhDevFreeObjectProperties(
     _In_reads_(PropertiesCount) const DEVPROPERTY* Properties
     );
 
-_Check_return_
 PHLIBAPI
 HRESULT
 NTAPI

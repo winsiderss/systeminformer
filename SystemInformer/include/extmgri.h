@@ -47,6 +47,12 @@ VOID PhEmSetObjectExtension(
     _In_opt_ PPH_EM_OBJECT_CALLBACK DeleteCallback
     );
 
+PVOID PhEmGetObject(
+    _In_ PPH_EM_APP_CONTEXT AppContext,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    );
+
 PVOID PhEmGetObjectExtension(
     _In_ PPH_EM_APP_CONTEXT AppContext,
     _In_ PH_EM_OBJECT_TYPE ObjectType,

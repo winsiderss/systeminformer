@@ -73,18 +73,16 @@ PhGuiSupportUpdateSystemMetrics(
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
@@ -286,6 +284,19 @@ NTAPI
 PhGetMonitorDpi(
     _In_ LPCRECT rect
     );
+
+FORCEINLINE
+LONG
+PhGetMonitorDpiFromRect(
+    _In_ PPH_RECTANGLE Rectangle
+    )
+{
+    RECT rect;
+
+    PhRectangleToRect(&rect, Rectangle);
+
+    return PhGetMonitorDpi(&rect);
+}
 
 PHLIBAPI
 LONG
@@ -965,7 +976,7 @@ PhGetListViewInterface(
     _In_ HWND ListViewHandle
     )
 {
-    IListView* listviewInterface = nullptr;
+    IListView* listviewInterface = NULL;
 
     SendMessage(
         ListViewHandle,
@@ -1824,9 +1835,8 @@ PhGetProcessDpiAwareness(
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
@@ -1850,7 +1860,6 @@ PhGetProcessGuiResources(
     _Out_ PULONG Total
     );
 
-_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1858,9 +1867,8 @@ PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
@@ -1877,17 +1885,19 @@ PhExtractIcon(
     _Out_opt_ HICON *IconSmall
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
+    _In_ LONG IconLargeWidth,
+    _In_ LONG IconLargeHeight,
+    _In_ LONG IconSmallWidth,
+    _In_ LONG IconSmallHeight,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall,
-    _In_ LONG WindowDpi
+    _Out_opt_ HICON *IconSmall
     );
 
 // Imagelist support
@@ -2106,6 +2116,16 @@ PhLoadImageFormatFromResource(
 PHLIBAPI
 HBITMAP
 NTAPI
+PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_ LONG Width,
+    _In_ LONG Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
 PhLoadImageFromResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -2315,6 +2335,14 @@ PhEnumerateRecentList(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTerminateWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Force
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
@@ -2437,14 +2465,14 @@ HFONT
 NTAPI
 PhCreateFont(
     _In_opt_ PCWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG Dpi
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
+        -(LONG)PhMultiplyDivide(Size, Dpi, 72),
         0,
         0,
         0,
@@ -2466,19 +2494,19 @@ HFONT
 NTAPI
 PhCreateCommonFont(
     _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
+    _In_ LONG Weight,
+    _In_opt_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
     HFONT fontHandle;
     LOGFONT logFont;
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
         return NULL;
 
     fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
+        -PhMultiplyDivideSigned(Size, WindowDpi, 72),
         0,
         0,
         0,
@@ -2497,8 +2525,10 @@ PhCreateCommonFont(
     if (!fontHandle)
         return NULL;
 
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
+    if (WindowHandle)
+    {
+        SetWindowFont(WindowHandle, fontHandle, TRUE);
+    }
 
     return fontHandle;
 }

@@ -24,6 +24,7 @@
 #include <phsvc.h>
 #include <procprv.h>
 #include <devprv.h>
+#include <notifico.h>
 
 #include <ksisup.h>
 #include <settings.h>
@@ -247,7 +248,7 @@ INT WINAPI wWinMain(
         {
             PhSetProcessPowerThrottlingState(
                 NtCurrentProcess(),
-                PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION,
                 0  // Disable synthetic timer resolution.
                 );
         }
@@ -458,7 +459,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ PVOID Context
     )
 {
-    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
+    static CONST PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
     HANDLE objectHandle;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -510,8 +511,8 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
-        AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
-        PhConsoleSetForeground(processHandle, TRUE);
+        //AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
+        //PhConsoleSetForeground(processHandle, TRUE);
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
         do
@@ -557,7 +558,7 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, nullptr);
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
 }
 
 VOID PhInitializeCommonControls(
@@ -1247,6 +1248,15 @@ VOID PhpInitializeSettings(
     if (PhStartupParameters.UpdateChannel)
     {
         PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
+    }
+
+    if (PhStartupParameters.ShowHidden && !PhNfIconsEnabled())
+    {
+        // HACK(jxy-s) The default used to be that system tray icons where enabled, this keeps the
+        // old behavior for automation workflows. If the user specified "-hide" then they want to
+        // start the program hidden to the system tray and not show any main window. If there are no
+        // system tray icons enabled then we need to enable them so the behavior is consistent.
+        PhSetStringSetting(L"IconSettings", L"2|1");
     }
 }
 

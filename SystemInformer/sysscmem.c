@@ -507,7 +507,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
             SetWindowFont(totalPhysicalLabel, MemorySection->Parameters->MediumFont, FALSE);
 
-            if (PhGetPhysicallyInstalledSystemMemory(&InstalledMemory, &ReservedMemory))
+            if (NT_SUCCESS(PhGetPhysicallyInstalledSystemMemory(&InstalledMemory, &ReservedMemory)))
             {
                 PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
                     PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);

@@ -59,7 +59,7 @@
 #define PROCESS_SET_LIMITED_INFORMATION 0x2000
 #endif
 #ifndef PROCESS_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
 #else
 #define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
@@ -110,7 +110,7 @@
 #define THREAD_RESUME 0x1000
 #endif
 #ifndef THREAD_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
 #else
 #define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3FF)
@@ -137,7 +137,7 @@
 #define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
 #endif
 #ifndef JOB_OBJECT_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 #define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
 #else
 #define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
@@ -233,7 +233,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL (requires SeDebugPrivilege)
+    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
     ProcessHandleTable, // q: ULONG[] // since WINBLUE
     ProcessCheckStackExtentsMode, // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
     ProcessCommandLineInformation, // q: UNICODE_STRING // 60
@@ -292,6 +292,8 @@ typedef enum _PROCESSINFOCLASS
     ProcessSlistRollbackInformation,
     ProcessNetworkIoCounters, // q: PROCESS_NETWORK_COUNTERS
     ProcessFindFirstThreadByTebValue, // PROCESS_TEB_VALUE_INFORMATION
+    ProcessEnclaveAddressSpaceRestriction, // since 25H2
+    ProcessAvailableCpus,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -338,26 +340,26 @@ typedef enum _THREADINFOCLASS
     ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
     ThreadContainerId, // q: GUID
     ThreadNameInformation, // qs: THREAD_NAME_INFORMATION (requires THREAD_SET_LIMITED_INFORMATION)
-    ThreadSelectedCpuSets,
+    ThreadSelectedCpuSets, // q: ULONG[]
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // q: GROUP_AFFINITY // since THRESHOLD2
     ThreadDynamicCodePolicyInfo, // q: ULONG; s: ULONG (NtCurrentThread)
-    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables
+    ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
     ThreadWorkOnBehalfTicket, // RTL_WORK_ON_BEHALF_TICKET_EX
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive, // s: ULONG; s: 0 disables, otherwise enables
     ThreadAttachContainer, // s: HANDLE (job object) // NtCurrentThread
     ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ThreadPowerThrottlingState, // POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
+    ThreadPowerThrottlingState, // qs: POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,
-    ThreadStrongerBadHandleChecks, // since 22H1
+    ThreadStrongerBadHandleChecks, // s: ULONG // NtCurrentThread // since 22H1
     ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority, // q: ULONG
     ThreadUpdateLockOwnership, // THREAD_LOCK_OWNERSHIP // since 24H2
     ThreadSchedulerSharedDataSlot, // SCHEDULER_SHARED_DATA_SLOT_INFORMATION
-    ThreadTebInformationAtomic, // THREAD_TEB_INFORMATION
+    ThreadTebInformationAtomic, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_QUERY_INFORMATION)
     ThreadIndexInformation, // THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
@@ -377,7 +379,7 @@ typedef struct _PAGE_PRIORITY_INFORMATION
 
 /**
  * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
  */
 typedef struct _PROCESS_BASIC_INFORMATION
@@ -502,7 +504,7 @@ typedef struct _VM_COUNTERS_EX2
 
 /**
  * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
  */
 typedef struct _KERNEL_USER_TIMES
@@ -552,7 +554,7 @@ typedef struct _PROCESS_EXCEPTION_PORT
 
 /**
  * The PROCESS_ACCESS_TOKEN structure is used to manage the security context of a process or thread.
- * 
+ *
  * A process's access token can only be changed if the process has no threads or a single thread that has not yet begun execution.
  */
 typedef struct _PROCESS_ACCESS_TOKEN
@@ -562,7 +564,7 @@ typedef struct _PROCESS_ACCESS_TOKEN
     // TOKEN_ASSIGN_PRIMARY access to this token is needed.
     //
     HANDLE Token;
-    
+
     //
     // Handle to the initial thread of the process.
     // THREAD_QUERY_INFORMATION access to this thread is needed.
@@ -1069,8 +1071,7 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
     UNICODE_STRING TargetDevicePath;
 } PROCESS_REVOKE_FILE_HANDLES_INFORMATION, *PPROCESS_REVOKE_FILE_HANDLES_INFORMATION;
 
-// begin_private
-
+// rev
 #define PROCESS_WORKING_SET_CONTROL_VERSION 3
 
 /**
@@ -1078,10 +1079,33 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
  */
 typedef enum _PROCESS_WORKING_SET_OPERATION
 {
-    ProcessWorkingSetSwap,
-    ProcessWorkingSetEmpty,
+    ProcessWorkingSetSwap,              // Swap the working set of a process to disk. // (requires SeDebugPrivilege)
+    ProcessWorkingSetEmpty,             // Remove all pages from the working set of a process.
+    ProcessWorkingSetEmptyPrivatePages, // Remove private pages from the working set of a process.
     ProcessWorkingSetOperationMax
 } PROCESS_WORKING_SET_OPERATION;
+
+/**
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES flag indicates that the operation should target private pages in the working set.
+ * Private pages are those that are not shared with other processes.
+ */
+#define PROCESS_WORKING_SET_FLAG_EMPTY_PRIVATE_PAGES 0x01
+/**
+ * The PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES flag indicates that the operation should target shared pages in the working set.
+ * Shared pages are those that are shared between multiple processes.
+ */
+#define PROCESS_WORKING_SET_FLAG_EMPTY_SHARED_PAGES  0x02
+/**
+ * The PROCESS_WORKING_SET_FLAG_COMPRESS flag indicates that the operation should compress the pages before they are removed from the working set.
+ * Compression is typically used in conjunction with other flags to specify that the pages should be compressed as part of the operation.
+ */
+#define PROCESS_WORKING_SET_FLAG_COMPRESS            0x08
+/**
+ * The PROCESS_WORKING_SET_FLAG_STORE flag indicates that the operation should store the compressed pages.
+ * This is useful when the compressed data might be needed later, allowing for efficient retrieval and decompression when required.
+ * This flag is typically used in conjunction with the PROCESS_WORKING_SET_FLAG_COMPRESS flag to specify that the compressed pages should be stored.
+ */
+#define PROCESS_WORKING_SET_FLAG_STORE               0x10
 
 /**
  * The PROCESS_WORKING_SET_CONTROL structure is used to control the working set of a process.
@@ -1199,7 +1223,7 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
     {
         ULONG Eligible : 1;
         ULONG ReleaseRepurposedMemResetCommit : 1;
-        ULONG ForceReleaseMemResetCommit : 1; 
+        ULONG ForceReleaseMemResetCommit : 1;
         ULONG Spare : 29;
     };
     SIZE_T CommitDebt;
@@ -1232,9 +1256,11 @@ typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
 #define POWER_THROTTLING_PROCESS_CURRENT_VERSION 1
+
 #define POWER_THROTTLING_PROCESS_EXECUTION_SPEED 0x1
 #define POWER_THROTTLING_PROCESS_DELAYTIMERS 0x2
 #define POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION 0x4 // since WIN11
+
 #define POWER_THROTTLING_PROCESS_VALID_FLAGS \
     ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED | POWER_THROTTLING_PROCESS_DELAYTIMERS | POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
 
@@ -1426,8 +1452,6 @@ typedef struct _PROCESS_TEB_VALUE_INFORMATION
     ULONG_PTR Value;
 } PROCESS_TEB_VALUE_INFORMATION, *PPROCESS_TEB_VALUE_INFORMATION;
 
-// end_private
-
 /**
  * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
  *
@@ -1440,7 +1464,7 @@ NtQueryPortInformationProcess(
     VOID
     );
 
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 //
 // Thread information structures
@@ -1477,7 +1501,7 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
     ULONGLONG CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
-// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles 
+// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
 typedef struct _THREAD_LOCK_OWNERSHIP
 {
     ULONG SrwLock[1];
@@ -1510,10 +1534,10 @@ typedef struct _THREAD_TEB_INFORMATION
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
-{   
-    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.  
-    ULONG Index;                    // An identifier for the specific counter.   
-    ULONG64 Start;                  // The initial value of the counter when measurement started.   
+{
+    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.
+    ULONG Index;                    // An identifier for the specific counter.
+    ULONG64 Start;                  // The initial value of the counter when measurement started.
     ULONG64 Total;                  // The accumulated value of the counter over the measurement period.
 } COUNTER_READING, *PCOUNTER_READING;
 
@@ -1523,7 +1547,7 @@ typedef struct _COUNTER_READING
 
 /**
  * The THREAD_PERFORMANCE_DATA structure aggregates various performance metrics for a thread.
- * 
+ *
  * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
 typedef struct _THREAD_PERFORMANCE_DATA
@@ -1909,6 +1933,10 @@ NtResumeProcess(
     _In_ HANDLE ProcessHandle
     );
 
+//
+// Macros
+//
+
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define ZwCurrentProcess() NtCurrentProcess()
 #define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
@@ -1927,7 +1955,7 @@ NtResumeProcess(
 #define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PIMAGE_DOS_HEADER)&__ImageBase)
 
 #define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
@@ -1987,7 +2015,7 @@ NtSetInformationProcess(
 
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
 
-#if (PHNT_VERSION >= PHNT_WS03)
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves a handle to the next process in the system.
  *
@@ -2046,7 +2074,7 @@ typedef enum _PROCESS_STATE_CHANGE_TYPE
     ProcessStateChangeMax,
 } PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a process.
  *
@@ -2099,7 +2127,7 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
     ThreadStateChangeMax,
 } THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a thread.
  *
@@ -2241,6 +2269,7 @@ NtResumeThread(
     _Out_opt_ PULONG PreviousSuspendCount
     );
 
+#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2252,8 +2281,9 @@ NTAPI
 NtGetCurrentProcessorNumber(
     VOID
     );
+#endif
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2377,7 +2407,7 @@ NtTestAlert(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
  * Sends an alert to the specified thread.
@@ -2393,7 +2423,7 @@ NtAlertThreadByThreadId(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Sends an alert to the specified thread by its thread ID, with an optional lock.
  *
@@ -2429,7 +2459,7 @@ NtAlertMultipleThreadByThreadId(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
 /**
  * Waits for an alert to be delivered to the specified thread.
@@ -2502,7 +2532,7 @@ NtSetLdtEntries(
 
 /**
  * Dispatches the Asynchronous Procedure Call (APC) from the NtQueueApc* functions to the specified routine.
- * 
+ *
  * @param ApcRoutine A pointer to the APC routine to be executed.
  * @param Parameter Optional. A pointer to a parameter to be passed to the APC routine.
  * @param ActxContext Optional. A handle to an activation context.
@@ -2518,7 +2548,7 @@ RtlDispatchAPC(
 
 /**
  * A pointer to a function that serves as an APC routine.
- * 
+ *
  * @param ApcArgument1 Optional. A pointer to the first argument to be passed to the APC routine.
  * @param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
  * @param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
@@ -2531,7 +2561,7 @@ typedef VOID (NTAPI* PPS_APC_ROUTINE)(
 
 /**
  * Encodes an APC routine pointer for use in a WOW64 environment.
- * 
+ *
  * @param ApcRoutine The APC routine pointer to be encoded.
  * @return PVOID The encoded APC routine pointer.
  */
@@ -2540,7 +2570,7 @@ typedef VOID (NTAPI* PPS_APC_ROUTINE)(
 
 /**
  * Decodes an APC routine pointer that was encoded for use in a WOW64 environment.
- * 
+ *
  * @param ApcRoutine The encoded APC routine pointer to be decoded.
  * @return PVOID The decoded APC routine pointer.
  */
@@ -2575,7 +2605,7 @@ NtQueueApcThread(
  */
 #define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Queues an APC (Asynchronous Procedure Call) to a thread.
  *
@@ -2617,7 +2647,7 @@ typedef struct _APC_CALLBACK_DATA_CONTEXT
 #define QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC 0x00000001
 #define QUEUE_USER_APC_FLAGS_CALLBACK_DATA_CONTEXT 0x00010000 // APC_CALLBACK_DATA_CONTEXT
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Queues an Asynchronous Procedure Call (APC) to a specified thread.
  *
@@ -3169,6 +3199,7 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Creates a new process and primary thread.
  *
@@ -3214,7 +3245,7 @@ NtCreateUserProcess(
 
 /**
  * A pointer to a user-defined function that serves as the starting routine for a new thread.
- * 
+ *
  * @param ThreadParameter A pointer to a variable to be passed to the thread.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3254,6 +3285,7 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
+#endif
 
 #endif
 
@@ -3308,7 +3340,7 @@ NtCreateThreadEx(
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
-#define JobObjectContainerTelemetryId 44
+#define JobObjectContainerTelemetryId 44 // GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
 #define JobObjectSiloSystemRoot 45
 #define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
@@ -3562,7 +3594,7 @@ NtAssignProcessToJobObject(
  * Terminates all processes associated with the job object. If the job is nested, all processes currently associated with the job and all child jobs in the hierarchy are terminated.
  *
  * @param JobHandle A handle to the job whose processes will be terminated. The handle must have the JOB_OBJECT_TERMINATE access right.
- * @param ExitStatus The exit status to be used by all processes and threads in the job object. 
+ * @param ExitStatus The exit status to be used by all processes and threads in the job object.
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -3649,7 +3681,7 @@ NtCreateJobSet(
     _In_ ULONG Flags
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3674,7 +3706,7 @@ typedef enum _MEMORY_RESERVE_TYPE
     MemoryReserveTypeMax
 } MEMORY_RESERVE_TYPE;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Allocates a memory reserve object.
  *
@@ -3747,11 +3779,11 @@ typedef enum _PSSNT_QUERY_INFORMATION_CLASS
 
 #define PSSNT_SIGNATURE_PSSD 'PSSD' // 0x50535344
 
-#if (PHNT_VERSION >= PHNT_WINBLUE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
 /**
  * Captures a snapshot of the specified process.
- * 
+ *
  * @param SnapshotHandle Pointer to a variable that receives the snapshot handle.
  * @param ProcessHandle Handle to the process.
  * @param CaptureFlags Flags indicating what to capture.
@@ -3771,7 +3803,7 @@ PssNtCaptureSnapshot(
 // rev
 /**
  * Duplicates a process snapshot from one process to another.
- * 
+ *
  * @param SourceProcessHandle Handle to the source process.
  * @param SnapshotHandle Handle to the snapshot to duplicate.
  * @param TargetProcessHandle Handle to the target process.
@@ -3793,8 +3825,8 @@ PssNtDuplicateSnapshot(
 // rev
 /**
  * Frees a remote process snapshot.
- * 
- * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights. 
+ *
+ * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3808,7 +3840,7 @@ PssNtFreeSnapshot(
 // rev
 /**
  * Frees a snapshot.
- * 
+ *
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3823,7 +3855,7 @@ PssNtFreeRemoteSnapshot(
 // rev
 /**
  * Queries information from a the specified snapshot.
- * 
+ *
  * @param SnapshotHandle Handle to the snapshot.
  * @param InformationClass The information class to query.
  * @param Buffer Pointer to a buffer that receives the queried information.
@@ -3858,7 +3890,7 @@ typedef struct _NTPSS_MEMORY_BULK_INFORMATION
     PVOID NextValidAddress;
 } NTPSS_MEMORY_BULK_INFORMATION, *PNTPSS_MEMORY_BULK_INFORMATION;
 
-#if (PHNT_VERSION >= PHNT_20H1)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
 /**
  * Captures virtual address space bulk information for a process.

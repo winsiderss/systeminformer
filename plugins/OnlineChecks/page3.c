@@ -139,7 +139,7 @@ VOID ShowVirusTotalProgressDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = TaskDialogProgressCallbackProc;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowVirusTotalReScanProgressDialog(
@@ -161,7 +161,7 @@ VOID ShowVirusTotalReScanProgressDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = TaskDialogReScanProgressCallbackProc;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowVirusTotalViewReportProgressDialog(
@@ -183,5 +183,5 @@ VOID ShowVirusTotalViewReportProgressDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = TaskDialogViewReportProgressCallbackProc;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

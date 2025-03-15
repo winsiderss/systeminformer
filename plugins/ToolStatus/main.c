@@ -98,7 +98,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle && UpdateGraphs)
         ToolbarUpdateGraphs();
 
-    if (ToolStatusConfig.StatusBarEnabled)
+    if (ToolStatusConfig.StatusBarEnabled && StatusBarHandle && UpdateGraphs)
         StatusBarUpdate(FALSE);
 
     TaskbarUpdateEvents();
@@ -856,6 +856,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                             if (node = PhFindProcessNode(UlongToHandle(RestoreSearchSelectedProcessId)))
                             {
+                                SystemInformer_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(node);
                             }
 

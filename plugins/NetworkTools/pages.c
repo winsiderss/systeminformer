@@ -280,7 +280,7 @@ VOID ShowDbUpdateFailedDialog(
         {
             config.pszContent = PhaFormatString(L"[%lu] Access denied (invalid license key)", Context->ErrorCode)->Buffer;
         }
-        else if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
+        else if (errorMessage = PhHttpGetErrorMessage(Context->ErrorCode))
         {
             config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
             PhDereferenceObject(errorMessage);

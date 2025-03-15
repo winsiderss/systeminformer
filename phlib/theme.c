@@ -2429,6 +2429,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_ENABLE:
         if (!wParam)    // fix drawing when window visible and switches to disabled
             return 0;
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;

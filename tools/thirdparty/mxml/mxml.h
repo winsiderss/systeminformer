@@ -90,44 +90,44 @@ typedef enum mxml_ws_e			// Whitespace periods
 } mxml_ws_t;
 
 typedef void (*mxml_error_cb_t)(void *cbdata, const char *message);
-                    // Error callback function
+					// Error callback function
 
 typedef struct _mxml_node_s mxml_node_t;// An XML node
 
 typedef struct _mxml_index_s mxml_index_t;
-                    // An XML node index
+					// An XML node index
 
 typedef struct _mxml_options_s mxml_options_t;
-                    // XML options
+					// XML options
 
 typedef void (*mxml_custfree_cb_t)(void *cbdata, void *custdata);
-                    // Custom data destructor
+					// Custom data destructor
 
 typedef bool (*mxml_custload_cb_t)(void *cbdata, mxml_node_t *node, const char *s);
-                    // Custom data load callback function
+					// Custom data load callback function
 
 typedef char *(*mxml_custsave_cb_t)(void *cbdata, mxml_node_t *node);
-                    // Custom data save callback function
+					// Custom data save callback function
 
 typedef int (*mxml_entity_cb_t)(void *cbdata, const char *name);
-                    // Entity callback function
+					// Entity callback function
 
 typedef size_t (*mxml_io_cb_t)(void *cbdata, void *buffer, size_t bytes);
-                    // Read/write callback function
+					// Read/write callback function
 
 typedef bool (*mxml_sax_cb_t)(void *cbdata, mxml_node_t *node, mxml_sax_event_t event);
-                    // SAX callback function
+					// SAX callback function
 
 typedef char *(*mxml_strcopy_cb_t)(void *cbdata, const char *s);
-                    // String copy/allocation callback
+					// String copy/allocation callback
 typedef void (*mxml_strfree_cb_t)(void *cbdata, char *s);
-                    // String free callback
+					// String free callback
 
 typedef mxml_type_t (*mxml_type_cb_t)(void *cbdata, mxml_node_t *node);
-                    // Type callback function
+					// Type callback function
 
 typedef const char *(*mxml_ws_cb_t)(void *cbdata, mxml_node_t *node, mxml_ws_t when);
-                    // Whitespace callback function
+					// Whitespace callback function
 
 
 
@@ -210,9 +210,9 @@ extern mxml_node_t	*mxmlNewText(mxml_node_t *parent, bool whitespace, const char
 extern mxml_node_t	*mxmlNewTextf(mxml_node_t *parent, bool whitespace, const char *format, ...) MXML_FORMAT(3,4);
 extern mxml_node_t	*mxmlNewXML(const char *version);
 
-extern size_t		mxmlRelease(mxml_node_t *node);
+extern int		mxmlRelease(mxml_node_t *node);
 extern void		mxmlRemove(mxml_node_t *node);
-extern size_t		mxmlRetain(mxml_node_t *node);
+extern int		mxmlRetain(mxml_node_t *node);
 
 extern char		*mxmlSaveAllocString(mxml_node_t *node, mxml_options_t *options);
 extern bool		mxmlSaveFd(mxml_node_t *node, mxml_options_t *options, int fd);
