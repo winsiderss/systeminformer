@@ -8856,12 +8856,12 @@ RtlQueryValidationRunlevel(
 // Private namespaces
 //
 
+// begin_private
+
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // rev
 #define BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID 0x0001
-
-// begin_private
 
 _Ret_maybenull_
 _Success_(return != NULL)
