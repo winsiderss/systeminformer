@@ -104,7 +104,7 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"SymbolsTreeListFlags", L"0");
     PhpAddStringSetting(L"StringsTreeListColumns", L"");
     PhpAddStringSetting(L"StringsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"StringsTreeListFlags", L"3");
+    PhpAddIntegerSetting(L"StringsTreeListFlags", L"1b");
     PhpAddIntegerSetting(L"StringsMinimumLength", L"4");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
     PhpAddStringSetting(L"CHPEListViewColumns", L"");

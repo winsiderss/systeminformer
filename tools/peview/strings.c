@@ -27,12 +27,19 @@ typedef struct _PV_STRINGS_SETTINGS
             ULONG Unicode : 1;
             ULONG ExtendedCharSet : 1;
             ULONG SkipTextSection : 1;
+            ULONG SkipHighEntropySections : 1;
             ULONG Spare : 28;
         };
 
         ULONG Flags;
     };
 } PV_STRINGS_SETTINGS, *PPV_STRINGS_SETTINGS;
+
+typedef struct _PV_STRINGS_REGION_SKIP
+{
+    PVOID Start;
+    PVOID End;
+} PV_STRINGS_REGION_SKIP, *PPV_STRINGS_REGION_SKIP;
 
 typedef struct _PV_STRINGS_CONTEXT
 {
@@ -56,6 +63,11 @@ typedef struct _PV_STRINGS_CONTEXT
     PH_QUEUED_LOCK SearchResultsLock;
 
     PV_STRINGS_SETTINGS Settings;
+
+    PVOID ReadPointer;
+    PVOID EndPointer;
+    ULONG SkipCounter;
+    PPH_LIST RegionSkips;
 } PV_STRINGS_CONTEXT, *PPV_STRINGS_CONTEXT;
 
 typedef enum _PV_STRINGS_TREE_COLUMN_ITEM
@@ -97,18 +109,38 @@ NTSTATUS NTAPI PvpStringSearchNextBuffer(
     _In_opt_ PVOID Context
     )
 {
-    UNREFERENCED_PARAMETER(Context);
+    PPV_STRINGS_CONTEXT context;
+    PVOID buffer;
+    SIZE_T length;
+    PPV_STRINGS_REGION_SKIP skip;
 
-    if (*Buffer)
+    assert(Context);
+
+    context = Context;
+
+    buffer = context->ReadPointer;
+    length = (ULONG_PTR)context->EndPointer - (ULONG_PTR)context->ReadPointer;
+
+    while (context->SkipCounter < context->RegionSkips->Count)
     {
-        *Buffer = NULL;
-        *Length = 0;
+        skip = context->RegionSkips->Items[context->SkipCounter];
+
+        if (buffer < skip->Start)
+        {
+            length = (ULONG_PTR)skip->Start - (ULONG_PTR)buffer;
+            break;
+        }
+
+        context->SkipCounter++;
+
+        buffer = skip->End;
+        length = (ULONG_PTR)context->EndPointer - (ULONG_PTR)skip->End;
     }
-    else
-    {
-        *Buffer = PvMappedImage.ViewBase;
-        *Length = PvMappedImage.ViewSize;
-    }
+
+    *Buffer = buffer;
+    *Length = length;
+
+    context->ReadPointer = PTR_ADD_OFFSET(buffer, length);
 
     return STATUS_SUCCESS;
 }
@@ -122,17 +154,6 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     PPV_STRINGS_NODE node;
     PIMAGE_SECTION_HEADER section;
 
-    section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase));
-
-    if (
-        Context->Settings.SkipTextSection && section &&
-        FlagOn(section->Characteristics, IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ)
-        )
-    {
-        if (PhEqualBytesZ((PCSTR)section->Name, ".text", FALSE))
-            return FALSE;
-    }
-
     node = PhAllocateZero(sizeof(PV_STRINGS_NODE));
     node->Index = ++Context->StringsCount;
     node->Rva = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase);
@@ -145,6 +166,7 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
+    section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase));
     if (section)
     {
         PhCopyStringZFromUtf8(
@@ -163,10 +185,69 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     return !!Context->StopSearch;
 }
 
+
+static int __cdecl PvpStringsRegionSkipCompare(
+    _In_ void *context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPV_STRINGS_REGION_SKIP region1 = *(PVOID*)elem1;
+    PPV_STRINGS_REGION_SKIP region2 = *(PVOID*)elem2;
+
+    return uintptrcmp((ULONG_PTR)region1->Start, (ULONG_PTR)region2->Start);
+}
+
 NTSTATUS PvpSearchStringsThread(
     _In_ PPV_STRINGS_CONTEXT Context
     )
 {
+    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    {
+        PIMAGE_SECTION_HEADER section;
+        PPV_STRINGS_REGION_SKIP skip;
+        PVOID sectionData;
+        FLOAT entropy;
+
+        section = &PvMappedImage.Sections[i];
+        sectionData = PhMappedImageRvaToVa(&PvMappedImage, section->VirtualAddress, NULL);
+        if (!sectionData)
+            continue;
+
+        if (Context->Settings.SkipTextSection &&
+            FlagOn(section->Characteristics, IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE) &&
+            PhEqualBytesZ((PCSTR)section->Name, ".text", FALSE))
+        {
+            goto SkipSection;
+        }
+
+        if (Context->Settings.SkipHighEntropySections &&
+            PhCalculateEntropy(sectionData, section->SizeOfRawData, &entropy, NULL) &&
+            entropy > 7.5) // Likely encrypted or compressed data.
+        {
+            goto SkipSection;
+        }
+
+        continue;
+
+SkipSection:
+
+        skip = PhAllocate(sizeof(PV_STRINGS_REGION_SKIP));
+
+        skip->Start = sectionData;
+        skip->End = PTR_ADD_OFFSET(sectionData, section->SizeOfRawData);
+
+        PhAddItemList(Context->RegionSkips, skip);
+    }
+
+    qsort_s(
+        Context->RegionSkips->Items,
+        Context->RegionSkips->Count,
+        sizeof(PVOID),
+        PvpStringsRegionSkipCompare,
+        NULL
+        );
+
     PhSearchStrings(
         Context->Settings.MinimumLength,
         !!Context->Settings.ExtendedCharSet,
@@ -247,10 +328,18 @@ VOID PvpDeleteStringsTree(
         PhFree(node);
     }
 
+    for (ULONG i = 0; i < Context->RegionSkips->Count; i++)
+    {
+        PhFree(Context->RegionSkips->Items[i]);
+    }
+
     PhClearReference(&Context->NodeList);
     PhClearReference(&Context->SearchResults);
+    PhClearReference(&Context->RegionSkips);
+
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
+    Context->SkipCounter = 0;
 }
 
 VOID PvpSearchStrings(
@@ -262,6 +351,10 @@ VOID PvpSearchStrings(
     PvpDeleteStringsTree(Context);
     Context->NodeList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
+
+    Context->ReadPointer = PvMappedImage.ViewBase;
+    Context->EndPointer = PTR_ADD_OFFSET(Context->ReadPointer, PvMappedImage.ViewSize);
+    Context->RegionSkips = PhCreateList(5);
 
     TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
     TreeNew_NodesStructured(Context->TreeNewHandle);
@@ -604,6 +697,7 @@ VOID PvpInitializeStringsTree(
     Context->TreeNewHandle = TreeNewHandle;
     Context->NodeList = PhCreateList(1);
     Context->SearchResults = PhCreateList(1);
+    Context->RegionSkips = PhCreateList(1);
 
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
@@ -890,6 +984,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     PPH_EMENU_ITEM extendedUnicode;
                     PPH_EMENU_ITEM minimumLength;
                     PPH_EMENU_ITEM skipExecutableSection;
+                    PPH_EMENU_ITEM skipHighEntropySections;
                     PPH_EMENU_ITEM refresh;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
@@ -897,15 +992,17 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     ansi = PhCreateEMenuItem(0, 1, L"ANSI", NULL, NULL);
                     unicode = PhCreateEMenuItem(0, 2, L"Unicode", NULL, NULL);
                     extendedUnicode = PhCreateEMenuItem(0, 3, L"Extended character set", NULL, NULL);
-                    skipExecutableSection = PhCreateEMenuItem(0, 4, L"Skip .text secton", NULL, NULL);
-                    minimumLength = PhCreateEMenuItem(0, 4, L"Minimum length...", NULL, NULL);
-                    refresh = PhCreateEMenuItem(0, 5, L"Refresh", NULL, NULL);
+                    skipExecutableSection = PhCreateEMenuItem(0, 4, L"Skip .text section", NULL, NULL);
+                    skipHighEntropySections = PhCreateEMenuItem(0, 5, L"Skip high entropy sections", NULL, NULL);
+                    minimumLength = PhCreateEMenuItem(0, 6, L"Minimum length...", NULL, NULL);
+                    refresh = PhCreateEMenuItem(0, 7, L"Refresh", NULL, NULL);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
                     PhInsertEMenuItem(menu, unicode, ULONG_MAX);
                     PhInsertEMenuItem(menu, extendedUnicode, ULONG_MAX);
                     PhInsertEMenuItem(menu, skipExecutableSection, ULONG_MAX);
+                    PhInsertEMenuItem(menu, skipHighEntropySections, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, minimumLength, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -919,6 +1016,8 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         extendedUnicode->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.SkipTextSection)
                         skipExecutableSection->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.SkipHighEntropySections)
+                        skipHighEntropySections->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -952,6 +1051,12 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         else if (selectedItem == skipExecutableSection)
                         {
                             context->Settings.SkipTextSection = !context->Settings.SkipTextSection;
+                            PvpSaveSettingsStrings(context);
+                            PvpSearchStrings(context);
+                        }
+                        else if (selectedItem == skipHighEntropySections)
+                        {
+                            context->Settings.SkipHighEntropySections = !context->Settings.SkipHighEntropySections;
                             PvpSaveSettingsStrings(context);
                             PvpSearchStrings(context);
                         }
