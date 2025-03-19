@@ -885,39 +885,34 @@ PPH_STRING PhpGetHvAddressString(
     _In_ PGUID HvAddr
     )
 {
-    static PH_STRINGREF hvGuestServices = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
     static PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
     PPH_STRING addressString = NULL;
-    PH_STRINGREF guidString;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
     PPH_STRING keyName;
     HANDLE keyHandle;
 
     if (IsEqualGUID(HvAddr, &HV_GUID_WILDCARD))
         return PhCreateString(L"*");
-
     if (IsEqualGUID(HvAddr, &HV_GUID_BROADCAST))
         return PhCreateString(L"Broadcast");
-
     if (IsEqualGUID(HvAddr, &HV_GUID_CHILDREN))
         return PhCreateString(L"Children");
-
     if (IsEqualGUID(HvAddr, &HV_GUID_LOOPBACK))
         return PhCreateString(L"Loopback");
-
     if (IsEqualGUID(HvAddr, &HV_GUID_PARENT))
         return PhCreateString(L"Host");
-
     if (IsEqualGUID(HvAddr, &HV_GUID_SILOHOST))
         return PhCreateString(L"Silo Host");
 
-    if (PhpHvAddressIsVSockTemplate(HvAddr))
-        return PhCreateString(L"VSOCK");
+    guidString = PhFormatGuid(HvAddr);
 
-    addressString = PhFormatGuid(HvAddr);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
 
-    guidString = addressString->sr;
-    PhTrimStringRef(&guidString, &trimSet, 0);
-    keyName = PhConcatStringRef2(&hvGuestServices, &guidString);
+    keyName = PhConcatStringRef2(&hvGuestServicesKey, &guidStringTrimmed);
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -936,6 +931,39 @@ PPH_STRING PhpGetHvAddressString(
     }
 
     PhDereferenceObject(keyName);
+
+    // Keep this after element name lookup. Certain services define the VSOCK
+    // template with a specific port (e.g. Docker). (jxy-s)
+    if (!addressString && PhpHvAddressIsVSockTemplate(HvAddr))
+        PhMoveReference(&addressString, PhCreateString(L"VSOCK"));
+
+    if (!addressString)
+    {
+        keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_QUERY_VALUE,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName->sr,
+            0
+            )))
+        {
+            PPH_STRING vmName;
+
+            if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+                PhMoveReference(&addressString, vmName);
+
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(keyName);
+    }
+
+    if (!addressString)
+        addressString = PhReferenceObject(guidString);
+
+    PhDereferenceObject(guidString);
 
     return addressString;
 }
