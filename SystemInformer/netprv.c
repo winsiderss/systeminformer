@@ -870,6 +870,76 @@ VOID PhpUpdateNetworkItemOwner(
     }
 }
 
+BOOLEAN PhpHvAddressIsVSockTemplate(
+    _In_ PGUID HvAddr
+    )
+{
+    GUID template = *HvAddr;
+
+    template.Data1 = 0;
+
+    return !!IsEqualGUID(&template, &HV_GUID_VSOCK_TEMPLATE);
+}
+
+PPH_STRING PhpGetHvAddressString(
+    _In_ PGUID HvAddr
+    )
+{
+    static PH_STRINGREF hvGuestServices = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING addressString = NULL;
+    PH_STRINGREF guidString;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_WILDCARD))
+        return PhCreateString(L"*");
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_BROADCAST))
+        return PhCreateString(L"Broadcast");
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_CHILDREN))
+        return PhCreateString(L"Children");
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_LOOPBACK))
+        return PhCreateString(L"Loopback");
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_PARENT))
+        return PhCreateString(L"Host");
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_SILOHOST))
+        return PhCreateString(L"Silo Host");
+
+    if (PhpHvAddressIsVSockTemplate(HvAddr))
+        return PhCreateString(L"VSOCK");
+
+    addressString = PhFormatGuid(HvAddr);
+
+    guidString = addressString->sr;
+    PhTrimStringRef(&guidString, &trimSet, 0);
+    keyName = PhConcatStringRef2(&hvGuestServices, &guidString);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING elementName;
+
+        if (elementName = PhQueryRegistryStringZ(keyHandle, L"ElementName"))
+            PhMoveReference(&addressString, elementName);
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+
+    return addressString;
+}
+
 VOID PhFlushNetworkQueryData(
     VOID
     )
@@ -1066,7 +1136,7 @@ VOID PhNetworkProviderUpdate(
                 break;
             case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->LocalAddressString = PhFormatGuid(
+                    networkItem->LocalAddressString = PhpGetHvAddressString(
                         &networkItem->LocalEndpoint.Address.HvAddr
                         );
                 }
@@ -1122,7 +1192,7 @@ VOID PhNetworkProviderUpdate(
                 break;
             case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->RemoteAddressString = PhFormatGuid(
+                    networkItem->RemoteAddressString = PhpGetHvAddressString(
                         &networkItem->RemoteEndpoint.Address.HvAddr
                         );
                 }
@@ -1298,7 +1368,7 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     for (;;)
     {
         status = HvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
-        if (status != STATUS_BUFFER_TOO_SMALL)
+        if (status != STATUS_BUFFER_TOO_SMALL || length == 0)
         {
             break;
         }
@@ -1790,7 +1860,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvListeners->Listener[i].ServiceId;
 
-            if (hvListeners->Listener[i].Port <= 0x7FFFFFFF) // valid port range
+            if (PhpHvAddressIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvListeners->Listener[i].Port;
             else
                 connections[index].LocalEndpoint.Port = 0;
@@ -1818,7 +1888,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvConnections->Connection[i].ServiceId;
 
-            if (hvConnections->Connection[i].Port <= 0x7FFFFFFF) // valid port range
+            if (PhpHvAddressIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvConnections->Connection[i].Port;
             else
                 connections[index].LocalEndpoint.Port = 0;
