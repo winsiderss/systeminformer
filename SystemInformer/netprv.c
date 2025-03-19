@@ -160,6 +160,8 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->LocalHostString);
     if (networkItem->RemoteHostString)
         PhDereferenceObject(networkItem->RemoteHostString);
+    if (networkItem->HvService)
+        PhDereferenceObject(networkItem->HvService);
 
     // NOTE: Dereferencing the ProcessItem will destroy the NetworkItem->ProcessIcon handle.
     if (networkItem->ProcessItem)
@@ -881,34 +883,61 @@ BOOLEAN PhpHvAddressIsVSockTemplate(
     return !!IsEqualGUID(&template, &HV_GUID_VSOCK_TEMPLATE);
 }
 
-PPH_STRING PhpGetHvAddressString(
+PPH_STRING PhpGetHvHostName(
     _In_ PGUID HvAddr
     )
 {
-    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
     static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
     static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
-    PPH_STRING addressString = NULL;
+    PPH_STRING hostName = NULL;
     PPH_STRING guidString;
     PH_STRINGREF guidStringTrimmed;
     PPH_STRING keyName;
     HANDLE keyHandle;
 
-    if (IsEqualGUID(HvAddr, &HV_GUID_WILDCARD))
-        return PhCreateString(L"*");
-    if (IsEqualGUID(HvAddr, &HV_GUID_BROADCAST))
-        return PhCreateString(L"Broadcast");
-    if (IsEqualGUID(HvAddr, &HV_GUID_CHILDREN))
-        return PhCreateString(L"Children");
-    if (IsEqualGUID(HvAddr, &HV_GUID_LOOPBACK))
-        return PhCreateString(L"Loopback");
-    if (IsEqualGUID(HvAddr, &HV_GUID_PARENT))
-        return PhCreateString(L"Host");
-    if (IsEqualGUID(HvAddr, &HV_GUID_SILOHOST))
-        return PhCreateString(L"Silo Host");
+    guidString = PhFormatGuid(HvAddr);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING vmName;
+
+        if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+            PhMoveReference(&hostName, vmName);
+        else if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmId"))
+            PhMoveReference(&hostName, vmName);
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return hostName;
+}
+
+PPH_STRING PhpGetHvServiceName(
+    _In_ PGUID HvAddr
+    )
+{
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING serviceName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
 
     guidString = PhFormatGuid(HvAddr);
-
     guidStringTrimmed = guidString->sr;
     PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
 
@@ -925,49 +954,60 @@ PPH_STRING PhpGetHvAddressString(
         PPH_STRING elementName;
 
         if (elementName = PhQueryRegistryStringZ(keyHandle, L"ElementName"))
-            PhMoveReference(&addressString, elementName);
+            PhMoveReference(&serviceName, elementName);
 
         NtClose(keyHandle);
     }
 
-    PhDereferenceObject(keyName);
-
     // Keep this after element name lookup. Certain services define the VSOCK
     // template with a specific port (e.g. Docker). (jxy-s)
-    if (!addressString && PhpHvAddressIsVSockTemplate(HvAddr))
-        PhMoveReference(&addressString, PhCreateString(L"VSOCK"));
+    if (!serviceName && PhpHvAddressIsVSockTemplate(HvAddr))
+        PhMoveReference(&serviceName, PhCreateString(L"VSOCK"));
 
-    if (!addressString)
-    {
-        keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
-
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_QUERY_VALUE,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            0
-            )))
-        {
-            PPH_STRING vmName;
-
-            if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmName"))
-                PhMoveReference(&addressString, vmName);
-            else if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmId"))
-                PhMoveReference(&addressString, vmName);
-
-            NtClose(keyHandle);
-        }
-
-        PhDereferenceObject(keyName);
-    }
-
-    if (!addressString)
-        addressString = PhReferenceObject(guidString);
-
+    PhDereferenceObject(keyName);
     PhDereferenceObject(guidString);
 
-    return addressString;
+    return serviceName;
+}
+
+PPH_STRING PhpGetHvAddressString(
+    _In_ PGUID HvAddr
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING wildcardString;
+    static PPH_STRING broadcastString;
+    static PPH_STRING childrenString;
+    static PPH_STRING loopbackString;
+    static PPH_STRING hostString;
+    static PPH_STRING siloHostString;
+    PPH_STRING addressString = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        wildcardString = PhCreateString(L"*");
+        broadcastString = PhCreateString(L"Broadcast");
+        childrenString = PhCreateString(L"Children");
+        loopbackString = PhCreateString(L"Loopback");
+        hostString = PhCreateString(L"Host");
+        siloHostString = PhCreateString(L"Silo Host");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_WILDCARD))
+        return PhReferenceObject(wildcardString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_BROADCAST))
+        return PhReferenceObject(broadcastString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_CHILDREN))
+        return PhReferenceObject(childrenString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_LOOPBACK))
+        return PhReferenceObject(loopbackString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_PARENT))
+        return PhReferenceObject(hostString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_SILOHOST))
+        return PhReferenceObject(siloHostString);
+
+    return PhFormatGuid(HvAddr);
 }
 
 VOID PhFlushNetworkQueryData(
@@ -1169,6 +1209,13 @@ VOID PhNetworkProviderUpdate(
                     networkItem->LocalAddressString = PhpGetHvAddressString(
                         &networkItem->LocalEndpoint.Address.HvAddr
                         );
+                    networkItem->LocalHostString = PhpGetHvHostName(
+                        &networkItem->LocalEndpoint.Address.HvAddr
+                        );
+                    networkItem->LocalHostnameResolved = TRUE;
+                    networkItem->HvService = PhpGetHvServiceName(
+                        &networkItem->LocalEndpoint.Address.HvAddr
+                        );
                 }
                 break;
             }
@@ -1225,6 +1272,10 @@ VOID PhNetworkProviderUpdate(
                     networkItem->RemoteAddressString = PhpGetHvAddressString(
                         &networkItem->RemoteEndpoint.Address.HvAddr
                         );
+                    networkItem->RemoteHostString = PhpGetHvHostName(
+                        &networkItem->RemoteEndpoint.Address.HvAddr
+                        );
+                    networkItem->RemoteHostnameResolved = TRUE;
                 }
                 break;
             }

@@ -48,6 +48,7 @@ typedef struct _PH_NETWORK_ITEM
     WCHAR RemotePortString[PH_INT32_STR_LEN_1];
     PPH_STRING LocalHostString;
     PPH_STRING RemoteHostString;
+    PPH_STRING HvService;
 
     LARGE_INTEGER CreateTime;
     ULONG LocalScopeId;

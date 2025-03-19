@@ -136,6 +136,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PHNETLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_HV_SERVICE, FALSE, L"Hyper-V service", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&NetworkTreeListCm, TreeNewHandle, PHNETLC_MAXIMUM, PhpNetworkTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, TreeNewHandle, NetworkNodeList);
@@ -548,6 +549,12 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(HvService)
+{
+    sortResult = PhCompareStringWithNullSortOrder(networkItem1->HvService, networkItem2->HvService, NetworkTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -584,6 +591,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(LocalHostname),
                     SORT_FUNCTION(RemoteHostname),
                     SORT_FUNCTION(TimeStamp),
+                    SORT_FUNCTION(HvService),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -742,6 +750,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                         PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
+                break;
+            case PHNETLC_HV_SERVICE:
+                getCellText->Text = PhGetStringRef(networkItem->HvService);
                 break;
             default:
                 return FALSE;
