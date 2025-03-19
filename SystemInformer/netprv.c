@@ -1926,7 +1926,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].ProcessId = UlongToHandle(hvListeners->Listener[i].ProcessId);
             connections[index].CreateTime = hvListeners->Listener[i].TimeStamp;
 
-            connections[index].State = MIB_TCP_STATE_LISTEN;
+            connections[index].State = 0; // HACK
 
             index++;
         }
