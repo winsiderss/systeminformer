@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 15;
+        private const UInt32 Version = 16;
 
         private static readonly byte[] SessionTokenPublicKey =
         [
@@ -138,6 +138,10 @@ typedef struct _KPH_DYN_KERNEL_FIELDS
     USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT u1.State
+    USHORT KtInitialStack;               // dt nt!_KTHREAD InitialStack
+    USHORT KtStackLimit;                 // dt nt!_KTHREAD StackLimit
+    USHORT KtStackBase;                  // dt nt!_KTHREAD StackBase
+    USHORT KtKernelStack;                // dt nt!_KTHREAD KernelStack
     USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
     USHORT KtWriteOperationCount;        // dt nt!_KTHREAD WriteOperationCount
     USHORT KtOtherOperationCount;        // dt nt!_KTHREAD OtherOperationCount
@@ -226,6 +230,10 @@ typedef struct _KPH_DYN_CONFIG
             public UInt16 AlpcPortObjectLock;
             public UInt16 AlpcSequenceNo = UInt16.MaxValue;
             public UInt16 AlpcState;
+            public UInt16 KtInitialStack;
+            public UInt16 KtStackLimit;
+            public UInt16 KtStackBase;
+            public UInt16 KtKernelStack;
             public UInt16 KtReadOperationCount;
             public UInt16 KtWriteOperationCount;
             public UInt16 KtOtherOperationCount;
@@ -260,6 +268,10 @@ typedef struct _KPH_DYN_CONFIG
                 AlpcPortObjectLock = UInt16.MaxValue;
                 AlpcSequenceNo = UInt16.MaxValue;
                 AlpcState = UInt16.MaxValue;
+                KtInitialStack = UInt16.MaxValue;
+                KtStackLimit = UInt16.MaxValue;
+                KtStackBase = UInt16.MaxValue;
+                KtKernelStack = UInt16.MaxValue;
                 KtReadOperationCount = UInt16.MaxValue;
                 KtWriteOperationCount = UInt16.MaxValue;
                 KtOtherOperationCount = UInt16.MaxValue;
@@ -477,7 +489,7 @@ typedef struct _KPH_DYN_CONFIG
                             {
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
-                               
+
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
@@ -491,7 +503,7 @@ typedef struct _KPH_DYN_CONFIG
                         break;
                     case ClassType.Lxcore:
                         {
-                            var fieldsData = new DynFieldsLxcore();   
+                            var fieldsData = new DynFieldsLxcore();
                             var fieldNodes = fieldsMap[fieldId].SelectNodes("field");
 
                             if (fieldNodes == null)
@@ -501,7 +513,7 @@ typedef struct _KPH_DYN_CONFIG
                             {
                                 var value = field.Attributes?.GetNamedItem("value")?.Value;
                                 var name = field.Attributes?.GetNamedItem("name")?.Value;
-                               
+
                                 if (string.IsNullOrWhiteSpace(name))
                                     continue;
 
@@ -585,9 +597,9 @@ typedef struct _KPH_DYN_CONFIG
             {
                 BuildVerify.PrintCngPublicKeyInfo(SessionTokenPublicKey, CngKeyBlobFormat.GenericPublicBlob);
             }
-            catch (Exception) 
+            catch (Exception)
             {
-                return false; 
+                return false;
             }
 
             return true;
