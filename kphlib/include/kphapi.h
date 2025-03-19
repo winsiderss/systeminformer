@@ -113,6 +113,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadIoCounters,             // q: IO_COUNTERS
     KphThreadWSLThreadId,            // q: ULONG
     KphThreadExplicitCaseSensitivity,// s: ULONG; s: 0 disables, otherwise enables
+    KphThreadKernelStackInformation, // q: KPH_KERNEL_STACK_INFORMATION
 } KPH_THREAD_INFORMATION_CLASS;
 
 typedef struct _KPH_PROCESS_BASIC_INFORMATION
@@ -159,6 +160,14 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
     SIZE_T NumberOfVerifiedImageLoads;
     SIZE_T NumberOfUntrustedImageLoads;
 } KPH_PROCESS_BASIC_INFORMATION, *PKPH_PROCESS_BASIC_INFORMATION;
+
+typedef struct _KPH_KERNEL_STACK_INFORMATION
+{
+    PVOID InitialStack;
+    PVOID StackLimit;
+    PVOID StackBase;
+    PVOID KernelStack;
+} KPH_KERNEL_STACK_INFORMATION, *PKPH_KERNEL_STACK_INFORMATION;
 
 // Process handle information
 

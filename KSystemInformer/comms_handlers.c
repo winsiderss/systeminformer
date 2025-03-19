@@ -1081,6 +1081,10 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationThreadRequires(
         {
             return KPH_PROCESS_STATE_LOW;
         }
+        case KphThreadKernelStackInformation:
+        {
+            return KPH_PROCESS_STATE_MAXIMUM;
+        }
         default:
         {
             return KPH_PROCESS_STATE_MAXIMUM;

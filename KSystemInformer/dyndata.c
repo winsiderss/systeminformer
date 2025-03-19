@@ -145,6 +145,10 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM_KERNEL(AlpcPortObjectLock);
     KPH_LOAD_DYNITEM_KERNEL(AlpcSequenceNo);
     KPH_LOAD_DYNITEM_KERNEL(AlpcState);
+    KPH_LOAD_DYNITEM_KERNEL(KtInitialStack);
+    KPH_LOAD_DYNITEM_KERNEL(KtStackLimit);
+    KPH_LOAD_DYNITEM_KERNEL(KtStackBase);
+    KPH_LOAD_DYNITEM_KERNEL(KtKernelStack);
     KPH_LOAD_DYNITEM_KERNEL(KtReadOperationCount);
     KPH_LOAD_DYNITEM_KERNEL(KtWriteOperationCount);
     KPH_LOAD_DYNITEM_KERNEL(KtOtherOperationCount);

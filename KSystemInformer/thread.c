@@ -873,6 +873,50 @@ NTSTATUS KphQueryInformationThread(
 
             break;
         }
+        case KphThreadKernelStackInformation:
+        {
+            PKPH_KERNEL_STACK_INFORMATION info;
+
+            dyn = KphReferenceDynData();
+
+            if (!dyn ||
+                (dyn->KtInitialStack == ULONG_MAX) ||
+                (dyn->KtStackLimit == ULONG_MAX) ||
+                (dyn->KtStackBase == ULONG_MAX) ||
+                (dyn->KtKernelStack == ULONG_MAX))
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
+            if (!ThreadInformation ||
+                (ThreadInformationLength < sizeof(KPH_KERNEL_STACK_INFORMATION)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_KERNEL_STACK_INFORMATION);
+                goto Exit;
+            }
+
+            info = ThreadInformation;
+
+            __try
+            {
+                info->InitialStack = *(PVOID*)Add2Ptr(threadObject, dyn->KtInitialStack);
+                info->StackLimit = *(PVOID*)Add2Ptr(threadObject, dyn->KtStackLimit);
+                info->StackBase = *(PVOID*)Add2Ptr(threadObject, dyn->KtStackBase);
+                info->KernelStack = *(PVOID*)Add2Ptr(threadObject, dyn->KtKernelStack);
+
+                returnLength = sizeof(KPH_KERNEL_STACK_INFORMATION);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
