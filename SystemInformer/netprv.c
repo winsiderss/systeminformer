@@ -885,9 +885,9 @@ PPH_STRING PhpGetHvAddressString(
     _In_ PGUID HvAddr
     )
 {
-    static PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
-    static PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
-    static PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
     PPH_STRING addressString = NULL;
     PPH_STRING guidString;
     PH_STRINGREF guidStringTrimmed;
@@ -952,6 +952,8 @@ PPH_STRING PhpGetHvAddressString(
             PPH_STRING vmName;
 
             if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+                PhMoveReference(&addressString, vmName);
+            else if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmId"))
                 PhMoveReference(&addressString, vmName);
 
             NtClose(keyHandle);
@@ -1414,7 +1416,9 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     return connections;
 }
 
-VOID PhpGetHvSocket(
+VOID PhpCollectHvSocket(
+    _In_ PGUID VmIds,
+    _In_ SIZE_T Count,
     _Out_ PHVSOCKET_LISTENERS* Listeners,
     _Out_ PHVSOCKET_CONNECTIONS* Connections
     )
@@ -1439,68 +1443,23 @@ VOID PhpGetHvSocket(
     listenersList = PhCreateList(1);
     connectionsList = PhCreateList(1);
 
-    listeners = PhpGetHvSocketListeners(systemHandle, &HV_GUID_ZERO);
-    connections = PhpGetHvSocketConnections(systemHandle, &HV_GUID_ZERO);
-
-    if (listeners)
+    for (ULONG i = 0; i < Count; i++)
     {
-        for (ULONG i = 0; i < listeners->Count; i++)
+        if (listeners = PhpGetHvSocketListeners(systemHandle, &VmIds[i]))
         {
-            PHVSOCKET_LISTENERS l;
-            PHVSOCKET_CONNECTIONS c;
-
-            if (IsEqualGUID(&listeners->Listener[i].VmId, &HV_GUID_ZERO))
-                continue;
-
-            l = PhpGetHvSocketListeners(systemHandle, &listeners->Listener[i].VmId);
-            if (l)
-            {
-                listenersCount += l->Count;
-                PhAddItemList(listenersList, l);
-            }
-
-            c = PhpGetHvSocketConnections(systemHandle, &listeners->Listener[i].VmId);
-            if (c)
-            {
-                connectionsCount += c->Count;
-                PhAddItemList(connectionsList, c);
-            }
+            PhAddItemList(listenersList, listeners);
+            listenersCount += listeners->Count;
         }
 
-        listenersCount += listeners->Count;
-        PhAddItemList(listenersList, listeners);
-        listeners = NULL;
-    }
-
-    if (connections)
-    {
-        for (ULONG i = 0; i < connections->Count; i++)
+        if (connections = PhpGetHvSocketConnections(systemHandle, &VmIds[i]))
         {
-            PHVSOCKET_LISTENERS l;
-            PHVSOCKET_CONNECTIONS c;
-
-            if (IsEqualGUID(&connections->Connection[i].VmId, &HV_GUID_ZERO))
-                continue;
-
-            l = PhpGetHvSocketListeners(systemHandle, &connections->Connection[i].VmId);
-            if (l)
-            {
-                listenersCount += l->Count;
-                PhAddItemList(listenersList, l);
-            }
-
-            c = PhpGetHvSocketConnections(systemHandle, &connections->Connection[i].VmId);
-            if (c)
-            {
-                connectionsCount += c->Count;
-                PhAddItemList(connectionsList, c);
-            }
+            PhAddItemList(connectionsList, connections);
+            connectionsCount += connections->Count;
         }
-
-        connectionsCount += connections->Count;
-        PhAddItemList(connectionsList, connections);
-        connections = NULL;
     }
+
+    listeners = NULL;
+    connections = NULL;
 
     if (listenersCount)
     {
@@ -1567,6 +1526,74 @@ VOID PhpGetHvSocket(
     *Connections = connections;
 
     NtClose(systemHandle);
+}
+
+static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PPH_ARRAY guidArray = Context;
+    PH_STRINGREF name;
+    PH_FORMAT format[3];
+    PPH_STRING string;
+    GUID guid;
+
+    name.Buffer = Information->Name;
+    name.Length = Information->NameLength;
+
+    PhInitFormatC(&format[0], L'{');
+    PhInitFormatSR(&format[1], name);
+    PhInitFormatC(&format[2], L'}');
+
+    string = PhFormat(format, 3, 10);
+
+    if (NT_SUCCESS(PhStringToGuid(&string->sr, &guid)))
+        PhAddItemArray(guidArray, &guid);
+
+    PhDereferenceObject(string);
+
+    return TRUE;
+}
+
+VOID PhpGetHvSocket(
+    _Out_ PHVSOCKET_LISTENERS* Listeners,
+    _Out_ PHVSOCKET_CONNECTIONS* Connections
+)
+{
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+    PH_ARRAY guidArray;
+    HANDLE keyHandle;
+
+    PhInitializeArray(&guidArray, sizeof(GUID), 10);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_WILDCARD);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_BROADCAST);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_CHILDREN);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_LOOPBACK);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_PARENT);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_SILOHOST);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_ENUMERATE_SUB_KEYS,
+        PH_KEY_LOCAL_MACHINE,
+        &hvComputeSystemKey,
+        0
+        )))
+    {
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpHvEnumComputeSystemCallback, &guidArray);
+        NtClose(keyHandle);
+    }
+
+    PhpCollectHvSocket(
+        PhFinalArrayItems(&guidArray),
+        PhFinalArrayCount(&guidArray),
+        Listeners,
+        Connections
+        );
+
+    PhDeleteArray(&guidArray);
 }
 #endif // _WIN64
 
