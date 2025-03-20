@@ -161,7 +161,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
 #define TokenIsAppSilo 48 // q: ULONG // since 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
 #define TokenLoggingInformation 49 // TOKEN_LOGGING_INFORMATION // since 24H2
 #define MaxTokenInfoClass 50
-#endif
+#endif // (PHNT_MODE == PHNT_MODE_KERNEL)
 
 //
 // Types
@@ -314,7 +314,7 @@ typedef struct _TOKEN_LOGGING_INFORMATION
     DWORD GroupsLength;
     PSID_AND_ATTRIBUTES Groups;
 } TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
-#endif
+#endif // !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 
 //
 // Tokens
@@ -354,7 +354,7 @@ NtCreateLowBoxToken(
     _In_ ULONG HandleCount,
     _In_reads_opt_(HandleCount) HANDLE *Handles
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
@@ -379,7 +379,7 @@ NtCreateTokenEx(
     _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
     _In_ PTOKEN_SOURCE Source
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 /**
  * The NtOpenProcessToken routine opens the access token associated with a process, and returns a handle that can be used to access that token.
@@ -587,7 +587,7 @@ NtAdjustTokenClaimsAndDeviceGroups(
     _Out_opt_ PULONG DeviceReturnLength,
     _Out_opt_ PULONG DeviceGroupsReturnBufferLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -621,7 +621,7 @@ NtFilterTokenEx(
     _In_opt_ PTOKEN_GROUPS RestrictedDeviceGroups,
     _Out_ PHANDLE NewTokenHandle
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -661,9 +661,11 @@ NtQuerySecurityAttributesToken(
     _In_ ULONG Length,
     _Out_ PULONG ReturnLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
+//
 // Access checking
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -740,7 +742,7 @@ NtGetCachedSigningLevel(
     _Out_opt_ PULONG ThumbprintAlgorithm
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 // rev
 typedef struct _SE_FILE_CACHE_CLAIM_INFORMATION
@@ -772,7 +774,7 @@ NtSetCachedSigningLevel2(
     _In_opt_ SE_SET_FILE_CACHE_INFORMATION* CacheInformation
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 
@@ -785,9 +787,11 @@ NtCompareSigningLevels(
     _In_ SE_SIGNING_LEVEL SecondSigningLevel
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 
+//
 // Audit alarm
+//
 
 NTSYSCALLAPI
 NTSTATUS

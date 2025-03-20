@@ -13,14 +13,22 @@
 #define RTL_PTR_ADD(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Value)))
 #define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Value)))
 
-#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * 10000ULL)
-#define RTL_SEC_TO_100NANOSEC(s) ((s) * 10000000ULL)
-#define RTL_SEC_TO_MILLISEC(s) ((s) * 1000ULL)
+#define RTL_NANOSEC_PER_SEC              1000000000ull
+#define RTL_NANOSEC_PER_MILLISEC            1000000ull
+#define RTL_100NANOSEC_PER_SEC             10000000ull
+#define RTL_100NANOSEC_PER_MILLISEC           10000ull
+#define RTL_MILLISEC_PER_SEC                   1000ull
+
+#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * RTL_100NANOSEC_PER_MILLISEC)
+#define RTL_SEC_TO_100NANOSEC(s) ((s) * RTL_100NANOSEC_PER_SEC)
+#define RTL_SEC_TO_MILLISEC(s) ((s) * RTL_MILLISEC_PER_SEC)
 
 #define RTL_MEG (1024UL * 1024UL)
 #define RTL_IMAGE_MAX_DOS_HEADER (256UL * RTL_MEG)
 
+//
 // Linked lists
+//
 
 typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
 
@@ -167,7 +175,9 @@ FORCEINLINE VOID PushEntryList(
     ListHead->Next = Entry;
 }
 
+//
 // AVL and splay trees
+//
 
 typedef enum _TABLE_SEARCH_RESULT
 {
@@ -586,7 +596,9 @@ RtlIsGenericTableEmpty(
     _In_ PRTL_GENERIC_TABLE Table
     );
 
+//
 // RB trees
+//
 
 typedef struct _RTL_RB_TREE
 {
@@ -1098,7 +1110,9 @@ RtlEnableEarlyCriticalSectionEventCreation(
     VOID
     );
 
+//
 // Resources
+//
 
 typedef struct _RTL_RESOURCE
 {
@@ -1177,7 +1191,9 @@ RtlDumpResource(
     _Inout_ PRTL_RESOURCE Resource
     );
 
+//
 // Slim reader-writer locks, condition variables, and barriers
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -1462,7 +1478,9 @@ RtlWakeAddressSingleNoFence(
 
 // end_rev
 
+//
 // Strings
+//
 
 FORCEINLINE
 VOID
@@ -2549,7 +2567,9 @@ RtlNextUnicodePrefix(
     _In_ BOOLEAN Restart
     );
 
+//
 // Compression
+//
 
 #define COMPRESSION_FORMAT_NONE          (0x0000)
 #define COMPRESSION_FORMAT_DEFAULT       (0x0001)
@@ -2669,7 +2689,7 @@ RtlDecompressBufferEx(
     _Out_ PULONG FinalUncompressedSize,
     _In_opt_ PVOID WorkSpace
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 NTSYSAPI
@@ -2685,7 +2705,7 @@ RtlDecompressBufferEx2(
     _Out_ PULONG FinalUncompressedSize,
     _In_opt_ PVOID WorkSpace
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 NTSYSAPI
 NTSTATUS
@@ -3464,7 +3484,7 @@ typedef struct _CONTEXT_EX
 #define CONTEXT_ALIGN 0x10
 #else
 #define CONTEXT_ALIGN 0x8
-#endif
+#endif // _AMD64_ || _ARM64_ || _ARM64EC_
 
 #if defined(_AMD64_)
 #define CONTEXT_FRAME_LENGTH 0x4D0
@@ -3478,7 +3498,7 @@ typedef struct _CONTEXT_EX
 #else
 #define CONTEXT_FRAME_LENGTH 0x2CC
 #define CONTEXT_EX_PADDING   0x4
-#endif
+#endif // _AMD64_
 
 #define CONTEXT_ALIGNMENT(Size, Align) \
     (((ULONG_PTR)(Size) + (Align) - 1) & ~((Align) - 1))
@@ -3744,7 +3764,9 @@ RtlRemoveVectoredContinueHandler(
     _In_ PVOID Handle
     );
 
+//
 // Runtime exception handling
+//
 
 typedef ULONG (NTAPI *PRTLP_UNHANDLED_EXCEPTION_FILTER)(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
@@ -4333,7 +4355,7 @@ RtlCrc64(
 
 #if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 typedef ULONG RTL_SYSTEM_GLOBAL_DATA_ID;
-#endif
+#endif // !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 
 NTSYSAPI
 ULONG
@@ -4683,7 +4705,7 @@ RtlDosPathNameToNtPathName_U_WithStatus(
     _Out_opt_ PWSTR *FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // rev
@@ -4696,7 +4718,7 @@ RtlDosLongPathNameToNtPathName_U_WithStatus(
     _Out_opt_ PWSTR *FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSAPI
@@ -4708,7 +4730,7 @@ RtlDosPathNameToRelativeNtPathName_U(
     _Out_opt_ PWSTR *FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSAPI
@@ -4720,7 +4742,7 @@ RtlDosPathNameToRelativeNtPathName_U_WithStatus(
     _Out_opt_ PWSTR *FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // rev
@@ -4733,7 +4755,7 @@ RtlDosLongPathNameToRelativeNtPathName_U_WithStatus(
     _Out_opt_ PWSTR *FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 NTSYSAPI
@@ -4742,7 +4764,7 @@ NTAPI
 RtlReleaseRelativeName(
     _Inout_ PRTL_RELATIVE_NAME_U RelativeName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 NTSYSAPI
 ULONG
@@ -5275,7 +5297,7 @@ typedef struct _RTL_HEAP_PARAMETERS
  * @param Lock Pointer to an opaque structure to be used as the heap lock.
  * @param Parameters Pointer to a RTL_HEAP_PARAMETERS structure that contains parameters to be applied when creating the heap.
  * @return RtlCreateHeap returns a handle to be used in accessing the created heap.
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateheap
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcreateheap
  */
 _Success_(return != 0)
 _Must_inspect_result_
@@ -5300,7 +5322,7 @@ RtlCreateHeap(
  *
  * @param HeapHandle Handle for the heap to be destroyed. This parameter is a heap handle returned by RtlCreateHeap.
  * @return If the call to RtlDestroyHeap succeeds, the return value is a NULL pointer. If the call to RtlDestroyHeap fails, the return value is a handle for the heap.
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldestroyheap
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtldestroyheap
  */
 _Success_(return == 0)
 NTSYSAPI
@@ -5317,7 +5339,7 @@ RtlDestroyHeap(
  * @param Flags Controllable aspects of heap allocation. Specifying any flags will override the corresponding value specified when the heap was created with RtlCreateHeap.
  * @param Size Number of bytes to be allocated. If the heap, specified by the HeapHandle parameter, is a nongrowable heap, Size must be less than or equal to the heap's virtual memory threshold.
  * @return If the call to RtlAllocateHeap succeeds, the return value is a pointer to the newly-allocated block. The return value is NULL if the allocation failed.
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
  */
 NTSYSAPI
 _Success_(return != 0)
@@ -6069,7 +6091,7 @@ RtlGetCurrentTransaction(
     _In_opt_ PCWSTR ExistingFileName,
     _In_opt_ PCWSTR NewFileName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
@@ -6079,7 +6101,7 @@ NTAPI
 RtlSetCurrentTransaction(
     _In_opt_ HANDLE TransactionHandle
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 //
 // LUIDs
@@ -6706,7 +6728,7 @@ RtlInt64ToUnicodeString(
 #define RtlIntPtrToUnicodeString(Value, Base, String) RtlInt64ToUnicodeString(Value, Base, String)
 #else
 #define RtlIntPtrToUnicodeString(Value, Base, String) RtlIntegerToUnicodeString(Value, Base, String)
-#endif
+#endif // _WIN64
 
 NTSYSAPI
 NTSTATUS
@@ -6741,7 +6763,7 @@ typedef struct in_addr
 #define s_impno S_un.S_un_b.s_b4    // imp #
 #define s_lh    S_un.S_un_b.s_b3    // logical host
 } IN_ADDR, * PIN_ADDR, FAR* LPIN_ADDR;
-#endif
+#endif // s_addr
 
 #ifndef s6_addr
 //
@@ -6762,7 +6784,7 @@ typedef struct in6_addr
 #define s6_bytes u.Byte
 #define s6_words u.Word
 } IN6_ADDR, *PIN6_ADDR, FAR *LPIN6_ADDR;
-#endif
+#endif // s6_addr
 
 typedef struct in_addr IN_ADDR, *PIN_ADDR;
 typedef struct in6_addr IN6_ADDR, *PIN6_ADDR;
@@ -6854,7 +6876,9 @@ RtlIpv6StringToAddressExW(
 #define RtlIpv6StringToAddress RtlIpv6StringToAddressW
 #define RtlIpv6StringToAddressEx RtlIpv6StringToAddressExW
 
+//
 // Time
+//
 
 typedef struct _TIME_FIELDS
 {
@@ -7092,7 +7116,7 @@ RtlClearBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
-#endif
+#endif // PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
@@ -7102,7 +7126,7 @@ RtlSetBit(
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
     );
-#endif
+#endif // PHNT_MODE == PHNT_MODE_KERNEL || PHNT_VERSION >= PHNT_WINDOWS_8
 
 _Check_return_
 NTSYSAPI
@@ -7245,7 +7269,7 @@ RtlCheckBit(
     return BitTest64((LONG64 const *)BitMapHeader->Buffer, (LONG64)BitPosition);
 #else
     return (((PLONG)BitMapHeader->Buffer)[BitPosition / 32] >> (BitPosition % 32)) & 0x1;
-#endif
+#endif // _WIN64
 }
 
 NTSYSAPI
@@ -7838,7 +7862,7 @@ RtlCreateVirtualAccountSid(
     _Out_writes_bytes_(*SidLength) PSID Sid,
     _Inout_ PULONG SidLength
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSAPI
@@ -7850,7 +7874,7 @@ RtlReplaceSidInSd(
     _In_ PSID NewSid,
     _Out_ ULONG *NumChanges
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 #define MAX_UNICODE_STACK_BUFFER_LENGTH 256
 
@@ -7881,7 +7905,7 @@ RtlSidHashInitialize(
     _In_ ULONG SidCount,
     _Out_ PSID_AND_ATTRIBUTES_HASH SidAttrHash
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
@@ -7892,7 +7916,7 @@ RtlSidHashLookup(
     _In_ PSID_AND_ATTRIBUTES_HASH SidAttrHash,
     _In_ PSID Sid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // rev
@@ -7902,7 +7926,7 @@ NTAPI
 RtlIsElevatedRid(
     _In_ PSID_AND_ATTRIBUTES SidAttr
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
@@ -7914,7 +7938,7 @@ RtlDeriveCapabilitySidsFromName(
     _Out_ PSID CapabilityGroupSid,
     _Out_ PSID CapabilitySid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 //
 // Security Descriptors
@@ -7924,8 +7948,8 @@ RtlDeriveCapabilitySidsFromName(
  * The RtlCreateSecurityDescriptor routine initializes a new absolute-format security descriptor.
  * On return, the security descriptor is initialized with no system ACL, no discretionary ACL, no owner, no primary group, and all control flags set to zero.
  *
- * \param SecurityDescriptor Pointer to the buffer for the \ref SECURITY_DESCRIPTOR to be initialized.
- * \param Revision Specifies the revision level to assign to the security descriptor. Set this parameter to SECURITY_DESCRIPTOR_REVISION.
+ * @param SecurityDescriptor Pointer to the buffer for the \ref SECURITY_DESCRIPTOR to be initialized.
+ * @param Revision Specifies the revision level to assign to the security descriptor. Set this parameter to SECURITY_DESCRIPTOR_REVISION.
  * @return NTSTATUS Successful or errant status.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcreatesecuritydescriptor
  */
@@ -7940,7 +7964,7 @@ RtlCreateSecurityDescriptor(
 /**
  * The RtlValidSecurityDescriptor routine checks a given security descriptor's validity.
  *
- * \param SecurityDescriptor Pointer to the \ref SECURITY_DESCRIPTOR to be checked.
+ * @param SecurityDescriptor Pointer to the \ref SECURITY_DESCRIPTOR to be checked.
  * @return Returns TRUE if the security descriptor is valid, or FALSE otherwise.
  * @remarks The routine checks the validity of an absolute-format security descriptor. To check the validity of a self-relative security descriptor, use the \ref RtlValidRelativeSecurityDescriptor routine instead.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidsecuritydescriptor
@@ -7956,7 +7980,7 @@ RtlValidSecurityDescriptor(
 /**
  * The RtlLengthSecurityDescriptor routine returns the size of a given security descriptor.
  *
- * \param SecurityDescriptor A pointer to a \ref SECURITY_DESCRIPTOR structure whose length the function retrieves.
+ * @param SecurityDescriptor A pointer to a \ref SECURITY_DESCRIPTOR structure whose length the function retrieves.
  * @return Returns the length, in bytes, of the SECURITY_DESCRIPTOR structure.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthsecuritydescriptor
  */
@@ -7970,10 +7994,10 @@ RtlLengthSecurityDescriptor(
 /**
  * The RtlValidRelativeSecurityDescriptor routine checks the validity of a self-relative security descriptor.
  *
- * \param SecurityDescriptorInput A pointer to the buffer that contains the security descriptor in self-relative format.
+ * @param SecurityDescriptorInput A pointer to the buffer that contains the security descriptor in self-relative format.
  * The buffer must begin with a SECURITY_DESCRIPTOR structure, which is followed by the rest of the security descriptor data.
- * \param SecurityDescriptorLength The size of the SecurityDescriptorInput structure.
- * \param RequiredInformation A SECURITY_INFORMATION value that specifies the information that is required to be contained in the security descriptor.
+ * @param SecurityDescriptorLength The size of the SecurityDescriptorInput structure.
+ * @param RequiredInformation A SECURITY_INFORMATION value that specifies the information that is required to be contained in the security descriptor.
  * @return RtlValidRelativeSecurityDescriptor returns TRUE if the security descriptor is valid and includes the information that the RequiredInformation parameter specifies. Otherwise, this routine returns FALSE.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidrelativesecuritydescriptor
  */
@@ -8073,13 +8097,13 @@ RtlGetSaclSecurityDescriptor(
 /**
  * The RtlSetOwnerSecurityDescriptor routine sets the owner information of an absolute-format security descriptor. It replaces any owner information that is already present in the security descriptor.
  *
- * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose owner is to be set. RtlSetOwnerSecurityDescriptor replaces any existing owner with the new owner.
- * \param Owner Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
- * \li \c This pointer, not the SID structure itself, is copied into the security descriptor.
- * \li \c If this parameter is NULL, RtlSetOwnerSecurityDescriptor clears the security descriptor's owner information. This marks the security descriptor as having no owner.
- * \param OwnerDefaulted Set to TRUE if the owner information is derived from a default mechanism.
- * \li \c If this value is TRUE, it is default information. RtlSetOwnerSecurityDescriptor sets the SE_OWNER_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
- * \li \c If this parameter is FALSE, the SE_OWNER_DEFAULTED flag is cleared.
+ * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose owner is to be set. RtlSetOwnerSecurityDescriptor replaces any existing owner with the new owner.
+ * @param Owner Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
+ * @li \c This pointer, not the SID structure itself, is copied into the security descriptor.
+ * @li \c If this parameter is NULL, RtlSetOwnerSecurityDescriptor clears the security descriptor's owner information. This marks the security descriptor as having no owner.
+ * @param OwnerDefaulted Set to TRUE if the owner information is derived from a default mechanism.
+ * @li \c If this value is TRUE, it is default information. RtlSetOwnerSecurityDescriptor sets the SE_OWNER_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
+ * @li \c If this parameter is FALSE, the SE_OWNER_DEFAULTED flag is cleared.
  * @return NTSTATUS Successful or errant status.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetownersecuritydescriptor
  */
@@ -8095,9 +8119,9 @@ RtlSetOwnerSecurityDescriptor(
 /**
  * The RtlGetOwnerSecurityDescriptor routine returns the owner information for a given security descriptor.
  *
- * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure.
- * \param Owner Pointer to an address to receive a pointer to the owner security identifier (SID). If the security descriptor does not currently contain an owner SID, Owner receives NULL.
- * \param OwnerDefaulted Pointer to a Boolean variable that receives TRUE if the owner information is derived from a default mechanism, FALSE otherwise. Valid only if Owner receives a non-NULL value.
+ * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure.
+ * @param Owner Pointer to an address to receive a pointer to the owner security identifier (SID). If the security descriptor does not currently contain an owner SID, Owner receives NULL.
+ * @param OwnerDefaulted Pointer to a Boolean variable that receives TRUE if the owner information is derived from a default mechanism, FALSE otherwise. Valid only if Owner receives a non-NULL value.
  * @return NTSTATUS Successful or errant status.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetownersecuritydescriptor
  */
@@ -8113,13 +8137,13 @@ RtlGetOwnerSecurityDescriptor(
 /**
  * The RtlSetGroupSecurityDescriptor routine sets the primary group information of an absolute-format security descriptor. It replaces any primary group information that is already present in the security descriptor.
  *
- * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose primary group is to be set. RtlSetGroupSecurityDescriptor replaces any existing primary group with the new primary group.
- * \param Group Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
- * \li \c This pointer, not the SID structure itself, is copied into the security descriptor.
- * \li \c If Group is NULL, RtlSetGroupSecurityDescriptor clears the security descriptor's primary group information. This marks the security descriptor as having no primary group.
- * \param GroupDefaulted Set this Boolean variable to TRUE if the primary group information is derived from a default mechanism.
- * \li \c If this parameter is TRUE, RtlSetGroupSecurityDescriptor sets the SE_GROUP_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
- * \li \c If this parameter is FALSE, RtlSetGroupSecurityDescriptor clears the SE_GROUP_DEFAULTED flag.
+ * @param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose primary group is to be set. RtlSetGroupSecurityDescriptor replaces any existing primary group with the new primary group.
+ * @param Group Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
+ * @li \c This pointer, not the SID structure itself, is copied into the security descriptor.
+ * @li \c If Group is NULL, RtlSetGroupSecurityDescriptor clears the security descriptor's primary group information. This marks the security descriptor as having no primary group.
+ * @param GroupDefaulted Set this Boolean variable to TRUE if the primary group information is derived from a default mechanism.
+ * @li \c If this parameter is TRUE, RtlSetGroupSecurityDescriptor sets the SE_GROUP_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
+ * @li \c If this parameter is FALSE, RtlSetGroupSecurityDescriptor clears the SE_GROUP_DEFAULTED flag.
  * @return NTSTATUS Successful or errant status.
  * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetgroupsecuritydescriptor
  */
@@ -8197,9 +8221,11 @@ RtlNormalizeSecurityDescriptor(
     _Out_opt_ PULONG NewSecurityDescriptorLength,
     _In_ BOOLEAN CheckOnly
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_19H2
 
+//
 // Access masks
+//
 
 #ifndef PHNT_NO_INLINE_ACCESSES_GRANTED
 /**
@@ -8208,8 +8234,8 @@ RtlNormalizeSecurityDescriptor(
  * This function determines whether all the accesses specified in the DesiredAccess
  * mask are granted by the GrantedAccess mask.
  *
- * \param GrantedAccess The access mask that specifies the granted accesses.
- * \param DesiredAccess The access mask that specifies the desired accesses.
+ * @param GrantedAccess The access mask that specifies the granted accesses.
+ * @param DesiredAccess The access mask that specifies the desired accesses.
  * @return Returns TRUE if all desired accesses are granted, otherwise FALSE.
  */
 FORCEINLINE
@@ -8229,8 +8255,8 @@ RtlAreAllAccessesGranted(
  * This function determines if any of the access rights specified in the DesiredAccess
  * mask are present in the GrantedAccess mask.
  *
- * \param GrantedAccess The access mask that specifies the granted access rights.
- * \param DesiredAccess The access mask that specifies the desired access rights.
+ * @param GrantedAccess The access mask that specifies the granted access rights.
+ * @param DesiredAccess The access mask that specifies the desired access rights.
  * @return Returns TRUE if any of the desired access rights are granted, otherwise FALSE.
  */
 FORCEINLINE
@@ -8250,8 +8276,8 @@ RtlAreAnyAccessesGranted(
  * This function determines whether all the accesses specified in the DesiredAccess
  * mask are granted by the GrantedAccess mask.
  *
- * \param GrantedAccess The access mask that specifies the granted accesses.
- * \param DesiredAccess The access mask that specifies the desired accesses.
+ * @param GrantedAccess The access mask that specifies the granted accesses.
+ * @param DesiredAccess The access mask that specifies the desired accesses.
  * @return Returns TRUE if all desired accesses are granted, otherwise FALSE.
  */
 NTSYSAPI
@@ -8268,8 +8294,8 @@ RtlAreAllAccessesGranted(
  * This function determines if any of the access rights specified in the DesiredAccess
  * mask are present in the GrantedAccess mask.
  *
- * \param GrantedAccess The access mask that specifies the granted access rights.
- * \param DesiredAccess The access mask that specifies the desired access rights.
+ * @param GrantedAccess The access mask that specifies the granted access rights.
+ * @param DesiredAccess The access mask that specifies the desired access rights.
  * @return Returns TRUE if any of the desired access rights are granted, otherwise FALSE.
  */
 NTSYSAPI
@@ -8365,7 +8391,7 @@ RtlGetAcesBufferSize(
     _In_ PACL Acl,
     _Out_ PULONG AcesBufferSize
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11_24H2
 
 NTSYSAPI
 BOOLEAN
@@ -8385,7 +8411,7 @@ RtlFindAceByType(
     _In_ UCHAR AceType,
     _Out_opt_ PULONG Index
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
@@ -8395,7 +8421,7 @@ NTAPI
 RtlOwnerAcesPresent(
     _In_ PACL pAcl
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSAPI
 NTSTATUS
@@ -8544,7 +8570,7 @@ RtlAddMandatoryAce(
     _In_ UCHAR AceType,
     _In_ ACCESS_MASK AccessMask
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
@@ -8787,7 +8813,7 @@ RtlImpersonateSelfEx(
     _In_opt_ ACCESS_MASK AdditionalAccess,
     _Out_opt_ PHANDLE ThreadToken
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSAPI
 NTSTATUS
@@ -8829,7 +8855,7 @@ RtlRemovePrivileges(
     _In_ PULONG PrivilegesToKeep,
     _In_ ULONG PrivilegeCount
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
@@ -8961,7 +8987,7 @@ NTAPI
 RtlGetSuiteMask(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 //
 // Thread pool (old)
@@ -9234,7 +9260,7 @@ RtlQueryRegistryValuesEx(
     _In_opt_ PVOID Context,
     _In_opt_ PVOID Environment
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS4)
 NTSYSAPI
@@ -9249,7 +9275,7 @@ RtlQueryRegistryValueWithFallback(
     _Out_writes_bytes_to_(ValueLength, *ResultLength) PVOID ValueData,
     _Out_range_(<= , ValueLength) PULONG ResultLength
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
 
 NTSYSAPI
 NTSTATUS
@@ -9279,6 +9305,16 @@ RtlDeleteRegistryValue(
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 // rev
+/**
+ * Enables thread profiling on the specified thread.
+ *
+ * @param ThreadHandle The handle to the thread on which you want to enable profiling. This must be the current thread.
+ * @param Flags To receive thread profiling data such as context switch count, set this parameter to THREAD_PROFILING_FLAG_DISPATCH; otherwise, set to 0.
+ * @param HardwareCounters To receive hardware performance counter data, set this parameter to a bitmask that identifies the hardware counters to collect.
+ * @param PerformanceDataHandle An opaque handle that you use when calling the RtlReadThreadProfilingData and RtlDisableThreadProfiling functions.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-enablethreadprofiling
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9290,6 +9326,13 @@ RtlEnableThreadProfiling(
     );
 
 // rev
+/**
+ * Disables thread profiling.
+ *
+ * @param PerformanceDataHandle The handle that the RtlEnableThreadProfiling function returned.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-querythreadprofiling
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9298,6 +9341,14 @@ RtlDisableThreadProfiling(
     );
 
 // rev
+/**
+ * Determines whether thread profiling is enabled for the specified thread.
+ *
+ * @param ThreadHandle The handle to the thread on which you want to enable profiling. This must be the current thread.
+ * @param Enabled Is TRUE if thread profiling is enabled for the specified thread; otherwise, FALSE.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-querythreadprofiling
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9307,6 +9358,15 @@ RtlQueryThreadProfiling(
     );
 
 // rev
+/**
+ * Reads the specified profiling data associated with the thread.
+ *
+ * @param PerformanceDataHandle The handle that the RtlEnableThreadProfiling function returned.
+ * @param Flags One or more flags set when you called the RtlEnableThreadProfiling function that specify the counter data to read.
+ * @param PerformanceData A PERFORMANCE_DATA structure that contains the thread profiling and hardware counter data.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9354,6 +9414,13 @@ RtlQueueApcWow64Thread(
     _In_opt_ PVOID ApcArgument3
     );
 
+/**
+ * Enables or disables file system redirection for the calling thread.
+ *
+ * @param Wow64FsEnableRedirection If TRUE, requests redirection be enabled; if FALSE, requests redirection be disabled.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/wow64apiset/nf-wow64apiset-wow64enablewow64fsredirection
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9361,6 +9428,14 @@ RtlWow64EnableFsRedirection(
     _In_ BOOLEAN Wow64FsEnableRedirection
     );
 
+/**
+ * Enables or disables file system redirection for the calling thread.
+ *
+ * @param Wow64FsEnableRedirection If TRUE, requests redirection be enabled; if FALSE, requests redirection be disabled.
+ * @param OldFsRedirectionLevel The WOW64 file system redirection value. The system uses this parameter to store information necessary to revert (re-enable) file system redirection.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/wow64apiset/nf-wow64apiset-wow64disablewow64fsredirection
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9382,13 +9457,27 @@ RtlComputeCrc32(
     _In_ ULONG Length
     );
 
+/**
+ * Encodes the specified pointer. Encoded pointers can be used to provide another layer of protection for pointer values.
+ *
+ * @param Ptr The system pointer to be encoded.
+ * @return The function returns the encoded pointer.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/bb432254(v=vs.85)
+ */
 NTSYSAPI
 PVOID
 NTAPI
 RtlEncodePointer(
     _In_ PVOID Ptr
     );
-
+    
+/**
+ * Decodes a pointer that was previously encoded with RtlEncodePointer.
+ *
+ * @param Ptr The system pointer to be decoded.
+ * @return The function returns the decoded pointer.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/bb432242(v=vs.85)
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -9396,6 +9485,13 @@ RtlDecodePointer(
     _In_ PVOID Ptr
     );
 
+/**
+ * Encodes the specified pointer with a system-specific value. Encoded pointers can be used to provide another layer of protection for pointer values.
+ *
+ * @param Ptr The system pointer to be encoded.
+ * @return The function returns the encoded pointer.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/bb432255(v=vs.85)
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -9403,6 +9499,13 @@ RtlEncodeSystemPointer(
     _In_ PVOID Ptr
     );
 
+/**
+ * Decodes a pointer that was previously encoded with RtlEncodeSystemPointer.
+ *
+ * @param Ptr The pointer to be decoded.
+ * @return The function returns the decoded pointer.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/bb432243(v=vs.85)
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -9412,6 +9515,15 @@ RtlDecodeSystemPointer(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
+/**
+ * Encodes the specified pointer of the specified process. Encoded pointers can be used to provide another layer of protection for pointer values.
+ *
+ * @param ProcessHandle Handle to the remote process that owns the pointer.
+ * @param Pointer The pointer to be encoded.
+ * @param EncodedPointer The encoded pointer.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/dn877135(v=vs.85)
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9422,6 +9534,15 @@ RtlEncodeRemotePointer(
     );
 
 // rev
+/**
+ * Decodes a pointer in a specified process that was previously encoded with RtlEncodePointer or RtlEncodeRemotePointer.
+ *
+ * @param ProcessHandle Handle to the remote process that owns the pointer.
+ * @param Pointer The pointer to be decoded.
+ * @param EncodedPointer The decoded pointer.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9433,18 +9554,29 @@ RtlDecodeRemotePointer(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
-
 // rev
+/**
+ * Determines whether the specified processor feature is supported by the current computer.
+ *
+ * @param ProcessorFeature The processor feature to be tested.
+ * @return If the feature is supported, the return value is a nonzero value.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-isprocessorfeaturepresent
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsProcessorFeaturePresent(
     _In_ ULONG ProcessorFeature
     );
-
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 // rev
+/**
+ * Retrieves the number of the processor the current thread was running on during the call to this function.
+ *
+ * @return The function returns the current processor number.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessornumber
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -9453,16 +9585,21 @@ RtlGetCurrentProcessorNumber(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
-
 // rev
+/**
+ * Retrieves the processor group and number of the logical processor in which the calling thread is running.
+ *
+ * @param ProcessorNumber A pointer to a PROCESSOR_NUMBER structure that receives the processor group and number of the logical processor the calling thread is running.
+ * @return This function does not return a value.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessornumberex
+ */
 NTSYSAPI
 VOID
 NTAPI
 RtlGetCurrentProcessorNumberEx(
     _Out_ PPROCESSOR_NUMBER ProcessorNumber
     );
-
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 //
 // Stack support
@@ -9513,15 +9650,20 @@ RtlGetCallersAddress( // Use the intrinsic _ReturnAddress instead.
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
-
+/**
+ * The RtlGetEnabledExtendedFeatures routine returns a mask of extended processor features that are enabled by the system.
+ *
+ * @param FeatureMask A 64-bit feature mask. This parameter indicates a set of extended processor features for which the caller requests information about whether the features are enabled.
+ * @return A 64-bitmask of enabled extended processor features. The routine calculates this mask as the intersection (bitwise AND) between all enabled features and the value of the FeatureMask parameter.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlgetenabledextendedfeatures
+ */
 NTSYSAPI
 ULONG64
 NTAPI
 RtlGetEnabledExtendedFeatures(
     _In_ ULONG64 FeatureMask
     );
-
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS4)
 
@@ -9545,7 +9687,7 @@ RtlLocateSupervisorFeature(
     _Out_opt_ PULONG Length
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
 
 #define ELEVATION_FLAG_TOKEN_CHECKS 0x00000001
 #define ELEVATION_FLAG_VIRTUALIZATION 0x00000002
@@ -9576,7 +9718,7 @@ RtlQueryElevationFlags(
     _Out_ PRTL_ELEVATION_FLAGS Flags
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -9588,7 +9730,7 @@ RtlRegisterThreadWithCsrss(
     VOID
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -9600,7 +9742,7 @@ RtlLockCurrentThread(
     VOID
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -9612,7 +9754,7 @@ RtlUnlockCurrentThread(
     VOID
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -9624,7 +9766,7 @@ RtlLockModuleSection(
     _In_ PVOID Address
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -9636,7 +9778,7 @@ RtlUnlockModuleSection(
     _In_ PVOID Address
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 // begin_msdn:"Winternl"
 
@@ -9681,11 +9823,20 @@ RtlGetUnloadEventTraceEx(
     _Out_ PULONG *ElementCount,
     _Out_ PVOID *EventTrace // works across all processes
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
-
-NTSYSAPI
+/**
+ * The RtlCaptureStackBackTrace routine captures a stack trace by walking the stack and recording the information for each frame.
+ *
+ * @param FramesToSkip Number of frames to skip from the start (current call point) of the back trace.
+ * @param FramesToCapture Number of frames to be captured.
+ * @param BackTrace Caller-allocated array in which pointers to the return addresses captured from the current stack trace are returned.
+ * @param BackTraceHash Optional value that can be used to organize hash tables. This hash value is calculated based on the values of the pointers returned in the BackTrace array. Two identical stack traces will generate identical hash values.
+ * @return The number of captured frames.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcapturestackbacktrace
+ */
 _Success_(return != 0)
+NTSYSAPI
 USHORT
 NTAPI
 RtlCaptureStackBackTrace(
@@ -9695,6 +9846,13 @@ RtlCaptureStackBackTrace(
     _Out_opt_ PULONG BackTraceHash
     );
 
+/**
+ * The RtlCaptureContext function retrieves a context record in the context of the caller.
+ *
+ * @param ContextRecord A pointer to a CONTEXT structure.
+ * @return This function does not return a value.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlcapturecontext
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -9709,7 +9867,7 @@ NTAPI
 RtlCaptureContext2(
     _Inout_ PCONTEXT ContextRecord
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 NTSYSAPI
@@ -9719,7 +9877,7 @@ RtlRestoreContext(
     _In_ PCONTEXT ContextRecord,
     _In_opt_ struct _EXCEPTION_RECORD* ExceptionRecord
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 
 NTSYSAPI
@@ -9800,6 +9958,14 @@ RtlIsEcCode(
     );
 #endif // _M_ARM64EC
 
+/**
+ * Retrieves the base address of the image that contains the specified PC value.
+ *
+ * @param PcValue The PC value. The function searches all modules mapped into the address space of the calling process for a module that contains this value.
+ * @param BaseOfImage The base address of the image containing the PC value. This value must be added to any relative addresses in the headers to locate the image.
+ * @return If the PC value is found, returns the base address of the image that contains the PC value. If no image contains the PC value, the function returns NULL.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-rtlpctofileheader
+ */
 NTSYSAPI
 PVOID
 NTAPI
@@ -9811,7 +9977,15 @@ RtlPcToFileHeader(
 // end_msdn
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
+
 // rev
+/**
+ * Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
+ *
+ * @param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in counts.
+ * @return Returns TRUE if the function succeeds, otherwise FALSE. On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ */
 NTSYSAPI
 LOGICAL
 NTAPI
@@ -9820,12 +9994,21 @@ RtlQueryPerformanceCounter(
     );
 
 // rev
+/**
+ * Retrieves the frequency of the performance counter. The frequency of the performance counter is fixed at system boot and is consistent across all processors.
+ * Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
+ *
+ * @param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second. 
+ * @return Returns TRUE if the function succeeds, otherwise FALSE. On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancefrequency
+ */
 NTSYSAPI
 LOGICAL
 NTAPI
 RtlQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
+
 #endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 //
@@ -10037,7 +10220,7 @@ RtlSetImageMitigationPolicy(
     _In_ ULONG BufferSize
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 //
 // session
@@ -10065,7 +10248,7 @@ NTAPI
 RtlGetCurrentServiceSessionId(
     VOID
     );
-#endif
+#endif // PHNT_INLINE_TYPEDEFS
 
 #ifdef PHNT_INLINE_TYPEDEFS
 // rev
@@ -10089,7 +10272,7 @@ NTAPI
 RtlGetActiveConsoleId(
     VOID
     );
-#endif
+#endif // PHNT_INLINE_TYPEDEFS
 
 #ifdef PHNT_INLINE_TYPEDEFS
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
@@ -10106,7 +10289,7 @@ RtlGetConsoleSessionForegroundProcessId(
     else
         return USER_SHARED_DATA->ConsoleSessionForegroundProcessId;
 }
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 #else
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // private
@@ -10116,8 +10299,8 @@ NTAPI
 RtlGetConsoleSessionForegroundProcessId(
     VOID
     );
-#endif
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
+#endif // PHNT_INLINE_TYPEDEFS
 
 //
 // Appcontainer
@@ -10133,7 +10316,7 @@ RtlGetTokenNamedObjectPath(
     _In_opt_ PSID Sid,
     _Out_ PUNICODE_STRING ObjectPath // RtlFreeUnicodeString
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS2
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -10146,7 +10329,7 @@ RtlGetAppContainerNamedObjectPath(
     _In_ BOOLEAN RelativePath,
     _Out_ PUNICODE_STRING ObjectPath // RtlFreeUnicodeString
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
@@ -10157,7 +10340,7 @@ RtlGetAppContainerParent(
     _In_ PSID AppContainerSid,
     _Out_ PSID* AppContainerSidParent // RtlFreeSid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
@@ -10168,7 +10351,7 @@ RtlCheckSandboxedToken(
     _In_opt_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsSandboxed
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -10180,7 +10363,7 @@ RtlCheckTokenCapability(
     _In_ PSID CapabilitySidToCheck,
     _Out_ PBOOLEAN HasCapability
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // rev
@@ -10192,7 +10375,7 @@ RtlCapabilityCheck(
     _In_ PUNICODE_STRING CapabilityName,
     _Out_ PBOOLEAN HasCapability
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -10231,7 +10414,7 @@ RtlQueryTokenHostIdAsUlong64(
     _In_ HANDLE TokenHandle,
     _Out_ PULONG64 HostId // (WIN://PKGHOSTID)
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
@@ -10242,7 +10425,7 @@ RtlIsParentOfChildAppContainer(
     _In_ PSID ParentAppContainerSid,
     _In_ PSID ChildAppContainerSid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
@@ -10252,7 +10435,7 @@ NTAPI
 RtlIsApiSetImplemented(
     _In_z_ PCSTR ApiSetName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -10270,7 +10453,7 @@ NTAPI
 RtlIsPackageSid(
     _In_ PSID Sid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
@@ -10280,7 +10463,7 @@ NTAPI
 RtlIsValidProcessTrustLabelSid(
     _In_ PSID Sid
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 typedef enum _APPCONTAINER_SID_TYPE
 {
@@ -10300,7 +10483,7 @@ RtlGetAppContainerSidType(
     _In_ PSID AppContainerSid,
     _Out_ PAPPCONTAINER_SID_TYPE AppContainerSidType
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 NTSYSAPI
 NTSTATUS
@@ -10358,7 +10541,7 @@ RtlProcessFlsData(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID* FlsData
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
@@ -10385,7 +10568,7 @@ RtlTlsSetValue(
     _In_ ULONG TlsIndex,
     _In_ PVOID TlsData
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 //
 // State isolation
@@ -10420,9 +10603,11 @@ RtlGetPersistedStateLocation(
     _In_ ULONG BufferLengthIn,
     _Out_opt_ PULONG BufferLengthOut
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
+//
 // Cloud Filters
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // msdn
@@ -10575,7 +10760,7 @@ RtlQueryPackageClaims(
     _Out_opt_ PPS_PKG_CLAIM PkgClaim,
     _Out_opt_ PULONG64 AttributesPresent
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
@@ -10589,7 +10774,7 @@ RtlQueryPackageIdentity(
     _Inout_opt_ PSIZE_T AppIdSize,
     _Out_opt_ PBOOLEAN Packaged
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 NTSYSAPI
@@ -10604,9 +10789,11 @@ RtlQueryPackageIdentityEx(
     _Out_opt_ PGUID DynamicId,
     _Out_opt_ PULONG64 Flags
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
+//
 // Protected policies
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 // rev
@@ -10627,7 +10814,7 @@ RtlSetProtectedPolicy(
     _In_ ULONG_PTR PolicyValue,
     _Out_ PULONG_PTR OldPolicyValue
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8_1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
@@ -10637,7 +10824,7 @@ NTAPI
 RtlIsEnclaveFeaturePresent(
     _In_ ULONG FeatureMask
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 // private
@@ -10647,7 +10834,7 @@ NTAPI
 RtlIsMultiSessionSku(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // private
@@ -10657,7 +10844,7 @@ NTAPI
 RtlIsMultiUsersInSessionSku(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
@@ -10668,7 +10855,7 @@ RtlGetSessionProperties(
     _In_ ULONG SessionId,
     _Out_ PULONG SharedUserSessionId
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 // private
 typedef enum _RTL_BSD_ITEM_TYPE
@@ -10810,7 +10997,7 @@ NTAPI
 RtlRestoreBootStatusDefaults(
     _In_ HANDLE FileHandle
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // rev
@@ -11269,7 +11456,7 @@ RtlUnsubscribeFromFeatureUsageNotifications(
     _In_reads_(SubscriptionCount) PRTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS SubscriptionDetails,
     _In_ SIZE_T SubscriptionCount
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
 // private
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
@@ -11282,7 +11469,7 @@ RtlOverwriteFeatureConfigurationBuffer(
     _In_reads_bytes_opt_(ConfigurationBufferSize) PVOID ConfigurationBuffer,
     _In_ ULONG ConfigurationBufferSize
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 // rev
 NTSYSAPI

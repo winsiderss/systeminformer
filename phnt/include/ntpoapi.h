@@ -110,7 +110,7 @@
 #define BlackBoxRecorderDirectAccessBuffer 97
 #define SystemPowerSourceState 98 // since 25H2
 #define PowerInformationLevelMaximum 99
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 typedef struct _PROCESSOR_POWER_INFORMATION
 {
@@ -552,7 +552,7 @@ typedef struct _POWER_REQUEST
             ULONG PowerRequestCount[POWER_REQUEST_SUPPORTED_TYPES_V2];
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V2;
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
         struct
         {
@@ -560,7 +560,7 @@ typedef struct _POWER_REQUEST
             ULONG PowerRequestCount[POWER_REQUEST_SUPPORTED_TYPES_V3];
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V3;
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
         struct
         {
@@ -568,7 +568,7 @@ typedef struct _POWER_REQUEST
             ULONG PowerRequestCount[POWER_REQUEST_SUPPORTED_TYPES_V4];
             DIAGNOSTIC_BUFFER DiagnosticBuffer;
         } V4;
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
     };
 } POWER_REQUEST, *PPOWER_REQUEST;
 
@@ -899,7 +899,7 @@ NtPowerInformation(
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
     );
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * Enables an application to inform the system that it is in use,
@@ -930,7 +930,7 @@ NTAPI
 NtRequestWakeupLatency(
     _In_ LATENCY_TIME latency
     );
-#endif
+#endif // (PHNT_VERSION < PHNT_WINDOWS_7)
 
 /**
  * Initiates a power action of the current system.
@@ -999,4 +999,4 @@ NtIsSystemResumeAutomatic(
     VOID
     );
 
-#endif
+#endif // _NTPOAPI_H

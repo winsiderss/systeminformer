@@ -90,7 +90,7 @@ TpSetPoolThreadBasePriority(
     _Inout_ PTP_POOL Pool,
     _In_ ULONG BasePriority
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 // winbase:CreateThreadpoolCleanupGroup
 NTSYSAPI
@@ -473,6 +473,6 @@ TpCheckTerminateWorker(
     _In_ HANDLE Thread
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
-#endif
+#endif // _NTTP_H

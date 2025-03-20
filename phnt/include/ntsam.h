@@ -277,7 +277,7 @@ typedef struct _DOMAIN_PASSWORD_INFORMATION
 #define DOMAIN_REFUSE_PASSWORD_CHANGE 0x00000020L
 #define DOMAIN_NO_LM_OWF_CHANGE 0x00000040L
 
-#endif
+#endif // _DOMAIN_PASSWORD_INFORMATION_DEFINED
 
 typedef enum _DOMAIN_PASSWORD_CONSTRUCTION
 {
@@ -1891,4 +1891,4 @@ SamPerformGenericOperation(
     _Out_ PSAM_GENERIC_OPERATION_OUTPUT *OperationOut
     );
 
-#endif
+#endif // _NTSAM_H

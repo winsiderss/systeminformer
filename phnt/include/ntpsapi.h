@@ -380,7 +380,7 @@ typedef struct _PAGE_PRIORITY_INFORMATION
 /**
  * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
  */
 typedef struct _PROCESS_BASIC_INFORMATION
 {
@@ -434,7 +434,7 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 /**
  * The VM_COUNTERS structure contains various memory usage statistics for a process.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
  */
 typedef struct _VM_COUNTERS
 {
@@ -454,7 +454,7 @@ typedef struct _VM_COUNTERS
 /**
  * The VM_COUNTERS_EX structure extends VM_COUNTERS to include private memory usage.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX
 {
@@ -475,7 +475,7 @@ typedef struct _VM_COUNTERS_EX
 /**
  * The VM_COUNTERS_EX2 structure extends VM_COUNTERS_EX to include private working set size and shared commit usage.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
  */
 typedef struct _VM_COUNTERS_EX2
 {
@@ -505,7 +505,7 @@ typedef struct _VM_COUNTERS_EX2
 /**
  * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
  */
 typedef struct _KERNEL_USER_TIMES
 {
@@ -628,7 +628,7 @@ typedef struct _PROCESS_LDT_SIZE
 /**
  * The PROCESS_WS_WATCH_INFORMATION structure is used to store information about working set watch events for a process.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION
 {
@@ -641,7 +641,7 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
 /**
  * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
  */
 typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
 {
@@ -805,7 +805,7 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
     _Out_ _Field_size_(TotalTraces) PROCESS_HANDLE_TRACING_ENTRY HandleTrace[1];
 } PROCESS_HANDLE_TRACING_QUERY, *PPROCESS_HANDLE_TRACING_QUERY;
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The THREAD_TLS_INFORMATION structure contains information about the Thread Local Storage (TLS) data for a thread.
@@ -965,7 +965,7 @@ typedef struct _PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY
         };
     };
 } PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY, *PPROCESS_MITIGATION_REDIRECTION_TRUST_POLICY;
-#endif
+#endif // NTDDI_WIN10_FE
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
 typedef struct _PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY {
@@ -987,7 +987,7 @@ typedef struct _PROCESS_MITIGATION_SEHOP_POLICY {
         };
     };
 } PROCESS_MITIGATION_SEHOP_POLICY, *PPROCESS_MITIGATION_SEHOP_POLICY;
-#endif
+#endif // NTDDI_WIN10_NI
 
 typedef struct _PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
 {
@@ -1026,7 +1026,7 @@ typedef struct _PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
 #define ProcessSEHOPPolicy 18
 #define ProcessActivationContextTrustPolicy 19
 #define MaxProcessMitigationPolicy 20
-#endif
+#endif // _PHLIB_
 
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
@@ -1234,7 +1234,7 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
 /**
  * The PROCESS_JOB_MEMORY_INFO structure contains Represents app memory usage at a single point in time.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
  */
 typedef struct _PROCESS_JOB_MEMORY_INFO
 {
@@ -1531,7 +1531,7 @@ typedef struct _THREAD_TEB_INFORMATION
 /**
  * The COUNTER_READING structure is used to store individual counter data from a hardware counter.
  *
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
 {
@@ -1548,7 +1548,7 @@ typedef struct _COUNTER_READING
 /**
  * The THREAD_PERFORMANCE_DATA structure aggregates various performance metrics for a thread.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-performance_data
  */
 typedef struct _THREAD_PERFORMANCE_DATA
 {
@@ -1575,7 +1575,7 @@ typedef struct _THREAD_PERFORMANCE_DATA
 /**
  * The THREAD_PROFILING_INFORMATION structure contains profiling information and references to performance data.
  *
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
  */
 typedef struct _THREAD_PROFILING_INFORMATION
 {
@@ -1652,8 +1652,8 @@ typedef struct _THREAD_UMS_INFORMATION
 /**
  * The THREAD_NAME_INFORMATION structure assigns a description to a thread.
  *
- * \remarks The handle must have THREAD_SET_LIMITED_INFORMATION access.
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
+ * @remarks The handle must have THREAD_SET_LIMITED_INFORMATION access.
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreaddescription
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
@@ -1688,7 +1688,7 @@ typedef enum _SUBSYSTEM_INFORMATION_TYPE
     SubsystemInformationTypeWSL,
     MaxSubsystemInformationType
 } SUBSYSTEM_INFORMATION_TYPE;
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 typedef enum _THREAD_WORKLOAD_CLASS
 {
@@ -1778,7 +1778,7 @@ typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
 
 } ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
 
-#endif
+#endif // _ARM64_
 
 // private
 typedef struct _THREAD_INDEX_INFORMATION
@@ -2061,9 +2061,9 @@ NtGetNextThread(
     _In_ ULONG Flags,
     _Out_ PHANDLE NewThreadHandle
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 #define STATECHANGE_SET_ATTRIBUTES 0x0001
 
@@ -2118,7 +2118,7 @@ NtChangeProcessState(
     _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
     _In_opt_ _Reserved_ ULONG64 Reserved
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 typedef enum _THREAD_STATE_CHANGE_TYPE
 {
@@ -2171,7 +2171,7 @@ NtChangeThreadState(
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_opt_ ULONG64 Reserved
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 //
 // Threads
@@ -2281,7 +2281,7 @@ NTAPI
 NtGetCurrentProcessorNumber(
     VOID
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
@@ -2296,7 +2296,7 @@ NTAPI
 NtGetCurrentProcessorNumberEx(
     _Out_opt_ PPROCESSOR_NUMBER ProcessorNumber
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 /**
  * Retrieves the context of the specified thread.
@@ -2421,7 +2421,7 @@ NTAPI
 NtAlertThreadByThreadId(
     _In_ HANDLE ThreadId
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
@@ -2457,7 +2457,7 @@ NtAlertMultipleThreadByThreadId(
     _In_ PVOID Boost,
     _In_ ULONG BoostCount
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
@@ -2475,7 +2475,7 @@ NtWaitForAlertByThreadId(
     _In_opt_ PVOID Address,
     _In_opt_ PLARGE_INTEGER Timeout
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 /**
  * Impersonates a client thread.
@@ -2630,7 +2630,7 @@ NtQueueApcThreadEx(
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_7
 
 /**
  * The APC_CALLBACK_DATA_CONTEXT structure is used to pass information to the APC callback routine.
@@ -2676,9 +2676,9 @@ NtQueueApcThreadEx2(
     _In_opt_ PVOID ApcArgument3
     );
 
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 //
 // User processes and threads
@@ -3285,9 +3285,9 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
-#endif
+#endif // PHNT_MODE != PHNT_MODE_KERNEL
 
 //
 // Job objects
@@ -3539,7 +3539,7 @@ typedef struct _JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION
     ULONG64 DataBytesIn;
     ULONG64 DataBytesOut;
 } JOBOBJECT_NETWORK_ACCOUNTING_INFORMATION, *PJOBOBJECT_NETWORK_ACCOUNTING_INFORMATION;
-#endif
+#endif // !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 
 /**
  * Creates or opens a job object.
@@ -3688,9 +3688,9 @@ NTAPI
 NtRevertContainerImpersonation(
     VOID
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // Reserve objects
@@ -3723,7 +3723,7 @@ NtAllocateReserveObject(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 //
 // Process snapshotting
@@ -3871,7 +3871,7 @@ PssNtQuerySnapshot(
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8_1)
 
 // rev
 /**
@@ -3912,8 +3912,8 @@ NtPssCaptureVaSpaceBulk(
     _In_ SIZE_T BulkInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTPSAPI_H

@@ -13,7 +13,7 @@
 #define IMAGE_FILE_MACHINE_CHPE_X86          0x3A64
 #define IMAGE_FILE_MACHINE_ARM64EC           0xA641
 #define IMAGE_FILE_MACHINE_ARM64X            0xA64E
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 typedef struct _IMAGE_DEBUG_POGO_ENTRY
 {
@@ -208,11 +208,11 @@ typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION {
 #define IMAGE_FUNCTION_OVERRIDE_X64_REL32       1  // 32-bit relative address from byte following reloc
 #define IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26  2  // 26 bit offset << 2 & sign ext. for B & BL
 #define IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK     3
-#endif
+#endif // !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 #define IMAGE_DLLCHARACTERISTICS_EX_FORWARD_CFI_COMPAT                          0x40
 #define IMAGE_DLLCHARACTERISTICS_EX_HOTPATCH_COMPATIBLE                         0x80
-#endif
+#endif // !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 
-#endif
+#endif // _NTIMAGE_H

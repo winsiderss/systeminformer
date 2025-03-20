@@ -128,7 +128,9 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
     BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
 
+//
 // Objects, handles
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -225,7 +227,7 @@ NtWaitForMultipleObjects32(
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER Timeout
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -262,11 +264,13 @@ NtCompareObjects(
     _In_ HANDLE FirstObjectHandle,
     _In_ HANDLE SecondObjectHandle
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+//
 // Directory objects
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -322,7 +326,9 @@ NtQueryDirectoryObject(
 
 #endif
 
+//
 // Private namespaces
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -398,11 +404,13 @@ NtDeletePrivateNamespace(
     _In_ HANDLE NamespaceHandle
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+//
 // Symbolic links
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -451,8 +459,8 @@ NtSetInformationSymbolicLink(
     _In_reads_bytes_(SymbolicLinkInformationLength) PVOID SymbolicLinkInformation,
     _In_ ULONG SymbolicLinkInformationLength
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

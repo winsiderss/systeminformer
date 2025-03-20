@@ -12,7 +12,7 @@
 #define LOW_REALTIME_PRIORITY 16 // Lowest realtime priority level
 #define HIGH_PRIORITY 31 // Highest thread priority level
 #define MAXIMUM_PRIORITY 32 // Number of thread priority levels
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 typedef enum _KTHREAD_STATE
 {
@@ -126,7 +126,7 @@ typedef enum _KPROFILE_SOURCE
     ProfileMaximum
 } KPROFILE_SOURCE;
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -138,21 +138,6 @@ NtCallbackReturn(
     _In_ ULONG OutputLength,
     _In_ NTSTATUS Status
     );
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-/**
- * The NtFlushProcessWriteBuffers routine flushes the write queue of each processor that is running a thread of the current process.
- *
- * @return NTSTATUS Successful or errant status.
- * @see https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-flushprocesswritebuffers
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtFlushProcessWriteBuffers(
-    VOID
-    );
-#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -178,6 +163,6 @@ NtYieldExecution(
     VOID
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

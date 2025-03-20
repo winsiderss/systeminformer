@@ -37,6 +37,6 @@ typedef struct _NLSTABLEINFO
 NTSYSAPI USHORT NlsAnsiCodePage;
 NTSYSAPI BOOLEAN NlsMbCodePageTag;
 NTSYSAPI BOOLEAN NlsMbOemCodePageTag;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

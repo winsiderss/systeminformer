@@ -324,10 +324,10 @@ typedef enum _FILE_INFORMATION_CLASS
 
 /**
  * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
- * \li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
- * \li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
- * \li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
- * \remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
+ * @li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
+ * @li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
+ * @li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
+ * @remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
  */
 typedef struct _FILE_BASIC_INFORMATION
 {
@@ -340,7 +340,7 @@ typedef struct _FILE_BASIC_INFORMATION
 
 /**
  * The FILE_STANDARD_INFORMATION structure contains standard information of a file.
- * \remarks EndOfFile specifies the byte offset to the end of the file.
+ * @remarks EndOfFile specifies the byte offset to the end of the file.
  * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to the byte immediately following the last valid byte in the file.
  */
 typedef struct _FILE_STANDARD_INFORMATION
@@ -572,7 +572,7 @@ typedef struct _FILE_TRACKING_INFORMATION
 /**
  * The FILE_COMPLETION_INFORMATION structure contains the port handle and key for an I/O completion port created for a file handle.
  *
- * \remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
+ * @remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
  * Completion information is replaced with the ZwSetInformationFile routine with the FileInformationClass parameter set to FileReplaceCompletionInformation.
  * The Port and Key members of FILE_COMPLETION_INFORMATION are set to their new values. To remove an existing completion port for a file handle, Port is set to NULL.
  *
@@ -587,7 +587,7 @@ typedef struct _FILE_COMPLETION_INFORMATION
 /**
  * The FILE_PIPE_INFORMATION structure contains information about a named pipe that is not specific to the local or the remote end of the pipe.
  *
- * \remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
+ * @remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
  * When CompletionMode is set to FILE_PIPE_QUEUE_OPERATION, if the pipe is connected to, read to, or written from,
  * the operation is not completed until there is data to read, all data is written, or a client is connected.
  * When CompletionMode is set to FILE_PIPE_COMPLETE_OPERATION, if the pipe is being connected to, read to, or written from, the operation is completed immediately.
@@ -603,7 +603,7 @@ typedef struct _FILE_PIPE_INFORMATION
 /**
  * The FILE_PIPE_LOCAL_INFORMATION structure contains information about the local end of a named pipe.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_local_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_local_information
  */
 typedef struct _FILE_PIPE_LOCAL_INFORMATION
 {
@@ -622,7 +622,7 @@ typedef struct _FILE_PIPE_LOCAL_INFORMATION
 /**
  * The FILE_PIPE_REMOTE_INFORMATION structure contains information about the remote end of a named pipe.
  *
- * \remarks Remote information is not available for local pipes or for the server end of a remote pipe.
+ * @remarks Remote information is not available for local pipes or for the server end of a remote pipe.
  * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_remote_information
  */
 typedef struct _FILE_PIPE_REMOTE_INFORMATION
@@ -634,7 +634,7 @@ typedef struct _FILE_PIPE_REMOTE_INFORMATION
 /**
  * The FILE_MAILSLOT_QUERY_INFORMATION structure contains information about a mailslot.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_query_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_query_information
  */
 typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
 {
@@ -648,7 +648,7 @@ typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
 /**
  * The FILE_MAILSLOT_SET_INFORMATION structure is used to set a value on a mailslot.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_set_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_set_information
  */
 typedef struct _FILE_MAILSLOT_SET_INFORMATION
 {
@@ -1747,7 +1747,7 @@ NtFlushBuffersFileEx(
     _In_ ULONG ParametersSize,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1771,7 +1771,7 @@ NtQueryInformationByName(
     _In_ ULONG Length,
     _In_ FILE_INFORMATION_CLASS FileInformationClass
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS2
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1824,7 +1824,7 @@ NtQueryDirectoryFileEx(
     _In_ ULONG QueryFlags,
     _In_opt_ PUNICODE_STRING FileName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1915,7 +1915,7 @@ NtCancelIoFileEx(
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
@@ -1926,7 +1926,7 @@ NtCancelSynchronousIoFile(
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2176,7 +2176,7 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
     BYTE Reserved;
     WCHAR FileName[1];
 } FILE_NOTIFY_FULL_INFORMATION, *PFILE_NOTIFY_FULL_INFORMATION;
-#endif
+#endif // NTDDI_WIN10_NI
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 NTSYSCALLAPI
@@ -2194,12 +2194,12 @@ NtNotifyChangeDirectoryFileEx(
     _In_ BOOLEAN WatchTree,
     _In_opt_ DIRECTORY_NOTIFY_INFORMATION_CLASS DirectoryNotifyInformationClass
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 /**
- * \brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
- * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * @brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully loaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_INSUFFICIENT_RESOURCES: There are insufficient resources to load the driver.
@@ -2215,9 +2215,9 @@ NtLoadDriver(
     );
 
 /**
- * \brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
- * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * @brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully unloaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
@@ -2231,7 +2231,9 @@ NtUnloadDriver(
     _In_ PUNICODE_STRING DriverServiceName
     );
 
+//
 // I/O completion port
+//
 
 #ifndef IO_COMPLETION_QUERY_STATE
 #define IO_COMPLETION_QUERY_STATE 0x0001
@@ -3161,7 +3163,9 @@ typedef struct _FLT_ATTACH
     USHORT AltitudeOffset; // to WCHAR[] from this struct
 } FLT_ATTACH, *PFLT_ATTACH;
 
+//
 // Multiple UNC Provider
+//
 
 // rev // FSCTLs for \Device\Mup
 #define FSCTL_MUP_GET_UNC_CACHE_INFO                CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 11, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_CACHE_INFORMATION

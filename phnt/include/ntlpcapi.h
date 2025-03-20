@@ -1062,7 +1062,7 @@ AlpcGetCompletionListMessageAttributes(
     _In_ PPORT_MESSAGE Message
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // end_private
 

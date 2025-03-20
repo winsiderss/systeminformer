@@ -7,8 +7,6 @@
 #ifndef _NTWMI_H
 #define _NTWMI_H
 
-EXTERN_C_START
-
 #ifndef _TRACEHANDLE_DEFINED
 #define _TRACEHANDLE_DEFINED
 // Obsolete - prefer PROCESSTRACE_HANDLE or CONTROLTRACE_ID.
@@ -6395,7 +6393,5 @@ NTAPI
 WmiFreeBuffer(
     _In_ PVOID Buffer
     );
-
-EXTERN_C_END
 
 #endif

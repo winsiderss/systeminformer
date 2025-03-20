@@ -24,6 +24,13 @@ RtlRaiseStatus(
     _In_ NTSTATUS Status
     );
 
+/**
+ * Raises an exception in the calling thread.
+ *
+ * @param ExceptionRecord A pointer to an EXCEPTION_RECORD structure that contains the exception information. You must specify the ExceptionAddress and ExceptionCode members.
+ * @return This function does not return a value.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-raiseexception
+ */
 NTSYSAPI
 VOID
 NTAPI

@@ -476,4 +476,4 @@ NtThawTransactions(
     );
 #endif
 
-#endif
+#endif // _NTTMAPI_H

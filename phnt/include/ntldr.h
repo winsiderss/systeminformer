@@ -757,7 +757,7 @@ LdrGetFileNameFromLoadAsDataTable(
     _Out_ PVOID *pFileNamePrt
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 NTSYSAPI
 NTSTATUS
@@ -770,6 +770,16 @@ LdrDisableThreadCalloutsForDll(
 // Resources
 //
 
+/**
+ * The LdrAccessResource function returns a pointer to the first byte of the specified resource in memory.
+ *
+ * @param DllHandle A handle to the DLL.
+ * @param ResourceDataEntry The resource information block.
+ * @param ResourceBuffer The pointer to the specified resource in memory.
+ * @param ResourceLength The size, in bytes, of the specified resource.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadresource
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -792,6 +802,16 @@ typedef struct _LDR_RESOURCE_INFO
 #define RESOURCE_LANGUAGE_LEVEL 2
 #define RESOURCE_DATA_LEVEL 3
 
+/**
+ * The LdrFindResource_U function determines the location of a resource in a DLL.
+ *
+ * @param DllHandle A handle to the DLL.
+ * @param ResourceInfo The type and name of the resource.
+ * @param Level The level of resource information.
+ * @param ResourceDataEntry The resource information block.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-findresourceexw
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -953,7 +973,7 @@ LdrResRelease(
     _In_opt_ ULONG_PTR CultureNameOrId, // MAKEINTRESOURCE
     _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 // private
 typedef struct _LDR_ENUM_RESOURCE_ENTRY
@@ -1552,7 +1572,7 @@ LdrLoadEnclaveModule(
     _In_ PUNICODE_STRING DllName
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 /**
  * This function forcefully terminates the calling program if it is invoked inside a loader callout. Otherwise, it has no effect.

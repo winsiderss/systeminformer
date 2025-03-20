@@ -7231,7 +7231,7 @@ static_assert(sizeof(MANAGE_HOT_PATCH_APPLY_IMAGE_PATCH) == 0x20, "Size of MANAG
 static_assert(sizeof(MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH) == 0x30, "Size of MANAGE_HOT_PATCH_QUERY_SINGLE_PATCH is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_CHECK_ENABLED) == 0x8, "Size of MANAGE_HOT_PATCH_CHECK_ENABLED is incorrect");
 static_assert(sizeof(MANAGE_HOT_PATCH_CREATE_PATCH_SECTION) == 0x28, "Size of MANAGE_HOT_PATCH_CREATE_PATCH_SECTION is incorrect");
-#endif
+#endif // WIN64
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
@@ -7248,4 +7248,4 @@ NtManageHotPatch(
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTEXAPI_H

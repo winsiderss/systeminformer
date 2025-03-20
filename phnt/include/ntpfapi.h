@@ -9,7 +9,9 @@
 
 // begin_private
 
+//
 // Prefetch
+//
 
 typedef enum _PF_BOOT_PHASE_ID
 {
@@ -83,7 +85,9 @@ typedef struct _PREFETCHER_INFORMATION
     _Inout_ ULONG PrefetcherInformationLength;
 } PREFETCHER_INFORMATION, *PPREFETCHER_INFORMATION;
 
+//
 // Superfetch
+//
 
 typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
 {
@@ -453,4 +457,4 @@ typedef struct _SUPERFETCH_INFORMATION
 
 // end_private
 
-#endif
+#endif // _NTPFAPI_H

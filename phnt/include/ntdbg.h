@@ -385,4 +385,4 @@ EtwEventRegister(
     _Out_ PREGHANDLE RegHandle
     );
 
-#endif
+#endif // _NTDBG_H
