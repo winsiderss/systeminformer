@@ -4529,14 +4529,8 @@ typedef enum _RTL_PATH_TYPE
     RtlPathTypeRootLocalDevice  // "\\\\?\\C:\\folder\\file.txt"
 } RTL_PATH_TYPE;
 
-// Data exports (ntdll.lib/ntdllp.lib)
-
-NTSYSAPI PCWSTR RtlNtdllName;
-NTSYSAPI UNICODE_STRING RtlDosPathSeperatorsString;
-NTSYSAPI UNICODE_STRING RtlAlternateDosPathSeperatorString;
-NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
-
 #ifndef PHNT_INLINE_SEPERATOR_STRINGS
+
 #define RtlNtdllName L"ntdll.dll"
 #define RtlDosPathSeperatorsString ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\/"))
 #define RtlAlternateDosPathSeperatorString ((UNICODE_STRING)RTL_CONSTANT_STRING(L"/"))
@@ -4551,6 +4545,16 @@ NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
 #define RtlWin32NtUncRoot ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\\\?\\UNC"))
 #define RtlWin32NtUncRootSlash ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\\\?\\UNC\\"))
 #define RtlDefaultExtension ((UNICODE_STRING)RTL_CONSTANT_STRING(L".DLL"))
+
+#else
+
+// Data exports (ntdll.lib/ntdllp.lib)
+
+NTSYSAPI PCWSTR RtlNtdllName;
+NTSYSAPI UNICODE_STRING RtlDosPathSeperatorsString;
+NTSYSAPI UNICODE_STRING RtlAlternateDosPathSeperatorString;
+NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
+
 #endif // PHNT_INLINE_SEPERATOR_STRINGS
 
 //
