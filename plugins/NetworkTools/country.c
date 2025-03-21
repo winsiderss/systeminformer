@@ -17,8 +17,8 @@ BOOLEAN GeoDbExpired = FALSE;
 ULONG GeoLiteDatabaseType = 0;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbInstance = { 0 };
-PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
-PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
+CONST PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
+CONST PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
 PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
 PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -32,12 +32,12 @@ typedef struct _GEODB_IPADDR_CACHE_ENTRY
 typedef struct _GEODB_GEONAME_CACHE_TABLE
 {
     ULONG GeoNameID;
-    INT32 ResourceID;
+    LONG ResourceID;
 } GEODB_GEONAME_CACHE_TABLE, *PGEODB_GEONAME_CACHE_TABLE;
 
 typedef struct _GEODB_IMAGE_CACHE_TABLE
 {
-    INT IconIndex;
+    LONG IconIndex;
 } GEODB_IMAGE_CACHE_TABLE, *PGEODB_IMAGE_CACHE_TABLE;
 
 CONST GEODB_GEONAME_CACHE_TABLE GeoCountryResourceTable[] =
