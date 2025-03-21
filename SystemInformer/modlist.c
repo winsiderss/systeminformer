@@ -541,6 +541,7 @@ VOID PhTickModuleNodes(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_MODULE_LIST_CONTEXT context = ((PPH_MODULE_LIST_CONTEXT)_context); \
     PPH_MODULE_NODE node1 = *(PPH_MODULE_NODE *)_elem1; \
     PPH_MODULE_NODE node2 = *(PPH_MODULE_NODE *)_elem2; \
     PPH_MODULE_ITEM moduleItem1 = node1->ModuleItem; \
@@ -553,9 +554,9 @@ VOID PhTickModuleNodes(
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveBaseAddress, (ULONG_PTR)moduleItem2->EnclaveBaseAddress); \
     if (sortResult == 0) \
-        sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE); \
+        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, TRUE); \
     \
-    return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 LONG PhpModuleTreeNewPostSortFunction(
@@ -587,14 +588,14 @@ BEGIN_SORT_FUNCTION(TriState)
     }
     else
     {
-        sortResult = PhCompareString(moduleItem1->Name, moduleItem2->Name, TRUE); // fall back to sorting by name
+        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->Name, moduleItem2->Name, context->TreeNewSortOrder, TRUE); // fall back to sorting by name
     }
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareString(moduleItem1->Name, moduleItem2->Name, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->Name, moduleItem2->Name, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -612,25 +613,25 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Description)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->VersionInfo.FileDescription, moduleItem2->VersionInfo.FileDescription, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->VersionInfo.FileDescription, moduleItem2->VersionInfo.FileDescription, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CompanyName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->VersionInfo.CompanyName, moduleItem2->VersionInfo.CompanyName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->VersionInfo.CompanyName, moduleItem2->VersionInfo.CompanyName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Version)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->VersionInfo.FileVersion, moduleItem2->VersionInfo.FileVersion, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->VersionInfo.FileVersion, moduleItem2->VersionInfo.FileVersion, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -654,9 +655,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerifiedSigner)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         moduleItem1->VerifySignerName,
         moduleItem2->VerifySignerName,
+        context->TreeNewSortOrder,
         TRUE
         );
 }
@@ -748,13 +750,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ServiceName)
 {
-    sortResult = PhCompareStringWithNull(node1->ServiceText, node2->ServiceText, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ServiceText, node2->ServiceText, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -779,7 +781,7 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(Architecture)
 {
     sortResult = uintcmp(moduleItem1->ImageMachine, moduleItem2->ImageMachine);
-    if (!sortResult)
+    if (sortResult == 0)
         sortResult = uintcmp(moduleItem1->ImageCHPEVersion, moduleItem2->ImageCHPEVersion);
 }
 END_SORT_FUNCTION
