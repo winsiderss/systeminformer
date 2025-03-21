@@ -107,6 +107,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"FontMonospace", L""); // null
+    PhpAddIntegerSetting(L"FontQuality", L"0");
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder

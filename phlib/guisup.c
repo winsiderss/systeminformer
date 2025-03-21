@@ -48,6 +48,7 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
+LONG PhFontQuality = 0;
 LONG PhSystemDpi = 96;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
@@ -161,6 +162,24 @@ VOID PhGuiSupportUpdateSystemMetrics(
     PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
     PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
     PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
+}
+
+LONG PhGetFontQualitySetting(
+    _In_ LONG FontQuality
+    )
+{
+    switch (FontQuality)
+    {
+    case 0: return DEFAULT_QUALITY;
+    case 1: return DRAFT_QUALITY;
+    case 2: return PROOF_QUALITY;
+    case 3: return NONANTIALIASED_QUALITY;
+    case 4: return ANTIALIASED_QUALITY;
+    case 5: return CLEARTYPE_QUALITY;
+    case 6: return CLEARTYPE_NATURAL_QUALITY;
+    }
+
+    return DEFAULT_QUALITY;
 }
 
 HFONT PhInitializeFont(

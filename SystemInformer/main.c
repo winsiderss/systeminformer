@@ -1232,6 +1232,7 @@ VOID PhpInitializeSettings(
     PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
     PhEnableKsiSupport = !!PhGetIntegerSetting(L"KsiEnable") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64();
     PhEnableKsiWarnings = !!PhGetIntegerSetting(L"KsiEnableWarnings");
+    PhFontQuality = PhGetFontQualitySetting(PhGetIntegerSetting(L"FontQuality"));
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {

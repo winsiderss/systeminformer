@@ -53,6 +53,7 @@ typedef HANDLE HTHEME;
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
+extern LONG PhFontQuality;
 extern LONG PhSystemDpi;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
@@ -70,6 +71,13 @@ NTAPI
 PhGuiSupportUpdateSystemMetrics(
     _In_opt_ HWND WindowHandle,
     _In_opt_ LONG WindowDpi
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetFontQualitySetting(
+    _In_ LONG FontQuality
     );
 
 PHLIBAPI
@@ -2483,7 +2491,7 @@ PhCreateFont(
         ANSI_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
+        PhFontQuality,
         PitchAndFamily,
         Name
         );
@@ -2517,7 +2525,7 @@ PhCreateCommonFont(
         ANSI_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
+        PhFontQuality,
         DEFAULT_PITCH,
         logFont.lfFaceName
         );
@@ -2543,7 +2551,10 @@ PhCreateIconTitleFont(
     LOGFONT logFont;
 
     if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
+    {
+        logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
+    }
 
     return NULL;
 }
@@ -2558,7 +2569,10 @@ PhCreateMessageFont(
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
 
     if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
+    {
+        metrics.lfMessageFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&metrics.lfMessageFont);
+    }
 
     return NULL;
 }
@@ -2573,7 +2587,10 @@ PhDuplicateFont(
     LOGFONT logFont;
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
+    }
 
     return NULL;
 }
@@ -2591,6 +2608,7 @@ PhDuplicateFontWithNewWeight(
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
         logFont.lfWeight = NewWeight;
+        logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
     }
 
@@ -2611,6 +2629,7 @@ PhDuplicateFontWithNewHeight(
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
         logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
+        logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
     }
 
