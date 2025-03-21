@@ -480,6 +480,19 @@ NtSetInformationCpuPartition(
     _Reserved_ ULONG,
     _Reserved_ ULONG
     );
+    
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationCpuPartition(
+    _In_ HANDLE CpuPartitionHandle,
+    _In_ ULONG CpuPartitionInformationClass,
+    _Out_writes_bytes_opt_(CpuPartitionInformationLength) PVOID CpuPartitionInformation,
+    _In_ ULONG CpuPartitionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_11_22H2)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
