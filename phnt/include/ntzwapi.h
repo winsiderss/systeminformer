@@ -164,6 +164,8 @@ ZwAcquireCrossVmMutant(
     _In_ PLARGE_INTEGER Timeout
     );
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+# if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -172,6 +174,8 @@ ZwAcquireProcessActivityReference(
     _In_ HANDLE ParentProcessHandle,
     _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
     );
+# endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSCALLAPI
 NTSTATUS
