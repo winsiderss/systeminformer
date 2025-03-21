@@ -296,6 +296,7 @@
     <ClCompile Include="nativepipe.c" />
     <ClCompile Include="nativemodule.c" />
     <ClCompile Include="nativethread.c" />
+    <ClCompile Include="nativetoken.c" />
     <ClCompile Include="nativeuser.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />

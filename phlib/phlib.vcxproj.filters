@@ -206,6 +206,9 @@
     <ClCompile Include="firmware.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativetoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
