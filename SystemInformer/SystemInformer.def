@@ -887,6 +887,7 @@ EXPORTS
     PhAddIListViewItem
     PhAddTabControlTab
     PhBitmapSetAlpha
+    PhCreateCommonFont
     PhCreateDialog
     PhCreateIconTitleFont
     PhCreateWindowEx
