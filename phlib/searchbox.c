@@ -1202,7 +1202,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     FillRect(bufferDc, &clientRect, context->WindowBrush);
                 }
 
-                oldFont = SelectFont(bufferDc, GetWindowFont(WindowHandle));
+                oldFont = SelectFont(bufferDc, context->WindowFont);
                 clientRect.left += 2;
                 DrawText(
                     bufferDc,
