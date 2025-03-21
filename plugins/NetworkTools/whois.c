@@ -831,7 +831,7 @@ VOID WhoisParseAddressString(
 
     if (Context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &Context->RemoteEndpoint.Address.InAddr,
             0,
             Context->RemoteAddressString,

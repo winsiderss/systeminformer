@@ -75,7 +75,7 @@ static BOOLEAN ParseNetworkAddress(
 
     memset(&addressInfo, 0, sizeof(NET_ADDRESS_INFO));
 
-    if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+    if (NT_SUCCESS(PhIpv4StringToAddress(
         AddressString,
         FALSE,
         &addressInfo.Ipv4Address.sin_addr,

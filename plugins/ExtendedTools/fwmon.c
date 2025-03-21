@@ -111,7 +111,7 @@ typedef struct _FW_EVENT
     PPH_STRING ProcessFileNameWin32;
     PPH_STRING ProcessBaseString;
     PPH_STRING RemoteCountryName;
-    INT32 CountryIconIndex;
+    LONG CountryIconIndex;
 
     PSID UserSid;
     //PSID PackageSid;

@@ -207,7 +207,7 @@ VOID TracertQueueHostLookup(
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
+        if (NT_SUCCESS(PhIpv4AddressToString(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
             if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
@@ -602,7 +602,7 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
@@ -614,7 +614,7 @@ VOID TracertMenuActionCallback(
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
@@ -637,7 +637,7 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
@@ -649,7 +649,7 @@ VOID TracertMenuActionCallback(
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
@@ -672,7 +672,7 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
@@ -684,7 +684,7 @@ VOID TracertMenuActionCallback(
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
@@ -879,7 +879,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
                         if (!PhIsNullOrEmptyString(selectedNode->IpAddressString))
                         {
-                            if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                            if (NT_SUCCESS(PhIpv4StringToAddress(
                                 PhGetString(selectedNode->IpAddressString),
                                 TRUE,
                                 &remoteEndpoint.Address.InAddr,
@@ -906,7 +906,7 @@ INT_PTR CALLBACK TracertDlgProc(
                                 }
                             }
 
-                            if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                            if (NT_SUCCESS(PhIpv6StringToAddress(
                                 PhGetString(selectedNode->IpAddressString),
                                 &remoteEndpoint.Address.In6Addr,
                                 &remoteEndpointScope,
@@ -1089,7 +1089,7 @@ VOID ShowTracertWindow(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &NetworkItem->RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,
@@ -1140,7 +1140,7 @@ VOID ShowTracertWindowFromAddress(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,

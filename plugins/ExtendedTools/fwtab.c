@@ -966,7 +966,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
-                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv4AddressToString((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
                                 getCellText->Text.Length = (node->LocalAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
@@ -1043,7 +1043,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         {
                             ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
-                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
+                            if (NT_SUCCESS(PhIpv4AddressToString((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
                                 getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);

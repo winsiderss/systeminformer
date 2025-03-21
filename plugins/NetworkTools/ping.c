@@ -753,7 +753,7 @@ VOID ShowPingWindow(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &NetworkItem->RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,
@@ -803,7 +803,7 @@ VOID ShowPingWindowFromAddress(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,
