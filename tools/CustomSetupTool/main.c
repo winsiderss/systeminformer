@@ -266,8 +266,10 @@ VOID SetupSilent(
             break;
         }
 
-        if (start && NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
+        if (start && NT_SUCCESS(status) && NT_SUCCESS(Context->LastStatus))
+        {
             SetupExecuteApplication(Context);
+        }
     }
     else
     {
@@ -276,17 +278,17 @@ VOID SetupSilent(
 
         if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->LastStatus = status;
             return;
         }
 
         if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         {
-            Context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+            Context->LastStatus = STATUS_NO_MEMORY;
             return;
         }
 
-        if (!NT_SUCCESS(status = PhShellExecuteEx(
+        status = PhShellExecuteEx(
             NULL,
             PhGetString(applicationFileName),
             PhGetStringRefZ(&applicationCommandLine),
@@ -295,15 +297,16 @@ VOID SetupSilent(
             PH_SHELL_EXECUTE_ADMIN,
             INFINITE,
             &Context->SubProcessHandle
-            )))
+            );
+
+        if (!NT_SUCCESS(status))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->LastStatus = status;
             return;
         }
     }
 
-    if (!NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
-        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+    Context->LastStatus = status;
 }
 
 _Success_(return)
@@ -328,7 +331,7 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     {
         value = PhCreateBytesEx(string, stringLength);
 
-        if (object = PhCreateJsonParserEx(value, FALSE))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&object, value, FALSE)))
         {
             directory = PhGetJsonValueAsString(object, "KsiDirectory");
             serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
@@ -368,13 +371,10 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_SETUP_CONTEXT context = Context;
-
-    if (!context)
-        return FALSE;
 
     if (Option)
     {
@@ -423,6 +423,19 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
                     PhMoveReference(&context->SetupInstallPath, SetupFindInstallDirectory());
                     context->SetupIsLegacyUpdate = TRUE;
                 }
+            }
+        }
+    }
+    else
+    {
+        // Note: PhParseCommandLine requires "-" for commandline parameters 
+        // and we already support the -silent parameter however we need to maintain 
+        // compatibility with the legacy Inno Setup. (dmex)
+        if (!PhIsNullOrEmptyString(Value))
+        {
+            if (PhEqualString2(Value, L"/silent", TRUE))
+            {
+                context->Silent = TRUE;
             }
         }
     }
@@ -557,10 +570,11 @@ INT WINAPI wWinMain(
         PhWaitForSingleObject(context->SubProcessHandle, 0);
         PhGetProcessBasicInformation(context->SubProcessHandle, &processInfo);
 
-        context->ErrorCode = WIN32_FROM_NTSTATUS(processInfo.ExitStatus);
+        context->LastStatus = processInfo.ExitStatus;
 
         NtClose(context->SubProcessHandle);
     }
 
-    return context->ErrorCode;
+    PhExitApplication(context->LastStatus);
+    return PhNtStatusToDosError(context->LastStatus);
 }

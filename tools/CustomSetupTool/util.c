@@ -186,7 +186,7 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
     {
-        Context->ErrorCode = PhNtStatusToDosError(status);
+        Context->LastStatus = status;
         return FALSE;
     }
 
@@ -207,7 +207,7 @@ BOOLEAN SetupCreateUninstallFile(
 
         if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE)))
         {
-            Context->ErrorCode = PhNtStatusToDosError(status);
+            Context->LastStatus = status;
             return FALSE;
         }
     }
@@ -218,7 +218,7 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
-        Context->ErrorCode = PhNtStatusToDosError(status);
+        Context->LastStatus = status;
         return FALSE;
     }
 
@@ -302,7 +302,7 @@ BOOLEAN SetupUninstallDriver(
         if (!NT_SUCCESS(status = PhDeleteService(serviceHandle)))
         {
             success = FALSE;
-            Context->ErrorCode = PhNtStatusToDosError(status);
+            Context->LastStatus = status;
         }
 
         PhCloseServiceHandle(serviceHandle);
