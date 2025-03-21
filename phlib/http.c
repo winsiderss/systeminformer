@@ -125,8 +125,8 @@ VOID CALLBACK PhWinHttpStatusCallback(
     _In_ HINTERNET InternetHandle,
     _In_ ULONG_PTR Context,
     _In_ ULONG InternetStatus,
-    _In_opt_ LPVOID StatusInformation,
-    _In_ ULONG dwStatusInformationLength
+    _In_opt_ PVOID StatusInformation,
+    _In_ ULONG StatusInformationLength
     )
 {
     //switch (InternetStatus)
@@ -377,12 +377,8 @@ NTSTATUS PhHttpInitialize(
     httpContext->SessionHandle = sessionHandle;
 
 #if DEBUG
-    WinHttpSetStatusCallback(
-        sessionHandle,
-        PhWinHttpStatusCallback,
-        WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS,
-        0
-        );
+    PhHttpSetContext(sessionHandle, httpContext);
+    PhHttpSetCallback(sessionHandle, PhWinHttpStatusCallback, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
 #endif
 
     if (WindowsVersion < WINDOWS_8_1)
@@ -431,6 +427,16 @@ VOID PhHttpDestroy(
 {
     if (!HttpContext)
         return;
+
+    if (HttpContext->SessionHandle)
+    {
+        // WinHTTP does not synchronize WinHttpSetStatusCallback with worker threads.
+        // If a callback originating in another thread is in progress when an application calls WinHttpSetStatusCallback,
+        // the application still receives a callback notification even after WinHttpSetStatusCallback successfully
+        // sets the callback function to NULL and returns.
+
+        PhHttpSetCallback(HttpContext->SessionHandle, NULL, WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS);
+    }
 
     PhHttpClose(HttpContext, ULONG_MAX);
 
@@ -913,6 +919,30 @@ NTSTATUS PhHttpQueryHeaderUlong64(
 //    return ULONG_MAX;
 //}
 
+ULONG PhHttpQueryStatusCode(
+    _In_ PPH_HTTP_CONTEXT HttpContext
+    )
+{
+    ULONG headerValue = 0;
+    ULONG valueLength = sizeof(ULONG);
+
+    // Retrieves additional information about the status of a response that might not be reflected by the response status code.
+
+    if (WinHttpQueryHeaders(
+        HttpContext->RequestHandle,
+        WINHTTP_QUERY_WARNING,
+        WINHTTP_HEADER_NAME_BY_INDEX,
+        &headerValue,
+        &valueLength,
+        WINHTTP_NO_HEADER_INDEX
+        ))
+    {
+        return headerValue;
+    }
+
+    return ULONG_MAX;
+}
+
 PVOID PhHttpQueryOption(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ BOOLEAN SessionOption,
@@ -1278,6 +1308,47 @@ NTSTATUS PhHttpSetOptionString(
     return PhGetLastWinHttpErrorAsNtStatus();
 }
 
+NTSTATUS PhHttpSetCallback(
+    _In_ PVOID HttpHandle,
+    _In_ PPH_HTTP_STATUS_CALLBACK Callback,
+    _In_ ULONG NotificationFlags
+    )
+{
+    PPH_HTTP_STATUS_CALLBACK previousCallback;
+
+    previousCallback = WinHttpSetStatusCallback(
+        HttpHandle,
+        Callback,
+        NotificationFlags,
+        0
+        );
+
+    if (previousCallback = WINHTTP_INVALID_STATUS_CALLBACK)
+    {
+        return PhGetLastWinHttpErrorAsNtStatus();
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhHttpSetContext(
+    _In_ PVOID HttpHandle,
+    _In_ PVOID Context
+    )
+{
+    if (WinHttpSetOption(
+        HttpHandle,
+        WINHTTP_OPTION_CONTEXT_VALUE,
+        Context,
+        sizeof(ULONG_PTR)
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+}
+
 NTSTATUS PhHttpSetSecurity(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG Feature
@@ -1404,47 +1475,117 @@ PPH_STRING PhHttpGetErrorMessage(
     return message;
 }
 
-VOID PhHttpGetConnectionStatistics(
+NTSTATUS PhHttpGetCertificateInfo(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _Out_ PPH_HTTP_CERTIFICATE_INFO Certificate
+    )
+{
+    ULONG certificateInfoLength;
+    WINHTTP_CERTIFICATE_INFO certificateInfoBuffer;
+
+    certificateInfoLength = sizeof(WINHTTP_CERTIFICATE_INFO);
+    RtlZeroMemory(&certificateInfoBuffer, sizeof(WINHTTP_CERTIFICATE_INFO));
+
+    if (WinHttpQueryOption(
+        HttpContext->SessionHandle,
+        WINHTTP_OPTION_EXTENDED_ERROR,
+        &certificateInfoBuffer,
+        &certificateInfoLength
+        ))
+    {
+        RtlZeroMemory(Certificate, sizeof(PH_HTTP_CERTIFICATE_INFO));
+        Certificate->Expiry.LowPart = certificateInfoBuffer.ftExpiry.dwLowDateTime;
+        Certificate->Expiry.HighPart = certificateInfoBuffer.ftExpiry.dwHighDateTime;
+        Certificate->Start.LowPart = certificateInfoBuffer.ftStart.dwLowDateTime;
+        Certificate->Start.HighPart = certificateInfoBuffer.ftStart.dwHighDateTime;
+        Certificate->SubjectInfo = certificateInfoBuffer.lpszSubjectInfo;
+        Certificate->IssuerInfo = certificateInfoBuffer.lpszIssuerInfo;
+        Certificate->ProtocolName = certificateInfoBuffer.lpszProtocolName;
+        Certificate->SignatureAlgName = certificateInfoBuffer.lpszSignatureAlgName;
+        Certificate->EncryptionAlgName = certificateInfoBuffer.lpszEncryptionAlgName;
+        Certificate->KeySize = certificateInfoBuffer.dwKeySize;
+
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+}
+
+NTSTATUS PhHttpGetTimingInfo(
     _In_ PPH_HTTP_CONTEXT HttpContext
     )
 {
-    ULONG statisticsInfoLength = sizeof(TCP_INFO_v0);
-    TCP_INFO_v0 statisticsInfo = { 0 };
+    ULONG requestTimeLength;
+    WINHTTP_REQUEST_TIMES requestTimeBuffer;
 
-    if (WindowsVersion < WINDOWS_10_19H1)
+    requestTimeLength = sizeof(WINHTTP_REQUEST_TIMES);
+    memset(&requestTimeBuffer, 0, sizeof(WINHTTP_REQUEST_TIMES));
+    requestTimeBuffer.cTimes = WinHttpRequestTimeMax;
+
+    if (WinHttpQueryOption(
+        HttpContext->SessionHandle,
+        WINHTTP_OPTION_REQUEST_TIMES,
+        &requestTimeBuffer,
+        &requestTimeLength
+        ))
     {
-        return;
+        for (ULONG i = 0; i < WinHttpRequestTimeMax; i++)
+        {
+            dprintf("%lu: %lu\n", i, requestTimeBuffer.rgullTimes[i]);
+        }
+
+        return STATUS_SUCCESS;
     }
 
-    WinHttpQueryOption(
-        HttpContext->SessionHandle,
-        WINHTTP_OPTION_CONNECTION_STATS_V1,
-        &statisticsInfo,
-        &statisticsInfoLength
-        );
-
-    dprintf("State: %d\n", statisticsInfo.State);
-    dprintf("Mss: %lu\n", statisticsInfo.Mss);
-    dprintf("ConnectionTimeMs: %llu\n", statisticsInfo.ConnectionTimeMs);
-    dprintf("TimestampsEnabled: %d\n", statisticsInfo.TimestampsEnabled);
-    dprintf("RttUs: %lu\n", statisticsInfo.RttUs);
-    dprintf("MinRttUs: %lu\n", statisticsInfo.MinRttUs);
-    dprintf("BytesInFlight: %lu\n", statisticsInfo.BytesInFlight);
-    dprintf("Cwnd: %lu\n", statisticsInfo.Cwnd);
-    dprintf("SndWnd: %lu\n", statisticsInfo.SndWnd);
-    dprintf("RcvWnd: %lu\n", statisticsInfo.RcvWnd);
-    dprintf("RcvBuf: %lu\n", statisticsInfo.RcvBuf);
-    dprintf("BytesOut: %llu\n", statisticsInfo.BytesOut);
-    dprintf("BytesIn: %llu\n", statisticsInfo.BytesIn);
-    dprintf("BytesReordered: %lu\n", statisticsInfo.BytesReordered);
-    dprintf("BytesRetrans: %lu\n", statisticsInfo.BytesRetrans);
-    dprintf("FastRetrans: %lu\n", statisticsInfo.FastRetrans);
-    dprintf("DupAcksIn: %lu\n", statisticsInfo.DupAcksIn);
-    dprintf("TimeoutEpisodes: %lu\n", statisticsInfo.TimeoutEpisodes);
-    dprintf("SynRetrans: %u\n", statisticsInfo.SynRetrans);
+    return PhGetLastWinHttpErrorAsNtStatus();
 }
 
-ULONG PhHttpetGetExtendedStatusCode(
+NTSTATUS PhHttpGetStatistics(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    )
+{
+    // WINHTTP_OPTION_CONNECTION_STATS_V0
+    // WINHTTP_OPTION_CONNECTION_STATS_V1
+    // WINHTTP_OPTION_CONNECTION_STATS_V2
+
+    if (WinHttpQueryOption(
+        HttpContext->SessionHandle,
+        WINHTTP_OPTION_CONNECTION_STATS_V0,
+        Buffer,
+        BufferLength
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+
+    //ULONG statisticsInfoLength = sizeof(TCP_INFO_v0);
+    //TCP_INFO_v0 statisticsInfo = { 0 };
+    //dprintf("State: %d\n", statisticsInfo.State);
+    //dprintf("Mss: %lu\n", statisticsInfo.Mss);
+    //dprintf("ConnectionTimeMs: %llu\n", statisticsInfo.ConnectionTimeMs);
+    //dprintf("TimestampsEnabled: %d\n", statisticsInfo.TimestampsEnabled);
+    //dprintf("RttUs: %lu\n", statisticsInfo.RttUs);
+    //dprintf("MinRttUs: %lu\n", statisticsInfo.MinRttUs);
+    //dprintf("BytesInFlight: %lu\n", statisticsInfo.BytesInFlight);
+    //dprintf("Cwnd: %lu\n", statisticsInfo.Cwnd);
+    //dprintf("SndWnd: %lu\n", statisticsInfo.SndWnd);
+    //dprintf("RcvWnd: %lu\n", statisticsInfo.RcvWnd);
+    //dprintf("RcvBuf: %lu\n", statisticsInfo.RcvBuf);
+    //dprintf("BytesOut: %llu\n", statisticsInfo.BytesOut);
+    //dprintf("BytesIn: %llu\n", statisticsInfo.BytesIn);
+    //dprintf("BytesReordered: %lu\n", statisticsInfo.BytesReordered);
+    //dprintf("BytesRetrans: %lu\n", statisticsInfo.BytesRetrans);
+    //dprintf("FastRetrans: %lu\n", statisticsInfo.FastRetrans);
+    //dprintf("DupAcksIn: %lu\n", statisticsInfo.DupAcksIn);
+    //dprintf("TimeoutEpisodes: %lu\n", statisticsInfo.TimeoutEpisodes);
+    //dprintf("SynRetrans: %u\n", statisticsInfo.SynRetrans);
+}
+
+ULONG PhHttpGetExtendedStatusCode(
     _In_ PPH_HTTP_CONTEXT HttpContext
     )
 {
@@ -1481,6 +1622,55 @@ NTSTATUS PhHttpSetCredentials(
 
     return PhGetLastWinHttpErrorAsNtStatus();
 }
+
+//
+// IPv4 and IPv6
+//
+
+NTSTATUS PhIpv4AddressToString(
+    _In_ PCIN_ADDR Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    )
+{
+    return RtlIpv4AddressToStringEx(Address, Port, AddressString, AddressStringLength);
+}
+
+NTSTATUS PhIpv4StringToAddress(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PIN_ADDR Address,
+    _Out_ PUSHORT Port
+    )
+{
+    return RtlIpv4StringToAddressEx(AddressString, Strict, Address, Port);
+}
+
+NTSTATUS PhIpv6AddressToString(
+    _In_ PCIN6_ADDR Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    )
+{
+    return RtlIpv6AddressToStringEx(Address, ScopeId, Port, AddressString, AddressStringLength);
+}
+
+NTSTATUS PhIpv6StringToAddress(
+    _In_ PCWSTR AddressString,
+    _Out_ PIN6_ADDR Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
+    )
+{
+    return RtlIpv6StringToAddressEx(AddressString, Address, ScopeId, Port);
+}
+
+//
+// DOH
+//
 
 HINTERNET PhCreateDohConnectionHandle(
     _In_opt_ PCWSTR DnsServerAddress

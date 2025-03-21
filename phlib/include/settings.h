@@ -397,6 +397,30 @@ NTSTATUS PhSaveSettings(
     _In_ PCPH_STRINGREF FileName
     );
 
+FORCEINLINE
+NTSTATUS
+PhLoadSettings2(
+    _In_ PPH_STRING FileName
+    )
+{
+    if (PhIsNullOrEmptyString(FileName))
+        return STATUS_UNSUCCESSFUL;
+
+    return PhLoadSettings(&FileName->sr);
+}
+
+FORCEINLINE
+NTSTATUS
+PhSaveSettings2(
+    _In_ PPH_STRING FileName
+    )
+{
+    if (PhIsNullOrEmptyString(FileName))
+        return STATUS_UNSUCCESSFUL;
+
+    return PhSaveSettings(&FileName->sr);
+}
+
 VOID PhResetSettings(
     _In_ HWND hwnd
     );

@@ -525,6 +525,33 @@ PhHttpSetOptionString(
     _In_ PPH_STRINGREF Value
     );
 
+typedef _Function_class_(PH_HTTP_STATUS_CALLBACK)
+VOID CALLBACK PH_HTTP_STATUS_CALLBACK(
+    _In_ PVOID InternetHandle,
+    _In_ ULONG_PTR Context,
+    _In_ ULONG InternetStatus,
+    _In_opt_ LPVOID StatusInformation,
+    _In_ ULONG StatusInformationLength
+    );
+typedef PH_HTTP_STATUS_CALLBACK* PPH_HTTP_STATUS_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSetCallback(
+    _In_ PVOID HttpHandle,
+    _In_ PPH_HTTP_STATUS_CALLBACK Callback,
+    _In_ ULONG NotificationFlags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpSetContext(
+    _In_ PVOID HttpHandle,
+    _In_ PVOID Context
+    );
+
 FORCEINLINE
 NTSTATUS
 PhWinHttpSetOptionStringZ(
@@ -581,6 +608,35 @@ PhHttpGetErrorMessage(
     _In_ ULONG ErrorCode
     );
 
+typedef struct _PH_HTTP_CERTIFICATE_INFO
+{
+    LARGE_INTEGER Expiry;
+    LARGE_INTEGER Start;
+    PWSTR SubjectInfo;
+    PWSTR IssuerInfo;
+    PWSTR ProtocolName;
+    PWSTR SignatureAlgName;
+    PWSTR EncryptionAlgName;
+    ULONG KeySize;
+} PH_HTTP_CERTIFICATE_INFO, *PPH_HTTP_CERTIFICATE_INFO;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpGetCertificateInfo(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _Out_ PPH_HTTP_CERTIFICATE_INFO Certificate
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpGetStatistics(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -588,6 +644,51 @@ PhHttpSetCredentials(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ PCWSTR Name,
     _In_ PCWSTR Value
+    );
+
+//
+// IPv4 and IPv6
+//
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv4AddressToString(
+    _In_ PCIN_ADDR Address,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv4StringToAddress(
+    _In_ PCWSTR AddressString,
+    _In_ BOOLEAN Strict,
+    _Out_ PIN_ADDR Address,
+    _Out_ PUSHORT Port
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv6AddressToString(
+    _In_ PCIN6_ADDR Address,
+    _In_ ULONG ScopeId,
+    _In_ USHORT Port,
+    _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    _Inout_ PULONG AddressStringLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIpv6StringToAddress(
+    _In_ PCWSTR AddressString,
+    _Out_ PIN6_ADDR Address,
+    _Out_ PULONG ScopeId,
+    _Out_ PUSHORT Port
     );
 
 //

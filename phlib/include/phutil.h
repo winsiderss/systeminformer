@@ -2036,15 +2036,16 @@ PhGetFileData(
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhGetFileText(
+    _Out_ PVOID* String,
     _In_ HANDLE FileHandle,
     _In_ BOOLEAN Unicode
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhFileReadAllText(
     _In_ PCPH_STRINGREF FileName,
@@ -2052,9 +2053,10 @@ PhFileReadAllText(
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhFileReadAllTextWin32(
+    _Out_ PVOID* String,
     _In_ PCWSTR FileName,
     _In_ BOOLEAN Unicode
     );
