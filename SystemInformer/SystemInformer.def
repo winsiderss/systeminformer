@@ -888,9 +888,12 @@ EXPORTS
     PhAddTabControlTab
     PhBitmapSetAlpha
     PhCreateDialog
+    PhCreateIconTitleFont
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
+    PhDuplicateFont
+    PhDuplicateFontWithNewWeight
     PhEnumChildWindows
     PhEnumWindows
     PhFindIListViewItemByFlags

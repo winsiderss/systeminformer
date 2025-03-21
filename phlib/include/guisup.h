@@ -2468,7 +2468,7 @@ PhThemeWindowDrawToolbar(
 
 // Font support
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateFont(
@@ -2477,27 +2477,9 @@ PhCreateFont(
     _In_ LONG Weight,
     _In_ LONG PitchAndFamily,
     _In_ LONG Dpi
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, Dpi, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        PhFontQuality,
-        PitchAndFamily,
-        Name
-        );
-}
+    );
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateCommonFont(
@@ -2505,136 +2487,45 @@ PhCreateCommonFont(
     _In_ LONG Weight,
     _In_opt_ HWND WindowHandle,
     _In_ LONG WindowDpi
-    )
-{
-    HFONT fontHandle;
-    LOGFONT logFont;
+    );
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-        return NULL;
-
-    fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, WindowDpi, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        PhFontQuality,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
-        );
-
-    if (!fontHandle)
-        return NULL;
-
-    if (WindowHandle)
-    {
-        SetWindowFont(WindowHandle, fontHandle, TRUE);
-    }
-
-    return fontHandle;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateIconTitleFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-    {
-        logFont.lfQuality = (UCHAR)PhFontQuality;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateMessageFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
-    {
-        metrics.lfMessageFont.lfQuality = (UCHAR)PhFontQuality;
-        return CreateFontIndirect(&metrics.lfMessageFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFont(
     _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
+);
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfQuality = (UCHAR)PhFontQuality;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewWeight(
     _In_ HFONT Font,
     _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        logFont.lfQuality = (UCHAR)PhFontQuality;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewHeight(
     _In_ HFONT Font,
     _In_ LONG NewHeight,
     _In_ LONG dpiValue
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
-        logFont.lfQuality = (UCHAR)PhFontQuality;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
+    );
 
 FORCEINLINE
 BOOLEAN
