@@ -33,7 +33,6 @@ PH_DECLARE_IMPORT(NtChangeProcessState);
 PH_DECLARE_IMPORT(NtCreateThreadStateChange);
 PH_DECLARE_IMPORT(NtChangeThreadState);
 PH_DECLARE_IMPORT(NtCopyFileChunk);
-PH_DECLARE_IMPORT(NtAllocateVirtualMemoryEx);
 PH_DECLARE_IMPORT(NtCompareObjects);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
@@ -41,11 +40,13 @@ PH_DECLARE_IMPORT(LdrControlFlowGuardEnforcedWithExportSuppression);
 PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
+PH_DECLARE_IMPORT(RtlDelayExecution);
+PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
+PH_DECLARE_IMPORT(RtlDosLongPathNameToNtPathName_U_WithStatus);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
 PH_DECLARE_IMPORT(RtlGetAppContainerParent);
-PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 
 PH_DECLARE_IMPORT(PssNtCaptureSnapshot);
 PH_DECLARE_IMPORT(PssNtQuerySnapshot);

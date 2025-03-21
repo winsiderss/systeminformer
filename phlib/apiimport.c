@@ -166,7 +166,6 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateThreadStateChange);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeThreadState);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
-PH_DEFINE_IMPORT(L"ntdll.dll", NtAllocateVirtualMemoryEx);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
 
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
@@ -174,11 +173,13 @@ PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppr
 PH_DEFINE_IMPORT(L"ntdll.dll", LdrSystemDllInitBlock);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlDelayExecution);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlDeriveCapabilitySidsFromName);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlDosLongPathNameToNtPathName_U_WithStatus);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerParent);
-PH_DEFINE_IMPORT(L"ntdll.dll", RtlDeriveCapabilitySidsFromName);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtCaptureSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtQuerySnapshot);

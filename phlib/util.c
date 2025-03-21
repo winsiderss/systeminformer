@@ -682,7 +682,7 @@ PPH_STRING PhGetNtFormatMessage(
 
     messageLength = FormatMessage(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_FROM_SYSTEM,
-        PhGetLoaderEntryDllBaseZ(L"ntdll.dll"),
+        PhGetLoaderEntryDllBaseZ(RtlNtdllName),
         Status,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (PWSTR)&messageBuffer,
@@ -8487,27 +8487,9 @@ NTSTATUS PhDelayExecutionEx(
     _In_ PLARGE_INTEGER DelayInterval
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS (NTAPI* RtlDelayExecution_I)(
-        _In_ BOOLEAN Alertable,
-        _In_opt_ PLARGE_INTEGER DelayInterval
-        ) = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
+    if (WindowsVersion >= WINDOWS_11 && RtlDelayExecution_Import())
     {
-        PVOID ntdll;
-
-        if (ntdll = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
-        {
-            RtlDelayExecution_I = PhGetDllBaseProcedureAddress(ntdll, "RtlDelayExecution", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (RtlDelayExecution_I)
-    {
-        return RtlDelayExecution_I(Alertable, DelayInterval);
+        return RtlDelayExecution_Import()(Alertable, DelayInterval);
     }
 
     return NtDelayExecution(Alertable, DelayInterval);

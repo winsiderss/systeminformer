@@ -140,7 +140,7 @@ PhReadPerformanceFrequency(
     )
 {
     LARGE_INTEGER counter;
-    PhQueryPerformanceCounter(&counter);
+    PhQueryPerformanceFrequency(&counter);
     return (ULONGLONG)counter.QuadPart;
 }
 

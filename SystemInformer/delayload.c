@@ -86,28 +86,7 @@ PVOID WINAPI __delayLoadHelper2(
     _In_ PIMAGE_THUNK_DATA ThunkAddress
     )
 {
-#ifdef PH_NATIVE_DELAYLOAD
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID (WINAPI* DelayLoadFailureHook)(
-        _In_ PCSTR DllName,
-        _In_ PCSTR ProcName
-        ) = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        DelayLoadFailureHook = PhGetModuleProcAddress(L"kernel32.dll", "DelayLoadFailureHook"); // kernelbase.dll
-        PhEndInitOnce(&initOnce);
-    }
-
-    return LdrResolveDelayLoadedAPI(
-        NtCurrentImageBase(),
-        DelayloadDescriptor,
-        NULL,
-        DelayLoadFailureHook,
-        ThunkAddress,
-        0
-        );
-#else
+#if !defined(PH_NATIVE_DELAYLOAD)
     BOOLEAN importNeedsFree = FALSE;
     PCSTR importDllName;
     PVOID procedureAddress;
@@ -184,5 +163,26 @@ PVOID WINAPI __delayLoadHelper2(
     }
 
     return procedureAddress;
+#else
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID (WINAPI* DelayLoadFailureHook)(
+        _In_ PCSTR DllName,
+        _In_ PCSTR ProcName
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        DelayLoadFailureHook = PhGetModuleProcAddress(L"kernel32.dll", "DelayLoadFailureHook"); // kernelbase.dll
+        PhEndInitOnce(&initOnce);
+    }
+
+    return LdrResolveDelayLoadedAPI(
+        NtCurrentImageBase(),
+        DelayloadDescriptor,
+        NULL,
+        DelayLoadFailureHook,
+        ThunkAddress,
+        0
+        );
 #endif
 }

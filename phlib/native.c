@@ -7024,33 +7024,14 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static NTSTATUS (NTAPI* RtlDosLongPathNameToNtPathName_I_WithStatus)(
-        _In_ PCWSTR DosFileName,
-        _Out_ PUNICODE_STRING NtFileName,
-        _Out_opt_ PWSTR *FilePart,
-        _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
-        ) = NULL;
     NTSTATUS status;
 
-    if (PhBeginInitOnce(&initOnce))
+    if (
+        WindowsVersion >= WINDOWS_10_RS1 && RtlAreLongPathsEnabled() &&
+        RtlDosLongPathNameToNtPathName_U_WithStatus_Import()
+        )
     {
-        if (WindowsVersion >= WINDOWS_10_RS1 && RtlAreLongPathsEnabled())
-        {
-            PVOID baseAddress;
-
-            if (baseAddress = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
-            {
-                RtlDosLongPathNameToNtPathName_I_WithStatus = PhGetDllBaseProcedureAddress(baseAddress, "RtlDosLongPathNameToNtPathName_U_WithStatus", 0);
-            }
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (RtlDosLongPathNameToNtPathName_I_WithStatus)
-    {
-        status = RtlDosLongPathNameToNtPathName_I_WithStatus(
+        status = RtlDosLongPathNameToNtPathName_U_WithStatus_Import()(
             DosFileName,
             NtFileName,
             FilePart,

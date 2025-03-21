@@ -2048,6 +2048,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhFileReadAllText(
+    _Out_ PVOID* String,
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN Unicode
     );
@@ -2170,19 +2171,35 @@ PhGetMillisecondsStopwatch(
 }
 
 FORCEINLINE
-ULONGLONG
+DOUBLE
 PhGetMicrosecondsStopwatch(
     _In_ PPH_STOPWATCH Stopwatch
     )
 {
-    LARGE_INTEGER elapsedMicroseconds;
+    DOUBLE elapsedMicroseconds;
 
     // Convert to microseconds before dividing by ticks-per-second.
-    elapsedMicroseconds.QuadPart = Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart;
-    elapsedMicroseconds.QuadPart *= 1000000;
-    elapsedMicroseconds.QuadPart /= Stopwatch->Frequency.QuadPart;
+    elapsedMicroseconds = (DOUBLE)(Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart);
+    elapsedMicroseconds *= 1000000.0;
+    elapsedMicroseconds /= (DOUBLE)Stopwatch->Frequency.QuadPart;
 
-    return elapsedMicroseconds.QuadPart;
+    return elapsedMicroseconds;
+}
+
+FORCEINLINE
+DOUBLE
+PhGetNanosecondsStopwatch(
+    _In_ PPH_STOPWATCH Stopwatch
+    )
+{
+    DOUBLE elapsedNanoseconds;
+
+    // Convert to nanoseconds before dividing by ticks-per-second.  
+    elapsedNanoseconds = (DOUBLE)(Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart);
+    elapsedNanoseconds *= 1000000000.0;
+    elapsedNanoseconds /= (DOUBLE)Stopwatch->Frequency.QuadPart;
+
+    return elapsedNanoseconds;
 }
 
 PHLIBAPI

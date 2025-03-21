@@ -1430,24 +1430,12 @@ NTSTATUS PhCreateServiceSidToBuffer(
     _Inout_ PULONG ServiceSidLength
     )
 {
-    typedef NTSTATUS (NTAPI* _RtlCreateServiceSid)(
-        _In_ PUNICODE_STRING ServiceName,
-        _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
-        _Inout_ PULONG ServiceSidLength
-        );
-    static _RtlCreateServiceSid RtlCreateServiceSid_I = NULL;
     UNICODE_STRING serviceName;
     NTSTATUS status;
 
-    if (!RtlCreateServiceSid_I)
-    {
-        if (!(RtlCreateServiceSid_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlCreateServiceSid", 0)))
-            return STATUS_PROCEDURE_NOT_FOUND;
-    }
-
     PhStringRefToUnicodeString(ServiceName, &serviceName);
 
-    status = RtlCreateServiceSid_I(
+    status = RtlCreateServiceSid(
         &serviceName,
         ServiceSid,
         ServiceSidLength
