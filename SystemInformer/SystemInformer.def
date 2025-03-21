@@ -1176,6 +1176,10 @@ EXPORTS
     PhHttpSetSecurity
     PhHttpSetProtocal
     PhHttpWriteData
+    PhIpv4AddressToString
+    PhIpv6AddressToString
+    PhIpv4StringToAddress
+    PhIpv6StringToAddress
 
 ; ksiuser
     KsiLevel
