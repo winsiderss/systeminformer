@@ -852,7 +852,7 @@ VOID PhInitializeCapabilitySidCache(
 
     if (capabilityListFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\CapsList.txt", TRUE))
     {
-        capabilityListString = PhFileReadAllText(&capabilityListFileName->sr, TRUE);
+        PhFileReadAllText(&capabilityListString, &capabilityListFileName->sr, TRUE);
         PhDereferenceObject(capabilityListFileName);
     }
 

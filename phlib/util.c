@@ -3400,8 +3400,8 @@ PPH_STRING PhGetSystemDirectory(
 {
     static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     static PPH_STRING cachedSystemDirectory = NULL;
-    PPH_STRING systemDirectory;
     PH_STRINGREF systemRootString;
+    PPH_STRING systemDirectory;
     PPH_STRING previousSystemDirectory;
 
     // Use the cached value if possible.
@@ -3582,6 +3582,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
 {
     static PPH_STRING cachedFileName = NULL;
     PPH_STRING fileName;
+    PPH_STRING string;
 
     if (fileName = ReadPointerAcquire(&cachedFileName))
     {
@@ -3590,11 +3591,9 @@ PPH_STRING PhGetApplicationFileNameWin32(
 
     if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
     {
-        PPH_STRING fullPath;
-
-        if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+        if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &string, NULL)))
         {
-            PhMoveReference(&fileName, fullPath);
+            PhMoveReference(&fileName, string);
         }
     }
 
@@ -7876,40 +7875,52 @@ NTSTATUS PhGetFileData(
     return status;
 }
 
-PVOID PhGetFileText(
+NTSTATUS PhGetFileText(
+    _Out_ PVOID* String,
     _In_ HANDLE FileHandle,
     _In_ BOOLEAN Unicode
     )
 {
-    PVOID string = NULL;
+    NTSTATUS status;
     ULONG dataLength;
     PSTR data;
 
-    if (NT_SUCCESS(PhGetFileData(FileHandle, &data, &dataLength)))
+    status = PhGetFileData(
+        FileHandle,
+        &data,
+        &dataLength
+        );
+
+    if (NT_SUCCESS(status))
     {
         if (dataLength)
         {
             if (Unicode)
-                string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+                *String = PhConvertUtf8ToUtf16Ex(data, dataLength);
             else
-                string = PhCreateBytesEx(data, dataLength);
+                *String = PhCreateBytesEx(data, dataLength);
+        }
+        else
+        {
+            *String = PhReferenceEmptyString();
         }
 
         PhFree(data);
     }
 
-    return string;
+    return status;
 }
 
-PVOID PhFileReadAllText(
+NTSTATUS PhFileReadAllText(
+    _Out_ PVOID* String,
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN Unicode
     )
 {
-    PVOID string = NULL;
+    NTSTATUS status;
     HANDLE fileHandle;
 
-    if (NT_SUCCESS(PhCreateFile(
+    status = PhCreateFile(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ,
@@ -7917,24 +7928,31 @@ PVOID PhFileReadAllText(
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
-        string = PhGetFileText(fileHandle, Unicode);
+        status = PhGetFileText(
+            String,
+            fileHandle,
+            Unicode
+            );
         NtClose(fileHandle);
     }
 
-    return string;
+    return status;
 }
 
-PVOID PhFileReadAllTextWin32(
+NTSTATUS PhFileReadAllTextWin32(
+    _Out_ PVOID* String,
     _In_ PCWSTR FileName,
     _In_ BOOLEAN Unicode
     )
 {
-    PVOID string = NULL;
+    NTSTATUS status;
     HANDLE fileHandle;
 
-    if (NT_SUCCESS(PhCreateFileWin32(
+    status = PhCreateFileWin32(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ,
@@ -7942,13 +7960,19 @@ PVOID PhFileReadAllTextWin32(
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
-        string = PhGetFileText(fileHandle, Unicode);
+        );
+
+    if (NT_SUCCESS(status))
+    {        
+        status = PhGetFileText(
+            String,
+            fileHandle,
+            Unicode
+            );
         NtClose(fileHandle);
     }
 
-    return string;
+    return status;
 }
 
 NTSTATUS PhFileWriteAllText(
@@ -8906,7 +8930,10 @@ NTSTATUS PhCreateProcessRedirection(
             );
     }
 
-    output = PhGetFileText(outputReadHandle, TRUE);
+    status = PhGetFileText(&output, outputReadHandle, TRUE);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     //if (PhIsNullOrEmptyString(output))
     //{

@@ -223,8 +223,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
-
-    if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
         goto CleanupExit;
 
     PVOID dataObject = PhGetJsonObject(jsonRootObject, "data");
@@ -358,8 +357,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
-
-    if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
         goto CleanupExit;
 
     result = PhAllocateZero(sizeof(VIRUSTOTAL_API_RESPONSE));

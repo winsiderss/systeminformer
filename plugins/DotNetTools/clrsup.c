@@ -917,7 +917,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
     PVOID jsonArray;
     ULONG arrayLength;
 
-    if (!(jsonArray = PhCreateJsonParserEx(String, FALSE)))
+    if (!NT_SUCCESS(PhCreateJsonParserEx(&jsonArray, String, FALSE)))
         return NULL;
     if (PhGetJsonObjectType(jsonArray) != PH_JSON_OBJECT_TYPE_ARRAY)
         goto CleanupExit;

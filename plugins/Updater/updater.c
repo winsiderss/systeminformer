@@ -601,8 +601,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
-
-    if (!(jsonObject = PhCreateJsonParserEx(jsonString, FALSE)))
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonObject, jsonString, FALSE)))
         goto CleanupExit;
 
     Context->Version = PhGetJsonValueAsString(jsonObject, "version");
@@ -1340,7 +1339,7 @@ VOID ShowStartupUpdateDialog(
     {
         PVOID jsonObject;
 
-        if (jsonObject = PhCreateJsonParserEx(jsonString, TRUE))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&jsonObject, jsonString, TRUE)))
         {
             ULONG majorVersion;
             ULONG minorVersion;

@@ -1410,7 +1410,7 @@ BOOLEAN PhParseKsiSettingsBlob(
     {
         value = PhCreateBytesEx(string, stringLength);
 
-        if (object = PhCreateJsonParserEx(value, FALSE))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&object, value, FALSE)))
         {
             directory = PhGetJsonValueAsString(object, "KsiDirectory");
             serviceName = PhGetJsonValueAsString(object, "KsiServiceName");

@@ -710,7 +710,7 @@ NTSTATUS UploadFileThreadStart(
                     goto CleanupExit;
                 }
 
-                if (jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE))
+                if (NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
                 {
                     errorCode = PhGetJsonValueAsUInt64(jsonRootObject, "code");
 
@@ -747,7 +747,7 @@ NTSTATUS UploadFileThreadStart(
                 }
                 else
                 {
-                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
+                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(status));
                     goto CleanupExit;
                 }
 
@@ -777,7 +777,7 @@ NTSTATUS UploadFileThreadStart(
                     }
                 }
 
-                if (jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE))
+                if (NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
                 {
                     PPH_STRING permalink = PhGetJsonValueAsString(jsonRootObject, "permalink");
 
@@ -809,7 +809,12 @@ NTSTATUS UploadFileThreadStart(
 
                     PhFreeJsonObject(jsonRootObject);
                 }
-
+                else                
+                {
+                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(status));
+                    goto CleanupExit;
+                }
+                
                 if (PhIsNullOrEmptyString(context->LaunchCommand))
                 {
                     RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
@@ -832,7 +837,7 @@ NTSTATUS UploadFileThreadStart(
                     goto CleanupExit;
                 }
 
-                if (jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE))
+                if (NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
                 {
                     PPH_STRING redirectUrl;
 
@@ -843,6 +848,11 @@ NTSTATUS UploadFileThreadStart(
                     }
 
                     PhFreeJsonObject(jsonRootObject);
+                }
+                else
+                {
+                    RaiseUploadError(context, L"Unable to parse the request", PhNtStatusToDosError(status));
+                    goto CleanupExit;
                 }
 
                 PhDereferenceObject(jsonString);
@@ -1010,7 +1020,7 @@ NTSTATUS UploadCheckThreadStart(
                 goto CleanupExit;
             }
 
-            if (rootJsonObject = PhCreateJsonParserEx(subRequestBuffer, FALSE))
+            if (NT_SUCCESS(status = PhCreateJsonParserEx(&rootJsonObject, subRequestBuffer, FALSE)))
             {
                 PPH_STRING errorMessage = PhGetJsonValueAsString(rootJsonObject, "message");
 
@@ -1033,7 +1043,7 @@ NTSTATUS UploadCheckThreadStart(
             }
             else
             {
-                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
+                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(status));
             }
         }
         break;
@@ -1063,7 +1073,7 @@ NTSTATUS UploadCheckThreadStart(
                 goto CleanupExit;
             }
 
-            if (rootJsonObject = PhCreateJsonParserEx(subRequestBuffer, FALSE))
+            if (NT_SUCCESS(status = PhCreateJsonParserEx(&rootJsonObject, subRequestBuffer, FALSE)))
             {
                 PVOID dataObject = PhGetJsonObject(rootJsonObject, "data");
                 PVOID attributesObject = PhGetJsonObject(dataObject, "attributes");
@@ -1105,12 +1115,16 @@ NTSTATUS UploadCheckThreadStart(
                     }
                     PhDereferenceObject(vt3UploadUrl);
 
-                    if (vt3RootJsonObject = PhCreateJsonParserEx(vt3UploadRequestBuffer, FALSE))
+                    if (NT_SUCCESS(status = PhCreateJsonParserEx(&vt3RootJsonObject, vt3UploadRequestBuffer, FALSE)))
                     {
                         PhMoveReference(&context->FileUpload, PhGetJsonValueAsString(vt3RootJsonObject, "data"));
                         PhFreeJsonObject(vt3RootJsonObject);
                     }
-
+                    else
+                    {
+                        RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(status));
+                    }
+                    
                     PhClearReference(&vt3UploadRequestBuffer);
                 }
 
@@ -1125,7 +1139,7 @@ NTSTATUS UploadCheckThreadStart(
             }
             else
             {
-                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
+                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(status));
             }
         }
         break;

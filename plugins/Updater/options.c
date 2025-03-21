@@ -219,7 +219,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     PPH_LIST results = NULL;
     PPH_BYTES jsonString = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
-    PVOID jsonRootObject = NULL;
+    PVOID jsonObject = NULL;
     ULONG i;
     ULONG arrayLength;
 
@@ -235,20 +235,16 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
         goto CleanupExit;
     if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
         goto CleanupExit;
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonObject, jsonString, FALSE)))
+        goto CleanupExit;
 
-    if (!(jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE)))
+    if (PhGetJsonObjectType(jsonObject) != PH_JSON_OBJECT_TYPE_ARRAY)
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
-    if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)
-    {
-        status = STATUS_UNSUCCESSFUL;
-        goto CleanupExit;
-    }
-
-    if (!(arrayLength = PhGetJsonArrayLength(jsonRootObject)))
+    if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
@@ -265,7 +261,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
             PVOID jsonCommitObject;
             PVOID jsonAuthorObject;
 
-            if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonRootObject, i)))
+            if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonObject, i)))
                 continue;
 
             entry = PhAllocateZero(sizeof(PH_UPDATER_COMMIT_ENTRY));
@@ -346,9 +342,9 @@ CleanupExit:
         PhHttpDestroy(httpContext);
     }
 
-    if (jsonRootObject)
+    if (jsonObject)
     {
-        PhFreeJsonObject(jsonRootObject);
+        PhFreeJsonObject(jsonObject);
     }
 
     PhClearReference(&jsonString);

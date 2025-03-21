@@ -234,7 +234,11 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
 
         if (NT_SUCCESS(status))
         {
-            lxssCommandResult = PhGetFileText(fileHandle, TRUE);
+            status = PhGetFileText(
+                &lxssCommandResult,
+                fileHandle, 
+                TRUE
+                );
             NtClose(fileHandle);
         }
         else if (status == STATUS_ACCESS_DENIED)
@@ -314,7 +318,11 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
 
         if (NT_SUCCESS(status))
         {
-            lxssCommandResult = PhGetFileText(fileHandle, TRUE);
+            status = PhGetFileText(
+                &lxssCommandResult,
+                fileHandle, 
+                TRUE
+                );
             NtClose(fileHandle);
         }
         else if (status == STATUS_ACCESS_DENIED)
@@ -657,7 +665,8 @@ BOOLEAN PhCreateProcessLxss(
     NtClose(outputWriteHandle); outputWriteHandle = NULL;
 
     // Read the pipe data. (dmex)
-    lxssOutputString = PhGetFileText(outputReadHandle, TRUE);
+    if (!NT_SUCCESS(PhGetFileText(&lxssOutputString, outputReadHandle, TRUE)))
+        goto CleanupExit;
 
     // Get the exit code after we finish reading the data from the pipe. (dmex)
     if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))

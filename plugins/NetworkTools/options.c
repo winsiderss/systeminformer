@@ -274,7 +274,8 @@ VOID GeoLiteUpdateFromConfigFile(
     PPH_STRING accountString = NULL;
     PPH_STRING licenseString = NULL;
 
-    content = PhFileReadAllTextWin32(PhGetString(FileName), TRUE);
+    if (!NT_SUCCESS(PhFileReadAllTextWin32(&content, PhGetString(FileName), TRUE)))
+        return;
 
     if (PhIsNullOrEmptyString(content))
         return;

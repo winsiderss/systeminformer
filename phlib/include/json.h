@@ -21,16 +21,18 @@ typedef struct _JSON_ARRAY_LIST_OBJECT
 } JSON_ARRAY_LIST_OBJECT, *PJSON_ARRAY_LIST_OBJECT;
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhCreateJsonParser(
+    _Out_ PVOID* JsonObject,
     _In_ PCSTR JsonString
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhCreateJsonParserEx(
+    _Out_ PVOID* JsonObject,
     _In_ PVOID JsonString,
     _In_ BOOLEAN Unicode
     );
@@ -87,6 +89,13 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetJsonUInt32Object(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
+ULONGLONG
+NTAPI
+PhGetJsonUInt64Object(
     _In_ PVOID Object
     );
 
@@ -261,9 +270,10 @@ PhGetJsonObjectAsArrayList(
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhLoadJsonObjectFromFile(
+    _Out_ PVOID* JsonObject,
     _In_ PCPH_STRINGREF FileName
     );
 
