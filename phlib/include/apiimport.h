@@ -17,6 +17,7 @@
 #include <shlwapi.h>
 #include <userenv.h>
 #include <ntuser.h>
+#include <xmllite.h>
 
 EXTERN_C_START
 
@@ -71,6 +72,9 @@ PH_DECLARE_IMPORT(DevCloseObjectQuery);
 // Shlwapi
 
 PH_DECLARE_IMPORT(SHAutoComplete);
+PH_DECLARE_IMPORT(SHCreateStreamOnFileEx);
+
+// Userenv
 
 PH_DECLARE_IMPORT(CreateEnvironmentBlock);
 PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
@@ -80,6 +84,11 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 // User32
 
 PH_DECLARE_IMPORT(ConsoleControl);
+
+// Xmllite
+
+PH_DECLARE_IMPORT(CreateXmlReader);
+PH_DECLARE_IMPORT(CreateXmlWriter);
 
 EXTERN_C_END
 

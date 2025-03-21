@@ -17,6 +17,7 @@
 #include <shlwapi.h>
 #include <userenv.h>
 #include <ntuser.h>
+#include <xmllite.h>
 
 #include <apiimport.h>
 
@@ -198,6 +199,7 @@ PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCreateObjectQuery);
 PH_DEFINE_IMPORT(L"cfgmgr32.dll", DevCloseObjectQuery);
 
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
+PH_DEFINE_IMPORT(L"shlwapi.dll", SHCreateStreamOnFileEx);
 
 PH_DEFINE_IMPORT(L"userenv.dll", CreateEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
@@ -205,6 +207,9 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
+
+PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlReader);
+PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlWriter);
 
 //
 // CRT
