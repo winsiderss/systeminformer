@@ -311,6 +311,16 @@ LPWSTR WINAPI GetCommandLineW_Stub(
     return NULL;
 }
 
+HMODULE WINAPI GetModuleHandleW_Stub(
+    _In_opt_ PCWSTR ModuleName
+    )
+{
+    if (ModuleName)
+        return PhGetDllHandle(ModuleName);
+    else
+        return NtCurrentPeb()->ImageBaseAddress;
+}
+
 VOID WINAPI InitializeSListHead_Stub(
     _Out_ PSLIST_HEADER ListHead
     )
@@ -375,26 +385,27 @@ VOID WINAPI ReleaseSRWLockExclusive_Stub(
     RtlReleaseSRWLockExclusive(SRWLock);
 }
 
-DECLSPEC_SELECTANY LPCVOID __imp_CloseHandle = CloseHandle_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetProcAddress = GetProcAddress_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_TerminateProcess = TerminateProcess_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetCurrentProcess = GetCurrentProcess_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_QueryPerformanceCounter = QueryPerformanceCounter_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_EnterCriticalSection = EnterCriticalSection_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_LeaveCriticalSection = LeaveCriticalSection_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_DeleteCriticalSection = DeleteCriticalSection_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_AcquireSRWLockExclusive = AcquireSRWLockExclusive_Stub;
-DECLSPEC_SELECTANY LPCVOID __imp_ReleaseSRWLockExclusive = ReleaseSRWLockExclusive_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_CloseHandle = CloseHandle_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetFileSizeEx = GetFileSizeEx_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetProcAddress = GetProcAddress_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_FlushFileBuffers = FlushFileBuffers_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_IsDebuggerPresent = IsDebuggerPresent_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_TerminateProcess = TerminateProcess_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetCurrentThreadId = GetCurrentThreadId_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetCurrentProcessId = GetCurrentProcessId_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetCurrentProcess = GetCurrentProcess_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetProcessHeap = GetProcessHeap_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetCommandLineA = GetCommandLineA_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetCommandLineW = GetCommandLineW_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_GetModuleHandleW = GetModuleHandleW_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_InitializeSListHead = InitializeSListHead_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_InterlockedPushEntrySList = InterlockedPushEntrySList_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_InterlockedFlushSList = InterlockedFlushSList_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_QueryPerformanceCounter = QueryPerformanceCounter_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_EnterCriticalSection = EnterCriticalSection_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_LeaveCriticalSection = LeaveCriticalSection_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_DeleteCriticalSection = DeleteCriticalSection_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_AcquireSRWLockExclusive = AcquireSRWLockExclusive_Stub;
+DECLSPEC_SELECTANY PCVOID __imp_ReleaseSRWLockExclusive = ReleaseSRWLockExclusive_Stub;
 
 #endif
