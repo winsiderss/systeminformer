@@ -1,30 +1,22 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     internal sealed unsafe class MemoryCertificateStore : IDisposable
     {
         private HCERTSTORE _handle;
         private readonly X509Store _store;
-        private bool _disposed = false;
+        private bool _disposed;
 
         private MemoryCertificateStore(HCERTSTORE handle)
         {
             _handle = handle;
-            try
-            {
-                _store = new X509Store((nint)_handle.Value);
-            }
-            catch
-            {
-                FreeHandle();
-                throw;
-            }
+            _store = new X509Store(handle);
         }
 
         public static MemoryCertificateStore Create()
         {
             fixed (byte* p = "Memory"u8)
             {
-                var MemoryCertStore = PInvoke.CertOpenStore(
+                var memoryCertStore = PInvoke.CertOpenStore(
                     new PCSTR(p),
                     0,
                     default,
@@ -32,7 +24,12 @@
                     null
                     );
 
-                return new MemoryCertificateStore(MemoryCertStore);
+                if (memoryCertStore == default)
+                {
+                    throw new Win32Exception("Failed to create memory certificate store.");
+                }
+
+                return new MemoryCertificateStore(memoryCertStore);
             }
         }
 
@@ -41,27 +38,27 @@
         public void Add(X509Certificate2Collection collection) => _store.AddRange(collection);
         public X509Certificate2Collection Certificates => _store.Certificates;
 
-        private unsafe void FreeHandle()
+        private void FreeHandle()
         {
-            if (this._handle.Value != null)
+            if (_handle != default)
             {
-                PInvoke.CertCloseStore(this._handle, 0);
-                this._handle = default;
+                PInvoke.CertCloseStore(_handle, 0);
+                _handle = default;
             }
         }
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _store.Dispose();
-                }
+            if (_disposed)
+                return;
 
+            if (disposing)
+            {
+                _store.Dispose();
                 FreeHandle();
-                _disposed = true;
             }
+
+            _disposed = true;
         }
 
         public void Dispose()

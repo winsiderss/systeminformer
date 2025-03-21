@@ -63,7 +63,7 @@ namespace CustomBuildTool
             return dict;
         }
 
-        public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString)
+        public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
         {
             string file = GetMsbuildFilePath(Flags);
 
@@ -73,7 +73,7 @@ namespace CustomBuildTool
                 return 3; // file not found.
             }
 
-            return Win32.CreateProcess(file, Command, out OutputString, false);
+            return Win32.CreateProcess(file, Command, out OutputString, false, RedirectOutput);
         }
 
         public static string ExecuteVsWhereCommand(string Command)
@@ -86,7 +86,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(file, Command, false);
+            string output = Win32.CreateProcess(file, Command, false);
             output = output.Trim();
             return output;
         }
@@ -316,7 +316,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(currentGitPath, $"{currentGitDirectory} {Command}", false);
+            string output = Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", false);
             output = output.Trim();
             return output;
         }
@@ -519,7 +519,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(currentMisxPath, Command, false);
+            string output = Win32.CreateProcess(currentMisxPath, Command, false);
             output = output.Trim();
             return output;
         }
@@ -568,7 +568,7 @@ namespace CustomBuildTool
         //    if (string.IsNullOrWhiteSpace(vswhere))
         //        return null;
         //
-        //    vswhereResult = Win32.ShellExecute(
+        //    vswhereResult = Win32.CreateProcess(
         //        vswhere,
         //        "-latest " +
         //        "-prerelease " +

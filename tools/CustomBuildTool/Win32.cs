@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -38,7 +38,7 @@ namespace CustomBuildTool
         /// <param name="OutputString">The output from the application</param>
         /// <param name="FixNewLines"></param>
         /// <returns>If the creation succeeds, the return value is nonzero.</returns>
-        public static int CreateProcess(string FileName, string Arguments, out string OutputString, bool FixNewLines = true)
+        public static int CreateProcess(string FileName, string Arguments, out string OutputString, bool FixNewLines = true, bool RedirectOutput = true)
         {
             int exitcode = int.MaxValue;
             StringBuilder output = new StringBuilder(0x1000);
@@ -51,17 +51,25 @@ namespace CustomBuildTool
                     process.StartInfo.FileName = FileName;
                     process.StartInfo.Arguments = Arguments;
                     process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
-                    process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
 
-                    process.OutputDataReceived += (_, e) => { output.AppendLine(e.Data); };
-                    process.ErrorDataReceived += (_, e) => { error.AppendLine(e.Data); };
+                    if (RedirectOutput)
+                    {
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.RedirectStandardError = true;
+                        process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
+                        process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
+                        process.OutputDataReceived += (_, e) => { output.AppendLine(e.Data); };
+                        process.ErrorDataReceived += (_, e) => { error.AppendLine(e.Data); };
+                    }
 
                     process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
+
+                    if (RedirectOutput)
+                    {
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                    }
+
                     process.WaitForExit();
 
                     exitcode = process.ExitCode;
@@ -117,9 +125,9 @@ namespace CustomBuildTool
                 File.Delete(FileName);
         }
 
-        public static string ShellExecute(string FileName, string Arguments, bool FixNewLines = true)
+        public static string CreateProcess(string FileName, string Arguments, bool FixNewLines = true, bool RedirectOutput = true)
         {
-            CreateProcess(FileName, Arguments, out string outputstring, FixNewLines);
+            CreateProcess(FileName, Arguments, out string outputstring, FixNewLines, RedirectOutput);
 
             return outputstring;
         }

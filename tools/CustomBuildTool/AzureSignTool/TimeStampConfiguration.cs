@@ -1,4 +1,4 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     /// <summary>
     /// Contains configuration for timestamping authenticode signatures.
@@ -8,7 +8,7 @@
         /// <summary>
         /// The URL to the timestamp authority.
         /// </summary>
-        public string Url { get; }
+        public string Url { get; } = "http://timestamp.digicert.com";
 
         /// <summary>
         /// The digest algorithm the timestamp service authority should use on timestamp signatures.
@@ -19,7 +19,7 @@
         /// The type of timestamp to use. See <see cref="TimeStampType" /> for details, or null if
         /// no timestamping should be performed.
         /// </summary>
-        public TimeStampType? Type { get; }
+        public TimeStampType? Type { get; } = TimeStampType.RFC3161;
 
         /// <summary>
         /// A default timestamp configuration indicating no timestamp should be generated.
@@ -36,11 +36,6 @@
         {
             Url = url;
             Type = type;
-        }
-
-        public TimeStampConfiguration()
-        {
-            Type = null;
         }
     }
 

@@ -8,6 +8,14 @@ if "%1"=="INIT" (
     set "IS_INIT=true"
 )
 
+REM Check if terminal logging is supported
+set "TLG=auto"
+if "%GITHUB_ACTIONS%"=="true"  (
+    set "TLG=off"
+) else if "%BUILD_BUILDID%" NEQ "" (
+    set "TLG=off"
+)
+
 for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
    set "VSINSTALLPATH=%%a"
 )
@@ -30,23 +38,31 @@ if exist "tools\thirdparty\obj" (
    rmdir /S /Q "tools\thirdparty\obj"
 )
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -verbosity:normal
-if %ERRORLEVEL% neq 0 goto end
+echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -terminalLogger:"%TLG%"
 if %ERRORLEVEL% neq 0 goto end
+echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 -terminalLogger:"%TLG%"
 if %ERRORLEVEL% neq 0 goto end
+echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 -terminalLogger:"%TLG%"
 if %ERRORLEVEL% neq 0 goto end
+echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -terminalLogger:"%TLG%"
 if %ERRORLEVEL% neq 0 goto end
+echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -terminalLogger:"%TLG%"
 if %ERRORLEVEL% neq 0 goto end
+echo:
+
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -terminalLogger:"%TLG%"
+if %ERRORLEVEL% neq 0 goto end
+echo:
 
 :end
 

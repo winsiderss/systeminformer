@@ -11,12 +11,14 @@
 
 namespace CustomBuildTool
 {
-    public static unsafe class Build
+    public static class Build
     {
         private static DateTime TimeStart;
         public static bool BuildCanary = false;
         public static bool BuildToolsDebug = false;
         public static bool HaveArm64BuildTools = true;
+        public static bool BuildRedirectOutput = false;
+        public static bool BuildIntegration = false;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildCommitBranch = string.Empty;
@@ -55,6 +57,22 @@ namespace CustomBuildTool
                 Build.TimeStart = DateTime.UtcNow;
             }
 
+            if (!InitializeBuildArguments())
+            {
+                Program.PrintColorMessage("Unable to initialize build arguments.", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool InitializeBuildArguments()
+        {
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("BUILD_BUILDID"))
+            {
+                Build.BuildIntegration = true;
+            }
+
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
                 if (build_definition.Equals("canary", StringComparison.OrdinalIgnoreCase))
@@ -74,9 +92,19 @@ namespace CustomBuildTool
             }
 
             if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource))
+            {
                 Build.BuildCommitHash = buildsource;
+            }
+
             if (Win32.GetEnvironmentVariable("BUILD_SOURCEBRANCHNAME", out string buildbranch))
+            {
                 Build.BuildCommitBranch = buildbranch;
+            }
+
+            if (Win32.GetEnvironmentVariable("BUILD_REDIRECTOUTPUT", out string buildredirectoutput))
+            {
+                Build.BuildRedirectOutput = buildredirectoutput.Equals("true", StringComparison.OrdinalIgnoreCase);
+            }
 
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
@@ -97,7 +125,6 @@ namespace CustomBuildTool
 
             return true;
         }
-
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
             if (string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
@@ -344,6 +371,12 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
                 return false;
+
+            if (!Directory.Exists(windowsSdkPath))
+            {
+                Program.PrintColorMessage($"[SDK] Skipped CopyDebugEngineFiles: Directory doesn't exist.", ConsoleColor.DarkGray, true, Flags);
+                return true;
+            }
 
             foreach (var file in Build_DebugCore_Files)
             {
@@ -870,11 +903,17 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
-            commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
+            commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
             commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
             commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
             commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
+
+            if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+            {
+                commandLine.Append("-terminalLogger:on ");
+            }
+
             commandLine.Append(Solution);
 
             return commandLine.ToString();
@@ -882,19 +921,33 @@ namespace CustomBuildTool
 
         private static bool MsbuildCommand(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
-            string buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
+            int errorcode;
+            string errorstring;
+            string buildCommandLine;
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Platform, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-            int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out string errorstring);
+            buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            if (errorcode != 0)
+            if (Build.BuildRedirectOutput)
             {
-                Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                return false;
+                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring);
+
+                if (errorcode != 0)
+                {
+                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
+                }
+            }
+            else
+            {
+                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring, false);
+
+                if (errorcode != 0)
+                    return false;
             }
 
             return true;
@@ -1620,7 +1673,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        private static readonly string ExportHeader = @"/*
+        private const string ExportHeader = @"/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -1643,7 +1696,7 @@ namespace CustomBuildTool
 #define _PH_EXPORT_DEF_H
 ";
 
-        private static readonly string ExportFooter = @"
+        private const string ExportFooter = @"
 #endif _PH_EXPORT_DEF_H
 ";
 

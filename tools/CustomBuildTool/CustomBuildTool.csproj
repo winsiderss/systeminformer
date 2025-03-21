@@ -96,6 +96,7 @@
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
     <Using Include="System.Collections.Immutable" />
+    <Using Include="System.ComponentModel" />
     <Using Include="System.Diagnostics" />
     <Using Include="System.Globalization" />
     <Using Include="System.IO.Compression" />

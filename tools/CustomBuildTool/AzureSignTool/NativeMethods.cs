@@ -1,4 +1,4 @@
-﻿namespace AzureSign.Core.Interop
+namespace AzureSign.Core.Interop
 {
     [Flags]
     internal enum SignerSignEx3Flags : uint
@@ -57,44 +57,44 @@
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct SIGNER_SIGN_PARAMS_EX2
     {
-        internal SIGNER_SIGN_FLAGS dwFlags;
-        internal SIGNER_SUBJECT_INFO* pSubjectInfo;
-        internal SIGNER_CERT* pSignerCert;
-        internal SIGNER_SIGNATURE_INFO* pSignatureInfo;
-        internal SIGNER_PROVIDER_INFO* pProviderInfo;
-        internal SIGNER_TIMESTAMP_FLAGS dwTimestampFlags;
-        internal byte* pszTimestampAlgorithmOid;
-        internal char* pwszTimestampURL;
-        internal CRYPT_ATTRIBUTES* pCryptAttrs;
-        internal APPX_SIP_CLIENT_DATA* pSipData;
-        internal SIGNER_CONTEXT** ppSignerContext;
-        internal CERT_STRONG_SIGN_PARA* pCryptoPolicy;
-        internal IntPtr pReserved;
+        internal SIGNER_SIGN_FLAGS Flags;
+        internal SIGNER_SUBJECT_INFO* SubjectInfo;
+        internal SIGNER_CERT* SignerCert;
+        internal SIGNER_SIGNATURE_INFO* SignatureInfo;
+        internal SIGNER_PROVIDER_INFO* ProviderInfo;
+        internal SIGNER_TIMESTAMP_FLAGS TimestampFlags;
+        internal byte* TimestampAlgorithmOid;
+        internal char* TimestampURL;
+        internal CRYPT_ATTRIBUTES* CryptAttrs;
+        internal APPX_SIP_CLIENT_DATA* SipData;
+        internal SIGNER_CONTEXT** SignerContext;
+        internal CERT_STRONG_SIGN_PARA* CryptoPolicy;
+        internal IntPtr Reserved;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct SIGNER_SIGN_PARAMS_EX3
     {
-        internal SIGNER_SIGN_FLAGS dwFlags;
-        internal SIGNER_SUBJECT_INFO* pSubjectInfo;
-        internal SIGNER_CERT* pSignerCert;
-        internal SIGNER_SIGNATURE_INFO* pSignatureInfo;
-        internal SIGNER_PROVIDER_INFO* pProviderInfo;
-        internal SIGNER_TIMESTAMP_FLAGS dwTimestampFlags;
-        internal byte* pszTimestampAlgorithmOid;
-        internal char* pwszTimestampURL;
+        internal SIGNER_SIGN_FLAGS Flags;
+        internal SIGNER_SUBJECT_INFO* SubjectInfo;
+        internal SIGNER_CERT* SignerCert;
+        internal SIGNER_SIGNATURE_INFO* SignatureInfo;
+        internal SIGNER_PROVIDER_INFO* ProviderInfo;
+        internal SIGNER_TIMESTAMP_FLAGS TimestampFlags;
+        internal byte* TimestampAlgorithmOid;
+        internal char* TimestampURL;
         internal CRYPT_ATTRIBUTES* psRequest;
-        internal SIGNER_DIGEST_SIGN_INFO_UNION* pSignCallBack;
-        internal SIGNER_CONTEXT** ppSignerContext;
-        internal CERT_STRONG_SIGN_PARA* pCryptoPolicy;
-        internal IntPtr pReserved;
+        internal SIGNER_DIGEST_SIGN_INFO_UNION* SignCallBack;
+        internal SIGNER_CONTEXT** SignerContext;
+        internal CERT_STRONG_SIGN_PARA* CryptoPolicy;
+        internal IntPtr Reserved;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct APPX_SIP_CLIENT_DATA
     {
-        internal SIGNER_SIGN_EX_PARAMS* pSignerParams;
-        internal IntPtr pAppxSipState; // IUnknown*
+        internal SIGNER_SIGN_EX_PARAMS* SignerParams;
+        internal IntPtr AppxSipState; // IUnknown*
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -115,15 +115,15 @@
         /// <summary>
         /// The size, in bytes, of the structure.
         /// </summary>
-        internal uint cbSize;
+        internal uint Size;
         /// <summary>
         /// The pointer to a PFN_AUTHENTICODE_DIGEST_SIGN function.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> pfnAuthenticodeDigestSign;
+        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> AuthenticodeDigestSign;
         /// <summary>
         /// Optional pointer to CRYPT_DATA_BLOB specifying metadata (opaque to SignerSignEx3).
         /// </summary>
-        internal CRYPT_INTEGER_BLOB* pMetadataBlob;
+        internal CRYPT_INTEGER_BLOB* MetadataBlob;
     }
 
     /// <summary>
@@ -137,19 +137,19 @@
         /// <summary>
         /// The size, in bytes, of the structure.
         /// </summary>
-        internal uint cbSize;
+        internal uint Size;
         /// <summary>
         /// Pointer to the PFN_AUTHENTICODE_DIGEST_SIGN callback function. Required if the caller of SignerSignEx3 specifies SPC_DIGEST_SIGN_FLAG in the dwFlags parameter.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> pfnAuthenticodeDigestSign;
+        internal delegate* unmanaged[Stdcall]<CERT_CONTEXT*, CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, HRESULT> AuthenticodeDigestSign;
         /// <summary>
         /// Pointer to the PFN_AUTHENTICODE_DIGEST_SIGN_EX callback function. Required if the caller of SignerSignEx3 specifies SPC_DIGEST_SIGN_EX_FLAG in the dwFlags parameter.
         /// </summary>
-        internal delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT> pfnAuthenticodeDigestSignEx;
+        internal delegate* unmanaged[Stdcall]<CRYPT_INTEGER_BLOB*, ALG_ID, byte*, uint, CRYPT_INTEGER_BLOB*, CERT_CONTEXT**, HCERTSTORE, HRESULT> AuthenticodeDigestSignEx;
         /// <summary>
         /// Optional pointer to CRYPT_DATA_BLOB specifying metadata.
         /// </summary>
-        internal CRYPT_INTEGER_BLOB* pMetadataBlob;
+        internal CRYPT_INTEGER_BLOB* MetadataBlob;
     }
 
     [StructLayout(LayoutKind.Explicit)]
