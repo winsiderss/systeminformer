@@ -995,7 +995,7 @@ NTAPI
 PhFormatImageVersionInfo(
     _In_opt_ PPH_STRING FileName,
     _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_opt_ PPH_STRINGREF Indent,
+    _In_opt_ PCPH_STRINGREF Indent,
     _In_opt_ ULONG LineLimit
     );
 
@@ -1030,7 +1030,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhExpandEnvironmentStrings(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     );
 
 FORCEINLINE
@@ -1065,7 +1065,7 @@ FORCEINLINE
 PPH_STRING
 NTAPI
 PhGetBaseNameChangeExtensionZ(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PCWSTR FileExtension
     )
 {
@@ -1104,7 +1104,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetSystemDirectoryWin32(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     );
 
 FORCEINLINE
@@ -1239,7 +1239,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationDataFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1253,7 +1253,7 @@ PPH_STRING
 NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
-    _In_opt_ PPH_STRINGREF AppendPath,
+    _In_opt_ PCPH_STRINGREF AppendPath,
     _In_ BOOLEAN NativeFileName
     );
 
@@ -1285,7 +1285,7 @@ PPH_STRING
 NTAPI
 PhGetKnownFolderPath(
     _In_ PCGUID Folder,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     );
 
 PHLIBAPI
@@ -1295,7 +1295,7 @@ PhGetKnownFolderPathEx(
     _In_ PCGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     );
 
 FORCEINLINE

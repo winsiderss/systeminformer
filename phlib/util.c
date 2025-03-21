@@ -2854,7 +2854,7 @@ VOID PhDeleteImageVersionInfo(
 PPH_STRING PhFormatImageVersionInfo(
     _In_opt_ PPH_STRING FileName,
     _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_opt_ PPH_STRINGREF Indent,
+    _In_opt_ PCPH_STRINGREF Indent,
     _In_opt_ ULONG LineLimit
     )
 {
@@ -3229,7 +3229,7 @@ NTSTATUS PhGetFullPath(
  * \param String The string.
  */
 PPH_STRING PhExpandEnvironmentStrings(
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     NTSTATUS status;
@@ -3423,7 +3423,7 @@ PPH_STRING PhGetSystemDirectory(
 }
 
 PPH_STRING PhGetSystemDirectoryWin32(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     static CONST PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
@@ -3492,7 +3492,7 @@ VOID PhGetNtSystemRoot(
  * Retrieves the Windows directory path.
  */
 PPH_STRING PhGetWindowsDirectory(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     PH_STRINGREF systemRoot;
@@ -3513,7 +3513,7 @@ PPH_STRING PhGetWindowsDirectory(
  * Retrieves the Windows directory path.
  */
 PPH_STRING PhGetWindowsDirectoryWin32(
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     PH_STRINGREF systemRoot;
@@ -3794,7 +3794,7 @@ PPH_STRING PhGetRoamingAppDataDirectory(
 }
 
 PPH_STRING PhGetApplicationDataFileName(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3882,7 +3882,7 @@ PPH_STRING PhGetApplicationDataFileName(
  */
 PPH_STRING PhGetKnownLocation(
     _In_ ULONG Folder,
-    _In_opt_ PPH_STRINGREF AppendPath,
+    _In_opt_ PCPH_STRINGREF AppendPath,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -4137,7 +4137,7 @@ PPH_STRING PhGetKnownLocation(
 
 PPH_STRING PhGetKnownFolderPath(
     _In_ PCGUID Folder,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     return PhGetKnownFolderPathEx(Folder, 0, NULL, AppendPath);
@@ -4153,7 +4153,7 @@ PPH_STRING PhGetKnownFolderPathEx(
     _In_ PCGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
     PPH_STRING path;
