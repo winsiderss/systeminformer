@@ -38,6 +38,7 @@
 #include <phsettings.h>
 #include <procprv.h>
 #include <procmtgn.h>
+#include <srvprv.h>
 
 typedef enum _PHP_AGGREGATE_TYPE
 {
@@ -238,6 +239,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_LXSSPID, FALSE, L"PID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_SERVICES, FALSE, L"Services", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -695,6 +697,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->LxssProcessIdText);
     PhClearReference(&ProcessNode->ProcessStartKeyText);
     PhClearReference(&ProcessNode->MitigationPoliciesText);
+    PhClearReference(&ProcessNode->ServicesText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1733,6 +1736,8 @@ static VOID PhpUpdateProcessNodeMitigationPolicies(
         NTSTATUS status;
         PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
+        PhClearReference(&ProcessNode->MitigationPoliciesText);
+
         if (ProcessNode->ProcessItem->QueryHandle &&
             NT_SUCCESS(status = PhGetProcessMitigationPolicy(ProcessNode->ProcessItem->QueryHandle, &information)))
         {
@@ -1792,6 +1797,49 @@ static VOID PhpUpdateProcessNodeMitigationPolicies(
         }
 
         SetFlag(ProcessNode->ValidMask, PHPN_MITIGATIONPOLICIES);
+    }
+}
+
+static VOID PhpUpdateProcessNodeServices(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_SERVICES))
+    {
+        PhClearReference(&ProcessNode->ServicesText);
+
+        if (ProcessNode->ProcessItem->ServiceList && ProcessNode->ProcessItem->ServiceList->Count != 0)
+        {
+            ULONG enumerationKey = 0;
+            PPH_SERVICE_ITEM serviceItem;
+            PH_STRING_BUILDER stringBuilder;
+
+            PhAcquireQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+
+            PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+            while (PhEnumPointerList(
+                ProcessNode->ProcessItem->ServiceList,
+                &enumerationKey,
+                &serviceItem
+                ))
+            {
+                PhAppendStringBuilder(&stringBuilder, &serviceItem->Name->sr);
+                PhAppendStringBuilder2(&stringBuilder, L", ");
+                //PhAppendStringBuilder2(&stringBuilder, L" (");
+                //PhAppendStringBuilder(&stringBuilder, &serviceItem->DisplayName->sr);
+                //PhAppendStringBuilder2(&stringBuilder, L"), ");
+            }
+
+            if (stringBuilder.String->Length != 0)
+                PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+            ProcessNode->ServicesText = PhFinalStringBuilderString(&stringBuilder);
+
+            PhReleaseQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_SERVICES);
     }
 }
 
@@ -2642,6 +2690,19 @@ BEGIN_SORT_FUNCTION(MitigationPolicies)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Services)
+{
+    PhpUpdateProcessNodeServices(node1);
+    PhpUpdateProcessNodeServices(node2);
+    sortResult = PhCompareStringWithNullSortOrder(
+        node1->ServicesText,
+        node2->ServicesText,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2788,6 +2849,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(LxssPid),
                         SORT_FUNCTION(StartKey),
                         SORT_FUNCTION(MitigationPolicies),
+                        SORT_FUNCTION(Services),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -4258,6 +4320,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->MitigationPoliciesText)
                     {
                         getCellText->Text = PhGetStringRef(node->MitigationPoliciesText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PHPRTLC_SERVICES:
+                {
+                    PhpUpdateProcessNodeServices(node);
+
+                    if (node->ServicesText)
+                    {
+                        getCellText->Text = PhGetStringRef(node->ServicesText);
                     }
                     else
                     {

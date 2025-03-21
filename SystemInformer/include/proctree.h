@@ -128,8 +128,9 @@
 #define PHPRTLC_LXSSPID 103
 #define PHPRTLC_START_KEY 104
 #define PHPRTLC_MITIGATION_POLICIES 105
+#define PHPRTLC_SERVICES 106
 
-#define PHPRTLC_MAXIMUM 106
+#define PHPRTLC_MAXIMUM 107
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -156,6 +157,7 @@
 #define PHPN_TLSBITMAPDELTA 0x200000
 #define PHPN_REFERENCEDELTA 0x400000
 #define PHPN_STARTKEY 0x800000
+#define PHPN_SERVICES 0x1000000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -300,6 +302,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING LxssProcessIdText;
     PPH_STRING ProcessStartKeyText;
     PPH_STRING MitigationPoliciesText;
+    PPH_STRING ServicesText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
