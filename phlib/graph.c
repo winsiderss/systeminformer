@@ -1312,7 +1312,6 @@ LRESULT CALLBACK PhpGraphWndProc(
                     NULL,
                     NULL
                     );
-
                 SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
