@@ -4210,7 +4210,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_BASE_RELOCATION relocationDirectory;
-    PVOID relocationDirectoryBegin;
     PVOID relocationDirectoryEnd;
 
     status = PhGetMappedImageDataDirectory(
@@ -4231,8 +4230,16 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     if (!relocationDirectory)
         return STATUS_INVALID_PARAMETER;
 
-    relocationDirectoryBegin = relocationDirectory;
     relocationDirectoryEnd = PTR_ADD_OFFSET(relocationDirectory, dataDirectory->Size);
+
+    __try
+    {
+        PhMappedImageProbe(MappedImage, relocationDirectory, dataDirectory->Size);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
 
     while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
@@ -4242,7 +4249,6 @@ NTSTATUS PhMappedImageEnumerateRelocations(
         __try
         {
             PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -4258,7 +4264,16 @@ NTSTATUS PhMappedImageEnumerateRelocations(
         }
 
         relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
-        relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+        relocations = PTR_ADD_OFFSET(relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+
+        __try
+        {
+            PhMappedImageProbe(MappedImage, relocations, relocationCount * sizeof(IMAGE_RELOCATION_RECORD));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
 
         status = Callback(
             MappedImage,
