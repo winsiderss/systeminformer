@@ -435,13 +435,13 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         if (
             NT_SUCCESS(status) &&
             (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
-            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) >= (ULONG_PTR)baseDllNameOriginal &&
-            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) <= (ULONG_PTR)PTR_ADD_OFFSET(fullDllNameOriginal, Entry->FullDllName.Length)
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
             )
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, (baseDllNameOriginal - fullDllNameOriginal));
+            Entry->BaseDllName.Buffer = (PWCHAR)((ULONG_PTR)Entry->FullDllName.Buffer + ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
         }
         else
         {
