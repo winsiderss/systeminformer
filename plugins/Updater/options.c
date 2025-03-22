@@ -24,58 +24,55 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
             {
-                ULONG64 lastUpdateTimeTicks;
-                PPH_STRING lastUpdateTimeString;
+                ULONG lastTimeUpdateSeconds;
+                LARGE_INTEGER lastTimeUpdateTicks;
 
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_AUTOCHECKBOX), BST_CHECKED);
 
-                if (lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK))
+                if (lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK))
                 {
-                    if (PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks))
+                    PPH_STRING timeRelativeString;
+                    PPH_STRING timeString;
+                    LARGE_INTEGER time;
+                    LARGE_INTEGER currentTime;
+                    SYSTEMTIME timeFields;
+
+                    PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart;
+                    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                    timeString = PhaFormatDateTime(&timeFields);
+
+                    PhQuerySystemTime(&currentTime);
+                    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastTimeUpdateTicks.QuadPart));
+
+                    PhSetDialogItemText(WindowHandle, IDC_TEXT, PhaFormatString(
+                        L"Last update check: %s (%s ago)",
+                        PhGetStringOrEmpty(timeString),
+                        PhGetStringOrEmpty(timeRelativeString)
+                        )->Buffer);
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (7 * PH_TICKS_PER_DAY);
+                    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                    timeString = PhaFormatDateTime(&timeFields);
+
+                    time.QuadPart = time.QuadPart - currentTime.QuadPart;
+                    if (time.QuadPart > 0)
                     {
-                        PPH_STRING timeRelativeString;
-                        PPH_STRING timeString;
-                        LARGE_INTEGER time;
-                        LARGE_INTEGER currentTime;
-                        SYSTEMTIME timeFields;
-
-                        time.QuadPart = lastUpdateTimeTicks;
-                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-                        timeString = PhaFormatDateTime(&timeFields);
-
-                        PhQuerySystemTime(&currentTime);
-                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastUpdateTimeTicks));
-
-                        PhSetDialogItemText(WindowHandle, IDC_TEXT, PhaFormatString(
-                            L"Last update check: %s (%s ago)",
+                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
+                        PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
+                            L"Next update check: %s (%s)",
                             PhGetStringOrEmpty(timeString),
                             PhGetStringOrEmpty(timeRelativeString)
                             )->Buffer);
-
-                        time.QuadPart = lastUpdateTimeTicks + (7 * PH_TICKS_PER_DAY);
-                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-                        timeString = PhaFormatDateTime(&timeFields);
-
-                        time.QuadPart = time.QuadPart - currentTime.QuadPart;
-                        if (time.QuadPart > 0)
-                        {
-                            timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
-                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
-                                L"Next update check: %s (%s)",
-                                PhGetStringOrEmpty(timeString),
-                                PhGetStringOrEmpty(timeRelativeString)
-                                )->Buffer);
-                        }
-                        else
-                        {
-                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
-                                L"Next update check: %s",
-                                PhGetStringOrEmpty(timeString)
-                                )->Buffer);
-                        }
                     }
-
-                    PhDereferenceObject(lastUpdateTimeString);
+                    else
+                    {
+                        PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
+                            L"Next update check: %s",
+                            PhGetStringOrEmpty(timeString)
+                            )->Buffer);
+                    }
                 }
             }
 

@@ -157,7 +157,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
-                { StringSettingType, SETTING_NAME_LAST_CHECK, L"0" },
+                { IntegerSettingType, SETTING_NAME_LAST_CHECK, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_SIZE, L"@96|420,250" },
                 { StringSettingType, SETTING_NAME_CHANGELOG_COLUMNS, L"" },

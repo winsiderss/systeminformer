@@ -41,7 +41,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
-#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".UpdateCheck")
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")

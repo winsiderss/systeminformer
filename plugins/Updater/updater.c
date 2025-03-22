@@ -219,33 +219,29 @@ BOOLEAN LastUpdateCheckExpired(
     VOID
     )
 {
-    ULONG64 lastUpdateTimeTicks;
-    LARGE_INTEGER currentUpdateTimeTicks;
-    PPH_STRING lastUpdateTimeString;
+    ULONG lastTimeUpdateSeconds;
+    LARGE_INTEGER lastTimeUpdateTicks;
+    LARGE_INTEGER currentTimeUpdateTicks;
 
-    PhQuerySystemTime(&currentUpdateTimeTicks);
+    PhQuerySystemTime(&currentTimeUpdateTicks);
+    lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK);
 
-    lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
-
-    if (PhIsNullOrEmptyString(lastUpdateTimeString))
-        return TRUE;
-
-    if (!PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks))
-        return TRUE;
-
-    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
+    if (lastTimeUpdateSeconds == 0)
     {
-        PPH_STRING currentUpdateTimeString;
-
-        currentUpdateTimeString = PhIntegerToString64(currentUpdateTimeTicks.QuadPart, 0, FALSE);
-        PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
-
-        PhDereferenceObject(currentUpdateTimeString);
-        PhDereferenceObject(lastUpdateTimeString);
+        PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
+        PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
         return TRUE;
     }
 
-    PhDereferenceObject(lastUpdateTimeString);
+    PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
+
+    if (currentTimeUpdateTicks.QuadPart - lastTimeUpdateTicks.QuadPart >= 7 * PH_TICKS_PER_DAY)
+    {
+        PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
+        PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
+        return TRUE;
+    }
+
     return FALSE;
 }
 
