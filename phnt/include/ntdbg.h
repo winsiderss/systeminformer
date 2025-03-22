@@ -7,7 +7,9 @@
 #ifndef _NTDBG_H
 #define _NTDBG_H
 
+//
 // Debugging
+//
 
 NTSYSAPI
 VOID
@@ -111,7 +113,9 @@ DbgPrompt(
     _In_ ULONG Length
     );
 
+//
 // Definitions
+//
 
 typedef struct _DBGKM_EXCEPTION
 {
@@ -220,7 +224,9 @@ typedef enum _DEBUGOBJECTINFOCLASS
     MaxDebugObjectInfoClass
 } DEBUGOBJECTINFOCLASS, *PDEBUGOBJECTINFOCLASS;
 
+//
 // System calls
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -278,7 +284,9 @@ NtWaitForDebugEvent(
     _Out_ PDBGUI_WAIT_STATE_CHANGE WaitStateChange
     );
 
+//
 // Debugging UI
+//
 
 NTSYSAPI
 NTSTATUS
