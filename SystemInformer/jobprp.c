@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <procprv.h>
 
 #include <emenu.h>
@@ -25,12 +24,13 @@
 typedef struct _JOB_PAGE_CONTEXT
 {
     PPH_OPEN_OBJECT OpenObject;
+    PPH_CLOSE_OBJECT CloseObject;
     PVOID Context;
     DLGPROC HookProc;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 } JOB_PAGE_CONTEXT, *PJOB_PAGE_CONTEXT;
 
-INT CALLBACK PhpJobPropPageProc(
+LONG CALLBACK PhpJobPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -55,15 +55,16 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     _In_ LPARAM lParam
     );
 
-INT CALLBACK PhpJobStatisticsSheetProc(
+LONG CALLBACK PhpJobStatisticsSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
-);
+    );
 
 VOID PhShowJobProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ PCWSTR Title
     )
@@ -82,13 +83,14 @@ VOID PhShowJobProperties(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
-    pages[0] = PhCreateJobPage(OpenObject, Context, NULL);
+    pages[0] = PhCreateJobPage(OpenObject, CloseObject, Context, NULL);
 
     PhModalPropertySheet(&propSheetHeader);
 }
 
 HPROPSHEETPAGE PhCreateJobPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     )
@@ -100,6 +102,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     jobPageContext = PhCreateAlloc(sizeof(JOB_PAGE_CONTEXT));
     memset(jobPageContext, 0, sizeof(JOB_PAGE_CONTEXT));
     jobPageContext->OpenObject = OpenObject;
+    jobPageContext->CloseObject = CloseObject;
     jobPageContext->Context = Context;
     jobPageContext->HookProc = HookProc;
 
@@ -120,7 +123,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     return propSheetPageHandle;
 }
 
-INT CALLBACK PhpJobPropPageProc(
+LONG CALLBACK PhpJobPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -753,7 +756,10 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &jobPageContext->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+                &jobPageContext->ProcessesUpdatedRegistration
+                );
         }
         break;
     case MSG_UPDATE:
@@ -766,7 +772,7 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     return FALSE;
 }
 
-INT CALLBACK PhpJobStatisticsSheetProc(
+LONG CALLBACK PhpJobStatisticsSheetProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam

@@ -923,7 +923,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     {
         PhAddProcessPropPage2(
             PropContext,
-            PhCreateJobPage(PhpOpenProcessJobForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
+            PhCreateJobPage(PhpOpenProcessJobForPage, PhpCloseProcessJobForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
             );
     }
 

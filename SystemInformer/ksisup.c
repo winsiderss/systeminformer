@@ -1065,8 +1065,7 @@ VOID KsiConnect(
             PhSetStringSetting2(L"KsiPortName", &randomPortName->sr);
             PhSetStringSetting2(L"KsiObjectName", &randomObjectName->sr);
 
-            if (!PhIsNullOrEmptyString(PhSettingsFileName))
-                PhSaveSettings(&PhSettingsFileName->sr);
+            PhSaveSettings2(PhSettingsFileName);
 
             PhShowKsiMessage(
                 WindowHandle,

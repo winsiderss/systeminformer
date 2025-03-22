@@ -410,7 +410,6 @@ VOID PhMwpShowWindow(
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
         SetForegroundWindow(PhMainWndHandle);
-        PhConsoleSetForeground(NtCurrentProcess(), TRUE);
     }
 
     if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))

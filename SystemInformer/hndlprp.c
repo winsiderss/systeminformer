@@ -244,6 +244,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -251,6 +252,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -258,6 +260,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context,
             NULL
             );
@@ -266,6 +269,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -273,6 +277,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateTimerPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }

@@ -519,12 +519,14 @@ VOID PhShowInformationDialog(
 VOID PhShowJobProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ PCWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateJobPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     );
@@ -637,21 +639,25 @@ VOID PhShowProcessMitigationPolicyDialog(
 
 HPROPSHEETPAGE PhCreateEventPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateEventPairPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateTimerPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
