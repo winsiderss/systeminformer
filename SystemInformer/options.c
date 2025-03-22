@@ -422,9 +422,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         SystemInformer_PrepareForEarlyShutdown();
 
                         PhResetSettings(PhMainWndHandle);
-
-                        if (!PhIsNullOrEmptyString(PhSettingsFileName))
-                            PhSaveSettings(&PhSettingsFileName->sr);
+                        PhSaveSettings2(PhSettingsFileName);
 
                         if (NT_SUCCESS(PhShellProcessHacker(
                             PhMainWndHandle,
@@ -1056,8 +1054,7 @@ VOID PhpSetDefaultTaskManager(
         if (!NT_SUCCESS(status))
             PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
 
-        if (!PhIsNullOrEmptyString(PhSettingsFileName))
-            PhSaveSettings(&PhSettingsFileName->sr);
+        //PhSaveSettings2(PhSettingsFileName);
     }
 }
 
@@ -2268,7 +2265,6 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -2276,7 +2272,6 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            PhSystemDpi,
                             setting
                             );
                     }
@@ -3205,7 +3200,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             nodes[i]->Setting->Type,
                             &nodes[i]->Setting->DefaultValue,
                             NULL,
-                            PhSystemDpi,
                             nodes[i]->Setting
                             );
                         PhMoveReference(
@@ -3556,8 +3550,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         Color = PhGetSetting(&SettingName);
                         UseColor = PhGetSetting(&UseSettingName);
 
-                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
-                        PhSettingFromString(UseColor->Type, &UseColor->DefaultValue, NULL, PhSystemDpi, UseColor);
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
+                        PhSettingFromString(UseColor->Type, &UseColor->DefaultValue, NULL, UseColor);
 
                         ColorItem->CurrentColor = Color->u.Integer;
                         ColorItem->CurrentUse = !!UseColor->u.Integer;
@@ -3600,7 +3594,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     PhInitializeStringRef(&SettingName, setNew ? L"ColorNew" : L"ColorRemoved");
                     Color = PhGetSetting(&SettingName);
 
-                    PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+                    PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
 
                     ColorBox_SetColor(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), Color->u.Integer);
                     InvalidateRect(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), NULL, TRUE);
@@ -3813,7 +3807,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         Color = PhGetSetting(&SettingName);
 
-                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
 
                         ColorItem->CurrentColor = Color->u.Integer;
 
