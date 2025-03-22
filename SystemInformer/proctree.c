@@ -4393,6 +4393,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorSuspended;
             else if (PhCsUseColorPartiallySuspended && processItem->ProcessId != SYSTEM_PROCESS_ID && processItem->IsPartiallySuspended)
                 getNodeColor->BackColor = PhCsColorPartiallySuspended;
+            else if (PhCsUseColorEfficiencyMode && processItem->IsPowerThrottling)
+                getNodeColor->BackColor = PhCsColorEfficiencyMode;
+            else if (PhCsUseColorBackgroundProcesses && PhIsProcessBackground(processItem->PriorityClass))
+                getNodeColor->BackColor = PhCsColorBackgroundProcesses;
+            else if (PhCsUseColorLowImageCoherency && PhEnableImageCoherencySupport && PhpShouldShowImageCoherency(processItem, TRUE))
+                getNodeColor->BackColor = PhCsColorLowImageCoherency;
+            else if (PhCsUseColorPacked && processItem->IsPacked)
+                getNodeColor->BackColor = PhCsColorPacked;
             else if (PhCsUseColorProtectedProcess && processItem->Protection.Level != 0 && processItem->Protection.Level != UCHAR_MAX)
                 getNodeColor->BackColor = PhCsColorProtectedProcess;
             else if (PhCsUseColorHandleFiltered && (processItem->IsProtectedHandle || processItem->ProcessId == NtCurrentProcessId()))
@@ -4403,18 +4411,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorUIAccessProcesses;
             else if (PhCsUseColorPicoProcesses && processItem->IsSubsystemProcess)
                 getNodeColor->BackColor = PhCsColorPicoProcesses;
-            else if (PhCsUseColorEfficiencyMode && processItem->IsPowerThrottling)
-                getNodeColor->BackColor = PhCsColorEfficiencyMode;
             else if (PhCsUseColorImmersiveProcesses && processItem->IsImmersive)
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (PhCsUseColorDotNet && processItem->IsDotNet)
                 getNodeColor->BackColor = PhCsColorDotNet;
-            else if (PhCsUseColorPacked && processItem->IsPacked)
-                getNodeColor->BackColor = PhCsColorPacked;
-            else if (PhCsUseColorLowImageCoherency && PhEnableImageCoherencySupport && PhpShouldShowImageCoherency(processItem, TRUE))
-                getNodeColor->BackColor = PhCsColorLowImageCoherency;
-            else if (PhCsUseColorBackgroundProcesses && PhIsProcessBackground(processItem->PriorityClass))
-                getNodeColor->BackColor = PhCsColorBackgroundProcesses;
             else if (PhCsUseColorWow64Processes && processItem->IsWow64Process)
                 getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
