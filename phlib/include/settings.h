@@ -73,7 +73,6 @@ BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
     _In_ PCPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
-    _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
     );
 
