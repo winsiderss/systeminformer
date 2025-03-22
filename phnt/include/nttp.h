@@ -12,19 +12,23 @@
 typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
 
 // private
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
+typedef _Function_class_(TP_ALPC_CALLBACK)
+VOID NTAPI TP_ALPC_CALLBACK(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PTP_ALPC Alpc
     );
+typedef TP_ALPC_CALLBACK *PTP_ALPC_CALLBACK;
 
 // rev
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
+typedef _Function_class_(TP_ALPC_CALLBACK_EX)
+VOID NTAPI TP_ALPC_CALLBACK_EX(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PTP_ALPC Alpc,
     _In_ PVOID ApcContext
     );
+typedef TP_ALPC_CALLBACK_EX *PTP_ALPC_CALLBACK_EX;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -338,13 +342,15 @@ TpWaitForWait(
     );
 
 // private
-typedef VOID (NTAPI *PTP_IO_CALLBACK)(
+typedef _Function_class_(TP_IO_CALLBACK)
+VOID NTAPI TP_IO_CALLBACK(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PVOID ApcContext,
     _In_ PIO_STATUS_BLOCK IoSB,
     _In_ PTP_IO Io
     );
+typedef TP_IO_CALLBACK *PTP_IO_CALLBACK;
 
 // winbase:CreateThreadpoolIo
 NTSYSAPI
