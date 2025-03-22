@@ -3312,8 +3312,8 @@ NtCreateThreadEx(
 #define JobObjectLimitViolationInformation 13 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION
 #define JobObjectGroupInformationEx 14 // GROUP_AFFINITY (ARRAY)
 #define JobObjectCpuRateControlInformation 15 // JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
-#define JobObjectCompletionFilter 16
-#define JobObjectCompletionCounter 17
+#define JobObjectCompletionFilter 16 // q; s: ULONG
+#define JobObjectCompletionCounter 17 // q; s: ULONG
 #define JobObjectFreezeInformation 18 // JOBOBJECT_FREEZE_INFORMATION
 #define JobObjectExtendedAccountingInformation 19 // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
 #define JobObjectWakeInformation 20 // JOBOBJECT_WAKE_INFORMATION
@@ -3331,7 +3331,7 @@ NtCreateThreadEx(
 #define JobObjectNetRateControlInformation 32 // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
 #define JobObjectNotificationLimitInformation2 33 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
 #define JobObjectLimitViolationInformation2 34 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
-#define JobObjectCreateSilo 35
+#define JobObjectCreateSilo 35 // s: NULL
 #define JobObjectSiloBasicInformation 36 // SILOOBJECT_BASIC_INFORMATION
 #define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
 #define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
@@ -3340,10 +3340,10 @@ NtCreateThreadEx(
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
-#define JobObjectContainerTelemetryId 44 // GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
-#define JobObjectSiloSystemRoot 45
+#define JobObjectContainerTelemetryId 44 // s: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
+#define JobObjectSiloSystemRoot 45 // s: UNICODE_STRING
 #define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
-#define JobObjectThreadImpersonationInformation 47
+#define JobObjectThreadImpersonationInformation 47 // q; s: BOOLEAN
 #define JobObjectIoPriorityLimit 48 // JOBOBJECT_IO_PRIORITY_LIMIT
 #define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
 #define JobObjectServerSiloDiagnosticInformation 50 // SERVERSILO_DIAGNOSTIC_INFORMATION // since 24H2
