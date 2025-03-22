@@ -365,6 +365,8 @@ PhTaskDialogNavigatePage(
     SendMessage(WindowHandle, WM_TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 }
 
+#define TD_SHIELD_ERROR_ICON    MAKEINTRESOURCEW(-7)
+
 _Success_(return)
 PHLIBAPI
 BOOLEAN

@@ -222,7 +222,7 @@ VOID PhShowKsiStatus(
         if (PhShowMessageOneTime(
             NULL,
             TD_OK_BUTTON,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             L"Access to the kernel driver is restricted.",
             L"%s",
             PhGetString(infoString)
@@ -363,12 +363,23 @@ LONG PhpShowKsiMessage(
     else
     {
         BOOLEAN checked;
+        LONG bufferLength;
+        WCHAR buffer[0x100];
+
+        bufferLength = _snwprintf(
+            buffer,
+            ARRAYSIZE(buffer) - sizeof(UNICODE_NULL),
+            L"%s (0x%08x)",
+            Title,
+            Status
+            );
+        buffer[bufferLength] = UNICODE_NULL;
 
         result = PhShowMessageOneTime2(
             WindowHandle,
             Buttons,
             Icon,
-            Title,
+            buffer,
             &checked,
             PhGetString(errorMessage)
             );
@@ -422,7 +433,6 @@ LONG PhShowKsiMessage2(
 
     return result;
  }
-
 
 VOID PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,
@@ -613,7 +623,7 @@ BOOLEAN KsiCommsCallback(
 }
 
 NTSTATUS KsiReadConfiguration(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PBYTE* Data,
     _Out_ PULONG Length
     )
@@ -817,7 +827,7 @@ NTSTATUS KsiCreateTemporaryDriverFile(
 }
 
 VOID KsiCreateRandomizedName(
-    _In_ PWSTR Prefix,
+    _In_ PCWSTR Prefix,
     _Out_ PPH_STRING* Name
     )
 {
@@ -849,9 +859,16 @@ VOID KsiConnect(
     KPH_LEVEL level;
 
     if (tempDriverDir = PhGetTemporaryKsiDirectory())
+    {
         PhDeleteDirectoryWin32(&tempDriverDir->sr);
+    }
 
-    status = KsiGetDynData(&dynData, &dynDataLength, &signature, &signatureLength);
+    status = KsiGetDynData(
+        &dynData,
+        &dynDataLength,
+        &signature,
+        &signatureLength
+        );
 
     if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
     {
@@ -859,7 +876,7 @@ VOID KsiConnect(
         {
             PhShowKsiMessageEx(
                 WindowHandle,
-                TD_ERROR_ICON,
+                TD_SHIELD_ERROR_ICON,
                 0,
                 FALSE,
                 L"Unable to load kernel driver",
@@ -872,7 +889,7 @@ VOID KsiConnect(
         {
             PhShowKsiMessageEx(
                 WindowHandle,
-                TD_ERROR_ICON,
+                TD_SHIELD_ERROR_ICON,
                 0,
                 FALSE,
                 L"Unable to load kernel driver",
@@ -888,7 +905,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -901,12 +918,13 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
             L"Failed to access the dynamic configuration."
             );
+
         goto CleanupExit;
     }
 
@@ -917,7 +935,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1025,7 +1043,7 @@ VOID KsiConnect(
         if (PhShowKsiMessage2(
             WindowHandle,
             TD_YES_BUTTON | TD_NO_BUTTON,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
@@ -1086,7 +1104,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
@@ -1280,7 +1298,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1294,7 +1312,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             STATUS_PENDING,
             FALSE,
             L"Unable to load kernel driver",
@@ -1307,7 +1325,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1322,7 +1340,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
