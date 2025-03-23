@@ -117,10 +117,40 @@ typedef struct _ULARGE_INTEGER_128
 // Functions
 //
 
-#ifndef _WIN64
-#define FASTCALL __fastcall
-#else
+#if defined(_WIN64)
 #define FASTCALL
+#else
+#define FASTCALL __fastcall
+#endif
+
+#if defined(_WIN64)
+#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
+#else
+#define POINTER_ALIGNMENT
+#endif
+
+#if defined(_WIN64) || defined(_M_ALPHA)
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
+#define MEMORY_ALLOCATION_ALIGNMENT 16
+#else
+#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MEMORY_ALLOCATION_ALIGNMENT 8
+#endif
+
+#ifndef DECLSPEC_NOALIAS
+#if _MSC_VER < 1900
+#define DECLSPEC_NOALIAS
+#else
+#define DECLSPEC_NOALIAS __declspec(noalias)
+#endif
+#endif
+
+#ifndef DECLSPEC_IMPORT
+#define DECLSPEC_IMPORT __declspec(dllimport)
+#endif
+
+#ifndef DECLSPEC_EXPORT
+#define DECLSPEC_EXPORT __declspec(dllexport)
 #endif
 
 //
@@ -192,7 +222,9 @@ UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
 // Balanced tree node
 //
 
+#ifndef RTL_BALANCED_NODE_RESERVED_PARENT_MASK
 #define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
+#endif
 
 typedef struct _RTL_BALANCED_NODE
 {
@@ -203,18 +235,20 @@ typedef struct _RTL_BALANCED_NODE
         {
             struct _RTL_BALANCED_NODE *Left;
             struct _RTL_BALANCED_NODE *Right;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     union
     {
         UCHAR Red : 1;
         UCHAR Balance : 2;
         ULONG_PTR ParentValue;
-    };
+    } DUMMYUNIONNAME2;
 } RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
 
+#ifndef RTL_BALANCED_NODE_GET_PARENT_POINTER
 #define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) \
     ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
+#endif
 
 //
 // Portability
@@ -411,20 +445,74 @@ typedef struct _KSYSTEM_TIME
 #define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
 #endif
 
+#ifndef Add2Ptr
+#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
+#endif
+#ifndef PtrOffset
+#define PtrOffset(B,O) ((ULONG)((ULONG_PTR)(O) - (ULONG_PTR)(B)))
 #endif
 
-#if defined(_WIN64)
-#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
-#else
-#define POINTER_ALIGNMENT
+#ifndef ALIGN_UP_BY
+#define ALIGN_UP_BY(Address, Align) (((ULONG_PTR)(Address) + (Align) - 1) & ~((Align) - 1))
+#endif
+#ifndef ALIGN_UP_POINTER_BY
+#define ALIGN_UP_POINTER_BY(Pointer, Align) ((PVOID)ALIGN_UP_BY(Pointer, Align))
+#endif
+#ifndef ALIGN_UP
+#define ALIGN_UP(Address, Type) ALIGN_UP_BY(Address, sizeof(Type))
+#endif
+#ifndef ALIGN_UP_POINTER
+#define ALIGN_UP_POINTER(Pointer, Type) ((PVOID)ALIGN_UP(Pointer, Type))
+#endif
+#ifndef ALIGN_DOWN_BY
+#define ALIGN_DOWN_BY(Address, Align) ((ULONG_PTR)(Address) & ~((ULONG_PTR)(Align) - 1))
+#endif
+#ifndef ALIGN_DOWN_POINTER_BY
+#define ALIGN_DOWN_POINTER_BY(Pointer, Align) ((PVOID)ALIGN_DOWN_BY(Pointer, Align))
+#endif
+#ifndef ALIGN_DOWN
+#define ALIGN_DOWN(Address, Type) ALIGN_DOWN_BY(Address, sizeof(Type))
+#endif
+#ifndef ALIGN_DOWN_POINTER
+#define ALIGN_DOWN_POINTER(Pointer, Type) ((PVOID)ALIGN_DOWN(Pointer, Type))
+#endif
+#ifndef IS_ALIGNED
+#define IS_ALIGNED(Pointer, Alignment) ((((ULONG_PTR)(Pointer)) & ((Alignment) - 1)) == 0)
 #endif
 
-#ifndef DECLSPEC_NOALIAS
-#if _MSC_VER < 1900
-#define DECLSPEC_NOALIAS
-#else
-#define DECLSPEC_NOALIAS __declspec(noalias)
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 0x1000
 #endif
+#ifndef PAGE_MASK
+#define PAGE_MASK 0xFFF
 #endif
+#ifndef PAGE_SHIFT
+#define PAGE_SHIFT 0xC
+#endif
+
+#ifndef BYTE_OFFSET
+#define BYTE_OFFSET(Address) ((SIZE_T)((ULONG_PTR)(Address) & PAGE_MASK))
+#endif
+#ifndef PAGE_ALIGN
+#define PAGE_ALIGN(Address) ((PVOID)((ULONG_PTR)(Address) & ~PAGE_MASK))
+#endif
+#ifndef PAGE_OFFSET
+#define PAGE_OFFSET(p) ((PAGE_MASK) & (ULONG_PTR)(p))
+#endif
+
+#ifndef ADDRESS_AND_SIZE_TO_SPAN_PAGES
+#define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Address, Size) ((BYTE_OFFSET(Address) + ((SIZE_T)(Size)) + PAGE_MASK) >> PAGE_SHIFT)
+#endif
+#ifndef ROUND_TO_SIZE
+#define ROUND_TO_SIZE(Size, Alignment) ((((ULONG_PTR)(Size))+((Alignment)-1)) & ~(ULONG_PTR)((Alignment)-1))
+#endif
+#ifndef ROUND_TO_PAGES
+#define ROUND_TO_PAGES(Size) (((ULONG_PTR)(Size) + PAGE_MASK) & ~PAGE_MASK)
+#endif
+#ifndef BYTES_TO_PAGES
+#define BYTES_TO_PAGES(Size) (((Size) >> PAGE_SHIFT) + (((Size) & PAGE_MASK) != 0))
+#endif
+
+#endif // _NTDEF_
 
 #endif

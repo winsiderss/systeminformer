@@ -1,36 +1,35 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     // https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/get-certificate/get-certificate?tabs=HTTP
 
-    public class AccessTokenCredential : TokenCredential
-    {
-        private readonly AccessToken accessToken;
-
-        public AccessTokenCredential(string token, DateTimeOffset expiresOn)
-        {
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                throw new ArgumentException("Access Token cannot be null or empty", nameof(token));
-            }
-
-            accessToken = new AccessToken(token, expiresOn);
-        }
-
-        public AccessTokenCredential(string token) : this(token, DateTimeOffset.UtcNow.AddHours(1))
-        {
-
-        }
-
-        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
-        {
-            return accessToken;
-        }
-
-        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
-        {
-            return new ValueTask<AccessToken>(accessToken);
-        }
-    }
+    //public class AccessTokenCredential : TokenCredential
+    //{
+    //    private readonly AccessToken accessToken;
+    //
+    //    public AccessTokenCredential(string token, DateTimeOffset expiresOn)
+    //    {
+    //        ArgumentException.ThrowIfNullOrWhiteSpace(token); // "Access Token cannot be null or empty"
+    //
+    //        accessToken = new AccessToken(token, expiresOn);
+    //    }
+    //
+    //    public AccessTokenCredential(string token)
+    //    {
+    //        ArgumentException.ThrowIfNullOrWhiteSpace(token); // "Access Token cannot be null or empty"
+    //
+    //        accessToken = new AccessToken(token, DateTimeOffset.UtcNow.AddHours(1));
+    //    }
+    //
+    //    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+    //    {
+    //        return accessToken;
+    //    }
+    //
+    //    public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+    //    {
+    //        return new ValueTask<AccessToken>(accessToken);
+    //    }
+    //}
 
     public enum KeyVaultSignatureAlgorithm
     {

@@ -346,7 +346,7 @@ VOID EspLoadDeviceInstanceImage(
     _In_ INT ItemIndex
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
@@ -401,11 +401,24 @@ VOID EspLoadDeviceInstanceImage(
             {
                 dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
-                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(
+                    &dllIconPath->sr,
+                    FALSE,
+                    (INT)index,
+                    PhGetSystemMetrics(SM_CXICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYICON, dpiValue),
+                    0,
+                    0,
+                    &largeIcon,
+                    NULL
+                    ))
                 {
-                    INT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
-                    PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
-                    DestroyIcon(smallIcon);
+                    if (Context->ImageList)
+                    {
+                        INT imageIndex = PhImageListAddIcon(Context->ImageList, largeIcon);
+                        PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
+                        DestroyIcon(largeIcon);
+                    }
                 }
 
                 PhDereferenceObject(dllIconPath);
@@ -744,7 +757,11 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
                 ILC_MASK | ILC_COLOR32,
                 1, 1
                 );
-            ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
+
+            if (context->ImageList)
+            {
+                ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
+            }
 
             if (context->ServiceItem->Type & SERVICE_DRIVER)
             {

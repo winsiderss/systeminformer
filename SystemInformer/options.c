@@ -20,6 +20,7 @@
 #include <emenu.h>
 
 #include <mainwnd.h>
+#include <notifico.h>
 #include <proctree.h>
 #include <phplug.h>
 #include <phsettings.h>
@@ -126,6 +127,7 @@ static HWND ContainerControl = NULL;
 static BOOLEAN RestartRequired = FALSE;
 
 // General
+static BOOLEAN GeneralListViewStateInitializing = FALSE;
 static CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
 static HFONT CurrentFontInstance = NULL;
@@ -245,7 +247,9 @@ static VOID PhReloadGeneralSection(
 {
     static PH_STRINGREF generalName = PH_STRINGREF_INIT(L"General");
 
+    GeneralListViewStateInitializing = TRUE;
     PhpAdvancedPageLoad(PhOptionsFindSection(&generalName)->DialogHandle, TRUE);
+    GeneralListViewStateInitializing = FALSE;
 }
 
 static VOID PhpOptionsSetImageList(
@@ -417,9 +421,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         SystemInformer_PrepareForEarlyShutdown();
 
                         PhResetSettings(PhMainWndHandle);
-
-                        if (!PhIsNullOrEmptyString(PhSettingsFileName))
-                            PhSaveSettings(&PhSettingsFileName->sr);
+                        PhSaveSettings2(PhSettingsFileName);
 
                         if (NT_SUCCESS(PhShellProcessHacker(
                             PhMainWndHandle,
@@ -1051,8 +1053,7 @@ VOID PhpSetDefaultTaskManager(
         if (!NT_SUCCESS(status))
             PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
 
-        if (!PhIsNullOrEmptyString(PhSettingsFileName))
-            PhSaveSettings(&PhSettingsFileName->sr);
+        //PhSaveSettings2(PhSettingsFileName);
     }
 }
 
@@ -1809,7 +1810,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     )
 {
     static PH_LAYOUT_MANAGER LayoutManager;
-    static BOOLEAN GeneralListViewStateInitializing = FALSE;
     static HWND ListViewHandle = NULL;
 
     switch (uMsg)
@@ -1954,11 +1954,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                         // Re-add the listview items for the new font (dmex)
                         GeneralListViewStateInitializing = TRUE;
-                        HWND listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-                        ExtendedListView_SetRedraw(listviewHandle, FALSE);
-                        ListView_DeleteAllItems(listviewHandle);
+                        ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+                        ListView_DeleteAllItems(ListViewHandle);
                         PhpAdvancedPageLoad(hwndDlg, FALSE);
-                        ExtendedListView_SetRedraw(listviewHandle, TRUE);
+                        ExtendedListView_SetRedraw(ListViewHandle, TRUE);
                         GeneralListViewStateInitializing = FALSE;
 
                         RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
@@ -1998,11 +1997,10 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                         // Re-add the listview items for the new font (dmex)
                         GeneralListViewStateInitializing = TRUE;
-                        HWND listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-                        ExtendedListView_SetRedraw(listviewHandle, FALSE);
-                        ListView_DeleteAllItems(listviewHandle);
+                        ExtendedListView_SetRedraw(ListViewHandle, FALSE);
+                        ListView_DeleteAllItems(ListViewHandle);
                         PhpAdvancedPageLoad(hwndDlg, FALSE);
-                        ExtendedListView_SetRedraw(listviewHandle, TRUE);
+                        ExtendedListView_SetRedraw(ListViewHandle, TRUE);
                         GeneralListViewStateInitializing = FALSE;
 
                         RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
@@ -2051,7 +2049,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
+                    if (ListView_HitTest(ListViewHandle, &lvHitInfo) != -1)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))
@@ -2059,8 +2057,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             BOOLEAN itemChecked;
 
                             // Emulate the checkbox control label click behavior and check/uncheck the checkbox when the listview item is clicked.
-                            itemChecked = ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem) == BST_CHECKED;
-                            ListView_SetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem, !itemChecked);
+                            itemChecked = ListView_GetCheckState(ListViewHandle, itemActivate->iItem) == BST_CHECKED;
+                            ListView_SetCheckState(ListViewHandle, itemActivate->iItem, !itemChecked);
                         }
                     }
                 }
@@ -2080,6 +2078,23 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
+                                case PHP_OPTIONS_INDEX_HIDE_WHENCLOSED:
+                                case PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED:
+                                case PHP_OPTIONS_INDEX_START_HIDDEN:
+                                    {
+                                        if (!PhNfIconsEnabled())
+                                        {
+                                            PhShowInformation2(
+                                                PhOptionsWindowHandle,
+                                                L"Unable to configure this option.",
+                                                L"%s",
+                                                L"You need to enable at minimum one tray icon (View menu > Tray Icons) before enabling the hide option."
+                                                );
+                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                            return TRUE;
+                                        }
+                                    }
+                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
                                     {
                                         PPH_STRING applicationFileName;
@@ -2294,7 +2309,6 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -2302,7 +2316,6 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            PhSystemDpi,
                             setting
                             );
                     }
@@ -3231,7 +3244,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             nodes[i]->Setting->Type,
                             &nodes[i]->Setting->DefaultValue,
                             NULL,
-                            PhSystemDpi,
                             nodes[i]->Setting
                             );
                         PhMoveReference(
@@ -3312,10 +3324,10 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
 typedef struct _COLOR_ITEM
 {
-    PWSTR SettingName;
-    PWSTR UseSettingName;
-    PWSTR Name;
-    PWSTR Description;
+    PCWSTR SettingName;
+    PCWSTR UseSettingName;
+    PCWSTR Name;
+    PCWSTR Description;
 
     BOOLEAN CurrentUse;
     COLORREF CurrentColor;
@@ -3582,8 +3594,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         Color = PhGetSetting(&SettingName);
                         UseColor = PhGetSetting(&UseSettingName);
 
-                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
-                        PhSettingFromString(UseColor->Type, &UseColor->DefaultValue, NULL, PhSystemDpi, UseColor);
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
+                        PhSettingFromString(UseColor->Type, &UseColor->DefaultValue, NULL, UseColor);
 
                         ColorItem->CurrentColor = Color->u.Integer;
                         ColorItem->CurrentUse = !!UseColor->u.Integer;
@@ -3626,7 +3638,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     PhInitializeStringRef(&SettingName, setNew ? L"ColorNew" : L"ColorRemoved");
                     Color = PhGetSetting(&SettingName);
 
-                    PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+                    PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
 
                     ColorBox_SetColor(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), Color->u.Integer);
                     InvalidateRect(GetDlgItem(hwndDlg, setNew ? IDC_NEWOBJECTS : IDC_REMOVEDOBJECTS), NULL, TRUE);
@@ -3839,7 +3851,7 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         Color = PhGetSetting(&SettingName);
 
-                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, PhSystemDpi, Color);
+                        PhSettingFromString(Color->Type, &Color->DefaultValue, NULL, Color);
 
                         ColorItem->CurrentColor = Color->u.Integer;
 

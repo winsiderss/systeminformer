@@ -30,7 +30,7 @@ typedef struct _PH_EXTLV_CONTEXT
     // Sorting
 
     BOOLEAN TriState;
-    ULONG SortColumn;
+    LONG SortColumn;
     PH_SORT_ORDER SortOrder;
     BOOLEAN SortFast;
 

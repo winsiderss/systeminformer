@@ -120,8 +120,8 @@ typedef struct _PH_MEMORY_ITEM
     SIZE_T LockedWorkingSetPages;
 
     SIZE_T SharedOriginalPages;
-    SIZE_T Priority;
 
+    ULONG_PTR Priority;
     PH_MEMORY_REGION_TYPE RegionType;
 
     union
@@ -175,16 +175,20 @@ VOID PhGetMemoryProtectionString(
     _Inout_z_ PWSTR String
     );
 
-PPH_STRINGREF PhGetMemoryStateString(
+PCPH_STRINGREF PhGetMemoryStateString(
     _In_ ULONG State
     );
 
-PPH_STRINGREF PhGetMemoryTypeString(
+PCPH_STRINGREF PhGetMemoryTypeString(
     _In_ ULONG Type
     );
 
-PPH_STRINGREF PhGetSigningLevelString(
+PCPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
+    );
+
+PCPH_STRINGREF PhGetMemoryPagePriorityString(
+    _In_ ULONG PagePriority
     );
 
 PPH_STRING PhGetMemoryRegionTypeExString(

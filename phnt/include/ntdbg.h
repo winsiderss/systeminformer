@@ -7,7 +7,9 @@
 #ifndef _NTDBG_H
 #define _NTDBG_H
 
+//
 // Debugging
+//
 
 NTSYSAPI
 VOID
@@ -78,7 +80,7 @@ vDbgPrintExWithPrefix(
     );
 
 NTSYSAPI
-ULONG 
+ULONG
 STDAPIVCALLTYPE
 DbgPrintReturnControlC(
     _In_z_ _Printf_format_string_ PCCH Format,
@@ -111,7 +113,9 @@ DbgPrompt(
     _In_ ULONG Length
     );
 
+//
 // Definitions
+//
 
 typedef struct _DBGKM_EXCEPTION
 {
@@ -220,7 +224,9 @@ typedef enum _DEBUGOBJECTINFOCLASS
     MaxDebugObjectInfoClass
 } DEBUGOBJECTINFOCLASS, *PDEBUGOBJECTINFOCLASS;
 
+//
 // System calls
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -278,7 +284,9 @@ NtWaitForDebugEvent(
     _Out_ PDBGUI_WAIT_STATE_CHANGE WaitStateChange
     );
 
+//
 // Debugging UI
+//
 
 NTSYSAPI
 NTSTATUS
@@ -385,4 +393,4 @@ EtwEventRegister(
     _Out_ PREGHANDLE RegHandle
     );
 
-#endif
+#endif // _NTDBG_H

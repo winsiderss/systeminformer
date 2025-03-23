@@ -109,6 +109,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"FontMonospace", L""); // null
+    PhpAddIntegerSetting(L"FontQuality", L"0");
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
@@ -117,6 +118,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"HandlePropertiesWindowSize", L"@96|260,260");
     PhpAddStringSetting(L"HandleStatisticsListViewColumns", L"");
     PhpAddStringSetting(L"HandleStatisticsListViewSort", L"0,1");
+    PhpAddIntegerPairSetting(L"HandleStatisticsWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"HandleStatisticsWindowSize", L"@96|0,0");
     PhpAddIntegerSetting(L"HideDefaultServices", L"0");
     PhpAddIntegerSetting(L"HideDriverServices", L"0");

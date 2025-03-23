@@ -808,9 +808,9 @@ VOID WhoisParseAddressString(
 {
     ULONG remoteAddressStringLength = RTL_NUMBER_OF(Context->RemoteAddressString);
 
-    if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (Context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &Context->RemoteEndpoint.Address.InAddr,
             0,
             Context->RemoteAddressString,

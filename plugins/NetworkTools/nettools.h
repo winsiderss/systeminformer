@@ -46,8 +46,8 @@
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
 extern ULONG GeoLiteDatabaseType;
-extern PH_STRINGREF GeoDbCityFileName;
-extern PH_STRINGREF GeoDbCountryFileName;
+extern CONST PH_STRINGREF GeoDbCityFileName;
+extern CONST PH_STRINGREF GeoDbCountryFileName;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)

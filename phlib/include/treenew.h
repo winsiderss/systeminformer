@@ -250,13 +250,15 @@ typedef enum _PH_TREENEW_MESSAGE
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
 
-typedef BOOLEAN (NTAPI *PPH_TREENEW_CALLBACK)(
+typedef BOOLEAN _Function_class_(PH_TREENEW_CALLBACK)
+NTAPI PH_TREENEW_CALLBACK(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
+typedef PH_TREENEW_CALLBACK* PPH_TREENEW_CALLBACK;
 
 typedef struct _PH_TREENEW_GET_CHILDREN
 {
@@ -630,6 +632,7 @@ typedef struct _PH_TREENEW_VIEW_PARTS
     LONG FixedWidth;
     LONG NormalLeft;
     LONG NormalWidth;
+    ULONG64 ScrollTickCount;
 } PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
 
 PHLIBAPI

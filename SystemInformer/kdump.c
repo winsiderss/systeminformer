@@ -212,7 +212,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                     config.pszContent = PhGetString(statusMessage);
                 }
 
-                SendMessage(context->WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+                PhTaskDialogNavigatePage(context->WindowHandle, &config);
 
                 if (statusMessage)
                     PhDereferenceObject(statusMessage);

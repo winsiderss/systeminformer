@@ -1057,9 +1057,12 @@ VOID DevicesTreeImageListInitialize(
             );
     }
 
-    PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
+    if (DeviceImageList)
+    {
+        PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
 
-    TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
+        TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
+    }
 }
 
 const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =

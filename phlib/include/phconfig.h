@@ -32,24 +32,24 @@ EXTERN_C PCWSTR WindowsVersionName;
 #define WINDOWS_7 61 // July, 2009
 #define WINDOWS_8 62 // August, 2012
 #define WINDOWS_8_1 63 // August, 2013
-#define WINDOWS_10 100 // TH1 // July, 2015
-#define WINDOWS_10_TH2 101 // November, 2015
-#define WINDOWS_10_RS1 102 // August, 2016
-#define WINDOWS_10_RS2 103 // April, 2017
-#define WINDOWS_10_RS3 104 // October, 2017
-#define WINDOWS_10_RS4 105 // April, 2018
-#define WINDOWS_10_RS5 106 // November, 2018
-#define WINDOWS_10_19H1 107 // May, 2019
-#define WINDOWS_10_19H2 108 // November, 2019
-#define WINDOWS_10_20H1 109 // May, 2020
-#define WINDOWS_10_20H2 110 // October, 2020
-#define WINDOWS_10_21H1 111 // May, 2021
-#define WINDOWS_10_21H2 112 // November, 2021
-#define WINDOWS_10_22H2 113 // October, 2022
-#define WINDOWS_11 114 // October, 2021
-#define WINDOWS_11_22H2 115 // September, 2022
-#define WINDOWS_11_23H2 116 // October, 2023
-#define WINDOWS_11_24H2 117 // October, 2024
+#define WINDOWS_10 100 // July, 2015            // Version 1507, Build 10240
+#define WINDOWS_10_TH2 101 // November, 2015    // Version 1511, Build 10586
+#define WINDOWS_10_RS1 102 // August, 2016      // Version 1607, Build 14393
+#define WINDOWS_10_RS2 103 // April, 2017       // Version 1703, Build 15063
+#define WINDOWS_10_RS3 104 // October, 2017     // Version 1709, Build 16299
+#define WINDOWS_10_RS4 105 // April, 2018       // Version 1803, Build 17134
+#define WINDOWS_10_RS5 106 // November, 2018    // Version 1809, Build 17763
+#define WINDOWS_10_19H1 107 // May, 2019        // Version 1903, Build 18362
+#define WINDOWS_10_19H2 108 // November, 2019   // Version 1909, Build 18363
+#define WINDOWS_10_20H1 109 // May, 2020        // Version 2004, Build 19041
+#define WINDOWS_10_20H2 110 // October, 2020    // Build 19042
+#define WINDOWS_10_21H1 111 // May, 2021        // Build 19043
+#define WINDOWS_10_21H2 112 // November, 2021   // Build 19044
+#define WINDOWS_10_22H2 113 // October, 2022    // Build 19045
+#define WINDOWS_11 114 // October, 2021         // Build 22000
+#define WINDOWS_11_22H2 115 // September, 2022  // Build 22621
+#define WINDOWS_11_23H2 116 // October, 2023    // Build 22631
+#define WINDOWS_11_24H2 117 // October, 2024    // Build 26100
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
@@ -102,6 +102,7 @@ typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
     USHORT NumberOfProcessors;
     USHORT NumberOfProcessorGroups;
     PUSHORT ActiveProcessorCount;
+    PKAFFINITY ActiveProcessorsAffinityMasks;
 } PH_SYSTEM_PROCESSOR_INFORMATION, *PPH_SYSTEM_PROCESSOR_INFORMATION;
 
 extern PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation;

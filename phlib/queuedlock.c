@@ -1091,7 +1091,7 @@ VOID FASTCALL PhfQueueWakeEvent(
 
     WaitBlock->Flags = PH_QUEUED_WAITER_SPINNING;
 
-    value = _InterlockedCompareExchangePointer((volatile PVOID *)&WakeEvent->Value, nullptr, nullptr);
+    value = _InterlockedCompareExchangePointer((volatile PVOID *)&WakeEvent->Value, NULL, NULL);
 
     while (TRUE)
     {

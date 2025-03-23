@@ -170,9 +170,9 @@ PH_ACCESS_ENTRY CONST PhpGroupDescriptionEntries[6] =
     { NULL, SE_GROUP_RESOURCE, FALSE, FALSE, L"Resource" }
 };
 
-static PH_STRINGREF PhpEmptyTokenAttributesText = PH_STRINGREF_INIT(L"There are no attributes to display.");
-static PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There are no claims to display.");
-static PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
+static CONST PH_STRINGREF PhpEmptyTokenAttributesText = PH_STRINGREF_INIT(L"There are no attributes to display.");
+static CONST PH_STRINGREF PhpEmptyTokenClaimsText = PH_STRINGREF_INIT(L"There are no claims to display.");
+static CONST PH_STRINGREF PhpEmptyTokenCapabilitiesText = PH_STRINGREF_INIT(L"There are no capabilities to display.");
 
 INT CALLBACK PhpTokenPropPageProc(
     _In_ HWND hwnd,
@@ -628,12 +628,12 @@ _Success_(return)
 BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType,
-    _Out_ PPH_STRINGREF* ElevationTypeString
+    _Out_ PCPH_STRINGREF* ElevationTypeString
     )
 {
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
 
-    if (PhFindStringRefSiKeyValuePairs(
+    if (PhIndexStringRefSiKeyValuePairs(
         PhElevationTypePairs,
         sizeof(PhElevationTypePairs),
         (IsElevated ? 4 : 0) + (ULONG)ElevationType,
@@ -650,7 +650,7 @@ BOOLEAN PhGetElevationTypeString(
 _Success_(return)
 BOOLEAN PhGetImpersonationLevelString(
     _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
-    _Out_ PWSTR* ImpersonationLevelString
+    _Out_ PCWSTR* ImpersonationLevelString
     )
 {
     if (PhIndexStringSiKeyValuePairs(
@@ -669,7 +669,7 @@ BOOLEAN PhGetImpersonationLevelString(
 _Success_(return)
 BOOLEAN PhGetTokenTypeString(
     _In_ TOKEN_TYPE TokenType,
-    _Out_ PWSTR* TokenTypeString
+    _Out_ PCWSTR* TokenTypeString
     )
 {
     if (PhIndexStringSiKeyValuePairs(
@@ -3200,7 +3200,7 @@ BOOLEAN PhpAddTokenCapabilities(
                         {
                             if (PhIsPackageCapabilitySid(tokenAppContainer.AppContainer.Sid, TokenPageContext->Capabilities->Groups[i].Sid))
                             {
-                                static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
+                                static CONST PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
 
                                 if (name = PhGetTokenPackageFullName(tokenHandle))
                                 {
@@ -3236,8 +3236,8 @@ BOOLEAN PhpAddTokenCapabilities(
 
                         if (name = PhFormatGuid(&capabilityGuid.Guid))
                         {
-                            static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
-                            static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
+                            static CONST PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
+                            static CONST PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
 
                             PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
 
@@ -3485,7 +3485,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     _In_ ULONG ValueIndex
     )
 {
-    static PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
+    static CONST PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
     PH_FORMAT format[6];
     ULONG count = 0;
 
@@ -3494,8 +3494,8 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 &&
         PhEqualStringRef(Name, &winPkg, TRUE))
     {
-        ULONG upper = (ULONG)(Attribute->Values.pUint64[0] >> 32);
-        ULONG lower = (ULONG)Attribute->Values.pUint64[0];
+        ULONG upper = (ULONG)(Attribute->Values.Uint64[0] >> 32);
+        ULONG lower = (ULONG)Attribute->Values.Uint64[0];
         PH_STRING_BUILDER sb;
         PPH_STRING string;
 
@@ -3559,7 +3559,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         }
 
         PhInitFormatS(&format[count++], L" (0x");
-        PhInitFormatI64X(&format[count++], Attribute->Values.pUint64[0]);
+        PhInitFormatI64X(&format[count++], Attribute->Values.Uint64[0]);
         PhInitFormatS(&format[count++], L")");
 
         PhMoveReference(&string, PhFormat(format, count, 0));
@@ -3571,36 +3571,36 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     switch (Attribute->ValueType)
     {
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
-        PhInitFormatI64D(&format[0], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatI64D(&format[0], Attribute->Values.Int64[ValueIndex]);
         PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatI64X(&format[2], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatI64X(&format[2], Attribute->Values.Int64[ValueIndex]);
         PhInitFormatS(&format[3], L")");
         return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64:
-        PhInitFormatI64U(&format[0], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatI64U(&format[0], Attribute->Values.Uint64[ValueIndex]);
         PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatI64X(&format[2], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatI64X(&format[2], Attribute->Values.Uint64[ValueIndex]);
         PhInitFormatS(&format[3], L")");
         return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
-        return PhCreateStringFromUnicodeString(&Attribute->Values.pString[ValueIndex]);
+        return PhCreateStringFromUnicodeString(&Attribute->Values.String[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
         return PhFormatString(L"Version %llu: %.*s",
-            Attribute->Values.pFqbn[ValueIndex].Version,
-            Attribute->Values.pFqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
-            Attribute->Values.pFqbn[ValueIndex].Name.Buffer);
+            Attribute->Values.Fqbn[ValueIndex].Version,
+            Attribute->Values.Fqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
+            Attribute->Values.Fqbn[ValueIndex].Name.Buffer);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
         {
-            if (PhValidSid(Attribute->Values.pOctetString[ValueIndex].Value))
+            if (PhValidSid(Attribute->Values.OctetString[ValueIndex].Value))
             {
                 PPH_STRING name;
 
-                name = PhGetSidFullName(Attribute->Values.pOctetString[ValueIndex].Value, TRUE, NULL);
+                name = PhGetSidFullName(Attribute->Values.OctetString[ValueIndex].Value, TRUE, NULL);
 
                 if (name)
                     return name;
 
-                name = PhSidToStringSid(Attribute->Values.pOctetString[ValueIndex].Value);
+                name = PhSidToStringSid(Attribute->Values.OctetString[ValueIndex].Value);
 
                 if (name)
                     return name;
@@ -3608,7 +3608,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         }
         return PhCreateString(L"(Invalid SID)");
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
-        return PhCreateString(Attribute->Values.pInt64[ValueIndex] != 0 ? L"True" : L"False");
+        return PhCreateString(Attribute->Values.Int64[ValueIndex] != 0 ? L"True" : L"False");
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
         return PhCreateString(L"(Octet string)");
     default:
@@ -3813,7 +3813,7 @@ BOOLEAN PhpAddTokenAttributes(
     {
         for (i = 0; i < info->AttributeCount; i++)
         {
-            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->AttributeV1[i];
             PPH_STRING name;
             PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
@@ -4159,7 +4159,7 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
                     {
                         if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
                         {
-                            static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
+                            static CONST PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
 
                             PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
                                 &tokenProfilePathString->sr,

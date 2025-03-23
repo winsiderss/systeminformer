@@ -26,7 +26,7 @@
 typedef struct _AppDomainInfo
 {
     ULONG Id;             // unique identifier
-    INT NameLengthInBytes;
+    LONG NameLengthInBytes;
     PWSTR AppDomainName;
     PVOID AppDomains;
 } AppDomainInfo;
@@ -38,7 +38,7 @@ typedef struct _AppDomainInfo
 typedef struct _AppDomainInfo_Wow64
 {
     ULONG Id;             // unique identifier
-    INT NameLengthInBytes;
+    LONG NameLengthInBytes;
     ULONG AppDomainName;
     ULONG AppDomains;
 } AppDomainInfo_Wow64;
@@ -54,12 +54,12 @@ typedef struct _AppDomainEnumerationIPCBlock
 {
     HANDLE Mutex;                 // lock for serialization while manipulating AppDomain list.
 
-    INT TotalSlots;                  // Number of slots in AppDomainListElement array
-    INT NumOfUsedSlots;
-    INT LastFreedSlot;
-    INT SizeInBytes;                 // Size of AppDomainInfo in bytes
+    LONG TotalSlots;                  // Number of slots in AppDomainListElement array
+    LONG NumOfUsedSlots;
+    LONG LastFreedSlot;
+    LONG SizeInBytes;                 // Size of AppDomainInfo in bytes
 
-    INT ProcessNameLengthInBytes;    // We can use psapi!GetModuleFileNameEx to get the module name.
+    LONG ProcessNameLengthInBytes;    // We can use psapi!GetModuleFileNameEx to get the module name.
     PVOID ProcessName;               // This provides an alternative.
 
     PVOID ListOfAppDomains;
@@ -74,12 +74,12 @@ typedef struct _AppDomainEnumerationIPCBlock_Wow64
 {
     ULONG Mutex;                    // lock for serialization while manipulating AppDomain list.
 
-    INT TotalSlots;                 // Number of slots in AppDomainListElement array
-    INT NumOfUsedSlots;
-    INT LastFreedSlot;
-    INT SizeInBytes;                // Size of AppDomainInfo in bytes
+    LONG TotalSlots;                 // Number of slots in AppDomainListElement array
+    LONG NumOfUsedSlots;
+    LONG LastFreedSlot;
+    LONG SizeInBytes;                // Size of AppDomainInfo in bytes
 
-    INT ProcessNameLengthInBytes;   // We can use psapi!GetModuleFileNameEx to get the module name.
+    LONG ProcessNameLengthInBytes;   // We can use psapi!GetModuleFileNameEx to get the module name.
     ULONG ProcessName;              // This provides an alternative.
 
     ULONG ListOfAppDomains;

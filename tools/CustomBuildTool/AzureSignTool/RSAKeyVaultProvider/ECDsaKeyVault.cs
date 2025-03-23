@@ -1,12 +1,13 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     /// <summary>
     /// ECDsa implementation that uses Azure Key Vault
     /// </summary>
     public sealed class ECDsaKeyVault : ECDsa
     {
-        readonly KeyVaultContext context;
-        ECDsa publicKey;
+        private readonly KeyVaultContext context;
+        private ECDsa publicKey;
+        private bool disposed;
 
         /// <summary>
         /// Creates a new ECDsaKeyVault instance
@@ -23,39 +24,18 @@
             LegalKeySizesValue = new[] { new KeySizes(publicKey.KeySize, publicKey.KeySize, 0) };
         }
 
-        void CheckDisposed()
-        {
-            if (publicKey is null)
-                throw new ObjectDisposedException($"{nameof(ECDsaKeyVault)} is disposed.");
-        }
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                publicKey?.Dispose();
-                publicKey = null;
-            }
-
-            base.Dispose(disposing);
-        }
-
         public override byte[] SignHash(byte[] hash)
         {
             CheckDisposed();
             ValidateKeyDigestCombination(KeySize, hash.Length);
 
-            // We know from ValidateKeyDigestCombination that the key size and hash size are matched up
-            // according to RFC 7518 Sect. 3.1.
-            if (KeySize == 256)
-                return context.SignDigest(hash, HashAlgorithmName.SHA256, KeyVaultSignatureAlgorithm.ECDsa);
-            if (KeySize == 384)
-                return context.SignDigest(hash, HashAlgorithmName.SHA384, KeyVaultSignatureAlgorithm.ECDsa);
-            if (KeySize == 521) //ES512 uses nistP521
-                return context.SignDigest(hash, HashAlgorithmName.SHA512, KeyVaultSignatureAlgorithm.ECDsa);
-
-            throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash));
+            return KeySize switch
+            {
+                256 => context.SignDigest(hash, HashAlgorithmName.SHA256, KeyVaultSignatureAlgorithm.ECDsa),
+                384 => context.SignDigest(hash, HashAlgorithmName.SHA384, KeyVaultSignatureAlgorithm.ECDsa),
+                521 => context.SignDigest(hash, HashAlgorithmName.SHA512, KeyVaultSignatureAlgorithm.ECDsa),
+                _ => throw new ArgumentException("Digest length is not valid for the key size.", nameof(hash)),
+            };
         }
 
         protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
@@ -124,9 +104,9 @@
 
         private static void ValidateKeyDigestCombination(int keySizeBits, int digestSizeBytes)
         {
-            if (keySizeBits == 256 && digestSizeBytes == 32 ||
-                keySizeBits == 384 && digestSizeBytes == 48 ||
-                keySizeBits == 521 && digestSizeBytes == 64)
+            if ((keySizeBits == 256 && digestSizeBytes == 32) ||
+                (keySizeBits == 384 && digestSizeBytes == 48) ||
+                (keySizeBits == 521 && digestSizeBytes == 64))
             {
                 return;
             }
@@ -143,14 +123,46 @@
                 throw new NotSupportedException("The specified algorithm is not supported.");
             }
 
-            if (keySizeBits == 256 && hashAlgorithmName == HashAlgorithmName.SHA256 ||
-                keySizeBits == 384 && hashAlgorithmName == HashAlgorithmName.SHA384 ||
-                keySizeBits == 521 && hashAlgorithmName == HashAlgorithmName.SHA512)
+            if ((keySizeBits == 256 && hashAlgorithmName == HashAlgorithmName.SHA256) ||
+                (keySizeBits == 384 && hashAlgorithmName == HashAlgorithmName.SHA384) ||
+                (keySizeBits == 521 && hashAlgorithmName == HashAlgorithmName.SHA512))
             {
                 return;
             }
 
             throw new NotSupportedException($"The key size '{keySizeBits}' is not valid for digest algorithm '{hashAlgorithmName}'.");
+        }
+
+        void CheckDisposed()
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+        }
+
+        ~ECDsaKeyVault()
+        {
+            Dispose(false);
+        }
+
+        public new void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                publicKey?.Dispose();
+                publicKey = null;
+            }
+
+            disposed = true;
+            base.Dispose(disposing);
         }
     }
 }

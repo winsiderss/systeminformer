@@ -53,6 +53,7 @@ typedef HANDLE HTHEME;
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
+extern LONG PhFontQuality;
 extern LONG PhSystemDpi;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
@@ -73,18 +74,23 @@ PhGuiSupportUpdateSystemMetrics(
     );
 
 PHLIBAPI
-VOID
+LONG
+NTAPI
+PhGetFontQualitySetting(
+    _In_ LONG FontQuality
+    );
+
+PHLIBAPI
+HFONT
 NTAPI
 PhInitializeFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
@@ -337,6 +343,19 @@ NTAPI
 PhGetMonitorDpi(
     _In_ LPCRECT rect
     );
+
+FORCEINLINE
+LONG
+PhGetMonitorDpiFromRect(
+    _In_ PPH_RECTANGLE Rectangle
+    )
+{
+    RECT rect;
+
+    PhRectangleToRect(&rect, Rectangle);
+
+    return PhGetMonitorDpi(&rect);
+}
 
 PHLIBAPI
 LONG
@@ -1042,7 +1061,7 @@ PhGetListViewInterface(
     _In_ HWND ListViewHandle
     )
 {
-    IListView* listviewInterface = nullptr;
+    IListView* listviewInterface = NULL;
 
     SendMessage(
         ListViewHandle,
@@ -1934,9 +1953,8 @@ PhGetProcessDpiAwareness(
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
@@ -1960,7 +1978,6 @@ PhGetProcessGuiResources(
     _Out_ PULONG Total
     );
 
-_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1968,9 +1985,8 @@ PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
@@ -1987,17 +2003,19 @@ PhExtractIcon(
     _Out_opt_ HICON *IconSmall
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
+    _In_ LONG IconLargeWidth,
+    _In_ LONG IconLargeHeight,
+    _In_ LONG IconSmallWidth,
+    _In_ LONG IconSmallHeight,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall,
-    _In_ LONG WindowDpi
+    _Out_opt_ HICON *IconSmall
     );
 
 // Imagelist support
@@ -2216,6 +2234,16 @@ PhLoadImageFormatFromResource(
 PHLIBAPI
 HBITMAP
 NTAPI
+PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_ LONG Width,
+    _In_ LONG Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
 PhLoadImageFromResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -2426,6 +2454,14 @@ PhEnumerateRecentList(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTerminateWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Force
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
@@ -2607,160 +2643,64 @@ PhThemeWindowDrawToolbar(
 
 // Font support
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateFont(
     _In_opt_ PCWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        PitchAndFamily,
-        Name
-        );
-}
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG Dpi
+    );
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateCommonFont(
     _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
-    )
-{
-    HFONT fontHandle;
-    LOGFONT logFont;
+    _In_ LONG Weight,
+    _In_opt_ HWND WindowHandle,
+    _In_ LONG WindowDpi
+    );
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
-        return NULL;
-
-    fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
-        );
-
-    if (!fontHandle)
-        return NULL;
-
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
-
-    return fontHandle;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateIconTitleFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateMessageFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
-        return CreateFontIndirect(&metrics.lfMessageFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFont(
     _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
+);
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewWeight(
     _In_ HFONT Font,
     _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewHeight(
     _In_ HFONT Font,
     _In_ LONG NewHeight,
     _In_ LONG dpiValue
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
+    );
 
 FORCEINLINE
 BOOLEAN

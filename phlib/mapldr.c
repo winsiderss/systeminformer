@@ -215,7 +215,7 @@ NTSTATUS PhLoadLibraryAsResource(
     InitializeObjectAttributes(
         &sectionAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );
@@ -273,7 +273,7 @@ NTSTATUS PhLoadLibraryAsResource(
 }
 
 NTSTATUS PhLoadLibraryAsImageResource(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _Out_opt_ PVOID *BaseAddress
     )
@@ -473,14 +473,14 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  */
 NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName = nullptr;
+    PPH_STRING fileName = NULL;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
@@ -516,28 +516,11 @@ NTSTATUS PhGetProcedureAddressRemote(
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
     context.FileName = fileName;
 
-    {
-        PPH_STRING remoteFileName;
-
-        if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, mappedImage.ViewBase, &remoteFileName)))
-        {
-            if (PhEqualString(fileName, remoteFileName, FALSE))
-            {
-                context.DllBase = mappedImage.ViewBase;
-            }
-
-            PhDereferenceObject(remoteFileName);
-        }
-    }
-
-    if (!context.DllBase)
-    {
-        status = PhEnumProcessModulesLimited(
-            ProcessHandle,
-            PhpGetProcedureAddressRemoteLimitedCallback,
-            &context
-            );
-    }
+    status = PhEnumProcessModulesLimited(
+        ProcessHandle,
+        PhpGetProcedureAddressRemoteLimitedCallback,
+        &context
+        );
 
     if (!context.DllBase)
     {
@@ -818,7 +801,7 @@ PPH_STRING PhLoadString(
  * \param SourceString The indirect string from which the resource will be retrieved.
  */
 PPH_STRING PhLoadIndirectString(
-    _In_ PPH_STRINGREF SourceString
+    _In_ PCPH_STRINGREF SourceString
     )
 {
     PPH_STRING indirectString = NULL;
@@ -938,7 +921,7 @@ PPH_STRING PhGetDllFileName(
 
 _Success_(return)
 BOOLEAN PhGetLoaderEntryData(
-    _In_ PPH_STRINGREF BaseDllName,
+    _In_ PCPH_STRINGREF BaseDllName,
     _Out_opt_ PVOID* DllBase,
     _Out_opt_ ULONG* SizeOfImage,
     _Out_opt_ PPH_STRING* FullName
@@ -1241,9 +1224,9 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
-    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
         if (
             ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
@@ -1280,9 +1263,9 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
 
     section = IMAGE_FIRST_SECTION(ImageNtHeader);
 
-    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
 
         if (
             ((ULONG_PTR)Rva >= (ULONG_PTR)sectionHeader->VirtualAddress) &&
@@ -2358,14 +2341,14 @@ NTSTATUS PhLoaderEntryRelocateImage(
     if (FlagOn(imageNtHeader->FileHeader.Characteristics, IMAGE_FILE_RELOCS_STRIPPED))
         return STATUS_SUCCESS;
 
-    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
     {
         PIMAGE_SECTION_HEADER sectionHeader;
         PVOID sectionHeaderAddress;
         SIZE_T sectionHeaderSize;
         ULONG sectionProtectionJunk = 0;
 
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
@@ -2416,7 +2399,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
         relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
     }
 
-    for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
+    for (USHORT i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
     {
         PIMAGE_SECTION_HEADER sectionHeader;
         PVOID sectionHeaderAddress;
@@ -2424,7 +2407,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
         ULONG sectionProtection = 0;
         ULONG sectionProtectionJunk = 0;
 
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(imageNtHeader), UInt32x32To64(IMAGE_SIZEOF_SECTION_HEADER, i));
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
@@ -2516,7 +2499,7 @@ PPH_STRING PhGetExportNameFromOrdinal(
 }
 
 NTSTATUS PhLoaderEntryLoadDll(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PVOID* BaseAddress
     )
 {
@@ -2526,7 +2509,6 @@ NTSTATUS PhLoaderEntryLoadDll(
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
     SIZE_T imageBaseOffset;
-
 
     status = PhCreateFile(
         &fileHandle,
@@ -2692,7 +2674,7 @@ NTSTATUS PhLoadAllImportsForDll(
 }
 
 NTSTATUS PhLoadPluginImage(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {
@@ -2831,7 +2813,7 @@ NTSTATUS PhGetFileBinaryTypeWin32(
     InitializeObjectAttributes(
         &objectAttributes,
         NULL,
-        0,
+        OBJ_EXCLUSIVE,
         NULL,
         NULL
         );

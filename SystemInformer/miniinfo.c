@@ -127,7 +127,7 @@ VOID PhPinMiniInformation(
             ShowWindow(PhMipWindow, SW_SHOW);
 
             if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
-                PhMipSetPinned(TRUE);
+                PhMipSetPinned(TRUE, TRUE);
 
             PhMipRefreshAutomatically = PhGetIntegerSetting(L"MiniInfoWindowRefreshAutomatically");
 
@@ -356,7 +356,7 @@ VOID PhMipContainerOnShowWindow(
             PhMipPinCounts[i] = 0;
 
         Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), BST_UNCHECKED);
-        PhMipSetPinned(FALSE);
+        PhMipSetPinned(FALSE, TRUE);
         PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
 
         PhUnregisterCallback(
@@ -517,11 +517,13 @@ VOID PhMipOnCommand(
     switch (Id)
     {
     case IDC_SECTION:
-        switch (Code)
         {
-        case STN_CLICKED:
-            PhMipShowSectionMenu();
-            break;
+            switch (Code)
+            {
+            case STN_CLICKED:
+                PhMipShowSectionMenu();
+                break;
+            }
         }
         break;
     case IDC_OPTIONS:
@@ -533,7 +535,7 @@ VOID PhMipOnCommand(
 
             pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW)) == BST_CHECKED;
             PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
-            PhMipSetPinned(pinned);
+            PhMipSetPinned(pinned, TRUE);
             PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
         }
         break;
@@ -694,7 +696,7 @@ VOID PhMipCalculateWindowRectangle(
     PhLoadWindowPlacementFromSetting(NULL, L"MiniInfoWindowSize", PhMipContainerWindow);
     GetWindowRect(PhMipContainerWindow, &windowRect);
     SendMessage(PhMipContainerWindow, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&windowRect); // Adjust for the minimum size.
-    windowRectangle = PhRectToRectangle(windowRect);
+    PhRectToRectangle(&windowRectangle, &windowRect);
 
     point.Left = SourcePoint->x;
     point.Top = SourcePoint->y;
@@ -746,8 +748,7 @@ VOID PhMipCalculateWindowRectangle(
             }
         }
 
-        bounds = PhRectToRectangle(monitorInfo.rcWork);
-
+        PhRectToRectangle(&bounds, &monitorInfo.rcWork);
         PhAdjustRectangleToBounds(&windowRectangle, &bounds);
     }
 
@@ -1040,11 +1041,16 @@ VOID PhMipToggleRefreshAutomatically(
 }
 
 VOID PhMipSetPinned(
-    _In_ BOOLEAN Pinned
+    _In_ BOOLEAN Pinned,
+    _In_ BOOLEAN Update
     )
 {
-    PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
-    SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    if (Update)
+    {
+        PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
+        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    }
+
     PhMipPinned = Pinned;
 
     PhNfNotifyMiniInfoPinned(Pinned);
@@ -1194,13 +1200,13 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     WNDPROC oldWndProc;
 
     if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
-        return 0;
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
@@ -1770,35 +1776,89 @@ BOOLEAN PhMipListSectionTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-            PPH_MIP_GROUP_NODE node;
 
             listSection->SuspendUpdate++;
 
             switch (keyEvent->VirtualKey)
             {
             case VK_DELETE:
-                if (node = PhMipGetSelectedGroupNode(listSection))
-                    PhUiTerminateProcesses(listSection->DialogHandle, &node->ProcessGroup->Representative, 1);
+                {
+                    PPH_MIP_GROUP_NODE node;
+                    PPH_PROCESS_ITEM processItem;
+                    BOOLEAN pinned;
+
+                    // Prevent the window from changing visibility while displaying a modal dialog. (dmex)
+                    {
+                        pinned = TRUE;
+                        PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
+                        PhMipSetPinned(pinned, FALSE);
+                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                    }
+
+                    if (node = PhMipGetSelectedGroupNode(listSection))
+                    {
+                        processItem = node->ProcessGroup->Representative;
+
+                        PhReferenceObject(processItem);
+                        PhUiTerminateProcesses(listSection->DialogHandle, &processItem, 1);
+                        PhDereferenceObject(processItem);
+                    }
+
+                    SetFocus(listSection->TreeNewHandle);
+                    //SystemInformer_Refresh();
+                    //PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+
+                    {
+                        pinned = FALSE;
+                        PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
+                        PhMipSetPinned(pinned, FALSE);
+                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
+                    }
+                }
                 break;
             case VK_RETURN:
-                if (node = PhMipGetSelectedGroupNode(listSection))
                 {
-                    if (GetKeyState(VK_CONTROL) >= 0)
+                    PPH_MIP_GROUP_NODE node;
+                    BOOLEAN pinned;
+
+                    // Prevent the window from changing visibility while displaying a modal dialog. (dmex)
                     {
-                        PhMipHandleListSectionCommand(listSection, node->ProcessGroup, ID_PROCESS_GOTOPROCESS);
+                        pinned = TRUE;
+                        PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
+                        PhMipSetPinned(pinned, FALSE);
+                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
                     }
-                    else
+
+                    if (node = PhMipGetSelectedGroupNode(listSection))
                     {
-                        if (node->ProcessGroup->Representative->FileName)
+                        if (GetKeyState(VK_CONTROL) >= 0)
                         {
-                            PhShellExecuteUserString(
-                                listSection->DialogHandle,
-                                L"FileBrowseExecutable",
-                                node->ProcessGroup->Representative->FileName->Buffer,
-                                FALSE,
-                                L"Make sure the Explorer executable file is present."
-                                );
+                            PhMipHandleListSectionCommand(listSection, node->ProcessGroup, ID_PROCESS_GOTOPROCESS);
                         }
+                        else
+                        {
+                            if (node->ProcessGroup->Representative->FileName)
+                            {
+                                PhShellExecuteUserString(
+                                    listSection->DialogHandle,
+                                    L"FileBrowseExecutable",
+                                    node->ProcessGroup->Representative->FileName->Buffer,
+                                    FALSE,
+                                    L"Make sure the Explorer executable file is present."
+                                    );
+                            }
+                        }
+                    }
+
+                    SetFocus(listSection->TreeNewHandle);
+                    //SystemInformer_Refresh();
+                    //PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+
+                    {
+                        pinned = FALSE;
+                        PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
+                        PhMipSetPinned(pinned, FALSE);
+                        PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
                     }
                 }
                 break;

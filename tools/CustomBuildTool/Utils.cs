@@ -63,7 +63,7 @@ namespace CustomBuildTool
             return dict;
         }
 
-        public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString)
+        public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
         {
             string file = GetMsbuildFilePath(Flags);
 
@@ -73,7 +73,7 @@ namespace CustomBuildTool
                 return 3; // file not found.
             }
 
-            return Win32.CreateProcess(file, Command, out OutputString, false);
+            return Win32.CreateProcess(file, Command, out OutputString, false, RedirectOutput);
         }
 
         public static string ExecuteVsWhereCommand(string Command)
@@ -86,7 +86,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(file, Command, false);
+            string output = Win32.CreateProcess(file, Command, false);
             output = output.Trim();
             return output;
         }
@@ -316,7 +316,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(currentGitPath, $"{currentGitDirectory} {Command}", false);
+            string output = Win32.CreateProcess(currentGitPath, $"{currentGitDirectory} {Command}", false);
             output = output.Trim();
             return output;
         }
@@ -331,7 +331,7 @@ namespace CustomBuildTool
 
             if (Exclude != null)
             {
-                list.RemoveAll(s => Exclude.Any(f => f.Equals(s, StringComparison.OrdinalIgnoreCase)));
+                list.RemoveAll(s => Exclude.Any(f => f.Equals(Path.GetFileName(s), StringComparison.OrdinalIgnoreCase)));
             }
 
             return list;
@@ -519,7 +519,7 @@ namespace CustomBuildTool
                 return null;
             }
 
-            string output = Win32.ShellExecute(currentMisxPath, Command, false);
+            string output = Win32.CreateProcess(currentMisxPath, Command, false);
             output = output.Trim();
             return output;
         }
@@ -568,7 +568,7 @@ namespace CustomBuildTool
         //    if (string.IsNullOrWhiteSpace(vswhere))
         //        return null;
         //
-        //    vswhereResult = Win32.ShellExecute(
+        //    vswhereResult = Win32.CreateProcess(
         //        vswhere,
         //        "-latest " +
         //        "-prerelease " +
@@ -736,6 +736,53 @@ namespace CustomBuildTool
             long fileTime = ((long)FileTime.dwHighDateTime << 32) + FileTime.dwLowDateTime;
 
             return fileTime;
+        }
+
+        public static bool ValidateImageExports(string FileName)
+        {
+            LOADED_IMAGE loadedMappedImage = default;
+            IMAGE_EXPORT_DIRECTORY* exportDirectory;
+
+            try
+            {
+                if (!PInvoke.MapAndLoad(FileName, null, out LOADED_IMAGE LoadedImage, false, true))
+                    return false;
+
+                try
+                {
+                    exportDirectory = (IMAGE_EXPORT_DIRECTORY*)PInvoke.ImageDirectoryEntryToData(
+                        LoadedImage.MappedAddress, false,
+                        IMAGE_DIRECTORY_ENTRY.IMAGE_DIRECTORY_ENTRY_EXPORT, out uint DirectorySize
+                        );
+
+                    if (exportDirectory != null)
+                    {
+                        if (exportDirectory->NumberOfNames == 0)
+                            return true;
+
+                        Program.PrintColorMessage("Exported functions missing from module export definition file: ", ConsoleColor.Yellow);
+
+                        uint* exportNameTable = (uint*)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportDirectory->AddressOfNames, null);
+
+                        for (uint i = 0; i < exportDirectory->NumberOfNames; i++)
+                        {
+                            var exportName = Marshal.PtrToStringUTF8((nint)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportNameTable[i], null));
+
+                            Program.PrintColorMessage($"{i}: {exportName}", ConsoleColor.Yellow);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage($"ValidateImageExports: {ex}", ConsoleColor.Red);
+                }
+            }
+            finally
+            {
+                PInvoke.UnMapAndLoad(ref loadedMappedImage);
+            }
+
+            return false;
         }
     }
 

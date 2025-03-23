@@ -29,6 +29,7 @@ EXPORTS
     PhCmLoadSettings
     PhCmSaveSettings
     PhCopyListView
+    PhCopyIListView
     PhCopyListViewInfoTip
     PhCreateKsiSettingsBlob
     PhCreateProcessPropContext
@@ -48,6 +49,7 @@ EXPORTS
     PhDoPropPageLayout
     PhDuplicateProcessInformation
     PhDuplicateProcessNodeList
+    PhEnumDeviceResources
     PhEnumNetworkItems
     PhEnumNetworkItemsByProcessId
     PhEnumProcessItems
@@ -70,6 +72,7 @@ EXPORTS
     PhGetFilterSupportServiceTreeList
     PhGetGeneralCallback
     PhGetImageListIcon
+    PhGetIListViewContextMenuPoint
     PhGetListViewContextMenuPoint
     PhGetPhReleaseChannel
     PhGetPhReleaseChannelString
@@ -105,8 +108,10 @@ EXPORTS
     PhInitializeTreeNewFilterSupport
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
+    PhInsertCopyIListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
     PhInvalidateAllProcessNodes
+    PhIsProcessBackground
     PhIsProcessSuspended
     PhLoadSymbolProviderOptions
     PhLogMessageEntry
@@ -159,6 +164,7 @@ EXPORTS
     PhShowChooseProcessDialog
     PhShowHandleObjectProperties1
     PhShowHandleObjectProperties2
+    PhShowHandlePropertiesEx
     PhShowIconNotification
     PhShowProcessAffinityDialog2
     PhShowProcessProperties
@@ -176,9 +182,7 @@ EXPORTS
     PhWordMatchStringRef
     PhWritePhTextHeader
     PhaChoiceDialog
-    PhaGetProcessKnownCommandLine
-    PhCreateHandleItem
-    PhShowHandlePropertiesEx
+    PhaGetProcessKnownCommandLine 
 
 ; plugin
     PhEnumeratePlugins
@@ -221,6 +225,7 @@ EXPORTS
     PhUiDetachFromDebuggerProcess
     PhUiDisconnectFromPhSvc
     PhUiDisconnectSession
+    PhUiEmptyProcessMemoryWorkingSet
     PhUiFlushHeapProcesses
     PhUiFreeMemory
     PhUiFreezeTreeProcess
@@ -234,9 +239,11 @@ EXPORTS
     PhUiReduceWorkingSetProcesses
     PhUiRestartComputer
     PhUiRestartProcess
+    PhUiRestartServices
     PhUiResumeProcesses
     PhUiResumeThreads
     PhUiResumeTreeProcess
+    PhUiSetActivityModeration
     PhUiSetAttributesHandle
     PhUiSetBoostPriorityProcess
     PhUiSetBoostPriorityProcesses
@@ -591,6 +598,7 @@ EXPORTS
     PhGetProcessIsDotNetEx
     PhGetProcessMappedFileName
     PhGetProcessPebString
+    PhGetProcessPowerThrottlingState
     PhGetProcessPriorityClass
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
@@ -632,6 +640,7 @@ EXPORTS
     PhResolveDevicePrefix
     PhRevertImpersonationToken
     PhSetFileAllocationSize
+    PhSetFileIoPriorityHint
     PhSetFilePosition
     PhSetFileSize
     PhSetFirmwareEnvironmentVariable
@@ -879,10 +888,14 @@ EXPORTS
     PhAddIListViewItem
     PhAddTabControlTab
     PhBitmapSetAlpha
+    PhCreateCommonFont
     PhCreateDialog
+    PhCreateIconTitleFont
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
+    PhDuplicateFont
+    PhDuplicateFontWithNewWeight
     PhEnumChildWindows
     PhEnumWindows
     PhFindIListViewItemByFlags
@@ -947,10 +960,11 @@ EXPORTS
     PhSetStateAllListViewItems
     PhSetWindowContext
     PhSetWindowText
+    PhTerminateWindow
+    PhUnregisterWindowCallback
     PhThemeWindowDrawButton
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
-    PhUnregisterWindowCallback
     PhWindowThemeControlColor
     PhIsThemeSupportEnabled
     PhWindowThemeSetDarkMode
@@ -958,6 +972,8 @@ EXPORTS
 
 ; hndlinfo
     PhCallKphQueryFileInformationWithTimeout
+    PhCreateHandleItem
+    PhShowHandlePropertiesEx
     PhCompareObjects
     PhEnumObjectTypes
     PhFormatNativeKeyName
@@ -1150,29 +1166,34 @@ EXPORTS
     PhDnsFree
     PhDnsQuery
     PhDnsQuery2
-    PhHttpDnsQuery
-    PhHttpSocketAddRequestHeaders
-    PhHttpSocketBeginRequest
-    PhHttpSocketClose
-    PhHttpSocketConnect
-    PhHttpSocketCreate
-    PhHttpSocketDestroy
-    PhHttpSocketDownloadString
-    PhHttpSocketEndRequest
-    PhHttpSocketGetErrorMessage
-    PhHttpSocketParseUrl
-    PhHttpSocketQueryHeaderString
-    PhHttpSocketQueryHeaderUlong
-    PhHttpSocketQueryHeaderUlong64
-    PhHttpSocketQueryHeaders
-    PhHttpSocketQueryOptionString
-    PhHttpSocketReadData
-    PhHttpSocketReadDataToBuffer
-    PhHttpSocketSendRequest
-    PhHttpSocketSetCredentials
-    PhHttpSocketSetFeature
-    PhHttpSocketSetSecurity
-    PhHttpSocketWriteData
+    PhDnsReverseLookupNameFromAddress
+    PhHttpAddRequestHeaders
+    PhHttpBeginRequest
+    PhHttpClose
+    PhHttpConnect
+    PhHttpCrackUrl
+    PhHttpInitialize
+    PhHttpDestroy
+    PhHttpDownloadString
+    PhHttpReceiveResponse
+    PhHttpGetErrorMessage
+    PhHttpQueryHeaderString
+    PhHttpQueryHeaderUlong
+    PhHttpQueryHeaderUlong64
+    PhHttpQueryHeaders
+    PhHttpQueryOptionString
+    PhHttpReadData
+    PhHttpReadDataToBuffer
+    PhHttpSendRequest
+    PhHttpSetCredentials
+    PhHttpSetFeature
+    PhHttpSetSecurity
+    PhHttpSetProtocal
+    PhHttpWriteData
+    PhIpv4AddressToString
+    PhIpv6AddressToString
+    PhIpv4StringToAddress
+    PhIpv6StringToAddress
 
 ; ksiuser
     KsiLevel

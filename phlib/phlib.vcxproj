@@ -297,6 +297,7 @@
     <ClCompile Include="nativepipe.c" />
     <ClCompile Include="nativemodule.c" />
     <ClCompile Include="nativethread.c" />
+    <ClCompile Include="nativetoken.c" />
     <ClCompile Include="nativeuser.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
@@ -326,7 +327,6 @@
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
-    <ClInclude Include="include\user.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />

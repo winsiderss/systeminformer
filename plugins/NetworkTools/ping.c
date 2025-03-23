@@ -90,7 +90,7 @@ NTSTATUS NetworkPingThreadStart(
     if (icmpEchoBuffer->Length != icmpEchoBufferLength)
         goto CleanupExit;
 
-    if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV6)
     {
         SOCKADDR_IN6 icmp6LocalAddr = { 0 };
         SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
@@ -749,11 +749,11 @@ VOID ShowPingWindow(
         sizeof(NetworkItem->RemoteEndpoint)
         );
 
-    if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (NetworkItem->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &NetworkItem->RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,
@@ -799,11 +799,11 @@ VOID ShowPingWindowFromAddress(
         sizeof(RemoteEndpoint)
         );
 
-    if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,

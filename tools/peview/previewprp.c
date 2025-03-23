@@ -42,7 +42,7 @@ VOID PvpShowFilePreview(
     PPH_STRING fileText;
     PH_STRING_BUILDER sb;
 
-    if (fileText = PhFileReadAllTextWin32(PvFileName->Buffer, TRUE))
+    if (NT_SUCCESS(PhFileReadAllTextWin32(&fileText, PvFileName->Buffer, TRUE)))
     {
         PhInitializeStringBuilder(&sb, 0x1000);
 

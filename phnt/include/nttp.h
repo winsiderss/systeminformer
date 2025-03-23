@@ -12,21 +12,25 @@
 typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
 
 // private
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
+typedef _Function_class_(TP_ALPC_CALLBACK)
+VOID NTAPI TP_ALPC_CALLBACK(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PTP_ALPC Alpc
     );
+typedef TP_ALPC_CALLBACK *PTP_ALPC_CALLBACK;
 
 // rev
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
+typedef _Function_class_(TP_ALPC_CALLBACK_EX)
+VOID NTAPI TP_ALPC_CALLBACK_EX(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PTP_ALPC Alpc,
     _In_ PVOID ApcContext
     );
+typedef TP_ALPC_CALLBACK_EX *PTP_ALPC_CALLBACK_EX;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // winbase:CreateThreadpool
 NTSYSAPI
@@ -63,7 +67,7 @@ TpSetPoolMinThreads(
     _In_ ULONG MinThreads
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // winbase:QueryThreadpoolStackInformation
 NTSYSAPI
 NTSTATUS
@@ -90,7 +94,7 @@ TpSetPoolThreadBasePriority(
     _Inout_ PTP_POOL Pool,
     _In_ ULONG BasePriority
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
 // winbase:CreateThreadpoolCleanupGroup
 NTSYSAPI
@@ -256,7 +260,7 @@ TpSetTimer(
     _In_opt_ ULONG WindowLength
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // winbase:SetThreadpoolTimerEx
 NTSYSAPI
 NTSTATUS
@@ -315,7 +319,7 @@ TpSetWait(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // winbase:SetThreadpoolWaitEx
 NTSYSAPI
 NTSTATUS
@@ -338,13 +342,15 @@ TpWaitForWait(
     );
 
 // private
-typedef VOID (NTAPI *PTP_IO_CALLBACK)(
+typedef _Function_class_(TP_IO_CALLBACK)
+VOID NTAPI TP_IO_CALLBACK(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
     _In_ PVOID ApcContext,
     _In_ PIO_STATUS_BLOCK IoSB,
     _In_ PTP_IO Io
     );
+typedef TP_IO_CALLBACK *PTP_IO_CALLBACK;
 
 // winbase:CreateThreadpoolIo
 NTSYSAPI
@@ -403,7 +409,7 @@ TpAllocAlpcCompletion(
     _In_opt_ PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -473,6 +479,6 @@ TpCheckTerminateWorker(
     _In_ HANDLE Thread
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
-#endif
+#endif // _NTTP_H

@@ -95,9 +95,9 @@ BOOLEAN PhMainWndInitialization(
 
     memset(&windowRectangle, 0, sizeof(PH_RECTANGLE));
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRect = PhRectangleToRect(windowRectangle);
+    PhRectangleToRect(&windowRect, &windowRectangle);
     windowDpi = PhGetMonitorDpi(&windowRect);
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi)->Pair;
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
     // Initialize the window.
@@ -410,7 +410,6 @@ VOID PhMwpShowWindow(
         ShowWindow(PhMainWndHandle, ShowCommand);
         UpdateWindow(PhMainWndHandle);
         SetForegroundWindow(PhMainWndHandle);
-        PhConsoleSetForeground(NtCurrentProcess(), TRUE);
     }
 
     if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
@@ -671,11 +670,17 @@ VOID PhMwpOnSettingChange(
     _In_opt_ PCWSTR Metric
     )
 {
-    PhInitializeFont(WindowHandle, 0);
+    {
+        HFONT oldFont = PhApplicationFont;
+        PhApplicationFont = PhInitializeFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
+    }
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont(WindowHandle, 0);
+        HFONT oldFont = PhMonospaceFont;
+        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
     }
 
     if (Action == 0 && Metric)
@@ -1688,6 +1693,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_ACTIVITY:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiSetActivityModeration(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_MISCELLANEOUS_SETCRITICAL:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
@@ -1732,6 +1749,18 @@ VOID PhMwpOnCommand(
             {
                 PhReferenceObject(processItem);
                 PhShowProcessHeapsDialog(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_LOCKS:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowProcessLocksDialog(WindowHandle, processItem);
                 PhDereferenceObject(processItem);
             }
         }
@@ -1908,6 +1937,7 @@ VOID PhMwpOnCommand(
                 PhDereferenceObject(processItem);
             }
         }
+        break;
     case ID_WINDOW_BRINGTOFRONT:
         {
             if (IsWindow(PhMwpSelectedProcessWindowHandle))
@@ -1919,7 +1949,9 @@ VOID PhMwpOnCommand(
                 if (placement.showCmd == SW_MINIMIZE)
                     ShowWindowAsync(PhMwpSelectedProcessWindowHandle, SW_RESTORE);
                 else
-                    SetForegroundWindow(PhMwpSelectedProcessWindowHandle);
+                    ShowWindowAsync(PhMwpSelectedProcessWindowHandle, SW_SHOW);
+
+                SetForegroundWindow(PhMwpSelectedProcessWindowHandle);
             }
         }
         break;
@@ -1951,7 +1983,15 @@ VOID PhMwpOnCommand(
         {
             if (IsWindow(PhMwpSelectedProcessWindowHandle))
             {
-                PostMessage(PhMwpSelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+                NTSTATUS status;
+
+                status = PhTerminateWindow(PhMwpSelectedProcessWindowHandle, TRUE);
+                //PostMessage(PhMwpSelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(WindowHandle, L"Unable to close the window.", status, 0);
+                }
             }
         }
         break;
@@ -2633,7 +2673,7 @@ VOID PhMwpSaveSettings(
 
         if (!NT_SUCCESS(status))
         {
-            PhShowStatus(nullptr, L"Unable to save application settings.", status, 0);
+            PhShowStatus(NULL, L"Unable to save application settings.", status, 0);
         }
     }
 }
@@ -4408,12 +4448,12 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     }
     else
     {
-        PhInitializeMonospaceFont(hwnd, LayoutWindowDpi);
+        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        if (oldFont) DeleteFont(oldFont);
         return;
     }
 
     PhMonospaceFont = newFont;
-
     if (oldFont) DeleteFont(oldFont);
 }
 

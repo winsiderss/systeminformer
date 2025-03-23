@@ -41,7 +41,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
-#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".UpdateCheck")
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
@@ -112,12 +112,6 @@ typedef struct _PH_UPDATER_CONTEXT
     LONG64 ProgressDownloaded;
     LONG64 ProgressBitsPerSecond;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
-
-// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
-// after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
-#define TaskDialogNavigatePage(WindowHandle, Config) \
-    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
-    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 
 #ifdef FORCE_FAST_STATUS_TIMER
 #define SETTING_NAME_STATUS_TIMER_INTERVAL USER_TIMER_MINIMUM

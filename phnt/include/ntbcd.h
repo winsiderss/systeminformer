@@ -7,6 +7,10 @@
 #ifndef _NTBCD_H
 #define _NTBCD_H
 
+//
+// BCD.dll Exported Types
+//
+
 #ifndef PHNT_INLINE_BCD_GUIDS
 // 5189B25C-5558-4BF2-BCA4-289B11BD29E2 // {badmemory}
 DEFINE_GUID(GUID_BAD_MEMORY_GROUP, 0x5189B25C, 0x5558, 0x4BF2, 0xBC, 0xA4, 0x28, 0x9B, 0x11, 0xBD, 0x29, 0xE2);
@@ -54,6 +58,8 @@ DEFINE_GUID(GUID_WINDOWS_SETUP_RAMDISK_OPTIONS, 0xAE5534E0, 0xA924, 0x466C, 0xB8
 DEFINE_GUID(GUID_WINDOWS_SETUP_BOOT_ENTRY, 0x7619dcc9, 0xfafe, 0x11d9, 0xb4, 0x11, 0x00, 0x04, 0x76, 0xeb, 0xa2, 0x5f);
 // {a62c8016-ca4e-4687-8032-d666c51a280c}
 DEFINE_GUID(GUID_VHD_BOOT_OPTIONS, 0xa62c8016, 0xca4e, 0x4687, 0x80, 0x32, 0xd6, 0x66, 0xc5, 0x1a, 0x28, 0x0c);
+// c63c9bdf-5fa5-4208-b03f-6b458b365592
+DEFINE_GUID(GUID_VMBFS_BOOT_INSTANCE, 0xc63c9bdf, 0x5fa5, 0x4208, 0xb0, 0x3f, 0x6b, 0x45, 0x8b, 0x36, 0x55, 0x92);
 // ebd0a0a2-b9e5-4433-87c0-68b6b72699c7
 DEFINE_GUID(PARTITION_BASIC_DATA_GUID, 0xebd0a0a2, 0xb9e5, 0x4433, 0x87, 0xc0, 0x68, 0xb6, 0xb7, 0x26, 0x99, 0xc7);
 // db97dba9-0840-4bae-97f0-ffb9a327c7e1
@@ -96,7 +102,7 @@ NTSYSAPI GUID GUID_WINDOWS_RESUME_TARGET_TEMPLATE_PCAT;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_EFI;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_PCAT;
 NTSYSAPI GUID GUID_WINDOWS_SETUP_RAMDISK_OPTIONS; // {ramdiskoptions}
-NTSYSAPI GUID GUID_VHD_BOOT_OPTIONS; 
+NTSYSAPI GUID GUID_VHD_BOOT_OPTIONS;
 NTSYSAPI GUID PARTITION_BASIC_DATA_GUID;
 NTSYSAPI GUID PARTITION_CLUSTER_GUID;
 NTSYSAPI GUID PARTITION_ENTRY_UNUSED_GUID;
@@ -107,7 +113,7 @@ NTSYSAPI GUID PARTITION_MSFT_RESERVED_GUID;
 NTSYSAPI GUID PARTITION_MSFT_SNAPSHOT_GUID;
 NTSYSAPI GUID PARTITION_SPACES_GUID;
 NTSYSAPI GUID PARTITION_SYSTEM_GUID;
-#endif
+#endif // PHNT_INLINE_BCD_GUIDS
 
 typedef enum _BCD_MESSAGE_TYPE
 {
@@ -126,7 +132,7 @@ typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
 
 /**
  * Sets the logging level and callback routine for BCD messages.
- * 
+ *
  * @param BcdLoggingLevel The logging level to set.
  * @param BcdMessageCallbackRoutine The callback routine for BCD messages.
  * @return NTSTATUS Successful or errant status.
@@ -151,7 +157,7 @@ BcdInitializeBcdSyncMutant(
 
 /**
  * Retrieves the file name for the BCD.
- * 
+ *
  * @param BcdSystemStorePath The pointer to receive the system store path.
  * @return NTSTATUS Successful or errant status.
  */
@@ -164,7 +170,7 @@ BcdGetSystemStorePath(
 
 /**
  * Sets the device for the system BCD store.
- * 
+ *
  * @param SystemPartition The system partition to set.
  * @return NTSTATUS Successful or errant status.
  */
@@ -177,7 +183,7 @@ BcdSetSystemStoreDevice(
 
 /**
  * Opens the BCD system store.
- * 
+ *
  * @param BcdStoreHandle The handle to receive the system store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -190,7 +196,7 @@ BcdOpenSystemStore(
 
 /**
  * Opens a BCD store from a file.
- * 
+ *
  * @param BcdFilePath The file path of the BCD store.
  * @param BcdStoreHandle The handle to receive the BCD store.
  * @return NTSTATUS Successful or errant status.
@@ -205,7 +211,7 @@ BcdOpenStoreFromFile(
 
 /**
  * Creates a BCD store.
- * 
+ *
  * @param BcdFilePath The file path to create the BCD store.
  * @param BcdStoreHandle The handle to receive the BCD store.
  * @return NTSTATUS Successful or errant status.
@@ -220,7 +226,7 @@ BcdCreateStore(
 
 /**
  * Exports the BCD store to a file.
- * 
+ *
  * @param BcdFilePath The file path to export the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -231,10 +237,10 @@ BcdExportStore(
     _In_ PCUNICODE_STRING BcdFilePath
     );
 
-#if (PHNT_VERSION > PHNT_WIN11)
+#if (PHNT_VERSION > PHNT_WINDOWS_11)
 /**
  * Exports the BCD store to a file with additional flags.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @param Flags The flags for exporting the store.
  * @param BcdFilePath The file path to export the BCD store.
@@ -248,11 +254,11 @@ BcdExportStoreEx(
     _In_ ULONG Flags,
     _In_ PCUNICODE_STRING BcdFilePath
     );
-#endif
+#endif // PHNT_VERSION > PHNT_WINDOWS_11
 
 /**
  * Imports a BCD store from a file.
- * 
+ *
  * @param BcdFilePath The file path to import the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -271,7 +277,7 @@ typedef enum _BCD_IMPORT_FLAGS
 
 /**
  * Imports a BCD store from a file with additional flags.
- * 
+ *
  * @param BcdFilePath The file path to import the BCD store.
  * @param BcdImportFlags The flags for importing the store.
  * @return NTSTATUS Successful or errant status.
@@ -286,7 +292,7 @@ BcdImportStoreWithFlags(
 
 /**
  * Deletes object references in the BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @param Identifier The identifier of the object to delete references for.
  * @return NTSTATUS Successful or errant status.
@@ -301,7 +307,7 @@ BcdDeleteObjectReferences(
 
 /**
  * Deletes the system store for BCD.
- * 
+ *
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -320,7 +326,7 @@ typedef enum _BCD_OPEN_FLAGS
 
 /**
  * Opens a BCD store with additional flags.
- * 
+ *
  * @param BcdFilePath The file path of the BCD store.
  * @param BcdOpenFlags The flags for opening the store.
  * @param BcdStoreHandle The handle to receive the BCD store.
@@ -337,7 +343,7 @@ BcdOpenStore(
 
 /**
  * Closes a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -350,7 +356,7 @@ BcdCloseStore(
 
 /**
  * Flushes a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -363,7 +369,7 @@ BcdFlushStore(
 
 /**
  * Forcibly unloads a BCD store.
- * 
+ *
  * @param BcdStoreHandle The handle to the BCD store.
  * @return NTSTATUS Successful or errant status.
  */
@@ -2295,4 +2301,4 @@ typedef enum _BcdOSLoaderElementTypes
     BcdOSLoaderString_HypervisorDebuggerNetHostIpv6 = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 353),
 } BcdOSLoaderElementTypes;
 
-#endif
+#endif // _NTBCD_H

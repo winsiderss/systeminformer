@@ -30,57 +30,60 @@
 #define PHNT_MODE_USER 1
 
 // Version
-#define PHNT_WIN2K 50
-#define PHNT_WINXP 51
-#define PHNT_WS03 52
-#define PHNT_VISTA 60
-#define PHNT_WIN7 61
-#define PHNT_WIN8 62
-#define PHNT_WINBLUE 63
-#define PHNT_THRESHOLD 100
-#define PHNT_THRESHOLD2 101
-#define PHNT_REDSTONE 102
-#define PHNT_REDSTONE2 103
-#define PHNT_REDSTONE3 104
-#define PHNT_REDSTONE4 105
-#define PHNT_REDSTONE5 106
-#define PHNT_19H1 107
-#define PHNT_19H2 108
-#define PHNT_20H1 109
-#define PHNT_20H2 110
-#define PHNT_21H1 111
-#define PHNT_WIN10_21H2 112
-#define PHNT_WIN10_22H2 113
-#define PHNT_WIN11 114
-#define PHNT_WIN11_22H2 115
-#define PHNT_WIN11_23H2 116
-#define PHNT_WIN11_24H2 117
+#define PHNT_WINDOWS_ANCIENT 0
+#define PHNT_WINDOWS_XP 51 // August, 2001
+#define PHNT_WINDOWS_SERVER_2003 52 // April, 2003
+#define PHNT_WINDOWS_VISTA 60 // November, 2006
+#define PHNT_WINDOWS_7 61 // July, 2009
+#define PHNT_WINDOWS_8 62 // August, 2012
+#define PHNT_WINDOWS_8_1 63 // August, 2013
+#define PHNT_WINDOWS_10 100 // July, 2015            // Version 1507, Build 10240
+#define PHNT_WINDOWS_10_TH2 101 // November, 2015    // Version 1511, Build 10586
+#define PHNT_WINDOWS_10_RS1 102 // August, 2016      // Version 1607, Build 14393
+#define PHNT_WINDOWS_10_RS2 103 // April, 2017       // Version 1703, Build 15063
+#define PHNT_WINDOWS_10_RS3 104 // October, 2017     // Version 1709, Build 16299
+#define PHNT_WINDOWS_10_RS4 105 // April, 2018       // Version 1803, Build 17134
+#define PHNT_WINDOWS_10_RS5 106 // November, 2018    // Version 1809, Build 17763
+#define PHNT_WINDOWS_10_19H1 107 // May, 2019        // Version 1903, Build 18362
+#define PHNT_WINDOWS_10_19H2 108 // November, 2019   // Version 1909, Build 18363
+#define PHNT_WINDOWS_10_20H1 109 // May, 2020        // Version 2004, Build 19041
+#define PHNT_WINDOWS_10_20H2 110 // October, 2020    // Build 19042
+#define PHNT_WINDOWS_10_21H1 111 // May, 2021        // Build 19043
+#define PHNT_WINDOWS_10_21H2 112 // November, 2021   // Build 19044
+#define PHNT_WINDOWS_10_22H2 113 // October, 2022    // Build 19045
+#define PHNT_WINDOWS_11 114 // October, 2021         // Build 22000
+#define PHNT_WINDOWS_11_22H2 115 // September, 2022  // Build 22621
+#define PHNT_WINDOWS_11_23H2 116 // October, 2023    // Build 22631
+#define PHNT_WINDOWS_11_24H2 117 // October, 2024    // Build 26100
+#define PHNT_WINDOWS_NEW ULONG_MAX
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER
 #endif
 
 #ifndef PHNT_VERSION
-#define PHNT_VERSION PHNT_WIN11_24H2
+#define PHNT_VERSION PHNT_WINDOWS_NEW
 #endif
 
+//
 // Options
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+//#ifndef PHNT_NO_INLINE_INIT_STRING
 //#define PHNT_NO_INLINE_INIT_STRING
+//#endif // !PHNT_NO_INLINE_INIT_STRING
 #ifndef PHNT_INLINE_TYPEDEFS
 #define PHNT_INLINE_TYPEDEFS
-#endif
-#endif
+#endif // !PHNT_INLINE_TYPEDEFS
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <phnt_ntdef.h>
 #include <ntnls.h>
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #include <ntkeapi.h>
 #include <ntldr.h>
@@ -93,29 +96,28 @@ extern "C" {
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <ntdbg.h>
+#include <ntimage.h>
 #include <ntioapi.h>
+#include <ntlsa.h>
 #include <ntlpcapi.h>
+#include <ntmisc.h>
 #include <ntpfapi.h>
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
 #include <ntrtl.h>
-#include <ntimage.h>
+#include <ntsam.h>
 #include <ntseapi.h>
 #include <nttmapi.h>
 #include <nttp.h>
-#include <ntxcapi.h>
-#include <ntwow64.h>
-#include <ntlsa.h>
-#include <ntsam.h>
-#include <ntmisc.h>
+#include <ntuser.h>
 #include <ntwmi.h>
+#include <ntwow64.h>
+#include <ntxcapi.h>
 #include <ntzwapi.h>
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 static_assert(__alignof(LARGE_INTEGER) == 8, "Windows headers require the default packing option. Changing the packing can lead to memory corruption.");
 static_assert(__alignof(PROCESS_CYCLE_TIME_INFORMATION) == 8, "PHNT headers require the default packing option. Changing the packing can lead to memory corruption.");

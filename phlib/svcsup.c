@@ -31,6 +31,7 @@ static CONST PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 
 static CONST PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
 {
+    SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"Driver"), SERVICE_KERNEL_DRIVER),
     SIP(SREF(L"FS driver"), SERVICE_FILE_SYSTEM_DRIVER),
     SIP(SREF(L"Own process"), SERVICE_WIN32_OWN_PROCESS),
@@ -336,7 +337,7 @@ NTSTATUS PhOpenService(
         return STATUS_SUCCESS;
     }
 
-    *ServiceHandle = nullptr;
+    *ServiceHandle = NULL;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -435,7 +436,7 @@ NTSTATUS PhCreateService(
         }
         else
         {
-            *ServiceHandle = nullptr;
+            *ServiceHandle = NULL;
             status = PhGetLastWin32ErrorAsNtStatus();
         }
 
@@ -1046,21 +1047,21 @@ PPH_STRING PhGetServiceNameFromTag(
     if (!I_QueryTagInformation)
     {
         I_QueryTagInformation = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
-
-        if (!I_QueryTagInformation)
-            return NULL;
     }
 
+    if (!I_QueryTagInformation)
+        return NULL;
+
     memset(&nameFromTag, 0, sizeof(TAG_INFO_NAME_FROM_TAG));
-    nameFromTag.InParams.dwPid = HandleToUlong(ProcessId);
-    nameFromTag.InParams.dwTag = PtrToUlong(ServiceTag);
+    nameFromTag.InParams.ProcessId = HandleToUlong(ProcessId);
+    nameFromTag.InParams.ServiceTag = PtrToUlong(ServiceTag);
 
     I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
 
-    if (nameFromTag.OutParams.pszName)
+    if (nameFromTag.OutParams.Name)
     {
-        serviceName = PhCreateString(nameFromTag.OutParams.pszName);
-        LocalFree(nameFromTag.OutParams.pszName);
+        serviceName = PhCreateString(nameFromTag.OutParams.Name);
+        LocalFree((HLOCAL)nameFromTag.OutParams.Name);
     }
 
     return serviceName;
@@ -1084,32 +1085,32 @@ PPH_STRING PhGetServiceNameForModuleReference(
 
         if (!I_QueryTagInformation)
             I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
-
-        if (!I_QueryTagInformation)
-            return NULL;
     }
 
+    if (!I_QueryTagInformation)
+        return NULL;
+
     memset(&moduleNameRef, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
-    moduleNameRef.InParams.dwPid = HandleToUlong(ProcessId);
-    moduleNameRef.InParams.pszModule = ModuleName;
+    moduleNameRef.InParams.ProcessId = HandleToUlong(ProcessId);
+    moduleNameRef.InParams.ModuleName = ModuleName;
 
     I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &moduleNameRef);
 
-    if (moduleNameRef.OutParams.pmszNames)
+    if (moduleNameRef.OutParams.Names)
     {
         PH_STRING_BUILDER sb;
         PCWSTR serviceName;
 
         PhInitializeStringBuilder(&sb, 0x40);
 
-        for (serviceName = moduleNameRef.OutParams.pmszNames; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
+        for (serviceName = moduleNameRef.OutParams.Names; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
             PhAppendFormatStringBuilder(&sb, L"%s, ", serviceName);
 
         if (sb.String->Length != 0)
             PhRemoveEndStringBuilder(&sb, 2);
 
         serviceNames = PhFinalStringBuilderString(&sb);
-        LocalFree((HLOCAL)moduleNameRef.OutParams.pmszNames);
+        LocalFree((HLOCAL)moduleNameRef.OutParams.Names);
     }
 
     return serviceNames;
@@ -1468,4 +1469,79 @@ PPH_STRING PhGetServicePackageFullName(
     }
 
     return servicePackageName;
+}
+
+NTSTATUS PhWaitForServiceStatus(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG WaitForState,
+    _In_ ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS_PROCESS serviceStatus;
+    ULONG64 serviceTicks;
+    ULONG serviceCheck;
+
+    status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
+
+    if (!NT_SUCCESS(status))
+        return status;
+    if (serviceStatus.dwCurrentState == WaitForState)
+        return STATUS_SUCCESS;
+
+    serviceTicks = NtGetTickCount64();
+    serviceCheck = serviceStatus.dwCheckPoint;
+
+    while (
+        serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
+        )
+    {
+        ULONG statusWaitHint = serviceStatus.dwWaitHint / 10;
+
+        if (statusWaitHint < 1000)
+            statusWaitHint = 1000;
+        if (statusWaitHint > 10000)
+            statusWaitHint = 10000;
+
+        PhDelayExecution(statusWaitHint);
+
+        status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (serviceStatus.dwCurrentState == WaitForState)
+            return STATUS_SUCCESS;
+
+        if (!(
+            serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
+            ))
+        {
+            return STATUS_SUCCESS;
+        }
+
+        serviceTicks = NtGetTickCount64();
+
+        if (serviceStatus.dwCheckPoint > serviceCheck)
+        {
+            serviceCheck = serviceStatus.dwCheckPoint;
+        }
+        else if ((NtGetTickCount64() - serviceTicks) > serviceStatus.dwWaitHint)
+        {
+            // Service doesn't report progress.
+        }
+
+        if ((NtGetTickCount64() - serviceTicks) > Timeout)
+        {
+            return STATUS_TIMEOUT; // STATUS_IO_TIMEOUT
+        }
+    }
+
+    return status;
 }

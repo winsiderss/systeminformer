@@ -29,7 +29,7 @@
 #include <procprv.h>
 #include <secedit.h>
 
-static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
+static CONST PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 
 static VOID NTAPI HandleAddedHandler(
     _In_ PVOID Parameter,

@@ -160,6 +160,8 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->LocalHostString);
     if (networkItem->RemoteHostString)
         PhDereferenceObject(networkItem->RemoteHostString);
+    if (networkItem->HvService)
+        PhDereferenceObject(networkItem->HvService);
 
     // NOTE: Dereferencing the ProcessItem will destroy the NetworkItem->ProcessIcon handle.
     if (networkItem->ProcessItem)
@@ -402,7 +404,7 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 //    socklen_t length;
 //    PPH_STRING hostName;
 //
-//    if (Address->Type == PH_IPV4_NETWORK_TYPE)
+//    if (Address->Type == PH_NETWORK_TYPE_IPV4)
 //    {
 //        ipv4Address.sin_family = AF_INET;
 //        ipv4Address.sin_port = 0;
@@ -410,7 +412,7 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 //        address = (PSOCKADDR)&ipv4Address;
 //        length = sizeof(ipv4Address);
 //    }
-//    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
+//    else if (Address->Type == PH_NETWORK_TYPE_IPV6)
 //    {
 //        ipv6Address.sin6_family = AF_INET6;
 //        ipv6Address.sin6_port = 0;
@@ -462,6 +464,146 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 //    return hostName;
 //}
 
+BOOLEAN PhpHvAddressIsVSockTemplate(
+    _In_ PGUID HvAddr
+    )
+{
+    GUID template = *HvAddr;
+
+    template.Data1 = 0;
+
+    return !!IsEqualGUID(&template, &HV_GUID_VSOCK_TEMPLATE);
+}
+
+PPH_STRING PhpGetHvHostName(
+    _In_ PGUID HvAddr
+    )
+{
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING hostName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(HvAddr);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING vmName;
+
+        if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+            PhMoveReference(&hostName, vmName);
+        else if (vmName = PhQueryRegistryStringZ(keyHandle, L"VmId"))
+            PhMoveReference(&hostName, vmName);
+        else
+            PhMoveReference(&hostName, PhCreateString3(&guidStringTrimmed, PH_STRING_UPPER_CASE, NULL));
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return hostName;
+}
+
+PPH_STRING PhpGetHvServiceName(
+    _In_ PGUID HvAddr
+    )
+{
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING serviceName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(HvAddr);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvGuestServicesKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING elementName;
+
+        if (elementName = PhQueryRegistryStringZ(keyHandle, L"ElementName"))
+            PhMoveReference(&serviceName, elementName);
+
+        NtClose(keyHandle);
+    }
+
+    // Keep this after element name lookup. Certain services define the VSOCK
+    // template with a specific port (e.g. Docker). (jxy-s)
+    if (!serviceName && PhpHvAddressIsVSockTemplate(HvAddr))
+        PhMoveReference(&serviceName, PhCreateString(L"VSOCK"));
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return serviceName;
+}
+
+PPH_STRING PhpGetHvAddressString(
+    _In_ PGUID HvAddr
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING wildcardString;
+    static PPH_STRING broadcastString;
+    static PPH_STRING childrenString;
+    static PPH_STRING loopbackString;
+    static PPH_STRING hostString;
+    static PPH_STRING siloHostString;
+    PPH_STRING addressString = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        wildcardString = PhCreateString(L"*");
+        broadcastString = PhCreateString(L"Broadcast");
+        childrenString = PhCreateString(L"Children");
+        loopbackString = PhCreateString(L"Loopback");
+        hostString = PhCreateString(L"Host");
+        siloHostString = PhCreateString(L"Silo Host");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (IsEqualGUID(HvAddr, &HV_GUID_WILDCARD))
+        return PhReferenceObject(wildcardString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_BROADCAST))
+        return PhReferenceObject(broadcastString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_CHILDREN))
+        return PhReferenceObject(childrenString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_LOOPBACK))
+        return PhReferenceObject(loopbackString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_PARENT))
+        return PhReferenceObject(hostString);
+    if (IsEqualGUID(HvAddr, &HV_GUID_SILOHOST))
+        return PhReferenceObject(siloHostString);
+
+    return PhFormatGuid(HvAddr);
+}
+
 PPH_STRING PhpGetDnsReverseNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -471,7 +613,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
 
     switch (Address->Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             static CONST PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
             PH_FORMAT format[9];
@@ -509,7 +651,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
             }
         }
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             static CONST PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
             PH_STRING_BUILDER stringBuilder;
@@ -570,12 +712,12 @@ PPH_STRING PhGetHostNameFromAddressEx(
 {
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString;
+    PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList;
 
     switch (Address->Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
                 return NULL;
@@ -589,9 +731,11 @@ PPH_STRING PhGetHostNameFromAddressEx(
             {
                 dnsLocalQuery = TRUE;
             }
+
+            dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV4, &Address->InAddr);
         }
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
                 return NULL;
@@ -603,11 +747,15 @@ PPH_STRING PhGetHostNameFromAddressEx(
             {
                 dnsLocalQuery = TRUE;
             }
+
+            dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV6, &Address->In6Addr);
         }
         break;
+    case PH_NETWORK_TYPE_HYPERV:
+        return PhpGetHvHostName(&Address->HvAddr);
     }
 
-    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
+    if (PhIsNullOrEmptyString(dnsReverseNameString))
         return NULL;
 
     if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)
@@ -1021,7 +1169,7 @@ VOID PhNetworkProviderUpdate(
 
             switch (networkItem->LocalEndpoint.Address.Type)
             {
-            case PH_IPV4_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_IPV4:
                 {
                     WCHAR localAddressString[IP4_ADDRESS_STRING_LENGTH];
                     ULONG localAddressStringLength = RTL_NUMBER_OF(localAddressString);
@@ -1040,7 +1188,7 @@ VOID PhNetworkProviderUpdate(
                     }
                 }
                 break;
-            case PH_IPV6_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_IPV6:
                 {
                     WCHAR localAddressString[IP6_ADDRESS_STRING_LENGTH];
                     ULONG localAddressStringLength = RTL_NUMBER_OF(localAddressString);
@@ -1060,9 +1208,12 @@ VOID PhNetworkProviderUpdate(
                     }
                 }
                 break;
-            case PH_HV_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->LocalAddressString = PhFormatGuid(
+                    networkItem->LocalAddressString = PhpGetHvAddressString(
+                        &networkItem->LocalEndpoint.Address.HvAddr
+                        );
+                    networkItem->HvService = PhpGetHvServiceName(
                         &networkItem->LocalEndpoint.Address.HvAddr
                         );
                 }
@@ -1071,7 +1222,7 @@ VOID PhNetworkProviderUpdate(
 
             switch (networkItem->RemoteEndpoint.Address.Type)
             {
-            case PH_IPV4_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_IPV4:
                 {
                     if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
                     {
@@ -1093,7 +1244,7 @@ VOID PhNetworkProviderUpdate(
                     }
                 }
                 break;
-            case PH_IPV6_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_IPV6:
                 {
                     if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
                     {
@@ -1116,9 +1267,9 @@ VOID PhNetworkProviderUpdate(
                     }
                 }
                 break;
-            case PH_HV_NETWORK_TYPE:
+            case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->RemoteAddressString = PhFormatGuid(
+                    networkItem->RemoteAddressString = PhpGetHvAddressString(
                         &networkItem->RemoteEndpoint.Address.HvAddr
                         );
                 }
@@ -1294,7 +1445,7 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     for (;;)
     {
         status = HvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
-        if (status != STATUS_BUFFER_TOO_SMALL)
+        if (status != STATUS_BUFFER_TOO_SMALL || length == 0)
         {
             break;
         }
@@ -1312,7 +1463,9 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     return connections;
 }
 
-VOID PhpGetHvSocket(
+VOID PhpCollectHvSocket(
+    _In_ PGUID VmIds,
+    _In_ SIZE_T Count,
     _Out_ PHVSOCKET_LISTENERS* Listeners,
     _Out_ PHVSOCKET_CONNECTIONS* Connections
     )
@@ -1337,68 +1490,23 @@ VOID PhpGetHvSocket(
     listenersList = PhCreateList(1);
     connectionsList = PhCreateList(1);
 
-    listeners = PhpGetHvSocketListeners(systemHandle, &HV_GUID_ZERO);
-    connections = PhpGetHvSocketConnections(systemHandle, &HV_GUID_ZERO);
-
-    if (listeners)
+    for (ULONG i = 0; i < Count; i++)
     {
-        for (ULONG i = 0; i < listeners->Count; i++)
+        if (listeners = PhpGetHvSocketListeners(systemHandle, &VmIds[i]))
         {
-            PHVSOCKET_LISTENERS l;
-            PHVSOCKET_CONNECTIONS c;
-
-            if (IsEqualGUID(&listeners->Listener[i].VmId, &HV_GUID_ZERO))
-                continue;
-
-            l = PhpGetHvSocketListeners(systemHandle, &listeners->Listener[i].VmId);
-            if (l)
-            {
-                listenersCount += l->Count;
-                PhAddItemList(listenersList, l);
-            }
-
-            c = PhpGetHvSocketConnections(systemHandle, &listeners->Listener[i].VmId);
-            if (c)
-            {
-                connectionsCount += c->Count;
-                PhAddItemList(connectionsList, c);
-            }
+            PhAddItemList(listenersList, listeners);
+            listenersCount += listeners->Count;
         }
 
-        listenersCount += listeners->Count;
-        PhAddItemList(listenersList, listeners);
-        listeners = NULL;
-    }
-
-    if (connections)
-    {
-        for (ULONG i = 0; i < connections->Count; i++)
+        if (connections = PhpGetHvSocketConnections(systemHandle, &VmIds[i]))
         {
-            PHVSOCKET_LISTENERS l;
-            PHVSOCKET_CONNECTIONS c;
-
-            if (IsEqualGUID(&connections->Connection[i].VmId, &HV_GUID_ZERO))
-                continue;
-
-            l = PhpGetHvSocketListeners(systemHandle, &connections->Connection[i].VmId);
-            if (l)
-            {
-                listenersCount += l->Count;
-                PhAddItemList(listenersList, l);
-            }
-
-            c = PhpGetHvSocketConnections(systemHandle, &connections->Connection[i].VmId);
-            if (c)
-            {
-                connectionsCount += c->Count;
-                PhAddItemList(connectionsList, c);
-            }
+            PhAddItemList(connectionsList, connections);
+            connectionsCount += connections->Count;
         }
-
-        connectionsCount += connections->Count;
-        PhAddItemList(connectionsList, connections);
-        connections = NULL;
     }
+
+    listeners = NULL;
+    connections = NULL;
 
     if (listenersCount)
     {
@@ -1465,6 +1573,74 @@ VOID PhpGetHvSocket(
     *Connections = connections;
 
     NtClose(systemHandle);
+}
+
+static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PPH_ARRAY guidArray = Context;
+    PH_STRINGREF name;
+    PH_FORMAT format[3];
+    PPH_STRING string;
+    GUID guid;
+
+    name.Buffer = Information->Name;
+    name.Length = Information->NameLength;
+
+    PhInitFormatC(&format[0], L'{');
+    PhInitFormatSR(&format[1], name);
+    PhInitFormatC(&format[2], L'}');
+
+    string = PhFormat(format, 3, 10);
+
+    if (NT_SUCCESS(PhStringToGuid(&string->sr, &guid)))
+        PhAddItemArray(guidArray, &guid);
+
+    PhDereferenceObject(string);
+
+    return TRUE;
+}
+
+VOID PhpGetHvSocket(
+    _Out_ PHVSOCKET_LISTENERS* Listeners,
+    _Out_ PHVSOCKET_CONNECTIONS* Connections
+)
+{
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem");
+    PH_ARRAY guidArray;
+    HANDLE keyHandle;
+
+    PhInitializeArray(&guidArray, sizeof(GUID), 10);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_WILDCARD);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_BROADCAST);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_CHILDREN);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_LOOPBACK);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_PARENT);
+    PhAddItemArray(&guidArray, (PVOID)&HV_GUID_SILOHOST);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_ENUMERATE_SUB_KEYS,
+        PH_KEY_LOCAL_MACHINE,
+        &hvComputeSystemKey,
+        0
+        )))
+    {
+        PhEnumerateKey(keyHandle, KeyBasicInformation, PhpHvEnumComputeSystemCallback, &guidArray);
+        NtClose(keyHandle);
+    }
+
+    PhpCollectHvSocket(
+        PhFinalArrayItems(&guidArray),
+        PhFinalArrayCount(&guidArray),
+        Listeners,
+        Connections
+        );
+
+    PhDeleteArray(&guidArray);
 }
 #endif // _WIN64
 
@@ -1610,14 +1786,14 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < tcp4Table->dwNumEntries; i++)
         {
-            connections[index].ProtocolType = PH_TCP4_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_TCP4;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-            connections[index].LocalEndpoint.Address.Ipv4 = tcp4Table->table[i].dwLocalAddr;
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+            memcpy(connections[index].LocalEndpoint.Address.Ipv4, &tcp4Table->table[i].dwLocalAddr, sizeof(IN_ADDR));
             connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)tcp4Table->table[i].dwLocalPort);
 
-            connections[index].RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-            connections[index].RemoteEndpoint.Address.Ipv4 = tcp4Table->table[i].dwRemoteAddr;
+            connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+            memcpy(connections[index].RemoteEndpoint.Address.Ipv4, &tcp4Table->table[i].dwRemoteAddr, sizeof(IN_ADDR));
             connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)tcp4Table->table[i].dwRemotePort);
 
             connections[index].State = tcp4Table->table[i].dwState;
@@ -1639,13 +1815,13 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < tcp6Table->dwNumEntries; i++)
         {
-            connections[index].ProtocolType = PH_TCP6_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_TCP6;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
             memcpy(connections[index].LocalEndpoint.Address.Ipv6, tcp6Table->table[i].ucLocalAddr, 16);
             connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)tcp6Table->table[i].dwLocalPort);
 
-            connections[index].RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+            connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
             memcpy(connections[index].RemoteEndpoint.Address.Ipv6, tcp6Table->table[i].ucRemoteAddr, 16);
             connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)tcp6Table->table[i].dwRemotePort);
 
@@ -1671,10 +1847,10 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < udp4Table->dwNumEntries; i++)
         {
-            connections[index].ProtocolType = PH_UDP4_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_UDP4;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-            connections[index].LocalEndpoint.Address.Ipv4 = udp4Table->table[i].dwLocalAddr;
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+            memcpy(connections[index].LocalEndpoint.Address.Ipv4, &udp4Table->table[i].dwLocalAddr, sizeof(IN_ADDR));
             connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)udp4Table->table[i].dwLocalPort);
 
             connections[index].RemoteEndpoint.Address.Type = 0;
@@ -1698,10 +1874,10 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < udp6Table->dwNumEntries; i++)
         {
-            connections[index].ProtocolType = PH_UDP6_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_UDP6;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-            memcpy(connections[index].LocalEndpoint.Address.Ipv6, udp6Table->table[i].ucLocalAddr, 16);
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
+            memcpy(connections[index].LocalEndpoint.Address.Ipv6, udp6Table->table[i].ucLocalAddr, sizeof(IN6_ADDR));
             connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)udp6Table->table[i].dwLocalPort);
 
             connections[index].RemoteEndpoint.Address.Type = 0;
@@ -1730,14 +1906,14 @@ BOOLEAN PhGetNetworkConnections(
         {
             for (i = 0; i < boundTcpTable->dwNumEntries; i++)
             {
-                connections[index].ProtocolType = PH_TCP4_NETWORK_PROTOCOL;
+                connections[index].ProtocolType = PH_NETWORK_PROTOCOL_TCP4;
 
-                connections[index].LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                connections[index].LocalEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwLocalAddr;
+                connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+                memcpy(connections[index].LocalEndpoint.Address.Ipv4, &boundTcpTable->table[i].dwLocalAddr, sizeof(IN_ADDR));
                 connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwLocalPort);
 
-                connections[index].RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                connections[index].RemoteEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwRemoteAddr;
+                connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
+                memcpy(connections[index].RemoteEndpoint.Address.Ipv4, &boundTcpTable->table[i].dwRemoteAddr, sizeof(IN_ADDR));
                 connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwRemotePort);
 
                 connections[index].State = boundTcpTable->table[i].dwState;
@@ -1753,14 +1929,14 @@ BOOLEAN PhGetNetworkConnections(
         {
             for (i = 0; i < boundTcp6Table->dwNumEntries; i++)
             {
-                connections[index].ProtocolType = PH_TCP6_NETWORK_PROTOCOL;
+                connections[index].ProtocolType = PH_NETWORK_PROTOCOL_TCP6;
 
-                connections[index].LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                memcpy(connections[index].LocalEndpoint.Address.Ipv6, boundTcp6Table->table[i].LocalAddr.s6_addr, 16);
+                connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
+                memcpy(connections[index].LocalEndpoint.Address.Ipv6, boundTcp6Table->table[i].LocalAddr.s6_addr, sizeof(IN6_ADDR));
                 connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwLocalPort);
 
-                connections[index].RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                memcpy(connections[index].RemoteEndpoint.Address.Ipv6, boundTcp6Table->table[i].RemoteAddr.s6_addr, 16);
+                connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
+                memcpy(connections[index].RemoteEndpoint.Address.Ipv6, boundTcp6Table->table[i].RemoteAddr.s6_addr, sizeof(IN6_ADDR));
                 connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwRemotePort);
 
                 connections[index].State = boundTcp6Table->table[i].State;
@@ -1781,15 +1957,17 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < hvListeners->Count; i++)
         {
-            connections[index].ProtocolType = PH_HV_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_HYPERV;
 
-            connections[index].LocalEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvListeners->Listener[i].ServiceId;
 
-            if (hvListeners->Listener[i].Port <= 0x7FFFFFFF) // valid port range
+            if (PhpHvAddressIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvListeners->Listener[i].Port;
+            else
+                connections[index].LocalEndpoint.Port = 0;
 
-            connections[index].RemoteEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].RemoteEndpoint.Address.HvAddr = hvListeners->Listener[i].VmId;
 
             connections[index].ProcessId = UlongToHandle(hvListeners->Listener[i].ProcessId);
@@ -1807,15 +1985,17 @@ BOOLEAN PhGetNetworkConnections(
     {
         for (i = 0; i < hvConnections->Count; i++)
         {
-            connections[index].ProtocolType = PH_HV_NETWORK_PROTOCOL;
+            connections[index].ProtocolType = PH_NETWORK_PROTOCOL_HYPERV;
 
-            connections[index].LocalEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvConnections->Connection[i].ServiceId;
 
-            if (hvConnections->Connection[i].Port <= 0x7FFFFFFF) // valid port range
+            if (PhpHvAddressIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvConnections->Connection[i].Port;
+            else
+                connections[index].LocalEndpoint.Port = 0;
 
-            connections[index].RemoteEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].RemoteEndpoint.Address.HvAddr = hvConnections->Connection[i].VmId;
 
             connections[index].ProcessId = UlongToHandle(hvConnections->Connection[i].ProcessId);
@@ -1838,15 +2018,17 @@ BOOLEAN PhGetNetworkConnections(
 
 static CONST PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
 {
-    SIP(SREF(L"TCP"), PH_TCP4_NETWORK_PROTOCOL),
-    SIP(SREF(L"TCP6"), PH_TCP6_NETWORK_PROTOCOL),
-    SIP(SREF(L"UDP"), PH_UDP4_NETWORK_PROTOCOL),
-    SIP(SREF(L"UDP6"), PH_UDP6_NETWORK_PROTOCOL),
-    SIP(SREF(L"HYPERV"), PH_HV_NETWORK_PROTOCOL),
+    SIP(SREF(L"Unknown"), 0),
+    SIP(SREF(L"TCP"), PH_NETWORK_PROTOCOL_TCP4),
+    SIP(SREF(L"TCP6"), PH_NETWORK_PROTOCOL_TCP6),
+    SIP(SREF(L"UDP"), PH_NETWORK_PROTOCOL_UDP4),
+    SIP(SREF(L"UDP6"), PH_NETWORK_PROTOCOL_UDP6),
+    SIP(SREF(L"HYPERV"), PH_NETWORK_PROTOCOL_HYPERV),
 };
 
 static CONST PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
 {
+    SIP(SREF(L"Unknown"), 0),
     SIP(SREF(L"Closed"), MIB_TCP_STATE_CLOSED),
     SIP(SREF(L"Listen"), MIB_TCP_STATE_LISTEN),
     SIP(SREF(L"SYN sent"), MIB_TCP_STATE_SYN_SENT),
@@ -1866,7 +2048,6 @@ PCPH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
 {
-    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
     PCPH_STRINGREF string;
 
     if (PhFindStringRefSiKeyValuePairs(
@@ -1879,25 +2060,42 @@ PCPH_STRINGREF PhGetProtocolTypeName(
         return string;
     }
 
-    return &unknown;
+    return PhProtocolTypeStrings[0].Key;
 }
 
 PCPH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )
 {
-    static CONST PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
-    PCPH_STRINGREF string;
-
-    if (PhIndexStringRefSiKeyValuePairs(
-        PhTcpStateStrings,
-        sizeof(PhTcpStateStrings),
-        State,
-        &string
-        ))
+    switch (State)
     {
-        return string;
+    case MIB_TCP_STATE_CLOSED:
+    case MIB_TCP_STATE_LISTEN:
+    case MIB_TCP_STATE_SYN_SENT:
+    case MIB_TCP_STATE_SYN_RCVD:
+    case MIB_TCP_STATE_ESTAB:
+    case MIB_TCP_STATE_FIN_WAIT1:
+    case MIB_TCP_STATE_FIN_WAIT2:
+    case MIB_TCP_STATE_CLOSE_WAIT:
+    case MIB_TCP_STATE_CLOSING:
+    case MIB_TCP_STATE_LAST_ACK:
+    case MIB_TCP_STATE_TIME_WAIT:
+    case MIB_TCP_STATE_DELETE_TCB:
+        return PhTcpStateStrings[State].Key;
+    case MIB_TCP_STATE_RESERVED:
+        return PhTcpStateStrings[13].Key;
     }
 
-    return &unknown;
+    // TODO: We can't index the string from MIB_TCP_STATE_RESERVED (dmex)
+    //if (PhIndexStringRefSiKeyValuePairs(
+    //    PhTcpStateStrings,
+    //    sizeof(PhTcpStateStrings),
+    //    State,
+    //    &string
+    //    ))
+    //{
+    //    return string;
+    //}
+
+    return PhTcpStateStrings[0].Key;
 }

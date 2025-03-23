@@ -12,6 +12,8 @@
 
 #include "toolstatus.h"
 
+#include <kphuser.h>
+
 HWND StatusBarHandle = NULL;
 ULONG StatusBarMaxWidths[MAX_STATUSBAR_ITEMS];
 PPH_LIST StatusBarItemList = NULL;
@@ -35,6 +37,7 @@ ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
     ID_STATUS_MAX_IO_PROCESS,
     ID_STATUS_SELECTEDWORKINGSET,
     ID_STATUS_SELECTEDPRIVATEBYTES,
+    ID_STATUS_KSICOUNTER,
 };
 
 VOID StatusBarLoadDefault(
@@ -185,6 +188,8 @@ PWSTR StatusBarGetText(
         return L"Selected process WS";
     case ID_STATUS_SELECTEDPRIVATEBYTES:
         return L"Selected process private bytes";
+    case ID_STATUS_KSICOUNTER:
+        return L"KSI status";
     }
 
     return L"ERROR";
@@ -635,6 +640,33 @@ VOID StatusBarUpdate(
 
                 PhDereferenceObjects(processes, numberOfProcesses);
                 PhFree(processes);
+            }
+            break;
+        case ID_STATUS_KSICOUNTER:
+            {
+                ULONG64 duration;
+                ULONG64 durationDown;
+                ULONG64 durationUp;
+                PH_FORMAT format[6];
+
+                PhQueryKphCounters(&duration, &durationDown, &durationUp);
+
+                PhInitFormatS(&format[0], L"KSI: ");
+
+                if (KsiLevel() == KphLevelNone)
+                {
+                    PhInitFormatS(&format[1], L"not connected");
+                    PhFormatToBuffer(format, 2, text[count], sizeof(text[count]), &textLength[count]);
+                }
+                else
+                {
+                    PhInitFormatI64U(&format[1], duration);
+                    PhInitFormatS(&format[2], L", D ");
+                    PhInitFormatI64U(&format[3], durationDown);
+                    PhInitFormatS(&format[4], L", U ");
+                    PhInitFormatI64U(&format[5], durationUp);
+                    PhFormatToBuffer(format, 6, text[count], sizeof(text[count]), &textLength[count]);
+                }
             }
             break;
         }

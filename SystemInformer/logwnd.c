@@ -80,16 +80,13 @@ static VOID PhpUpdateLogList(
     if (ListViewCount >= 2 && ReadBooleanAcquire(&ListViewAutoScroll))
     {
         LVITEMINDEX itemIndex;
-        BOOL itemVisible;
+        //BOOL itemVisible;
 
-        itemIndex.iItem = (LONG)(ListViewCount - 2);
-        itemIndex.iGroup = 0;
+        itemIndex.iItem = (LONG)ListViewCount - 1;
+        itemIndex.iGroup = INT_ERROR;
 
-        if (SUCCEEDED(IListView_IsItemVisible(ListViewClass, itemIndex, &itemVisible)) && itemVisible)
+        //if (SUCCEEDED(IListView_IsItemVisible(ListViewClass, itemIndex, &itemVisible)) && !itemVisible)
         {
-            itemIndex.iItem = (LONG)(ListViewCount - 1);
-            itemIndex.iGroup = 0;
-
             IListView_EnsureItemVisible(ListViewClass, itemIndex, FALSE);
         }
     }
@@ -114,11 +111,10 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
         PPH_LOG_ENTRY entry;
         SYSTEMTIME systemTime;
         PPH_STRING temp;
+        ULONG itemState;
 
         if (!All)
         {
-            ULONG itemState;
-
             // The list view displays the items in reverse order...
             if (!(HR_SUCCESS(IListView_GetItemState(ListViewClass, ListViewCount - i - 1, 0, LVIS_SELECTED, &itemState)) && FlagOn(itemState, LVIS_SELECTED)))
             {
@@ -170,11 +166,13 @@ INT_PTR CALLBACK PhpLogDlgProc(
             ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             ListViewClass = PhGetListViewInterface(ListViewHandle);
 
-            PhSetListViewStyle(ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(ListViewHandle, L"explorer");
-            PhAddListViewColumn(ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
-            PhAddListViewColumn(ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 260, L"Message");
-            PhLoadListViewColumnsFromSetting(L"LogListViewColumns", ListViewHandle);
+            PhSetExtendedListView(ListViewHandle);
+            PhAddIListViewColumn(ListViewClass, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
+            PhAddIListViewColumn(ListViewClass, 1, 1, 1, LVCFMT_LEFT, 260, L"Message");
+            PhLoadIListViewColumnsFromSetting(L"LogListViewColumns", ListViewClass);
+            IListView_EnableAlphaShadow(ListViewClass, TRUE);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
@@ -190,7 +188,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
             MinimumSize.bottom = 150;
             MapDialogRect(hwndDlg, &MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"LogWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"LogWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -208,7 +206,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"LogListViewColumns", ListViewHandle);
+            PhSaveIListViewColumnsToSetting(L"LogListViewColumns", ListViewClass);
             PhSaveWindowPlacementToSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
@@ -217,11 +215,8 @@ INT_PTR CALLBACK PhpLogDlgProc(
             PhUnregisterDialog(PhLogWindowHandle);
             PhLogWindowHandle = NULL;
 
-            if (ListViewClass)
-            {
-                IListView_Release(ListViewClass);
-                ListViewClass = NULL;
-            }
+            PhDestroyListViewInterface(ListViewClass);
+            ListViewClass = NULL;
         }
         break;
     case WM_COMMAND:
@@ -311,6 +306,11 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     PhFreeFileDialog(fileDialog);
                 }
                 break;
+            case IDC_AUTOSCROLL:
+                {
+                    WriteBooleanRelease(&ListViewAutoScroll, Button_GetCheck(AutoScrollHandle) == BST_CHECKED);
+                }
+                break;
             }
         }
         break;
@@ -329,7 +329,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
                     if (dispInfo->item.iSubItem == 0)
                     {
-                        if (dispInfo->item.mask & LVIF_TEXT)
+                        if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
                         {
                             SYSTEMTIME systemTime;
                             PPH_STRING dateTime;
@@ -342,38 +342,13 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     }
                     else if (dispInfo->item.iSubItem == 1)
                     {
-                        if (dispInfo->item.mask & LVIF_TEXT)
+                        if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
                         {
                             PPH_STRING string;
 
                             string = PhFormatLogEntry(entry);
                             wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
-                        }
-                    }
-                }
-                break;
-            case LVN_ITEMCHANGED:
-                {
-                    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
-
-                    if (FlagOn(listView->uChanged, LVIF_STATE))
-                    {
-                        if (ListViewStateInitializing)
-                            break;
-
-                        switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
-                        {
-                        case INDEXTOSTATEIMAGEMASK(2): // checked
-                            {
-                                WriteBooleanRelease(&ListViewAutoScroll, TRUE);
-                            }
-                            break;
-                        case INDEXTOSTATEIMAGEMASK(1): // unchecked
-                            {
-                                WriteBooleanRelease(&ListViewAutoScroll, FALSE);
-                            }
-                            break;
                         }
                     }
                 }

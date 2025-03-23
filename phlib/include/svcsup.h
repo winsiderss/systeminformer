@@ -412,6 +412,15 @@ PhGetServicePackageFullName(
     _In_ PPH_STRINGREF ServiceName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitForServiceStatus(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG WaitForState,
+    _In_ ULONG Timeout
+    );
+
 FORCEINLINE
 VOID
 NTAPI

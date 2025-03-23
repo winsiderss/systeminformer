@@ -28,7 +28,7 @@ typedef struct _CRED_PROV_CREDENTIAL
 
 // Contexts
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev
 USERMGRAPI
@@ -78,7 +78,7 @@ UMgrQueryUserContextFromName(
 
 // Tokens
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev
 USERMGRAPI
@@ -137,7 +137,7 @@ UMgrGetConstrainedUserToken(
 
 #endif
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_TH2)
 
 // rev
 USERMGRAPI
@@ -159,7 +159,7 @@ UMgrGetImpersonationTokenForContext(
 
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 
 // rev
 USERMGRAPI
@@ -174,7 +174,7 @@ UMgrGetSessionActiveShellUserToken(
 
 // Single-session SKU
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev
 USERMGRAPI
@@ -199,7 +199,7 @@ UMgrOpenProcessHandleForAccess(
 
 // Credentials
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 // rev
 USERMGRAPI

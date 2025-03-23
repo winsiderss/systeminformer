@@ -1133,29 +1133,29 @@ VOID PhRegisterSuperClassCommon(
 
 #define PH_THEMEAPI HRESULT STDAPICALLTYPE
 
-static typeof(&DrawThemeBackground) DefaultDrawThemeBackground = nullptr;
+static __typeof__(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
 
-static typeof(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = nullptr;
+static __typeof__(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
 
-static typeof(&DrawThemeText) DefaultDrawThemeText = nullptr;
+static __typeof__(&DrawThemeText) DefaultDrawThemeText = NULL;
 
-static typeof(&DrawThemeTextEx) DefaultDrawThemeTextEx = nullptr;
+static __typeof__(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
 
-static typeof(&DrawTextW) DefaultComCtl32DrawTextW = nullptr;
+static __typeof__(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
 
-static typeof(&TaskDialogIndirect) DefaultTaskDialogIndirect = nullptr;
+static __typeof__(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
 
-static typeof(&GetThemeColor) DefaultGetThemeColor = nullptr;
+static __typeof__(&GetThemeColor) DefaultGetThemeColor = NULL;
 
 // uxtheme.dll ordinal 49
 static HTHEME(STDAPICALLTYPE* DefaultOpenNcThemeData)(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
-    ) = nullptr;
+    ) = NULL;
 
-static typeof(&SystemParametersInfo) DefaultSystemParametersInfo = nullptr;
+static __typeof__(&SystemParametersInfo) DefaultSystemParametersInfo = NULL;
 
-static typeof(&CreateWindowEx) DefaultCreateWindowEx = nullptr;
+static __typeof__(&CreateWindowEx) DefaultCreateWindowEx = NULL;
 
 typedef struct _TASKDIALOG_CALLBACK_WRAP
 {

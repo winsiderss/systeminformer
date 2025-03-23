@@ -92,17 +92,28 @@ ULONG PhpQueryModuleServiceReferences(
     _Out_ PPH_LIST *ServiceList
     )
 {
+    static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
     ULONG win32Result;
-    PQUERY_TAG_INFORMATION I_QueryTagInformation;
     TAG_INFO_NAMES_REFERENCING_MODULE namesReferencingModule;
     PPH_LIST serviceList;
 
-    if (!(I_QueryTagInformation = PhGetModuleProcAddress(L"advapi32.dll", "I_QueryTagInformation")))
+    if (!I_QueryTagInformation)
+    {
+        if (!(I_QueryTagInformation = PhGetModuleProcAddress(L"sechost.dll", "I_QueryTagInformation")))
+        {
+            if (!(I_QueryTagInformation = PhGetModuleProcAddress(L"advapi32.dll", "I_QueryTagInformation")))
+            {
+                return ERROR_PROC_NOT_FOUND;
+            }
+        }
+    }
+
+    if (!I_QueryTagInformation)
         return ERROR_PROC_NOT_FOUND;
 
     memset(&namesReferencingModule, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
-    namesReferencingModule.InParams.dwPid = HandleToUlong(Context->ProcessId);
-    namesReferencingModule.InParams.pszModule = PhGetString(Context->ModuleName);
+    namesReferencingModule.InParams.ProcessId = HandleToUlong(Context->ProcessId);
+    namesReferencingModule.InParams.ModuleName = PhGetString(Context->ModuleName);
 
     win32Result = I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &namesReferencingModule);
 
@@ -114,18 +125,18 @@ ULONG PhpQueryModuleServiceReferences(
 
     serviceList = PhCreateList(16);
 
-    if (namesReferencingModule.OutParams.pmszNames)
+    if (namesReferencingModule.OutParams.Names)
     {
         PCWSTR serviceName;
         PPH_SERVICE_ITEM serviceItem;
 
-        for (serviceName = namesReferencingModule.OutParams.pmszNames; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
+        for (serviceName = namesReferencingModule.OutParams.Names; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
         {
             if (serviceItem = PhReferenceServiceItemZ(serviceName))
                 PhAddItemList(serviceList, serviceItem);
         }
 
-        LocalFree((HLOCAL)namesReferencingModule.OutParams.pmszNames);
+        LocalFree((HLOCAL)namesReferencingModule.OutParams.Names);
     }
 
     if (ServiceList)

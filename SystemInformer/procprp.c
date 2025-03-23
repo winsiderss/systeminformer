@@ -255,13 +255,12 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     case WM_SYSCOMMAND:
         {
             // Note: Clicking the X on the taskbar window thumbnail preview doesn't close modeless property sheets
-            // when there are more than 1 window and the window doesn't have focus... The MFC, ATL and WTL libraries
-            // check if the propsheet is modeless and SendMessage WM_CLOSE and so we'll implement the same solution. (dmex)
+            // when there are more than 1 window and the window doesn't have focus. (dmex)
             switch (wParam & 0xFFF0)
             {
             case SC_CLOSE:
                 {
-                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                    PostQuitMessage(0);
                     //SetWindowLongPtr(hwnd, DWLP_MSGRESULT, TRUE);
                     //return TRUE;
                 }
@@ -294,29 +293,6 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
-    case WM_KEYDOWN: // forward key messages (dmex)
-    //case WM_KEYUP:
-        {
-            HWND pageWindowHandle;
-
-            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
-            {
-                // TODO: Add hotkey plugin support using hashlist register/callback for window handle. (dmex)
-                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
-                {
-                    return TRUE;
-                }
-            }
-
-            if (PhCsForceNoParent)
-            {
-                if (wParam == VK_F5)
-                {
-                    SystemInformer_Refresh();
-                }
-            }
-        }
-        break;
     case WM_TIMER:
         {
             UINT id = (UINT)wParam;
@@ -344,6 +320,40 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                     break;
                 }
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            USHORT newDpi = HIWORD(wParam);
+            PRECT CONST newRect = (PRECT)lParam;
+
+            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
+            {
+                SetWindowPos(
+                    hwnd,
+                    NULL,
+                    newRect->left,
+                    newRect->top,
+                    newRect->right - newRect->left,
+                    newRect->bottom - newRect->top,
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                    );
+            }
+
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 290;
+                rect.bottom = 320;
+                MapDialogRect(hwnd, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
+
+            return 0;
         }
         break;
     }
@@ -389,12 +399,12 @@ VOID PhpInitializePropSheetLayoutStage2(
     RECT rect;
     LONG dpiValue;
 
+    PhLoadWindowPlacementFromSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
+
     windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
-
-    rect = PhRectangleToRect(windowRectangle);
+    PhRectangleToRect(&rect, &windowRectangle);
     dpiValue = PhGetMonitorDpi(&rect);
-
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE, dpiValue)->Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;
@@ -403,13 +413,9 @@ VOID PhpInitializePropSheetLayoutStage2(
 
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-    MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
-        windowRectangle.Width, windowRectangle.Height, FALSE);
-
     // Implement cascading by saving an offsetted rectangle.
     windowRectangle.Left += 20;
     windowRectangle.Top += 20;
-
     PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
 }
 
@@ -789,7 +795,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
 
         // Calculate the margin from the original rectangle.
         GetWindowRect(Handle, &margin);
-        margin = PhMapRect(margin, dialogRect);
+        PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
         item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
@@ -916,7 +922,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     {
         PhAddProcessPropPage2(
             PropContext,
-            PhCreateJobPage(PhpOpenProcessJobForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
+            PhCreateJobPage(PhpOpenProcessJobForPage, PhpCloseProcessJobForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
             );
     }
 

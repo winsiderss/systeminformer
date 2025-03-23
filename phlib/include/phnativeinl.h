@@ -813,7 +813,7 @@ PhGetProcessMitigationPolicyInformation(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcesNetworkIoCounters(
+PhGetProcessNetworkIoCounters(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
     )
@@ -829,54 +829,28 @@ PhGetProcesNetworkIoCounters(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcessPowerThrottlingState(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPOWER_THROTTLING_PROCESS_STATE PowerThrottlingState
-    )
-{
-    NTSTATUS status;
-    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
-
-    memset(&powerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
-    powerThrottlingState.Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
-
-    status = NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessPowerThrottlingState,
-        &powerThrottlingState,
-        sizeof(POWER_THROTTLING_PROCESS_STATE),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *PowerThrottlingState = powerThrottlingState;
-    }
-
-    return status;
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetThreadPowerThrottlingState(
     _In_ HANDLE ThreadHandle,
     _Out_ PPOWER_THROTTLING_THREAD_STATE PowerThrottlingState
     )
 {
     NTSTATUS status;
-    POWER_THROTTLING_THREAD_STATE powerThrottlingState = { .Version = POWER_THROTTLING_THREAD_CURRENT_VERSION };
+    POWER_THROTTLING_THREAD_STATE threadPowerThrottlingState;
+
+    memset(&threadPowerThrottlingState, 0, sizeof(POWER_THROTTLING_THREAD_STATE));
+    threadPowerThrottlingState.Version = POWER_THROTTLING_THREAD_CURRENT_VERSION;
 
     status = NtQueryInformationThread(
         ThreadHandle,
         ThreadPowerThrottlingState,
-        &powerThrottlingState,
-        sizeof(powerThrottlingState),
+        &threadPowerThrottlingState,
+        sizeof(POWER_THROTTLING_THREAD_STATE),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *PowerThrottlingState = powerThrottlingState;
+        *PowerThrottlingState = threadPowerThrottlingState;
     }
 
     return status;
@@ -2167,14 +2141,18 @@ NTSTATUS PhWaitForSingleObject(
     _In_opt_ ULONG Timeout
     )
 {
-    LARGE_INTEGER timeout;
-
     if (Timeout)
     {
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(Timeout, PH_TIMEOUT_MS);
-    }
+        LARGE_INTEGER timeout;
 
-    return NtWaitForSingleObject(Handle, FALSE, Timeout ? &timeout : nullptr);
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(Timeout, PH_TIMEOUT_MS);
+
+        return NtWaitForSingleObject(Handle, FALSE, &timeout);
+    }
+    else
+    {
+        return NtWaitForSingleObject(Handle, FALSE, NULL);
+    }
 }
 
 #endif

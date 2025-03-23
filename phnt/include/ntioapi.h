@@ -63,11 +63,26 @@
 #define FILE_CONTAINS_EXTENDED_CREATE_INFORMATION   0x10000000
 #define FILE_VALID_EXTENDED_OPTION_FLAGS            0x10000000
 
+typedef struct _EXTENDED_CREATE_DUAL_OPLOCK_KEYS 
+{
+    //
+    //  Parent oplock key.
+    //  All-zero if not set.
+    //
+    GUID ParentOplockKey;
+    //
+    //  Target oplock key.
+    //  All-zero if not set.
+    //
+    GUID TargetOplockKey;
+} EXTENDED_CREATE_DUAL_OPLOCK_KEYS, *PEXTENDED_CREATE_DUAL_OPLOCK_KEYS;
+
 typedef struct _EXTENDED_CREATE_INFORMATION
 {
     LONGLONG ExtendedCreateFlags;
     PVOID EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION, *PEXTENDED_CREATE_INFORMATION;
 
 typedef struct _EXTENDED_CREATE_INFORMATION_32
@@ -75,6 +90,7 @@ typedef struct _EXTENDED_CREATE_INFORMATION_32
     LONGLONG ExtendedCreateFlags;
     void* POINTER_32 EaBuffer;
     ULONG EaLength;
+    //PEXTENDED_CREATE_DUAL_OPLOCK_KEYS POINTER_32 DualOplockKeys; // since 24H2
 } EXTENDED_CREATE_INFORMATION_32, *PEXTENDED_CREATE_INFORMATION_32;
 
 #define EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY 0x00000001
@@ -308,10 +324,10 @@ typedef enum _FILE_INFORMATION_CLASS
 
 /**
  * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
- * \li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
- * \li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
- * \li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
- * \remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
+ * @li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
+ * @li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
+ * @li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
+ * @remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
  */
 typedef struct _FILE_BASIC_INFORMATION
 {
@@ -324,7 +340,7 @@ typedef struct _FILE_BASIC_INFORMATION
 
 /**
  * The FILE_STANDARD_INFORMATION structure contains standard information of a file.
- * \remarks EndOfFile specifies the byte offset to the end of the file.
+ * @remarks EndOfFile specifies the byte offset to the end of the file.
  * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to the byte immediately following the last valid byte in the file.
  */
 typedef struct _FILE_STANDARD_INFORMATION
@@ -446,7 +462,7 @@ typedef struct _FILE_END_OF_FILE_INFORMATION
     LARGE_INTEGER EndOfFile;
 } FILE_END_OF_FILE_INFORMATION, *PFILE_END_OF_FILE_INFORMATION;
 
-//#if (PHNT_VERSION >= PHNT_REDSTONE5)
+//#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 #define FLAGS_END_OF_FILE_INFO_EX_EXTEND_PAGING             0x00000001
 #define FLAGS_END_OF_FILE_INFO_EX_NO_EXTRA_PAGING_EXTEND    0x00000002
 #define FLAGS_END_OF_FILE_INFO_EX_TIME_CONSTRAINED          0x00000004
@@ -556,7 +572,7 @@ typedef struct _FILE_TRACKING_INFORMATION
 /**
  * The FILE_COMPLETION_INFORMATION structure contains the port handle and key for an I/O completion port created for a file handle.
  *
- * \remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
+ * @remarks he FILE_COMPLETION_INFORMATION structure is used to replace the completion information for a port handle set in Port.
  * Completion information is replaced with the ZwSetInformationFile routine with the FileInformationClass parameter set to FileReplaceCompletionInformation.
  * The Port and Key members of FILE_COMPLETION_INFORMATION are set to their new values. To remove an existing completion port for a file handle, Port is set to NULL.
  *
@@ -571,7 +587,7 @@ typedef struct _FILE_COMPLETION_INFORMATION
 /**
  * The FILE_PIPE_INFORMATION structure contains information about a named pipe that is not specific to the local or the remote end of the pipe.
  *
- * \remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
+ * @remarks If ReadMode is set to FILE_PIPE_BYTE_STREAM_MODE, any attempt to change it must fail with a STATUS_INVALID_PARAMETER error code.
  * When CompletionMode is set to FILE_PIPE_QUEUE_OPERATION, if the pipe is connected to, read to, or written from,
  * the operation is not completed until there is data to read, all data is written, or a client is connected.
  * When CompletionMode is set to FILE_PIPE_COMPLETE_OPERATION, if the pipe is being connected to, read to, or written from, the operation is completed immediately.
@@ -587,7 +603,7 @@ typedef struct _FILE_PIPE_INFORMATION
 /**
  * The FILE_PIPE_LOCAL_INFORMATION structure contains information about the local end of a named pipe.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_local_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_local_information
  */
 typedef struct _FILE_PIPE_LOCAL_INFORMATION
 {
@@ -606,7 +622,7 @@ typedef struct _FILE_PIPE_LOCAL_INFORMATION
 /**
  * The FILE_PIPE_REMOTE_INFORMATION structure contains information about the remote end of a named pipe.
  *
- * \remarks Remote information is not available for local pipes or for the server end of a remote pipe.
+ * @remarks Remote information is not available for local pipes or for the server end of a remote pipe.
  * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_pipe_remote_information
  */
 typedef struct _FILE_PIPE_REMOTE_INFORMATION
@@ -618,7 +634,7 @@ typedef struct _FILE_PIPE_REMOTE_INFORMATION
 /**
  * The FILE_MAILSLOT_QUERY_INFORMATION structure contains information about a mailslot.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_query_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_query_information
  */
 typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
 {
@@ -632,11 +648,11 @@ typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
 /**
  * The FILE_MAILSLOT_SET_INFORMATION structure is used to set a value on a mailslot.
  *
- * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_set_information
+ * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_mailslot_set_information
  */
 typedef struct _FILE_MAILSLOT_SET_INFORMATION
 {
-    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs. 
+    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
 } FILE_MAILSLOT_SET_INFORMATION, *PFILE_MAILSLOT_SET_INFORMATION;
 
 /**
@@ -826,7 +842,7 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
 
 #ifndef FILE_INVALID_FILE_ID
 #define FILE_INVALID_FILE_ID ((LONGLONG)-1LL)
-#endif
+#endif // FILE_INVALID_FILE_ID
 
 #define FILE_ID_IS_INVALID(FID) ((FID).QuadPart == FILE_INVALID_FILE_ID)
 
@@ -1088,7 +1104,7 @@ typedef struct _FILE_STAT_BASIC_INFORMATION
     LARGE_INTEGER VolumeSerialNumber;
     FILE_ID_128 FileId128;
 } FILE_STAT_BASIC_INFORMATION, *PFILE_STAT_BASIC_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
@@ -1132,7 +1148,7 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG LxDeviceIdMajor;
     ULONG LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION
 {
@@ -1146,7 +1162,7 @@ typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG Flags;
 } FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
-#endif
+#endif // NTDDI_WIN11_GE
 
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
@@ -1720,7 +1736,7 @@ NtFlushBuffersFile(
 #define FLUSH_FLAGS_FLUSH_AND_PURGE 0x00000008 // 24H2
 
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1731,7 +1747,7 @@ NtFlushBuffersFileEx(
     _In_ ULONG ParametersSize,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1744,7 +1760,7 @@ NtQueryInformationFile(
     _In_ FILE_INFORMATION_CLASS FileInformationClass
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1755,7 +1771,7 @@ NtQueryInformationByName(
     _In_ ULONG Length,
     _In_ FILE_INFORMATION_CLASS FileInformationClass
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS2
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1792,7 +1808,7 @@ NtQueryDirectoryFile(
 #define FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY 0x00000008
 #define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010 // RS5
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1808,7 +1824,7 @@ NtQueryDirectoryFileEx(
     _In_ ULONG QueryFlags,
     _In_opt_ PUNICODE_STRING FileName
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1890,7 +1906,7 @@ NtCancelIoFile(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1899,9 +1915,9 @@ NtCancelIoFileEx(
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1910,7 +1926,7 @@ NtCancelSynchronousIoFile(
     _In_opt_ PIO_STATUS_BLOCK IoRequestToCancel,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2128,7 +2144,7 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
     ULONG FileNameLength;
     WCHAR FileName[1];
 } FILE_NOTIFY_EXTENDED_INFORMATION, *PFILE_NOTIFY_EXTENDED_INFORMATION;
-#endif
+#endif // NTDDI_WIN10_RS5
 
 #define FILE_NAME_FLAG_HARDLINK      0    // not part of a name pair
 #define FILE_NAME_FLAG_NTFS          0x01 // NTFS name in a name pair
@@ -2160,9 +2176,9 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
     BYTE Reserved;
     WCHAR FileName[1];
 } FILE_NOTIFY_FULL_INFORMATION, *PFILE_NOTIFY_FULL_INFORMATION;
-#endif
+#endif // NTDDI_WIN10_NI
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2178,12 +2194,12 @@ NtNotifyChangeDirectoryFileEx(
     _In_ BOOLEAN WatchTree,
     _In_opt_ DIRECTORY_NOTIFY_INFORMATION_CLASS DirectoryNotifyInformationClass
     );
-#endif
+#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 /**
- * \brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
- * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * @brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully loaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_INSUFFICIENT_RESOURCES: There are insufficient resources to load the driver.
@@ -2199,9 +2215,9 @@ NtLoadDriver(
     );
 
 /**
- * \brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
- * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
- * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * @brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
+ * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully unloaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
@@ -2215,7 +2231,9 @@ NtUnloadDriver(
     _In_ PUNICODE_STRING DriverServiceName
     );
 
+//
 // I/O completion port
+//
 
 #ifndef IO_COMPLETION_QUERY_STATE
 #define IO_COMPLETION_QUERY_STATE 0x0001
@@ -2280,7 +2298,7 @@ NtSetIoCompletion(
     _In_ ULONG_PTR IoStatusInformation
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2305,7 +2323,7 @@ NtRemoveIoCompletion(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
 typedef struct _FILE_IO_COMPLETION_INFORMATION
 {
@@ -2325,11 +2343,13 @@ NtRemoveIoCompletionEx(
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_ BOOLEAN Alertable
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
+//
 // Wait completion packet
+//
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2362,71 +2382,31 @@ NtCancelWaitCompletionPacket(
     _In_ BOOLEAN RemoveSignaledPacket
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-// Sessions
-
-typedef enum _IO_SESSION_EVENT
-{
-    IoSessionEventIgnore,
-    IoSessionEventCreated,
-    IoSessionEventTerminated,
-    IoSessionEventConnected,
-    IoSessionEventDisconnected,
-    IoSessionEventLogon,
-    IoSessionEventLogoff,
-    IoSessionEventMax
-} IO_SESSION_EVENT;
-
-typedef enum _IO_SESSION_STATE
-{
-    IoSessionStateCreated = 1,
-    IoSessionStateInitialized = 2,
-    IoSessionStateConnected = 3,
-    IoSessionStateDisconnected = 4,
-    IoSessionStateDisconnectedLoggedOn = 5,
-    IoSessionStateLoggedOn = 6,
-    IoSessionStateLoggedOff = 7,
-    IoSessionStateTerminated = 8,
-    IoSessionStateMax
-} IO_SESSION_STATE;
-
-// Sessions
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtOpenSession(
-    _Out_ PHANDLE SessionHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+NtCopyFileChunk(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE EventHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PULONG SourceKey,
+    _In_opt_ PULONG DestKey,
+    _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtNotifyChangeSession(
-    _In_ HANDLE SessionHandle,
-    _In_ ULONG ChangeSequenceNumber,
-    _In_ PLARGE_INTEGER ChangeTimeStamp,
-    _In_ IO_SESSION_EVENT Event,
-    _In_ IO_SESSION_STATE NewState,
-    _In_ IO_SESSION_STATE PreviousState,
-    _In_reads_bytes_opt_(PayloadSize) PVOID Payload,
-    _In_ ULONG PayloadSize
-    );
-#endif
-
+//
 // I/O Ring
+//
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2465,9 +2445,11 @@ NtSetInformationIoRing(
     _In_ ULONG IoRingInformationLength,
     _In_ PVOID IoRingInformation
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
+//
 // Other types
+//
 
 typedef enum _INTERFACE_TYPE
 {
@@ -2827,7 +2809,9 @@ typedef struct _FILE_MAILSLOT_PEEK_BUFFER
     ULONG MessageLength;
 } FILE_MAILSLOT_PEEK_BUFFER, *PFILE_MAILSLOT_PEEK_BUFFER;
 
+//
 // Mount manager FS control definitions
+//
 
 #define MOUNTMGR_DEVICE_NAME L"\\Device\\MountPointManager"
 #define MOUNTMGRCONTROLTYPE 0x0000006D // 'm'
@@ -3034,7 +3018,12 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
      (s)->Length == 98 && \
      (s)->Buffer[1] == '?')
 
+//
 // Filter manager
+//
+
+#define FLT_PORT_CONNECT 0x0001
+#define FLT_PORT_ALL_ACCESS (FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL)
 
 // rev
 #define FLT_SYMLINK_NAME     L"\\Global??\\FltMgr"
@@ -3174,7 +3163,9 @@ typedef struct _FLT_ATTACH
     USHORT AltitudeOffset; // to WCHAR[] from this struct
 } FLT_ATTACH, *PFLT_ATTACH;
 
+//
 // Multiple UNC Provider
+//
 
 // rev // FSCTLs for \Device\Mup
 #define FSCTL_MUP_GET_UNC_CACHE_INFO                CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 11, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_CACHE_INFORMATION

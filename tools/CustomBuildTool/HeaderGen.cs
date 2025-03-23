@@ -151,11 +151,11 @@ namespace CustomBuildTool
 
                 foreach (string line in h.Lines)
                 {
-                    var trimmed = line.AsSpan().Trim();
+                    var trimmed = line.Trim();
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
-                        string dependencyName = trimmed.Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
+                        string dependencyName = trimmed.AsSpan().Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
 
                         if (headerFiles.TryGetValue(dependencyName, out HeaderFile dependency))
                         {

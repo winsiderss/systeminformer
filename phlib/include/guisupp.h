@@ -13,70 +13,6 @@
 #ifndef _PH_GUISUPP_H
 #define _PH_GUISUPP_H
 
-typedef HTHEME (WINAPI* _OpenThemeDataForDpi)(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList,
-    _In_ UINT DpiValue
-    );
-
-typedef HTHEME (WINAPI* _OpenThemeData)(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList
-    );
-
-typedef HRESULT (WINAPI* _CloseThemeData)(
-    _In_ HTHEME ThemeHandle
-    );
-
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    _In_ HWND WindowHandle,
-    _In_opt_ PCWSTR SubAppName,
-    _In_opt_ PCWSTR SubIdList
-    );
-
-typedef BOOL (WINAPI *_IsThemeActive)(
-    VOID
-    );
-
-typedef BOOL (WINAPI *_IsThemePartDefined)(
-    _In_ HTHEME hTheme,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeBackground)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_ const RECT *pRect,
-    _In_opt_ const RECT *pClipRect
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeText)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_reads_(cchText) LPCWSTR pszText,
-    _In_ LONG cchText,
-    _In_ ULONG dwTextFlags,
-    _Reserved_ ULONG dwTextFlags2,
-    _In_ LPCRECT pRect
-    );
-
-typedef HRESULT(WINAPI* _DrawThemeTextEx)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ LONG iPartId,
-    _In_ LONG iStateId,
-    _In_reads_(cchText) LPCWSTR pszText,
-    _In_ LONG cchText,
-    _In_ ULONG dwTextFlags,
-    _Inout_ LPRECT pRect,
-    _In_opt_ const PVOID pOptions // DTTOPTS*
-    );
-
 typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ HTHEME ThemeHandle,
     _Out_writes_z_(BufferLength) PWSTR Buffer,
@@ -147,19 +83,6 @@ typedef LONG (WINAPI* _GetDpiForSystem)(
 
 typedef LONG (WINAPI* _GetDpiForSession)(
     VOID
-    );
-
-typedef LONG (WINAPI* _GetSystemMetricsForDpi)(
-    _In_ LONG Index,
-    _In_ LONG dpi
-    );
-
-typedef BOOL (WINAPI* _SystemParametersInfoForDpi)(
-    _In_ ULONG uiAction,
-    _In_ ULONG uiParam,
-    _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-    _In_ ULONG fWinIni,
-    _In_ ULONG dpi
     );
 
 // Comctl32

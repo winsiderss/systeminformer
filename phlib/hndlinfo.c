@@ -438,7 +438,7 @@ NTSTATUS PhQueryCloseHandle(
         ObjectHandleFlagInformation,
         &objectInfo,
         sizeof(objectInfo),
-        nullptr
+        NULL
         );
 
     if (NT_SUCCESS(status) && objectInfo.ProtectFromClose)
@@ -528,7 +528,7 @@ VOID PhInitializeEtwTraceGuidCache(
 
     if (guidListFileName = PhGetApplicationDirectoryFileNameZ(L"Resources\\EtwGuids.txt", TRUE))
     {
-        guidListString = PhFileReadAllText(&guidListFileName->sr, TRUE);
+        PhFileReadAllText(&guidListString, &guidListFileName->sr, TRUE);
         PhDereferenceObject(guidListFileName);
     }
 
@@ -537,7 +537,7 @@ VOID PhInitializeEtwTraceGuidCache(
 
     PhInitializeArray(EtwTraceGuidArrayList, sizeof(PH_ETW_TRACEGUID_ENTRY), 2000);
 
-    if (!(jsonObject = PhCreateJsonParserEx(guidListString, FALSE)))
+    if (!NT_SUCCESS(PhCreateJsonParserEx(&jsonObject, guidListString, FALSE)))
         return;
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))

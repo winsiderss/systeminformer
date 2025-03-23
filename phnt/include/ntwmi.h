@@ -7,8 +7,6 @@
 #ifndef _NTWMI_H
 #define _NTWMI_H
 
-EXTERN_C_START
-
 #ifndef _TRACEHANDLE_DEFINED
 #define _TRACEHANDLE_DEFINED
 // Obsolete - prefer PROCESSTRACE_HANDLE or CONTROLTRACE_ID.
@@ -2156,7 +2154,7 @@ typedef struct _ETW_DISKIO_READWRITE_V2
     ULONG DiskNumber;
     ULONG IrpFlags;
     ULONG Size;
-    ULONG Reserved;
+    ULONG ResponseTime;
     ULONGLONG ByteOffset;
     PVOID FileObject;
     PVOID IrpAddress;
@@ -2168,12 +2166,12 @@ typedef struct _ETW_DISKIO_READWRITE_V3
     ULONG DiskNumber;
     ULONG IrpFlags;
     ULONG Size;
-    ULONG Reserved;
+    ULONG ResponseTime;
     ULONGLONG ByteOffset;
     PVOID FileObject;
     PVOID IrpAddress;
     ULONGLONG HighResResponseTime;
-    ULONG IssuingThreadId;
+    ULONG IssuingThreadId; // since WIN8
 } ETW_DISKIO_READWRITE_V3, *PETW_DISKIO_READWRITE_V3;
 
 typedef struct _ETW_DISKIO_FLUSH_BUFFERS_V2
@@ -2272,6 +2270,12 @@ typedef struct _WMI_FILE_IO
     PVOID FileObject;
     WCHAR FileName[1];
 } WMI_FILE_IO, *PWMI_FILE_IO;
+
+typedef struct _WMI_FILE_IO_WOW64
+{
+    ULONGLONG FileObject;
+    WCHAR FileName[1];
+} WMI_FILE_IO_WOW64, *PWMI_FILE_IO_WOW64;
 
 typedef struct _WMI_TCPIP_V4
 {
@@ -5962,7 +5966,7 @@ typedef enum _ETWTRACECONTROLCODE
     EtwGetPmcSessions = 46,
 } ETWTRACECONTROLCODE;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5976,7 +5980,7 @@ NtTraceControl(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WINXP)
+#if (PHNT_VERSION >= PHNT_WINDOWS_XP)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5997,7 +6001,7 @@ typedef struct _TELEMETRY_COVERAGE_POINT
     ULONG Flags;
 } TELEMETRY_COVERAGE_POINT, *PTELEMETRY_COVERAGE_POINT;
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // rev
 NTSYSAPI
 BOOLEAN
@@ -6155,7 +6159,6 @@ WmiSetSingleItemW(
     _In_reads_bytes_(ValueBufferSize) PVOID ValueBuffer
     );
 
-
 NTSYSAPI
 ULONG
 NTAPI
@@ -6187,7 +6190,7 @@ WmiExecuteMethodW(
 // Enable or disable a trace direct callback.
 // The callback is invoked immediately via a separate thread.
 #define NOTIFICATION_CALLBACK_DIRECT 0x00000004
-// Set this flag (and only this flag) when you want to only check if the 
+// Set this flag (and only this flag) when you want to only check if the
 // caller has permission to receive events for the guid.
 #define NOTIFICATION_CHECK_ACCESS 0x00000008
 // Enable lightweight notification.
@@ -6390,7 +6393,5 @@ NTAPI
 WmiFreeBuffer(
     _In_ PVOID Buffer
     );
-
-EXTERN_C_END
 
 #endif

@@ -278,7 +278,7 @@ VOID NTAPI EtpEtwEventCallback(
 
         if (diskEvent.Type != ULONG_MAX)
         {
-            DiskIo_TypeGroup1* data = EventRecord->UserData;
+            PETW_DISKIO_READWRITE_V3 data = EventRecord->UserData;
 
             if (EtWindowsVersion >= WINDOWS_8)
             {
@@ -308,8 +308,8 @@ VOID NTAPI EtpEtwEventCallback(
             }
 
             diskEvent.IrpFlags = data->IrpFlags;
-            diskEvent.TransferSize = data->TransferSize;
-            diskEvent.FileObject = (PVOID)data->FileObject;
+            diskEvent.TransferSize = data->Size;
+            diskEvent.FileObject = data->FileObject;
             diskEvent.HighResResponseTime = data->HighResResponseTime;
 
             EtProcessDiskEvent(&diskEvent);
@@ -345,16 +345,15 @@ VOID NTAPI EtpEtwEventCallback(
             {
                 if (EventRecord->EventHeader.EventDescriptor.Version == 2)
                 {
-                    ULONG fileNameLength = (EventRecord->UserDataLength - UFIELD_OFFSET(FileIo_Name_Wow64, FileName)) - sizeof(UNICODE_NULL);
-                    FileIo_Name_Wow64* dataWow64 = EventRecord->UserData;
+                    PWMI_FILE_IO_WOW64 dataWow64 = EventRecord->UserData;
 
                     fileEvent.FileObject = (PVOID)dataWow64->FileObject;
-                    fileEvent.FileName.Length = fileNameLength;
+                    fileEvent.FileName.Length = (EventRecord->UserDataLength - UFIELD_OFFSET(WMI_FILE_IO_WOW64, FileName)) - sizeof(UNICODE_NULL);
                     fileEvent.FileName.Buffer = dataWow64->FileName;
                 }
                 else
                 {
-                    FileIo_Name_Wow64* dataWow64 = EventRecord->UserData;
+                    PWMI_FILE_IO_WOW64 dataWow64 = EventRecord->UserData;
 
                     fileEvent.FileObject = (PVOID)dataWow64->FileObject;
                     PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
@@ -364,18 +363,17 @@ VOID NTAPI EtpEtwEventCallback(
             {
                 if (EventRecord->EventHeader.EventDescriptor.Version == 2)
                 {
-                    ULONG fileNameLength = (EventRecord->UserDataLength - UFIELD_OFFSET(FileIo_Name, FileName)) - sizeof(UNICODE_NULL);
-                    FileIo_Name* data = EventRecord->UserData;
+                    PWMI_FILE_IO data = EventRecord->UserData;
 
-                    fileEvent.FileObject = (PVOID)data->FileObject;
-                    fileEvent.FileName.Length = fileNameLength;
+                    fileEvent.FileObject = data->FileObject;
+                    fileEvent.FileName.Length = (EventRecord->UserDataLength - UFIELD_OFFSET(WMI_FILE_IO, FileName)) - sizeof(UNICODE_NULL);
                     fileEvent.FileName.Buffer = data->FileName;
                 }
                 else
                 {
-                    FileIo_Name* data = EventRecord->UserData;
+                    PWMI_FILE_IO data = EventRecord->UserData;
 
-                    fileEvent.FileObject = (PVOID)data->FileObject;
+                    fileEvent.FileObject = data->FileObject;
                     PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
                 }
             }
@@ -389,23 +387,23 @@ VOID NTAPI EtpEtwEventCallback(
         {
         case EVENT_TRACE_TYPE_SEND:
             {
-                TcpIpOrUdpIp_IPV4_Header* data = EventRecord->UserData;
+                PWMI_TCPIP_V4 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV4_NETWORK_TYPE;
-                source.Address.Ipv4 = data->saddr.s_addr;
-                source.Port = _byteswap_ushort(data->sport);
-                destination.Address.Type = PH_IPV4_NETWORK_TYPE;
-                destination.Address.Ipv4 = data->daddr.s_addr;
-                destination.Port = _byteswap_ushort(data->dport);
+                source.Address.Type = PH_NETWORK_TYPE_IPV4;
+                source.Port = _byteswap_ushort(data->SourcePort);
+                memcpy(&source.Address.InAddr, data->SourceAddress, sizeof(IN_ADDR));
+                destination.Address.Type = PH_NETWORK_TYPE_IPV4;
+                destination.Port = _byteswap_ushort(data->DestinationPort);
+                memcpy(&destination.Address.InAddr, data->DestinationAddress, sizeof(IN_ADDR));
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkSendType;
-                networkEvent.ProtocolType = PH_TCP_PROTOCOL_TYPE | PH_IPV4_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_TCP | PH_NETWORK_TYPE_IPV4;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 networkEvent.RemoteEndpoint = destination;
 
@@ -414,23 +412,23 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_RECEIVE:
             {
-                TcpIpOrUdpIp_IPV4_Header* data = EventRecord->UserData;
+                PWMI_TCPIP_V4 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV4_NETWORK_TYPE;
-                source.Address.Ipv4 = data->saddr.s_addr;
-                source.Port = _byteswap_ushort(data->sport);
-                destination.Address.Type = PH_IPV4_NETWORK_TYPE;
-                destination.Address.Ipv4 = data->daddr.s_addr;
-                destination.Port = _byteswap_ushort(data->dport);
+                source.Address.Type = PH_NETWORK_TYPE_IPV4;
+                source.Port = _byteswap_ushort(data->SourcePort);
+                memcpy(source.Address.Ipv4, data->SourceAddress, sizeof(IN_ADDR));
+                destination.Address.Type = PH_NETWORK_TYPE_IPV4;
+                destination.Port = _byteswap_ushort(data->DestinationPort);
+                memcpy(destination.Address.Ipv4, data->DestinationAddress, sizeof(IN_ADDR));
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkReceiveType;
-                networkEvent.ProtocolType = PH_TCP_PROTOCOL_TYPE | PH_IPV4_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_TCP | PH_NETWORK_TYPE_IPV4;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 networkEvent.RemoteEndpoint = destination;
 
@@ -439,23 +437,23 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_TCPIP_SEND_IPV6:
             {
-                TcpIpOrUdpIp_IPV6_Header* data = EventRecord->UserData;
+                PWMI_TCPIP_V6 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV6_NETWORK_TYPE;
-                source.Address.In6Addr = data->saddr;
-                source.Port = _byteswap_ushort(data->sport);
-                destination.Address.Type = PH_IPV6_NETWORK_TYPE;
-                destination.Address.In6Addr = data->daddr;
-                destination.Port = _byteswap_ushort(data->dport);
+                source.Address.Type = PH_NETWORK_TYPE_IPV6;
+                source.Port = _byteswap_ushort(data->SourcePort);
+                memcpy(source.Address.Ipv6, data->SourceAddress, sizeof(IN6_ADDR));
+                destination.Address.Type = PH_NETWORK_TYPE_IPV6;
+                destination.Port = _byteswap_ushort(data->DestinationPort);
+                memcpy(destination.Address.Ipv6, data->DestinationAddress, sizeof(IN6_ADDR));
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkSendType;
-                networkEvent.ProtocolType = PH_TCP_PROTOCOL_TYPE | PH_IPV6_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_TCP | PH_NETWORK_TYPE_IPV6;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 networkEvent.RemoteEndpoint = destination;
 
@@ -464,23 +462,23 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_TCPIP_RECEIVE_IPV6:
             {
-                TcpIpOrUdpIp_IPV6_Header* data = EventRecord->UserData;
+                PWMI_TCPIP_V6 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV6_NETWORK_TYPE;
-                source.Address.In6Addr = data->saddr;
-                source.Port = _byteswap_ushort(data->sport);
-                destination.Address.Type = PH_IPV6_NETWORK_TYPE;
-                destination.Address.In6Addr = data->daddr;
-                destination.Port = _byteswap_ushort(data->dport);
+                source.Address.Type = PH_NETWORK_TYPE_IPV6;
+                source.Port = _byteswap_ushort(data->SourcePort);
+                memcpy(source.Address.Ipv6, data->SourceAddress, sizeof(IN6_ADDR));
+                destination.Address.Type = PH_NETWORK_TYPE_IPV6;
+                destination.Port = _byteswap_ushort(data->DestinationPort);
+                memcpy(destination.Address.Ipv6, data->DestinationAddress, sizeof(IN6_ADDR));
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkReceiveType;
-                networkEvent.ProtocolType = PH_TCP_PROTOCOL_TYPE | PH_IPV6_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_TCP | PH_NETWORK_TYPE_IPV6;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 networkEvent.RemoteEndpoint = destination;
 
@@ -495,23 +493,23 @@ VOID NTAPI EtpEtwEventCallback(
         {
         case EVENT_TRACE_TYPE_SEND:
             {
-                TcpIpOrUdpIp_IPV4_Header* data = EventRecord->UserData;
+                PWMI_UDP_V4 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 //PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV4_NETWORK_TYPE;
-                source.Address.Ipv4 = data->saddr.s_addr;
-                source.Port = _byteswap_ushort(data->sport);
-                //destination.Address.Type = PH_IPV4_NETWORK_TYPE;
+                source.Address.Type = PH_NETWORK_TYPE_IPV4;
+                memcpy(source.Address.Ipv4, data->SourceAddress, sizeof(IN_ADDR));
+                source.Port = _byteswap_ushort(data->SourcePort);
+                //destination.Address.Type = PH_NETWORK_TYPE_IPV4;
                 //destination.Address.Ipv4 = data->daddr.s_addr;
                 //destination.Port = _byteswap_ushort(data->dport);
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkSendType;
-                networkEvent.ProtocolType = PH_UDP_PROTOCOL_TYPE | PH_IPV4_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_UDP | PH_NETWORK_TYPE_IPV4;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 //networkEvent.RemoteEndpoint = destination;
 
@@ -520,25 +518,25 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_RECEIVE:
             {
-                TcpIpOrUdpIp_IPV4_Header* data = EventRecord->UserData;
+                PWMI_UDP_V4 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 //PH_IP_ENDPOINT destination;
 
                 // Note: The endpoints are swapped for incoming UDP packets. The destination endpoint
                 // corresponds to the local socket not the source endpoint. (DavidXanatos)
-                source.Address.Type = PH_IPV4_NETWORK_TYPE;
-                source.Address.Ipv4 = data->daddr.s_addr;
-                source.Port = _byteswap_ushort(data->sport);
-                //destination.Address.Type = PH_IPV4_NETWORK_TYPE;
+                source.Address.Type = PH_NETWORK_TYPE_IPV4;
+                memcpy(source.Address.Ipv4, data->DestinationAddress, sizeof(IN_ADDR));
+                source.Port = _byteswap_ushort(data->SourcePort);
+                //destination.Address.Type = PH_NETWORK_TYPE_IPV4;
                 //destination.Address.Ipv4 = data->saddr.s_addr;
                 //destination.Port = _byteswap_ushort(data->dport);
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkReceiveType;
-                networkEvent.ProtocolType = PH_UDP_PROTOCOL_TYPE | PH_IPV4_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_UDP | PH_NETWORK_TYPE_IPV4;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 //networkEvent.RemoteEndpoint = destination;
 
@@ -547,23 +545,23 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_TCPIP_SEND_IPV6:
             {
-                TcpIpOrUdpIp_IPV6_Header* data = EventRecord->UserData;
+                PWMI_UDP_V6 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 //PH_IP_ENDPOINT destination;
 
-                source.Address.Type = PH_IPV6_NETWORK_TYPE;
-                source.Address.In6Addr = data->saddr;
-                source.Port = _byteswap_ushort(data->sport);
-                //destination.Address.Type = PH_IPV6_NETWORK_TYPE;
+                source.Address.Type = PH_NETWORK_TYPE_IPV6;
+                memcpy(source.Address.Ipv6, data->SourceAddress, sizeof(IN6_ADDR));
+                source.Port = _byteswap_ushort(data->SourcePort);
+                //destination.Address.Type = PH_NETWORK_TYPE_IPV6;
                 //destination.Address.In6Addr = data->daddr;
                 //destination.Port = _byteswap_ushort(data->dport);
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkSendType;
-                networkEvent.ProtocolType = PH_UDP_PROTOCOL_TYPE | PH_IPV6_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_UDP | PH_NETWORK_TYPE_IPV6;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 //networkEvent.RemoteEndpoint = destination;
 
@@ -572,25 +570,25 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_TCPIP_RECEIVE_IPV6:
             {
-                TcpIpOrUdpIp_IPV6_Header* data = EventRecord->UserData;
+                PWMI_UDP_V6 data = EventRecord->UserData;
                 ET_ETW_NETWORK_EVENT networkEvent;
                 PH_IP_ENDPOINT source;
                 //PH_IP_ENDPOINT destination;
 
                 // Note: The endpoints are swapped for incoming UDP packets. The destination endpoint
                 // corresponds to the local socket not the source endpoint. (DavidXanatos)
-                source.Address.Type = PH_IPV6_NETWORK_TYPE;
-                source.Address.In6Addr = data->daddr;
-                source.Port = _byteswap_ushort(data->sport);
-                //destination.Address.Type = PH_IPV6_NETWORK_TYPE;
+                source.Address.Type = PH_NETWORK_TYPE_IPV6;
+                memcpy(source.Address.Ipv6, data->DestinationAddress, sizeof(IN6_ADDR));
+                source.Port = _byteswap_ushort(data->DestinationPort);
+                //destination.Address.Type = PH_NETWORK_TYPE_IPV6;
                 //destination.Address.In6Addr = data->saddr;
                 //destination.Port = _byteswap_ushort(data->dport);
 
                 memset(&networkEvent, 0, sizeof(ET_ETW_NETWORK_EVENT));
                 networkEvent.Type = EtEtwNetworkReceiveType;
-                networkEvent.ProtocolType = PH_UDP_PROTOCOL_TYPE | PH_IPV6_NETWORK_TYPE;
-                networkEvent.TransferSize = data->size;
-                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.ProtocolType = PH_PROTOCOL_TYPE_UDP | PH_NETWORK_TYPE_IPV6;
+                networkEvent.TransferSize = data->TransferSize;
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->ProcessId);
                 networkEvent.LocalEndpoint = source;
                 //networkEvent.RemoteEndpoint = destination;
 
@@ -734,9 +732,8 @@ ULONG EtpStartRundownSession(
 
     memset(EtpRundownTraceProperties, 0, sizeof(EtpRundownTracePropertiesBuffer));
     EtpRundownTraceProperties->Wnode.BufferSize = bufferSize;
-    EtpRundownTraceProperties->Wnode.ClientContext = 1;
+    EtpRundownTraceProperties->Wnode.ClientContext = EVENT_TRACE_CLOCK_RAW;
     EtpRundownTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-    EtpRundownTraceProperties->MinimumBuffers = 1;
     EtpRundownTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpRundownTraceProperties->FlushTimer = 1;
     EtpRundownTraceProperties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
@@ -810,16 +807,16 @@ VOID NTAPI EtpRundownEtwEventCallback(
         {
             if (EtIsExecutingInWow64)
             {
-                FileIo_Name_Wow64* dataWow64 = EventRecord->UserData;
+                PWMI_FILE_IO_WOW64 dataWow64 = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)dataWow64->FileObject;
                 PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
             }
             else
             {
-                FileIo_Name* data = EventRecord->UserData;
+                PWMI_FILE_IO data = EventRecord->UserData;
 
-                fileEvent.FileObject = (PVOID)data->FileObject;
+                fileEvent.FileObject = data->FileObject;
                 PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
             }
 

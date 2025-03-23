@@ -45,10 +45,6 @@
 #define SETUP_SHOWUPDATEFINAL (WM_APP + 9)
 #define SETUP_SHOWUPDATEERROR (WM_APP + 10)
 
-#define TaskDialogNavigatePage(WindowHandle, Config) \
-    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId((WindowHandle), NULL)); \
-    SendMessage((WindowHandle), TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
-
 #ifdef DEBUG
 //#define FORCE_TEST_UPDATE_LOCAL_INSTALL 1
 #endif
@@ -77,7 +73,10 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG SetupRemoveAppData: 1;
             ULONG SetupIsLegacyUpdate : 1;
             ULONG Silent : 1;
-            ULONG Spare : 29;
+            ULONG NoStart : 1;
+            ULONG Hide : 1;
+            ULONG NeedsReboot : 1;
+            ULONG Spare : 26;
         };
     };
 
@@ -85,34 +84,15 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING SetupInstallPath;
     PPH_STRING SetupServiceName;
 
-    PVOID ZipDownloadBuffer;
-    ULONG ZipDownloadBufferLength;
+    PVOID ZipBuffer;
+    ULONG ZipBufferLength;
 
-    ULONG ErrorCode;
-
-    PPH_STRING RelDate;
-    PPH_STRING RelVersion;
-
-    PPH_STRING BinFileDownloadUrl;
-    ULONGLONG BinFileLength;
-    PPH_STRING BinFileHash;
-    PPH_STRING BinFileSignature;
-    PPH_STRING SetupFileDownloadUrl;
-    ULONGLONG SetupFileLength;
-    PPH_STRING SetupFileHash;
-    PPH_STRING SetupFileSignature;
-
-    //PPH_STRING WebSetupFileDownloadUrl;
-    //PPH_STRING WebSetupFileVersion;
-    //PPH_STRING WebSetupFileLength;
-    //PPH_STRING WebSetupFileHash;
-    //PPH_STRING WebSetupFileSignature;
+    NTSTATUS LastStatus;
 
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentRevisionVersion;
 
-    BOOLEAN NeedsReboot;
     HANDLE SubProcessHandle;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 

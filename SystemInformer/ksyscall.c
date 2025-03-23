@@ -48,9 +48,9 @@ VOID PhGenerateSyscallLists(
     _Out_ PPH_LIST* Win32kSystemCallList
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    static PH_STRINGREF win32kFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
-    static PH_STRINGREF win32uFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.dll");
+    static CONST PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
+    static CONST PH_STRINGREF win32kFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
+    static CONST PH_STRINGREF win32uFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.dll");
     PPH_LIST ntdllSystemCallList = NULL;
     PPH_LIST win32kSystemCallList = NULL;
     PH_MAPPED_IMAGE mappedImage;

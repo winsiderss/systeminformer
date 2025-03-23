@@ -37,10 +37,12 @@ extern "C" {
  * \param Object A pointer to the object being freed.
  * \param Flags Reserved.
  */
-typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
+typedef _Function_class_(PH_TYPE_DELETE_PROCEDURE)
+VOID NTAPI PH_TYPE_DELETE_PROCEDURE(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
+typedef PH_TYPE_DELETE_PROCEDURE* PPH_TYPE_DELETE_PROCEDURE;
 
 typedef struct _PH_OBJECT_TYPE PH_OBJECT_TYPE;
 typedef PH_OBJECT_TYPE* PPH_OBJECT_TYPE;
@@ -49,12 +51,14 @@ typedef struct _PH_QUEUED_LOCK PH_QUEUED_LOCK;
 typedef PH_QUEUED_LOCK* PPH_QUEUED_LOCK;
 
 #ifdef DEBUG
-typedef VOID (NTAPI *PPH_CREATE_OBJECT_HOOK)(
+typedef _Function_class_(PH_CREATE_OBJECT_HOOK)
+VOID NTAPI PH_CREATE_OBJECT_HOOK(
     _In_ PVOID Object,
     _In_ SIZE_T Size,
     _In_ ULONG Flags,
     _In_ PPH_OBJECT_TYPE ObjectType
     );
+typedef PH_CREATE_OBJECT_HOOK* PPH_CREATE_OBJECT_HOOK;
 #endif
 
 typedef struct _PH_OBJECT_TYPE_PARAMETERS
@@ -140,7 +144,6 @@ PhDereferenceObjectEx(
     _In_ LONG RefCount,
     _In_ BOOLEAN DeferDelete
     );
-
 
 /**
  * References an array of objects.

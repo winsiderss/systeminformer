@@ -390,7 +390,7 @@ VOID PhUpdateProcessStatisticsValue(
         Context->CpuUsageAverage = cpuAverageValue * 100;
     }
 
-    Context->CpuUsageRelative = (FLOAT)(ProcessItem->CpuUsage * 100) * PhCountBitsUlongPtr(ProcessItem->AffinityMask);
+    Context->CpuUsageRelative = (FLOAT)(ProcessItem->CpuUsage * 100) * ProcessItem->AffinityPopulationCount;
 
     {
         ULONG64 cycleTime;
@@ -715,7 +715,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                     PROCESS_QUERY_INFORMATION,
                     processItem->ProcessId
                     );
-            }   
+            }
 
             PhSetListViewStyle(statisticsContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
@@ -1034,7 +1034,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 PhpUpdateProcessStatisticDeltaBytes(dispInfo, statisticsContext->ProcessItem->IoOtherDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
-                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDelta);                  
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->IoTotalDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTALDELTA:
                                 {

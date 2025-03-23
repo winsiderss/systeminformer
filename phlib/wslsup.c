@@ -197,6 +197,174 @@ CleanupExit:
 }
 
 _Success_(return)
+BOOLEAN PhWslQueryDistroProcessCommandLine(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    )
+{
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssCommandLine = NULL;
+    PPH_STRING lxssDistroName = NULL;
+    PH_FORMAT format[5];
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
+        return FALSE;
+
+    PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
+    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatS(&format[2], L"\\proc\\");
+    PhInitFormatIU(&format[3], LxssProcessId);
+    PhInitFormatS(&format[4], L"\\cmdline");
+
+    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    {
+        NTSTATUS status;
+        HANDLE fileHandle;
+
+        status = PhCreateFile(
+            &fileHandle,
+            &lxssCommandLine->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhGetFileText(
+                &lxssCommandResult,
+                fileHandle, 
+                TRUE
+                );
+            NtClose(fileHandle);
+        }
+        else if (status == STATUS_ACCESS_DENIED)
+        {
+            PPH_STRING lxssRootCommandLine;
+            PPH_STRING lxssRootCommandResult;
+
+            // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
+            // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
+            // We can workaround the issue by creating a root process using 'wsl.exe -u root' and pipe the /proc content via standard output.
+            // This is significantly slower (very slow) but works, and avoids hard requirements on user preferences and distro configuration.
+
+            PhInitFormatS(&format[0], L"cat /proc/");
+            PhInitFormatIU(&format[1], LxssProcessId);
+            PhInitFormatS(&format[2], L"/cmdline");
+
+            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            {
+                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                {
+                    lxssCommandResult = lxssRootCommandResult;
+                }
+
+                PhDereferenceObject(lxssRootCommandLine);
+            }
+        }
+
+        PhDereferenceObject(lxssCommandLine);
+    }
+
+    PhDereferenceObject(lxssDistroName);
+
+    if (lxssCommandResult)
+    {
+        *Result = lxssCommandResult;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhWslQueryDistroProcessEnvironment(
+    _In_ PPH_STRINGREF FileName,
+    _In_ ULONG LxssProcessId,
+    _Out_ PPH_STRING* Result
+    )
+{
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssCommandLine = NULL;
+    PPH_STRING lxssDistroName = NULL;
+    PH_FORMAT format[5];
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
+        return FALSE;
+
+    PhInitFormatS(&format[0], L"\\Device\\Mup\\wsl.localhost\\");
+    PhInitFormatSR(&format[1], lxssDistroName->sr);
+    PhInitFormatS(&format[2], L"\\proc\\");
+    PhInitFormatIU(&format[3], LxssProcessId);
+    PhInitFormatS(&format[4], L"\\environ");
+
+    if (lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100))
+    {
+        NTSTATUS status;
+        HANDLE fileHandle;
+
+        status = PhCreateFile(
+            &fileHandle,
+            &lxssCommandLine->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhGetFileText(
+                &lxssCommandResult,
+                fileHandle, 
+                TRUE
+                );
+            NtClose(fileHandle);
+        }
+        else if (status == STATUS_ACCESS_DENIED)
+        {
+            PPH_STRING lxssRootCommandLine;
+            PPH_STRING lxssRootCommandResult;
+
+            // Note: The WSL P9 Multiple UNC Provider (MUP) doesn't allow administrators to read /proc unless the distro wsl.conf default user is root.
+            // Changing the default user to root fixes permission issues when accessing files from Windows but results in everything owned by root and inaccessible from WSL.
+            // We can workaround the issue by creating a root process using 'wsl.exe -u root' and pipe the /proc content via standard output.
+            // This is significantly slower (very slow) but works, and avoids hard requirements on user preferences and distro configuration.
+
+            PhInitFormatS(&format[0], L"cat /proc/");
+            PhInitFormatIU(&format[1], LxssProcessId);
+            PhInitFormatS(&format[2], L"/environ");
+
+            if (lxssRootCommandLine = PhFormat(format, 3, 0x100))
+            {
+                if (PhCreateProcessLxss(lxssDistroName, lxssRootCommandLine, &lxssRootCommandResult))
+                {
+                    lxssCommandResult = lxssRootCommandResult;
+                }
+
+                PhDereferenceObject(lxssRootCommandLine);
+            }
+        }
+
+        PhDereferenceObject(lxssCommandLine);
+    }
+
+    PhDereferenceObject(lxssDistroName);
+
+    if (lxssCommandResult)
+    {
+        *Result = lxssCommandResult;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
 BOOLEAN PhWslQueryRpmPackageFromFileName(
     _In_ PPH_STRING LxssDistribution,
     _In_ PPH_STRING LxssFileName,
@@ -497,7 +665,8 @@ BOOLEAN PhCreateProcessLxss(
     NtClose(outputWriteHandle); outputWriteHandle = NULL;
 
     // Read the pipe data. (dmex)
-    lxssOutputString = PhGetFileText(outputReadHandle, TRUE);
+    if (!NT_SUCCESS(PhGetFileText(&lxssOutputString, outputReadHandle, TRUE)))
+        goto CleanupExit;
 
     // Get the exit code after we finish reading the data from the pipe. (dmex)
     if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))

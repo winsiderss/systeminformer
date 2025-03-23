@@ -134,15 +134,15 @@ VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     );
 
-PPH_STRINGREF PhGetModuleTypeName(
+PCPH_STRINGREF PhGetModuleTypeName(
     _In_ ULONG ModuleType
     );
 
-PPH_STRINGREF PhGetModuleLoadReasonTypeName(
+PCPH_STRINGREF PhGetModuleLoadReasonTypeName(
     _In_ USHORT LoadReason
     );
 
-PPH_STRINGREF PhGetModuleEnclaveTypeName(
+PCPH_STRINGREF PhGetModuleEnclaveTypeName(
     _In_ ULONG EnclaveType
     );
 

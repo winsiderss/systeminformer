@@ -205,7 +205,7 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     PPH_MEMORY_CONTEXT memoryContext = Context;
     PPH_MEMORY_NODE memoryNode = (PPH_MEMORY_NODE)Node;
     PPH_MEMORY_ITEM memoryItem = memoryNode->MemoryItem;
-    PPH_STRINGREF string;
+    PCPH_STRINGREF string;
     PPH_STRING useText;
 
     if (memoryContext->ListContext.HideFreeRegions && FlagOn(memoryItem->State, MEM_FREE))

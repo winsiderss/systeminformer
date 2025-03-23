@@ -1,12 +1,13 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     /// <summary>
     /// RSA implementation that uses Azure Key Vault
     /// </summary>
-    public sealed class RSAKeyVault : RSA
+    public sealed class RSAKeyVault : RSA, IDisposable
     {
-        readonly KeyVaultContext context;
-        RSA publicKey;
+        private readonly KeyVaultContext context;
+        private RSA publicKey;
+        private bool disposed;
 
         /// <summary>
         /// Creates a new RSAKeyVault instance
@@ -30,7 +31,7 @@
 
             // Key Vault only supports PKCSv1 padding
             if (padding.Mode != RSASignaturePaddingMode.Pkcs1)
-                throw new Exception("Unsupported padding mode");
+                throw new NotSupportedException("Unsupported padding mode");
 
             try
             {
@@ -38,7 +39,7 @@
             }
             catch (Exception e)
             {
-                throw new Exception("Error calling Key Vault", e);
+                throw new InvalidOperationException("Error calling Key Vault", e);
             }
         }
 
@@ -46,8 +47,6 @@
         public override bool VerifyHash(byte[] hash, byte[] signature, HashAlgorithmName hashAlgorithm, RSASignaturePadding padding)
         {
             CheckDisposed();
-
-            // Verify can be done locally using the public key
             return publicKey.VerifyHash(hash, signature, hashAlgorithm, padding);
         }
 
@@ -84,9 +83,9 @@
             }
             catch (Exception e)
             {
-                throw new Exception("Error calling Key Vault", e);
+                throw new InvalidOperationException("Error calling Key Vault", e);
             }
-        }      
+        }
 
         /// <inheritdoc/>
         public override byte[] Encrypt(byte[] data, RSAEncryptionPadding padding)
@@ -102,7 +101,7 @@
             CheckDisposed();
 
             if (includePrivateParameters)
-                throw new Exception("Private keys cannot be exported by this provider");
+                throw new NotSupportedException("Private keys cannot be exported by this provider");
 
             return publicKey.ExportParameters(includePrivateParameters);
         }
@@ -113,39 +112,48 @@
             throw new NotSupportedException();
         }
 
-        void CheckDisposed()
+        private void CheckDisposed()
         {
-            if (publicKey == null)
-                throw new ObjectDisposedException($"{nameof(RSAKeyVault)} is disposed");
+            ObjectDisposedException.ThrowIf(disposed, this);
+        }
+
+        ~RSAKeyVault()
+        {
+            Dispose(false);
+        }
+
+        public new void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
+            if (disposed)
+                return;
+
             if (disposing)
             {
                 publicKey?.Dispose();
                 publicKey = null;
             }
 
+            disposed = true;
             base.Dispose(disposing);
         }
 
         private static HashAlgorithm Create(HashAlgorithmName algorithm)
         {
-            if (algorithm == HashAlgorithmName.SHA1)
-                return SHA1.Create();
-
-            if (algorithm == HashAlgorithmName.SHA256)
-                return SHA256.Create();
-
-            if (algorithm == HashAlgorithmName.SHA384)
-                return SHA384.Create();
-
-            if (algorithm == HashAlgorithmName.SHA512)
-                return SHA512.Create();
-
-            throw new NotSupportedException("The specified algorithm is not supported.");
+            return algorithm.Name switch
+            {
+                nameof(HashAlgorithmName.SHA1) => SHA1.Create(),
+                nameof(HashAlgorithmName.SHA256) => SHA256.Create(),
+                nameof(HashAlgorithmName.SHA384) => SHA384.Create(),
+                nameof(HashAlgorithmName.SHA512) => SHA512.Create(),
+                _ => throw new NotSupportedException("The specified algorithm is not supported.")
+            };
         }
     }
 }

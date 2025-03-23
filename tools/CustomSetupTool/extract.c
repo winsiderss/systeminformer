@@ -189,9 +189,9 @@ BOOLEAN SetupExtractBuild(
         goto CleanupExit;
     }
 #else
-    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipDownloadBuffer, Context->ZipDownloadBufferLength, 0)))
+    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipBuffer, Context->ZipBufferLength, 0)))
     {
-        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
+        Context->LastStatus = STATUS_OBJECT_PATH_NOT_FOUND;
         goto CleanupExit;
     }
 #endif
@@ -283,13 +283,13 @@ BOOLEAN SetupExtractBuild(
 
         if (!(buffer = mz_zip_reader_extract_to_heap(&zipFileArchive, zipFileStat.m_file_index, &zipFileBufferLength, 0)))
         {
-            Context->ErrorCode = ERROR_FILE_INVALID;
+            Context->LastStatus = STATUS_NO_MEMORY;
             goto CleanupExit;
         }
 
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, zipFileBufferLength)) != zipFileStat.m_crc32)
         {
-            Context->ErrorCode = ERROR_CRC;
+            Context->LastStatus = STATUS_CRC_ERROR;
             goto CleanupExit;
         }
 
@@ -299,9 +299,9 @@ BOOLEAN SetupExtractBuild(
             &fileName->sr
             );
 
-        if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&extractPath->sr)))
+        if (!NT_SUCCESS(status = PhCreateDirectoryFullPathWin32(&extractPath->sr)))
         {
-            Context->ErrorCode = ERROR_DIRECTORY_NOT_SUPPORTED;
+            Context->LastStatus = status;
             goto CleanupExit;
         }
 
@@ -353,7 +353,7 @@ BOOLEAN SetupExtractBuild(
 
             if (updateKsiAttempt)
             {
-                Context->ErrorCode = ERROR_PATH_BUSY;
+                Context->LastStatus = STATUS_DEVICE_BUSY;
                 goto CleanupExit;
             }
         }

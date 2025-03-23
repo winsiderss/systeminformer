@@ -108,6 +108,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 {
     HWND ParentWindowHandle;
     HWND TreeNewHandle;
+
     ULONG TreeNewSortColumn;
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PH_SORT_ORDER TreeNewSortOrder;

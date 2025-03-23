@@ -366,7 +366,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                 PhShowWarning2(
                     WindowHandle,
-                    L"Unable to query service information."
+                    L"Unable to query service information.",
                     L"%s",
                     PhGetStringOrDefault(errorMessage, L"Unknown error.")
                     );

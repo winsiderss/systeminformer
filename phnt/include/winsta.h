@@ -1097,7 +1097,7 @@ WinStationGetProcessSid(
 
 // Services isolation
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // rev
 NTSYSAPI

@@ -704,7 +704,7 @@ PPH_STRING PhGetPackageAppDataPath(
         {
             for (ULONG i = 0; i < info->AttributeCount; i++)
             {
-                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->AttributeV1[i];
 
                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
                 {
@@ -716,7 +716,7 @@ PPH_STRING PhGetPackageAppDataPath(
                     {
                         PPH_STRING attributeValue;
 
-                        attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
+                        attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.String[2]);
                         packageAppDataPath = PhConcatStringRef2(&localAppDataPath->sr, &attributeValue->sr);
 
                         PhDereferenceObject(attributeValue);
@@ -851,7 +851,7 @@ HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
     )
 {
     HRESULT status;
-    IOSTaskCompletion* taskCompletion = NULL;;
+    IOSTaskCompletion* taskCompletion = NULL;
 
     status = PhGetClassObject(
         L"twinapi.appcore.dll",

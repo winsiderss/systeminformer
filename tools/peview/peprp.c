@@ -1020,27 +1020,27 @@ VOID PvpSetPeImageSize(
 
     if (PvMappedImage.ViewSize != lastRawDataOffset)
     {
-        //BOOLEAN success = FALSE;
-        //PIMAGE_DATA_DIRECTORY dataDirectory;
-        //
-        //if (NT_SUCCESS(PhGetMappedImageDataDirectory(
-        //    &PvMappedImage,
-        //    IMAGE_DIRECTORY_ENTRY_SECURITY,
-        //    &dataDirectory
-        //    )))
-        //{
-        //    if ((lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
-        //        (lastRawDataOffset == dataDirectory->VirtualAddress))
-        //    {
-        //        success = TRUE;
-        //    }
-        //}
-        //
-        //if (success)
-        //{
-        //    string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
-        //}
-        //else
+        BOOLEAN success = FALSE;
+        PIMAGE_DATA_DIRECTORY dataDirectory;
+        
+        if (NT_SUCCESS(PhGetMappedImageDataDirectory(
+            &PvMappedImage,
+            IMAGE_DIRECTORY_ENTRY_SECURITY,
+            &dataDirectory
+            )))
+        {
+            if ((lastRawDataOffset + dataDirectory->Size == PvMappedImage.ViewSize) &&
+                (lastRawDataOffset == dataDirectory->VirtualAddress))
+            {
+                success = TRUE;
+            }
+        }
+        
+        if (success)
+        {
+            string = PhFormatSize(PvMappedImage.ViewSize, ULONG_MAX);
+        }
+        else
         {
             WCHAR pointer[PH_PTR_STR_LEN_1];
 
@@ -1249,7 +1249,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
     {
         ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32, PvMappedImage.ViewBase));
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader) + PvMappedImage.NtHeaders32->FileHeader.SizeOfOptionalHeader;
-        ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        ULONG sectionsLength = PvMappedImage.NtHeaders32->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
         ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.SizeOfHeaders, totalLength));
 
@@ -1259,7 +1259,7 @@ VOID PvpSetPeImageSpareHeaderBytes(
     {
         ULONG nativeHeadersLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders, PvMappedImage.ViewBase));
         ULONG optionalHeadersLength = UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + PvMappedImage.NtHeaders->FileHeader.SizeOfOptionalHeader;
-        ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+        ULONG sectionsLength = PvMappedImage.NtHeaders->FileHeader.NumberOfSections * IMAGE_SIZEOF_SECTION_HEADER;
         ULONG totalLength = nativeHeadersLength + optionalHeadersLength + sectionsLength;
         ULONG spareLength = PtrToUlong(PTR_SUB_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.SizeOfHeaders, totalLength));
 

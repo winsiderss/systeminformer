@@ -320,11 +320,11 @@ BOOLEAN PhpEnumerateRecentProgramsToComboBox(
 }
 
 NTSTATUS PhpEnumerateAccountsToComboBox(
-    _In_ PPH_STRING AccountName,
+    _In_ PPH_STRINGREF AccountName,
     _In_ PVOID Context
     )
 {
-    ComboBox_AddString(Context, PhGetString(AccountName));
+    ComboBox_AddString(Context, PhGetStringRefZ(AccountName));
     return STATUS_SUCCESS;
 }
 
@@ -724,8 +724,8 @@ BOOLEAN PhRunAsGetLogonSid(
     _Out_ PSID* LogonSid
     )
 {
-    PSID userSid = nullptr;
-    PSID groupSid = nullptr;
+    PSID userSid = NULL;
+    PSID groupSid = NULL;
     HANDLE tokenHandle;
 
     if (NT_SUCCESS(PhOpenProcessToken(
@@ -1634,7 +1634,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
 
-    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
+    if (!PhStartupParameters.RunAsServiceMode && WindowHandle && PhGetIntegerSetting(L"EnableWarnings"))
     {
         if (PhGetIntegerSetting(L"EnableWarningsRunas") && PhShowMessageOneTime(
             WindowHandle,
@@ -2034,7 +2034,7 @@ NTSTATUS PhRunAsServiceStart(
             { RtlConvertUlongToLuid(SE_RESTORE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
             { RtlConvertUlongToLuid(SE_IMPERSONATE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
         };
-        UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
+        const UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
         PTOKEN_PRIVILEGES tokenPrivileges;
 
         tokenPrivileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
@@ -3355,10 +3355,7 @@ VOID PhRunAsPackageInitializeTree(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    static PH_STRINGREF PhRunAsPackageLoadingText = PH_STRINGREF_INIT(L"Loading package information...");
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+    static CONST PH_STRINGREF PhRunAsPackageLoadingText = PH_STRINGREF_INIT(L"Loading package information...");
 
     Context->NodeList = PhCreateList(20);
     Context->NodeHashtable = PhCreateHashtable(
@@ -3368,20 +3365,17 @@ VOID PhRunAsPackageInitializeTree(
         20
         );
 
-    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, dpiValue);
-    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, dpiValue);
+    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, Context->WindowDpi);
+    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, Context->WindowDpi);
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, dpiValue));
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+    TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, Context->WindowDpi));
 
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TRUE, L"Package", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_VERSION, TRUE, L"Version", 80, PH_ALIGN_CENTER, 1, DT_CENTER, 0);
-
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
     //PhRunAsPackageLoadSettingsTreeList(Context);
 
@@ -3389,6 +3383,8 @@ VOID PhRunAsPackageInitializeTree(
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhRunAsPackageTreeFilterCallback, Context);
 
     TreeNew_SetEmptyText(Context->TreeNewHandle, &PhRunAsPackageLoadingText, 0);
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 VOID PhRunAsPackageDeleteTree(
@@ -3431,24 +3427,14 @@ static VOID PhRunAsPackageSetImagelist(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    if (Context->ImageListHandle)
-    {
-        PhImageListSetIconSize(
-            Context->ImageListHandle,
-            PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYICON, Context->WindowDpi)
-            );
-    }
-    else
-    {
-        Context->ImageListHandle = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
-            PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
-            ILC_MASK | ILC_COLOR32,
-            20,
-            10
-            );
-    }
+    PhImageListDestroy(Context->ImageListHandle);
+    Context->ImageListHandle = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
+        ILC_MASK | ILC_COLOR32,
+        20,
+        10
+        );
 }
 
 VOID NTAPI PhPackageWindowContextDeleteProcedure(
@@ -3589,6 +3575,11 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
         }
         break;
     case WM_PH_UPDATE_DIALOG:

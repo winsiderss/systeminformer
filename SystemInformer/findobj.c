@@ -1079,7 +1079,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
                     if (!NT_SUCCESS(status))
                     {
-                        PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                        PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
                     }
                 }
             }
@@ -1237,7 +1237,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"FindObjWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"FindObjWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);

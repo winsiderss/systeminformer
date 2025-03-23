@@ -173,6 +173,7 @@ NTSTATUS PhpRefreshThreadStack(
     _In_ const void *_elem2 \
     ) \
 { \
+    PPH_THREAD_STACK_CONTEXT context = ((PPH_THREAD_STACK_CONTEXT)_context); \
     PPH_STACK_TREE_ROOT_NODE node1 = *(PPH_STACK_TREE_ROOT_NODE*)_elem1; \
     PPH_STACK_TREE_ROOT_NODE node2 = *(PPH_STACK_TREE_ROOT_NODE*)_elem2; \
     int sortResult = 0;
@@ -181,7 +182,7 @@ NTSTATUS PhpRefreshThreadStack(
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
     \
-    return PhModifySort(sortResult, ((PPH_THREAD_STACK_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Index)
@@ -192,73 +193,73 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Symbol)
 {
-    sortResult = PhCompareString(node1->SymbolString, node2->SymbolString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->SymbolString, node2->SymbolString, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackAddress)
 {
-    sortResult = PhCompareStringZ(node1->StackAddressString, node2->StackAddressString, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.StackAddress, (ULONG_PTR)node2->StackFrame.StackAddress);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FrameAddress)
 {
-    sortResult = PhCompareStringZ(node1->FrameAddressString, node2->FrameAddressString, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.FrameAddress, (ULONG_PTR)node2->StackFrame.FrameAddress);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackParameter1)
 {
-    sortResult = PhCompareStringZ(node1->Parameter1String, node2->Parameter1String, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.Params[0], (ULONG_PTR)node2->StackFrame.Params[0]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackParameter2)
 {
-    sortResult = PhCompareStringZ(node1->Parameter2String, node2->Parameter2String, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.Params[1], (ULONG_PTR)node2->StackFrame.Params[1]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackParameter3)
 {
-    sortResult = PhCompareStringZ(node1->Parameter3String, node2->Parameter3String, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.Params[2], (ULONG_PTR)node2->StackFrame.Params[2]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackParameter4)
 {
-    sortResult = PhCompareStringZ(node1->Parameter4String, node2->Parameter4String, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.Params[3], (ULONG_PTR)node2->StackFrame.Params[3]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ControlAddress)
 {
-    sortResult = PhCompareStringZ(node1->PcAddressString, node2->PcAddressString, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.PcAddress, (ULONG_PTR)node2->StackFrame.PcAddress);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ReturnAddress)
 {
-    sortResult = PhCompareStringZ(node1->ReturnAddressString, node2->ReturnAddressString, TRUE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->StackFrame.ReturnAddress, (ULONG_PTR)node2->StackFrame.ReturnAddress);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(node1->FileNameString, node2->FileNameString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->FileNameString, node2->FileNameString, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LineText)
 {
-    sortResult = PhCompareStringWithNull(node1->LineTextString, node2->LineTextString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->LineTextString, node2->LineTextString, context->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Architecture)
 {
-    sortResult = PhCompareStringRef(&node1->Architecture, &node2->Architecture, TRUE);
+    sortResult = ushortcmp(node1->StackFrame.Machine, node2->StackFrame.Machine);
 }
 END_SORT_FUNCTION
 
@@ -1318,7 +1319,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
         {
             PH_FORMAT format[3];
 
-            PhInitFormatS(&format[0], L"Processing stack frame ");
+            PhInitFormatS(&format[0], L"Processing stack frame #");
             PhInitFormatU(&format[1], threadStackContext->NewList->Count);
             PhInitFormatS(&format[2], L"...");
 
@@ -1692,12 +1693,14 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             PPH_STRING content;
             ULONG progress = 0;
 
-            PhSetReference(&message, InterlockedExchangePointer(&context->StatusMessage, NULL));
-            PhSetReference(&content, InterlockedExchangePointer(&context->StatusContent, NULL));
-            progress = InterlockedExchange(&context->SymbolProgress, 0);
+            PhAcquireQueuedLockShared(&context->StatusLock);
+            PhSetReference(&message, context->StatusMessage);
+            PhSetReference(&content, context->StatusContent);
+            progress = context->SymbolProgress;
+            PhReleaseQueuedLockShared(&context->StatusLock);
 
-            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetStringOrDefault(message, L" "));
-            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)PhGetStringOrDefault(content, L" "));
+            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetStringOrDefault(message, L"Processing stack frames..."));
+            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)PhGetStringOrDefault(content, L"Loading symbols for image..."));
 
             PhClearReference(&message);
             PhClearReference(&content);
@@ -1706,8 +1709,11 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             {
                 SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
                 SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+                PhAcquireQueuedLockExclusive(&context->StatusLock);
                 InterlockedExchange8(&context->SymbolProgressMarquee, TRUE);
                 InterlockedExchange8(&context->SymbolProgressReset, FALSE);
+                PhReleaseQueuedLockExclusive(&context->StatusLock);
             }
 
             if (progress)
@@ -1716,7 +1722,10 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
                 {
                     SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
                     SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 0);
+
+                    PhAcquireQueuedLockExclusive(&context->StatusLock);
                     InterlockedExchange8(&context->SymbolProgressMarquee, FALSE);
+                    PhReleaseQueuedLockExclusive(&context->StatusLock);
                 }
 
                 SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, (WPARAM)progress, 0);
@@ -1727,7 +1736,10 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
                 {
                     SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
                     SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+                    PhAcquireQueuedLockExclusive(&context->StatusLock);
                     InterlockedExchange8(&context->SymbolProgressMarquee, TRUE);
+                    PhReleaseQueuedLockExclusive(&context->StatusLock);
                 }
             }
         }

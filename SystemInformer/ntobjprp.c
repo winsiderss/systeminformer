@@ -21,17 +21,19 @@
 typedef struct _COMMON_PAGE_CONTEXT
 {
     PPH_OPEN_OBJECT OpenObject;
+    PPH_CLOSE_OBJECT CloseObject;
     PVOID Context;
 } COMMON_PAGE_CONTEXT, *PCOMMON_PAGE_CONTEXT;
 
 HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DlgProc
     );
 
-INT CALLBACK PhpCommonPropPageProc(
+LONG CALLBACK PhpCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -67,8 +69,9 @@ INT_PTR CALLBACK PhpTimerPageProc(
 
 HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DlgProc
     )
 {
@@ -79,6 +82,7 @@ HPROPSHEETPAGE PhpCommonCreatePage(
     pageContext = PhCreateAlloc(sizeof(COMMON_PAGE_CONTEXT));
     memset(pageContext, 0, sizeof(COMMON_PAGE_CONTEXT));
     pageContext->OpenObject = OpenObject;
+    pageContext->CloseObject = CloseObject;
     pageContext->Context = Context;
 
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
@@ -98,7 +102,7 @@ HPROPSHEETPAGE PhpCommonCreatePage(
     return propSheetPageHandle;
 }
 
-INT CALLBACK PhpCommonPropPageProc(
+LONG CALLBACK PhpCommonPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ LPPROPSHEETPAGE ppsp
@@ -132,11 +136,13 @@ FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
 
 HPROPSHEETPAGE PhCreateEventPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
         OpenObject,
+        CloseObject,
         Context,
         MAKEINTRESOURCE(IDD_OBJEVENT),
         PhpEventPageProc
@@ -253,11 +259,13 @@ INT_PTR CALLBACK PhpEventPageProc(
 
 HPROPSHEETPAGE PhCreateEventPairPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
         OpenObject,
+        CloseObject,
         Context,
         MAKEINTRESOURCE(IDD_OBJEVENTPAIR),
         PhpEventPairPageProc
@@ -328,11 +336,13 @@ INT_PTR CALLBACK PhpEventPairPageProc(
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
         OpenObject,
+        CloseObject,
         Context,
         MAKEINTRESOURCE(IDD_OBJSEMAPHORE),
         PhpSemaphorePageProc
@@ -441,11 +451,13 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
 
 HPROPSHEETPAGE PhCreateTimerPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     )
 {
     return PhpCommonCreatePage(
         OpenObject,
+        CloseObject,
         Context,
         MAKEINTRESOURCE(IDD_OBJTIMER),
         PhpTimerPageProc

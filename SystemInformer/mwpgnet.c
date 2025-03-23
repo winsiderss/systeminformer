@@ -247,7 +247,7 @@ VOID PhMwpInitializeNetworkMenu(
         for (i = 0; i < NumberOfNetworkItems; i++)
         {
             if (
-                NetworkItems[i]->ProtocolType != PH_TCP4_NETWORK_PROTOCOL ||
+                NetworkItems[i]->ProtocolType != PH_NETWORK_PROTOCOL_TCP4 ||
                 NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
                 )
             {

@@ -1695,7 +1695,7 @@ ULONG EtSessionIdFromObjectName(
     _In_ PPH_STRINGREF Name
     );
 
-PWSTR EtMapSessionConnectState(
+PCWSTR EtMapSessionConnectState(
     _In_ WINSTATIONSTATECLASS State
     );
 

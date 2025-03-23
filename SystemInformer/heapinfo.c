@@ -648,16 +648,18 @@ CleanupExit:
 }
 
 VOID PhpSetProcessHeapsWindowText(
-    _In_ PPH_PROCESS_HEAPS_CONTEXT Context
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR Title,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PH_FORMAT format[5];
     WCHAR formatBuffer[260];
 
-    PhInitFormatS(&format[0], L"Heaps - ");
-    PhInitFormatSR(&format[1], Context->ProcessItem->ProcessName->sr);
+    PhInitFormatS(&format[0], Title);
+    PhInitFormatSR(&format[1], ProcessItem->ProcessName->sr);
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatU(&format[3], HandleToUlong(Context->ProcessItem->ProcessId));
+    PhInitFormatU(&format[3], HandleToUlong(ProcessItem->ProcessId));
     PhInitFormatC(&format[4], L')');
 
     if (PhFormatToBuffer(
@@ -668,7 +670,7 @@ VOID PhpSetProcessHeapsWindowText(
         NULL
         ))
     {
-        PhSetWindowText(Context->WindowHandle, formatBuffer);
+        PhSetWindowText(WindowHandle, formatBuffer);
     }
 }
 
@@ -703,7 +705,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhpSetProcessHeapsWindowText(context);
+            PhpSetProcessHeapsWindowText(hwndDlg, L"Heaps - ", context->ProcessItem);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -733,7 +735,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PhGetIntegerPairSetting(L"SegmentHeapWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"SegmentHeapWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
@@ -1362,3 +1364,373 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    NtClose(snapshotHandle);
 //}
+
+
+typedef struct _PH_PROCESS_LOCKS_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ParentWindowHandle;
+    HWND ListViewHandle;
+    HFONT BoldFont;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Initialized : 1;
+            BOOLEAN IsWow64Process : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
+    PPH_PROCESS_ITEM ProcessItem;
+    PVOID ProcessHeap;
+    PVOID DebugBuffer;
+    PH_LAYOUT_MANAGER LayoutManager;
+} PH_PROCESS_LOCKS_CONTEXT, *PPH_PROCESS_LOCKS_CONTEXT;
+
+INT_PTR CALLBACK PhProcessLocksDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhShowProcessLocksDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_PROCESS_LOCKS_CONTEXT context;
+
+    context = PhAllocateZero(sizeof(PH_PROCESS_LOCKS_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->IsWow64Process = !!ProcessItem->IsWow64Process;
+
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_HEAPS),
+        NULL,
+        PhProcessLocksDlgProc,
+        context
+        );
+}
+
+VOID PhEnumerateProcessLocks(
+    _In_ PPH_PROCESS_LOCKS_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    ULONG numberOfLocks;
+    RTL_PROCESS_LOCK_INFORMATION* locks;
+
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->ListViewHandle);
+
+    status = PhQueryProcessLockInformation(
+        Context->ProcessItem->ProcessId,
+        &numberOfLocks,
+        &locks
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(Context->WindowHandle, L"Unable to query lock information.", status, 0);
+        return;
+    }
+
+    HANDLE processHandle = NULL;
+
+    PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        Context->ProcessItem->ProcessId
+        );
+
+
+    for (ULONG i = 0; i < numberOfLocks; i++)
+    {
+        PRTL_PROCESS_LOCK_INFORMATION entry = &locks[i];
+        INT lvItemIndex;
+        WCHAR value[PH_INT64_STR_LEN_1];
+        CLIENT_ID clientId;
+        PPH_STRING fileName = NULL;
+
+        clientId.UniqueProcess = NULL;
+        clientId.UniqueThread = entry->OwningThread;
+
+        if (processHandle && entry->Address)
+        {
+            if (NT_SUCCESS(PhGetProcessMappedFileName(processHandle, entry->Address, &fileName)))
+            {
+                PhMoveReference(&fileName, PhGetFileName(fileName));
+            }
+        }
+
+        PhPrintUInt32(value, i + 1);
+        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, value, entry);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatUInt64(entry->Type, TRUE)->Buffer);
+        PhPrintPointer(value, entry->Address);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, PhGetStringOrEmpty(fileName));
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, entry->OwningThread ? PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer : L"");
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, entry->LockCount != ULONG_MAX ? PhaFormatUInt64(entry->LockCount, TRUE)->Buffer : L"");
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, PhaFormatUInt64(entry->ContentionCount, TRUE)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, PhaFormatUInt64(entry->EntryCount, TRUE)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 8, PhaFormatUInt64(entry->RecursionCount, TRUE)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 9, PhaFormatUInt64(entry->NumberOfWaitingShared, TRUE)->Buffer);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 10, PhaFormatUInt64(entry->NumberOfWaitingExclusive, TRUE)->Buffer);
+    }
+
+    ExtendedListView_SortItems(Context->ListViewHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+}
+
+INT_PTR CALLBACK PhProcessLocksDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+     PPH_PROCESS_LOCKS_CONTEXT context = NULL;
+
+    if (WindowMessage == WM_INITDIALOG)
+    {
+        context = (PPH_PROCESS_LOCKS_CONTEXT)lParam;
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (WindowMessage)
+    {
+    case WM_INITDIALOG:
+        {
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_LIST);
+
+            PhSetApplicationWindowIcon(WindowHandle);
+
+            PhpSetProcessHeapsWindowText(WindowHandle, L"Locks - ", context->ProcessItem);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Address");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Filename");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"Thread");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Lock count");
+            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 80, L"Entry count");
+            PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Recursion count");
+            PhAddListViewColumn(context->ListViewHandle, 8, 8, 8, LVCFMT_LEFT, 80, L"Waiting shared count");
+            PhAddListViewColumn(context->ListViewHandle, 9, 9, 9, LVCFMT_LEFT, 80, L"Waiting exclusive count");
+            PhSetExtendedListView(context->ListViewHandle);
+
+            ExtendedListView_SetContext(context->ListViewHandle, context);
+            ExtendedListView_SetItemFontFunction(context->ListViewHandle, PhpHeapFontFunction);
+
+            //PhLoadListViewColumnsFromSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
+            //PhLoadListViewSortColumnsFromSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SIZESINBYTES), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (PhGetIntegerPairSetting(L"SegmentHeapWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", WindowHandle);
+            else
+                PhCenterWindow(WindowHandle, context->ParentWindowHandle);
+
+            PhInitializeWindowTheme(WindowHandle);
+
+            ShowWindow(GetDlgItem(WindowHandle, IDC_SIZESINBYTES), SW_HIDE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+            //PhSaveListViewSortColumnsToSetting(L"SegmentHeapListViewSort", context->ListViewHandle);
+            //PhSaveListViewColumnsToSetting(L"SegmentHeapListViewColumns", context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", WindowHandle);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->BoldFont)
+            {
+                DeleteFont(context->BoldFont);
+                context->BoldFont = NULL;
+            }
+
+            if (context->DebugBuffer)
+            {
+                PhFree(context->DebugBuffer);
+                context->DebugBuffer = NULL;
+            }
+
+            if (context->ProcessItem)
+            {
+                PhDereferenceObject(context->ProcessItem);
+                context->ProcessItem = NULL;
+            }
+
+            PhFree(context);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!context->Initialized)
+            {
+                PostMessage(context->WindowHandle, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, 0), 0);
+                context->Initialized = TRUE;
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(WindowHandle, IDOK);
+                break;
+            case IDC_SIZESINBYTES:
+                {
+                    BOOLEAN sizesInBytes = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
+                    INT index = -1;
+
+                    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
+                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
+                    {
+                        PPH_STRING usedString = NULL;
+                        PPH_STRING committedString = NULL;
+
+                        if (context->IsWow64Process)
+                        {
+                            PPH_PROCESS_DEBUG_HEAP_ENTRY32 heapInfo;
+
+                            if (PhGetListViewItemParam(context->ListViewHandle, index, &heapInfo))
+                            {
+                                usedString = PhFormatSize(heapInfo->BytesAllocated, sizesInBytes ? 0 : ULONG_MAX);
+                                committedString = PhFormatSize(heapInfo->BytesCommitted, sizesInBytes ? 0 : ULONG_MAX);
+                            }
+                        }
+                        else
+                        {
+                            PPH_PROCESS_DEBUG_HEAP_ENTRY heapInfo;
+
+                            if (PhGetListViewItemParam(context->ListViewHandle, index, &heapInfo))
+                            {
+                                usedString = PhFormatSize(heapInfo->BytesAllocated, sizesInBytes ? 0 : ULONG_MAX);
+                                committedString = PhFormatSize(heapInfo->BytesCommitted, sizesInBytes ? 0 : ULONG_MAX);
+                            }
+                        }
+
+                        if (usedString)
+                        {
+                            PhSetListViewSubItem(context->ListViewHandle, index, 2, usedString->Buffer);
+                            PhDereferenceObject(usedString);
+                        }
+
+                        if (committedString)
+                        {
+                            PhSetListViewSubItem(context->ListViewHandle, index, 3, committedString->Buffer);
+                            PhDereferenceObject(committedString);
+                        }
+                    }
+
+                    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+                }
+                break;
+            case IDC_REFRESH:
+                {
+                    PhEnumerateProcessLocks(context);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+
+            REFLECT_MESSAGE_DLG(WindowHandle, context->ListViewHandle, WindowMessage, wParam, lParam);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_PROCESS_DEBUG_HEAP_ENTRY heapInfo;
+                PPH_EMENU menu;
+                INT selectedCount;
+                PPH_EMENU_ITEM menuItem;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+                selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
+                heapInfo = PhGetSelectedListViewItemParam(context->ListViewHandle);
+
+                if (selectedCount != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, USHRT_MAX, context->ListViewHandle);
+
+                    menuItem = PhShowEMenu(
+                        menu,
+                        context->ListViewHandle,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (menuItem)
+                    {
+                        if (PhHandleCopyListViewEMenuItem(menuItem))
+                            break;
+
+                        switch (menuItem->Id)
+                        {
+                        case 1:
+                        case USHRT_MAX:
+                            PhCopyListView(context->ListViewHandle);
+                            break;
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}

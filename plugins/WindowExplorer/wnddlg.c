@@ -1246,7 +1246,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             {
                                 SystemInformer_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(processNode);
-                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             PhDereferenceObject(processItem);

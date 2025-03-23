@@ -161,6 +161,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -168,6 +169,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -175,6 +177,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context,
             NULL
             );
@@ -183,6 +186,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -190,6 +194,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         pages[propSheetHeader.nPages++] = PhCreateTimerPage(
             PhpDuplicateHandleFromProcess,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
@@ -867,7 +872,7 @@ VOID PhpUpdateHandleGeneral(
                             PPH_STRING name;
 
                             clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
-                            clientId.UniqueThread = nullptr;
+                            clientId.UniqueThread = NULL;
 
                             name = PhGetClientIdName(&clientId);
                             PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCOWNER, 1, name->Buffer);
@@ -1903,7 +1908,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             if (!PhPluginsEnabled || !context->OwnerPlugin)
             {
                 // HACK
-                if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
+                if (PhValidWindowPlacementFromSetting(L"HandlePropertiesWindowPosition"))
                     PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
                 else
                     PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK

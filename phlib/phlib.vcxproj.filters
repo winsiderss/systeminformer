@@ -206,6 +206,9 @@
     <ClCompile Include="firmware.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativetoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -413,9 +416,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\thirdparty.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\user.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\searchbox.h">
