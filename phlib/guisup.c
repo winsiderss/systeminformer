@@ -2053,7 +2053,7 @@ BOOLEAN PhModalPropertySheet(
             {
                 HWND pageWindowHandle;
 
-                if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd) &&
+                if ((pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd)) &&
                     SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
                 {
                     continue;
