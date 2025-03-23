@@ -377,7 +377,6 @@
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="colsetmgr.c" />
     <ClCompile Include="dbgcon.c" />
-    <ClCompile Include="delayload.c" />
     <ClCompile Include="devprv.c" />
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />

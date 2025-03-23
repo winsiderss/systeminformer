@@ -298,25 +298,22 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
-            context->PageSwitched = TRUE;
+            PhSetWindowProcedure(hWnd, oldWndProc);
+            PhRemoveWindowContext(hWnd, OBJECT_HANDLES_CONTEXT_TAG);
+            PhFree(context);
         }
+        break;
+    case WM_NOTIFY:
+        if (((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
+        {
+            if (!context->PageSwitched)
+            {
+                PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
+                context->PageSwitched = TRUE;
+            }
+        }
+        break;
     }
-    else if (uMsg == WM_NCDESTROY)
-    {
-        PhSetWindowProcedure(hWnd, oldWndProc);
-        PhRemoveWindowContext(hWnd, OBJECT_HANDLES_CONTEXT_TAG);
-        PhFree(context);
-    }
-
-    //if (uMsg == WM_NOTIFY && ((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
-    //{
-    //    if (!context->PageSwitched)
-    //    {
-    //        PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
-    //        context->PageSwitched = TRUE;
-    //    }
-    //}
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
@@ -354,10 +351,10 @@ VOID EtHandlePropertiesWindowInitialized(
         PhAddItemSimpleHashtable(EtObjectManagerPropWindows, context->ParentWindow, context->HandleItem);
 
         // HACK
-        //if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
-        //    PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
-        //else
-        //    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+        if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
+        else
+            PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
         PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropIcon, NULL, 0);
 
@@ -370,6 +367,8 @@ VOID EtHandlePropertiesWindowInitialized(
             pageContext->ParentWindow = context->ParentWindow;
             PhSetWindowContext(generalPage, OBJECT_HANDLES_CONTEXT_TAG, pageContext);
             PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
+            EtObjectManagerShowHandlesPage = FALSE;
+        }
 
         // Show real handles count
         if (context->ProcessId == NtCurrentProcessId() &&
@@ -406,6 +405,11 @@ VOID EtHandlePropertiesWindowInitialized(
         // Removing of row breaks cached indexes, so hide reference value instead
         //PhSetIListViewSubItem(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_REFERENCES, 1, L"");
 
+        // Show object attributes
+        PPH_STRING Attributes;
+        PH_STRING_BUILDER stringBuilder;
+        PhInitializeStringBuilder(&stringBuilder, 10);
+
         if (EtFindIListViewItemByIndexParam(context->ListViewClass, PH_HANDLE_GENERAL_INDEX_ACCESSMASK, &index))
             PhRemoveIListViewItem(context->ListViewClass, index);
         index = PhAddIListViewGroupItem(
@@ -416,24 +420,18 @@ VOID EtHandlePropertiesWindowInitialized(
             NULL
             );
 
-        {
-            // Show object attributes
-            PPH_STRING Attributes;
-            PH_STRING_BUILDER stringBuilder;
+        if (context->HandleItem->Attributes & OBJ_PERMANENT)
+            PhAppendStringBuilder2(&stringBuilder, L"Permanent, ");
+        if (context->HandleItem->Attributes & OBJ_EXCLUSIVE)
+            PhAppendStringBuilder2(&stringBuilder, L"Exclusive, ");
+        if (context->HandleItem->Attributes & OBJ_KERNEL_HANDLE)
+            PhAppendStringBuilder2(&stringBuilder, L"Kernel object, ");
+        if (context->HandleItem->Attributes & PH_OBJ_KERNEL_ACCESS_ONLY)
+            PhAppendStringBuilder2(&stringBuilder, L"Kernel only access, ");
 
-            PhInitializeStringBuilder(&stringBuilder, 10);
-            if (context->HandleItem->Attributes & OBJ_PERMANENT)
-                PhAppendStringBuilder2(&stringBuilder, L"Permanent, ");
-            if (context->HandleItem->Attributes & OBJ_EXCLUSIVE)
-                PhAppendStringBuilder2(&stringBuilder, L"Exclusive, ");
-            if (context->HandleItem->Attributes & OBJ_KERNEL_HANDLE)
-                PhAppendStringBuilder2(&stringBuilder, L"Kernel object, ");
-            if (context->HandleItem->Attributes & PH_OBJ_KERNEL_ACCESS_ONLY)
-                PhAppendStringBuilder2(&stringBuilder, L"Kernel only access, ");
-
-            // Remove the trailing ", ".
-            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                PhRemoveEndStringBuilder(&stringBuilder, 2);
+        // Remove the trailing ", ".
+        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
 
         Attributes = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
         PhSetIListViewSubItem(context->ListViewClass, index, 1, PhGetString(Attributes));
@@ -806,7 +804,6 @@ VOID EtHandlePropertiesWindowInitialized(
                             PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKOBJECTS], 1, string);
                             PhPrintUInt32(string, objectType->HighWaterNumberOfHandles);
                             PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES], 1, string);
-                            PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
 
                             PWSTR poolTypeString = L"";
                             switch (objectType->PoolType)
@@ -816,8 +813,9 @@ VOID EtHandlePropertiesWindowInitialized(
                                 case NonPagedPoolNx: poolTypeString = L"Non Paged NX"; break;
                                 case PagedPoolSessionNx: poolTypeString = L"Paged Session NX"; break;
                             }
-                            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE], 1, PoolType);
+                            PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPOOLTYPE], 1, poolTypeString);
 
+                            PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
                             PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPEPAGECHARGE], 1, string);
                             PhPrintUInt32(string, objectType->DefaultNonPagedPoolCharge);
                             PhSetIListViewSubItem(context->ListViewClass, EtListViewRowCache[OBJECT_GENERAL_INDEX_TYPENPAGECHARGE], 1, string);

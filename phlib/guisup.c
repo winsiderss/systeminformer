@@ -1963,19 +1963,6 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
             }
         }
         break;
-    case WM_KEYDOWN: // forward key messages
-        {
-            HWND pageWindowHandle;
-
-            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
-            {
-                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
-                {
-                    return TRUE;
-                }
-            }
-        }
-        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -2062,6 +2049,17 @@ BOOLEAN PhModalPropertySheet(
 
         if (!processed)
         {
+            if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages
+            {
+                HWND pageWindowHandle;
+
+                if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd) &&
+                    SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
+                {
+                    continue;
+                }
+            }
+
             if (!PropSheet_IsDialogMessage(hwnd, &message))
             {
                 TranslateMessage(&message);
