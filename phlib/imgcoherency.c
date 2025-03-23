@@ -1485,7 +1485,7 @@ NTSTATUS PhGetProcessModuleImageCoherency(
         ProcessHandle,
         ImageBaseAddress,
         ImageSize,
-        STATUS_UNSUCCESSFUL,
+        STATUS_SUCCESS,
         IsKernelModule,
         Type,
         ImageCoherency
