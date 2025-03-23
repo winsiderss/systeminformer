@@ -1683,27 +1683,42 @@ NTSTATUS PhSaveSettingsXmlLite(
     _In_ PCPH_STRINGREF FileName
     )
 {
+    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".tmp");
     HRESULT status;
     PPH_STRING fileNameWin32;
+    PPH_STRING fileNameTempWin32;
 
     fileNameWin32 = PhResolveDevicePrefix(FileName);
 
     if (PhIsNullOrEmptyString(fileNameWin32))
         return STATUS_UNSUCCESSFUL;
 
+    // TODO: Write XmlLite to buffer and atomic rename (same as PhSaveXmlObjectToFile) (dmex)
     PhMoveReference(&fileNameWin32, PhConcatStringRef2(&PhWin32ExtendedPathPrefix, &fileNameWin32->sr));
+    fileNameTempWin32 = PhConcatStringRef2(&fileNameWin32->sr, &extension);
 
     PhpClearIgnoredSettings();
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
-    status = PhSaveSettingsXmlWrite(PhGetString(fileNameWin32));
+    status = PhSaveSettingsXmlWrite(PhGetString(fileNameTempWin32));
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
-    PhDereferenceObject(fileNameWin32);
-
     if (HR_FAILED(status))
+    {
+        PhDereferenceObject(fileNameTempWin32);
+        PhDereferenceObject(fileNameWin32);
         return STATUS_UNSUCCESSFUL; // HRESULT_CODE(status);
-    return STATUS_SUCCESS;
+    }
+
+    status = PhMoveFileWin32(
+        PhGetString(fileNameTempWin32),
+        PhGetString(fileNameWin32),
+        FALSE
+        );
+
+    PhDereferenceObject(fileNameTempWin32);
+    PhDereferenceObject(fileNameWin32);
+    return status;
 }
 
 PCSTR PhpSettingsSaveCallback(
