@@ -88,6 +88,7 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG ZipBufferLength;
 
     NTSTATUS LastStatus;
+    NTSTATUS ErrorCode;
 
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
