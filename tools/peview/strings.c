@@ -50,6 +50,8 @@ typedef struct _PV_STRINGS_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+
     PH_CM_MANAGER Cm;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
@@ -303,64 +305,6 @@ VOID PvpAddPendingStringsNodes(
     if (needsFullUpdate)
         TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-}
-
-VOID PvpDeleteStringsTree(
-    _In_ PPV_STRINGS_CONTEXT Context
-    )
-{
-    Context->StopSearch = TRUE;
-    if (Context->SearchThreadHandle)
-    {
-        NtWaitForSingleObject(Context->SearchThreadHandle, FALSE, NULL);
-        NtClose(Context->SearchThreadHandle);
-        Context->SearchThreadHandle = NULL;
-    }
-    Context->StopSearch = FALSE;
-
-    PvpAddPendingStringsNodes(Context);
-
-    for (ULONG i = 0; i < Context->NodeList->Count; i++)
-    {
-        PPV_STRINGS_NODE node = (PPV_STRINGS_NODE)Context->NodeList->Items[i];
-
-        PhClearReference(&node->String);
-        PhFree(node);
-    }
-
-    for (ULONG i = 0; i < Context->RegionSkips->Count; i++)
-    {
-        PhFree(Context->RegionSkips->Items[i]);
-    }
-
-    PhClearReference(&Context->NodeList);
-    PhClearReference(&Context->SearchResults);
-    PhClearReference(&Context->RegionSkips);
-
-    Context->SearchResultsAddIndex = 0;
-    Context->StringsCount = 0;
-    Context->SkipCounter = 0;
-}
-
-VOID PvpSearchStrings(
-    _In_ PPV_STRINGS_CONTEXT Context
-    )
-{
-    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
-
-    PvpDeleteStringsTree(Context);
-    Context->NodeList = PhCreateList(100);
-    Context->SearchResults = PhCreateList(100);
-
-    Context->ReadPointer = PvMappedImage.ViewBase;
-    Context->EndPointer = PTR_ADD_OFFSET(Context->ReadPointer, PvMappedImage.ViewSize);
-    Context->RegionSkips = PhCreateList(5);
-
-    TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-
-    PhCreateThreadEx(&Context->SearchThreadHandle, PvpSearchStringsThread, Context);
 }
 
 VOID PvpLoadSettingsStrings(
@@ -687,6 +631,70 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
     return FALSE;
 }
 
+VOID PvpDeleteStringsTree(
+    _In_ PPV_STRINGS_CONTEXT Context
+    )
+{
+    Context->StopSearch = TRUE;
+    if (Context->SearchThreadHandle)
+    {
+        NtWaitForSingleObject(Context->SearchThreadHandle, FALSE, NULL);
+        NtClose(Context->SearchThreadHandle);
+        Context->SearchThreadHandle = NULL;
+    }
+    Context->StopSearch = FALSE;
+
+    PvpAddPendingStringsNodes(Context);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_STRINGS_NODE node = (PPV_STRINGS_NODE)Context->NodeList->Items[i];
+
+        PhClearReference(&node->String);
+        PhFree(node);
+    }
+
+    for (ULONG i = 0; i < Context->RegionSkips->Count; i++)
+    {
+        PhFree(Context->RegionSkips->Items[i]);
+    }
+
+    PhClearReference(&Context->NodeList);
+    PhClearReference(&Context->SearchResults);
+    PhClearReference(&Context->RegionSkips);
+
+    Context->SearchResultsAddIndex = 0;
+    Context->StringsCount = 0;
+    Context->SkipCounter = 0;
+
+    PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
+    PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
+}
+
+VOID PvpSearchStrings(
+    _In_ PPV_STRINGS_CONTEXT Context
+    )
+{
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
+    PvpDeleteStringsTree(Context);
+    Context->NodeList = PhCreateList(100);
+    Context->SearchResults = PhCreateList(100);
+
+    Context->ReadPointer = PvMappedImage.ViewBase;
+    Context->EndPointer = PTR_ADD_OFFSET(Context->ReadPointer, PvMappedImage.ViewSize);
+    Context->RegionSkips = PhCreateList(5);
+
+    TreeNew_SetEmptyText(Context->TreeNewHandle, &LoadingStringsText, 0);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+
+    PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->FilterSupport, PvpStringsTreeFilterCallback, Context);
+
+    PhCreateThreadEx(&Context->SearchThreadHandle, PvpSearchStringsThread, Context);
+}
+
 VOID PvpInitializeStringsTree(
     _In_ PPV_STRINGS_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -719,6 +727,7 @@ VOID PvpInitializeStringsTree(
     PvpLoadSettingsStrings(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->FilterSupport, PvpStringsTreeFilterCallback, Context);
 }
 
 INT_PTR CALLBACK PvpStringsMinimumLengthDlgProc(
@@ -863,7 +872,6 @@ INT_PTR CALLBACK PvStringsDlgProc(
                 );
 
             PvpInitializeStringsTree(context, hwndDlg, GetDlgItem(hwndDlg, IDC_TREELIST));
-            PhAddTreeNewFilter(&context->FilterSupport, PvpStringsTreeFilterCallback, context);
             PvConfigTreeBorders(context->TreeNewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);

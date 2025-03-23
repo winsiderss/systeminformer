@@ -626,7 +626,7 @@ BOOLEAN PhpSearchUpdateText(
 
     Context->SearchboxText.Buffer = newSearchboxText.Buffer;
     Context->SearchboxText.Length = newSearchboxText.Length;
-    
+
     Context->UseSearchPointer = PhStringToUInt64(&newSearchboxText, 0, &Context->SearchPointer);
 
     PhpSearchUpdateRegex(WindowHandle, Context);
