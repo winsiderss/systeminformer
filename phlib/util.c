@@ -7851,7 +7851,13 @@ NTSTATUS PhGetFileData(
     {
         status = STATUS_SUCCESS;
     }
-    else if (!NT_SUCCESS(status))
+
+    if (status == STATUS_PIPE_BROKEN)
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(data);
 
