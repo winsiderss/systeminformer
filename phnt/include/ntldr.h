@@ -1016,13 +1016,22 @@ LdrFindEntryForAddress(
     );
 
 // rev
+/**
+ * Returns a handle to the language-specific dynamic-link library (DLL) resource module associated with a DLL that is already loaded for the calling process.
+ *
+ * \param DllHandle A handle to the DLL module to search for a MUI resource. If the language-specific DLL for the MUI is available, loads the specified module into the address space of the calling process and returns a handle to the module.
+ * \param BaseAddress The base address of the mapped view.
+ * \param Size The size of the mapped view.
+ * \param Flags Reserved
+ * \return Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrLoadAlternateResourceModule(
     _In_ PVOID DllHandle,
-    _Out_ PVOID *ResourceDllBase,
-    _Out_opt_ ULONG_PTR *ResourceOffset,
+    _Out_ PVOID *BaseAddress,
+    _Out_opt_ SIZE_T *Size,
     _In_ ULONG Flags
     );
 
@@ -1033,12 +1042,18 @@ NTAPI
 LdrLoadAlternateResourceModuleEx(
     _In_ PVOID DllHandle,
     _In_ LANGID LanguageId,
-    _Out_ PVOID *ResourceDllBase,
-    _Out_opt_ ULONG_PTR *ResourceOffset,
+    _Out_ PVOID *BaseAddress,
+    _Out_opt_ SIZE_T *Size,
     _In_ ULONG Flags
     );
 
 // rev
+/**
+ * Frees the language-specific dynamic-link library (DLL) resource module previously loaded by LdrLoadAlternateResourceModule function.
+ *
+ * \param DllHandle The base address of the mapped view.
+ * \return Successful or errant status.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
