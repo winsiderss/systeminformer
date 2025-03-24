@@ -946,6 +946,11 @@ namespace CustomBuildTool
             {
                 errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring, false);
 
+                if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+                {
+                    Console.Write(Environment.NewLine);
+                }
+
                 if (errorcode != 0)
                     return false;
             }
