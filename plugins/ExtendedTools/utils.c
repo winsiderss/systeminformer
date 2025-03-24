@@ -209,27 +209,34 @@ VOID EtFormatNetworkRate(
     }
 }
 
-_Success_(return)
-BOOLEAN EtOpenAdapterFromDeviceName(
+NTSTATUS EtOpenAdapterFromDeviceName(
     _Out_ PD3DKMT_HANDLE AdapterHandle,
-    _In_ PWSTR DeviceName
+    _Out_opt_ PLUID AdapterLuid,
+    _In_ PCWSTR DeviceName
     )
 {
+    NTSTATUS status;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
 
     memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
     openAdapterFromDeviceName.pDeviceName = DeviceName;
 
-    if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+    status = D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName);
+
+    if (NT_SUCCESS(status))
     {
         *AdapterHandle = openAdapterFromDeviceName.hAdapter;
-        return TRUE;
+
+        if (AdapterLuid)
+        {
+            *AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+        }
     }
 
-    return FALSE;
+    return status;
 }
 
-BOOLEAN EtCloseAdapterHandle(
+NTSTATUS EtCloseAdapterHandle(
     _In_ D3DKMT_HANDLE AdapterHandle
     )
 {
@@ -238,7 +245,7 @@ BOOLEAN EtCloseAdapterHandle(
     memset(&closeAdapter, 0, sizeof(D3DKMT_CLOSEADAPTER));
     closeAdapter.hAdapter = AdapterHandle;
 
-    return NT_SUCCESS(D3DKMTCloseAdapter(&closeAdapter));
+    return D3DKMTCloseAdapter(&closeAdapter);
 }
 
 NTSTATUS EtQueryAdapterInformation(

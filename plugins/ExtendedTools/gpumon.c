@@ -170,7 +170,6 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     )
 {
     PPH_LIST deviceAdapterList;
-    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
 
@@ -275,30 +274,35 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     for (ULONG i = 0; i < deviceAdapterList->Count; i++)
     {
         ET_ADAPTER_ATTRIBUTES adapterAttributes;
+        D3DKMT_HANDLE adapterHandle;
+        LUID adapterLuid;
 
-        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.pDeviceName = PhGetString(deviceAdapterList->Items[i]);
-
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(
+            &adapterHandle,
+            &adapterLuid,
+            PhGetString(deviceAdapterList->Items[i])
+            )))
+        {
             continue;
+        }
 
         if (NT_SUCCESS(EtQueryAdapterAttributes(
-            openAdapterFromDeviceName.hAdapter,
+            adapterHandle,
             &adapterAttributes
             )))
         {
             if (!adapterAttributes.TypeGpu)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+                EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
         }
 
         if (EtGpuSupported && deviceAdapterList->Count > 1)
         {
-            if (EtIsSoftwareDevice(openAdapterFromDeviceName.hAdapter))
+            if (EtIsSoftwareDevice(adapterHandle))
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+                EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
         }
@@ -310,7 +314,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             memset(&segmentInfo, 0, sizeof(D3DKMT_SEGMENTSIZEINFO));
 
             if (NT_SUCCESS(EtQueryAdapterInformation(
-                openAdapterFromDeviceName.hAdapter,
+                adapterHandle,
                 KMTQAITYPE_GETSEGMENTSIZE,
                 &segmentInfo,
                 sizeof(D3DKMT_SEGMENTSIZEINFO)
@@ -323,7 +327,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             memset(&perfCaps, 0, sizeof(D3DKMT_ADAPTER_PERFDATACAPS));
 
             if (NT_SUCCESS(EtQueryAdapterInformation(
-                openAdapterFromDeviceName.hAdapter,
+                adapterHandle,
                 KMTQAITYPE_ADAPTERPERFDATA_CAPS,
                 &perfCaps,
                 sizeof(D3DKMT_ADAPTER_PERFDATACAPS)
@@ -339,7 +343,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
         queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
-        queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+        queryStatistics.AdapterLuid = adapterLuid;
 
         if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
         {
@@ -347,8 +351,8 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
             gpuAdapter = EtpAddGpuAdapter(
                 deviceAdapterList->Items[i],
-                openAdapterFromDeviceName.hAdapter,
-                openAdapterFromDeviceName.AdapterLuid,
+                adapterHandle,
+                adapterLuid,
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
                 queryStatistics.QueryResult.AdapterInformation.NodeCount
                 );
@@ -398,7 +402,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             }
         }
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+        EtCloseAdapterHandle(adapterHandle);
     }
 
     if (EtGpuSupported && deviceAdapterList->Count > 0)
@@ -714,7 +718,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             //
             // jxy-s: we open this frequently, consider opening this once in the list
             //
-            if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, PhGetString(gpuAdapter->DeviceInterface))))
+            if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(gpuAdapter->DeviceInterface))))
                 continue;
 
             memset(&adapterPerfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));

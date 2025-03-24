@@ -580,13 +580,13 @@ VOID EtFormatNetworkRate(
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
 
-_Success_(return)
-BOOLEAN EtOpenAdapterFromDeviceName(
+NTSTATUS EtOpenAdapterFromDeviceName(
     _Out_ PD3DKMT_HANDLE AdapterHandle,
-    _In_ PWSTR DeviceName
+    _Out_opt_ PLUID AdapterLuid,
+    _In_ PCWSTR DeviceName
     );
 
-BOOLEAN EtCloseAdapterHandle(
+NTSTATUS EtCloseAdapterHandle(
     _In_ D3DKMT_HANDLE AdapterHandle
     );
 
@@ -1291,7 +1291,7 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
     PPH_STRING RemoteCountryName;
-    INT32 CountryIconIndex;
+    LONG CountryIconIndex;
 
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
