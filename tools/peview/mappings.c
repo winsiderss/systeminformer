@@ -204,7 +204,7 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
 
             PvEnumerateMappingsEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_SHOWWINDOW:

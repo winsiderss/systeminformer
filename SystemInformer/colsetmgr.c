@@ -400,7 +400,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             Button_Enable(context->MoveDownButtonHandle, FALSE);
             Button_Enable(context->RemoveButtonHandle, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

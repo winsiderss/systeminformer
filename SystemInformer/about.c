@@ -71,7 +71,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

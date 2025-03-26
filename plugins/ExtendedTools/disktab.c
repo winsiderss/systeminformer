@@ -95,18 +95,12 @@ BOOLEAN EtpDiskPageCallback(
                 0,
                 Parameter2,
                 NULL,
-                NULL,
+                PluginInstance->DllBase,
                 &treelistCreateParams
                 );
 
             if (!hwnd)
                 return FALSE;
-
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
-            {
-                PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
-                TreeNew_ThemeSupport(hwnd, TRUE);
-            }
 
             DiskTreeNewCreated = TRUE;
 
@@ -119,6 +113,8 @@ BOOLEAN EtpDiskPageCallback(
             DiskNodeList = PhCreateList(100);
 
             EtInitializeDiskTreeList(hwnd);
+
+            PhInitializeWindowTheme(hwnd);
 
             //if (!EtEtwEnabled) // always show status (dmex)
             {
@@ -262,7 +258,7 @@ VOID EtInitializeDiskTreeList(
 {
     DiskTreeNewHandle = WindowHandle;
 
-    PhSetControlTheme(DiskTreeNewHandle, !PhGetIntegerSetting(L"EnableThemeSupport") ? L"explorer" : L"DarkMode_Explorer");
+    PhSetControlTheme(DiskTreeNewHandle, L"explorer");
     TreeNew_SetRedraw(WindowHandle, FALSE);
     SendMessage(TreeNew_GetTooltips(DiskTreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     TreeNew_SetCallback(WindowHandle, EtpDiskTreeNewCallback, NULL);
@@ -1346,7 +1342,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+//            PhInitializeWindowTheme(hwndDlg);
 //        }
 //        break;
 //    case WM_COMMAND:

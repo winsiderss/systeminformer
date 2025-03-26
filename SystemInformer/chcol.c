@@ -24,6 +24,10 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
     COLORREF TextColor;
+    HBRUSH BrushNormalDark;
+    HBRUSH BrushPushedDark;
+    HBRUSH BrushHotDark;
+    COLORREF TextColorDark;
 
     HWND InactiveWindowHandle;
     HWND ActiveWindowHandle;
@@ -256,20 +260,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             Button_Enable(context->MoveUpHandle, FALSE);
             Button_Enable(context->MoveDownHandle, FALSE);
 
-            if (PhEnableThemeSupport)
-            {
-                context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
-                context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);
-                context->BrushPushed = CreateSolidBrush(PhThemeWindowHighlight2Color);
-                context->TextColor = PhThemeWindowTextColor;
-            }
-            else
-            {
-                context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-                context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
-                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-                context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
-            }
+            context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+            context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
+            context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+            context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
+
+            context->BrushNormalDark = CreateSolidBrush(PhThemeWindowBackgroundColor);
+            context->BrushHotDark = CreateSolidBrush(PhThemeWindowHighlightColor);
+            context->BrushPushedDark = CreateSolidBrush(PhThemeWindowHighlight2Color);
+            context->TextColorDark = PhThemeWindowTextColor;
 
             if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
             {
@@ -340,7 +339,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
         }
@@ -356,6 +355,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 DeleteBrush(context->BrushHot);
             if (context->BrushPushed)
                 DeleteBrush(context->BrushPushed);
+            if (context->BrushNormalDark)
+                DeleteBrush(context->BrushNormalDark);
+            if (context->BrushHotDark)
+                DeleteBrush(context->BrushHotDark);
+            if (context->BrushPushedDark)
+                DeleteBrush(context->BrushPushedDark);
             if (context->ControlFont)
                 DeleteFont(context->ControlFont);
             if (context->InactiveListArray)
@@ -696,16 +701,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                  if (isSelected || isFocused)
                  {
-                     FillRect(bufferDc, &bufferRect, context->BrushHot);
+                     FillRect(bufferDc, &bufferRect, PhEnableThemeSupport ? context->BrushHotDark : context->BrushHot);
                      //FrameRect(bufferDc, &bufferRect, PhGetStockBrush(BLACK_BRUSH));
-                     SetTextColor(bufferDc, context->TextColor);
                  }
                  else
                  {
-                     FillRect(bufferDc, &bufferRect, context->BrushNormal);
+                     FillRect(bufferDc, &bufferRect, PhEnableThemeSupport ? context->BrushNormalDark : context->BrushNormal);
                      //FrameRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_HIGHLIGHTTEXT));
-                     SetTextColor(bufferDc, context->TextColor);
                  }
+                 SetTextColor(bufferDc, PhEnableThemeSupport ? context->TextColorDark : context->TextColor);
 
                  bufferRect.left += 5;
                  DrawText(

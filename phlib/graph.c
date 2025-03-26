@@ -1326,11 +1326,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 // Allow newlines (-1 doesn't work)
                 SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 
-                if (PhEnableThemeSupport)
-                {
-                    PhSetControlTheme(context->TooltipHandle, L"DarkMode_Explorer");
-                    //SendMessage(context->TooltipHandle, TTM_SETWINDOWTHEME, 0, (LPARAM)L"DarkMode_Explorer");
-                }
+                // ToolTip theme is applied automatically by phlib delayhook.c (Dart Vanya)
             }
             else
             {

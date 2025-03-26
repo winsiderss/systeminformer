@@ -4142,8 +4142,6 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
             {
                 PhShowServiceProgressDialogStatusPage(context);
             }
-
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     }
@@ -6436,6 +6434,8 @@ BOOLEAN PhUiCloseHandles(
         {
             if (FlagOn(Handles[i]->Attributes, OBJ_PROTECT_CLOSE))
             {
+                success = FALSE;
+
                 if (!PhpShowErrorHandle(
                     WindowHandle,
                     L"close",
@@ -6444,9 +6444,7 @@ BOOLEAN PhUiCloseHandles(
                     STATUS_HANDLE_NOT_CLOSABLE,
                     0
                     ))
-                {
                     break;
-                }
             }
 
             status = NtDuplicateObject(

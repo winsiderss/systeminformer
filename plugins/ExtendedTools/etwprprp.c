@@ -498,7 +498,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -831,7 +831,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

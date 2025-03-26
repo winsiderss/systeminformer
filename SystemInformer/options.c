@@ -320,8 +320,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-            if (PhEnableThemeSupport) // TODO: fix options dialog theme (dmex)
-                PhInitializeWindowTheme(hwndDlg, TRUE);
+            PhInitializeWindowTheme(hwndDlg);
 
             {
                 PPH_OPTIONS_SECTION section;
@@ -705,7 +704,7 @@ VOID PhOptionsCreateSectionDialog(
         Section->Parameter
         );
 
-    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+    PhInitializeWindowTheme(Section->DialogHandle);
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
@@ -1410,6 +1409,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE,
     PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT,
+    PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME,
     PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN,
     PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
@@ -1458,7 +1458,8 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MEMSTRINGS_TREE, L"Enable new memory strings dialog", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
-        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support (experimental)", NULL);
+        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support", NULL);
+        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"Use Windows app color mode", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"Enable streamer mode (disable window capture) (experimental)", NULL);
         //PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"Enable Windows subsystem for Linux support", NULL);
@@ -1490,6 +1491,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
@@ -1521,7 +1523,53 @@ static VOID PhpOptionsNotifyChangeCallback(
     PhReloadSettingsProcessTreeList();
     PhSiNotifyChangeSettings();
 
-    //PhReInitializeWindowTheme(PhMainWndHandle);
+    PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
+    COLORREF oldPhThemeWindowBackgroundColor = PhThemeWindowBackgroundColor;
+    PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
+    PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
+    PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
+    PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
+    PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+    PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    BOOLEAN oldAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport;
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    BOOLEAN oldStreamerMode = PhEnableStreamerMode;
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+
+    PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
+
+    BOOLEAN oldTheme = PhEnableThemeSupport;
+    PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+    PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
+
+    if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
+    {
+        DeleteBrush(PhThemeWindowBackgroundBrush);
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+        if (PhEnableThemeSupport) // replace old destroyed menu brush with the new one
+        {
+            PhInitializeWindowThemeMenu(PhMainWndHandle, TRUE);
+        }
+    }
+
+    if (PhEnableThemeSupport != oldTheme || PhEnableThemeAcrylicWindowSupport != oldAcrylicWindowSupport)
+    {
+        if (PhEnableThemeSupport != oldTheme)
+        {
+            PhSetIntegerSetting(L"GraphColorMode", PhEnableThemeSupport); // HACK switch to dark theme. (dmex)
+            PhCsGraphColorMode = PhGetIntegerSetting(L"GraphColorMode");
+        }
+
+        PhReInitializeTheme(PhEnableThemeSupport);
+    }
+
+    if (PhEnableStreamerMode != oldStreamerMode)
+    {
+        PhReInitializeStreamerMode(PhEnableStreamerMode);
+    }
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
 
@@ -1679,9 +1727,10 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_WINDOWS_THEME, L"EnableThemeUseWindowsTheme");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
-    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STREAM_MODE, L"EnableStreamerMode");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
@@ -1694,11 +1743,6 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"EnableAdvancedOptions");
-
-    if (PhGetIntegerSetting(L"EnableThemeSupport")) // PhGetIntegerSetting required (dmex)
-    {
-        PhSetIntegerSetting(L"GraphColorMode", 1); // HACK switch to dark theme. (dmex)
-    }
 
     WriteCurrentUserRun(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,
@@ -1744,7 +1788,7 @@ UINT_PTR CALLBACK PhpChooseFontDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -2234,7 +2278,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -3347,7 +3391,7 @@ UINT_PTR CALLBACK PhpColorDlgHookProc(
         {
             PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:

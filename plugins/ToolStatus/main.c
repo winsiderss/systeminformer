@@ -1105,8 +1105,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     break;
                 case NM_CUSTOMDRAW:
                     {
-                        if (EnableThemeSupport)
-                            return PhThemeWindowDrawRebar((LPNMCUSTOMDRAW)lParam);
+                        // Rebar is drawing in PhpThemeWindowSubclassProc of main window
+                        //if (EnableThemeSupport)
+                        //    return PhThemeWindowDrawRebar((LPNMCUSTOMDRAW)lParam);
                     }
                     break;
                 }
@@ -1265,8 +1266,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     break;
                 case NM_CUSTOMDRAW:
                     {
-                        if (EnableThemeSupport)
-                            return PhThemeWindowDrawToolbar((LPNMTBCUSTOMDRAW)lParam);
+                        // Toolbar is drawing in PhpThemeWindowSubclassProc of main window
+                        //if (EnableThemeSupport)
+                        //    return PhThemeWindowDrawToolbar((LPNMTBCUSTOMDRAW)lParam);
                     }
                     break;
                 }
@@ -1737,6 +1739,8 @@ VOID UpdateCachedSettings(
     IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
     EnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
+    EnableThemeSupport = PhIsThemeSupportEnabled();
+    InvalidateRect(RebarHandle, NULL, TRUE);
 
     if (ToolbarInitialized)
     {
@@ -1754,7 +1758,7 @@ VOID NTAPI LoadCallback(
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
     RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
-    EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    EnableThemeSupport = PhIsThemeSupportEnabled();
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
 

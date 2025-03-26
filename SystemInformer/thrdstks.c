@@ -1672,7 +1672,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 200, NULL);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             PhpThreadStacksRefresh(context);
 

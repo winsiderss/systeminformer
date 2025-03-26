@@ -56,10 +56,6 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER* SymbolProvider
     );
 
-VOID PvInitializeSuperclassControls(
-    VOID
-    );
-
 // peprp
 
 VOID PvPeProperties(
@@ -871,6 +867,10 @@ typedef BOOLEAN (NTAPI* PPV_CLRTABLE_FUNCTION)(
 
 EXTERN_C HRESULT PvClrImageEnumTables(
     _In_ PPV_CLRTABLE_FUNCTION Callback,
+    _In_ PVOID Context
+    );
+
+NTSTATUS NTAPI PvReInitializeThemeThread(
     _In_ PVOID Context
     );
 

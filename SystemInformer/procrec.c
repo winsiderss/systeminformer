@@ -204,7 +204,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
             PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, context->Record->SessionId, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -406,7 +406,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             EtWaitChainSetTreeStatusMessage(context, FALSE);
 

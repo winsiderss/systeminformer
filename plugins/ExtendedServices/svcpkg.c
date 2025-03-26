@@ -340,7 +340,7 @@ INT_PTR CALLBACK EspPackageServiceDlgProc(
 
             EspUpdatePackageProperties(context);
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle);
 
             PhSetDialogFocus(WindowHandle, GetDlgItem(GetParent(WindowHandle), IDCANCEL));
         }

@@ -215,7 +215,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeNewHandle, TRUE);
         }

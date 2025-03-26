@@ -135,7 +135,7 @@ INT_PTR CALLBACK PvpPeProcessesDlgProc(
             PvpPeEnumerateProcessIds(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
