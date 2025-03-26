@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <guisup.h>
+#include <settings.h>
 
 #define GDIPVER 0x0110
 #include <unknwn.h>
@@ -141,14 +142,14 @@ HICON PhGdiplusConvertBitmapToIcon(
 }
 
 HICON PhGdiplusConvertHBitmapToHIcon(
-    _In_ HBITMAP NitmapHandle
+    _In_ HBITMAP BitmapHandle
     )
 {
     HICON iconHandle = nullptr;
 
     if (PhInitializeGDIPlus())
     {
-        Bitmap bitmap(NitmapHandle, nullptr);
+        Bitmap bitmap(BitmapHandle, nullptr);
 
         bitmap.GetHICON(&iconHandle);
     }
@@ -264,6 +265,11 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
         {
             LPCREATESTRUCT createStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
 
+            if (PhGetIntegerSetting(L"EnableStreamerMode"))
+            {
+                SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+            }
+
             if (createStruct->hwndParent)
             {
                 HMENU menu = GetMenu(createStruct->hwndParent);
@@ -341,7 +347,8 @@ RTL_ATOM PhInitializeBackgroundWindowClass(
 }
 
 HWND PhCreateBackgroundWindow(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN DesktopWindow
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -384,12 +391,12 @@ HWND PhCreateBackgroundWindow(
 #endif
         MAKEINTATOM(windowAtom),
         nullptr,
-        WS_CHILD,
+        DesktopWindow ? WS_POPUPWINDOW : WS_CHILD,
         0,
         0,
         windowRect.right,
         windowRect.bottom,
-        ParentWindowHandle,
+        DesktopWindow ? nullptr : ParentWindowHandle,
         nullptr,
         nullptr,
         nullptr

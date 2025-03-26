@@ -299,7 +299,7 @@ PhGetMonitorDpiFromRect(
     _In_ PPH_RECTANGLE Rectangle
     )
 {
-    RECT rect;
+    RECT rect = { 0 };
 
     PhRectangleToRect(&rect, Rectangle);
 
@@ -2082,7 +2082,12 @@ PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     );
 
+//
 // Windows Imaging Component (WIC) bitmap support
+//
+
+DEFINE_GUID(IID_IWICBitmapSource, 0x00000120, 0xa8f2, 0x4877, 0xba, 0x0a, 0xfd, 0x2b, 0x66, 0x45, 0xfb, 0x94);
+DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
 
 typedef enum _PH_BUFFERFORMAT
 {
@@ -2615,11 +2620,12 @@ HICON PhGdiplusConvertBitmapToIcon(
     );
 
 HWND PhCreateBackgroundWindow(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN DesktopWindow
     );
 
 HICON PhGdiplusConvertHBitmapToHIcon(
-    _In_ HBITMAP NitmapHandle
+    _In_ HBITMAP BitmapHandle
     );
 
 EXTERN_C_END
