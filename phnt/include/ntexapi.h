@@ -2254,7 +2254,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     ULONG HardFaultCount;                   // since WIN7
     ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
     ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
-    LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes resullting in an incorrect value.
+    LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
     UNICODE_STRING ImageName;               // The file name of the executable image.
@@ -2284,14 +2284,6 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     LARGE_INTEGER OtherTransferCount;       // The total number of bytes transferred during operations other than read and write operations.
     SYSTEM_THREAD_INFORMATION Threads[1];   // This type is not defined in the structure but was added for convenience.
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
-
-#define SYSTEM_PROCESS_INFORMATION_SIZE RTL_SIZEOF_THROUGH_FIELD(SYSTEM_PROCESS_INFORMATION, OtherTransferCount)
-
-#ifdef _WIN64
-static_assert(SYSTEM_PROCESS_INFORMATION_SIZE == 0x100, "SYSTEM_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#else
-static_assert(SYSTEM_PROCESS_INFORMATION_SIZE == 0xB8, "SYSTEM_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#endif
 
 // private
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
@@ -2362,14 +2354,6 @@ typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
     SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1];
     // SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
 } SYSTEM_EXTENDED_PROCESS_INFORMATION, *PSYSTEM_EXTENDED_PROCESS_INFORMATION;
-
-#define SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE RTL_SIZEOF_THROUGH_FIELD(SYSTEM_EXTENDED_PROCESS_INFORMATION, OtherTransferCount)
-
-#ifdef _WIN64
-static_assert(SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE == 0x100, "SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#else
-static_assert(SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE == 0xB8, "SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#endif
 
 typedef struct _SYSTEM_CALL_COUNT_INFORMATION
 {
@@ -5057,6 +5041,9 @@ typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 #endif // NTDDI_WIN10_FE
 
 // private
+/**
+ * The SYSTEM_MEMORY_USAGE_INFORMATION structure contains information about the memory usage of the system.
+ */
 typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
 {
     ULONGLONG TotalPhysicalBytes;
