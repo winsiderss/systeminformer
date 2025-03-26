@@ -691,8 +691,8 @@ VOID SetupUpgradeSettingsFile(
     PPH_STRING legacySettingsFileName;
 
     settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
-    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
+    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, PhaFormatString(L"%s%s%s", L"\\Process", L" Hacker", L"\\settings.xml")->Buffer);
+    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, PhaFormatString(L"%s%s%s", L"\\Process", L" Hacker 2", L"\\settings.xml")->Buffer);
 
     if (settingsFilePath && legacyNightlyFileName)
     {
@@ -720,8 +720,8 @@ VOID SetupUpgradeSettingsFile(
 
 VOID ExtractResourceToFile(
     _In_ PVOID DllBase,
-    _In_ PWSTR Name,
-    _In_ PWSTR FileName
+    _In_ PCWSTR Name,
+    _In_ PCWSTR FileName
     )
 {
     HANDLE fileHandle = NULL;
@@ -815,10 +815,10 @@ BOOLEAN ConnectionAvailable(VOID)
 }
 
 VOID SetupCreateLink(
-    _In_ PWSTR LinkFilePath,
-    _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir,
-    _In_ PWSTR AppId
+    _In_ PCWSTR LinkFilePath,
+    _In_ PCWSTR FilePath,
+    _In_ PCWSTR FileParentDir,
+    _In_ PCWSTR AppId
     )
 {
     IShellLink* shellLinkPtr = NULL;
@@ -905,6 +905,20 @@ BOOLEAN CheckApplicationInstalled(
     return installed;
 }
 
+PPH_STRING CreateLegacyApplicationName(
+    VOID
+    )
+{
+    PH_FORMAT format[4];
+
+    PhInitFormatC(&format[0], OBJ_NAME_PATH_SEPARATOR);
+    PhInitFormatS(&format[1], L"Process");
+    PhInitFormatS(&format[2], L"Hacker");
+    PhInitFormatS(&format[3], L".exe");
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 BOOLEAN CheckApplicationInstallPathLegacy(
     _In_ PPH_STRING Directory
     )
@@ -914,7 +928,7 @@ BOOLEAN CheckApplicationInstallPathLegacy(
 
     // Check the directory for the legacy 'ProcessHacker.exe' executable.
 
-    if (exePath = SetupCreateFullPath(Directory, L"\\ProcessHacker.exe"))
+    if (exePath = SetupCreateFullPath(Directory, PH_AUTO_T(PH_STRING, CreateLegacyApplicationName())->Buffer))
     {
         installed = PhDoesFileExistWin32(PhGetString(exePath));
         PhDereferenceObject(exePath);
@@ -1108,7 +1122,7 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
 
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     PPH_STRING pathString;

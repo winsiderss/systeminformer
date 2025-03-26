@@ -220,10 +220,10 @@ typedef struct _SETUP_REMOVE_FILE
 } SETUP_REMOVE_FILE, *PSETUP_REMOVE_FILE;
 
 VOID SetupCreateLink(
-    _In_ PWSTR LinkFilePath,
-    _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir,
-    _In_ PWSTR AppId
+    _In_ PCWSTR LinkFilePath,
+    _In_ PCWSTR FilePath,
+    _In_ PCWSTR FileParentDir,
+    _In_ PCWSTR AppId
     );
 
 BOOLEAN CheckApplicationInstalled(
@@ -249,7 +249,7 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
 
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     );
 
 BOOLEAN SetupOverwriteFile(
