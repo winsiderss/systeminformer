@@ -1597,7 +1597,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 itemIndex = PhFindListViewItemByParam(
                                     tokenPageContext->ListViewHandle,
                                     INT_ERROR,
-                                    &listViewItems[i]
+                                    listViewItems[i]
                                     );
 
                                 if (itemIndex != INT_ERROR)
@@ -1742,7 +1742,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     itemIndex = PhFindListViewItemByParam(
                                         tokenPageContext->ListViewHandle,
                                         INT_ERROR,
-                                        &listViewItems[i]
+                                        listViewItems[i]
                                         );
 
                                     if (itemIndex != INT_ERROR)
@@ -1858,7 +1858,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             itemIndex = PhFindListViewItemByParam(
                                 tokenPageContext->ListViewHandle,
                                 INT_ERROR,
-                                &listViewItems[0]
+                                listViewItems[0]
                                 );
 
                             if (itemIndex != INT_ERROR)
