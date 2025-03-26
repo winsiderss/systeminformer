@@ -117,7 +117,7 @@ VOID PhCloseDebugConsole(
     PhFreeConsole();
 }
 
-static BOOL ConsoleHandlerRoutine(
+BOOL ConsoleHandlerRoutine(
     _In_ ULONG dwCtrlType
     )
 {
@@ -155,7 +155,7 @@ static VOID PhpPrintObjectInfo(
     wprintf(L"%Ix", (ULONG_PTR)object);
     objectType = PhGetObjectType(object);
 
-    wprintf(L"\t% 20s", objectType->Name);
+    wprintf(L"\t%20s", objectType->Name);
 
     if (ObjectHeader->Flags & PH_OBJECT_FROM_SMALL_FREE_LIST)
         c = L'f';
@@ -255,7 +255,7 @@ static VOID PhpDumpObjectInfo(
     }
 }
 
-static VOID PhpPrintHashtableStatistics(
+VOID PhpPrintHashtableStatistics(
     _In_ PPH_HASHTABLE Hashtable
     )
 {
@@ -282,7 +282,7 @@ static VOID PhpPrintHashtableStatistics(
 
         index = Hashtable->Buckets[i];
 
-        while (index != -1)
+        while (index != ULONG_MAX)
         {
             index = PH_HASHTABLE_GET_ENTRY(Hashtable, index)->Next;
             count++;
@@ -301,7 +301,7 @@ static VOID PhpPrintHashtableStatistics(
 
             index = Hashtable->Buckets[i];
 
-            while (index != -1)
+            while (index != ULONG_MAX)
             {
                 wprintf(L"%lu", index);
 
@@ -960,7 +960,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             PhInitializeStringRef(&objectAddressString, objectAddress);
 
-            if (PhStringToInteger64(&objectAddressString, 16, &address))
+            if (PhStringToUInt64(&objectAddressString, 16, &address))
             {
                 PPH_OBJECT_HEADER objectHeader = (PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address);
                 PVOID stackBackTrace[16];
@@ -1144,7 +1144,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             PhInitializeStringRef(&addressStringRef, addressString);
 
-            if (PhStringToInteger64(&addressStringRef, 16, &address))
+            if (PhStringToUInt64(&addressStringRef, 16, &address))
             {
                 PhpDumpObjectInfo((PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address));
             }
@@ -1160,7 +1160,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             PhInitializeStringRef(&addressStringRef, addressString);
 
-            if (PhStringToInteger64(&addressStringRef, 16, &address))
+            if (PhStringToUInt64(&addressStringRef, 16, &address))
             {
                 PPH_AUTO_POOL userAutoPool = (PPH_AUTO_POOL)address;
                 ULONG i;
@@ -1583,7 +1583,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PhInitializeStringRef(&addressStringRef, addressString);
             PhInitializeStringRef(&bytesStringRef, bytesString);
 
-            if (PhStringToInteger64(&addressStringRef, 16, &address64) && PhStringToInteger64(&bytesStringRef, 10, &numberOfBytes64))
+            if (PhStringToUInt64(&addressStringRef, 16, &address64) && PhStringToUInt64(&bytesStringRef, 10, &numberOfBytes64))
             {
                 address = (PUCHAR)address64;
                 numberOfBytes = (ULONG)numberOfBytes64;
