@@ -482,22 +482,22 @@ ULONG64 ParseVersionString(
 
     if (majorPart.Length)
     {
-        PhStringToInteger64(&majorPart, 10, &majorInteger);
+        PhStringToUInt64(&majorPart, 10, &majorInteger);
     }
 
     if (minorPart.Length)
     {
-        PhStringToInteger64(&minorPart, 10, &minorInteger);
+        PhStringToUInt64(&minorPart, 10, &minorInteger);
     }
 
     if (revisionPart.Length)
     {
-        PhStringToInteger64(&revisionPart, 10, &buildInteger);
+        PhStringToUInt64(&revisionPart, 10, &buildInteger);
     }
 
     if (buildPart.Length)
     {
-        PhStringToInteger64(&buildPart, 10, &revisionInteger);
+        PhStringToUInt64(&buildPart, 10, &revisionInteger);
     }
 
     return MAKE_VERSION_ULONGLONG(
