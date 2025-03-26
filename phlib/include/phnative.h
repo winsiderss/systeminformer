@@ -875,11 +875,12 @@ PhGetTokenSecurityAttribute(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PCPH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName,
+    _Out_ PBOOLEAN SecurityAttributeExists
     );
 
 PHLIBAPI
