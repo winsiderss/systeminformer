@@ -26,6 +26,14 @@
 #define RTL_MEG (1024UL * 1024UL)
 #define RTL_IMAGE_MAX_DOS_HEADER (256UL * RTL_MEG)
 
+#define RTL_NANOSEC_PER_TICK        100
+#define RTL_TICKS_PER_MICROSEC      10
+#define RTL_TICKS_PER_MILLISEC      (RTL_TICKS_PER_MICROSEC * 1000)  // 10,000
+#define RTL_TICKS_PER_SEC           (RTL_TICKS_PER_MILLISEC * 1000)  // 10,000,000
+#define RTL_TICKS_PER_MIN           (RTL_TICKS_PER_SEC * 60)         // 600,000,000
+#define RTL_TICKS_PER_HOUR          (RTL_TICKS_PER_MIN * 60)         // 36,000,000,000
+#define RTL_TICKS_PER_DAY           (RTL_TICKS_PER_HOUR * 24)        // 864,000,000,000
+
 //
 // Linked lists
 //
@@ -3854,6 +3862,7 @@ RtlInitializeSListHead(
     _Out_ PSLIST_HEADER ListHead
     );
 
+_Must_inspect_result_
 NTSYSAPI
 PSLIST_ENTRY
 NTAPI
