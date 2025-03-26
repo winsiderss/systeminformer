@@ -1436,8 +1436,8 @@ NtQueryWnfStateData(
     _In_opt_ PCWNF_TYPE_ID TypeId,
     _In_opt_ const VOID* ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
-    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
-    _Inout_ PULONG BufferSize
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
     );
 
 NTSYSCALLAPI
@@ -1447,8 +1447,8 @@ NtQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
     _In_opt_ const VOID* ExplicitScope,
-    _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
-    _In_ ULONG InfoBufferSize
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     );
 
 NTSYSCALLAPI
