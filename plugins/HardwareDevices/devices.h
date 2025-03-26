@@ -1589,7 +1589,7 @@ typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,
-    _In_ PWSTR DeviceName
+    _In_ PCWSTR DeviceName
     );
 
 BOOLEAN GraphicsCloseAdapterHandle(
@@ -1631,6 +1631,18 @@ NTSTATUS GraphicsQueryAdapterDevicePerfData(
     _Out_ PFLOAT PowerUsage,
     _Out_ PFLOAT Temperature,
     _Out_ PULONG FanRPM
+    );
+
+NTSTATUS GraphicsQueryAdapterDeviceNodePerfData(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ ULONG NodeOrdinal,
+    _Out_opt_ PULONG64 Frequency,
+    _Out_opt_ PULONG64 MaxFrequency,
+    _Out_opt_ PULONG64 MaxFrequencyOC,
+    _Out_opt_ PULONG Voltage,
+    _Out_opt_ PULONG VoltageMax,
+    _Out_opt_ PULONG VoltageMaxOC,
+    _Out_opt_ PULONG64 MaxTransitionLatency
     );
 
 _Success_(return)
