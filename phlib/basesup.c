@@ -76,16 +76,19 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
     PVOID Parameter;
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -1244,7 +1247,8 @@ NTSTATUS PhReadVirtualMemory(
     if (ProcessHandle == NtCurrentProcess())
     {
         RtlMoveMemory(Buffer, BaseAddress, BufferSize);
-        *NumberOfBytesRead = BufferSize;
+        if (NumberOfBytesRead)
+            *NumberOfBytesRead = BufferSize;
         return STATUS_SUCCESS;
     }
 
@@ -3067,13 +3071,12 @@ PPH_STRING PhReferenceEmptyString(
             NULL
             );
 
-        if (!string)
         {
-            string = newString; // success
+            PhDereferenceObject(newString);
         }
         else
         {
-            PhDereferenceObject(newString);
+            string = newString; // success  
         }
     }
 
@@ -5190,6 +5193,7 @@ PPH_LIST PhCreateList(
     return list;
 }
 
+_Use_decl_annotations_
 VOID PhpListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -5434,6 +5438,7 @@ PPH_POINTER_LIST PhCreatePointerList(
     return pointerList;
 }
 
+_Use_decl_annotations_
 VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -5690,6 +5695,7 @@ PPH_HASHTABLE PhCreateHashtable(
     return hashtable;
 }
 
+_Use_decl_annotations_
 VOID PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -6161,6 +6167,7 @@ ULONG PhHashStringRefEx(
     return 0;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -6172,6 +6179,7 @@ BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     return entry1->Key == entry2->Key;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSimpleHashtableHashFunction(
     _In_ PVOID Entry
     )
