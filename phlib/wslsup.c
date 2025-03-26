@@ -555,19 +555,20 @@ CleanupExit:
     return success;
 }
 
-_Success_(return)
-BOOLEAN PhCreateProcessLxss(
+NTSTATUS PhCreateProcessLxss(
     _In_ PPH_STRING LxssDistribution,
     _In_ PPH_STRING LxssCommandLine,
     _Out_ PPH_STRING *Result
     )
 {
     static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+    NTSTATUS status;
     BOOLEAN result = FALSE;
     PPH_STRING lxssOutputString = NULL;
     PPH_STRING lxssCommandLine;
     PPH_STRING systemDirectory;
-    HANDLE processHandle;
+    HANDLE processHandle = NULL;
+    HPCON pseudoConsoleHandle = NULL;
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
@@ -598,41 +599,60 @@ BOOLEAN PhCreateProcessLxss(
         PhDereferenceObject(systemDirectory);
     }
 
-    if (!NT_SUCCESS(PhCreatePipeEx(
+    status = PhCreatePipeEx(
         &outputReadHandle,
         &outputWriteHandle,
         NULL,
         &securityAttributes
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(PhCreatePipeEx(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
         &securityAttributes,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    COORD coord = { 80, 25 };
+    if (HR_FAILED(CreatePseudoConsole(coord, inputReadHandle, outputWriteHandle, 0, &pseudoConsoleHandle)))
     {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&attributeList, 1)))
+    status = PhInitializeProcThreadAttributeList(&attributeList, 2);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     handleList[0] = inputReadHandle;
     handleList[1] = outputWriteHandle;
 
-    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+    status = PhUpdateProcThreadAttribute(
         attributeList,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
         handleList,
         sizeof(handleList)
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
+
+    status = PhUpdateProcThreadAttribute(
+        attributeList,
+        PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+        pseudoConsoleHandle,
+        sizeof(pseudoConsoleHandle)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -643,7 +663,7 @@ BOOLEAN PhCreateProcessLxss(
     startupInfo.StartupInfo.hStdError = outputWriteHandle;
     startupInfo.lpAttributeList = attributeList;
 
-    if (!NT_SUCCESS(PhCreateProcessWin32Ex(
+    status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(lxssCommandLine),
         NULL,
@@ -655,37 +675,47 @@ BOOLEAN PhCreateProcessLxss(
         NULL,
         &processHandle,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     // Close the handles. (dmex)
     NtClose(inputReadHandle); inputReadHandle = NULL;
     NtClose(outputWriteHandle); outputWriteHandle = NULL;
 
     // Read the pipe data. (dmex)
-    if (!NT_SUCCESS(PhGetFileText(&lxssOutputString, outputReadHandle, TRUE)))
+    status = PhGetFileText(&lxssOutputString, outputReadHandle, TRUE);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     // Get the exit code after we finish reading the data from the pipe. (dmex)
-    if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
+    status = PhGetProcessBasicInformation(processHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInfo.ExitStatus;
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(lxssOutputString))
     {
-        if (basicInfo.ExitStatus == 0 && !PhIsNullOrEmptyString(lxssOutputString))
-        {
-            *Result = PhReferenceObject(lxssOutputString);
-            result = TRUE;
-        }
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
     }
 
-    NtClose(processHandle);
+    *Result = PhReferenceObject(lxssOutputString);
 
 CleanupExit:
 
-    if (lxssOutputString)
-        PhDereferenceObject(lxssOutputString);
-    if (lxssCommandLine)
-        PhDereferenceObject(lxssCommandLine);
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (pseudoConsoleHandle)
+        ClosePseudoConsole(pseudoConsoleHandle);
 
     if (outputWriteHandle)
         NtClose(outputWriteHandle);
@@ -698,6 +728,11 @@ CleanupExit:
 
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
+
+    if (lxssOutputString)
+        PhDereferenceObject(lxssOutputString);
+    if (lxssCommandLine)
+        PhDereferenceObject(lxssCommandLine);
 
     return result;
 }
