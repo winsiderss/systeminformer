@@ -686,13 +686,20 @@ VOID SetupUpgradeSettingsFile(
     )
 {
     BOOLEAN migratedNightly = FALSE;
+    PPH_STRING settingsFileName;
     PPH_STRING settingsFilePath;
     PPH_STRING legacyNightlyFileName;
     PPH_STRING legacySettingsFileName;
 
     settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, PhaFormatString(L"%s%s%s", L"\\Process", L" Hacker", L"\\settings.xml")->Buffer);
-    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, PhaFormatString(L"%s%s%s", L"\\Process", L" Hacker 2", L"\\settings.xml")->Buffer);
+
+    settingsFileName = PhConcatStrings(5, L"\\", L"Process", L" Hacker", L"\\", L"settings.xml");
+    legacyNightlyFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &settingsFileName->sr);
+    PhDereferenceObject(settingsFileName);
+
+    settingsFileName = PhConcatStrings(6, L"\\", L"Process", L" Hacker", L" 2", L"\\", L"settings.xml");
+    legacySettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &settingsFileName->sr);
+    PhDereferenceObject(settingsFileName);
 
     if (settingsFilePath && legacyNightlyFileName)
     {
@@ -924,15 +931,20 @@ BOOLEAN CheckApplicationInstallPathLegacy(
     )
 {
     BOOLEAN installed = FALSE;
+    PPH_STRING fileName;
     PPH_STRING exePath;
+
+    fileName = CreateLegacyApplicationName();
 
     // Check the directory for the legacy 'ProcessHacker.exe' executable.
 
-    if (exePath = SetupCreateFullPath(Directory, PH_AUTO_T(PH_STRING, CreateLegacyApplicationName())->Buffer))
+    if (exePath = SetupCreateFullPath(Directory, PhGetString(fileName)))
     {
         installed = PhDoesFileExistWin32(PhGetString(exePath));
         PhDereferenceObject(exePath);
     }
+
+    PhDereferenceObject(fileName);
 
     return installed;
 }
