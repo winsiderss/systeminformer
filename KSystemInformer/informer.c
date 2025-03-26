@@ -291,7 +291,7 @@ KPH_PAGED_FILE();
 /**
  * \brief Gets informer filtering for a process.
  *
- * \param[in] Process Handle to the process to get filtering for.
+ * \param[in] ProcessHandle Handle to the process to get filtering for.
  * \param[in] Filter Populated with the filter settings.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
