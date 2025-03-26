@@ -8,12 +8,10 @@
           <MinimalRebuild>false</MinimalRebuild>
           <MultiProcessorCompilation>true</MultiProcessorCompilation>
           <LanguageStandard>stdcpplatest</LanguageStandard>
-          <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-          <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
+          <LanguageStandard_C>stdclatest</LanguageStandard_C>
           <StringPooling>true</StringPooling>
           <SupportJustMyCode>false</SupportJustMyCode>
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
-          <OmitFramePointers>true</OmitFramePointers>
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <FloatingPointModel>Precise</FloatingPointModel>
@@ -24,6 +22,11 @@
           <SubSystem>Windows</SubSystem>
           <LargeAddressAware>true</LargeAddressAware>
       </Link>
+      <Lib>
+          <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
+          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+      </Lib>
       <ResourceCompile>
           <Culture>0x0009</Culture>
           <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -183,7 +186,7 @@
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
           <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
@@ -219,7 +222,7 @@
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
           <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
@@ -252,7 +255,7 @@
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
           <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
