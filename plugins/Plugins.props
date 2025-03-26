@@ -31,14 +31,12 @@
             <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
             <FunctionLevelLinking>true</FunctionLevelLinking>
             <LanguageStandard>stdcpplatest</LanguageStandard>
-            <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-            <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
+            <LanguageStandard_C>stdclatest</LanguageStandard_C>
             <StringPooling>true</StringPooling>
             <SupportJustMyCode>false</SupportJustMyCode>
             <CallingConvention>StdCall</CallingConvention>
             <BuildStlModules>false</BuildStlModules>
             <UseStandardPreprocessor>true</UseStandardPreprocessor>
-            <OmitFramePointers>true</OmitFramePointers>
         </ClCompile>
         <Link>
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -53,10 +51,10 @@
             <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -kphsign "$(OutDir)$(TargetName)$(TargetExt)"</Command>
         </PostBuildEvent>
         <ResourceCompile>
-            <Culture>0x0009</Culture>
-            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+            <Culture>0x0009</Culture>
         </ResourceCompile>
     </ItemDefinitionGroup>
 
