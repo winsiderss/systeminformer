@@ -758,7 +758,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     if (PhIsNullOrEmptyString(dnsReverseNameString))
         return NULL;
 
-    if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)
+    if (!!PhCsEnableNetworkResolveDoH && !dnsLocalQuery)
     {
         dnsRecordList = PhDnsQuery(
             NULL,

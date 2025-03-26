@@ -850,7 +850,7 @@ VOID PhModuleProviderUpdate(
                 PhPrintPointer(moduleItem->EnclaveBaseAddressString, moduleItem->EnclaveBaseAddress);
             }
 
-            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
+            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, !!PhCsEnableVersionSupport);
 
             if (moduleProvider->IsSubsystemProcess)
             {

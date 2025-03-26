@@ -469,7 +469,7 @@ VOID PhServiceQueryStage1(
                 &versionInfo, // Data->VersionInfo
                 fileName,
                 FALSE,
-                PhEnableVersionShortText
+                !!PhCsEnableVersionSupport
                 ))
             {
                 // Note: This is how msconfig determines default services. (dmex)

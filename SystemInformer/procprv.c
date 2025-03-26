@@ -756,7 +756,7 @@ VOID PhpProcessQueryStage1(
                 &Data->VersionInfo,
                 processItem->FileName,
                 FALSE,
-                PhEnableVersionShortText
+                !!PhCsEnableVersionSupport
                 );
         }
 
@@ -1035,7 +1035,7 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, !!PhCsEnableVersionSupport);
     }
 }
 
@@ -4365,7 +4365,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
         }
 
         // Version info.
-        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, !!PhCsEnableVersionSupport);
     }
 
     // Command line

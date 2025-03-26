@@ -49,8 +49,8 @@ EXT BOOLEAN PhEnableServiceQueryStage2;
 EXT BOOLEAN PhEnableWindowText;
 EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
-EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
-EXT BOOLEAN PhEnableVersionShortText;
+EXT ULONG PhCsEnableNetworkResolveDoH;
+EXT ULONG PhCsEnableVersionSupport;
 EXT BOOLEAN PhEnableDeferredLayout;
 EXT BOOLEAN PhEnableKsiWarnings;
 EXT BOOLEAN PhEnableKsiSupport;
@@ -134,10 +134,10 @@ EXT ULONG PhCsColorServiceStop;
 
 EXT BOOLEAN PhEnableImageCoherencySupport;
 EXT ULONG PhCsImageCoherencyScanLevel;
-EXT BOOLEAN PhCsEnableGraphMaxScale;
-EXT BOOLEAN PhCsEnableGraphMaxText;
-EXT BOOLEAN PhCsEnableAvxSupport;
-EXT BOOLEAN PhCsEnableHandleSnapshot;
+EXT ULONG PhCsEnableGraphMaxScale;
+EXT ULONG PhCsEnableGraphMaxText;
+EXT ULONG PhCsEnableAvxSupport;
+EXT ULONG PhCsEnableHandleSnapshot;
 
 #pragma pop_macro("EXT")
 
