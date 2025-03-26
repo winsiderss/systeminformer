@@ -129,14 +129,14 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
 }
 
 NTSTATUS PhGetObjectBasicInformation(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
 {
     NTSTATUS status;
 
-    if (KsiLevel() >= KphLevelMed)
+    if (KsiLevel() >= KphLevelMed && ProcessHandle)
     {
         status = KphQueryInformationObject(
             ProcessHandle,

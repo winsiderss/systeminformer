@@ -1686,9 +1686,10 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
+    _In_ PVOID Context
     )
 {
+    PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS parameters = Context;
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     MEMORY_IMAGE_INFORMATION imageInformation;
     PVOID baseAddress = NULL;
@@ -1718,10 +1719,10 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
             continue;
         }
 
-        if (PhFindEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase))
+        if (PhFindEntryHashtable(parameters->BaseAddressHashtable, &imageInformation.ImageBase))
             continue;
 
-        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase);
+        PhAddEntryHashtable(parameters->BaseAddressHashtable, &imageInformation.ImageBase);
 
         status = PhGetProcessMappedFileName(
             ProcessHandle,
@@ -1732,13 +1733,13 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
         if (!NT_SUCCESS(status))
             continue;
 
-        status = Parameters->Callback(
+        status = parameters->Callback(
             ProcessHandle,
             virtualAddress,
             imageInformation.ImageBase,
             imageInformation.SizeOfImage,
             fileName,
-            Parameters->Context
+            parameters->Context
             );
 
         PhDereferenceObject(fileName);

@@ -1169,7 +1169,10 @@ PhFirstFreeAce(
     for (USHORT i = 0; i < Acl->AceCount; i++)
     {
         if (Current >= AclEnd)
-            return FALSE;
+        {
+            *NextAce = 0;
+            return STATUS_UNSUCCESSFUL;
+        }
 
         Current += ((PACE_HEADER)Current)->AceSize;
     }
@@ -1177,9 +1180,11 @@ PhFirstFreeAce(
     if (Current <= AclEnd)
     {
         *NextAce = Current;
+        return STATUS_SUCCESS;
     }
 
-    return STATUS_SUCCESS;
+    *NextAce = 0;
+    return STATUS_UNSUCCESSFUL;
 }
 
 FORCEINLINE
@@ -2540,7 +2545,7 @@ NTAPI
 PhDosLongPathNameToNtPathNameWithStatus(
     _In_ PCWSTR DosFileName,
     _Out_ PUNICODE_STRING NtFileName,
-    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PWSTR* FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 

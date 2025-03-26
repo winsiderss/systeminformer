@@ -3071,6 +3071,7 @@ PPH_STRING PhReferenceEmptyString(
             NULL
             );
 
+        if (string)
         {
             PhDereferenceObject(newString);
         }

@@ -56,7 +56,7 @@ static NTSTATUS PhJsonErrorToNtStatus(
     case json_tokener_error_parse_utf8_string:
         return STATUS_FAIL_CHECK;
     case json_tokener_error_memory:
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
     case json_tokener_error_size:
         return STATUS_BUFFER_TOO_SMALL;
     }

@@ -1532,7 +1532,7 @@ NTSTATUS PhCheckImagePagesForTampering(
     info = PhAllocatePage(numberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
 
     if (!info)
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
 
     for (i = 0; i < numberOfPages; i++)
     {

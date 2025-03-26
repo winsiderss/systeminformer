@@ -430,12 +430,14 @@ static NTSTATUS NTAPI PhpGetProcedureAddressRemoteLimitedCallback(
     _In_ PVOID ImageBase,
     _In_ SIZE_T ImageSize,
     _In_ PPH_STRING FileName,
-    _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
+    _In_opt_ PVOID Context
     )
 {
-    if (PhEqualString(FileName, Context->FileName, TRUE))
+    PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = (PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT)Context;
+
+    if (PhEqualString(FileName, context->FileName, TRUE))
     {
-        Context->DllBase = ImageBase;
+        context->DllBase = ImageBase;
         return STATUS_NO_MORE_ENTRIES;
     }
 

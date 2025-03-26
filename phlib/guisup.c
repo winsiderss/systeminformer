@@ -2740,6 +2740,8 @@ NTSTATUS PhCreateEnvironmentBlock(
     //    profileHandle = profileInfo.hProfile;
     //}
 
+    *Environment = NULL;
+
     if (CreateEnvironmentBlock_Import()(Environment, TokenHandle, Inherit))
     {
         return STATUS_SUCCESS;
@@ -3005,6 +3007,8 @@ NTSTATUS PhGetPhysicallyInstalledSystemMemory(
         return STATUS_SUCCESS;
     }
 
+    *TotalMemory = 0;
+    *ReservedMemory = 0;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -3565,7 +3569,7 @@ NTSTATUS PhExtractIconEx(
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        NOTHING;
+        status = GetExceptionCode();
     }
 
 CleanupExit:

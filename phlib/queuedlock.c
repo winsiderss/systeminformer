@@ -939,6 +939,7 @@ VOID FASTCALL PhfPulseAllCondition(
  *
  * \remarks The associated lock must be acquired before calling the function.
  */
+_Use_decl_annotations_
 VOID FASTCALL PhfWaitForCondition(
     _Inout_ PPH_CONDITION Condition,
     _Inout_ PPH_QUEUED_LOCK Lock,
