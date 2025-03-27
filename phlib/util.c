@@ -2414,21 +2414,53 @@ PVOID PhGetFileVersionInfoEx(
     if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, TRUE, &imageBaseAddress)))
         return NULL;
 
-    if (PhLoadResourceCopy(
-        imageBaseAddress,
-        MAKEINTRESOURCE(VS_VERSION_INFO),
-        VS_FILE_INFO,
-        NULL,
-        &versionInfo
-        ))
+    // MUI version information
     {
-        if (PhIsFileVersionInfo32(versionInfo))
-        {
-            PhFreeLibraryAsImageResource(imageBaseAddress);
-            return versionInfo;
-        }
+        PVOID resourceDllBase;
+        SIZE_T resourceDllSize;
 
-        PhFree(versionInfo);
+        if (NT_SUCCESS(LdrLoadAlternateResourceModule(imageBaseAddress, &resourceDllBase, &resourceDllSize, 0)))
+        {
+            if (PhLoadResourceCopy(
+                resourceDllBase,
+                MAKEINTRESOURCE(VS_VERSION_INFO),
+                VS_FILE_INFO,
+                NULL,
+                &versionInfo
+                ))
+            {
+                if (PhIsFileVersionInfo32(versionInfo))
+                {
+                    LdrUnloadAlternateResourceModule(resourceDllBase);
+                    PhFreeLibraryAsImageResource(imageBaseAddress);
+                    return versionInfo;
+                }
+
+                PhFree(versionInfo);
+            }
+
+            LdrUnloadAlternateResourceModule(resourceDllBase);
+        }
+    }
+
+    // EXE version information
+    {
+        if (PhLoadResourceCopy(
+            imageBaseAddress,
+            MAKEINTRESOURCE(VS_VERSION_INFO),
+            VS_FILE_INFO,
+            NULL,
+            &versionInfo
+            ))
+        {
+            if (PhIsFileVersionInfo32(versionInfo))
+            {
+                PhFreeLibraryAsImageResource(imageBaseAddress);
+                return versionInfo;
+            }
+
+            PhFree(versionInfo);
+        }
     }
 
     PhFreeLibraryAsImageResource(imageBaseAddress);
