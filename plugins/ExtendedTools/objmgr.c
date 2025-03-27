@@ -780,6 +780,9 @@ NTSTATUS EtpTargetResolverThreadStart(
     PH_WORK_QUEUE workQueue;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
 
     ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
@@ -837,6 +840,9 @@ NTSTATUS EtpTargetResolverThreadStart(
 
     PhDereferenceObject(threadContext->EntryToResolve);
     PhFree(threadContext);
+
+    PhDeleteAutoPool(&autoPool);
+
     return status;
 }
 
