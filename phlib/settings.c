@@ -1553,6 +1553,7 @@ HRESULT PhSaveSettingsXmlWrite(
     )
 {
     HRESULT status;
+    PH_AUTO_POOL autoPool;
     IStream* fileStream = NULL;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SETTING setting;
@@ -1568,6 +1569,8 @@ HRESULT PhSaveSettingsXmlWrite(
 
     if (HR_FAILED(status))
         return status;
+
+    PhInitializeAutoPool(&autoPool);
 
     {
         IXmlWriter* xmlWriter = NULL;
@@ -1593,12 +1596,11 @@ HRESULT PhSaveSettingsXmlWrite(
         {
             PPH_STRING settingValue;
 
-            settingValue = PhSettingToString(setting->Type, setting);
+            settingValue = PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting));
             IXmlWriter_WriteStartElement(xmlWriter, NULL, L"setting", NULL);
             IXmlWriter_WriteAttributeString(xmlWriter, NULL, L"name", NULL, PhGetStringRefZ(&setting->Name));
             IXmlWriter_WriteString(xmlWriter, PhGetStringRefZ(&settingValue->sr));
             IXmlWriter_WriteEndElement(xmlWriter);
-            PhDereferenceObject(settingValue);
         }
 
         for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
@@ -1678,6 +1680,8 @@ HRESULT PhSaveSettingsXmlWrite(
 CleanupExit:
     //IStream_Commit(fileStream, STGC_DEFAULT);
     IStream_Release(fileStream);
+
+    PhDeleteAutoPool(&autoPool);
 
     return status;
 }
