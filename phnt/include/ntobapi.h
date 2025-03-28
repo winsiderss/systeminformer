@@ -543,7 +543,7 @@ NtCreateSymbolicLinkObject(
     _Out_ PHANDLE LinkHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ PUNICODE_STRING LinkTarget
+    _In_ PCUNICODE_STRING LinkTarget
     );
 
 NTSYSCALLAPI

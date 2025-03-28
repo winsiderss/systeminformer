@@ -64,7 +64,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValue(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _Out_writes_bytes_(ValueLength) PWSTR VariableValue,
     _In_ USHORT ValueLength,
     _Out_opt_ PUSHORT ReturnLength
@@ -7040,7 +7040,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryLicenseValue(
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Out_opt_ PULONG Type,
     _Out_writes_bytes_to_opt_(DataSize, *ResultDataSize) PVOID Data,
     _In_ ULONG DataSize,
@@ -7078,7 +7078,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDisplayString(
-    _In_ PUNICODE_STRING String
+    _In_ PCUNICODE_STRING String
     );
 
 // Boot graphics
@@ -7089,7 +7089,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDrawText(
-    _In_ PUNICODE_STRING Text
+    _In_ PCUNICODE_STRING Text
     );
 #endif
 

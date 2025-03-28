@@ -612,9 +612,9 @@ NtFilterTokenEx(
     _In_opt_ PTOKEN_PRIVILEGES PrivilegesToDelete,
     _In_opt_ PTOKEN_GROUPS RestrictedSids,
     _In_ ULONG DisableUserClaimsCount,
-    _In_opt_ PUNICODE_STRING UserClaimsToDisable,
+    _In_opt_ PCUNICODE_STRING UserClaimsToDisable,
     _In_ ULONG DisableDeviceClaimsCount,
-    _In_opt_ PUNICODE_STRING DeviceClaimsToDisable,
+    _In_opt_ PCUNICODE_STRING DeviceClaimsToDisable,
     _In_opt_ PTOKEN_GROUPS DeviceGroupsToDisable,
     _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION RestrictedUserAttributes,
     _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION RestrictedDeviceAttributes,
@@ -655,7 +655,7 @@ NTSTATUS
 NTAPI
 NtQuerySecurityAttributesToken(
     _In_ HANDLE TokenHandle,
-    _In_reads_opt_(NumberOfAttributes) PUNICODE_STRING Attributes,
+    _In_reads_opt_(NumberOfAttributes) PCUNICODE_STRING Attributes,
     _In_ ULONG NumberOfAttributes,
     _Out_writes_bytes_(Length) PVOID Buffer, // PTOKEN_SECURITY_ATTRIBUTES_INFORMATION
     _In_ ULONG Length,
@@ -797,10 +797,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckAndAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
-    _In_ PUNICODE_STRING ObjectTypeName,
-    _In_ PUNICODE_STRING ObjectName,
+    _In_ PCUNICODE_STRING ObjectTypeName,
+    _In_ PCUNICODE_STRING ObjectName,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PGENERIC_MAPPING GenericMapping,
@@ -814,10 +814,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeAndAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
-    _In_ PUNICODE_STRING ObjectTypeName,
-    _In_ PUNICODE_STRING ObjectName,
+    _In_ PCUNICODE_STRING ObjectTypeName,
+    _In_ PCUNICODE_STRING ObjectName,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_opt_ PSID PrincipalSelfSid,
     _In_ ACCESS_MASK DesiredAccess,
@@ -836,10 +836,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeResultListAndAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
-    _In_ PUNICODE_STRING ObjectTypeName,
-    _In_ PUNICODE_STRING ObjectName,
+    _In_ PCUNICODE_STRING ObjectTypeName,
+    _In_ PCUNICODE_STRING ObjectName,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_opt_ PSID PrincipalSelfSid,
     _In_ ACCESS_MASK DesiredAccess,
@@ -858,11 +858,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAccessCheckByTypeResultListAndAuditAlarmByHandle(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
     _In_ HANDLE ClientToken,
-    _In_ PUNICODE_STRING ObjectTypeName,
-    _In_ PUNICODE_STRING ObjectName,
+    _In_ PCUNICODE_STRING ObjectTypeName,
+    _In_ PCUNICODE_STRING ObjectName,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_opt_ PSID PrincipalSelfSid,
     _In_ ACCESS_MASK DesiredAccess,
@@ -881,10 +881,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenObjectAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
-    _In_ PUNICODE_STRING ObjectTypeName,
-    _In_ PUNICODE_STRING ObjectName,
+    _In_ PCUNICODE_STRING ObjectTypeName,
+    _In_ PCUNICODE_STRING ObjectName,
     _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ HANDLE ClientToken,
     _In_ ACCESS_MASK DesiredAccess,
@@ -899,7 +899,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrivilegeObjectAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
     _In_ HANDLE ClientToken,
     _In_ ACCESS_MASK DesiredAccess,
@@ -911,7 +911,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCloseObjectAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
     _In_ BOOLEAN GenerateOnClose
     );
@@ -920,7 +920,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeleteObjectAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING SubsystemName,
     _In_opt_ PVOID HandleId,
     _In_ BOOLEAN GenerateOnClose
     );
@@ -929,8 +929,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtPrivilegedServiceAuditAlarm(
-    _In_ PUNICODE_STRING SubsystemName,
-    _In_ PUNICODE_STRING ServiceName,
+    _In_ PCUNICODE_STRING SubsystemName,
+    _In_ PCUNICODE_STRING ServiceName,
     _In_ HANDLE ClientToken,
     _In_ PPRIVILEGE_SET Privileges,
     _In_ BOOLEAN AccessGranted

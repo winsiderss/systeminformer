@@ -1681,7 +1681,7 @@ RtlUpperString(
 FORCEINLINE
 BOOLEAN
 RtlIsNullOrEmptyUnicodeString(
-    _In_opt_ PUNICODE_STRING String
+    _In_opt_ PCUNICODE_STRING String
     )
 {
     return !String || String->Length == 0;
@@ -1792,7 +1792,7 @@ NTSTATUS
 NTAPI
 RtlDuplicateUnicodeString(
     _In_ ULONG Flags,
-    _In_ PUNICODE_STRING StringIn,
+    _In_ PCUNICODE_STRING StringIn,
     _Out_ PUNICODE_STRING StringOut
     );
 
@@ -1800,7 +1800,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlCopyUnicodeString(
-    _In_ PUNICODE_STRING DestinationString,
+    _In_ PCUNICODE_STRING DestinationString,
     _In_opt_ PCUNICODE_STRING SourceString
     );
 
@@ -1823,8 +1823,8 @@ NTSYSAPI
 LONG
 NTAPI
 RtlCompareUnicodeString(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2,
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
     _In_ BOOLEAN CaseInSensitive
     );
 
@@ -1847,8 +1847,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualUnicodeString(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2,
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
     _In_ BOOLEAN CaseInSensitive
     );
 
@@ -1860,7 +1860,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlHashUnicodeString(
-    _In_ PUNICODE_STRING String,
+    _In_ PCUNICODE_STRING String,
     _In_ BOOLEAN CaseInSensitive,
     _In_ ULONG HashAlgorithm,
     _Out_ PULONG HashValue
@@ -1871,7 +1871,7 @@ NTSTATUS
 NTAPI
 RtlValidateUnicodeString(
     _In_ ULONG Flags,
-    _In_ PUNICODE_STRING String
+    _In_ PCUNICODE_STRING String
     );
 
 _Must_inspect_result_
@@ -1879,8 +1879,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlPrefixUnicodeString(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2,
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
     _In_ BOOLEAN CaseInSensitive
     );
 
@@ -1890,8 +1890,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlSuffixUnicodeString(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2,
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
     _In_ BOOLEAN CaseInSensitive
     );
 #endif // PHNT_MODE == PHNT_MODE_KERNEL && PHNT_VERSION >= PHNT_WINDOWS_10
@@ -1902,8 +1902,8 @@ NTSYSAPI
 PWCHAR
 NTAPI
 RtlFindUnicodeSubstring(
-    _In_ PUNICODE_STRING FullString,
-    _In_ PUNICODE_STRING SearchString,
+    _In_ PCUNICODE_STRING FullString,
+    _In_ PCUNICODE_STRING SearchString,
     _In_ BOOLEAN CaseInSensitive
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
@@ -1917,8 +1917,8 @@ NTSTATUS
 NTAPI
 RtlFindCharInUnicodeString(
     _In_ ULONG Flags,
-    _In_ PUNICODE_STRING StringToSearch,
-    _In_ PUNICODE_STRING CharSet,
+    _In_ PCUNICODE_STRING StringToSearch,
+    _In_ PCUNICODE_STRING CharSet,
     _Out_ PUSHORT NonInclusivePrefixLength
     );
 
@@ -1943,7 +1943,7 @@ NTSTATUS
 NTAPI
 RtlUpcaseUnicodeString(
     _Inout_ PUNICODE_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -1952,7 +1952,7 @@ NTSTATUS
 NTAPI
 RtlDowncaseUnicodeString(
     _Inout_ PUNICODE_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -1994,7 +1994,7 @@ NTSTATUS
 NTAPI
 RtlUnicodeStringToAnsiString(
     _Inout_ PANSI_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2003,7 +2003,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlUnicodeStringToAnsiSize(
-    _In_ PUNICODE_STRING SourceString
+    _In_ PCUNICODE_STRING SourceString
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
@@ -2021,7 +2021,7 @@ NTSTATUS
 NTAPI
 RtlUTF8StringToUnicodeString(
     _Inout_ PUNICODE_STRING DestinationString,
-    _In_ PUTF8_STRING SourceString,
+    _In_ PCUTF8_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
@@ -2038,7 +2038,7 @@ NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToAnsiString(
     _Inout_ PANSI_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2056,7 +2056,7 @@ NTSTATUS
 NTAPI
 RtlUnicodeStringToOemString(
     _Inout_ POEM_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2065,7 +2065,7 @@ NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToOemString(
     _Inout_ POEM_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2083,7 +2083,7 @@ NTSTATUS
 NTAPI
 RtlUnicodeStringToCountedOemString(
     _Inout_ POEM_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2092,7 +2092,7 @@ NTSTATUS
 NTAPI
 RtlUpcaseUnicodeStringToCountedOemString(
     _Inout_ POEM_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString,
+    _In_ PCUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
 
@@ -2335,8 +2335,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsNameInExpression(
-    _In_ PUNICODE_STRING Expression,
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Expression,
+    _In_ PCUNICODE_STRING Name,
     _In_ BOOLEAN IgnoreCase,
     _In_opt_ PWCH UpcaseTable
     );
@@ -2348,8 +2348,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsNameInUnUpcasedExpression(
-    _In_ PUNICODE_STRING Expression,
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Expression,
+    _In_ PCUNICODE_STRING Name,
     _In_ BOOLEAN IgnoreCase,
     _In_opt_ PWCH UpcaseTable
     );
@@ -2360,7 +2360,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlDoesNameContainWildCards(
-    _In_ PUNICODE_STRING Expression
+    _In_ PCUNICODE_STRING Expression
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_19H1
 
@@ -2368,16 +2368,16 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualDomainName(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlEqualComputerName(
-    _In_ PUNICODE_STRING String1,
-    _In_ PUNICODE_STRING String2
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2
     );
 
 NTSYSAPI
@@ -2385,7 +2385,7 @@ NTSTATUS
 NTAPI
 RtlDnsHostNameToComputerName(
     _Out_ PUNICODE_STRING ComputerNameString,
-    _In_ PUNICODE_STRING DnsHostNameString,
+    _In_ PCUNICODE_STRING DnsHostNameString,
     _In_ BOOLEAN AllocateComputerNameString
     );
 
@@ -2415,7 +2415,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGUIDFromString(
-    _In_ PUNICODE_STRING GuidString,
+    _In_ PCUNICODE_STRING GuidString,
     _Out_ PGUID Guid
     );
 
@@ -2425,8 +2425,8 @@ NTSYSAPI
 LONG
 NTAPI
 RtlCompareAltitudes(
-    _In_ PUNICODE_STRING Altitude1,
-    _In_ PUNICODE_STRING Altitude2
+    _In_ PCUNICODE_STRING Altitude1,
+    _In_ PCUNICODE_STRING Altitude2
     );
 
 NTSYSAPI
@@ -2546,7 +2546,7 @@ BOOLEAN
 NTAPI
 RtlInsertUnicodePrefix(
     _In_ PUNICODE_PREFIX_TABLE PrefixTable,
-    _In_ PUNICODE_STRING Prefix,
+    _In_ PCUNICODE_STRING Prefix,
     _Out_ PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
@@ -2563,7 +2563,7 @@ PUNICODE_PREFIX_TABLE_ENTRY
 NTAPI
 RtlFindUnicodePrefix(
     _In_ PUNICODE_PREFIX_TABLE PrefixTable,
-    _In_ PUNICODE_STRING FullName,
+    _In_ PCUNICODE_STRING FullName,
     _In_ ULONG CaseInsensitiveIndex
     );
 
@@ -2865,7 +2865,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlCultureNameToLCID(
-    _In_ PUNICODE_STRING String,
+    _In_ PCUNICODE_STRING String,
     _Out_ PLCID Lcid
     );
 
@@ -3119,15 +3119,15 @@ NTSTATUS
 NTAPI
 RtlCreateProcessParameters(
     _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
-    _In_ PUNICODE_STRING ImagePathName,
-    _In_opt_ PUNICODE_STRING DllPath,
-    _In_opt_ PUNICODE_STRING CurrentDirectory,
-    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_ PCUNICODE_STRING ImagePathName,
+    _In_opt_ PCUNICODE_STRING DllPath,
+    _In_opt_ PCUNICODE_STRING CurrentDirectory,
+    _In_opt_ PCUNICODE_STRING CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PUNICODE_STRING WindowTitle,
-    _In_opt_ PUNICODE_STRING DesktopInfo,
-    _In_opt_ PUNICODE_STRING ShellInfo,
-    _In_opt_ PUNICODE_STRING RuntimeData
+    _In_opt_ PCUNICODE_STRING WindowTitle,
+    _In_opt_ PCUNICODE_STRING DesktopInfo,
+    _In_opt_ PCUNICODE_STRING ShellInfo,
+    _In_opt_ PCUNICODE_STRING RuntimeData
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
@@ -3137,15 +3137,15 @@ NTSTATUS
 NTAPI
 RtlCreateProcessParametersEx(
     _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
-    _In_ PUNICODE_STRING ImagePathName,
-    _In_opt_ PUNICODE_STRING DllPath,
-    _In_opt_ PUNICODE_STRING CurrentDirectory,
-    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_ PCUNICODE_STRING ImagePathName,
+    _In_opt_ PCUNICODE_STRING DllPath,
+    _In_opt_ PCUNICODE_STRING CurrentDirectory,
+    _In_opt_ PCUNICODE_STRING CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PUNICODE_STRING WindowTitle,
-    _In_opt_ PUNICODE_STRING DesktopInfo,
-    _In_opt_ PUNICODE_STRING ShellInfo,
-    _In_opt_ PUNICODE_STRING RuntimeData,
+    _In_opt_ PCUNICODE_STRING WindowTitle,
+    _In_opt_ PCUNICODE_STRING DesktopInfo,
+    _In_opt_ PCUNICODE_STRING ShellInfo,
+    _In_opt_ PCUNICODE_STRING RuntimeData,
     _In_ ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
@@ -3157,16 +3157,16 @@ NTSTATUS
 NTAPI
 RtlCreateProcessParametersWithTemplate(
     _Out_ PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
-    _In_ PUNICODE_STRING ImagePathName,
-    _In_opt_ PUNICODE_STRING DllPath,
-    _In_opt_ PUNICODE_STRING CurrentDirectory,
-    _In_opt_ PUNICODE_STRING CommandLine,
+    _In_ PCUNICODE_STRING ImagePathName,
+    _In_opt_ PCUNICODE_STRING DllPath,
+    _In_opt_ PCUNICODE_STRING CurrentDirectory,
+    _In_opt_ PCUNICODE_STRING CommandLine,
     _In_opt_ PVOID Environment,
-    _In_opt_ PUNICODE_STRING WindowTitle,
-    _In_opt_ PUNICODE_STRING DesktopInfo,
-    _In_opt_ PUNICODE_STRING ShellInfo,
-    _In_opt_ PUNICODE_STRING RuntimeData,
-    _In_opt_ PUNICODE_STRING RedirectionDllName,
+    _In_opt_ PCUNICODE_STRING WindowTitle,
+    _In_opt_ PCUNICODE_STRING DesktopInfo,
+    _In_opt_ PCUNICODE_STRING ShellInfo,
+    _In_opt_ PCUNICODE_STRING RuntimeData,
+    _In_opt_ PCUNICODE_STRING RedirectionDllName,
     _In_ ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS4
@@ -3206,7 +3206,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserProcess(
-    _In_ PUNICODE_STRING NtImagePathName,
+    _In_ PCUNICODE_STRING NtImagePathName,
     _In_ ULONG ExtendedParameters, // HIWORD(NumaNodeNumber), LOWORD(Reserved)
     _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _In_opt_ PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
@@ -3238,7 +3238,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserProcessEx(
-    _In_ PUNICODE_STRING NtImagePathName,
+    _In_ PCUNICODE_STRING NtImagePathName,
     _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _In_ BOOLEAN InheritHandles,
     _In_opt_ PRTL_USER_PROCESS_EXTENDED_PARAMETERS ProcessExtendedParameters,
@@ -4018,7 +4018,7 @@ RtlFindActivationContextSectionString(
     _In_ ULONG Flags,
     _In_opt_ PGUID ExtensionGuid,
     _In_ ULONG SectionId, // ACTIVATION_CONTEXT_SECTION_*
-    _In_ PUNICODE_STRING StringToFind,
+    _In_ PCUNICODE_STRING StringToFind,
     _Inout_ PACTCTX_SECTION_KEYED_DATA ReturnedData
     );
 
@@ -4448,8 +4448,8 @@ NTSTATUS
 NTAPI
 RtlSetEnvironmentVariable(
     _Inout_opt_ PVOID *Environment,
-    _In_ PUNICODE_STRING Name,
-    _In_opt_ PUNICODE_STRING Value
+    _In_ PCUNICODE_STRING Name,
+    _In_opt_ PCUNICODE_STRING Value
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
@@ -4472,7 +4472,7 @@ NTSTATUS
 NTAPI
 RtlQueryEnvironmentVariable_U(
     _In_opt_ PVOID Environment,
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Name,
     _Inout_ PUNICODE_STRING Value
     );
 
@@ -4496,7 +4496,7 @@ NTSTATUS
 NTAPI
 RtlExpandEnvironmentStrings_U(
     _In_opt_ PVOID Environment,
-    _In_ PUNICODE_STRING Source,
+    _In_ PCUNICODE_STRING Source,
     _Inout_ PUNICODE_STRING Destination,
     _Out_opt_ PULONG ReturnedLength
     );
@@ -4613,7 +4613,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetFullPathName_UstrEx(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Inout_ PUNICODE_STRING StaticString,
     _Out_opt_ PUNICODE_STRING DynamicString,
     _Out_opt_ PUNICODE_STRING *StringUsed,
@@ -4636,7 +4636,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetCurrentDirectory_U(
-    _In_ PUNICODE_STRING PathName
+    _In_ PCUNICODE_STRING PathName
     );
 
 NTSYSAPI
@@ -4800,9 +4800,9 @@ NTSTATUS
 NTAPI
 RtlDosSearchPath_Ustr(
     _In_ ULONG Flags,
-    _In_ PUNICODE_STRING Path,
-    _In_ PUNICODE_STRING FileName,
-    _In_opt_ PUNICODE_STRING DefaultExtension,
+    _In_ PCUNICODE_STRING Path,
+    _In_ PCUNICODE_STRING FileName,
+    _In_opt_ PCUNICODE_STRING DefaultExtension,
     _Out_opt_ PUNICODE_STRING StaticString,
     _Out_opt_ PUNICODE_STRING DynamicString,
     _Out_opt_ PCUNICODE_STRING *FullFileNameOut,
@@ -4823,11 +4823,11 @@ NTSTATUS
 NTAPI
 RtlDosApplyFileIsolationRedirection_Ustr(
     _In_ ULONG                  Flags,
-    _In_ PUNICODE_STRING        OriginalName,
-    _In_ PUNICODE_STRING        Extension,
-    _In_opt_ PUNICODE_STRING    StaticString,
-    _In_opt_ PUNICODE_STRING    DynamicString,
-    _In_opt_ PUNICODE_STRING*   NewName,
+    _In_ PCUNICODE_STRING        OriginalName,
+    _In_ PCUNICODE_STRING        Extension,
+    _In_opt_ PCUNICODE_STRING    StaticString,
+    _In_opt_ PCUNICODE_STRING    DynamicString,
+    _In_opt_ PCUNICODE_STRING*   NewName,
     _In_ PULONG                 NewFlags,
     _In_ PSIZE_T                FileNameSize,
     _In_ PSIZE_T                RequiredLength
@@ -4838,7 +4838,7 @@ NTSTATUS
 NTAPI
 RtlGetLengthWithoutLastFullDosOrNtPathElement(
     _Reserved_ ULONG Flags,
-    _In_ PUNICODE_STRING PathString,
+    _In_ PCUNICODE_STRING PathString,
     _Out_ PULONG Length
     );
 
@@ -4847,7 +4847,7 @@ NTSTATUS
 NTAPI
 RtlGetLengthWithoutTrailingPathSeperators(
     _Reserved_ ULONG Flags,
-    _In_ PUNICODE_STRING PathString,
+    _In_ PCUNICODE_STRING PathString,
     _Out_ PULONG Length
     );
 
@@ -4867,7 +4867,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGenerate8dot3Name(
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Name,
     _In_ BOOLEAN AllowExtendedCharacters,
     _Inout_ PGENERATE_NAME_CONTEXT Context,
     _Inout_ PUNICODE_STRING Name8dot3
@@ -4880,7 +4880,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlComputePrivatizedDllName_U(
-    _In_ PUNICODE_STRING DllName,
+    _In_ PCUNICODE_STRING DllName,
     _Out_ PUNICODE_STRING RealName,
     _Out_ PUNICODE_STRING LocalName
     );
@@ -6747,7 +6747,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeStringToInteger(
-    _In_ PUNICODE_STRING String,
+    _In_ PCUNICODE_STRING String,
     _In_opt_ ULONG Base,
     _Out_ PULONG Value
     );
@@ -7808,7 +7808,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateServiceSid(
-    _In_ PUNICODE_STRING ServiceName,
+    _In_ PCUNICODE_STRING ServiceName,
     _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
     _Inout_ PULONG ServiceSidLength
     );
@@ -7870,7 +7870,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateVirtualAccountSid(
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Name,
     _In_ ULONG BaseSubAuthority,
     _Out_writes_bytes_(*SidLength) PSID Sid,
     _Inout_ PULONG SidLength
@@ -8886,7 +8886,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlQueryValidationRunlevel(
-    _In_opt_ PUNICODE_STRING ComponentName
+    _In_opt_ PCUNICODE_STRING ComponentName
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
@@ -8908,7 +8908,7 @@ NTSYSAPI
 POBJECT_BOUNDARY_DESCRIPTOR
 NTAPI
 RtlCreateBoundaryDescriptor(
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Name,
     _In_ ULONG Flags
     );
 
@@ -9282,7 +9282,7 @@ NTAPI
 RtlQueryRegistryValueWithFallback(
     _In_opt_ HANDLE PrimaryHandle,
     _In_opt_ HANDLE FallbackHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _In_ ULONG ValueLength,
     _Out_opt_ PULONG ValueType,
     _Out_writes_bytes_to_(ValueLength, *ResultLength) PVOID ValueData,
@@ -10385,7 +10385,7 @@ NTSTATUS
 NTAPI
 RtlCapabilityCheck(
     _In_opt_ HANDLE TokenHandle,
-    _In_ PUNICODE_STRING CapabilityName,
+    _In_ PCUNICODE_STRING CapabilityName,
     _Out_ PBOOLEAN HasCapability
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10

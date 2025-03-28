@@ -15,7 +15,7 @@ NtCreateTransactionManager(
     _Out_ PHANDLE TmHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ PUNICODE_STRING LogFileName,
+    _In_opt_ PCUNICODE_STRING LogFileName,
     _In_opt_ ULONG CreateOptions,
     _In_opt_ ULONG CommitStrength
     );
@@ -29,7 +29,7 @@ NtOpenTransactionManager(
     _Out_ PHANDLE TmHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ PUNICODE_STRING LogFileName,
+    _In_opt_ PCUNICODE_STRING LogFileName,
     _In_opt_ LPGUID TmIdentity,
     _In_opt_ ULONG OpenOptions
     );
@@ -40,7 +40,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRenameTransactionManager(
-    _In_ PUNICODE_STRING LogFileName,
+    _In_ PCUNICODE_STRING LogFileName,
     _In_ LPGUID ExistingTransactionManagerGuid
     );
 #endif
@@ -116,7 +116,7 @@ NtCreateTransaction(
     _In_opt_ ULONG IsolationLevel,
     _In_opt_ ULONG IsolationFlags,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _In_opt_ PUNICODE_STRING Description
+    _In_opt_ PCUNICODE_STRING Description
     );
 #endif
 
@@ -353,7 +353,7 @@ NtCreateResourceManager(
     _In_ LPGUID RmGuid,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ ULONG CreateOptions,
-    _In_opt_ PUNICODE_STRING Description
+    _In_opt_ PCUNICODE_STRING Description
     );
 #endif
 

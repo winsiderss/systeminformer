@@ -186,7 +186,7 @@ NtUserCreateWindowStation(
     _In_opt_ PVOID KeyboardLayoutOffset,
     _In_opt_ PVOID NlsTableOffset,
     _In_opt_ PVOID KeyboardDescriptor,
-    _In_opt_ PUNICODE_STRING LanguageIdString,
+    _In_opt_ PCUNICODE_STRING LanguageIdString,
     _In_opt_ ULONG KeyboardLocale
     );
 
