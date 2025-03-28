@@ -206,7 +206,28 @@ typedef struct _UNICODE_STRING
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
-#define RTL_CONSTANT_STRING(s) { sizeof((s)) - sizeof((s)[0]), sizeof((s)), (PWCH)(s) }
+#ifdef __cplusplus
+extern "C++"
+{
+template <size_t N> char _RTL_CONSTANT_STRING_type_check(const char  (&s)[N]);
+template <size_t N> char _RTL_CONSTANT_STRING_type_check(const WCHAR (&s)[N]);
+// __typeof would be desirable here instead of sizeof.
+template <size_t N> class _RTL_CONSTANT_STRING_remove_const_template_class;
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(char)>  {public: typedef  char T; };
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(WCHAR)> {public: typedef WCHAR T; };
+#define _RTL_CONSTANT_STRING_remove_const_macro(s) \
+    (const_cast<_RTL_CONSTANT_STRING_remove_const_template_class<sizeof((s)[0])>::T*>(s))
+}
+#else
+char _RTL_CONSTANT_STRING_type_check(const void *s);
+#define _RTL_CONSTANT_STRING_remove_const_macro(s) (s)
+#endif
+#define RTL_CONSTANT_STRING(s) \
+{ \
+    sizeof( s ) - sizeof( (s)[0] ), \
+    sizeof( s ) / sizeof(_RTL_CONSTANT_STRING_type_check(s)), \
+    _RTL_CONSTANT_STRING_remove_const_macro(s) \
+}
 
 #define DECLARE_CONST_UNICODE_STRING(_var, _str) \
 const WCHAR _var ## _buffer[] = _str; \
