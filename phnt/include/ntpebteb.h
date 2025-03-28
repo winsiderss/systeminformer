@@ -1173,7 +1173,7 @@ typedef struct _TEB
     ULONG GdiBatchCount;
 
     //
-    // The preferred processor for the curremt thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
+    // The preferred processor for the current thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
     //
     union
     {
