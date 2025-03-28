@@ -195,6 +195,7 @@ typedef PSTRING PUTF8_STRING;
 typedef const STRING *PCSTRING;
 typedef const ANSI_STRING *PCANSI_STRING;
 typedef const OEM_STRING *PCOEM_STRING;
+typedef const STRING *PCUTF8_STRING;
 
 typedef struct _UNICODE_STRING
 {
@@ -269,6 +270,9 @@ typedef struct _STRING32
 typedef STRING32 UNICODE_STRING32, *PUNICODE_STRING32;
 typedef STRING32 ANSI_STRING32, *PANSI_STRING32;
 
+typedef const STRING32 *PCUNICODE_STRING32;
+typedef const STRING32 *PCANSI_STRING32;
+
 typedef struct _STRING64
 {
     USHORT Length;
@@ -278,6 +282,9 @@ typedef struct _STRING64
 
 typedef STRING64 UNICODE_STRING64, *PUNICODE_STRING64;
 typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
+
+typedef const STRING64 *PCUNICODE_STRING64;
+typedef const STRING64 *PCANSI_STRING64;
 
 //
 // Object attributes

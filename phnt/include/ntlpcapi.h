@@ -203,7 +203,7 @@ NTSTATUS
 NTAPI
 NtConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_ PSECURITY_QUALITY_OF_SERVICE SecurityQos,
     _Inout_opt_ PPORT_VIEW ClientView,
     _Inout_opt_ PREMOTE_PORT_VIEW ServerView,
@@ -217,7 +217,7 @@ NTSTATUS
 NTAPI
 NtSecureConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_ PSECURITY_QUALITY_OF_SERVICE SecurityQos,
     _Inout_opt_ PPORT_VIEW ClientView,
     _In_opt_ PSID RequiredServerSid,
@@ -811,7 +811,7 @@ NTSTATUS
 NTAPI
 NtAlpcConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
     _In_ ULONG Flags,

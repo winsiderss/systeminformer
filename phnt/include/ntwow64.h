@@ -600,7 +600,7 @@ static_assert(sizeof(TEB32) == 0x1000, "sizeof(TEB32) is incorrect");
 
 FORCEINLINE VOID UStr32ToUStr(
     _Out_ PUNICODE_STRING Destination,
-    _In_ PUNICODE_STRING32 Source
+    _In_ PCUNICODE_STRING32 Source
     )
 {
     Destination->Length = Source->Length;
@@ -610,7 +610,7 @@ FORCEINLINE VOID UStr32ToUStr(
 
 FORCEINLINE VOID UStrToUStr32(
     _Out_ PUNICODE_STRING32 Destination,
-    _In_ PUNICODE_STRING Source
+    _In_ PCUNICODE_STRING Source
     )
 {
     Destination->Length = Source->Length;

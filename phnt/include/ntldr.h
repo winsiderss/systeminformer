@@ -227,7 +227,7 @@ NTAPI
 LdrLoadDll(
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
-    _In_ PUNICODE_STRING DllName,
+    _In_ PCUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
     );
 
@@ -244,7 +244,7 @@ NTAPI
 LdrGetDllHandle(
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
-    _In_ PUNICODE_STRING DllName,
+    _In_ PCUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
     );
 
@@ -258,7 +258,7 @@ LdrGetDllHandleEx(
     _In_ ULONG Flags,
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
-    _In_ PUNICODE_STRING DllName,
+    _In_ PCUNICODE_STRING DllName,
     _Out_ PVOID *DllHandle
     );
 
@@ -279,8 +279,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrGetDllHandleByName(
-    _In_opt_ PUNICODE_STRING BaseDllName,
-    _In_opt_ PUNICODE_STRING FullDllName,
+    _In_opt_ PCUNICODE_STRING BaseDllName,
+    _In_opt_ PCUNICODE_STRING FullDllName,
     _Out_ PVOID *DllHandle
     );
 #endif
@@ -319,7 +319,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrSetDllDirectory(
-    _In_ PUNICODE_STRING DllDirectory
+    _In_ PCUNICODE_STRING DllDirectory
     );
 #endif
 
@@ -338,7 +338,7 @@ NTSTATUS
 NTAPI
 LdrGetProcedureAddress(
     _In_ PVOID DllHandle,
-    _In_opt_ PANSI_STRING ProcedureName,
+    _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress
     );
@@ -353,7 +353,7 @@ NTSTATUS
 NTAPI
 LdrGetProcedureAddressEx(
     _In_ PVOID DllHandle,
-    _In_opt_ PANSI_STRING ProcedureName,
+    _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _In_ ULONG Flags
@@ -376,7 +376,7 @@ NTSTATUS
 NTAPI
 LdrGetProcedureAddressForCaller(
     _In_ PVOID DllHandle,
-    _In_opt_ PANSI_STRING ProcedureName,
+    _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _In_ ULONG Flags,
@@ -612,7 +612,7 @@ NTSYSAPI
 PUNICODE_STRING
 NTAPI
 LdrStandardizeSystemPath(
-    _In_ PUNICODE_STRING SystemPath
+    _In_ PCUNICODE_STRING SystemPath
     );
 
 typedef struct _LDR_FAILURE_DATA
@@ -1154,7 +1154,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrOpenImageFileOptionsKey(
-    _In_ PUNICODE_STRING SubKey,
+    _In_ PCUNICODE_STRING SubKey,
     _In_ BOOLEAN Wow64,
     _Out_ PHANDLE NewKeyHandle
     );
@@ -1175,7 +1175,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryImageFileExecutionOptions(
-    _In_ PUNICODE_STRING SubKey,
+    _In_ PCUNICODE_STRING SubKey,
     _In_ PCWSTR ValueName,
     _In_ ULONG ValueSize,
     _Out_ PVOID Buffer,
@@ -1187,7 +1187,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryImageFileExecutionOptionsEx(
-    _In_ PUNICODE_STRING SubKey,
+    _In_ PCUNICODE_STRING SubKey,
     _In_ PCWSTR ValueName,
     _In_ ULONG Type,
     _Out_ PVOID Buffer,
@@ -1332,7 +1332,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrAddDllDirectory(
-    _In_ PUNICODE_STRING NewDirectory,
+    _In_ PCUNICODE_STRING NewDirectory,
     _Out_ PDLL_DIRECTORY_COOKIE Cookie
     );
 
@@ -1584,7 +1584,7 @@ NTAPI
 LdrLoadEnclaveModule(
     _In_ PVOID BaseAddress,
     _In_opt_ PCWSTR DllPath,
-    _In_ PUNICODE_STRING DllName
+    _In_ PCUNICODE_STRING DllName
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
