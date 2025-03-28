@@ -21,6 +21,8 @@ typedef struct _CLIENT_ID64
     ULONGLONG UniqueThread;
 } CLIENT_ID64, *PCLIENT_ID64;
 
+typedef const STRING32 *PCUNICODE_STRING32;
+
 // EX
 
 typedef struct _EX_FAST_REF
