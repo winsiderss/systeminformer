@@ -531,46 +531,69 @@ NTSTATUS PhAfdFormatAddress(
     else if (Address->ss_family == AF_HYPERV)
     {
         PSOCKADDR_HV address = (PSOCKADDR_HV)Address;
-        PCWSTR knownVmId = NULL;
-        PPH_STRING vmIdPart = NULL;
-        PPH_STRING serviceIdPart;
 
         if (Simplify)
         {
-            // Recognize placeholder VmId values
-            if (IsEqualGUID(&address->VmId, &HV_GUID_WILDCARD))
-                knownVmId = L"{Wildcard}";
-            else if (IsEqualGUID(&address->VmId, &HV_GUID_BROADCAST))
-                knownVmId = L"{Broadcast}";
-            else if (IsEqualGUID(&address->VmId, &HV_GUID_CHILDREN))
-                knownVmId = L"{Children}";
-            else if (IsEqualGUID(&address->VmId, &HV_GUID_LOOPBACK))
-                knownVmId = L"{Loopback}";
-            else if (IsEqualGUID(&address->VmId, &HV_GUID_PARENT))
-                knownVmId = L"{Parent}";
-            else if (IsEqualGUID(&address->VmId, &HV_GUID_SILOHOST))
-                knownVmId = L"{Silo host}";
-        }
+            PH_FORMAT format[5];
+            ULONG count = 0;
+            PPH_STRING serviceString = NULL;
+            PPH_STRING vmName = NULL;
 
-        if (!knownVmId)
+            if (PhHvSocketIsVSockTemplate(&address->ServiceId))
+            {
+                PhInitFormatS(&format[count++], L"VSOCK:");
+                PhInitFormatU(&format[count++], address->ServiceId.Data1);
+            }
+            else if (serviceString = PhHvSocketGetServiceName(&address->ServiceId))
+            {
+                PhInitFormatSR(&format[count++], serviceString->sr);
+            }
+            else
+            {
+                serviceString = PhFormatGuid(&address->ServiceId);
+                PhInitFormatSR(&format[count++], serviceString->sr);
+            }
+
+            if (!IsEqualGUID(&address->VmId, &HV_GUID_WILDCARD))
+            {
+                PhInitFormatS(&format[count++], L" (VM: ");
+
+                if (vmName = PhHvSocketGetVmName(&address->VmId))
+                {
+                    PhInitFormatSR(&format[count++], vmName->sr);
+                }
+                else
+                {
+                    vmName = PhHvSocketAddressString(&address->VmId);
+                    PhInitFormatSR(&format[count++], vmName->sr);
+                }
+
+                PhInitFormatS(&format[count++], L")");
+            }
+
+            *AddressString = PhFormat(format, count, 80);
+
+            PhClearReference(&serviceString);
+            PhClearReference(&vmName);
+        }
+        else
         {
-            // Fall back to using a GUID name
+            PPH_STRING vmIdPart;
+            PPH_STRING serviceIdPart;
+            PH_FORMAT format[3];
+
             vmIdPart = PhFormatGuid(&address->VmId);
-        }
+            serviceIdPart = PhFormatGuid(&address->ServiceId);
 
-        serviceIdPart = PhFormatGuid(&address->ServiceId);
+            PhInitFormatSR(&format[0], vmIdPart->sr);
+            PhInitFormatC(&format[1], L':');
+            PhInitFormatSR(&format[2], serviceIdPart->sr);
 
-        // Format a Hyper-V address as {VmId}:{ServiceId}
-        *AddressString = PhFormatString(
-            L"%s:%s",
-            vmIdPart ? vmIdPart->Buffer : knownVmId,
-            serviceIdPart->Buffer
-            );
+            *AddressString = PhFormat(format, 3, 80);
 
-        if (vmIdPart)
             PhDereferenceObject(vmIdPart);
-
-        PhDereferenceObject(serviceIdPart);
+            PhDereferenceObject(serviceIdPart);
+        }
 
         status = STATUS_SUCCESS;
     }
