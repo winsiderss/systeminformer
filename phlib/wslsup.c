@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <wslsup.h>
+#include <mapldr.h>
 
 BOOLEAN NTAPI PhpWslDistributionNamesCallback(
     _In_ HANDLE RootDirectory,
@@ -236,7 +237,7 @@ BOOLEAN PhWslQueryDistroProcessCommandLine(
         {
             status = PhGetFileText(
                 &lxssCommandResult,
-                fileHandle, 
+                fileHandle,
                 TRUE
                 );
             NtClose(fileHandle);
@@ -320,7 +321,7 @@ BOOLEAN PhWslQueryDistroProcessEnvironment(
         {
             status = PhGetFileText(
                 &lxssCommandResult,
-                fileHandle, 
+                fileHandle,
                 TRUE
                 );
             NtClose(fileHandle);
@@ -555,13 +556,23 @@ CleanupExit:
     return success;
 }
 
-NTSTATUS PhCreateProcessLxss(
+BOOLEAN PhCreateProcessLxss(
     _In_ PPH_STRING LxssDistribution,
     _In_ PPH_STRING LxssCommandLine,
     _Out_ PPH_STRING *Result
     )
 {
     static SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+    static HRESULT (WINAPI* CreatePseudoConsole_I)(
+    _In_ COORD size,
+    _In_ HANDLE hInput,
+    _In_ HANDLE hOutput,
+    _In_ DWORD dwFlags,
+    _Out_ HPCON* phPC
+    ) = NULL;
+    static VOID (WINAPI* ClosePseudoConsole_I)(_In_ HPCON hPC) = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
     NTSTATUS status;
     BOOLEAN result = FALSE;
     PPH_STRING lxssOutputString = NULL;
@@ -576,6 +587,27 @@ NTSTATUS PhCreateProcessLxss(
     STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
     PH_FORMAT format[4];
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            PVOID baseAddress;
+
+            if (baseAddress = PhGetLoaderEntryDllBaseZ(L"kernelbase.dll"))
+            {
+                CreatePseudoConsole_I = PhGetDllBaseProcedureAddress(baseAddress, "CreatePseudoConsole", 0);
+                ClosePseudoConsole_I = PhGetDllBaseProcedureAddress(baseAddress, "ClosePseudoConsole", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    *Result = NULL;
+
+    if (!CreatePseudoConsole_I || !ClosePseudoConsole_I)
+        return FALSE;
 
     // "wsl.exe -u root -d %s -e %s"
     PhInitFormatS(&format[0], L"wsl.exe -u root -d ");
@@ -620,7 +652,7 @@ NTSTATUS PhCreateProcessLxss(
         goto CleanupExit;
 
     COORD coord = { 80, 25 };
-    if (HR_FAILED(CreatePseudoConsole(coord, inputReadHandle, outputWriteHandle, 0, &pseudoConsoleHandle)))
+    if (HR_FAILED(CreatePseudoConsole_I(coord, inputReadHandle, outputWriteHandle, 0, &pseudoConsoleHandle)))
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
@@ -715,7 +747,7 @@ CleanupExit:
         NtClose(processHandle);
 
     if (pseudoConsoleHandle)
-        ClosePseudoConsole(pseudoConsoleHandle);
+        ClosePseudoConsole_I(pseudoConsoleHandle);
 
     if (outputWriteHandle)
         NtClose(outputWriteHandle);
