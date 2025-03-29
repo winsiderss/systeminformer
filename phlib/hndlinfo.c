@@ -1121,7 +1121,8 @@ NTSTATUS PhpGetBestObjectName(
                 PhQueryCloseHandle(dupHandle);
             }
         }
-        else
+
+        if (PhIsNullOrEmptyString(bestObjectName))
         {
             // Convert the file name to a DOS file name.
             bestObjectName = PhResolveDevicePrefix(&ObjectName->sr);

@@ -27,9 +27,9 @@ BOOLEAN PhAfdIsSocketObjectName(
     _In_opt_ PPH_STRING ObjectName
     )
 {
-    return ObjectName && PhStartsWithString2(ObjectName, AFD_DEVICE_NAME, TRUE) &&
-        (ObjectName->Length == sizeof(AFD_DEVICE_NAME) - sizeof(UNICODE_NULL) ||
-         ObjectName->Buffer[ObjectName->Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR);
+    static const PH_STRINGREF afdDeviceName = PH_STRINGREF_INIT(AFD_DEVICE_NAME);
+
+    return ObjectName && PhStartsWithStringRef(&ObjectName->sr, &afdDeviceName, TRUE);
 }
 
 /**
