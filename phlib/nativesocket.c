@@ -14,6 +14,7 @@
 #include <ws2ipdef.h>
 #include <ws2bth.h>
 #include <hvsocket.h>
+#include <secedit.h>
 
  /**
    * \brief Determines if an object name represents an AFD socket handle.
@@ -748,34 +749,38 @@ PhAfdFormatProviderFlags(
     _In_ ULONG ProviderFlags
     )
 {
-    PH_STRING_BUILDER stringBuilder;
+#define PH_AFD_PROVIDER_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
 
-    PhInitializeStringBuilder(&stringBuilder, 60);
-    PhAppendFormatStringBuilder(&stringBuilder, L"0x%04X (", ProviderFlags);
-
-    if (ProviderFlags & PFL_MULTIPLE_PROTO_ENTRIES)
-        PhAppendStringBuilder2(&stringBuilder, L"Multiple entries, ");
-    if (ProviderFlags & PFL_RECOMMENDED_PROTO_ENTRY)
-        PhAppendStringBuilder2(&stringBuilder, L"Recommended entry, ");
-    if (ProviderFlags & PFL_HIDDEN)
-        PhAppendStringBuilder2(&stringBuilder, L"Hidden, ");
-    if (ProviderFlags & PFL_MATCHES_PROTOCOL_ZERO)
-        PhAppendStringBuilder2(&stringBuilder, L"Matches protocol zero, ");
-    if (ProviderFlags & PFL_NETWORKDIRECT_PROVIDER)
-        PhAppendStringBuilder2(&stringBuilder, L"Network direct, ");
-
-    if (!ProviderFlags)
+    static const PH_ACCESS_ENTRY providerFlags[] =
     {
-        PhAppendStringBuilder2(&stringBuilder, L"none");
+        PH_AFD_PROVIDER_FLAG(PFL_MULTIPLE_PROTO_ENTRIES, L"Multiple entries"),
+        PH_AFD_PROVIDER_FLAG(PFL_RECOMMENDED_PROTO_ENTRY, L"Recommended entry"),
+        PH_AFD_PROVIDER_FLAG(PFL_HIDDEN, L"Hidden"),
+        PH_AFD_PROVIDER_FLAG(PFL_MATCHES_PROTOCOL_ZERO, L"Matches protocol zero"),
+        PH_AFD_PROVIDER_FLAG(PFL_NETWORKDIRECT_PROVIDER, L"Network direct"),
+
+    };
+
+    PPH_STRING string;
+    PH_FORMAT format[4];
+
+    if (ProviderFlags)
+    {
+        string = PhGetAccessString(ProviderFlags, (PPH_ACCESS_ENTRY)providerFlags, RTL_NUMBER_OF(providerFlags));
+
+        PhInitFormatSR(&format[0], string->sr);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatX(&format[2], ProviderFlags);
+        PhInitFormatS(&format[3], L")");
+
+        PhMoveReference(&string, PhFormat(format, 4, 10));
     }
     else
     {
-        // Remove the trailing comma
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+        string = PhReferenceEmptyString();
     }
 
-    PhAppendCharStringBuilder(&stringBuilder, L')');
-    return PhFinalStringBuilderString(&stringBuilder);
+    return string;
 }
 
 /**
@@ -791,64 +796,52 @@ PhAfdFormatServiceFlags(
     _In_ ULONG ServiceFlags
     )
 {
-    PH_STRING_BUILDER stringBuilder;
+#define PH_AFD_SERVICE_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
 
-    PhInitializeStringBuilder(&stringBuilder, 0x100);
-    PhAppendFormatStringBuilder(&stringBuilder, L"0x%04X (", ServiceFlags);
-
-    if (ServiceFlags & XP1_CONNECTIONLESS)
-        PhAppendStringBuilder2(&stringBuilder, L"Connectionless, ");
-    if (ServiceFlags & XP1_GUARANTEED_DELIVERY)
-        PhAppendStringBuilder2(&stringBuilder, L"Guaranteed delivery, ");
-    if (ServiceFlags & XP1_GUARANTEED_ORDER)
-        PhAppendStringBuilder2(&stringBuilder, L"Guaranteed order, ");
-    if (ServiceFlags & XP1_MESSAGE_ORIENTED)
-        PhAppendStringBuilder2(&stringBuilder, L"Message-oriented, ");
-    if (ServiceFlags & XP1_PSEUDO_STREAM)
-        PhAppendStringBuilder2(&stringBuilder, L"Pseudo-stream, ");
-    if (ServiceFlags & XP1_GRACEFUL_CLOSE)
-        PhAppendStringBuilder2(&stringBuilder, L"Graceful close, ");
-    if (ServiceFlags & XP1_EXPEDITED_DATA)
-        PhAppendStringBuilder2(&stringBuilder, L"Expedited data, ");
-    if (ServiceFlags & XP1_CONNECT_DATA)
-        PhAppendStringBuilder2(&stringBuilder, L"Connect data, ");
-    if (ServiceFlags & XP1_DISCONNECT_DATA)
-        PhAppendStringBuilder2(&stringBuilder, L"Disconnect data, ");
-    if (ServiceFlags & XP1_SUPPORT_BROADCAST)
-        PhAppendStringBuilder2(&stringBuilder, L"Broadcast, ");
-    if (ServiceFlags & XP1_SUPPORT_MULTIPOINT)
-        PhAppendStringBuilder2(&stringBuilder, L"Support multipoint, ");
-    if (ServiceFlags & XP1_MULTIPOINT_CONTROL_PLANE)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint control plane, ");
-    if (ServiceFlags & XP1_MULTIPOINT_DATA_PLANE)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint data plane, ");
-    if (ServiceFlags & XP1_QOS_SUPPORTED)
-        PhAppendStringBuilder2(&stringBuilder, L"QoS supported, ");
-    if (ServiceFlags & XP1_INTERRUPT)
-        PhAppendStringBuilder2(&stringBuilder, L"Interrupt, ");
-    if (ServiceFlags & XP1_UNI_SEND)
-        PhAppendStringBuilder2(&stringBuilder, L"Unidirectional send, ");
-    if (ServiceFlags & XP1_UNI_RECV)
-        PhAppendStringBuilder2(&stringBuilder, L"Unidirectional receive, ");
-    if (ServiceFlags & XP1_IFS_HANDLES)
-        PhAppendStringBuilder2(&stringBuilder, L"IFS handles, ");
-    if (ServiceFlags & XP1_PARTIAL_MESSAGE)
-        PhAppendStringBuilder2(&stringBuilder, L"Partial message, ");
-    if (ServiceFlags & XP1_SAN_SUPPORT_SDP)
-        PhAppendStringBuilder2(&stringBuilder, L"SAN, ");
-
-    if (!ServiceFlags)
+    static const PH_ACCESS_ENTRY serivceFlags[] =
     {
-        PhAppendStringBuilder2(&stringBuilder, L"none");
+        PH_AFD_SERVICE_FLAG(XP1_CONNECTIONLESS, L"Connectionless"),
+        PH_AFD_SERVICE_FLAG(XP1_GUARANTEED_DELIVERY, L"Guaranteed delivery"),
+        PH_AFD_SERVICE_FLAG(XP1_GUARANTEED_ORDER, L"Guaranteed order"),
+        PH_AFD_SERVICE_FLAG(XP1_MESSAGE_ORIENTED, L"Message-oriented"),
+        PH_AFD_SERVICE_FLAG(XP1_PSEUDO_STREAM, L"Pseudo-stream"),
+        PH_AFD_SERVICE_FLAG(XP1_GRACEFUL_CLOSE, L"Graceful close"),
+        PH_AFD_SERVICE_FLAG(XP1_EXPEDITED_DATA, L"Expedited data"),
+        PH_AFD_SERVICE_FLAG(XP1_CONNECT_DATA, L"Connect data"),
+        PH_AFD_SERVICE_FLAG(XP1_DISCONNECT_DATA, L"Disconnect data"),
+        PH_AFD_SERVICE_FLAG(XP1_SUPPORT_BROADCAST, L"Broadcast"),
+        PH_AFD_SERVICE_FLAG(XP1_SUPPORT_MULTIPOINT, L"Support multipoint"),
+        PH_AFD_SERVICE_FLAG(XP1_MULTIPOINT_CONTROL_PLANE, L"Multipoint control plane"),
+        PH_AFD_SERVICE_FLAG(XP1_MULTIPOINT_DATA_PLANE, L"Multipoint data plane"),
+        PH_AFD_SERVICE_FLAG(XP1_QOS_SUPPORTED, L"QoS supported"),
+        PH_AFD_SERVICE_FLAG(XP1_INTERRUPT, L"Interrupt"),
+        PH_AFD_SERVICE_FLAG(XP1_UNI_SEND, L"Unidirectional send"),
+        PH_AFD_SERVICE_FLAG(XP1_UNI_RECV, L"Unidirectional receive"),
+        PH_AFD_SERVICE_FLAG(XP1_IFS_HANDLES, L"IFS handles"),
+        PH_AFD_SERVICE_FLAG(XP1_PARTIAL_MESSAGE, L"Partial message"),
+        PH_AFD_SERVICE_FLAG(XP1_SAN_SUPPORT_SDP, L"SAN"),
+    };
+
+    PPH_STRING string;
+    PH_FORMAT format[4];
+
+    if (ServiceFlags)
+    {
+        string = PhGetAccessString(ServiceFlags, (PPH_ACCESS_ENTRY)serivceFlags, RTL_NUMBER_OF(serivceFlags));
+
+        PhInitFormatSR(&format[0], string->sr);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatX(&format[2], ServiceFlags);
+        PhInitFormatS(&format[3], L")");
+
+        PhMoveReference(&string, PhFormat(format, 4, 10));
     }
     else
     {
-        // Remove the trailing comma
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+        string = PhReferenceEmptyString();
     }
 
-    PhAppendCharStringBuilder(&stringBuilder, L')');
-    return PhFinalStringBuilderString(&stringBuilder);
+    return string;
 }
 
 /**
@@ -864,40 +857,40 @@ PhAfdFormatCreationFlags(
     _In_ ULONG CreationFlags
     )
 {
-    PH_STRING_BUILDER stringBuilder;
+#define PH_AFD_CREATION_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
 
-    PhInitializeStringBuilder(&stringBuilder, 60);
-    PhAppendFormatStringBuilder(&stringBuilder, L"0x%04X (", CreationFlags);
-
-    if (CreationFlags & WSA_FLAG_OVERLAPPED)
-        PhAppendStringBuilder2(&stringBuilder, L"Overlapped, ");
-    if (CreationFlags & WSA_FLAG_MULTIPOINT_C_ROOT)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint control root, ");
-    if (CreationFlags & WSA_FLAG_MULTIPOINT_C_LEAF)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint control leaf, ");
-    if (CreationFlags & WSA_FLAG_MULTIPOINT_D_ROOT)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint data root, ");
-    if (CreationFlags & WSA_FLAG_MULTIPOINT_D_LEAF)
-        PhAppendStringBuilder2(&stringBuilder, L"Multipoint data leaf, ");
-    if (CreationFlags & WSA_FLAG_ACCESS_SYSTEM_SECURITY)
-        PhAppendStringBuilder2(&stringBuilder, L"Access SACL, ");
-    if (CreationFlags & WSA_FLAG_NO_HANDLE_INHERIT)
-        PhAppendStringBuilder2(&stringBuilder, L"No handle inherit, ");
-    if (CreationFlags & WSA_FLAG_REGISTERED_IO)
-        PhAppendStringBuilder2(&stringBuilder, L"Registered I/O, ");
-
-    if (!CreationFlags)
+    static const PH_ACCESS_ENTRY creationFlags[] =
     {
-        PhAppendStringBuilder2(&stringBuilder, L"none");
+        PH_AFD_CREATION_FLAG(WSA_FLAG_OVERLAPPED, L"Overlapped"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_MULTIPOINT_C_ROOT, L"Multipoint control root"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_MULTIPOINT_C_LEAF, L"Multipoint control leaf"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_MULTIPOINT_D_ROOT, L"Multipoint data root"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_MULTIPOINT_D_LEAF, L"Multipoint data leaf"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_ACCESS_SYSTEM_SECURITY, L"Access SACL"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_NO_HANDLE_INHERIT, L"No handle inherit"),
+        PH_AFD_CREATION_FLAG(WSA_FLAG_REGISTERED_IO, L"Registered I/O"),
+    };
+
+    PPH_STRING string;
+    PH_FORMAT format[4];
+
+    if (CreationFlags)
+    {
+        string = PhGetAccessString(CreationFlags, (PPH_ACCESS_ENTRY)creationFlags, RTL_NUMBER_OF(creationFlags));
+
+        PhInitFormatSR(&format[0], string->sr);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatX(&format[2], CreationFlags);
+        PhInitFormatS(&format[3], L")");
+
+        PhMoveReference(&string, PhFormat(format, 4, 10));
     }
     else
     {
-        // Remove the trailing comma
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+        string = PhReferenceEmptyString();
     }
 
-    PhAppendCharStringBuilder(&stringBuilder, L')');
-    return PhFinalStringBuilderString(&stringBuilder);
+    return string;
 }
 
 /**
@@ -915,8 +908,10 @@ PhAfdFormatSharedInfoFlags(
 {
     PH_STRING_BUILDER stringBuilder;
 
+    if (!SharedInfo->Flags)
+        return PhReferenceEmptyString();
+
     PhInitializeStringBuilder(&stringBuilder, 80);
-    PhAppendFormatStringBuilder(&stringBuilder, L"0x%04X (", SharedInfo->Flags);
 
     if (SharedInfo->Listening)
         PhAppendStringBuilder2(&stringBuilder, L"Listening, ");
@@ -951,17 +946,11 @@ PhAfdFormatSharedInfoFlags(
     if (SharedInfo->SendBufferSizeSet)
         PhAppendStringBuilder2(&stringBuilder, L"Send buffer size set, ");
 
-    if (!SharedInfo->Flags)
-    {
-        PhAppendStringBuilder2(&stringBuilder, L"none");
-    }
-    else
-    {
-        // Remove the trailing comma
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
-    }
+    // Remove the trailing comma
+    PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    PhAppendCharStringBuilder(&stringBuilder, L')');
+    PhAppendFormatStringBuilder(&stringBuilder, L" (0x%x)", SharedInfo->Flags);
+
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
