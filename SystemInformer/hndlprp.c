@@ -232,6 +232,28 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
+BOOLEAN PhpIsVerboseBestObjectName(
+    _In_ PPH_HANDLE_ITEM HandleItem
+    )
+{
+    // Some handles use a verbose BestObjectName for the sake of searching. And will display
+    // extended information in the property window consisting of the information contained in the
+    // BestObjectName. This routine is used to fall back to the normal ObjectName in the property
+    // window for these cases. (jxy-s)
+
+    if (PhIsNullOrEmptyString(HandleItem->TypeName))
+        return FALSE;
+
+    if (PhEqualString2(HandleItem->TypeName, L"ALPC Port", TRUE))
+        return TRUE;
+
+    if (PhEqualString2(HandleItem->TypeName, L"File", TRUE) &&
+        PhAfdIsSocketObjectName(HandleItem->ObjectName))
+        return TRUE;
+
+    return FALSE;
+}
+
 NTSTATUS PhpShowHandlePropertiesThread(
     _In_ PVOID Parameter
     )
@@ -340,17 +362,10 @@ NTSTATUS PhpShowHandlePropertiesThread(
     {
         PCWSTR objectName;
 
-        // Best object name for the ALPC port contains information about the connection
-        // between the client and server, use the original object name string instead.
-        if (!PhIsNullOrEmptyString(handleContext->HandleItem->TypeName) &&
-            PhEqualString2(handleContext->HandleItem->TypeName, L"ALPC Port", TRUE))
-        {
+        if (PhpIsVerboseBestObjectName(handleContext->HandleItem))
             objectName = PhGetStringOrEmpty(handleContext->HandleItem->ObjectName);
-        }
         else
-        {
             objectName = PhGetStringOrEmpty(handleContext->HandleItem->BestObjectName);
-        }
 
         pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             objectName,
@@ -775,12 +790,7 @@ VOID PhpUpdateHandleGeneral(
     ULONG numberOfAccessEntries;
     WCHAR string[PH_INT64_STR_LEN_1];
 
-    // Some handles use a verbose BestObjectName for the sake of searching. And will display extended information in the
-    // property window consisting of the information contained in the BestObjectName. Fall back to the normal ObjectName
-    // in the property window for these cases. (jxy-s)
-    if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE) && PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
+    if (PhpIsVerboseBestObjectName(Context->HandleItem))
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
     else
         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
