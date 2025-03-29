@@ -29,7 +29,20 @@ BOOLEAN PhAfdIsSocketObjectName(
 {
     static const PH_STRINGREF afdDeviceName = PH_STRINGREF_INIT(AFD_DEVICE_NAME);
 
-    return ObjectName && PhStartsWithStringRef(&ObjectName->sr, &afdDeviceName, TRUE);
+    if (ObjectName && PhStartsWithStringRef(&ObjectName->sr, &afdDeviceName, TRUE))
+    {
+        // N.B. Check explicitly for "\\Device\\Afd" or "\\Device\\Afd\\" to avoid "\\Device\\AfdABC"
+
+        if (ObjectName->sr.Length == afdDeviceName.Length)
+            return TRUE;
+
+        assert(ObjectName->sr.Length > afdDeviceName.Length);
+
+        if (ObjectName->sr.Buffer[afdDeviceName.Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 /**
