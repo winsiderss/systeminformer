@@ -740,6 +740,7 @@ BOOLEAN PhCreateProcessLxss(
     }
 
     *Result = PhReferenceObject(lxssOutputString);
+    result = TRUE;
 
 CleanupExit:
 
