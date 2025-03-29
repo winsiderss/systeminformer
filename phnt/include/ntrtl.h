@@ -9483,7 +9483,7 @@ NTAPI
 RtlEncodePointer(
     _In_ PVOID Ptr
     );
-    
+
 /**
  * Decodes a pointer that was previously encoded with RtlEncodePointer.
  *

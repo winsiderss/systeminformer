@@ -735,7 +735,7 @@ NtAllocateVirtualMemory(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 /**
- * The NtAllocateVirtualMemory routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
+ * The NtAllocateVirtualMemoryEx routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
  *
  * @param ProcessHandle A handle for the process for which the mapping should be done.
  * @param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
