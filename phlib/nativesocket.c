@@ -13,7 +13,7 @@
 #include <hndlinfo.h>
 #include <ws2ipdef.h>
 #include <ws2bth.h>
-#include <hvsocket.h>
+#include <hvsocketcontrol.h>
 #include <secedit.h>
 
  /**

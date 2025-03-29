@@ -38,7 +38,7 @@ static const OBJECT_ATTRIBUTES HvSocketControlAttributes       = RTL_CONSTANT_OB
 
 #define HVSOCKET_SYSTEM_PATH_LENGTH  (sizeof(L"\\Device\\HvSocketSystem") /* \\ */ + sizeof(L"AddressInfo") /* \\ */ + sizeof(L"{00000000-0000-0000-0000-000000000000}"))
 
-NTSTATUS HvSocketOpenSystemControl(
+NTSTATUS PhHvSocketOpenSystemControl(
     _Out_ PHANDLE SystemHandle,
     _In_opt_ const GUID* VmId
     )
@@ -105,7 +105,7 @@ NTSTATUS HvSocketOpenSystemControl(
         );
 }
 
-NTSTATUS HvSocketGetListeners(
+NTSTATUS PhHvSocketGetListeners(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_LISTENERS Listeners,
@@ -139,7 +139,7 @@ NTSTATUS HvSocketGetListeners(
     return status;
 }
 
-NTSTATUS HvSocketGetConnections(
+NTSTATUS PhHvSocketGetConnections(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_CONNECTIONS Connections,
@@ -173,7 +173,7 @@ NTSTATUS HvSocketGetConnections(
     return status;
 }
 
-NTSTATUS HvSocketGetServiceInfo(
+NTSTATUS PhHvSocketGetServiceInfo(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* ServiceId,
     _Out_ PHVSOCKET_SERVICE_INFO ServiceInfo
@@ -205,7 +205,7 @@ NTSTATUS HvSocketGetServiceInfo(
 
 #endif // _WIN64
 
-BOOLEAN HvSocketIsVSockTemplate(
+BOOLEAN PhHvSocketIsVSockTemplate(
     _In_ PGUID ServiceId
     )
 {
@@ -217,7 +217,7 @@ BOOLEAN HvSocketIsVSockTemplate(
 }
 
 _Maybenull_
-PPH_STRING HvSocketGetVmName(
+PPH_STRING PhHvSocketGetVmName(
     _In_ PGUID VmId
     )
 {
@@ -262,7 +262,7 @@ PPH_STRING HvSocketGetVmName(
 }
 
 _Maybenull_
-PPH_STRING HvSocketGetServiceName(
+PPH_STRING PhHvSocketGetServiceName(
     _In_ PGUID ServiceId
     )
 {
@@ -298,7 +298,7 @@ PPH_STRING HvSocketGetServiceName(
 
     // Keep this after element name lookup. Certain services define the VSOCK
     // template with a specific port (e.g. Docker). (jxy-s)
-    if (!serviceName && HvSocketIsVSockTemplate(ServiceId))
+    if (!serviceName && PhHvSocketIsVSockTemplate(ServiceId))
         PhMoveReference(&serviceName, PhCreateString(L"VSOCK"));
 
     PhDereferenceObject(keyName);
@@ -307,7 +307,7 @@ PPH_STRING HvSocketGetServiceName(
     return serviceName;
 }
 
-PPH_STRING HvSocketAddressString(
+PPH_STRING PhHvSocketAddressString(
     _In_ PGUID Address
     )
 {

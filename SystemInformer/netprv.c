@@ -612,7 +612,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
         }
         break;
     case PH_NETWORK_TYPE_HYPERV:
-        return HvSocketGetVmName(&Address->HvAddr);
+        return PhHvSocketGetVmName(&Address->HvAddr);
     }
 
     if (PhIsNullOrEmptyString(dnsReverseNameString))
@@ -1070,10 +1070,10 @@ VOID PhNetworkProviderUpdate(
                 break;
             case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->LocalAddressString = HvSocketAddressString(
+                    networkItem->LocalAddressString = PhHvSocketAddressString(
                         &networkItem->LocalEndpoint.Address.HvAddr
                         );
-                    networkItem->HvService = HvSocketGetServiceName(
+                    networkItem->HvService = PhHvSocketGetServiceName(
                         &networkItem->LocalEndpoint.Address.HvAddr
                         );
                 }
@@ -1129,7 +1129,7 @@ VOID PhNetworkProviderUpdate(
                 break;
             case PH_NETWORK_TYPE_HYPERV:
                 {
-                    networkItem->RemoteAddressString = HvSocketAddressString(
+                    networkItem->RemoteAddressString = PhHvSocketAddressString(
                         &networkItem->RemoteEndpoint.Address.HvAddr
                         );
                 }
@@ -1271,7 +1271,7 @@ PHVSOCKET_LISTENERS PhpGetHvSocketListeners(
 
     for (;;)
     {
-        status = HvSocketGetListeners(SystemHandle, VmId, listeners, length, &length);
+        status = PhHvSocketGetListeners(SystemHandle, VmId, listeners, length, &length);
         if (status != STATUS_BUFFER_TOO_SMALL)
         {
             break;
@@ -1304,7 +1304,7 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
 
     for (;;)
     {
-        status = HvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
+        status = PhHvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
         if (status != STATUS_BUFFER_TOO_SMALL || length == 0)
         {
             break;
@@ -1338,7 +1338,7 @@ VOID PhpCollectHvSocket(
     PPH_LIST listenersList;
     PPH_LIST connectionsList;
 
-    if (!NT_SUCCESS(HvSocketOpenSystemControl(&systemHandle, NULL)))
+    if (!NT_SUCCESS(PhHvSocketOpenSystemControl(&systemHandle, NULL)))
     {
         *Listeners = NULL;
         *Connections = NULL;
@@ -1822,7 +1822,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvListeners->Listener[i].ServiceId;
 
-            if (HvSocketIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
+            if (PhHvSocketIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvListeners->Listener[i].Port;
             else
                 connections[index].LocalEndpoint.Port = 0;
@@ -1850,7 +1850,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].LocalEndpoint.Address.Type = PH_NETWORK_TYPE_HYPERV;
             connections[index].LocalEndpoint.Address.HvAddr = hvConnections->Connection[i].ServiceId;
 
-            if (HvSocketIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
+            if (PhHvSocketIsVSockTemplate(&connections[index].LocalEndpoint.Address.HvAddr))
                 connections[index].LocalEndpoint.Port = hvConnections->Connection[i].Port;
             else
                 connections[index].LocalEndpoint.Port = 0;

@@ -21,7 +21,7 @@ EXTERN_C_START
 PHLIBAPI
 NTSTATUS
 NTAPI
-HvSocketOpenSystemControl(
+PhHvSocketOpenSystemControl(
     _Out_ PHANDLE SystemHandle,
     _In_opt_ const GUID* VmId
     );
@@ -54,7 +54,7 @@ C_ASSERT(sizeof(HVSOCKET_LISTENERS) == 64);
 PHLIBAPI
 NTSTATUS
 NTAPI
-HvSocketGetListeners(
+PhHvSocketGetListeners(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_LISTENERS Listeners,
@@ -90,7 +90,7 @@ C_ASSERT(sizeof(HVSOCKET_CONNECTIONS) == 64);
 PHLIBAPI
 NTSTATUS
 NTAPI
-HvSocketGetConnections(
+PhHvSocketGetConnections(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_CONNECTIONS Connections,
@@ -110,7 +110,7 @@ C_ASSERT(sizeof(HVSOCKET_SERVICE_INFO) == 24);
 PHLIBAPI
 NTSTATUS
 NTAPI
-HvSocketGetServiceInfo(
+PhHvSocketGetServiceInfo(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* ServiceId,
     _Out_ PHVSOCKET_SERVICE_INFO ServiceInfo
@@ -121,7 +121,7 @@ HvSocketGetServiceInfo(
 PHLIBAPI
 BOOLEAN
 NTAPI
-HvSocketIsVSockTemplate(
+PhHvSocketIsVSockTemplate(
     _In_ PGUID ServiceId
     );
 
@@ -129,7 +129,7 @@ PHLIBAPI
 _Maybenull_
 PPH_STRING
 NTAPI
-HvSocketGetVmName(
+PhHvSocketGetVmName(
     _In_ PGUID VmId
     );
 
@@ -137,14 +137,14 @@ PHLIBAPI
 _Maybenull_
 PPH_STRING
 NTAPI
-HvSocketGetServiceName(
+PhHvSocketGetServiceName(
     _In_ PGUID ServiceId
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
-HvSocketAddressString(
+PhHvSocketAddressString(
     _In_ PGUID Address
     );
 
