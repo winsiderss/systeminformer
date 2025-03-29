@@ -1116,11 +1116,14 @@ PPH_STRING PhAfdFormatSocketBestName(
     _In_ HANDLE SocketHandle
     )
 {
-    PH_STRING_BUILDER stringBuilder;
     SOCK_SHARED_INFO sharedInfo;
-    PPH_STRING addressString;
+    PPH_STRING string;
+    PPH_STRING addressString = NULL;
+    PPH_STRING remoteAddressString = NULL;
     BOOLEAN sharedInfoAvailable;
     BOOLEAN addressAvailable;
+    PH_FORMAT format[9];
+    ULONG count = 0;
 
     // Query socket information
     sharedInfoAvailable = NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &sharedInfo));
@@ -1129,8 +1132,7 @@ PPH_STRING PhAfdFormatSocketBestName(
     if (!sharedInfoAvailable && !addressAvailable)
         return NULL;
 
-    PhInitializeStringBuilder(&stringBuilder, 0x100);
-    PhAppendStringBuilder2(&stringBuilder, L"AFD socket: ");
+    PhInitFormatS(&format[count++], L"AFD socket: ");
 
     if (sharedInfoAvailable)
     {
@@ -1139,36 +1141,36 @@ PPH_STRING PhAfdFormatSocketBestName(
         // State
         if (detail = PhpAfdGetSocketStateString(sharedInfo.State))
         {
-            PhAppendStringBuilder2(&stringBuilder, detail);
-            PhAppendStringBuilder2(&stringBuilder, L" ");
+            PhInitFormatS(&format[count++], detail);
+            PhInitFormatC(&format[count++], L' ');
         }
 
         // Protocol
         if (detail = PhpAfdGetProtocolSummary(sharedInfo.AddressFamily, sharedInfo.Protocol))
         {
-            PhAppendStringBuilder2(&stringBuilder, detail);
-            PhAppendStringBuilder2(&stringBuilder, L" ");
+            PhInitFormatS(&format[count++], detail);
+            PhInitFormatC(&format[count++], L' ');
         }
     }
 
     if (addressAvailable)
     {
-        PPH_STRING remoteAddressString;
-
         // Local address
-        PhAppendStringBuilder2(&stringBuilder, L"on ");
-        PhAppendStringBuilder(&stringBuilder, &addressString->sr);
+        PhInitFormatS(&format[count++], L"on ");
+        PhInitFormatSR(&format[count++], addressString->sr);
 
         // Remote address
         if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, TRUE)))
         {
-            PhAppendStringBuilder2(&stringBuilder, L" --> ");
-            PhAppendStringBuilder(&stringBuilder, &remoteAddressString->sr);
-            PhDereferenceObject(remoteAddressString);
+            PhInitFormatS(&format[count++], L" to ");
+            PhInitFormatSR(&format[count++], remoteAddressString->sr);
         }
-
-        PhDereferenceObject(addressString);
     }
 
-    return PhFinalStringBuilderString(&stringBuilder);
+    string = PhFormat(format, count, 10);
+
+    PhClearReference(&addressString);
+    PhClearReference(&remoteAddressString);
+
+    return string;
 }
