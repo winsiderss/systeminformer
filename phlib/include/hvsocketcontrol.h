@@ -118,6 +118,36 @@ HvSocketGetServiceInfo(
 
 #endif // _WIN64
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+HvSocketIsVSockTemplate(
+    _In_ PGUID ServiceId
+    );
+
+PHLIBAPI
+_Maybenull_
+PPH_STRING
+NTAPI
+HvSocketGetVmName(
+    _In_ PGUID VmId
+    );
+
+PHLIBAPI
+_Maybenull_
+PPH_STRING
+NTAPI
+HvSocketGetServiceName(
+    _In_ PGUID ServiceId
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+HvSocketAddressString(
+    _In_ PGUID Address
+    );
+
 EXTERN_C_END
 
 #endif // _PH_HVSOCKETCONTROL_H

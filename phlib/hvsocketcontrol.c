@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2023
+ *     jxy-s   2023-2025
  *
  */
 
@@ -204,3 +204,145 @@ NTSTATUS HvSocketGetServiceInfo(
 }
 
 #endif // _WIN64
+
+BOOLEAN HvSocketIsVSockTemplate(
+    _In_ PGUID ServiceId
+    )
+{
+    GUID template = *ServiceId;
+
+    template.Data1 = 0;
+
+    return !!IsEqualGUID(&template, &HV_GUID_VSOCK_TEMPLATE);
+}
+
+_Maybenull_
+PPH_STRING HvSocketGetVmName(
+    _In_ PGUID VmId
+    )
+{
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING vmName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(VmId);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING value;
+
+        if (value = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+            PhMoveReference(&vmName, value);
+        else if (value = PhQueryRegistryStringZ(keyHandle, L"VmId"))
+            PhMoveReference(&vmName, value);
+        else
+            PhMoveReference(&vmName, PhCreateString3(&guidStringTrimmed, PH_STRING_UPPER_CASE, NULL));
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return vmName;
+}
+
+_Maybenull_
+PPH_STRING HvSocketGetServiceName(
+    _In_ PGUID ServiceId
+    )
+{
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING serviceName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(ServiceId);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvGuestServicesKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING elementName;
+
+        if (elementName = PhQueryRegistryStringZ(keyHandle, L"ElementName"))
+            PhMoveReference(&serviceName, elementName);
+
+        NtClose(keyHandle);
+    }
+
+    // Keep this after element name lookup. Certain services define the VSOCK
+    // template with a specific port (e.g. Docker). (jxy-s)
+    if (!serviceName && HvSocketIsVSockTemplate(ServiceId))
+        PhMoveReference(&serviceName, PhCreateString(L"VSOCK"));
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return serviceName;
+}
+
+PPH_STRING HvSocketAddressString(
+    _In_ PGUID Address
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING wildcardString;
+    static PPH_STRING broadcastString;
+    static PPH_STRING childrenString;
+    static PPH_STRING loopbackString;
+    static PPH_STRING hostString;
+    static PPH_STRING siloHostString;
+    PPH_STRING addressString = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        wildcardString = PhCreateString(L"*");
+        broadcastString = PhCreateString(L"Broadcast");
+        childrenString = PhCreateString(L"Children");
+        loopbackString = PhCreateString(L"Loopback");
+        hostString = PhCreateString(L"Host");
+        siloHostString = PhCreateString(L"Silo Host");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (IsEqualGUID(Address, &HV_GUID_WILDCARD))
+        return PhReferenceObject(wildcardString);
+    if (IsEqualGUID(Address, &HV_GUID_BROADCAST))
+        return PhReferenceObject(broadcastString);
+    if (IsEqualGUID(Address, &HV_GUID_CHILDREN))
+        return PhReferenceObject(childrenString);
+    if (IsEqualGUID(Address, &HV_GUID_LOOPBACK))
+        return PhReferenceObject(loopbackString);
+    if (IsEqualGUID(Address, &HV_GUID_PARENT))
+        return PhReferenceObject(hostString);
+    if (IsEqualGUID(Address, &HV_GUID_SILOHOST))
+        return PhReferenceObject(siloHostString);
+
+    return PhFormatGuid(Address);
+}
