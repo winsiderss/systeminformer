@@ -1690,7 +1690,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePagingFile(
-    _In_ PUNICODE_STRING PageFileName,
+    _In_ PCUNICODE_STRING PageFileName,
     _In_ PLARGE_INTEGER MinimumSize,
     _In_ PLARGE_INTEGER MaximumSize,
     _In_ ULONG Priority

@@ -604,7 +604,7 @@ NtCreateKey(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Reserved_ ULONG TitleIndex,
-    _In_opt_ PUNICODE_STRING Class,
+    _In_opt_ PCUNICODE_STRING Class,
     _In_ ULONG CreateOptions,
     _Out_opt_ PULONG Disposition
     );
@@ -631,7 +631,7 @@ NtCreateKeyTransacted(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _Reserved_ ULONG TitleIndex,
-    _In_opt_ PUNICODE_STRING Class,
+    _In_opt_ PCUNICODE_STRING Class,
     _In_ ULONG CreateOptions,
     _In_ HANDLE TransactionHandle,
     _Out_opt_ PULONG Disposition
@@ -744,7 +744,7 @@ NTSTATUS
 NTAPI
 NtRenameKey(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING NewName
+    _In_ PCUNICODE_STRING NewName
     );
 
 /**
@@ -759,7 +759,7 @@ NTSTATUS
 NTAPI
 NtDeleteValueKey(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName
+    _In_ PCUNICODE_STRING ValueName
     );
 
 /**
@@ -818,7 +818,7 @@ NTSTATUS
 NTAPI
 NtQueryValueKey(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
     _Out_writes_bytes_to_opt_(Length, *ResultLength) PVOID KeyValueInformation,
     _In_ ULONG Length,
@@ -841,7 +841,7 @@ NTSTATUS
 NTAPI
 NtSetValueKey(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _In_opt_ ULONG TitleIndex,
     _In_ ULONG Type,
     _In_reads_bytes_opt_(DataSize) PVOID Data,

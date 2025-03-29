@@ -121,7 +121,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 SamConnect(
-    _In_opt_ PUNICODE_STRING ServerName,
+    _In_opt_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
@@ -131,7 +131,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 SamConnectWithCreds(
-    _In_ PUNICODE_STRING ServerName,
+    _In_ PCUNICODE_STRING ServerName,
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
@@ -422,7 +422,7 @@ NTSTATUS
 NTAPI
 SamLookupDomainInSamServer(
     _In_ SAM_HANDLE ServerHandle,
-    _In_ PUNICODE_STRING Name,
+    _In_ PCUNICODE_STRING Name,
     _Outptr_ PSID *DomainId
     );
 
@@ -471,7 +471,7 @@ NTAPI
 SamLookupNamesInDomain(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ULONG Count,
-    _In_reads_(Count) PUNICODE_STRING Names,
+    _In_reads_(Count) PCUNICODE_STRING Names,
     _Out_ _Deref_post_count_(Count) PULONG *RelativeIds,
     _Out_ _Deref_post_count_(Count) PSID_NAME_USE *Use
     );
@@ -482,7 +482,7 @@ NTAPI
 SamLookupNamesInDomain2(
     _In_ SAM_HANDLE DomainHandle,
     _In_ ULONG Count,
-    _In_reads_(Count) PUNICODE_STRING Names,
+    _In_reads_(Count) PCUNICODE_STRING Names,
     _Out_ _Deref_post_count_(Count) PSID* Sids,
     _Out_ _Deref_post_count_(Count) PSID_NAME_USE* Use
     );
@@ -601,7 +601,7 @@ NTSTATUS
 NTAPI
 SamCreateGroupInDomain(
     _In_ SAM_HANDLE DomainHandle,
-    _In_ PUNICODE_STRING AccountName,
+    _In_ PCUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PSAM_HANDLE GroupHandle,
     _Out_ PULONG RelativeId
@@ -761,7 +761,7 @@ NTSTATUS
 NTAPI
 SamCreateAliasInDomain(
     _In_ SAM_HANDLE DomainHandle,
-    _In_ PUNICODE_STRING AccountName,
+    _In_ PCUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PSAM_HANDLE AliasHandle,
     _Out_ PULONG RelativeId
@@ -1534,7 +1534,7 @@ NTSTATUS
 NTAPI
 SamCreateUserInDomain(
     _In_ SAM_HANDLE DomainHandle,
-    _In_ PUNICODE_STRING AccountName,
+    _In_ PCUNICODE_STRING AccountName,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PSAM_HANDLE UserHandle,
     _Out_ PULONG RelativeId
@@ -1545,7 +1545,7 @@ NTSTATUS
 NTAPI
 SamCreateUser2InDomain(
     _In_ SAM_HANDLE DomainHandle,
-    _In_ PUNICODE_STRING AccountName,
+    _In_ PCUNICODE_STRING AccountName,
     _In_ ULONG AccountType,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PSAM_HANDLE UserHandle,
@@ -1602,28 +1602,28 @@ NTSTATUS
 NTAPI
 SamChangePasswordUser(
     _In_ SAM_HANDLE UserHandle,
-    _In_ PUNICODE_STRING OldPassword,
-    _In_ PUNICODE_STRING NewPassword
+    _In_ PCUNICODE_STRING OldPassword,
+    _In_ PCUNICODE_STRING NewPassword
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 SamChangePasswordUser2(
-    _In_ PUNICODE_STRING ServerName,
-    _In_ PUNICODE_STRING UserName,
-    _In_ PUNICODE_STRING OldPassword,
-    _In_ PUNICODE_STRING NewPassword
+    _In_ PCUNICODE_STRING ServerName,
+    _In_ PCUNICODE_STRING UserName,
+    _In_ PCUNICODE_STRING OldPassword,
+    _In_ PCUNICODE_STRING NewPassword
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 SamChangePasswordUser3(
-    _In_ PUNICODE_STRING ServerName,
-    _In_ PUNICODE_STRING UserName,
-    _In_ PUNICODE_STRING OldPassword,
-    _In_ PUNICODE_STRING NewPassword,
+    _In_ PCUNICODE_STRING ServerName,
+    _In_ PCUNICODE_STRING UserName,
+    _In_ PCUNICODE_STRING OldPassword,
+    _In_ PCUNICODE_STRING NewPassword,
     _Outptr_ PDOMAIN_PASSWORD_INFORMATION *EffectivePasswordPolicy,
     _Outptr_ PUSER_PWD_CHANGE_FAILURE_INFORMATION *PasswordChangeFailureInfo
     );
@@ -1649,7 +1649,7 @@ NTAPI
 SamGetDisplayEnumerationIndex(
     _In_ SAM_HANDLE DomainHandle,
     _In_ DOMAIN_DISPLAY_INFORMATION DisplayInformation,
-    _In_ PUNICODE_STRING Prefix,
+    _In_ PCUNICODE_STRING Prefix,
     _Out_ PULONG Index
     );
 
@@ -1712,7 +1712,7 @@ typedef NTSTATUS (NTAPI *PSAM_DELTA_NOTIFICATION_ROUTINE)(
     _In_ SECURITY_DB_DELTA_TYPE DeltaType,
     _In_ SECURITY_DB_OBJECT_TYPE ObjectType,
     _In_ ULONG ObjectRid,
-    _In_opt_ PUNICODE_STRING ObjectName,
+    _In_opt_ PCUNICODE_STRING ObjectName,
     _In_ PLARGE_INTEGER ModifiedCount,
     _In_opt_ PSAM_DELTA_DATA DeltaData
     );
@@ -1848,7 +1848,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 SamValidatePassword(
-    _In_opt_ PUNICODE_STRING ServerName,
+    _In_opt_ PCUNICODE_STRING ServerName,
     _In_ PASSWORD_POLICY_VALIDATION_TYPE ValidationType,
     _In_ PSAM_VALIDATE_INPUT_ARG InputArg,
     _Out_ PSAM_VALIDATE_OUTPUT_ARG *OutputArg

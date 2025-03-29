@@ -138,10 +138,10 @@ typedef struct _SBFOREIGNSESSIONCOMPLETE
 // private
 typedef struct _SBCREATEPROCESSIN
 {
-    _In_ PUNICODE_STRING ImageFileName;
-    _In_ PUNICODE_STRING CurrentDirectory;
-    _In_ PUNICODE_STRING CommandLine;
-    _In_opt_ PUNICODE_STRING DefaultLibPath;
+    _In_ PCUNICODE_STRING ImageFileName;
+    _In_ PCUNICODE_STRING CurrentDirectory;
+    _In_ PCUNICODE_STRING CommandLine;
+    _In_opt_ PCUNICODE_STRING DefaultLibPath;
     _In_ ULONG Flags; // SMP_*
     _In_ ULONG DefaultDebugFlags;
 } SBCREATEPROCESSIN, *PSBCREATEPROCESSIN;
@@ -193,7 +193,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConnectToSm(
-    _In_opt_ PUNICODE_STRING ApiPortName,
+    _In_opt_ PCUNICODE_STRING ApiPortName,
     _In_opt_ HANDLE ApiPortHandle,
     _In_ ULONG ProcessImageType,
     _Out_ PHANDLE SmssConnection

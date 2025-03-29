@@ -1797,7 +1797,7 @@ NtQueryDirectoryFile(
     _In_ ULONG Length,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ BOOLEAN ReturnSingleEntry,
-    _In_opt_ PUNICODE_STRING FileName,
+    _In_opt_ PCUNICODE_STRING FileName,
     _In_ BOOLEAN RestartScan
     );
 
@@ -1822,7 +1822,7 @@ NtQueryDirectoryFileEx(
     _In_ ULONG Length,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ ULONG QueryFlags,
-    _In_opt_ PUNICODE_STRING FileName
+    _In_opt_ PCUNICODE_STRING FileName
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
@@ -2211,7 +2211,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLoadDriver(
-    _In_ PUNICODE_STRING DriverServiceName
+    _In_ PCUNICODE_STRING DriverServiceName
     );
 
 /**
@@ -2228,7 +2228,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtUnloadDriver(
-    _In_ PUNICODE_STRING DriverServiceName
+    _In_ PCUNICODE_STRING DriverServiceName
     );
 
 //

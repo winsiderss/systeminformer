@@ -200,8 +200,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReplacePartitionUnit(
-    _In_ PUNICODE_STRING TargetInstancePath,
-    _In_ PUNICODE_STRING SpareInstancePath,
+    _In_ PCUNICODE_STRING TargetInstancePath,
+    _In_ PCUNICODE_STRING SpareInstancePath,
     _In_ ULONG Flags
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
