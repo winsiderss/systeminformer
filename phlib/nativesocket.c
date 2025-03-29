@@ -23,9 +23,7 @@
    *
    * \return Whether the name matches an AFD socket name format.
    */
-BOOLEAN
-NTAPI
-PhAfdIsSocketObjectName(
+BOOLEAN PhAfdIsSocketObjectName(
     _In_opt_ PPH_STRING ObjectName
     )
 {
@@ -41,9 +39,7 @@ PhAfdIsSocketObjectName(
   *
   * \return A successful status if the handle is an AFD socket or an errant status otherwise.
   */
-NTSTATUS
-NTAPI
-PhAfdIsSocketHandle(
+NTSTATUS PhAfdIsSocketHandle(
     _In_ HANDLE Handle
     )
 {
@@ -96,9 +92,7 @@ PhAfdIsSocketHandle(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdDeviceIoControl(
+NTSTATUS PhAfdDeviceIoControl(
     _In_ HANDLE SocketHandle,
     _In_ ULONG IoControlCode,
     _In_reads_bytes_(InBufferSize) PVOID InBuffer,
@@ -187,9 +181,7 @@ PhAfdDeviceIoControl(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQuerySharedInfo(
+NTSTATUS PhAfdQuerySharedInfo(
     _In_ HANDLE SocketHandle,
     _Out_ PSOCK_SHARED_INFO SharedInfo
     )
@@ -227,9 +219,7 @@ PhAfdQuerySharedInfo(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQuerySimpleInfo(
+NTSTATUS PhAfdQuerySimpleInfo(
     _In_ HANDLE SocketHandle,
     _In_ ULONG InformationType,
     _Out_ PAFD_INFORMATION Information
@@ -258,9 +248,7 @@ PhAfdQuerySimpleInfo(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQueryOption(
+NTSTATUS PhAfdQueryOption(
     _In_ HANDLE SocketHandle,
     _In_ ULONG Level,
     _In_ ULONG OptionName,
@@ -295,9 +283,7 @@ PhAfdQueryOption(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQueryTdiHandle(
+NTSTATUS PhAfdQueryTdiHandle(
     _In_ HANDLE SocketHandle,
     _In_ ULONG QueryMode,
     _Out_ PHANDLE TdiHandle
@@ -340,9 +326,7 @@ PhAfdQueryTdiHandle(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQueryFormatTdiDeviceName(
+NTSTATUS PhAfdQueryFormatTdiDeviceName(
     _In_ HANDLE SocketHandle,
     _In_ ULONG QueryMode,
     _Outptr_ PPH_STRING *TdiDeviceName
@@ -384,9 +368,7 @@ PhAfdQueryFormatTdiDeviceName(
   *
   * \return Whether the address family is supported.
   */
-BOOLEAN
-NTAPI
-PhpAfdIsSupportedAddressFamily(
+BOOLEAN PhpAfdIsSupportedAddressFamily(
     _In_ LONG AddressFamily
     )
 {
@@ -411,9 +393,7 @@ PhpAfdIsSupportedAddressFamily(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQueryAddress(
+NTSTATUS PhAfdQueryAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
     _Out_ PSOCKADDR_STORAGE Address
@@ -485,9 +465,7 @@ PhAfdQueryAddress(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdFormatAddress(
+NTSTATUS PhAfdFormatAddress(
     _In_ PSOCKADDR_STORAGE Address,
     _Out_ PPH_STRING *AddressString,
     _In_ BOOLEAN Simplify
@@ -610,9 +588,7 @@ PhAfdFormatAddress(
   *
   * \return Successful or errant status.
   */
-NTSTATUS
-NTAPI
-PhAfdQueryFormatAddress(
+NTSTATUS PhAfdQueryFormatAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
     _Out_ PPH_STRING *AddressString,
@@ -638,9 +614,7 @@ PhAfdQueryFormatAddress(
   * \return A string with the state name or NULL when the state value is not recognized.
   */
 _Maybenull_
-PCWSTR
-NTAPI
-PhpAfdGetSocketStateString(
+PCWSTR PhpAfdGetSocketStateString(
     _In_ SOCKET_STATE SocketState
     )
 {
@@ -670,9 +644,7 @@ PhpAfdGetSocketStateString(
   *
   * \return A human-readable name of the socket state.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatSocketState(
+PPH_STRING PhAfdFormatSocketState(
     _In_ SOCKET_STATE SocketState
     )
 {
@@ -692,9 +664,7 @@ PhAfdFormatSocketState(
   * \return A string with the socket type name or NULL when the value is not recognized.
   */
 _Maybenull_
-PCWSTR
-NTAPI
-PhpAfdGetSocketTypeString(
+PCWSTR PhpAfdGetSocketTypeString(
     _In_ LONG SocketType
     )
 {
@@ -722,9 +692,7 @@ PhpAfdGetSocketTypeString(
   *
   * \return A human-readable name for the socket type.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatSocketType(
+PPH_STRING PhAfdFormatSocketType(
     _In_ LONG SocketType
     )
 {
@@ -743,9 +711,7 @@ PhAfdFormatSocketType(
   *
   * \return A string with the flag names.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatProviderFlags(
+PPH_STRING PhAfdFormatProviderFlags(
     _In_ ULONG ProviderFlags
     )
 {
@@ -790,9 +756,7 @@ PhAfdFormatProviderFlags(
   *
   * \return A string with the flag names.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatServiceFlags(
+PPH_STRING PhAfdFormatServiceFlags(
     _In_ ULONG ServiceFlags
     )
 {
@@ -851,9 +815,7 @@ PhAfdFormatServiceFlags(
   *
   * \return A string with the flag names.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatCreationFlags(
+PPH_STRING PhAfdFormatCreationFlags(
     _In_ ULONG CreationFlags
     )
 {
@@ -900,9 +862,7 @@ PhAfdFormatCreationFlags(
   *
   * \return A string with the flag names.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatSharedInfoFlags(
+PPH_STRING PhAfdFormatSharedInfoFlags(
     _In_ PSOCK_SHARED_INFO SharedInfo
     )
 {
@@ -962,9 +922,7 @@ PhAfdFormatSharedInfoFlags(
   * \return A string with the address family name or NULL when it is not recognized.
   */
 _Maybenull_
-PCWSTR
-NTAPI
-PhpAfdGetAddressFamilyString(
+PCWSTR PhpAfdGetAddressFamilyString(
     _In_ LONG AddressFamily
     )
 {
@@ -992,9 +950,7 @@ PhpAfdGetAddressFamilyString(
   *
   * \return A string with the address family name.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatAddressFamily(
+PPH_STRING PhAfdFormatAddressFamily(
     _In_ LONG AddressFamily
     )
 {
@@ -1015,9 +971,7 @@ PhAfdFormatAddressFamily(
   * \return A string with the protocol name or NULL when it is not recognized.
   */
 _Maybenull_
-PCWSTR
-NTAPI
-PhpAfdGetProtocolString(
+PCWSTR PhpAfdGetProtocolString(
     _In_ LONG AddressFamily,
     _In_ LONG Protocol
     )
@@ -1078,9 +1032,7 @@ PhpAfdGetProtocolString(
   *
   * \return A string with a human-readable protocol name.
   */
-PPH_STRING
-NTAPI
-PhAfdFormatProtocol(
+PPH_STRING PhAfdFormatProtocol(
     _In_ LONG AddressFamily,
     _In_ LONG Protocol
     )
@@ -1102,9 +1054,7 @@ PhAfdFormatProtocol(
   * \return A string with the protocol name or NULL when it is not recognized.
   */
 _Maybenull_
-PCWSTR
-NTAPI
-PhpAfdGetProtocolSummary(
+PCWSTR PhpAfdGetProtocolSummary(
     _In_ LONG AddressFamily,
     _In_ LONG Protocol
     )
@@ -1162,9 +1112,7 @@ PhpAfdGetProtocolSummary(
   * \return The best handle name representation available on success, or NULL on error.
   */
 _Maybenull_
-PPH_STRING
-NTAPI
-PhAfdFormatSocketBestName(
+PPH_STRING PhAfdFormatSocketBestName(
     _In_ HANDLE SocketHandle
     )
 {
