@@ -751,18 +751,19 @@ PPH_STRING PhAfdFormatProviderFlags(
     };
 
     PPH_STRING string;
-    PH_FORMAT format[4];
+    PH_FORMAT format[5];
 
     if (ProviderFlags)
     {
         string = PhGetAccessString(ProviderFlags, (PPH_ACCESS_ENTRY)providerFlags, RTL_NUMBER_OF(providerFlags));
 
-        PhInitFormatSR(&format[0], string->sr);
-        PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatX(&format[2], ProviderFlags);
-        PhInitFormatS(&format[3], L")");
+        PhInitFormatS(&format[0], L"0x");
+        PhInitFormatX(&format[1], ProviderFlags);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatSR(&format[3], string->sr);
+        PhInitFormatC(&format[4], L')');
 
-        PhMoveReference(&string, PhFormat(format, 4, 10));
+        PhMoveReference(&string, PhFormat(format, 5, 10));
     }
     else
     {
@@ -810,18 +811,19 @@ PPH_STRING PhAfdFormatServiceFlags(
     };
 
     PPH_STRING string;
-    PH_FORMAT format[4];
+    PH_FORMAT format[5];
 
     if (ServiceFlags)
     {
         string = PhGetAccessString(ServiceFlags, (PPH_ACCESS_ENTRY)serivceFlags, RTL_NUMBER_OF(serivceFlags));
 
-        PhInitFormatSR(&format[0], string->sr);
-        PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatX(&format[2], ServiceFlags);
-        PhInitFormatS(&format[3], L")");
+        PhInitFormatS(&format[0], L"0x");
+        PhInitFormatX(&format[1], ServiceFlags);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatSR(&format[3], string->sr);
+        PhInitFormatC(&format[4], L')');
 
-        PhMoveReference(&string, PhFormat(format, 4, 10));
+        PhMoveReference(&string, PhFormat(format, 5, 10));
     }
     else
     {
@@ -857,18 +859,19 @@ PPH_STRING PhAfdFormatCreationFlags(
     };
 
     PPH_STRING string;
-    PH_FORMAT format[4];
+    PH_FORMAT format[5];
 
     if (CreationFlags)
     {
         string = PhGetAccessString(CreationFlags, (PPH_ACCESS_ENTRY)creationFlags, RTL_NUMBER_OF(creationFlags));
 
-        PhInitFormatSR(&format[0], string->sr);
-        PhInitFormatS(&format[1], L" (0x");
-        PhInitFormatX(&format[2], CreationFlags);
-        PhInitFormatS(&format[3], L")");
+        PhInitFormatS(&format[0], L"0x");
+        PhInitFormatX(&format[1], CreationFlags);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatSR(&format[3], string->sr);
+        PhInitFormatC(&format[4], L')');
 
-        PhMoveReference(&string, PhFormat(format, 4, 10));
+        PhMoveReference(&string, PhFormat(format, 5, 10));
     }
     else
     {
@@ -895,6 +898,8 @@ PPH_STRING PhAfdFormatSharedInfoFlags(
         return PhReferenceEmptyString();
 
     PhInitializeStringBuilder(&stringBuilder, 80);
+
+    PhAppendFormatStringBuilder(&stringBuilder, L"0x%x (", SharedInfo->Flags);
 
     if (SharedInfo->Listening)
         PhAppendStringBuilder2(&stringBuilder, L"Listening, ");
@@ -932,7 +937,7 @@ PPH_STRING PhAfdFormatSharedInfoFlags(
     // Remove the trailing comma
     PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L" (0x%x)", SharedInfo->Flags);
+    PhAppendStringBuilder2(&stringBuilder, L")");
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
