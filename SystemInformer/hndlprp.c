@@ -1415,14 +1415,14 @@ VOID PhpUpdateHandleGeneral(
                     // TDI address device
                     if (NT_SUCCESS(PhAfdQueryFormatTdiDeviceName(fileHandle, AFD_QUERY_ADDRESS_HANDLE, &itemString)))
                     {
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
                     }
 
                     // TDI connection device
                     if (NT_SUCCESS(PhAfdQueryFormatTdiDeviceName(fileHandle, AFD_QUERY_CONNECTION_HANDLE, &itemString)))
                     {
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
                     }
 
@@ -1430,49 +1430,49 @@ VOID PhpUpdateHandleGeneral(
                     {
                         // State
                         itemString = PhAfdFormatSocketState(socketInfo.State);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Type
                         itemString = PhAfdFormatSocketType(socketInfo.SocketType);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTYPE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTYPE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Address family
                         itemString = PhAfdFormatAddressFamily(socketInfo.AddressFamily);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESSFAMILY, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESSFAMILY, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Protocol
                         itemString = PhAfdFormatProtocol(socketInfo.AddressFamily, socketInfo.Protocol);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROTOCOL, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROTOCOL, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Catalog entry ID
                         itemString = PhFormatString(L"%d", socketInfo.CatalogEntryId);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCATALOGENTRYID, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCATALOGENTRYID, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Provider ID
                         itemString = PhFormatGuid(&socketInfo.ProviderId);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERID, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERID, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Provider flags
                         itemString = PhAfdFormatProviderFlags(socketInfo.ProviderFlags);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERFLAGS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERFLAGS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Service flags
                         itemString = PhAfdFormatServiceFlags(socketInfo.ServiceFlags1);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSERVICEFLAGS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSERVICEFLAGS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Send timeout
                         if (socketInfo.SendTimeout)
                         {
                             itemString = PhFormatTimeSpanRelative(PH_TICKS_PER_MS * socketInfo.SendTimeout);
-                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT, 1, itemString->Buffer);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT, 1, PhGetString(itemString));
                             PhDereferenceObject(itemString);
                         }
                         else
@@ -1484,7 +1484,7 @@ VOID PhpUpdateHandleGeneral(
                         if (socketInfo.ReceiveTimeout)
                         {
                             itemString = PhFormatTimeSpanRelative(PH_TICKS_PER_MS * socketInfo.ReceiveTimeout);
-                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT, 1, itemString->Buffer);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT, 1, PhGetString(itemString));
                             PhDereferenceObject(itemString);
                         }
                         else
@@ -1494,22 +1494,22 @@ VOID PhpUpdateHandleGeneral(
 
                         // Send buffer size
                         itemString = PhFormatSize(socketInfo.SendBufferSize, -1);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDBUFFERSIZE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDBUFFERSIZE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Receive buffer size
                         itemString = PhFormatSize(socketInfo.ReceiveBufferSize, -1);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVEBUFFERSIZE, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVEBUFFERSIZE, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Creation flags
                         itemString = PhAfdFormatCreationFlags(socketInfo.CreationFlags);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCREATIONFLAGS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCREATIONFLAGS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
 
                         // Flags
                         itemString = PhAfdFormatSharedInfoFlags(&socketInfo);
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETFLAGS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETFLAGS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
                     }
 
@@ -1530,11 +1530,11 @@ VOID PhpUpdateHandleGeneral(
 
                             timeRelativeString = PhFormatTimeSpanRelative(PH_TICKS_PER_SEC * simpleInfo.Information.Ulong);
                             timeString = PhFormatDateTime(&timeFields);
-                            itemString = PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, timeString->Buffer);
+                            itemString = PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, PhGetString(timeString));
                             PhDereferenceObject(timeRelativeString);
                             PhDereferenceObject(timeString);
 
-                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME, 1, itemString->Buffer);
+                            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME, 1, PhGetString(itemString));
                             PhDereferenceObject(itemString);
                         }
                         else
@@ -1546,14 +1546,14 @@ VOID PhpUpdateHandleGeneral(
                     // Address
                     if (NT_SUCCESS(PhAfdQueryFormatAddress(fileHandle, FALSE, &itemString, FALSE)))
                     {
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
                     }
 
                     // Remote address
                     if (NT_SUCCESS(PhAfdQueryFormatAddress(fileHandle, TRUE, &itemString, FALSE)))
                     {
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETREMOTEADDRESS, 1, itemString->Buffer);
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETREMOTEADDRESS, 1, PhGetString(itemString));
                         PhDereferenceObject(itemString);
                     }
                 }
