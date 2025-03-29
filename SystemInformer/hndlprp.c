@@ -90,7 +90,6 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
 
     PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
 
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETRAWNAME,
     PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE,
     PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE,
     PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE,
@@ -498,7 +497,6 @@ VOID PhpUpdateHandleGeneralListViewGroups(
         if (PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
         {
             PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, L"Socket information");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRAWNAME, L"Raw name");
             PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE, L"TDI address device");
             PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE, L"TDI connection device");
             PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE, L"State");
@@ -566,7 +564,16 @@ VOID PhpUpdateHandleGeneral(
     ULONG numberOfAccessEntries;
     WCHAR string[PH_INT64_STR_LEN_1];
 
-    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+    // Some handles use a verbose BestObjectName for the sake of searching. And will display extended information in the
+    // property window consisting of the information contained in the BestObjectName. Fall back to the normal ObjectName
+    // in the property window for these cases. (jxy-s)
+    if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE) && PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
+    else
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+
     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
 
     if (Context->HandleItem->Object)
@@ -1509,12 +1516,6 @@ VOID PhpUpdateHandleGeneral(
                     PPH_STRING itemString;
                     SOCK_SHARED_INFO socketInfo;
                     AFD_INFORMATION simpleInfo;
-
-                    // Raw name
-                    if (Context->HandleItem->ObjectName)
-                    {
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRAWNAME, 1, Context->HandleItem->ObjectName->Buffer);
-                    }
 
                     // TDI address device
                     if (NT_SUCCESS(PhAfdQueryFormatTdiDeviceName(fileHandle, AFD_QUERY_ADDRESS_HANDLE, &itemString)))
