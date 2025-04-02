@@ -11618,11 +11618,13 @@ RtlPublishWnfStateData(
     _In_opt_ const VOID* ExplicitScope
     );
 
+typedef struct WNF_USER_SUBSCRIPTION *PWNF_USER_SUBSCRIPTION;
+
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSubscribeWnfStateChangeNotification(
-    _Outptr_ PVOID* SubscriptionHandle, // PWNF_USER_SUBSCRIPTION
+    _Out_ PWNF_USER_SUBSCRIPTION* SubscriptionHandle,
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,
     _In_ PWNF_USER_CALLBACK Callback,
