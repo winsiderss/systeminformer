@@ -1117,7 +1117,7 @@ PhStringRefToUnicodeString(
 FORCEINLINE
 VOID
 PhUnicodeStringToStringRef(
-    _In_ PUNICODE_STRING UnicodeString,
+    _In_ PCUNICODE_STRING UnicodeString,
     _Out_ PPH_STRINGREF String
     )
 {
@@ -1582,7 +1582,7 @@ PhLowerStringRef(
 FORCEINLINE
 PPH_STRING
 PhCreateStringFromUnicodeString(
-    _In_ PUNICODE_STRING UnicodeString
+    _In_ PCUNICODE_STRING UnicodeString
     )
 {
     if (UnicodeString->Length == 0)
@@ -4526,7 +4526,7 @@ FORCEINLINE
 VOID
 PhInitFormatUCS(
     _Out_ PPH_FORMAT Format,
-    _In_ PUNICODE_STRING String
+    _In_ PCUNICODE_STRING String
     )
 {
     Format->Type = StringFormatType;
