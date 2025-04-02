@@ -1168,9 +1168,7 @@ PPH_STRING PhGetServiceConfigFileName(
 {
     PPH_STRING fileName = NULL;
 
-    PhGetServiceDllParameter(ServiceType, ServiceName, &fileName);
-
-    if (PhIsNullOrEmptyString(fileName))
+    if (NT_SUCCESS(PhGetServiceDllParameter(ServiceType, ServiceName, &fileName)))
     {
         if (ServicePathName[0])
         {
@@ -1198,26 +1196,81 @@ PPH_STRING PhGetServiceConfigFileName(
     return fileName;
 }
 
-PPH_STRING PhGetServiceHandleFileName(
-    _In_ SC_HANDLE ServiceHandle,
-    _In_ PPH_STRINGREF ServiceName
+NTSTATUS PhGetServiceConfigFileName2(
+    _In_ ULONG ServiceType,
+    _In_ PCWSTR ServicePathName,
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
     )
 {
+    NTSTATUS status;
     PPH_STRING fileName = NULL;
+
+    status = PhGetServiceDllParameter(ServiceType, ServiceName, &fileName);
+
+    if (NT_SUCCESS(status))
+    {
+        if (ServicePathName[0])
+        {
+            PPH_STRING commandLine = PhCreateString(ServicePathName);
+
+            if (FlagOn(ServiceType, SERVICE_WIN32))
+            {
+                PH_STRINGREF dummyFileName;
+                PH_STRINGREF dummyArguments;
+                PPH_STRING fileFullName = NULL;
+
+                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileFullName);
+
+                if (!PhIsNullOrEmptyString(fileFullName))
+                {
+                    PhMoveReference(&fileName, fileFullName);
+                }
+            }
+            else
+            {
+                PhMoveReference(&fileName, PhGetFileName(commandLine));
+            }
+
+            PhDereferenceObject(commandLine);
+        }
+
+        *ServiceFileName = fileName;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetServiceHandleFileName(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
     LPQUERY_SERVICE_CONFIG config;
 
-    if (NT_SUCCESS(PhGetServiceConfig(ServiceHandle, &config)))
+    status = PhGetServiceConfig(ServiceHandle, &config);
+
+    if (NT_SUCCESS(status))
     {
-        fileName = PhGetServiceConfigFileName(
+        status = PhGetServiceConfigFileName2(
             config->dwServiceType,
             config->lpBinaryPathName,
-            ServiceName
+            ServiceName,
+            &fileName
             );
+
+        if (NT_SUCCESS(status))
+        {
+            *ServiceFileName = fileName;
+        }
 
         PhFree(config);
     }
 
-    return fileName;
+    return status;
 }
 
 NTSTATUS PhGetServiceFileName(

@@ -1606,7 +1606,9 @@ typedef struct _FILE_FS_GUID_INFORMATION
     GUID FsGuid;
 } FILE_FS_GUID_INFORMATION, *PFILE_FS_GUID_INFORMATION;
 
+//
 // System calls
+//
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1614,7 +1616,7 @@ NTAPI
 NtCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
@@ -1631,7 +1633,7 @@ NTAPI
 NtCreateNamedPipeFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
@@ -1651,7 +1653,7 @@ NTAPI
 NtCreateMailslotFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG CreateOptions,
     _In_ ULONG MailslotQuota,
@@ -1665,7 +1667,7 @@ NTAPI
 NtOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions
@@ -1675,7 +1677,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeleteFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -1765,7 +1767,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationByName(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _Out_writes_bytes_(Length) PVOID FileInformation,
     _In_ ULONG Length,
@@ -2051,7 +2053,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryAttributesFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     );
 
@@ -2059,7 +2061,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryFullAttributesFile(
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
@@ -2263,7 +2265,7 @@ NTAPI
 NtCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
@@ -2273,7 +2275,7 @@ NTAPI
 NtOpenIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -2357,7 +2359,7 @@ NTAPI
 NtCreateWaitCompletionPacket(
     _Out_ PHANDLE WaitCompletionPacketHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
