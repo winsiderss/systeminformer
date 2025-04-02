@@ -1411,12 +1411,11 @@ HRESULT PhLoadSettingsXmlRead(
     IXmlReader* xmlReader = NULL;
     IStream* fileStream = NULL;
     PPH_SETTING setting;
-    PH_STRINGREF settingName;
     PPH_STRING settingValue;
+    PH_STRINGREF settingName;
     XmlNodeType nodeType;
     PCWSTR nodeName;
-    PCWSTR attributeName;
-    PCWSTR attributeValue;
+    PCWSTR attrName;
 
     status = SHCreateStreamOnFileEx_Import()(
         FileName,
@@ -1452,12 +1451,21 @@ HRESULT PhLoadSettingsXmlRead(
                 {
                     if (HR_SUCCESS(IXmlReader_MoveToFirstAttribute(xmlReader)))
                     {
-                        if (HR_SUCCESS(IXmlReader_GetLocalName(xmlReader, &attributeName, NULL)))
+                        if (HR_SUCCESS(IXmlReader_GetLocalName(xmlReader, &attrName, NULL)))
                         {
-                            if (PhEqualStringZ(attributeName, L"name", TRUE))
+                            if (PhEqualStringZ(attrName, L"name", TRUE))
                             {
-                                if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &attributeValue, NULL)))
+                                ULONG nameStringLength = 0;
+                                PCWSTR nameStringBuffer;
+
+                                if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &nameStringBuffer, &nameStringLength)))
                                 {
+                                    if ((nameStringLength * sizeof(WCHAR)) % 2 != 0)
+                                        continue;
+
+                                    settingName.Buffer = (PWSTR)nameStringBuffer;
+                                    settingName.Length = nameStringLength * sizeof(WCHAR);
+
                                     if (HR_SUCCESS(IXmlReader_Read(xmlReader, &nodeType)) && nodeType == XmlNodeType_Text)
                                     {
                                         ULONG valueStringLength = 0;
@@ -1465,8 +1473,10 @@ HRESULT PhLoadSettingsXmlRead(
 
                                         if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &valueStringBuffer, &valueStringLength)))
                                         {
-                                            PhInitializeStringRefLongHint(&settingName, attributeValue);
-                                            settingValue = PhCreateString(valueStringBuffer);
+                                            if ((valueStringLength * sizeof(WCHAR)) % 2 != 0)
+                                                continue;
+
+                                            settingValue = PhCreateStringEx(valueStringBuffer, valueStringLength * sizeof(WCHAR));
 
                                             {
                                                 setting = PhpLookupSetting(&settingName);
