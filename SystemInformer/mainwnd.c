@@ -1970,22 +1970,20 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->QueryHandle)
+            if (processItem)
             {
-                NTSTATUS status;
-                PPH_STRING fileNameWin32;
-
-                if (NT_SUCCESS(status = PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
+                if (
+                    !PhIsNullOrEmptyString(processItem->FileName) &&
+                    PhDoesFileExist(&processItem->FileName->sr)
+                    )
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
                         L"FileBrowseExecutable",
-                        PhGetString(fileNameWin32),
+                        PhGetString(processItem->FileName),
                         FALSE,
                         L"Make sure the Explorer executable file is present."
                         );
-
-                    PhDereferenceObject(fileNameWin32);
                 }
                 else
                 {
