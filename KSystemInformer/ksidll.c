@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <process.h>
 #include <sistatus.h>
 
 //
@@ -336,6 +337,8 @@ NTSTATUS DllInitialize(
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
+    __security_init_cookie();
+
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
     KsipMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KsipGetSystemRoutineAddress(L"MmProtectDriverSection");
@@ -345,19 +348,6 @@ NTSTATUS DllInitialize(
     {
         KsipMmProtectDriverSection(&KsipProtectedSection, 0, 0);
     }
-
-    return STATUS_SUCCESS;
-}
-
-_Function_class_(DRIVER_INITIALIZE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS DriverEntry(
-    _In_ PDRIVER_OBJECT DriverObject,
-    _In_ PUNICODE_STRING RegistryPath
-    )
-{
-    UNREFERENCED_PARAMETER(DriverObject);
-    UNREFERENCED_PARAMETER(RegistryPath);
 
     return STATUS_SUCCESS;
 }
