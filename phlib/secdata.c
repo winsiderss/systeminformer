@@ -430,6 +430,7 @@ ACCESS_ENTRIES(Session)
 ACCESS_ENTRIES(SymbolicLink)
 {
     { L"Full control", SYMBOLIC_LINK_ALL_ACCESS, TRUE, TRUE, NULL },
+    { L"Full control (extended)", SYMBOLIC_LINK_ALL_ACCESS_EX, TRUE, TRUE, NULL },
     { L"Query", SYMBOLIC_LINK_QUERY, TRUE, TRUE, NULL }
 };
 
