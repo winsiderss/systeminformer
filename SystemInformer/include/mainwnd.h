@@ -25,16 +25,8 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_NOTIFY_ICON_MESSAGE (WM_APP + 126)
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
 // end_phapppub
-#define WM_PH_DESTROY (WM_APP + 145)
-#define WM_PH_INVOKE (WM_APP + 146)
-#define WM_PH_PREPARE_FOR_EARLY_SHUTDOWN (WM_APP + 147)
-#define WM_PH_SAVE_ALL_SETTINGS (WM_APP + 148)
-#define WM_PH_SHOW_PROPERTIES (WM_APP + 149)
-#define WM_PH_ACTIVATE_WINDOW (WM_APP + 150)
-#define WM_PH_SELECT_NODE (WM_APP + 151)
-#define WM_PH_SHOW_EDITOR (WM_APP + 152)
-#define WM_PH_SHOW_RESULT (WM_APP + 153)
-#define WM_PH_LAST (WM_APP + 154)
+#define WM_PH_INVOKE (WM_APP + 145)
+#define WM_PH_LAST (WM_APP + 145)
 
 // begin_phapppub
 typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
