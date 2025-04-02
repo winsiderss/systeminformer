@@ -239,7 +239,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 {
                     PPH_STRING fileName;
 
-                    if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
+                    if (NT_SUCCESS(PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr, &fileName)))
                     {
                         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
                         PhDereferenceObject(fileName);
@@ -596,25 +596,41 @@ INT_PTR CALLBACK PhpServicesPageProc(
                             case ID_SERVICE_OPENFILELOCATION:
                                 {
                                     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)listviewItems[0];
+                                    NTSTATUS status;
                                     SC_HANDLE serviceHandle;
 
-                                    if (serviceItem && NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
+                                    if (serviceItem)
                                     {
-                                        PPH_STRING fileName;
+                                        status = PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name));
 
-                                        if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
+                                        if (NT_SUCCESS(status))
                                         {
-                                            PhShellExecuteUserString(
-                                                hwndDlg,
-                                                L"FileBrowseExecutable",
-                                                fileName->Buffer,
-                                                FALSE,
-                                                L"Make sure the Explorer executable file is present."
-                                                );
-                                            PhDereferenceObject(fileName);
-                                        }
+                                            PPH_STRING fileName;
 
-                                        PhCloseServiceHandle(serviceHandle);
+                                            status = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr, &fileName);
+
+                                            if (NT_SUCCESS(status))
+                                            {
+                                                PhShellExecuteUserString(
+                                                    hwndDlg,
+                                                    L"FileBrowseExecutable",
+                                                    PhGetString(fileName),
+                                                    FALSE,
+                                                    L"Make sure the Explorer executable file is present."
+                                                    );
+                                                PhDereferenceObject(fileName);
+                                            }
+                                            else
+                                            {
+                                                PhShowStatus(hwndDlg, L"Unable to locate the file.", status, 0);
+                                            }
+
+                                            PhCloseServiceHandle(serviceHandle);
+                                        }
+                                        else
+                                        {
+                                            PhShowStatus(hwndDlg, L"Unable to locate the file.", status, 0);
+                                        }
                                     }
                                 }
                                 break;

@@ -367,11 +367,12 @@ PhGetServiceConfigFileName(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetServiceHandleFileName(
     _In_ SC_HANDLE ServiceHandle,
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
     );
 
 PHLIBAPI
