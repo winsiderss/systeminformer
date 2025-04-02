@@ -45,17 +45,103 @@ NTSTATUS PhHvSocketOpenSystemControl(
 {
     NTSTATUS status;
     IO_STATUS_BLOCK ioStatusBlock;
-    BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
-    UNICODE_STRING systemPath;
-    UNICODE_STRING guidString;
-    OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!VmId)
+    if (VmId)
     {
-        return NtCreateFile(
+#if defined(PHNT_USE_NATIVE_APPEND)
+        UNICODE_STRING systemPath;
+        UNICODE_STRING guidString;
+        OBJECT_ATTRIBUTES objectAttributes;
+        BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
+
+        RtlInitEmptyUnicodeString(&systemPath, (PWCHAR)buffer, sizeof(buffer));
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketSystemDevicePath);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlStringFromGUID((PGUID)VmId, &guidString);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
+        RtlFreeUnicodeString(&guidString);
+
+        if (!NT_SUCCESS(status))
+            return status;
+#else
+        PPH_STRING gidString;
+        UNICODE_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PH_STRINGREF stringRef;
+        SIZE_T returnLength;
+        PH_FORMAT format[5];
+        WCHAR formatBuffer[0x100];
+
+        if (!(gidString = PhFormatGuid((PGUID)VmId)))
+            return STATUS_NO_MEMORY;
+
+        PhInitFormatUCS(&format[0], &HvSocketSystemDevicePath);
+        PhInitFormatSR(&format[1], PhNtPathSeperatorString);
+        PhInitFormatUCS(&format[2], &HvSocketAddressInfoName);
+        PhInitFormatSR(&format[3], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[4], gidString->sr);
+
+        if (!PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            PhDereferenceObject(gidString);
+            return STATUS_NO_MEMORY;
+        }
+
+        PhDereferenceObject(gidString);
+
+        stringRef.Length = returnLength - sizeof(UNICODE_NULL);
+        stringRef.Buffer = formatBuffer;
+
+        if (!PhStringRefToUnicodeString(&stringRef, &objectName))
+            return STATUS_NO_MEMORY;
+#endif
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &objectName,
+            0,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateFile(
             SystemHandle,
             FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-            (POBJECT_ATTRIBUTES)&HvSocketControlAttributes,
+            &objectAttributes,
+            &ioStatusBlock,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_CREATE, // required by hvsocketcontrol.sys
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL,
+            0
+            );
+    }
+    else
+    {
+        status = NtCreateFile(
+            SystemHandle,
+            FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
+            &HvSocketControlAttributes,
             &ioStatusBlock,
             NULL,
             FILE_ATTRIBUTE_NORMAL,
@@ -67,42 +153,7 @@ NTSTATUS PhHvSocketOpenSystemControl(
             );
     }
 
-    systemPath.Buffer = (PWCHAR)buffer;
-    systemPath.Length = 0;
-    systemPath.MaximumLength = sizeof(buffer);
-    RtlAppendUnicodeStringToString(&systemPath, &HvSocketSystemDevicePath);
-    RtlAppendUnicodeToString(&systemPath, L"\\");
-    RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
-    RtlAppendUnicodeToString(&systemPath, L"\\");
-
-    status = RtlStringFromGUID((PGUID)VmId, &guidString);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
-    RtlFreeUnicodeString(&guidString);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    InitializeObjectAttributes(&objectAttributes, &systemPath, 0, NULL, NULL);
-
-    return NtCreateFile(
-        SystemHandle,
-        FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-        &objectAttributes,
-        &ioStatusBlock,
-        NULL,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_CREATE, // required by hvsocketcontrol.sys
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-        NULL,
-        0
-        );
+    return status;
 }
 
 NTSTATUS PhHvSocketGetListeners(
