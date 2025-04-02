@@ -1053,8 +1053,8 @@ LdrLoadAlternateResourceModuleEx(
 /**
  * Frees the language-specific dynamic-link library (DLL) resource module previously loaded by LdrLoadAlternateResourceModule function.
  *
- * \param DllHandle The base address of the mapped view.
- * \return Successful or errant status.
+ * @param DllHandle The base address of the mapped view.
+ * @return Successful or errant status.
  */
 NTSYSAPI
 BOOLEAN
