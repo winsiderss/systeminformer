@@ -646,7 +646,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_NETWORK_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_NETWORK_SORTCOLUMN, L"" },
                 { StringSettingType, SETTING_NAME_DISK_LIST, L"" },
-                { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_DISK_SIZE, L"@96|309,265" },
                 { StringSettingType, SETTING_NAME_DISK_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_SMART_COUNTERS_COLUMNS, L"" },
