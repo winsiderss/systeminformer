@@ -436,8 +436,8 @@ VOID PhSipOnInitDialog(
         NULL
         );
 
-    RestoreSummaryControlOldWndProc = (WNDPROC)GetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC);
-    SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
+    RestoreSummaryControlOldWndProc = PhGetWindowProcedure(RestoreSummaryControl);
+    PhSetWindowProcedure(RestoreSummaryControl, PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
 
     GetClientRect(PhSipWindow, &clientRect);
@@ -1341,14 +1341,14 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         NULL
         );
 
-    section->GraphWindowProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
-    section->PanelWindowProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);
+    section->GraphWindowProc = PhGetWindowProcedure(section->GraphHandle);
+    section->PanelWindowProc = PhGetWindowProcedure(section->PanelHandle);
 
     PhSetWindowContext(section->GraphHandle, 0xF, section);
     PhSetWindowContext(section->PanelHandle, 0xF, section);
 
-    SetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC, (LONG_PTR)PhSipGraphHookWndProc);
-    SetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
+    PhSetWindowProcedure(section->GraphHandle, PhSipGraphHookWndProc);
+    PhSetWindowProcedure(section->PanelHandle, PhSipPanelHookWndProc);
 
     PhAddItemList(SectionList, section);
 
@@ -2163,37 +2163,39 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
     case WM_SETFOCUS:
-        section->HasFocus = TRUE;
-
-        if (CurrentView == SysInfoSummaryView)
         {
-            Graph_Draw(section->GraphHandle);
-            InvalidateRect(section->GraphHandle, NULL, FALSE);
-        }
-        else
-        {
-            InvalidateRect(section->PanelHandle, NULL, TRUE);
-        }
+            section->HasFocus = TRUE;
 
+            if (CurrentView == SysInfoSummaryView)
+            {
+                Graph_Draw(section->GraphHandle);
+                InvalidateRect(section->GraphHandle, NULL, FALSE);
+            }
+            else
+            {
+                InvalidateRect(section->PanelHandle, NULL, TRUE);
+            }
+        }
         break;
     case WM_KILLFOCUS:
-        section->HasFocus = FALSE;
-
-        if (CurrentView == SysInfoSummaryView)
         {
-            Graph_Draw(section->GraphHandle);
-            InvalidateRect(section->GraphHandle, NULL, FALSE);
-        }
-        else
-        {
-            InvalidateRect(section->PanelHandle, NULL, TRUE);
-        }
+            section->HasFocus = FALSE;
 
+            if (CurrentView == SysInfoSummaryView)
+            {
+                Graph_Draw(section->GraphHandle);
+                InvalidateRect(section->GraphHandle, NULL, FALSE);
+            }
+            else
+            {
+                InvalidateRect(section->PanelHandle, NULL, TRUE);
+            }
+        }
         break;
     case WM_GETDLGCODE:
         if (wParam == VK_SPACE || wParam == VK_RETURN ||
@@ -2328,7 +2330,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
         break;

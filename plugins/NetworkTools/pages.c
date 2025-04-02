@@ -38,7 +38,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDOK)
+            if ((LONG)wParam == IDOK)
             {
                 {
                     PPH_STRING key;
@@ -121,7 +121,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
     {
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDYES)
+            if ((LONG)wParam == IDYES)
             {
                 SystemInformer_PrepareForEarlyShutdown();
 
@@ -171,7 +171,7 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDRETRY)
+            if ((LONG)wParam == IDRETRY)
             {
                 ShowDbCheckForUpdatesDialog(context);
                 return S_FALSE;

@@ -126,9 +126,9 @@ INT CALLBACK PvpPropSheetProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, ULONG_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
+            PhSetWindowProcedure(hwndDlg, PvpPropSheetWndProc);
 
             if (MinimumSize.left == -1)
             {
@@ -175,7 +175,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hWnd, oldWndProc);
             PhRemoveWindowContext(hWnd, ULONG_MAX);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION, SETTING_NAME_WINDOWS_PROPERTY_SIZE, hWnd);
@@ -278,8 +278,8 @@ LRESULT CALLBACK PvRefreshButtonWndProc(
         break;
     case WM_DESTROY:
         {
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
     }

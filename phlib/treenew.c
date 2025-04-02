@@ -7049,11 +7049,11 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     {
     case WM_DESTROY:
         {
+            PhSetWindowProcedure(hwnd, oldWndProc);
+
             PhRemoveWindowContext(hwnd, MAXCHAR);
 
             PhTnpHeaderDestroyBufferedContext(context);
-
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
     case WM_MOUSEMOVE:

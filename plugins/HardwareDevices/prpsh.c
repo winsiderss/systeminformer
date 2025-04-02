@@ -125,9 +125,9 @@ INT CALLBACK PvpPropSheetProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, ULONG_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
+            PhSetWindowProcedure(hwndDlg, PvpPropSheetWndProc);
 
             if (MinimumSize.left == -1)
             {
@@ -182,7 +182,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hWnd, oldWndProc);
 
             PhRemoveWindowContext(hWnd, ULONG_MAX);
 
@@ -276,6 +276,7 @@ LRESULT CALLBACK PvControlButtonWndProc(
         break;
     case WM_NCDESTROY:
         {
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
@@ -494,6 +495,22 @@ INT CALLBACK PvpStandardPropPageProc(
     return 1;
 }
 
+#ifdef DEBUG
+static VOID ASSERT_DIALOGRECT(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ SHORT Width,
+    _In_ USHORT Height
+    )
+{
+    PDLGTEMPLATEEX dialogTemplate = NULL;
+
+    PhLoadResource(DllBase, Name, RT_DIALOG, NULL, &dialogTemplate);
+
+    assert(dialogTemplate && dialogTemplate->cx == Width && dialogTemplate->cy == Height);
+}
+#endif
+
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     _In_ HWND hwnd,
     _In_ HWND Handle,
@@ -532,6 +549,9 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
         RECT dialogSize;
         RECT margin;
 
+#ifdef DEBUG
+        ASSERT_DIALOGRECT(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS), 309, 265);
+#endif
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 309;
         dialogSize.bottom = 265;
