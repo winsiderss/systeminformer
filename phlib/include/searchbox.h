@@ -13,14 +13,10 @@
 #ifndef _PH_SEARCHBOX_H
 #define _PH_SEARCHBOX_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
-typedef
-VOID
-NTAPI
-PH_SEARCHCONTROL_CALLBACK(
+typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
+VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     );
@@ -84,8 +80,6 @@ PhSearchControlMatchPointerRange(
     _In_ SIZE_T Size
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
