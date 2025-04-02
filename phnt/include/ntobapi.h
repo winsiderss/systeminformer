@@ -7,35 +7,81 @@
 #ifndef _NTOBAPI_H
 #define _NTOBAPI_H
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
+//
+// Object Specific Access Rights
+//
+
+#ifndef OBJECT_TYPE_CREATE
 #define OBJECT_TYPE_CREATE 0x0001
+#endif
+
+#ifndef OBJECT_TYPE_ALL_ACCESS
 #define OBJECT_TYPE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | OBJECT_TYPE_CREATE)
 #endif
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
+//
+// Directory Object Specific Access Rights
+//
+
+#ifndef DIRECTORY_QUERY
 #define DIRECTORY_QUERY 0x0001
+#endif
+
+#ifndef DIRECTORY_TRAVERSE
 #define DIRECTORY_TRAVERSE 0x0002
+#endif
+
+#ifndef DIRECTORY_CREATE_OBJECT
 #define DIRECTORY_CREATE_OBJECT 0x0004
+#endif
+
+#ifndef DIRECTORY_CREATE_SUBDIRECTORY
 #define DIRECTORY_CREATE_SUBDIRECTORY 0x0008
+#endif
+
+#ifndef DIRECTORY_ALL_ACCESS
 #define DIRECTORY_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT | DIRECTORY_CREATE_SUBDIRECTORY)
 #endif
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
+//
+// Symbolic Link Specific Access Rights
+//
+
+#ifndef SYMBOLIC_LINK_QUERY
 #define SYMBOLIC_LINK_QUERY 0x0001
+#endif
+
+#ifndef SYMBOLIC_LINK_SET
 #define SYMBOLIC_LINK_SET 0x0002
+#endif
+
+#ifndef SYMBOLIC_LINK_ALL_ACCESS
 #define SYMBOLIC_LINK_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYMBOLIC_LINK_QUERY)
+#endif
+
+#ifndef SYMBOLIC_LINK_ALL_ACCESS_EX
 #define SYMBOLIC_LINK_ALL_ACCESS_EX (STANDARD_RIGHTS_REQUIRED | SPECIFIC_RIGHTS_ALL)
 #endif
+
+//
+// Object Attribute Flags
+//
 
 #ifndef OBJ_PROTECT_CLOSE
 #define OBJ_PROTECT_CLOSE 0x00000001
 #endif
+
 #ifndef OBJ_INHERIT
 #define OBJ_INHERIT 0x00000002
 #endif
+
 #ifndef OBJ_AUDIT_OBJECT_CLOSE
 #define OBJ_AUDIT_OBJECT_CLOSE 0x00000004
 #endif
+
+//
+// Object Information
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _OBJECT_INFORMATION_CLASS
@@ -57,7 +103,7 @@ typedef enum _OBJECT_INFORMATION_CLASS
 #define ObjectHandleFlagInformation 4
 #define ObjectSessionInformation 5
 #define ObjectSessionObjectInformation 6
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The OBJECT_BASIC_INFORMATION structure contains basic information about an object.
@@ -85,7 +131,7 @@ typedef struct _OBJECT_NAME_INFORMATION
 {
     UNICODE_STRING Name; // The object name (when present) includes a NULL-terminator and all path separators "\" in the name.
 } OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The OBJECT_NAME_INFORMATION structure contains various statistics and properties about an object type.
@@ -156,6 +202,15 @@ NtQueryObject(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationObject routine changes various kinds of information about a object.
+ *
+ * @param Handle The handle of the object for which information is being changed.
+ * @param ObjectInformationClass The type of information, supplied in the buffer pointed to by ObjectInformation, to set for the object.
+ * @param ObjectInformation Pointer to a buffer that contains the information to set for the object.
+ * @param ObjectInformationLength The size of the buffer pointed to by the ObjectInformation parameter, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -171,7 +226,7 @@ NtSetInformationObject(
 #define DUPLICATE_SAME_ATTRIBUTES 0x00000004    // Instead of using the HandleAttributes parameter, copy the attributes from the source handle to the target handle.
 
 /**
- * The NtDelayExecution routine waits until the specified object is in the signaled state or the time-out interval elapses.
+ * The NtDuplicateObject routine creates a handle that is a duplicate of the specified source handle.
  *
  * @param SourceProcessHandle A handle to the source process for the handle being duplicated.
  * @param SourceHandle The handle to duplicate.
@@ -357,6 +412,14 @@ NtClose(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * Compares two object handles to determine if they refer to the same underlying kernel object.
+ *
+ * @param FirstObjectHandle The first object handle to compare.
+ * @param SecondObjectHandle The second object handle to compare.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-compareobjecthandles
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -374,6 +437,15 @@ NtCompareObjects(
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The NtCreateDirectoryObject routine creates or opens an object-directory object.
+ *
+ * @param DirectoryHandle Pointer to a HANDLE variable that receives a handle to the object directory.
+ * @param DesiredAccess An ACCESS_MASK that specifies the requested access to the directory object.
+ * @param ObjectAttributes The attributes for the directory object.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatedirectoryobject
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -394,7 +466,7 @@ NtCreateDirectoryObjectEx(
     _In_ HANDLE ShadowDirectoryHandle,
     _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 /**
  * Opens an existing directory object.
@@ -414,6 +486,9 @@ NtOpenDirectoryObject(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The OBJECT_DIRECTORY_INFORMATION structure contains information about the directory object.
+ */
 typedef struct _OBJECT_DIRECTORY_INFORMATION
 {
     UNICODE_STRING Name;
@@ -446,7 +521,7 @@ NtQueryDirectoryObject(
     _Out_opt_ PULONG ReturnLength
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // Private namespaces
@@ -499,6 +574,16 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
+/**
+ * Creates a private namespace.
+ *
+ * @param NamespaceHandle A handle to the newly created private namespace.
+ * @param DesiredAccess An ACCESS_MASK that specifies the requested access to the private namespace.
+ * @param ObjectAttributes The attributes for the private namespace.
+ * @param BoundaryDescriptor A descriptor that defines how the namespace is to be isolated. The RtlCreateBoundaryDescriptor function creates a boundary descriptor.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprivatenamespacea
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -509,6 +594,16 @@ NtCreatePrivateNamespace(
     _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     );
 
+/**
+ * Opens a private namespace.
+ *
+ * @param NamespaceHandle A handle to the newly opened private namespace.
+ * @param DesiredAccess An ACCESS_MASK that specifies the requested access to the private namespace.
+ * @param ObjectAttributes The attributes for the private namespace.
+ * @param BoundaryDescriptor A descriptor that defines how the namespace is to be isolated. The RtlCreateBoundaryDescriptor function creates a boundary descriptor.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openprivatenamespacea
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -519,6 +614,13 @@ NtOpenPrivateNamespace(
     _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     );
 
+/**
+ * Deletes an open namespace handle.
+ *
+ * @param NamespaceHandle A handle to the private namespace.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/namespaceapi/nf-namespaceapi-closeprivatenamespace
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -585,4 +687,4 @@ NtSetInformationSymbolicLink(
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // _NTOBAPI_H
