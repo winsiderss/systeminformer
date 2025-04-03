@@ -1840,16 +1840,14 @@ NTSTATUS KphGetFileNameFinalComponent(
 
     for (USHORT i = (FileName->Length / sizeof(WCHAR)); i > 0; i--)
     {
-        if (FileName->Buffer[i - 1] != OBJ_NAME_PATH_SEPARATOR)
+        if (FileName->Buffer[i - 1] == OBJ_NAME_PATH_SEPARATOR)
         {
-            continue;
+            FinalComponent->Buffer = &FileName->Buffer[i];
+            FinalComponent->Length = FileName->Length - (i * sizeof(WCHAR));
+            FinalComponent->MaximumLength = FinalComponent->Length;
+
+            return STATUS_SUCCESS;
         }
-
-        FinalComponent->Buffer = &FileName->Buffer[i];
-        FinalComponent->Length = FileName->Length - (i * sizeof(WCHAR));
-        FinalComponent->MaximumLength = FinalComponent->Length;
-
-        return STATUS_SUCCESS;
     }
 
     RtlZeroMemory(FinalComponent, sizeof(*FinalComponent));
