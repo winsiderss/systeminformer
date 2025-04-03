@@ -2420,6 +2420,7 @@ PVOID PhGetFileVersionInfoEx(
         return NULL;
 
     // MUI version information
+    if (PRIMARYLANGID(LANGIDFROMLCID(PhGetCurrentThreadLCID())) != LANG_ENGLISH)
     {
         PVOID resourceDllBase;
         SIZE_T resourceDllSize;
