@@ -178,9 +178,6 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release;
 
-                if (ProgramArgs.ContainsKey("-msix-build"))
-                    flags |= BuildFlags.BuildMsix;
-
                 Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
@@ -241,7 +238,9 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildMsix;
 
+                Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
+                Build.CopySourceLink(true);
 
                 try
                 {

@@ -268,23 +268,9 @@ BOOLEAN SetupUninstallDriver(
         {
             if (serviceStatus.dwCurrentState != SERVICE_STOPPED)
             {
-                ULONG attempts = 60;
+                PhStopService(serviceHandle);
 
-                do
-                {
-                    PhStopService(serviceHandle);
-
-                    if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &serviceStatus)))
-                    {
-                        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
-                        {
-                            break;
-                        }
-                    }
-
-                    PhDelayExecution(1000);
-
-                } while (--attempts != 0);
+                PhWaitForServiceStatus(serviceHandle, SERVICE_STOPPED, 30 * 1000);
             }
         }
 
@@ -725,32 +711,33 @@ VOID SetupUpgradeSettingsFile(
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
-VOID ExtractResourceToFile(
+NTSTATUS ExtractResourceToFile(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR FileName
     )
 {
+    NTSTATUS status;
     HANDLE fileHandle = NULL;
     PVOID resourceBuffer;
     ULONG resourceLength;
     LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
 
-    if (!PhLoadResource(
+    status = PhLoadResource(
         DllBase,
         Name,
         RT_RCDATA,
         &resourceLength,
         &resourceBuffer
-        ))
-    {
-        goto CleanupExit;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     allocationSize.QuadPart = resourceLength;
 
-    if (!NT_SUCCESS(PhCreateFileWin32Ex(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
@@ -760,12 +747,12 @@ VOID ExtractResourceToFile(
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(NtWriteFile(
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtWriteFile(
         fileHandle,
         NULL,
         NULL,
@@ -775,18 +762,19 @@ VOID ExtractResourceToFile(
         resourceLength,
         NULL,
         NULL
-        )))
+        );
+
+    NtClose(fileHandle);
+
+    if (NT_SUCCESS(status))
     {
-        goto CleanupExit;
+        if (isb.Information != resourceLength)
+        {
+            return STATUS_FAIL_CHECK;
+        }
     }
 
-    if (isb.Information != resourceLength)
-        goto CleanupExit;
-
-CleanupExit:
-
-    if (fileHandle)
-        NtClose(fileHandle);
+    return status;
 }
 
 BOOLEAN ConnectionAvailable(VOID)

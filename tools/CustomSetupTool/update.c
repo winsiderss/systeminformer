@@ -11,7 +11,7 @@
 
 #include "setup.h"
 
-NTSTATUS SetupUpdateBuild(
+NTSTATUS CALLBACK SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {

@@ -11,7 +11,7 @@
 
 #include "setup.h"
 
-NTSTATUS SetupUninstallBuild(
+NTSTATUS CALLBACK SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {

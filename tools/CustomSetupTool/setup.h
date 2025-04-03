@@ -286,25 +286,25 @@ BOOLEAN UpdateDownloadUpdateData(
 
 // extract.c
 
-BOOLEAN SetupExtractBuild(
+BOOLEAN CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
 // install.c
 
-NTSTATUS SetupProgressThread(
+NTSTATUS CALLBACK SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
 // update.c
 
-NTSTATUS SetupUpdateBuild(
+NTSTATUS CALLBACK SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
 // uninstall.c
 
-NTSTATUS SetupUninstallBuild(
+NTSTATUS CALLBACK SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
