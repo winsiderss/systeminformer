@@ -219,7 +219,7 @@ NTSTATUS KphFltRegister(
             goto Exit;
         }
 
-        if (objectInfo->Name.Buffer[i - 1] == L'\\')
+        if (objectInfo->Name.Buffer[i - 1] == OBJ_NAME_PATH_SEPARATOR)
         {
             objectInfo->Name.Length -= (i * sizeof(WCHAR));
             RtlMoveMemory(objectInfo->Name.Buffer,
@@ -233,7 +233,7 @@ NTSTATUS KphFltRegister(
     // We null terminate this for the registry later.
     //
     NT_ASSERT(objectInfo->Name.MaximumLength >= (objectInfo->Name.Length + sizeof(WCHAR)));
-    objectInfo->Name.Buffer[objectInfo->Name.Length / sizeof(WCHAR)] = L'\0';
+    objectInfo->Name.Buffer[objectInfo->Name.Length / sizeof(WCHAR)] = UNICODE_NULL;
 
     keyName.Buffer = instancesBuffer;
     keyName.Length = 0;
@@ -289,7 +289,7 @@ NTSTATUS KphFltRegister(
     // We guarantee this above.
     //
     NT_ASSERT(objectInfo->Name.MaximumLength >= (objectInfo->Name.Length + sizeof(WCHAR)));
-    NT_ASSERT(objectInfo->Name.Buffer[objectInfo->Name.Length / sizeof(WCHAR)] == L'\0');
+    NT_ASSERT(objectInfo->Name.Buffer[objectInfo->Name.Length / sizeof(WCHAR)] == UNICODE_NULL);
     status = ZwSetValueKey(instancesKeyHandle,
                            (PUNICODE_STRING)&KphpDefaultInstaceName,
                            0,
@@ -354,7 +354,7 @@ NTSTATUS KphFltRegister(
 
     NT_ASSERT(KphAltitude);
     NT_ASSERT(KphAltitude->MaximumLength >= (KphAltitude->Length + sizeof(WCHAR)));
-    NT_ASSERT(KphAltitude->Buffer[KphAltitude->Length / sizeof(WCHAR)] == L'\0');
+    NT_ASSERT(KphAltitude->Buffer[KphAltitude->Length / sizeof(WCHAR)] == UNICODE_NULL);
     status = ZwSetValueKey(defaultInstanceKeyHandle,
                            (PUNICODE_STRING)&KphpAltitudeName,
                            0,
