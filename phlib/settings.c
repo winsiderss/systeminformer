@@ -1411,8 +1411,10 @@ HRESULT PhLoadSettingsXmlRead(
     IXmlReader* xmlReader = NULL;
     IStream* fileStream = NULL;
     PPH_SETTING setting;
-    PPH_STRING settingValue;
+    SIZE_T settingBufferLength;
+    WCHAR settingBuffer[0x100];
     PH_STRINGREF settingName;
+    PPH_STRING settingValue;
     XmlNodeType nodeType;
     PCWSTR nodeName;
     PCWSTR attrName;
@@ -1460,11 +1462,18 @@ HRESULT PhLoadSettingsXmlRead(
 
                                 if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &nameStringBuffer, &nameStringLength)))
                                 {
-                                    if ((nameStringLength * sizeof(WCHAR)) % 2 != 0)
+                                    settingBufferLength = nameStringLength * sizeof(WCHAR);
+
+                                    if (settingBufferLength % 2 != 0)
+                                        continue;
+                                    if (settingBufferLength > sizeof(settingBuffer))
                                         continue;
 
-                                    settingName.Buffer = (PWSTR)nameStringBuffer;
-                                    settingName.Length = nameStringLength * sizeof(WCHAR);
+                                    // Note: IXmlReader_GetValue returns a pointer to the string offset in the IStream buffer.
+                                    // Copy the string since since the offset might be invalid after the next buffer read. (dmex)
+                                    memcpy(settingBuffer, nameStringBuffer, settingBufferLength);
+                                    settingName.Buffer = settingBuffer;
+                                    settingName.Length = settingBufferLength;
 
                                     if (HR_SUCCESS(IXmlReader_Read(xmlReader, &nodeType)) && nodeType == XmlNodeType_Text)
                                     {
