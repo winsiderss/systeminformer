@@ -29,6 +29,11 @@
 #include <wslsup.h>
 #include <thirdparty.h>
 
+#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#include <roapi.h>
+#include <winstring.h>
+#endif
+
 DECLSPEC_SELECTANY CONST WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
 DECLSPEC_SELECTANY USHORT PhMaxPrecisionUnit = 2;
@@ -3857,6 +3862,7 @@ PPH_STRING PhGetApplicationDataFileName(
     return applicationDataFileName;
 }
 
+#if defined(PH_SHGETFOLDERPATH)
 /**
  * Gets a known location as a file name.
  *
@@ -3904,6 +3910,7 @@ PPH_STRING PhGetApplicationDataFileName(
 //
 //    return NULL;
 //}
+#endif
 
 /**
  * Retrieves the full path of a known folder.
@@ -8195,13 +8202,30 @@ HRESULT PhGetActivationFactory(
     )
 {
 #if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
-    #include <roapi.h>
-    #include <winstring.h>
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
 
-    status = WindowsCreateStringReference(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"combase.dll"))
+        {
+            WindowsCreateStringReference_I = PhGetDllBaseProcedureAddress(baseAddress, "WindowsCreateStringReference", 0);
+            RoGetActivationFactory_I = PhGetDllBaseProcedureAddress(baseAddress, "RoGetActivationFactory", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(WindowsCreateStringReference_I && RoGetActivationFactory_I))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = WindowsCreateStringReference_I(
         RuntimeClass,
         (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
@@ -8210,7 +8234,7 @@ HRESULT PhGetActivationFactory(
 
     if (HR_SUCCESS(status))
     {
-        status = RoGetActivationFactory(
+        status = RoGetActivationFactory_I(
             runtimeClassStringHandle,
             Riid,
             Ppv
@@ -8300,14 +8324,31 @@ HRESULT PhActivateInstance(
     )
 {
 #if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
-    #include <roapi.h>
-    #include <winstring.h>
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
     IInspectable* inspectableObject;
 
-    status = WindowsCreateStringReference(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"combase.dll"))
+        {
+            WindowsCreateStringReference_I = PhGetDllBaseProcedureAddress(baseAddress, "WindowsCreateStringReference", 0);
+            RoGetActivationFactory_I = PhGetDllBaseProcedureAddress(baseAddress, "RoGetActivationFactory", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(WindowsCreateStringReference_I && RoGetActivationFactory_I))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = WindowsCreateStringReference_I(
         RuntimeClass,
         (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
@@ -8316,8 +8357,9 @@ HRESULT PhActivateInstance(
 
     if (HR_SUCCESS(status))
     {
-        status = RoActivateInstance(
+        status = RoGetActivationFactory_I(
             runtimeClassStringHandle,
+            Riid,
             &inspectableObject
             );
 
@@ -9311,7 +9353,7 @@ BOOLEAN PhIsDirectXRunningFullScreen(
     VOID
     )
 {
-    static BOOLEAN (WINAPI* D3DKMTCheckExclusiveOwnership_I)(VOID) = NULL;
+    static __typeof__(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))
