@@ -23,6 +23,14 @@
 #define KPH_HASH_EACACHE_SHA384              KPH_KERNEL_PURGE_EA "SHA384"
 #define KPH_HASH_EACACHE_SHA512              KPH_KERNEL_PURGE_EA "SHA512"
 
+C_ASSERT(sizeof(KPH_HASH_EACACHE_MD5)                 < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA1)                < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA1_AUTHENTICODE)   < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA256)              < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA256_AUTHENTICODE) < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA384)              < MAXUCHAR);
+C_ASSERT(sizeof(KPH_HASH_EACACHE_SHA512)              < MAXUCHAR);
+
 #define KPH_HASH_EACACHE_LEN(x)                                                \
     ALIGN_UP_BY(FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName) +                \
                 sizeof(x),                                                     \
@@ -882,6 +890,13 @@ VOID KphpLoadHashesFromEaCache(
             PVOID buffer;
 
             eaCacheInfo = &KphpHashEaCacheInfo[i];
+
+            //
+            // None of our EA names will reach this limit. We compile time
+            // assert this and runtime assert here for clarity. This is
+            // necessary when advancing the buffer pointer below.
+            //
+            NT_ASSERT(eaCacheInfo->EaName.Length < MAXUCHAR);
 
             if (fullEaInfo->EaValueLength != eaCacheInfo->HashSize)
             {
