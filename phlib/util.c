@@ -2388,13 +2388,13 @@ PVOID PhGetFileVersionInfo(
     if (!libraryModule)
         return NULL;
 
-    if (PhLoadResourceCopy(
+    if (NT_SUCCESS(PhLoadResourceCopy(
         libraryModule,
         MAKEINTRESOURCE(VS_VERSION_INFO),
         VS_FILE_INFO,
         NULL,
         &versionInfo
-        ))
+        )))
     {
         if (PhIsFileVersionInfo32(versionInfo))
         {
@@ -2427,13 +2427,13 @@ PVOID PhGetFileVersionInfoEx(
 
         if (NT_SUCCESS(LdrLoadAlternateResourceModule(imageBaseAddress, &resourceDllBase, &resourceDllSize, 0)))
         {
-            if (PhLoadResourceCopy(
+            if (NT_SUCCESS(PhLoadResourceCopy(
                 resourceDllBase,
                 MAKEINTRESOURCE(VS_VERSION_INFO),
                 VS_FILE_INFO,
                 NULL,
                 &versionInfo
-                ))
+                )))
             {
                 if (PhIsFileVersionInfo32(versionInfo))
                 {
@@ -2451,13 +2451,13 @@ PVOID PhGetFileVersionInfoEx(
 
     // EXE version information
     {
-        if (PhLoadResourceCopy(
+        if (NT_SUCCESS(PhLoadResourceCopy(
             imageBaseAddress,
             MAKEINTRESOURCE(VS_VERSION_INFO),
             VS_FILE_INFO,
             NULL,
             &versionInfo
-            ))
+            )))
         {
             if (PhIsFileVersionInfo32(versionInfo))
             {

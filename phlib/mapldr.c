@@ -673,8 +673,7 @@ CleanupExit:
  * and does not need to be allocated or deallocated. This function cannot be used when the
  * image will be unloaded since the validity of the address is tied to the lifetime of the image.
  */
-_Success_(return)
-BOOLEAN PhLoadResource(
+NTSTATUS PhLoadResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
@@ -682,27 +681,46 @@ BOOLEAN PhLoadResource(
     _Out_opt_ PVOID *ResourceBuffer
     )
 {
+    NTSTATUS status;
     LDR_RESOURCE_INFO resourceInfo;
-    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+    PIMAGE_RESOURCE_DATA_ENTRY resourceData = NULL;
+    PVOID resourceBuffer = NULL;
     ULONG resourceLength;
-    PVOID resourceBuffer;
 
     resourceInfo.Type = (ULONG_PTR)Type;
     resourceInfo.Name = (ULONG_PTR)Name;
     resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
 
-    if (!NT_SUCCESS(LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData)))
-        return FALSE;
+    __try
+    {
+        status = LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
 
-    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
-        return FALSE;
+    if (!NT_SUCCESS(status))
+        return status;
+
+    __try
+    {
+        status = LdrAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (ResourceLength)
         *ResourceLength = resourceLength;
     if (ResourceBuffer)
         *ResourceBuffer = resourceBuffer;
 
-    return TRUE;
+    return status;
 }
 
  /**
@@ -719,8 +737,7 @@ BOOLEAN PhLoadResource(
   * \remarks This function returns a copy of a resource from heap memory
   * and must be deallocated. Use this function when the image will be unloaded.
   */
-_Success_(return)
-BOOLEAN PhLoadResourceCopy(
+NTSTATUS PhLoadResourceCopy(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
@@ -728,18 +745,27 @@ BOOLEAN PhLoadResourceCopy(
     _Out_opt_ PVOID *ResourceBuffer
     )
 {
+    NTSTATUS status;
     ULONG resourceLength;
     PVOID resourceBuffer;
 
-    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
-        return FALSE;
+    status = PhLoadResource(
+        DllBase,
+        Name,
+        Type,
+        &resourceLength,
+        &resourceBuffer
+        );
 
-    if (ResourceLength)
-        *ResourceLength = resourceLength;
-    if (ResourceBuffer)
-        *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
+    if (NT_SUCCESS(status))
+    {
+        if (ResourceLength)
+            *ResourceLength = resourceLength;
+        if (ResourceBuffer)
+            *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
+    }
 
-    return TRUE;
+    return status;
 }
 
 // rev from LoadString (dmex)
@@ -763,13 +789,13 @@ PPH_STRING PhLoadString(
     PVOID resourceBuffer;
     ULONG stringIndex;
 
-    if (!PhLoadResource(
+    if (!NT_SUCCESS(PhLoadResource(
         DllBase,
         MAKEINTRESOURCE(resourceId),
         RT_STRING,
         &resourceLength,
         &resourceBuffer
-        ))
+        )))
     {
         return NULL;
     }

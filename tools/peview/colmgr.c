@@ -218,7 +218,7 @@ BOOLEAN PhCmLoadSettingsEx(
             PhSkipStringRef(&remainingColumnPart, sizeof(WCHAR));
             PhSplitStringRefAtChar(&remainingColumnPart, L'|', &scalePart, &remainingColumnPart);
 
-            if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
+            if (scalePart.Length == 0 || !PhStringToUInt64(&scalePart, 10, &integer))
                 goto CleanupExit;
 
             scale = (ULONG)integer;
@@ -268,7 +268,7 @@ BOOLEAN PhCmLoadSettingsEx(
                 }
                 else
                 {
-                    if (!PhStringToInteger64(&valuePart, 10, &integer))
+                    if (!PhStringToUInt64(&valuePart, 10, &integer))
                         goto CleanupExit;
 
                     id = (ULONG)integer;
@@ -280,7 +280,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
                 {
-                    if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
+                    if (valuePart.Length == 0 || !PhStringToUInt64(&valuePart, 10, &integer))
                         goto CleanupExit;
 
                     displayIndex = (ULONG)integer;
@@ -295,7 +295,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 // Width
 
-                if (columnPart.Length == 0 || !PhStringToInteger64(&columnPart, 10, &integer))
+                if (columnPart.Length == 0 || !PhStringToUInt64(&columnPart, 10, &integer))
                     goto CleanupExit;
 
                 width = (ULONG)integer;
@@ -425,11 +425,11 @@ CleanupExit:
             }
             else
             {
-                PhStringToInteger64(&valuePart, 10, &integer);
+                PhStringToUInt64(&valuePart, 10, &integer);
                 sortColumn = (ULONG)integer;
             }
 
-            PhStringToInteger64(&subPart, 10, &integer);
+            PhStringToUInt64(&subPart, 10, &integer);
             sortOrder = (PH_SORT_ORDER)integer;
 
             if (sortColumn != ULONG_MAX && sortOrder <= DescendingSortOrder)

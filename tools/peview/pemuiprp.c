@@ -170,13 +170,13 @@ VOID PvPeGetMuiInfo(
     PhAddListViewGroup(ListViewHandle, 4, L"TypeNames");
     PhAddListViewGroup(ListViewHandle, 5, L"TypeIDs");
 
-    if (PhLoadResource(
+    if (NT_SUCCESS(PhLoadResource(
         PvMappedImage.ViewBase,
         MUI_NAME,
         MUI_TYPE,
         &resourceLength,
         &resourceBuffer
-        ))
+        )))
     {
         PvAddMuiResourceInfo(ListViewHandle, resourceBuffer);
     }

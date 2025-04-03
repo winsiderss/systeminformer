@@ -1715,7 +1715,7 @@ HWND PhCreateDialogFromTemplate(
     PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    if (!PhLoadResourceCopy(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+    if (!NT_SUCCESS(PhLoadResourceCopy(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)))
         return NULL;
 
     if (dialogTemplate->signature == USHRT_MAX)
@@ -1751,7 +1751,7 @@ HWND PhCreateDialog(
     PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+    if (!NT_SUCCESS(PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)))
         return NULL;
 
     dialogHandle = CreateDialogIndirectParam(
@@ -1832,7 +1832,7 @@ INT_PTR PhDialogBox(
     PDLGTEMPLATEEX dialogTemplate;
     INT_PTR dialogResult;
 
-    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+    if (!NT_SUCCESS(PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)))
         return INT_ERROR;
 
     dialogResult = DialogBoxIndirectParam(
@@ -1852,21 +1852,20 @@ HMENU PhLoadMenu(
     _In_ PCWSTR MenuName
     )
 {
-    HMENU menuHandle = NULL;
     LPMENUTEMPLATE templateBuffer;
 
-    if (PhLoadResource(
+    if (NT_SUCCESS(PhLoadResource(
         DllBase,
         MenuName,
         RT_MENU,
         NULL,
         &templateBuffer
-        ))
+        )))
     {
-        menuHandle = LoadMenuIndirect(templateBuffer);
+        return LoadMenuIndirect(templateBuffer);
     }
 
-    return menuHandle;
+    return NULL;
 }
 
 LRESULT CALLBACK PhpGeneralPropSheetWndProc(
@@ -4136,7 +4135,7 @@ HBITMAP PhLoadImageFormatFromResource(
     UINT sourceWidth = 0;
     UINT sourceHeight = 0;
 
-    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
+    if (!NT_SUCCESS(PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer)))
         goto CleanupExit;
 
     if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory)))
@@ -4395,13 +4394,15 @@ HBITMAP PhLoadImageFromResource(
     _In_ LONG Height
     )
 {
-    ULONG resourceLength = 0;
-    WICInProcPointer resourceBuffer = NULL;
+    ULONG resourceLength;
+    WICInProcPointer resourceBuffer;
 
-    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
-        return NULL;
+    if (NT_SUCCESS(PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer)))
+    {
+        return PhLoadImageFromAddress(resourceBuffer, resourceLength, Width, Height);
+    }
 
-    return PhLoadImageFromAddress(resourceBuffer, resourceLength, Width, Height);
+    return NULL;
 }
 
 // Load image and auto-detect the format (dmex)
