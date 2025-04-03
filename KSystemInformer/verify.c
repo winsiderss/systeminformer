@@ -399,7 +399,7 @@ NTSTATUS KphVerifyBuffer(
 
 #define KphpVerifyValidFileName(FileName)                                      \
     (((FileName)->Length > KphpSigExtension.Length) &&                         \
-     ((FileName)->Buffer[0] == L'\\'))
+     ((FileName)->Buffer[0] == OBJ_NAME_PATH_SEPARATOR))
 
 /**
  * \brief Verifies a file object.
