@@ -675,9 +675,9 @@ NTSTATUS KphpRegMakeObjectName(
     length = (rootName->Length + RelativeName->Length);
 
     if ((rootName->Length >= sizeof(WCHAR)) &&
-        (rootName->Buffer[(rootName->Length / sizeof(WCHAR)) - 1] != L'\\') &&
+        (rootName->Buffer[(rootName->Length / sizeof(WCHAR)) - 1] != OBJ_NAME_PATH_SEPARATOR) &&
         (RelativeName->Length >= sizeof(WCHAR)) &&
-        (RelativeName->Buffer[0] != L'\\'))
+        (RelativeName->Buffer[0] != OBJ_NAME_PATH_SEPARATOR))
     {
         needsSeparator = TRUE;
         length += sizeof(WCHAR);
@@ -769,7 +769,7 @@ VOID KphpRegFillCreateKeyObjectInfo(
     }
 
     if ((CreateInfo->CompleteName->Length >= sizeof(WCHAR)) &&
-        (CreateInfo->CompleteName->Buffer[0] == L'\\'))
+        (CreateInfo->CompleteName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR))
     {
         objectName = CreateInfo->CompleteName;
     }
@@ -1134,7 +1134,7 @@ VOID KphpRegCopyMultipleValueNames(
                 goto Exit;
             }
 
-            valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = L'\0';
+            valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = UNICODE_NULL;
             valueNames->Length += sizeof(WCHAR);
         }
     }
@@ -1158,7 +1158,7 @@ VOID KphpRegCopyMultipleValueNames(
         goto Exit;
     }
 
-    valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = L'\0';
+    valueNames->Buffer[valueNames->Length / sizeof(WCHAR)] = UNICODE_NULL;
     valueNames->Length += sizeof(WCHAR);
 
     status = KphMsgDynAddUnicodeString(Message,
