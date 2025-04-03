@@ -1486,31 +1486,30 @@ Exit:
 }
 
 /**
- * \brief Retrieves the file version from a file.
+ * \brief Retrieves the file version from a mapped file.
  *
- * \param[in] FileName The name of the file to get the version from.
+ * \param[in] ImageBase The base address of the mapped file.
+ * \param[in] ViewSize The size of the mapped file.
+ * \param[in] ResourceLanguage The language of the resource to locate.
  * \param[out] Version Set to the file version.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetFileVersion(
-    _In_ PCUNICODE_STRING FileName,
+NTSTATUS KphpParseFileVersion(
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ViewSize,
+    _In_ ULONG_PTR ResourceLanguage,
     _Out_ PKPH_FILE_VERSION Version
     )
 {
     NTSTATUS status;
-    OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE fileHandle;
-    IO_STATUS_BLOCK ioStatusBlock;
-    PVOID imageBase;
-    SIZE_T imageSize;
-    PVOID imageEnd;
     LDR_RESOURCE_INFO resourceInfo;
     PIMAGE_RESOURCE_DATA_ENTRY resourceData;
     PVOID resourceBuffer;
     ULONG resourceLength;
+    PVOID imageEnd;
     PVS_VERSION_INFO_STRUCT versionInfo;
     UNICODE_STRING keyName;
     PVS_FIXEDFILEINFO fileInfo;
@@ -1519,64 +1518,13 @@ NTSTATUS KphGetFileVersion(
 
     RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
 
-    imageBase = NULL;
-    fileHandle = NULL;
-
-    InitializeObjectAttributes(&objectAttributes,
-                               (PUNICODE_STRING)FileName,
-                               OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
-
-    status = KphCreateFile(&fileHandle,
-                           FILE_READ_ACCESS | SYNCHRONIZE,
-                           &objectAttributes,
-                           &ioStatusBlock,
-                           NULL,
-                           FILE_ATTRIBUTE_NORMAL,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                           NULL,
-                           0,
-                           IO_IGNORE_SHARE_ACCESS_CHECK,
-                           KernelMode);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      UTIL,
-                      "KphCreateFile failed: %!STATUS!",
-                      status);
-
-        fileHandle = NULL;
-        goto Exit;
-    }
-
-    imageSize = 0;
-    status = KphMapViewInSystem(fileHandle,
-                                KPH_MAP_IMAGE,
-                                &imageBase,
-                                &imageSize);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      UTIL,
-                      "KphMapViewInSystem failed: %!STATUS!",
-                      status);
-
-        imageBase = NULL;
-        goto Exit;
-    }
-
-    imageEnd = Add2Ptr(imageBase, imageSize);
-
     resourceInfo.Type = (ULONG_PTR)VS_FILE_INFO;
     resourceInfo.Name = (ULONG_PTR)MAKEINTRESOURCEW(VS_VERSION_INFO);
-    resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
+    resourceInfo.Language = ResourceLanguage;
 
     __try
     {
-        status = LdrFindResource_U(imageBase,
+        status = LdrFindResource_U(ImageBase,
                                    &resourceInfo,
                                    RESOURCE_DATA_LEVEL,
                                    &resourceData);
@@ -1590,7 +1538,7 @@ NTSTATUS KphGetFileVersion(
             goto Exit;
         }
 
-        status = LdrAccessResource(imageBase,
+        status = LdrAccessResource(ImageBase,
                                    resourceData,
                                    &resourceBuffer,
                                    &resourceLength);
@@ -1603,6 +1551,8 @@ NTSTATUS KphGetFileVersion(
 
             goto Exit;
         }
+
+        imageEnd = Add2Ptr(ImageBase, ViewSize);
 
         if (Add2Ptr(resourceBuffer, resourceLength) >= imageEnd)
         {
@@ -1700,8 +1650,139 @@ NTSTATUS KphGetFileVersion(
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
+        RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
         status = GetExceptionCode();
     }
+
+Exit:
+
+    return status;
+}
+
+/**
+ * \brief Retrieves the file version from a file.
+ *
+ * \param[in] FileName The name of the file to get the version from.
+ * \param[out] Version Set to the file version.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetFileVersion(
+    _In_ PCUNICODE_STRING FileName,
+    _Out_ PKPH_FILE_VERSION Version
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PVOID imageBase;
+    SIZE_T imageSize;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
+
+    imageBase = NULL;
+    fileHandle = NULL;
+
+    InitializeObjectAttributes(&objectAttributes,
+                               (PUNICODE_STRING)FileName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      UTIL,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        fileHandle = NULL;
+        goto Exit;
+    }
+
+    imageSize = 0;
+    status = KphMapViewInSystem(fileHandle,
+                                KPH_MAP_IMAGE,
+                                &imageBase,
+                                &imageSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      UTIL,
+                      "KphMapViewInSystem failed: %!STATUS!",
+                      status);
+
+        imageBase = NULL;
+        goto Exit;
+    }
+
+    status = KphpParseFileVersion(imageBase,
+                                  imageSize,
+                                  MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+                                  Version);
+    if (NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  UTIL,
+                  "KphpParseFileVersion failed: %!STATUS!",
+                  status);
+
+    //
+    // Try again with a neutral sub language.
+    //
+
+    status = KphpParseFileVersion(imageBase,
+                                  imageSize,
+                                  MAKELANGID(LANG_ENGLISH, SUBLANG_NEUTRAL),
+                                  Version);
+    if (NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  UTIL,
+                  "KphpParseFileVersion failed: %!STATUS!",
+                  status);
+
+    //
+    // Try again with neutral language and sub language.
+    //
+
+    status = KphpParseFileVersion(imageBase,
+                                  imageSize,
+                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                                  Version);
+    if (NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  UTIL,
+                  "KphpParseFileVersion failed: %!STATUS!",
+                  status);
 
 Exit:
 
