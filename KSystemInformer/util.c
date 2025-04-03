@@ -869,7 +869,7 @@ NTSTATUS KphQueryRegistryString(
 
         NT_ASSERT(info->DataLength >= sizeof(WCHAR));
 
-        if (sz[(info->DataLength / sizeof(WCHAR)) - 1] == L'\0')
+        if (sz[(info->DataLength / sizeof(WCHAR)) - 1] == UNICODE_NULL)
         {
             string->Length -= sizeof(WCHAR);
         }
@@ -1840,7 +1840,7 @@ NTSTATUS KphGetFileNameFinalComponent(
 
     for (USHORT i = (FileName->Length / sizeof(WCHAR)); i > 0; i--)
     {
-        if (FileName->Buffer[i - 1] != L'\\')
+        if (FileName->Buffer[i - 1] != OBJ_NAME_PATH_SEPARATOR)
         {
             continue;
         }
