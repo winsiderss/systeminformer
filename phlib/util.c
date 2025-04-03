@@ -8326,7 +8326,7 @@ HRESULT PhActivateInstance(
 #if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
-    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
+    static __typeof__(&RoActivateInstance) RoActivateInstance_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
@@ -8339,13 +8339,13 @@ HRESULT PhActivateInstance(
         if (baseAddress = PhLoadLibrary(L"combase.dll"))
         {
             WindowsCreateStringReference_I = PhGetDllBaseProcedureAddress(baseAddress, "WindowsCreateStringReference", 0);
-            RoGetActivationFactory_I = PhGetDllBaseProcedureAddress(baseAddress, "RoGetActivationFactory", 0);
+            RoActivateInstance_I = PhGetDllBaseProcedureAddress(baseAddress, "RoActivateInstance", 0);
         }
 
         PhEndInitOnce(&initOnce);
     }
 
-    if (!(WindowsCreateStringReference_I && RoGetActivationFactory_I))
+    if (!(WindowsCreateStringReference_I && RoActivateInstance_I))
         return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     status = WindowsCreateStringReference_I(
@@ -8357,9 +8357,8 @@ HRESULT PhActivateInstance(
 
     if (HR_SUCCESS(status))
     {
-        status = RoGetActivationFactory_I(
+        status = RoActivateInstance_I(
             runtimeClassStringHandle,
-            Riid,
             &inspectableObject
             );
 
