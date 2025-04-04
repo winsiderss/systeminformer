@@ -37,7 +37,6 @@ typedef enum _PHP_HANDLE_GENERAL_CATEGORY
     PH_HANDLE_GENERAL_CATEGORY_PROCESSTHREAD,
     PH_HANDLE_GENERAL_CATEGORY_ETW,
     PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK,
-    PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET,
 
     PH_HANDLE_GENERAL_CATEGORY_MAXIMUM
 } PHP_HANDLE_GENERAL_CATEGORY;
@@ -89,26 +88,6 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_ETWGROUPNAME,
 
     PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK,
-
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETTYPE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESSFAMILY,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROTOCOL,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETCATALOGENTRYID,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERID,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERFLAGS,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETSERVICEFLAGS,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDBUFFERSIZE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVEBUFFERSIZE,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETCREATIONFLAGS,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETFLAGS,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESS,
-    PH_HANDLE_GENERAL_INDEX_AFDSOCKETREMOTEADDRESS,
 
     PH_HANDLE_GENERAL_INDEX_MAXIMUM
 } PHP_HANDLE_GENERAL_INDEX;
@@ -357,6 +336,14 @@ NTSTATUS PhpShowHandlePropertiesThread(
             handleContext->HandleItem->Handle
             );
     }
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"File", TRUE) &&
+        PhAfdIsSocketObjectName(handleContext->HandleItem->ObjectName))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateAfdSocketPage(
+            context.ProcessId,
+            context.HandleItem->Handle
+        );
+    }
 
     // Security page
     {
@@ -523,30 +510,6 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEDRIVER, L"Driver");
             PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_FILE, PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE, L"Driver Image");
         }
-
-        if (PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
-        {
-            PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, L"Socket information");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE, L"TDI address device");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE, L"TDI connection device");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE, L"State");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTYPE, L"Type");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESSFAMILY, L"Address family");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROTOCOL, L"Protocol");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCATALOGENTRYID, L"Catalog entry ID");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERID, L"Provider ID");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERFLAGS, L"Provider flags");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSERVICEFLAGS, L"Service flags");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT, L"Send timeout");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT, L"Receive timeout");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDBUFFERSIZE, L"Send buffer size");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVEBUFFERSIZE, L"Receive buffer size");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCREATIONFLAGS, L"Creation flags");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETFLAGS, L"Flags");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME, L"Connect time");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESS, L"Address");
-            PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_AFDSOCKET, PH_HANDLE_GENERAL_INDEX_AFDSOCKETREMOTEADDRESS, L"Remote address");
-        }
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
     {
@@ -582,202 +545,6 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     {
         PhAddIListViewGroup(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, L"Symbolic Link information");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_SYMBOLICLINK, PH_HANDLE_GENERAL_INDEX_SYMBOLICLINKLINK, L"Link target");
-    }
-}
-
-VOID PhpUpdateAfdFileHandleGeneral(
-    _In_ PHANDLE_PROPERTIES_CONTEXT Context,
-    _In_opt_ HANDLE FileHandle
-    )
-{
-    NTSTATUS status;
-    HANDLE fileHandle = NULL;
-    PPH_STRING itemString;
-    SOCK_SHARED_INFO socketInfo;
-    AFD_INFORMATION simpleInfo;
-
-    assert(PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE));
-    assert(PhAfdIsSocketObjectName(Context->HandleItem->ObjectName));
-
-    if (FileHandle)
-    {
-        fileHandle = FileHandle;
-        status = STATUS_SUCCESS;
-    }
-    else
-    {
-        HANDLE processHandle;
-
-        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, Context->ProcessId)))
-        {
-            status = NtDuplicateObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                NtCurrentProcess(),
-                &fileHandle,
-                0,
-                0,
-                DUPLICATE_SAME_ACCESS
-                );
-
-            NtClose(processHandle);
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-        return;
-
-    assert(fileHandle);
-
-    // TDI address device
-    if (NT_SUCCESS(PhAfdQueryFormatTdiDeviceName(fileHandle, AFD_QUERY_ADDRESS_HANDLE, &itemString)))
-    {
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDIADDRESSDEVICE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-    }
-
-    // TDI connection device
-    if (NT_SUCCESS(PhAfdQueryFormatTdiDeviceName(fileHandle, AFD_QUERY_CONNECTION_HANDLE, &itemString)))
-    {
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTDICONNECTIONDEVICE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-    }
-
-    if (NT_SUCCESS(PhAfdQuerySharedInfo(fileHandle, &socketInfo)))
-    {
-        // State
-        itemString = PhAfdFormatSocketState(socketInfo.State);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSTATE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Type
-        itemString = PhAfdFormatSocketType(socketInfo.SocketType);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETTYPE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Address family
-        itemString = PhAfdFormatAddressFamily(socketInfo.AddressFamily);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESSFAMILY, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Protocol
-        itemString = PhAfdFormatProtocol(socketInfo.AddressFamily, socketInfo.Protocol);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROTOCOL, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Catalog entry ID
-        itemString = PhFormatString(L"%d", socketInfo.CatalogEntryId);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCATALOGENTRYID, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Provider ID
-        itemString = PhFormatGuid(&socketInfo.ProviderId);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERID, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Provider flags
-        itemString = PhAfdFormatProviderFlags(socketInfo.ProviderFlags);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETPROVIDERFLAGS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Service flags
-        itemString = PhAfdFormatServiceFlags(socketInfo.ServiceFlags1);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSERVICEFLAGS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Send timeout
-        if (socketInfo.SendTimeout)
-        {
-            itemString = PhFormatTimeSpanRelative(PH_TICKS_PER_MS * socketInfo.SendTimeout);
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT, 1, PhGetString(itemString));
-            PhDereferenceObject(itemString);
-        }
-        else
-        {
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDTIMEOUT, 1, L"Unlimited");
-        }
-
-        // Receive timeout
-        if (socketInfo.ReceiveTimeout)
-        {
-            itemString = PhFormatTimeSpanRelative(PH_TICKS_PER_MS * socketInfo.ReceiveTimeout);
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT, 1, PhGetString(itemString));
-            PhDereferenceObject(itemString);
-        }
-        else
-        {
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVETIMEOUT, 1, L"Unlimited");
-        }
-
-        // Send buffer size
-        itemString = PhFormatSize(socketInfo.SendBufferSize, -1);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETSENDBUFFERSIZE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Receive buffer size
-        itemString = PhFormatSize(socketInfo.ReceiveBufferSize, -1);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETRECEIVEBUFFERSIZE, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Creation flags
-        itemString = PhAfdFormatCreationFlags(socketInfo.CreationFlags);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCREATIONFLAGS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-
-        // Flags
-        itemString = PhAfdFormatSharedInfoFlags(&socketInfo);
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETFLAGS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-    }
-
-    // Connect time
-    if (NT_SUCCESS(PhAfdQuerySimpleInfo(fileHandle, AFD_CONNECT_TIME, &simpleInfo)))
-    {
-        if (simpleInfo.Information.Ulong != ULONG_MAX)
-        {
-            LARGE_INTEGER time;
-            SYSTEMTIME timeFields;
-            PPH_STRING timeRelativeString;
-            PPH_STRING timeString;
-
-            // Derive connection time from relative number of seconds
-            PhQuerySystemTime(&time);
-            time.QuadPart -= PH_TICKS_PER_SEC * simpleInfo.Information.Ulong;
-            PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-
-            timeRelativeString = PhFormatTimeSpanRelative(PH_TICKS_PER_SEC * simpleInfo.Information.Ulong);
-            timeString = PhFormatDateTime(&timeFields);
-            itemString = PhFormatString(L"%s ago (%s)", timeRelativeString->Buffer, PhGetString(timeString));
-            PhDereferenceObject(timeRelativeString);
-            PhDereferenceObject(timeString);
-
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME, 1, PhGetString(itemString));
-            PhDereferenceObject(itemString);
-        }
-        else
-        {
-            PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETCONNECTTIME, 1, L"N/A");
-        }
-    }
-
-    // Address
-    if (NT_SUCCESS(PhAfdQueryFormatAddress(fileHandle, FALSE, &itemString, FALSE)))
-    {
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETADDRESS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-    }
-
-    // Remote address
-    if (NT_SUCCESS(PhAfdQueryFormatAddress(fileHandle, TRUE, &itemString, FALSE)))
-    {
-        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_AFDSOCKETREMOTEADDRESS, 1, PhGetString(itemString));
-        PhDereferenceObject(itemString);
-    }
-
-    if (!FileHandle)
-    {
-        // We duplicated the handle and must close it.
-        NtClose(fileHandle);
     }
 }
 
@@ -1347,10 +1114,6 @@ VOID PhpUpdateHandleGeneral(
                 NtClose(fileObjectDriver.DriverHandle);
             }
 
-            // AFD socket information
-            if (PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
-                PhpUpdateAfdFileHandleGeneral(Context, NULL);
-
             NtClose(processHandle);
         }
         else
@@ -1614,10 +1377,6 @@ VOID PhpUpdateHandleGeneral(
                         break;
                     }
                 }
-
-                // AFD socket information
-                if (PhAfdIsSocketObjectName(Context->HandleItem->ObjectName))
-                    PhpUpdateAfdFileHandleGeneral(Context, fileHandle);
 
                 NtClose(fileHandle);
             }

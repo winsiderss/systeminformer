@@ -388,7 +388,6 @@ typedef struct _AFD_SEND_DATAGRAM_INFO
     _Field_size_(BufferCount) LPWSABUF BufferArray;
     ULONG BufferCount;
     ULONG AfdFlags;
-    ULONG TdiFlags; // TDI_RECEIVE_*
     TDI_REQUEST_SEND_DATAGRAM TdiRequest;
     TDI_CONNECTION_INFORMATION TdiConnInfo;
 } AFD_SEND_DATAGRAM_INFO, *PAFD_SEND_DATAGRAM_INFO;
@@ -682,22 +681,25 @@ typedef struct _AFD_TRANSPORT_IOCTL_INFO
     ULONG PollEvent;
 } AFD_TRANSPORT_IOCTL_INFO, *PAFD_TRANSPORT_IOCTL_INFO;
 
+// rev - HV_PROTOCOL_RAW-level option in addition to ones in hvsocket.h
+#define HVSOCKET_CONTAINER_PASSTHRU     0x02 // q: ULONG
+
 // private
 typedef enum TL_IO_CONTROL_TYPE
 {
-    TlEndpointIoControlType = 0,
-    TlSetSockOptIoControlType = 1,
-    TlGetSockOptIoControlType = 2,
-    TlSocketIoControlType = 3,
+    TlEndpointIoControlType = 0,   // not supported
+    TlSetSockOptIoControlType = 1, // setsockopt
+    TlGetSockOptIoControlType = 2, // getsockopt
+    TlSocketIoControlType = 3,     // ioctlsocket // Level must be 0
 } TL_IO_CONTROL_TYPE, *PTL_IO_CONTROL_TYPE;
 
 // private
 typedef struct _AFD_TL_IO_CONTROL_INFO
 {
     TL_IO_CONTROL_TYPE Type;
-    ULONG Level; // SOL_* or IPPROTO_*
-    ULONG IoControlCode; // SIO_*, SO_*, IP_*, IPV6_*, TCP_*, UDP_*, etc. (depending on type and level)
-    BOOLEAN EndpointIoctl;
+    ULONG Level; // SOL_* or IPPROTO_* or HV_PROTOCOL_RAW
+    ULONG IoControlCode; // SIO_*, SO_*, IP_*, IPV6_*, TCP_*, UDP_*, HVSOCKET_*, etc. (depending on type and level)
+    BOOLEAN EndpointIoctl; // must be TRUE
     _Field_size_bytes_(InputBufferLength) PVOID InputBuffer;
     SIZE_T InputBufferLength;
 } AFD_TL_IO_CONTROL_INFO, *PAFD_TL_IO_CONTROL_INFO;

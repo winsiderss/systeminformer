@@ -661,6 +661,11 @@ HPROPSHEETPAGE PhCreateTimerPage(
     _In_opt_ PVOID Context
     );
 
+HPROPSHEETPAGE PhCreateAfdSocketPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE HandleValue
+    );
+
 HPROPSHEETPAGE PhCreateMappingsPage(
     _In_ HANDLE ProcessId,
     _In_ HANDLE SectionHandle

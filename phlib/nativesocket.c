@@ -359,7 +359,7 @@ NTSTATUS PhAfdQueryFormatTdiDeviceName(
 
     if (hTdiDevice == INVALID_HANDLE_VALUE)
     {
-        *TdiDeviceName = PhCreateString(L"N/A");
+        *TdiDeviceName = PhCreateString(L"N/A (transport is not TDI)");
     }
     else if (hTdiDevice == NULL)
     {
@@ -474,14 +474,14 @@ NTSTATUS PhAfdQueryAddress(
   *
   * \param[in] Address The address buffer.
   * \param[out] AddressString The string representation of the address.
-  * \param[in] Simplify A boolean indicating whether the function should prefer a human-readable or a complete version of the address.
+  * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
   *
   * \return Successful or errant status.
   */
 NTSTATUS PhAfdFormatAddress(
     _In_ PSOCKADDR_STORAGE Address,
     _Out_ PPH_STRING *AddressString,
-    _In_ BOOLEAN Simplify
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status = STATUS_NOT_SUPPORTED;
@@ -545,7 +545,7 @@ NTSTATUS PhAfdFormatAddress(
     {
         PSOCKADDR_HV address = (PSOCKADDR_HV)Address;
 
-        if (Simplify)
+        if (Flags & PH_AFD_ADDRESS_SIMPLIFY)
         {
             PH_FORMAT format[5];
             ULONG count = 0;
@@ -620,7 +620,7 @@ NTSTATUS PhAfdFormatAddress(
   * \param[in] SocketHandle An AFD socket handle.
   * \param[in] Remote Whether the function should return a remote or a local address.
   * \param[out] AddressString The string representation of the address.
-  * \param[in] Simplify A boolean indicating whether the function should prefer a human-readable or a complete version of the address.
+  * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
   *
   * \return Successful or errant status.
   */
@@ -628,7 +628,7 @@ NTSTATUS PhAfdQueryFormatAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
     _Out_ PPH_STRING *AddressString,
-    _In_ BOOLEAN Simplify
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status;
@@ -639,7 +639,7 @@ NTSTATUS PhAfdQueryFormatAddress(
     if (!NT_SUCCESS(status))
         return status;
 
-    return PhAfdFormatAddress(&address, AddressString, Simplify);
+    return PhAfdFormatAddress(&address, AddressString, Flags);
 }
 
 /**
@@ -799,7 +799,7 @@ PPH_STRING PhAfdFormatServiceFlags(
 {
 #define PH_AFD_SERVICE_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
 
-    static const PH_ACCESS_ENTRY serivceFlags[] =
+    static const PH_ACCESS_ENTRY serviceFlags[] =
     {
         PH_AFD_SERVICE_FLAG(XP1_CONNECTIONLESS, L"Connectionless"),
         PH_AFD_SERVICE_FLAG(XP1_GUARANTEED_DELIVERY, L"Guaranteed delivery"),
@@ -828,7 +828,7 @@ PPH_STRING PhAfdFormatServiceFlags(
 
     if (ServiceFlags)
     {
-        string = PhGetAccessString(ServiceFlags, (PPH_ACCESS_ENTRY)serivceFlags, RTL_NUMBER_OF(serivceFlags));
+        string = PhGetAccessString(ServiceFlags, (PPH_ACCESS_ENTRY)serviceFlags, RTL_NUMBER_OF(serviceFlags));
 
         PhInitFormatS(&format[0], L"0x");
         PhInitFormatX(&format[1], ServiceFlags);
@@ -1146,6 +1146,142 @@ PCWSTR PhpAfdGetProtocolSummary(
 }
 
 /**
+  * \brief Looks up a human-readable name of a group type.
+  *
+  * \param[in] GroupType The socket group type value.
+  *
+  * \return A string with the group type name or NULL when the value is not recognized.
+  */
+_Maybenull_
+PCWSTR PhpAfdGetGroupTypeString(
+    _In_ AFD_GROUP_TYPE GroupType
+    )
+{
+    switch (GroupType)
+    {
+    case GroupTypeNeither:
+        return L"Neither";
+    case GroupTypeUnconstrained:
+        return L"Unconstrained";
+    case GroupTypeConstrained:
+        return L"Constrained";
+    default:
+        return NULL;
+    }
+}
+
+/**
+  * \brief Formats a group type name as a string.
+  *
+  * \param[in] GroupType The socket group type value.
+  *
+  * \return A string with a human-readable group type name.
+  */
+PPH_STRING PhAfdFormatGroupType(
+    _In_ AFD_GROUP_TYPE GroupType
+    )
+{
+    PCWSTR knownName = PhpAfdGetGroupTypeString(GroupType);
+
+    if (knownName)
+        return PhCreateString(knownName);
+    else
+        return PhFormatString(L"Unrecognized type (%d)", GroupType);
+}
+
+/**
+  * \brief Looks up a human-readable name for an IPv6 protection level.
+  *
+  * \param[in] ProtectionLevel The protection level value.
+  *
+  * \return A string with the protection level name or NULL when the value is not recognized.
+  */
+_Maybenull_
+PCWSTR PhpAfdGetProtectionLevelString(
+    _In_ ULONG ProtectionLevel
+    )
+{
+    switch (ProtectionLevel)
+    {
+    case PROTECTION_LEVEL_UNRESTRICTED:
+        return L"Unrestricted";
+    case PROTECTION_LEVEL_EDGERESTRICTED:
+        return L"Edge-restricted";
+    case PROTECTION_LEVEL_RESTRICTED:
+        return L"Restricted";
+    case PROTECTION_LEVEL_DEFAULT:
+        return L"Default";
+    default:
+        return NULL;
+    }
+}
+
+/**
+  * \brief Formats an IPv6 protection level name as a string.
+  *
+  * \param[in] ProtectionLevel The protection level value.
+  *
+  * \return A string with a human-readable protection level name.
+  */
+PPH_STRING PhAfdFormatProtectionLevel(
+    _In_ ULONG ProtectionLevel
+    )
+{
+    PCWSTR knownName = PhpAfdGetProtectionLevelString(ProtectionLevel);
+
+    if (knownName)
+        return PhCreateString(knownName);
+    else
+        return PhFormatString(L"Unrecognized value (%d)", ProtectionLevel);
+}
+
+/**
+  * \brief Looks up a human-readable name for MTU discovery mode.
+  *
+  * \param[in] MtuDiscover The MTU discovery value.
+  *
+  * \return A string with the MTU discovery mode name or NULL when the value is not recognized.
+  */
+_Maybenull_
+PCWSTR PhpAfdGetMtuDiscoveryString(
+    _In_ ULONG MtuDiscover
+    )
+{
+    switch (MtuDiscover)
+    {
+    case IP_PMTUDISC_NOT_SET:
+        return L"Not set";
+    case IP_PMTUDISC_DO:
+        return L"Perform";
+    case IP_PMTUDISC_DONT:
+        return L"Don't perform";
+    case IP_PMTUDISC_PROBE:
+        return L"Probe";
+    default:
+        return NULL;
+    }
+}
+
+/**
+  * \brief Formats an MTU discovery mode as a string.
+  *
+  * \param[in] MtuDiscover The MTU discovery value.
+  *
+  * \return A string with a human-readable MTU discovery mode name.
+  */
+PPH_STRING PhAfdFormatMtuDiscoveryMode(
+    _In_ ULONG MtuDiscover
+    )
+{
+    PCWSTR knownName = PhpAfdGetMtuDiscoveryString(MtuDiscover);
+
+    if (knownName)
+        return PhCreateString(knownName);
+    else
+        return PhFormatString(L"Unrecognized value (%d)", MtuDiscover);
+}
+
+/**
   * \brief Formats a human-readable name for an AFD socket.
   *
   * \param[in] SocketHandle An AFD socket handle.
@@ -1168,7 +1304,7 @@ PPH_STRING PhAfdFormatSocketBestName(
 
     // Query socket information
     sharedInfoAvailable = NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &sharedInfo));
-    addressAvailable = NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, FALSE, &addressString, TRUE));
+    addressAvailable = NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, FALSE, &addressString, PH_AFD_ADDRESS_SIMPLIFY));
 
     if (!sharedInfoAvailable && !addressAvailable)
         return NULL;
@@ -1201,7 +1337,7 @@ PPH_STRING PhAfdFormatSocketBestName(
         PhInitFormatSR(&format[count++], addressString->sr);
 
         // Remote address
-        if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, TRUE)))
+        if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, PH_AFD_ADDRESS_SIMPLIFY)))
         {
             PhInitFormatS(&format[count++], L" to ");
             PhInitFormatSR(&format[count++], remoteAddressString->sr);
