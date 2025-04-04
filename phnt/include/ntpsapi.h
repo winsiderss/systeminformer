@@ -148,6 +148,10 @@
 // Process information structures
 //
 
+/**
+ * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+ */
 typedef struct _PEB_LDR_DATA
 {
     ULONG Length;
@@ -173,6 +177,10 @@ typedef struct _INITIAL_TEB
     PVOID StackAllocationBase;
 } INITIAL_TEB, *PINITIAL_TEB;
 
+//
+// NtQueryInformationProcess/NtSetInformationProcess types
+//
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
@@ -189,7 +197,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessLdtInformation, // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize, // s: PROCESS_LDT_SIZE
     ProcessDefaultHardErrorMode, // qs: ULONG
-    ProcessIoPortHandlers, // (kernel-mode only) // s: PROCESS_IO_PORT_HANDLER_INFORMATION
+    ProcessIoPortHandlers, // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
     ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
     ProcessWorkingSetWatch, // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL, // qs: ULONG (requires SeTcbPrivilege)
@@ -296,7 +304,11 @@ typedef enum _PROCESSINFOCLASS
     ProcessAvailableCpus,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
+//
+// NtQueryInformationThread/NtSetInformationThread types
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _THREADINFOCLASS
@@ -363,7 +375,7 @@ typedef enum _THREADINFOCLASS
     ThreadIndexInformation, // THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -605,7 +617,7 @@ typedef struct _LDT_ENTRY
         } Bits;
     } HighWord;
 } LDT_ENTRY, *PLDT_ENTRY;
-#endif
+#endif // _LDT_ENTRY_DEFINED
 
 /**
  * The PROCESS_LDT_INFORMATION structure is used to manage Local Descriptor Table (LDT) entries for a process.
@@ -636,7 +648,7 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
     PVOID FaultingVa; // A pointer to the page that was added to the working set.
 } PROCESS_WS_WATCH_INFORMATION, *PPROCESS_WS_WATCH_INFORMATION;
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
@@ -1464,7 +1476,7 @@ NtQueryPortInformationProcess(
     VOID
     );
 
-#endif // PHNT_MODE != PHNT_MODE_KERNEL
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // Thread information structures
@@ -1688,7 +1700,7 @@ typedef enum _SUBSYSTEM_INFORMATION_TYPE
     SubsystemInformationTypeWSL,
     MaxSubsystemInformationType
 } SUBSYSTEM_INFORMATION_TYPE;
-#endif // PHNT_MODE != PHNT_MODE_KERNEL
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 typedef enum _THREAD_WORKLOAD_CLASS
 {
