@@ -10,9 +10,9 @@ if "%1"=="INIT" (
 
 REM Check if terminal logging is supported
 set "TLG=auto"
-if "%GITHUB_ACTIONS%"=="true"  (
+if "%GITHUB_ACTIONS%"=="true" (
     set "TLG=off"
-) else if "%BUILD_BUILDID%" NEQ "" (
+) else if "%TF_BUILD%"=="true" (
     set "TLG=off"
 )
 
@@ -40,27 +40,27 @@ if exist "tools\thirdparty\obj" (
 
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -terminalLogger:"%TLG%"
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 

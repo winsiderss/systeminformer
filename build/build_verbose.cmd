@@ -4,9 +4,9 @@
 
 REM Check if terminal logging is supported
 set "TLG=auto"
-if "%GITHUB_ACTIONS%"=="true"  (
+if "%GITHUB_ACTIONS%"=="true" (
     set "TLG=off"
-) else if "%BUILD_BUILDID%" NEQ "" (
+) else if "%TF_BUILD%"=="true" (
     set "TLG=off"
 )
 
@@ -27,27 +27,27 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
 
 echo:
 
-msbuild /m SystemInformer.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=Win32 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m SystemInformer.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=x64 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m SystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m SystemInformer.sln -t:rebuild -p:Configuration=Debug -p:Platform=ARM64 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m Plugins\Plugins.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=Win32 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m Plugins\Plugins.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=x64 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
-msbuild /m Plugins\Plugins.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:normal -terminalLogger:"%TLG%"
+msbuild /m Plugins\Plugins.sln -t:rebuild -p:Configuration=Debug -p:Platform=ARM64 -verbosity:diagnostic -terminalLogger:%TLG%
 if %ERRORLEVEL% neq 0 goto end
 echo:
 
