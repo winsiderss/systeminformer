@@ -169,7 +169,7 @@ typedef struct _AFD_SWITCH_OPEN_PACKET
 
 // private // Note: different bit layout from CTL_CODE
 #define FSCTL_AFD_BASE  FILE_DEVICE_NETWORK
-#define _AFD_CONTROL_CODE(request, method) (FSCTL_AFD_BASE << 12 | request << 2 | method)
+#define _AFD_CONTROL_CODE(Request, Method) (FSCTL_AFD_BASE << 12 | (Request) << 2 | (Method))
 
 // private // IOCTLs
 #define IOCTL_AFD_BIND                        _AFD_CONTROL_CODE(AFD_BIND, METHOD_NEITHER) // 0x12003
