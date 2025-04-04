@@ -31,6 +31,7 @@ PhAfdIsSocketHandle(
     _In_ HANDLE Handle
     );
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAfdDeviceIoControl(
@@ -61,6 +62,7 @@ PhAfdQuerySimpleInfo(
     _Out_ PAFD_INFORMATION Information
     );
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAfdQueryOption(
@@ -70,6 +72,7 @@ PhAfdQueryOption(
     _Out_ PULONG OptionValue
     );
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAfdQueryTdiHandle(
@@ -78,6 +81,7 @@ PhAfdQueryTdiHandle(
     _Out_ PHANDLE TdiHandle
     );
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAfdQueryFormatTdiDeviceName(
@@ -95,33 +99,41 @@ PhAfdQueryAddress(
     _Out_ PSOCKADDR_STORAGE Address
     );
 
+// Address formatting flags
+#define PH_AFD_ADDRESS_SIMPLIFY 0x01 // Print addresses as human-readable
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAfdQueryFormatAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
     _Out_ PPH_STRING *AddressString,
-    _In_ BOOLEAN Simplify
+    _In_ ULONG Flags
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatSocketState(
     _In_ SOCKET_STATE SocketState
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatSocketType(
     _In_ LONG SocketType
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatAddressFamily(
     _In_ LONG AddressFamily
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatProtocol(
@@ -129,28 +141,53 @@ PhAfdFormatProtocol(
     _In_ LONG Protocol
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatProviderFlags(
     _In_ ULONG ProviderFlags
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatServiceFlags(
     _In_ ULONG ServiceFlags
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatCreationFlags(
     _In_ ULONG CreationFlags
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhAfdFormatSharedInfoFlags(
     _In_ PSOCK_SHARED_INFO SharedInfo
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhAfdFormatGroupType(
+    _In_ AFD_GROUP_TYPE GroupType
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhAfdFormatProtectionLevel(
+    _In_ ULONG ProtectionLevel
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhAfdFormatMtuDiscoveryMode(
+    _In_ ULONG MtuDiscover
     );
 
 _Maybenull_
