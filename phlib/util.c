@@ -4252,7 +4252,7 @@ PPH_STRING PhGetTemporaryDirectory(
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
     if (
-        PhGetOwnTokenAttributes().Elevated ||
+        PhGetOwnTokenAttributes().Elevated &&
         PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
         )
     {
