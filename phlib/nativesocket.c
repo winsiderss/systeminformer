@@ -56,7 +56,9 @@ NTSTATUS PhAfdIsSocketHandle(
     _In_ HANDLE Handle
     )
 {
+    static CONST PH_STRINGREF deviceName = PH_STRINGREF_INIT(AFD_DEVICE_NAME);
     NTSTATUS status;
+    PH_STRINGREF volumeName;
     IO_STATUS_BLOCK ioStatusBlock;
 
     union {
@@ -80,15 +82,11 @@ NTSTATUS PhAfdIsSocketHandle(
     if (!NT_SUCCESS(status))
         return status;
 
-    static UNICODE_STRING afdDeviceName = RTL_CONSTANT_STRING(AFD_DEVICE_NAME);
-    UNICODE_STRING volumeName;
-
     volumeName.Buffer = Buffer.VolumeName.DeviceName;
-    volumeName.Length = (USHORT)Buffer.VolumeName.DeviceNameLength;
-    volumeName.MaximumLength = (USHORT)Buffer.VolumeName.DeviceNameLength;
+    volumeName.Length = Buffer.VolumeName.DeviceNameLength;
 
     // Compare the file's device name to AFD
-    return RtlEqualUnicodeString(&volumeName, &afdDeviceName, TRUE) ? STATUS_SUCCESS : STATUS_NOT_SAME_DEVICE;
+    return PhEqualStringRef(&volumeName, &deviceName, TRUE) ? STATUS_SUCCESS : STATUS_NOT_SAME_DEVICE;
 }
 
  /**
@@ -117,7 +115,7 @@ NTSTATUS PhAfdDeviceIoControl(
     )
 {
     NTSTATUS status;
-    HANDLE hEvent;
+    HANDLE eventHandle;
     IO_STATUS_BLOCK ioStatusBlock;
 
     if (BytesReturned)
@@ -127,7 +125,7 @@ NTSTATUS PhAfdDeviceIoControl(
 
     if (Overlapped)
     {
-        hEvent = Overlapped->hEvent;
+        eventHandle = Overlapped->hEvent;
         Overlapped->Internal = STATUS_PENDING;
     }
     else
@@ -135,10 +133,9 @@ NTSTATUS PhAfdDeviceIoControl(
         // We cannot wait on the file handle because it might not grant SYNCHRONIZE access.
         // Always use an event instead.
 
-        status = NtCreateEvent(
-            &hEvent,
+        status = PhCreateEvent(
+            &eventHandle,
             EVENT_ALL_ACCESS,
-            NULL,
             SynchronizationEvent,
             FALSE
             );
@@ -149,7 +146,7 @@ NTSTATUS PhAfdDeviceIoControl(
 
     status = NtDeviceIoControlFile(
         SocketHandle,
-        hEvent,
+        eventHandle,
         NULL,
         Overlapped,
         Overlapped ? (PIO_STATUS_BLOCK)Overlapped : &ioStatusBlock,
@@ -171,11 +168,11 @@ NTSTATUS PhAfdDeviceIoControl(
     {
         if (status == STATUS_PENDING)
         {
-            NtWaitForSingleObject(hEvent, FALSE, NULL);
+            NtWaitForSingleObject(eventHandle, FALSE, NULL);
             status = ioStatusBlock.Status;
         }
 
-        NtClose(hEvent);
+        NtClose(eventHandle);
 
         if (BytesReturned)
         {
@@ -255,6 +252,7 @@ NTSTATUS PhAfdQuerySimpleInfo(
 /**
   * \brief Retrieves socket option for an AFD socket.
   *
+  * \param[in] SocketHandle An AFD socket handle.
   * \param[in] Level A level for the option, such as SOL_SOCKET or IPPROTO_IP.
   * \param[in] OptionName An option identifier within the level, such as SO_REUSEADDR or IP_TTL.
   * \param[out] OptionValue A buffer that receives the option value.
