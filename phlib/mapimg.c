@@ -4820,8 +4820,8 @@ PVOID PhpFillDynamicRelocationsArray32(
     PIMAGE_BASE_RELOCATION base;
     PVOID end;
 
-    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
-    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize));
+    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize));
     end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
 
     PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Array);
