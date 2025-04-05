@@ -7,7 +7,7 @@
 #ifndef _NTPSAPI_H
 #define _NTPSAPI_H
 
-#include <ntpebteb.h>
+#include "ntpebteb.h"
 
 //
 // Process Object Specific Access Rights
