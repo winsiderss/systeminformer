@@ -14,6 +14,7 @@
 
 #include <ph.h>
 #include <ntafd.h>
+#include <mstcpip.h>
 
 EXTERN_C_START
 
@@ -70,6 +71,15 @@ PhAfdQueryOption(
     _In_ ULONG Level,
     _In_ ULONG OptionName,
     _Out_ PULONG OptionValue
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAfdQueryTcpInfo(
+    _In_ HANDLE SocketHandle,
+    _Out_ PTCP_INFO_v2 TcpInfo,
+    _Out_ PULONG TcpInfoVersion
     );
 
 PHLIBAPI
@@ -188,6 +198,13 @@ PPH_STRING
 NTAPI
 PhAfdFormatMtuDiscoveryMode(
     _In_ ULONG MtuDiscover
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhAfdFormatTcpState(
+    _In_ TCPSTATE TcpState
     );
 
 _Maybenull_

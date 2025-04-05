@@ -286,6 +286,63 @@ NTSTATUS PhAfdQueryOption(
 }
 
 /**
+  * \brief Retrieves the latest supported TCP_INFO for an AFD socket.
+  *
+  * \param[in] SocketHandle An AFD socket handle.
+  * \param[out] TcpInfo A buffer that receives the TCP information.
+  * \param[out] TcpInfoVersion The version of the returned structure.
+  *
+  * \return Successful or errant status.
+  */
+NTSTATUS PhAfdQueryTcpInfo(
+    _In_ HANDLE SocketHandle,
+    _Out_ PTCP_INFO_v2 TcpInfo,
+    _Out_ PULONG TcpInfoVersion
+    )
+{
+    NTSTATUS status;
+    AFD_TL_IO_CONTROL_INFO controlInfo = { 0 };
+    LONG version;
+
+    static const ULONG tcpInfoSize[] =
+    {
+        sizeof(TCP_INFO_v0),
+        sizeof(TCP_INFO_v1),
+        sizeof(TCP_INFO_v2)
+    };
+
+    controlInfo.Type = TlSocketIoControlType;
+    controlInfo.EndpointIoctl = TRUE;
+    controlInfo.IoControlCode = SIO_TCP_INFO;
+    controlInfo.InputBuffer = &version;
+    controlInfo.InputBufferLength = sizeof(LONG);
+
+    RtlZeroMemory(TcpInfo, sizeof(TCP_INFO_v2));
+
+    for (version = 2; version >= 0; version--)
+    {
+        status = PhAfdDeviceIoControl(
+            SocketHandle,
+            IOCTL_AFD_TRANSPORT_IOCTL,
+            &controlInfo,
+            sizeof(AFD_TL_IO_CONTROL_INFO),
+            TcpInfo,
+            tcpInfoSize[version],
+            NULL,
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *TcpInfoVersion = version;
+            break;
+        }
+    }
+
+    return status;
+}
+
+/**
   * \brief Opens an address or a connection handle to the underlying device for a TDI socket.
   *
   * \param[in] SocketHandle An AFD socket handle.
@@ -1277,6 +1334,66 @@ PPH_STRING PhAfdFormatMtuDiscoveryMode(
         return PhCreateString(knownName);
     else
         return PhFormatString(L"Unrecognized value (%d)", MtuDiscover);
+}
+
+/**
+  * \brief Looks up a human-readable name for a TCP state.
+  *
+  * \param[in] TcpState The TCP state value.
+  *
+  * \return A string with the TCP state name or NULL when the value is not recognized.
+  */
+_Maybenull_
+PCWSTR PhpAfdGetTcpStateString(
+    _In_ TCPSTATE TcpState
+    )
+{
+    switch (TcpState)
+    {
+    case TCPSTATE_CLOSED:
+        return L"Closed";
+    case TCPSTATE_LISTEN:
+        return L"Listen";
+    case TCPSTATE_SYN_SENT:
+        return L"SYN sent";
+    case TCPSTATE_SYN_RCVD:
+        return L"SYN received";
+    case TCPSTATE_ESTABLISHED:
+        return L"Established";
+    case TCPSTATE_FIN_WAIT_1:
+        return L"FIN wait 1";
+    case TCPSTATE_FIN_WAIT_2:
+        return L"FIN wait 2";
+    case TCPSTATE_CLOSE_WAIT:
+        return L"Close wait";
+    case TCPSTATE_CLOSING:
+        return L"Closing";
+    case TCPSTATE_LAST_ACK:
+        return L"Last ACK";
+    case TCPSTATE_TIME_WAIT:
+        return L"Time wait";
+    default:
+        return NULL;
+    }
+}
+
+/**
+  * \brief Formats a TCP state as a string.
+  *
+  * \param[in] TcpState The TCP state value.
+  *
+  * \return A string with a human-readable TCP state name.
+  */
+PPH_STRING PhAfdFormatTcpState(
+    _In_ TCPSTATE TcpState
+    )
+{
+    PCWSTR knownName = PhpAfdGetTcpStateString(TcpState);
+
+    if (knownName)
+        return PhCreateString(knownName);
+    else
+        return PhFormatString(L"Unrecognized state (%d)", TcpState);
 }
 
 /**
