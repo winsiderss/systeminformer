@@ -3452,8 +3452,11 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateString(Attribute->Values.ppString[ValueIndex]);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %llu: %s",
-            Attribute->Values.pFqbn[ValueIndex].Version,
+        return PhFormatString(L"Version %hd.%hd.%hd.%hd: %s",
+            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 48),
+            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 32),
+            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 16),
+            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version),
             Attribute->Values.pFqbn[ValueIndex].Name);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_SID:
         {
@@ -3588,8 +3591,11 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateStringFromUnicodeString(&Attribute->Values.String[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %llu: %.*s",
-            Attribute->Values.Fqbn[ValueIndex].Version,
+        return PhFormatString(L"Version %hd.%hd.%hd.%hd: %.*s",
+            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 48),
+            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 32),
+            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 16),
+            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version),
             Attribute->Values.Fqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
             Attribute->Values.Fqbn[ValueIndex].Name.Buffer);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
