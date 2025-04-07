@@ -1736,57 +1736,57 @@ typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
     // Control flags.
     //
 
-    DWORD ContextFlags;
+    ULONG ContextFlags;
 
     //
     // Integer registers
     //
 
-    DWORD R0;
-    DWORD R1;
-    DWORD R2;
-    DWORD R3;
-    DWORD R4;
-    DWORD R5;
-    DWORD R6;
-    DWORD R7;
-    DWORD R8;
-    DWORD R9;
-    DWORD R10;
-    DWORD R11;
-    DWORD R12;
+    ULONG R0;
+    ULONG R1;
+    ULONG R2;
+    ULONG R3;
+    ULONG R4;
+    ULONG R5;
+    ULONG R6;
+    ULONG R7;
+    ULONG R8;
+    ULONG R9;
+    ULONG R10;
+    ULONG R11;
+    ULONG R12;
 
     //
     // Control Registers
     //
 
-    DWORD Sp;
-    DWORD Lr;
-    DWORD Pc;
-    DWORD Cpsr;
+    ULONG Sp;
+    ULONG Lr;
+    ULONG Pc;
+    ULONG Cpsr;
 
     //
     // Floating Point/NEON Registers
     //
 
-    DWORD Fpscr;
-    DWORD Padding;
+    ULONG Fpscr;
+    ULONG Padding;
     union {
         ARM_NT_NEON128 Q[16];
         ULONGLONG D[32];
-        DWORD S[32];
+        ULONG S[32];
     } DUMMYUNIONNAME;
 
     //
     // Debug registers
     //
 
-    DWORD Bvr[ARM_MAX_BREAKPOINTS];
-    DWORD Bcr[ARM_MAX_BREAKPOINTS];
-    DWORD Wvr[ARM_MAX_WATCHPOINTS];
-    DWORD Wcr[ARM_MAX_WATCHPOINTS];
+    ULONG Bvr[ARM_MAX_BREAKPOINTS];
+    ULONG Bcr[ARM_MAX_BREAKPOINTS];
+    ULONG Wvr[ARM_MAX_WATCHPOINTS];
+    ULONG Wcr[ARM_MAX_WATCHPOINTS];
 
-    DWORD Padding2[2];
+    ULONG Padding2[2];
 
 } ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
 
@@ -2565,11 +2565,13 @@ RtlDispatchAPC(
  * @param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
  * @param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
  */
-typedef VOID (NTAPI* PPS_APC_ROUTINE)(
+typedef _Function_class_(PS_APC_ROUTINE)
+VOID NTAPI PS_APC_ROUTINE(
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
+typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
 
 /**
  * Encodes an APC routine pointer for use in a WOW64 environment.
