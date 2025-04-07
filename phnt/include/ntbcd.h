@@ -125,10 +125,12 @@ typedef enum _BCD_MESSAGE_TYPE
     BCD_MESSAGE_TYPE_MAXIMUM
 } BCD_MESSAGE_TYPE;
 
-typedef VOID (NTAPI* BCD_MESSAGE_CALLBACK)(
+typedef _Function_class_(BCD_MESSAGE_CALLBACK)
+VOID NTAPI BCD_MESSAGE_CALLBACK(
     _In_ BCD_MESSAGE_TYPE type,
     _In_ PCWSTR Message
     );
+typedef BCD_MESSAGE_CALLBACK* PBCD_MESSAGE_CALLBACK;
 
 /**
  * Sets the logging level and callback routine for BCD messages.
@@ -142,7 +144,7 @@ NTSTATUS
 NTAPI
 BcdSetLogging(
     _In_ BCD_MESSAGE_TYPE BcdLoggingLevel,
-    _In_ BCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
+    _In_ PBCD_MESSAGE_CALLBACK BcdMessageCallbackRoutine
     );
 
 /**
