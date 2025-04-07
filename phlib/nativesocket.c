@@ -835,7 +835,7 @@ PPH_STRING PhAfdFormatProviderFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -895,7 +895,7 @@ PPH_STRING PhAfdFormatServiceFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -943,7 +943,7 @@ PPH_STRING PhAfdFormatCreationFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -963,7 +963,7 @@ PPH_STRING PhAfdFormatSharedInfoFlags(
     PH_STRING_BUILDER stringBuilder;
 
     if (!SharedInfo->Flags)
-        return PhReferenceEmptyString();
+        return PhCreateString(L"None");
 
     PhInitializeStringBuilder(&stringBuilder, 80);
 
