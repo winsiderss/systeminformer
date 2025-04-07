@@ -7031,6 +7031,7 @@ RtlQueryUnbiasedInterruptTime(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 FORCEINLINE
 ULONGLONG
 NTAPI
@@ -7047,6 +7048,7 @@ RtlBeginReadTickLock(
 
     return result;
 }
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 //
 // Time zones
@@ -9009,13 +9011,31 @@ RtlGetSuiteMask(
 // Thread pool (old)
 //
 
+typedef _Function_class_(WAIT_CALLBACK_ROUTINE)
+VOID NTAPI WAIT_CALLBACK_ROUTINE(
+    _In_ PVOID Parameter,
+    _In_ BOOLEAN TimerOrWaitFired
+    );
+typedef WAIT_CALLBACK_ROUTINE* PWAIT_CALLBACK_ROUTINE;
+
+#define WT_EXECUTEDEFAULT               0x00000000
+#define WT_EXECUTEINIOTHREAD            0x00000001
+#define WT_EXECUTEINUITHREAD            0x00000002
+#define WT_EXECUTEINWAITTHREAD          0x00000004
+#define WT_EXECUTEONLYONCE              0x00000008
+#define WT_EXECUTELONGFUNCTION          0x00000010
+#define WT_EXECUTEINTIMERTHREAD         0x00000020
+#define WT_EXECUTEINPERSISTENTIOTHREAD  0x00000040
+#define WT_EXECUTEINPERSISTENTTHREAD    0x00000080
+#define WT_TRANSFER_IMPERSONATION       0x00000100
+
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRegisterWait(
     _Out_ PHANDLE WaitHandle,
     _In_ HANDLE Handle,
-    _In_ WAITORTIMERCALLBACKFUNC Function,
+    _In_ PWAIT_CALLBACK_ROUTINE Function,
     _In_opt_ PVOID Context,
     _In_ ULONG Milliseconds,
     _In_ ULONG Flags
@@ -9056,16 +9076,16 @@ RtlSetIoCompletionCallback(
     _In_ ULONG Flags
     );
 
-_Function_class_(RTL_START_POOL_THREAD)
-typedef NTSTATUS (NTAPI RTL_START_POOL_THREAD)(
+typedef _Function_class_(RTL_START_POOL_THREAD)
+NTSTATUS NTAPI RTL_START_POOL_THREAD(
     _In_ PTHREAD_START_ROUTINE Function,
     _In_ PVOID Parameter,
     _Out_ PHANDLE ThreadHandle
     );
 typedef RTL_START_POOL_THREAD *PRTL_START_POOL_THREAD;
 
-_Function_class_(RTL_EXIT_POOL_THREAD)
-typedef NTSTATUS (NTAPI RTL_EXIT_POOL_THREAD)(
+typedef _Function_class_(RTL_EXIT_POOL_THREAD)
+NTSTATUS NTAPI RTL_EXIT_POOL_THREAD(
     _In_ NTSTATUS ExitStatus
     );
 typedef RTL_EXIT_POOL_THREAD *PRTL_EXIT_POOL_THREAD;
@@ -9224,8 +9244,8 @@ RtlCheckRegistryKey(
     _In_ PCWSTR Path
     );
 
-_Function_class_(RTL_QUERY_REGISTRY_ROUTINE)
-typedef NTSTATUS (NTAPI RTL_QUERY_REGISTRY_ROUTINE)(
+typedef _Function_class_(RTL_QUERY_REGISTRY_ROUTINE) 
+NTSTATUS NTAPI RTL_QUERY_REGISTRY_ROUTINE(
     _In_ PCWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
@@ -9912,8 +9932,8 @@ BOOLEAN
 __cdecl
 RtlAddFunctionTable(
     _In_reads_(EntryCount) PRUNTIME_FUNCTION FunctionTable,
-    _In_ DWORD EntryCount,
-    _In_ DWORD64 BaseAddress
+    _In_ ULONG EntryCount,
+    _In_ ULONG64 BaseAddress
     );
 
 NTSYSAPI
@@ -9927,9 +9947,9 @@ NTSYSAPI
 BOOLEAN
 __cdecl
 RtlInstallFunctionTableCallback(
-    _In_ DWORD64 TableIdentifier,
-    _In_ DWORD64 BaseAddress,
-    _In_ DWORD Length,
+    _In_ ULONG64 TableIdentifier,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Length,
     _In_ PGET_RUNTIME_FUNCTION_CALLBACK Callback,
     _In_opt_ PVOID Context,
     _In_opt_ PCWSTR OutOfProcessCallbackDll
@@ -9937,13 +9957,13 @@ RtlInstallFunctionTableCallback(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
-DWORD
+ULONG
 NTAPI
 RtlAddGrowableFunctionTable(
     _Out_ PVOID* DynamicTable,
     _In_reads_(MaximumEntryCount) PRUNTIME_FUNCTION FunctionTable,
-    _In_ DWORD EntryCount,
-    _In_ DWORD MaximumEntryCount,
+    _In_ ULONG EntryCount,
+    _In_ ULONG MaximumEntryCount,
     _In_ ULONG_PTR RangeBase,
     _In_ ULONG_PTR RangeEnd
     );
@@ -9953,7 +9973,7 @@ VOID
 NTAPI
 RtlGrowFunctionTable(
     _Inout_ PVOID DynamicTable,
-    _In_ DWORD NewEntryCount
+    _In_ ULONG NewEntryCount
     );
 
 NTSYSAPI
@@ -10242,21 +10262,6 @@ RtlSetImageMitigationPolicy(
 // session
 //
 
-#ifdef PHNT_INLINE_TYPEDEFS
-// rev
-FORCEINLINE
-ULONG
-NTAPI
-RtlGetCurrentServiceSessionId(
-    VOID
-    )
-{
-    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
-        return NtCurrentPeb()->SharedData->ServiceSessionId;
-    else
-        return 0;
-}
-#else
 // rev
 NTSYSAPI
 ULONG
@@ -10264,23 +10269,7 @@ NTAPI
 RtlGetCurrentServiceSessionId(
     VOID
     );
-#endif // PHNT_INLINE_TYPEDEFS
 
-#ifdef PHNT_INLINE_TYPEDEFS
-// rev
-FORCEINLINE
-ULONG
-NTAPI
-RtlGetActiveConsoleId(
-    VOID
-    )
-{
-    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
-        return NtCurrentPeb()->SharedData->ActiveConsoleId;
-    else
-        return USER_SHARED_DATA->ActiveConsoleId;
-}
-#else
 // private
 NTSYSAPI
 ULONG
@@ -10288,25 +10277,7 @@ NTAPI
 RtlGetActiveConsoleId(
     VOID
     );
-#endif // PHNT_INLINE_TYPEDEFS
 
-#ifdef PHNT_INLINE_TYPEDEFS
-#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
-// private
-FORCEINLINE
-LONGLONG
-NTAPI
-RtlGetConsoleSessionForegroundProcessId(
-    VOID
-    )
-{
-    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
-        return NtCurrentPeb()->SharedData->ConsoleSessionForegroundProcessId;
-    else
-        return USER_SHARED_DATA->ConsoleSessionForegroundProcessId;
-}
-#endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
-#else
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // private
 NTSYSAPI
@@ -10316,7 +10287,6 @@ RtlGetConsoleSessionForegroundProcessId(
     VOID
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
-#endif // PHNT_INLINE_TYPEDEFS
 
 //
 // Appcontainer
@@ -10537,7 +10507,7 @@ RtlFlsGetValue(
 
 NTSYSAPI
 PVOID
-WINAPI
+NTAPI
 RtlFlsGetValue2(
     _In_ ULONG FlsIndex
     );
@@ -11089,8 +11059,8 @@ RtlFindClosestEncodableLength(
 // Memory cache
 //
 
-_Function_class_(RTL_SECURE_MEMORY_CACHE_CALLBACK)
-typedef NTSTATUS (NTAPI RTL_SECURE_MEMORY_CACHE_CALLBACK)(
+typedef _Function_class_(RTL_SECURE_MEMORY_CACHE_CALLBACK)
+NTSTATUS NTAPI RTL_SECURE_MEMORY_CACHE_CALLBACK(
     _In_ PVOID Address,
     _In_ SIZE_T Length
     );
@@ -11120,7 +11090,9 @@ RtlFlushSecureMemoryCache(
     _In_opt_ SIZE_T MemoryLength
     );
 
+//
 // Feature configuration
+//
 
 // private
 typedef ULONG RTL_FEATURE_ID;
@@ -11273,8 +11245,8 @@ typedef struct _RTL_FEATURE_USAGE_SUBSCRIPTION_TABLE
 } RTL_FEATURE_USAGE_SUBSCRIPTION_TABLE, *PRTL_FEATURE_USAGE_SUBSCRIPTION_TABLE;
 
 // private
-_Function_class_(RTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK)
-typedef VOID (NTAPI RTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK)(
+typedef _Function_class_(RTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK)
+VOID NTAPI RTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK(
     _In_opt_ PVOID Context
     );
 typedef RTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK *PRTL_FEATURE_CONFIGURATION_CHANGE_CALLBACK;
@@ -11497,6 +11469,10 @@ RtlNotifyFeatureToggleUsage(
     _In_ ULONG Flags
     );
 
+//
+// Run Once
+//
+
 #ifndef _RTL_RUN_ONCE_DEF
 #define _RTL_RUN_ONCE_DEF
 //
@@ -11571,6 +11547,10 @@ RtlRunOnceComplete(
     );
 
 #endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
+
+//
+// WNF (Windows Notification Facility)
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
@@ -11656,6 +11636,10 @@ RtlWnfDllUnloadCallback(
 #define COPY_FILE_CHUNK_DUPLICATE_EXTENTS 0x00000001L // 24H2
 #define VALID_COPY_FILE_CHUNK_FLAGS (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)
 
+//
+// Property Store
+//
+
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 NTSYSAPI
@@ -11688,8 +11672,6 @@ RtlCompareExchangePropertyStore(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
-typedef enum _THREAD_STATE_CHANGE_TYPE THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
-
 // rev
 NTSYSAPI
 NTSTATUS
@@ -11697,27 +11679,13 @@ NTAPI
 RtlWow64ChangeThreadState(
     _In_ HANDLE ThreadStateChangeHandle,
     _In_ HANDLE ThreadHandle,
-    _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
+    _In_ ULONG StateChangeType, // THREAD_STATE_CHANGE_TYPE
     _In_opt_ PVOID ExtendedInformation,
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_opt_ ULONG64 Reserved
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
-#ifdef PHNT_INLINE_TYPEDEFS
-#if (PHNT_VERSION >= PHNT_WINDOWS_11)
-// rev
-FORCEINLINE
-USHORT
-NTAPI
-RtlGetCurrentThreadPrimaryGroup(
-    VOID
-    )
-{
-    return NtCurrentTeb()->PrimaryGroupAffinity.Group;
-}
-#endif // PHNT_VERSION >= PHNT_WINDOWS_11
-#else
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
 NTSYSAPI
@@ -11727,7 +11695,6 @@ RtlGetCurrentThreadPrimaryGroup(
     VOID
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
-#endif // PHNT_INLINE_TYPEDEFS
 
 #endif // _NTRTL_H
 
@@ -11753,143 +11720,6 @@ RtlGetCurrentThreadPrimaryGroup(
 #define RtlSetTimer RtlCreateTimer
 #define RtlRestoreLastWin32Error RtlSetLastWin32Error
 #endif // PHNT_INLINE_NAME_FORWARDERS
-
-#ifndef PHNT_INLINE_PEB_FORWARDERS
-FORCEINLINE
-PPEB
-NTAPI
-RtlGetCurrentPeb(
-    VOID
-    )
-{
-    return NtCurrentPeb();
-}
-
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlAcquirePebLock(
-    VOID
-    )
-{
-    return RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
-}
-
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlReleasePebLock(
-    VOID
-    )
-{
-    return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
-}
-#endif // PHNT_INLINE_PEB_FORWARDERS
-
-#ifndef PHNT_INLINE_FREE_FORWARDERS
-//#define RtlFreeUnicodeString(UnicodeString) {if ((UnicodeString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (UnicodeString)->Buffer); memset(UnicodeString, 0, sizeof(UNICODE_STRING));}
-FORCEINLINE
-VOID
-NTAPI
-RtlFreeUnicodeString(
-    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
-    )
-{
-    if (UnicodeString->Buffer)
-    {
-        RtlFreeHeap(RtlProcessHeap(), 0, UnicodeString->Buffer);
-        memset(UnicodeString, 0, sizeof(UNICODE_STRING));
-    }
-}
-
-//#define RtlFreeAnsiString(UnicodeString) {if ((AnsiString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (AnsiString)->Buffer); memset(AnsiString, 0, sizeof(ANSI_STRING));}
-FORCEINLINE
-VOID
-NTAPI
-RtlFreeAnsiString(
-    _Inout_ _At_(AnsiString->Buffer, _Frees_ptr_opt_) PANSI_STRING AnsiString
-    )
-{
-    if (AnsiString->Buffer)
-    {
-        RtlFreeHeap(RtlProcessHeap(), 0, AnsiString->Buffer);
-        memset(AnsiString, 0, sizeof(ANSI_STRING));
-    }
-}
-
-//#define RtlFreeUTF8String(Utf8String) {if ((Utf8String)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (Utf8String)->Buffer); memset(Utf8String, 0, sizeof(UTF8_STRING));}
-FORCEINLINE
-VOID
-NTAPI
-RtlFreeUTF8String(
-    _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
-    )
-{
-    if (Utf8String->Buffer)
-    {
-        RtlFreeHeap(RtlProcessHeap(), 0, Utf8String->Buffer);
-        memset(Utf8String, 0, sizeof(UTF8_STRING));
-    }
-}
-
-//#define RtlFreeSid(Sid) RtlFreeHeap(RtlProcessHeap(), 0, (Sid))
-FORCEINLINE
-PVOID
-NTAPI
-RtlFreeSid(
-    _In_ _Post_invalid_ PSID Sid
-    )
-{
-    RtlFreeHeap(RtlProcessHeap(), 0, Sid);
-    return NULL;
-}
-
-//#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
-FORCEINLINE
-VOID
-NTAPI
-RtlDeleteBoundaryDescriptor(
-    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
-    )
-{
-    RtlFreeHeap(RtlProcessHeap(), 0, BoundaryDescriptor);
-}
-
-//#define RtlDeleteSecurityObject(ObjectDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, *(ObjectDescriptor))
-//FORCEINLINE
-//NTSTATUS
-//RtlDeleteSecurityObject(
-//    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
-//    )
-//{
-//    RtlFreeHeap(RtlProcessHeap(), 0, *ObjectDescriptor);
-//    return STATUS_SUCCESS;
-//}
-
-//#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlDestroyEnvironment(
-    _In_ _Post_invalid_ PVOID Environment
-    )
-{
-    RtlFreeHeap(RtlProcessHeap(), 0, Environment);
-    return STATUS_SUCCESS;
-}
-
-//#define RtlDestroyProcessParameters(ProcessParameters) RtlFreeHeap(RtlProcessHeap(), 0, (ProcessParameters))
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlDestroyProcessParameters(
-    _In_ _Post_invalid_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
-    )
-{
-    RtlFreeHeap(RtlProcessHeap(), 0, ProcessParameters);
-    return STATUS_SUCCESS;
-}
-#endif // PHNT_INLINE_FREE_FORWARDERS
 // end_forwarders
 
 #endif // _NTRTL_FWD_H
