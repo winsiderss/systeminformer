@@ -1496,7 +1496,9 @@ static VOID PhpRefreshAfdSocketPageInfo(
         if (NT_SUCCESS(PhAfdQueryOption(socketHandle, IPPROTO_IP, IP_MULTICAST_IF, &optionValue)) ||
             NT_SUCCESS(PhAfdQueryOption(socketHandle, IPPROTO_IPV6, IPV6_MULTICAST_IF, &optionValue)))
         {
-            PhSetSocketListViewItemDecimal(Context, PH_AFD_SOCKET_ITEM_IP_MULTICAST_IF, optionValue);
+            itemString = PhAfdFormatInterfaceOption(optionValue);
+            PhSetSocketListViewItem(Context, PH_AFD_SOCKET_ITEM_IP_MULTICAST_IF, PhGetString(itemString));
+            PhDereferenceObject(itemString);
         }
 
         // Multicast TTL
@@ -1579,7 +1581,9 @@ static VOID PhpRefreshAfdSocketPageInfo(
         if (NT_SUCCESS(PhAfdQueryOption(socketHandle, IPPROTO_IP, IP_UNICAST_IF, &optionValue)) ||
             NT_SUCCESS(PhAfdQueryOption(socketHandle, IPPROTO_IPV6, IPV6_UNICAST_IF, &optionValue)))
         {
-            PhSetSocketListViewItemDecimal(Context, PH_AFD_SOCKET_ITEM_IP_UNICAST_IF, optionValue);
+            itemString = PhAfdFormatInterfaceOption(optionValue);
+            PhSetSocketListViewItem(Context, PH_AFD_SOCKET_ITEM_IP_UNICAST_IF, PhGetString(itemString));
+            PhDereferenceObject(itemString);
         }
 
         // Receive routing header

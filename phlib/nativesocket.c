@@ -1397,6 +1397,43 @@ PPH_STRING PhAfdFormatTcpState(
 }
 
 /**
+  * \brief Formats an interface identifier as a string.
+  *
+  * \param[in] Interface The interface identifier.
+  *
+  * \return A human-readable string with the interface IP address or scope ID.
+  */
+PPH_STRING PhAfdFormatInterfaceOption(
+    _In_ ULONG Interface
+    )
+{
+    if (Interface & 0x000000FF)
+    {
+        IN_ADDR interfaceIp;
+        WCHAR buffer[16];
+
+        // Values with a non-zero first octet identify an interface by IP address
+        interfaceIp.S_un.S_addr = Interface;
+        RtlIpv4AddressToStringW(&interfaceIp, buffer);
+        return PhCreateString(buffer);
+    }
+    else if (Interface)
+    {
+        PH_FORMAT format[2];
+
+        // Other values (0.0.0.0/24 addresses) store a big-endian interface index/scope ID
+        PhInitFormatC(&format[0], L'%');
+        PhInitFormatU(&format[1], _byteswap_ulong(Interface));
+        return PhFormat(format, RTL_NUMBER_OF(format), 8);
+    }
+    else
+    {
+        // The zero interface is special
+        return PhCreateString(L"Default");
+    }
+}
+
+/**
   * \brief Formats a human-readable name for an AFD socket.
   *
   * \param[in] SocketHandle An AFD socket handle.

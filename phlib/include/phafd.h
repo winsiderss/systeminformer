@@ -207,6 +207,13 @@ PhAfdFormatTcpState(
     _In_ TCPSTATE TcpState
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhAfdFormatInterfaceOption(
+    _In_ ULONG Interface
+    );
+
 _Maybenull_
 PPH_STRING
 NTAPI
