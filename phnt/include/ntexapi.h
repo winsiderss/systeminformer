@@ -2094,33 +2094,36 @@ typedef struct _SYSTEM_BASIC_INFORMATION
     ULONG AllocationGranularity;
     ULONG_PTR MinimumUserModeAddress;
     ULONG_PTR MaximumUserModeAddress;
-    KAFFINITY ActiveProcessorsAffinityMask;
-    CCHAR NumberOfProcessors;
+    KAFFINITY ActiveProcessorsAffinityMask; // deprecated
+    UCHAR NumberOfProcessors; // deprecated
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 // SYSTEM_PROCESSOR_INFORMATION // ProcessorFeatureBits (see also SYSTEM_PROCESSOR_FEATURES_INFORMATION)
-#define KF_V86_VIS 0x00000001
-#define KF_RDTSC 0x00000002 // Indicates support for the RDTSC instruction.
-#define KF_CR4 0x00000004 // Indicates support for the CR4 register.
-#define KF_CMOV 0x00000008
-#define KF_GLOBAL_PAGE 0x00000010 // Indicates support for global pages.
-#define KF_LARGE_PAGE 0x00000020 // Indicates support for large pages.
-#define KF_MTRR 0x00000040
-#define KF_CMPXCHG8B 0x00000080 // Indicates support for the CMPXCHG8B instruction.
-#define KF_MMX 0x00000100
-#define KF_WORKING_PTE 0x00000200
-#define KF_PAT 0x00000400
-#define KF_FXSR 0x00000800
-#define KF_FAST_SYSCALL 0x00001000 // Indicates support for fast system calls.
-#define KF_XMMI 0x00002000
-#define KF_3DNOW 0x00004000
-#define KF_AMDK6MTRR 0x00008000
-#define KF_XMMI64 0x00010000
-#define KF_DTS 0x00020000
-#define KF_NOEXECUTE 0x20000000
+#define KF_V86_VIS      0x00000001 // Virtual 8086 mode.
+#define KF_RDTSC        0x00000002 // RDTSC (Read Time-Stamp Counter) instruction.
+#define KF_CR4          0x00000004 // CR4 (Control Register 4) register.
+#define KF_CMOV         0x00000008 // CMOV (Conditional Move) instruction.
+#define KF_GLOBAL_PAGE  0x00000010 // Global memory pages.
+#define KF_LARGE_PAGE   0x00000020 // Large memory pages.
+#define KF_MTRR         0x00000040 // MTRR (Memory Type Range Registers).
+#define KF_CMPXCHG8B    0x00000080 // CMPXCHG8B (CompareExchange) instruction.
+#define KF_MMX          0x00000100 // MMX (MultiMedia eXtensions).
+#define KF_WORKING_PTE  0x00000200 // PTE (Page Table Entries).
+#define KF_PAT          0x00000400 // PAT (Page Attribute Table).
+#define KF_FXSR         0x00000800 // FXSR (Floating Point Extended Save and Restore).
+#define KF_FAST_SYSCALL 0x00001000 // Fast system calls.
+#define KF_XMMI         0x00002000 // XMMI (Streaming SIMD Extensions - 32-bit).
+#define KF_3DNOW        0x00004000 // AMD 3DNow! technology.
+#define KF_AMDK6MTRR    0x00008000 // AMD K6 MTRR.
+#define KF_XMMI64       0x00010000 // XMMI (Streaming SIMD Extensions - 64-bit).
+#define KF_DTS          0x00020000 // DTS (Digital Thermal Sensor).
+#define KF_NOEXECUTE    0x20000000 // No-Execute (NX) bit.
 #define KF_GLOBAL_32BIT_EXECUTE 0x40000000
 #define KF_GLOBAL_32BIT_NOEXECUTE 0x80000000
 
+/**
+ * The SYSTEM_PROCESSOR_INFORMATION structure contains information about processor feature support.
+ */
 typedef struct _SYSTEM_PROCESSOR_INFORMATION
 {
     USHORT ProcessorArchitecture;
@@ -2130,6 +2133,9 @@ typedef struct _SYSTEM_PROCESSOR_INFORMATION
     ULONG ProcessorFeatureBits;
 } SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
 
+/**
+ * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about system performance.
+ */
 typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 {
     LARGE_INTEGER IdleProcessTime;
@@ -2216,6 +2222,9 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
     ULONGLONG ContiguousPagesAllocated;
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
+/**
+ * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about the system uptime.
+ */
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
 {
     LARGE_INTEGER BootTime;
@@ -2379,6 +2388,7 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
     LARGE_INTEGER DpcTime;
     LARGE_INTEGER InterruptTime;
     ULONG InterruptCount;
+    ULONG Spare0;
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
 
 typedef struct _SYSTEM_FLAGS_INFORMATION
@@ -6548,6 +6558,10 @@ typedef struct _KUSER_SHARED_DATA
         };
     };
 
+    //
+    // Reserved for future use.
+    //
+
     LARGE_INTEGER TimeZoneBiasEffectiveStart;
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
 
@@ -6557,8 +6571,22 @@ typedef struct _KUSER_SHARED_DATA
 
     XSTATE_CONFIGURATION XState;
 
+    //
+    // RtlQueryFeatureConfigurationChangeStamp
+    //
+
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
+
+    //
+    // Spare (available for re-use).
+    //
+
     ULONG Spare;
+
+    //
+    // This field holds a mask that is used in the process of authenticating pointers in user mode.
+    // It helps in determining which bits of the pointer are used for authentication in user mode.
+    //
 
     ULONG64 UserPointerAuthMask;
 
