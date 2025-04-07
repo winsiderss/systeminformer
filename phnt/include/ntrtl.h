@@ -176,7 +176,7 @@ FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
 
 FORCEINLINE VOID PushEntryList(
     _Inout_ PSINGLE_LIST_ENTRY ListHead,
-    _Inout_ PSINGLE_LIST_ENTRY Entry
+    _Inout_ __drv_aliasesMem PSINGLE_LIST_ENTRY Entry
     )
 {
     Entry->Next = ListHead->Next;
@@ -202,27 +202,35 @@ typedef enum _RTL_GENERIC_COMPARE_RESULTS
     GenericEqual
 } RTL_GENERIC_COMPARE_RESULTS;
 
-typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_AVL_COMPARE_ROUTINE)(
+typedef _Function_class_(RTL_AVL_COMPARE_ROUTINE)
+RTL_GENERIC_COMPARE_RESULTS NTAPI RTL_AVL_COMPARE_ROUTINE(
     _In_ struct _RTL_AVL_TABLE *Table,
     _In_ PVOID FirstStruct,
     _In_ PVOID SecondStruct
     );
+typedef RTL_AVL_COMPARE_ROUTINE* PRTL_AVL_COMPARE_ROUTINE;
 
-typedef PVOID (NTAPI *PRTL_AVL_ALLOCATE_ROUTINE)(
+typedef _Function_class_(RTL_AVL_ALLOCATE_ROUTINE)
+PVOID NTAPI RTL_AVL_ALLOCATE_ROUTINE(
     _In_ struct _RTL_AVL_TABLE *Table,
     _In_ CLONG ByteSize
     );
+typedef RTL_AVL_ALLOCATE_ROUTINE* PRTL_AVL_ALLOCATE_ROUTINE;
 
-typedef VOID (NTAPI *PRTL_AVL_FREE_ROUTINE)(
+typedef _Function_class_(RTL_AVL_FREE_ROUTINE)
+VOID NTAPI RTL_AVL_FREE_ROUTINE(
     _In_ struct _RTL_AVL_TABLE *Table,
     _In_ _Post_invalid_ PVOID Buffer
     );
+typedef RTL_AVL_FREE_ROUTINE* PRTL_AVL_FREE_ROUTINE;
 
-typedef NTSTATUS (NTAPI *PRTL_AVL_MATCH_FUNCTION)(
+typedef _Function_class_(RTL_AVL_MATCH_FUNCTION)
+NTSTATUS NTAPI RTL_AVL_MATCH_FUNCTION(
     _In_ struct _RTL_AVL_TABLE *Table,
     _In_ PVOID UserData,
     _In_ PVOID MatchData
     );
+typedef RTL_AVL_MATCH_FUNCTION* PRTL_AVL_MATCH_FUNCTION;
 
 typedef struct _RTL_BALANCED_LINKS
 {
@@ -1290,12 +1298,15 @@ RtlConvertSRWLockExclusiveToShared(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
+
 //
-// Read-Copy Update.
+// Read-Copy-Update (RCU).
 //
 // RCU synchronization allows concurrent access to shared data structures,
 // such as linked lists, trees, or hash tables, without using traditional locking methods
 // in scenarios where read operations are frequent and need to be fast.
+// It is particularly useful in multi-threaded environments where multiple threads
+// may read from the same data structure while one or more threads may modify it.
 // @remarks RCU synchronization is not for general-purpose synchronization.
 // Teb->Rcu is used to store the RCU state.
 
@@ -1533,7 +1544,7 @@ NTSTATUS
 NTAPI
 RtlInitStringEx(
     _Out_ PSTRING DestinationString,
-    _In_opt_z_ PCSZ SourceString
+    _In_opt_z_ __drv_aliasesMem PCSZ SourceString
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
@@ -1566,7 +1577,7 @@ NTSTATUS
 NTAPI
 RtlInitAnsiStringEx(
     _Out_ PANSI_STRING DestinationString,
-    _In_opt_z_ PCSZ SourceString
+    _In_opt_z_ __drv_aliasesMem PCSZ SourceString
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
@@ -1591,7 +1602,7 @@ NTSTATUS
 NTAPI
 RtlInitUTF8StringEx(
     _Out_ PUTF8_STRING DestinationString,
-    _In_opt_z_ PCSZ SourceString
+    _In_opt_z_ __drv_aliasesMem PCSZ SourceString
     );
 
 NTSYSAPI
@@ -2499,7 +2510,7 @@ BOOLEAN
 NTAPI
 PfxInsertPrefix(
     _In_ PPREFIX_TABLE PrefixTable,
-    _In_ PSTRING Prefix,
+    _In_ __drv_aliasesMem PSTRING Prefix,
     _Out_ PPREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
@@ -2549,7 +2560,7 @@ BOOLEAN
 NTAPI
 RtlInsertUnicodePrefix(
     _In_ PUNICODE_PREFIX_TABLE PrefixTable,
-    _In_ PCUNICODE_STRING Prefix,
+    _In_ __drv_aliasesMem PCUNICODE_STRING Prefix,
     _Out_ PUNICODE_PREFIX_TABLE_ENTRY PrefixTableEntry
     );
 
@@ -3407,11 +3418,15 @@ RtlIsCurrentThread( // NtCompareObjects(NtCurrentThread(), ThreadHandle)
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
+//
 // Threads
+//
 
-typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
+typedef _Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI USER_THREAD_START_ROUTINE(
     _In_ PVOID ThreadParameter
     );
+typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
 
 NTSYSAPI
 NTSTATUS
@@ -3639,8 +3654,8 @@ RtlSetExtendedFeaturesMask(
     _In_ ULONG64 FeatureMask
     );
 
-#ifdef _WIN64
-#ifdef PHNT_INLINE_TYPEDEFS
+#if defined(_WIN64)
+#if defined(_PHLIB_)
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -3666,11 +3681,11 @@ RtlWow64GetThreadContext(
     _In_ HANDLE ThreadHandle,
     _Inout_ PWOW64_CONTEXT ThreadContext
     );
-#endif // PHNT_INLINE_TYPEDEFS
+#endif // _PHLIB_
 #endif // _WIN64
 
-#ifdef _WIN64
-#ifdef PHNT_INLINE_TYPEDEFS
+#if defined(_WIN64)
+#if defined(_PHLIB_)
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -3695,7 +3710,7 @@ RtlWow64SetThreadContext(
     _In_ HANDLE ThreadHandle,
     _In_ PWOW64_CONTEXT ThreadContext
     );
-#endif // PHNT_INLINE_TYPEDEFS
+#endif // _PHLIB_
 #endif // _WIN64
 
 NTSYSAPI
@@ -3779,9 +3794,11 @@ RtlRemoveVectoredContinueHandler(
 // Runtime exception handling
 //
 
-typedef ULONG (NTAPI *PRTLP_UNHANDLED_EXCEPTION_FILTER)(
+typedef _Function_class_(RTLP_UNHANDLED_EXCEPTION_FILTER)
+ULONG NTAPI RTLP_UNHANDLED_EXCEPTION_FILTER(
     _In_ PEXCEPTION_POINTERS ExceptionInfo
     );
+typedef RTLP_UNHANDLED_EXCEPTION_FILTER* PRTLP_UNHANDLED_EXCEPTION_FILTER;
 
 NTSYSAPI
 VOID
@@ -3895,7 +3912,7 @@ RtlInterlockedPushListSListEx(
     _Inout_ PSLIST_HEADER ListHead,
     _Inout_ __drv_aliasesMem PSLIST_ENTRY List,
     _Inout_ PSLIST_ENTRY ListEnd,
-    _In_ DWORD Count
+    _In_ ULONG Count
     );
 
 NTSYSAPI
@@ -3906,7 +3923,7 @@ RtlInterlockedFlushSList(
     );
 
 NTSYSAPI
-WORD
+USHORT
 NTAPI
 RtlQueryDepthSList(
     _In_ PSLIST_HEADER ListHead
@@ -4079,7 +4096,7 @@ RtlQueryInformationActivationContext(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
-#ifdef PHNT_INLINE_TYPEDEFS
+#if defined(_PHLIB_)
 // private
 FORCEINLINE
 NTSTATUS
@@ -4094,7 +4111,7 @@ RtlQueryInformationActiveActivationContext(
     return RtlQueryInformationActivationContext(
         RTL_QUERY_INFORMATION_ACTIVATION_CONTEXT_FLAG_USE_ACTIVE_ACTIVATION_CONTEXT,
         NULL,
-        0,
+        NULL,
         ActivationContextInformationClass,
         ActivationContextInformation,
         ActivationContextInformationLength,
@@ -4112,7 +4129,7 @@ RtlQueryInformationActiveActivationContext(
     _In_ SIZE_T ActivationContextInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
     );
-#endif // PHNT_INLINE_TYPEDEFS
+#endif // _PHLIB_
 
 //
 // Images
@@ -4893,7 +4910,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetSearchPath(
-    _Out_ PWSTR *SearchPath
+    _Out_ PCWSTR* Path // RtlReleasePath
     );
 
 // rev
@@ -4910,7 +4927,7 @@ NTSTATUS
 NTAPI
 RtlGetExePath(
     _In_ PCWSTR DosPathName,
-    _Out_ PWSTR* SearchPath
+    _Out_ PCWSTR* Path
     );
 
 // rev
@@ -4985,43 +5002,14 @@ RtlGetImageFileMachines(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
-
-#ifdef PHNT_INLINE_TYPEDEFS
 // rev
-FORCEINLINE
-PWSTR
-NTAPI
-RtlGetNtSystemRoot(
-    VOID
-    )
-{
-    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId) // RtlGetCurrentServiceSessionId
-        return NtCurrentPeb()->SharedData->NtSystemRoot;
-    else
-        return USER_SHARED_DATA->NtSystemRoot;
-}
-#else
-// private
 NTSYSAPI
 PWSTR
 NTAPI
 RtlGetNtSystemRoot(
     VOID
     );
-#endif // PHNT_INLINE_TYPEDEFS
 
-#ifdef PHNT_INLINE_TYPEDEFS
-// rev
-FORCEINLINE
-BOOLEAN
-NTAPI
-RtlAreLongPathsEnabled(
-    VOID
-    )
-{
-    return NtCurrentPeb()->IsLongPathAwareProcess;
-}
-#else
 // rev
 NTSYSAPI
 BOOLEAN
@@ -5029,8 +5017,6 @@ NTAPI
 RtlAreLongPathsEnabled(
     VOID
     );
-#endif // PHNT_INLINE_TYPEDEFS
-
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS2
 
 NTSYSAPI
@@ -5148,7 +5134,9 @@ typedef struct _RTL_PROCESS_HEAPS_V2
     _Field_size_(NumberOfHeaps) RTL_HEAP_INFORMATION_V2 Heaps[1];
 } RTL_PROCESS_HEAPS_V2, *PRTL_PROCESS_HEAPS_V2;
 
+//
 // Segment heap parameters.
+//
 
 typedef enum _RTL_MEMORY_TYPE
 {
@@ -5166,7 +5154,8 @@ typedef enum _HEAP_MEMORY_INFO_CLASS
     HeapMemoryBasicInformation
 } HEAP_MEMORY_INFO_CLASS;
 
-typedef NTSTATUS ALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK(
+typedef _Function_class_(ALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK)
+NTSTATUS NTAPI ALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK(
     _Inout_ HANDLE CallbackContext,
     _In_ HANDLE ProcessHandle,
     _Inout_ _At_ (*BaseAddress, _Readable_bytes_ (*RegionSize) _Writable_bytes_ (*RegionSize) _Post_readable_byte_size_ (*RegionSize)) PVOID* BaseAddress,
@@ -5176,20 +5165,20 @@ typedef NTSTATUS ALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-
 typedef ALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK *PALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK;
 
-typedef NTSTATUS FREE_VIRTUAL_MEMORY_EX_CALLBACK(
+typedef _Function_class_(FREE_VIRTUAL_MEMORY_EX_CALLBACK)
+NTSTATUS NTAPI FREE_VIRTUAL_MEMORY_EX_CALLBACK(
     _Inout_ HANDLE CallbackContext,
     _In_ HANDLE ProcessHandle,
     _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG FreeType
     );
-
 typedef FREE_VIRTUAL_MEMORY_EX_CALLBACK *PFREE_VIRTUAL_MEMORY_EX_CALLBACK;
 
-typedef NTSTATUS QUERY_VIRTUAL_MEMORY_CALLBACK(
+typedef _Function_class_(QUERY_VIRTUAL_MEMORY_CALLBACK)
+NTSTATUS NTAPI QUERY_VIRTUAL_MEMORY_CALLBACK(
     _Inout_ HANDLE CallbackContext,
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
@@ -5198,7 +5187,6 @@ typedef NTSTATUS QUERY_VIRTUAL_MEMORY_CALLBACK(
     _In_ SIZE_T MemoryInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
     );
-
 typedef QUERY_VIRTUAL_MEMORY_CALLBACK *PQUERY_VIRTUAL_MEMORY_CALLBACK;
 
 typedef struct _RTL_SEGMENT_HEAP_VA_CALLBACKS
@@ -5559,8 +5547,8 @@ RtlGetProcessHeaps(
     _Out_ PVOID *ProcessHeaps
     );
 
-_Function_class_(RTL_ENUM_HEAPS_ROUTINE)
-typedef NTSTATUS (NTAPI RTL_ENUM_HEAPS_ROUTINE)(
+typedef _Function_class_(RTL_ENUM_HEAPS_ROUTINE)
+NTSTATUS NTAPI RTL_ENUM_HEAPS_ROUTINE(
     _In_ PVOID HeapHandle,
     _In_ PVOID Parameter
     );
@@ -5773,10 +5761,12 @@ typedef struct _HEAP_INFORMATION_ITEM
     };
 } HEAP_INFORMATION_ITEM, *PHEAP_INFORMATION_ITEM;
 
-typedef NTSTATUS (NTAPI *PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)(
+typedef _Function_class_(RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)
+NTSTATUS NTAPI RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE(
     _In_ PHEAP_INFORMATION_ITEM Information,
     _In_opt_ PVOID Context
     );
+typedef RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE* PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE;
 
 // HEAP_EXTENDED_INFORMATION Level
 #define HeapExtendedProcessHeapInformationLevel 0x1
@@ -5801,11 +5791,13 @@ typedef struct _HEAP_EXTENDED_INFORMATION
 } HEAP_EXTENDED_INFORMATION, *PHEAP_EXTENDED_INFORMATION;
 
 // rev
-typedef NTSTATUS (NTAPI *RTL_HEAP_STACK_WRITE_ROUTINE)(
+typedef _Function_class_(RTL_HEAP_STACK_WRITE_ROUTINE)
+NTSTATUS NTAPI RTL_HEAP_STACK_WRITE_ROUTINE(
     _In_ PVOID Information, // TODO: 3 missing structures (dmex)
     _In_ ULONG Size,
     _In_opt_ PVOID Context
     );
+typedef RTL_HEAP_STACK_WRITE_ROUTINE* PRTL_HEAP_STACK_WRITE_ROUTINE;
 
 // rev
 typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT
@@ -5845,7 +5837,7 @@ typedef struct _RTL_HEAP_STACK_QUERY
 {
     ULONG Version;
     HANDLE ProcessHandle;
-    RTL_HEAP_STACK_WRITE_ROUTINE WriteRoutine;
+    PRTL_HEAP_STACK_WRITE_ROUTINE WriteRoutine;
     PVOID SerializationContext;
     UCHAR QueryLevel;
     UCHAR Flags;
@@ -5863,15 +5855,18 @@ typedef struct _RTL_HEAP_STACK_CONTROL
 } RTL_HEAP_STACK_CONTROL, *PRTL_HEAP_STACK_CONTROL;
 
 // rev
-typedef NTSTATUS (NTAPI *PRTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE)(
+typedef _Function_class_(RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE)
+NTSTATUS NTAPI RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE(
     _In_ PVOID HeapHandle,
     _In_ ULONG Action,
     _In_ ULONG StackFramesToCapture,
     _In_ PVOID *StackTrace
     );
+typedef RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE* PRTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE;
 
 // rev
-typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(
+typedef _Function_class_(RTL_HEAP_LEAK_ENUMERATION_ROUTINE)
+NTSTATUS NTAPI RTL_HEAP_LEAK_ENUMERATION_ROUTINE(
     _In_ LONG Reserved,
     _In_ PVOID HeapHandle,
     _In_ PVOID BaseAddress,
@@ -5879,6 +5874,7 @@ typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(
     _In_ ULONG StackTraceDepth,
     _In_ PVOID *StackTrace
     );
+typedef RTL_HEAP_LEAK_ENUMERATION_ROUTINE* PRTL_HEAP_LEAK_ENUMERATION_ROUTINE;
 
 // symbols
 typedef struct _HEAP_DEBUGGING_INFORMATION
@@ -6513,7 +6509,9 @@ RtlLoadString(
     _Inout_opt_ PULONG ReturnLanguageLen
     );
 
+//
 // Errors
+//
 
 _When_(Status < 0, _Out_range_(>, 0))
 _When_(Status >= 0, _Out_range_(==, 0))
@@ -6587,7 +6585,9 @@ RtlSetThreadErrorMode(
     _Out_opt_ PULONG OldMode
     );
 
+//
 // Windows Error Reporting
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 // private
