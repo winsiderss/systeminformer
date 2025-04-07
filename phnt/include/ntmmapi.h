@@ -749,7 +749,7 @@ NtAllocateVirtualMemory(
  * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwallocatevirtualmemory
  */
 _Must_inspect_result_
-_When_(return == 0, __drv_allocatesMem(mem))
+_When_(return == 0, __drv_allocatesMem(Mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -778,7 +778,7 @@ NTSTATUS
 NTAPI
 NtFreeVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID *BaseAddress,
+    _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG FreeType
     );
