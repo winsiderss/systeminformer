@@ -2132,13 +2132,6 @@ NtChangeProcessState(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
-typedef enum _THREAD_STATE_CHANGE_TYPE
-{
-    ThreadStateChangeSuspend,
-    ThreadStateChangeResume,
-    ThreadStateChangeMax,
-} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
-
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a thread.
@@ -2160,6 +2153,13 @@ NtCreateThreadStateChange(
     _In_ HANDLE ThreadHandle,
     _In_opt_ ULONG64 Reserved
     );
+
+typedef enum _THREAD_STATE_CHANGE_TYPE
+{
+    ThreadStateChangeSuspend,
+    ThreadStateChangeResume,
+    ThreadStateChangeMax,
+} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
 /**
  * Changes the suspension state of a thread.
@@ -2861,17 +2861,17 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeMemoryReserve, // in PPS_MEMORY_RESERVE
     PsAttributePriorityClass, // in UCHAR
     PsAttributeErrorMode, // in ULONG
-    PsAttributeStdHandleInfo, // 10, in PPS_STD_HANDLE_INFO
+    PsAttributeStdHandleInfo, // in PPS_STD_HANDLE_INFO // 10
     PsAttributeHandleList, // in HANDLE[]
     PsAttributeGroupAffinity, // in PGROUP_AFFINITY
     PsAttributePreferredNode, // in PUSHORT
     PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
-    PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeUmsThread, // in PUMS_CREATE_THREAD_ATTRIBUTES
     PsAttributeMitigationOptions, // in PPS_MITIGATION_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_POLICY_*) // since WIN8
     PsAttributeProtectionLevel, // in PS_PROTECTION // since WINBLUE
     PsAttributeSecureProcess, // in PPS_TRUSTLET_CREATE_ATTRIBUTES, since THRESHOLD
     PsAttributeJobList, // in HANDLE[]
-    PsAttributeChildProcessPolicy, // 20, in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2
+    PsAttributeChildProcessPolicy, // in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2 // 20
     PsAttributeAllApplicationPackagesPolicy, // in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
     PsAttributeWin32kFilter, // in PWIN32K_SYSCALL_FILTER
     PsAttributeSafeOpenPromptOriginClaim, // in SE_SAFE_OPEN_PROMPT_RESULTS
@@ -2880,9 +2880,9 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeChpe, // in BOOLEAN // since REDSTONE3
     PsAttributeMitigationAuditOptions, // in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
     PsAttributeMachineType, // in USHORT // since 21H2
-    PsAttributeComponentFilter,
-    PsAttributeEnableOptionalXStateFeatures, // since WIN11
-    PsAttributeSupportedMachines, // since 24H2
+    PsAttributeComponentFilter, // in COMPONENT_FILTER
+    PsAttributeEnableOptionalXStateFeatures, // in ULONG64 // since WIN11 // 30
+    PsAttributeSupportedMachines, // in ULONG // since 24H2
     PsAttributeSveVectorLength, // PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
@@ -3030,19 +3030,16 @@ typedef union _PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS
     UCHAR AccessRights;
 } PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS, *PPS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS;
 
-typedef struct _PS_TRUSTLET_ATTRIBUTE_TYPE
+typedef union _PS_TRUSTLET_ATTRIBUTE_TYPE
 {
-    union
+    ULONG AttributeType;
+    struct
     {
-        struct
-        {
-            UCHAR Version;
-            UCHAR DataCount;
-            UCHAR SemanticType;
-            PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS AccessRights;
-        };
-        ULONG AttributeType;
-    };
+        UCHAR Version;
+        UCHAR DataCount;
+        UCHAR SemanticType;
+        PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS AccessRights;
+    } DUMMYSTRUCTNAME;
 } PS_TRUSTLET_ATTRIBUTE_TYPE, *PPS_TRUSTLET_ATTRIBUTE_TYPE;
 
 typedef struct _PS_TRUSTLET_ATTRIBUTE_HEADER
@@ -3263,9 +3260,11 @@ NtCreateUserProcess(
  * @param ThreadParameter A pointer to a variable to be passed to the thread.
  * @return NTSTATUS Successful or errant status.
  */
-typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
+typedef _Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI USER_THREAD_START_ROUTINE(
     _In_ PVOID ThreadParameter
     );
+typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
 
 /**
  * Creates a new thread in the specified process.
