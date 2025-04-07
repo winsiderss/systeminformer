@@ -552,26 +552,26 @@ typedef struct _SOCK_SHARED_INFO
     ULONG SendBufferSize;
     union
     {
+        USHORT Flags;
         struct
         {
-            UCHAR Listening : 1;
-            UCHAR Broadcast : 1;
-            UCHAR Debug : 1;
-            UCHAR OobInline : 1;
-            UCHAR ReuseAddresses : 1;
-            UCHAR ExclusiveAddressUse : 1;
-            UCHAR NonBlocking : 1;
-            UCHAR DontUseWildcard : 1;
-            UCHAR ReceiveShutdown : 1;
-            UCHAR SendShutdown : 1;
-            UCHAR ConditionalAccept : 1;
-            UCHAR IsSANSocket : 1;
-            UCHAR fIsTLI : 1;
-            UCHAR Rio : 1;
-            UCHAR ReceiveBufferSizeSet : 1;
-            UCHAR SendBufferSizeSet : 1;
+            USHORT Listening : 1;
+            USHORT Broadcast : 1;
+            USHORT Debug : 1;
+            USHORT OobInline : 1;
+            USHORT ReuseAddresses : 1;
+            USHORT ExclusiveAddressUse : 1;
+            USHORT NonBlocking : 1;
+            USHORT DontUseWildcard : 1;
+            USHORT ReceiveShutdown : 1;
+            USHORT SendShutdown : 1;
+            USHORT ConditionalAccept : 1;
+            USHORT IsSANSocket : 1;
+            USHORT fIsTLI : 1;
+            USHORT Rio : 1;
+            USHORT ReceiveBufferSizeSet : 1;
+            USHORT SendBufferSizeSet : 1;
         };
-        WORD Flags;
     };
     ULONG CreationFlags; // WSA_FLAG_*
     ULONG CatalogEntryId;

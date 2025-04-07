@@ -3439,25 +3439,32 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
     _In_ ULONG ValueIndex
     )
 {
-    PH_FORMAT format;
+    PH_FORMAT format[10];
 
     switch (Attribute->ValueType)
     {
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64:
-        PhInitFormatI64D(&format, Attribute->Values.pInt64[ValueIndex]);
-        return PhFormat(&format, 1, 0);
+        PhInitFormatI64D(&format[0], Attribute->Values.pInt64[ValueIndex]);
+        return PhFormat(format, 1, 0);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64:
-        PhInitFormatI64U(&format, Attribute->Values.pUint64[ValueIndex]);
-        return PhFormat(&format, 1, 0);
+        PhInitFormatI64U(&format[0], Attribute->Values.pUint64[ValueIndex]);
+        return PhFormat(format, 1, 0);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateString(Attribute->Values.ppString[ValueIndex]);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %hd.%hd.%hd.%hd: %s",
-            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 48),
-            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 32),
-            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version >> 16),
-            (USHORT)(Attribute->Values.pFqbn[ValueIndex].Version),
-            Attribute->Values.pFqbn[ValueIndex].Name);
+        {
+            PhInitFormatS(&format[0], L"Version ");
+            PhInitFormatU(&format[1], HIWORD(Attribute->Values.pFqbn[ValueIndex].Version >> 32));
+            PhInitFormatC(&format[2], L'.');
+            PhInitFormatU(&format[3], LOWORD(Attribute->Values.pFqbn[ValueIndex].Version >> 32));
+            PhInitFormatC(&format[4], L'.');
+            PhInitFormatU(&format[5], HIWORD(Attribute->Values.pFqbn[ValueIndex].Version));
+            PhInitFormatC(&format[6], L'.');
+            PhInitFormatU(&format[7], LOWORD(Attribute->Values.pFqbn[ValueIndex].Version));
+            PhInitFormatS(&format[8], L": ");
+            PhInitFormatS(&format[9], Attribute->Values.pFqbn[ValueIndex].Name);
+            return PhFormat(format, 10, 40);
+        }
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_SID:
         {
             if (PhValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
@@ -3492,7 +3499,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     )
 {
     static CONST PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
-    PH_FORMAT format[6];
+    PH_FORMAT format[10];
     ULONG count = 0;
 
     // Special cases for known attributes
@@ -3591,13 +3598,19 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateStringFromUnicodeString(&Attribute->Values.String[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:
-        return PhFormatString(L"Version %hd.%hd.%hd.%hd: %.*s",
-            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 48),
-            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 32),
-            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version >> 16),
-            (USHORT)(Attribute->Values.Fqbn[ValueIndex].Version),
-            Attribute->Values.Fqbn[ValueIndex].Name.Length / (USHORT)sizeof(WCHAR),
-            Attribute->Values.Fqbn[ValueIndex].Name.Buffer);
+        {
+            PhInitFormatS(&format[0], L"Version ");
+            PhInitFormatU(&format[1], HIWORD(Attribute->Values.Fqbn[ValueIndex].Version >> 32));
+            PhInitFormatC(&format[2], L'.');
+            PhInitFormatU(&format[3], LOWORD(Attribute->Values.Fqbn[ValueIndex].Version >> 32));
+            PhInitFormatC(&format[4], L'.');
+            PhInitFormatU(&format[5], HIWORD(Attribute->Values.Fqbn[ValueIndex].Version));
+            PhInitFormatC(&format[6], L'.');
+            PhInitFormatU(&format[7], LOWORD(Attribute->Values.Fqbn[ValueIndex].Version));
+            PhInitFormatS(&format[8], L": ");
+            PhInitFormatUCS(&format[9], &Attribute->Values.Fqbn[ValueIndex].Name);
+            return PhFormat(format, 10, 40);
+        }
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
         {
             if (PhValidSid(Attribute->Values.OctetString[ValueIndex].Value))

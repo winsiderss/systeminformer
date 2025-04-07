@@ -188,9 +188,9 @@ typedef struct _IMAGE_BDD_INFO {
 typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION {
     ULONG OriginalRva;          // RVA of original function
     ULONG BDDOffset;            // Offset into the BDD region
-    ULONG RvaSize;              // Size in bytes taken by RVAs. Must be multiple of sizeof(DWORD).
+    ULONG RvaSize;              // Size in bytes taken by RVAs. Must be multiple of sizeof(ULONG).
     ULONG BaseRelocSize;        // Size in bytes taken by BaseRelocs
-    // DWORD RVAs[RvaSize / sizeof(DWORD)];     // Array containing overriding func RVAs.
+    // ULONG RVAs[RvaSize / sizeof(ULONG)];     // Array containing overriding func RVAs.
     // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY];
     // ^Base relocations (RVA + Size + TO)
     // ^Padded with extra TOs for 4B alignment

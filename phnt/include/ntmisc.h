@@ -872,11 +872,11 @@ WINBASEAPI
 HRESULT
 WINAPI
 GetCurrentPackageInfo3(
-    _In_ ULONG flags,
-    _In_ ULONG packagePathType, // PackagePathType
-    _Inout_ PULONG bufferLength,
-    _Out_writes_bytes_opt_(*bufferLength) PVOID buffer,
-    _Out_opt_ PULONG count
+    _In_ ULONG Flags,
+    _In_ ULONG PackagePathType, // PackagePathType
+    _Inout_ PULONG BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Out_opt_ PULONG ReturnLength
     );
 
 //
