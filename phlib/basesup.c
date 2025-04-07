@@ -54,6 +54,7 @@
 #include <phbase.h>
 #include <phintrnl.h>
 #include <phintrin.h>
+#include <phnative.h>
 #include <circbuf.h>
 #include <thirdparty.h>
 #include <ntintsafe.h>
@@ -111,7 +112,7 @@ static PPH_STRING PhSharedEmptyString = NULL;
 static PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
-LIST_ENTRY PhDbgThreadListHead = { &PhDbgThreadListHead, &PhDbgThreadListHead };
+RTL_STATIC_LIST_HEAD(PhDbgThreadListHead);
 PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 #endif
 

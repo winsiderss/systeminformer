@@ -18,7 +18,7 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
     );
 
 PPH_OBJECT_TYPE PhSvcClientType = NULL;
-LIST_ENTRY PhSvcClientListHead = { &PhSvcClientListHead, &PhSvcClientListHead };
+RTL_STATIC_LIST_HEAD(PhSvcClientListHead);
 PH_QUEUED_LOCK PhSvcClientListLock = PH_QUEUED_LOCK_INIT;
 
 PPHSVC_CLIENT PhSvcCreateClient(
