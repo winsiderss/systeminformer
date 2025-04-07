@@ -304,14 +304,14 @@ typedef struct _TOKEN_LOGGING_INFORMATION
     TOKEN_ELEVATION TokenElevation;
     TOKEN_ELEVATION_TYPE TokenElevationType;
     SECURITY_IMPERSONATION_LEVEL ImpersonationLevel;
-    DWORD IntegrityLevel;
+    ULONG IntegrityLevel;
     SID_AND_ATTRIBUTES User;
     PSID TrustLevelSid;
-    DWORD SessionId;
-    DWORD AppContainerNumber;
+    ULONG SessionId;
+    ULONG AppContainerNumber;
     LUID AuthenticationId;
-    DWORD GroupCount;
-    DWORD GroupsLength;
+    ULONG GroupCount;
+    ULONG GroupsLength;
     PSID_AND_ATTRIBUTES Groups;
 } TOKEN_LOGGING_INFORMATION, *PTOKEN_LOGGING_INFORMATION;
 #endif // !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
@@ -715,7 +715,9 @@ NtAccessCheckByTypeResultList(
     _Out_writes_(ObjectTypeListLength) PNTSTATUS AccessStatus
     );
 
+//
 // Signing
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
