@@ -1,5 +1,6 @@
 name: "Feature request"
 description: Suggest features, modifications or ideas
+type: "Feature"
 labels: ["enhancement"]
 body:
   - type: textarea
