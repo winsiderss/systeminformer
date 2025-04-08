@@ -835,7 +835,7 @@ PPH_STRING PhAfdFormatProviderFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -895,7 +895,7 @@ PPH_STRING PhAfdFormatServiceFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -943,7 +943,7 @@ PPH_STRING PhAfdFormatCreationFlags(
     }
     else
     {
-        string = PhReferenceEmptyString();
+        string = PhCreateString(L"None");
     }
 
     return string;
@@ -963,7 +963,7 @@ PPH_STRING PhAfdFormatSharedInfoFlags(
     PH_STRING_BUILDER stringBuilder;
 
     if (!SharedInfo->Flags)
-        return PhReferenceEmptyString();
+        return PhCreateString(L"None");
 
     PhInitializeStringBuilder(&stringBuilder, 80);
 
@@ -1394,6 +1394,43 @@ PPH_STRING PhAfdFormatTcpState(
         return PhCreateString(knownName);
     else
         return PhFormatString(L"Unrecognized state (%d)", TcpState);
+}
+
+/**
+  * \brief Formats an interface identifier as a string.
+  *
+  * \param[in] Interface The interface identifier.
+  *
+  * \return A human-readable string with the interface IP address or scope ID.
+  */
+PPH_STRING PhAfdFormatInterfaceOption(
+    _In_ ULONG Interface
+    )
+{
+    if (Interface & 0x000000FF)
+    {
+        IN_ADDR interfaceIp;
+        WCHAR buffer[16];
+
+        // Values with a non-zero first octet identify an interface by IP address
+        interfaceIp.S_un.S_addr = Interface;
+        RtlIpv4AddressToStringW(&interfaceIp, buffer);
+        return PhCreateString(buffer);
+    }
+    else if (Interface)
+    {
+        PH_FORMAT format[2];
+
+        // Other values (0.0.0.0/24 addresses) store a big-endian interface index/scope ID
+        PhInitFormatC(&format[0], L'%');
+        PhInitFormatU(&format[1], _byteswap_ulong(Interface));
+        return PhFormat(format, RTL_NUMBER_OF(format), 8);
+    }
+    else
+    {
+        // The zero interface is special
+        return PhCreateString(L"Default");
+    }
 }
 
 /**
