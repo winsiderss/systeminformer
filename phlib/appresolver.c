@@ -588,7 +588,7 @@ PPH_STRING PhGetAppContainerSidFromName(
     {
         packageSidString = PhSidToStringSid(appContainerSid);
 
-        PhFreeSid(appContainerSid);
+        RtlFreeSid(appContainerSid);
     }
 
     return packageSidString;
