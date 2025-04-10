@@ -371,9 +371,6 @@
     <ClInclude Include="tlsh\tlsh_wrapper.h">
       <Filter>tlsh</Filter>
     </ClInclude>
-    <ClInclude Include="tlsh\win_version.h">
-      <Filter>tlsh</Filter>
-    </ClInclude>
     <ClInclude Include="maxminddb\data-pool.h">
       <Filter>maxminddb</Filter>
     </ClInclude>
