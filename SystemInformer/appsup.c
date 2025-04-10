@@ -1320,7 +1320,7 @@ NTSTATUS PhShellProcessHacker(
 
 VOID PhpAppendCommandLineArgument(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PPH_STRINGREF Value
     )
 {

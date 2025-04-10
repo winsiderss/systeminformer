@@ -948,7 +948,7 @@ NTSTATUS PhDefaultNpAcl(
 
         if (appContainerSidParent)
         {
-            PhFreeSid(appContainerSidParent);
+            RtlFreeSid(appContainerSidParent);
         }
     }
 
