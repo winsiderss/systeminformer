@@ -14,6 +14,7 @@
 
 #include <commdlg.h>
 #include <d3dkmthk.h>
+#include <ntintsafe.h>
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
@@ -3164,12 +3165,21 @@ NTSTATUS PhGetFullPathName(
     _Out_opt_ PULONG BytesRequired)
 {
     NTSTATUS status;
+    ULONG bufferLength;
     ULONG bytesRequired;
+
+    status = RtlSizeTToULong(
+        BufferLength,
+        &bufferLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     bytesRequired = 0;
     status = RtlGetFullPathName_UEx(
         FileName,
-        (ULONG)BufferLength, // * sizeof(WCHAR)
+        bufferLength, // * sizeof(WCHAR)
         Buffer,
         FilePart,
         &bytesRequired
@@ -3210,7 +3220,7 @@ NTSTATUS PhGetFullPath(
     ULONG returnLength = 0;
     PWSTR filePart = NULL;
 
-    fullPathLength = 0x100;
+    fullPathLength = DOS_MAX_PATH_LENGTH;
     fullPath = PhCreateStringEx(NULL, fullPathLength);
 
     status = PhGetFullPathName(
@@ -3223,6 +3233,7 @@ NTSTATUS PhGetFullPath(
 
     if (status == STATUS_BUFFER_TOO_SMALL && returnLength > sizeof(UNICODE_NULL))
     {
+        PhDereferenceObject(fullPath);
         fullPathLength = returnLength - sizeof(UNICODE_NULL);
         fullPath = PhCreateStringEx(NULL, fullPathLength);
 
