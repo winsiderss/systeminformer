@@ -513,7 +513,7 @@ NTAPI
 NtAcquireProcessActivityReference(
     _Out_ PHANDLE ActivityReferenceHandle,
     _In_ HANDLE ParentProcessHandle,
-    _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
+    _In_ ULONG ProcessActivityType // PROCESS_ACTIVITY_TYPE
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
