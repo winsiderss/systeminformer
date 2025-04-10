@@ -74,7 +74,10 @@ IsListEmpty(
     return ListHead->Flink == ListHead;
 }
 
-FORCEINLINE BOOLEAN RemoveEntryList(
+FORCEINLINE
+BOOLEAN
+NTAPI
+RemoveEntryList(
     _In_ PLIST_ENTRY Entry
     )
 {
@@ -89,7 +92,10 @@ FORCEINLINE BOOLEAN RemoveEntryList(
     return Flink == Blink;
 }
 
-FORCEINLINE PLIST_ENTRY RemoveHeadList(
+FORCEINLINE
+PLIST_ENTRY
+NTAPI
+RemoveHeadList(
     _Inout_ PLIST_ENTRY ListHead
     )
 {
@@ -104,7 +110,10 @@ FORCEINLINE PLIST_ENTRY RemoveHeadList(
     return Entry;
 }
 
-FORCEINLINE PLIST_ENTRY RemoveTailList(
+FORCEINLINE
+PLIST_ENTRY
+NTAPI
+RemoveTailList(
     _Inout_ PLIST_ENTRY ListHead
     )
 {
@@ -119,9 +128,12 @@ FORCEINLINE PLIST_ENTRY RemoveTailList(
     return Entry;
 }
 
-FORCEINLINE VOID InsertTailList(
+FORCEINLINE
+VOID
+NTAPI
+InsertTailList(
     _Inout_ PLIST_ENTRY ListHead,
-    _Inout_ PLIST_ENTRY Entry
+    _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Blink;
@@ -133,9 +145,12 @@ FORCEINLINE VOID InsertTailList(
     ListHead->Blink = Entry;
 }
 
-FORCEINLINE VOID InsertHeadList(
+FORCEINLINE
+VOID
+NTAPI
+InsertHeadList(
     _Inout_ PLIST_ENTRY ListHead,
-    _Inout_ PLIST_ENTRY Entry
+    _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Flink;
@@ -147,7 +162,10 @@ FORCEINLINE VOID InsertHeadList(
     ListHead->Flink = Entry;
 }
 
-FORCEINLINE VOID AppendTailList(
+FORCEINLINE
+VOID
+NTAPI
+AppendTailList(
     _Inout_ PLIST_ENTRY ListHead,
     _Inout_ PLIST_ENTRY ListToAppend
     )
@@ -160,7 +178,10 @@ FORCEINLINE VOID AppendTailList(
     ListToAppend->Blink = ListEnd;
 }
 
-FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
+FORCEINLINE
+PSINGLE_LIST_ENTRY
+NTAPI
+PopEntryList(
     _Inout_ PSINGLE_LIST_ENTRY ListHead
     )
 {
@@ -174,7 +195,10 @@ FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
     return FirstEntry;
 }
 
-FORCEINLINE VOID PushEntryList(
+FORCEINLINE
+VOID
+NTAPI
+PushEntryList(
     _Inout_ PSINGLE_LIST_ENTRY ListHead,
     _Inout_ __drv_aliasesMem PSINGLE_LIST_ENTRY Entry
     )
@@ -202,9 +226,11 @@ typedef enum _RTL_GENERIC_COMPARE_RESULTS
     GenericEqual
 } RTL_GENERIC_COMPARE_RESULTS;
 
+typedef struct _RTL_AVL_TABLE RTL_AVL_TABLE, *PRTL_AVL_TABLE;
+
 typedef _Function_class_(RTL_AVL_COMPARE_ROUTINE)
 RTL_GENERIC_COMPARE_RESULTS NTAPI RTL_AVL_COMPARE_ROUTINE(
-    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PRTL_AVL_TABLE Table,
     _In_ PVOID FirstStruct,
     _In_ PVOID SecondStruct
     );
@@ -212,21 +238,21 @@ typedef RTL_AVL_COMPARE_ROUTINE* PRTL_AVL_COMPARE_ROUTINE;
 
 typedef _Function_class_(RTL_AVL_ALLOCATE_ROUTINE)
 PVOID NTAPI RTL_AVL_ALLOCATE_ROUTINE(
-    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PRTL_AVL_TABLE Table,
     _In_ CLONG ByteSize
     );
 typedef RTL_AVL_ALLOCATE_ROUTINE* PRTL_AVL_ALLOCATE_ROUTINE;
 
 typedef _Function_class_(RTL_AVL_FREE_ROUTINE)
 VOID NTAPI RTL_AVL_FREE_ROUTINE(
-    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PRTL_AVL_TABLE Table,
     _In_ _Post_invalid_ PVOID Buffer
     );
 typedef RTL_AVL_FREE_ROUTINE* PRTL_AVL_FREE_ROUTINE;
 
 typedef _Function_class_(RTL_AVL_MATCH_FUNCTION)
 NTSTATUS NTAPI RTL_AVL_MATCH_FUNCTION(
-    _In_ struct _RTL_AVL_TABLE *Table,
+    _In_ PRTL_AVL_TABLE Table,
     _In_ PVOID UserData,
     _In_ PVOID MatchData
     );
@@ -5390,7 +5416,7 @@ NTAPI
 RtlSizeHeap(
     _In_ PVOID HeapHandle,
     _In_ ULONG Flags,
-    _In_ PVOID BaseAddress
+    _In_ PCVOID BaseAddress
     );
 
 NTSYSAPI
