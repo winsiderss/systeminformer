@@ -1414,7 +1414,7 @@ HRESULT PhLoadSettingsXmlRead(
     SIZE_T settingBufferLength;
     WCHAR settingBuffer[0x100];
     PH_STRINGREF settingName;
-    PPH_STRING settingValue;
+    PH_STRINGREF settingValue;
     XmlNodeType nodeType;
     PCWSTR nodeName;
     PCWSTR attrName;
