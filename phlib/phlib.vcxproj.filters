@@ -212,6 +212,9 @@
     <ClCompile Include="nativesocket.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="apistubs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">

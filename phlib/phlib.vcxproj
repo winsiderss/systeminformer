@@ -217,6 +217,7 @@
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
     <ClCompile Include="imgcoherency.c" />
+    <ClCompile Include="apistubs.cpp" />
     <ClCompile Include="mapldr.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
