@@ -1382,7 +1382,7 @@ NTSTATUS PhpGetBestObjectName(
             if (NT_SUCCESS(status))
             {
                 PH_FORMAT format[4];
-                PWSTR sectionType = L"Unknown";
+                PCWSTR sectionType = L"Unknown";
 
                 if (basicInfo.AllocationAttributes & SEC_COMMIT)
                     sectionType = L"Commit";
