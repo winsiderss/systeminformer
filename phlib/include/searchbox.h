@@ -29,6 +29,7 @@ PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
     _In_opt_ PCWSTR BannerText,
+    _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,
     _In_ PCWSTR SearchButtonActiveResource,
     _In_ PCWSTR CaseButtonResource,

@@ -1414,7 +1414,7 @@ HRESULT PhLoadSettingsXmlRead(
     SIZE_T settingBufferLength;
     WCHAR settingBuffer[0x100];
     PH_STRINGREF settingName;
-    PPH_STRING settingValue;
+    PH_STRINGREF settingValue;
     XmlNodeType nodeType;
     PCWSTR nodeName;
     PCWSTR attrName;
@@ -1482,10 +1482,13 @@ HRESULT PhLoadSettingsXmlRead(
 
                                         if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &valueStringBuffer, &valueStringLength)))
                                         {
-                                            if ((valueStringLength * sizeof(WCHAR)) % 2 != 0)
+                                            settingBufferLength = valueStringLength * sizeof(WCHAR);
+
+                                            if (settingBufferLength % 2 != 0)
                                                 continue;
 
-                                            settingValue = PhCreateStringEx(valueStringBuffer, valueStringLength * sizeof(WCHAR));
+                                            settingValue.Buffer = (PWCH)valueStringBuffer;
+                                            settingValue.Length = settingBufferLength;
 
                                             {
                                                 setting = PhpLookupSetting(&settingName);
@@ -1496,8 +1499,8 @@ HRESULT PhLoadSettingsXmlRead(
 
                                                     if (!PhSettingFromString(
                                                         setting->Type,
-                                                        &settingValue->sr,
-                                                        settingValue,
+                                                        &settingValue,
+                                                        NULL,
                                                         setting
                                                         ))
                                                     {
@@ -1514,8 +1517,7 @@ HRESULT PhLoadSettingsXmlRead(
                                                     setting = PhAllocate(sizeof(PH_SETTING));
                                                     setting->Name.Buffer = PhAllocateCopy(settingName.Buffer, settingName.Length + sizeof(UNICODE_NULL));
                                                     setting->Name.Length = settingName.Length;
-                                                    PhReferenceObject(settingValue);
-                                                    setting->u.Pointer = settingValue;
+                                                    setting->u.Pointer = PhCreateString2(&settingValue);
 
                                                     PhAddItemList(PhIgnoredSettings, setting);
                                                 }
@@ -1959,6 +1961,7 @@ VOID PhAddSetting(
 {
     PH_SETTING setting;
 
+    memset(&setting, 0, sizeof(PH_SETTING));
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;

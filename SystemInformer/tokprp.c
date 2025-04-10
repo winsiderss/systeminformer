@@ -4380,7 +4380,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         PhDereferenceObject(appContainerSidString);
                     }
 
-                    PhFreeSid(appContainerSidParent);
+                    RtlFreeSid(appContainerSidParent);
                 }
 
                 if (packageFullName = PhGetTokenPackageFullName(tokenHandle))

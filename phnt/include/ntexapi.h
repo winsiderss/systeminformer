@@ -1265,7 +1265,9 @@ NtSetIntervalProfile(
     _In_ KPROFILE_SOURCE Source
     );
 
+//
 // Keyed Event
+//
 
 #define KEYEDEVENT_WAIT 0x0001
 #define KEYEDEVENT_WAKE 0x0002
@@ -1650,7 +1652,7 @@ NtWaitForWorkViaWorkerFactory(
     _Out_writes_to_(Count, *PacketsReturned) PFILE_IO_COMPLETION_INFORMATION MiniPackets,
     _In_ ULONG Count,
     _Out_ PULONG PacketsReturned,
-    _In_ PWORKER_FACTORY_DEFERRED_WORK DeferredWork
+    _In_ PVOID DeferredWork // PWORKER_FACTORY_DEFERRED_WORK
     );
 
 #else
@@ -5626,6 +5628,16 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The NtQuerySystemInformation routine queries information about the system.
+ *
+ * @param SystemInformationClass The type of information to be retrieved.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5637,6 +5649,16 @@ NtQuerySystemInformation(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
+/**
+ * The NtQuerySystemInformationEx routine queries information about the system.
+ *
+ * @param SystemInformationClass The type of information to be retrieved.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5650,6 +5672,15 @@ NtQuerySystemInformationEx(
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
+/**
+ * The NtSetSystemInformation routine sets information about the system.
+ *
+ * @param SystemInformationClass The type of information to be set.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5659,7 +5690,9 @@ NtSetSystemInformation(
     _In_ ULONG SystemInformationLength
     );
 
+//
 // SysDbg APIs
+//
 
 // private
 typedef enum _SYSDBG_COMMAND
@@ -5871,7 +5904,9 @@ NtSystemDebugControl(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Hard errors
+//
 
 typedef enum _HARDERROR_RESPONSE_OPTION
 {

@@ -39,6 +39,7 @@
     <DriverType>WDM</DriverType>
     <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
     <_NT_TARGET_VERSION>0x0A00</_NT_TARGET_VERSION>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -59,6 +60,7 @@
     <DriverType>WDM</DriverType>
     <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
     <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -124,12 +126,12 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalOptions>/INTEGRITYCHECK /FILEALIGN:0x1000 /guard:retpoline /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -154,17 +156,16 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
       <ConformanceMode>true</ConformanceMode>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/INTEGRITYCHECK /FILEALIGN:0x1000 /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -193,18 +194,17 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
       <ConformanceMode>true</ConformanceMode>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -237,11 +237,12 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

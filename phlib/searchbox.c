@@ -62,6 +62,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PCWSTR RegexSetting;
     PCWSTR CaseSetting;
 
+    PVOID ImageBaseAddress;
     PCWSTR SearchButtonResource;
     PCWSTR SearchButtonActiveResource;
     PCWSTR RegexButtonResource;
@@ -229,7 +230,7 @@ VOID PhpSearchControlInitializeImages(
     Context->SearchButton.ImageIndex = ULONG_MAX;
     Context->SearchButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->SearchButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(Context->ImageBaseAddress, Context->SearchButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->SearchButton.ImageIndex = 0;
@@ -237,7 +238,7 @@ VOID PhpSearchControlInitializeImages(
         DeleteBitmap(bitmap);
     }
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->SearchButtonActiveResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(Context->ImageBaseAddress, Context->SearchButtonActiveResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->SearchButton.ActiveImageIndex = 1;
@@ -249,7 +250,7 @@ VOID PhpSearchControlInitializeImages(
     Context->RegexButton.ImageIndex = ULONG_MAX;
     Context->RegexButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->RegexButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(Context->ImageBaseAddress, Context->RegexButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->RegexButton.ImageIndex = 2;
@@ -261,7 +262,7 @@ VOID PhpSearchControlInitializeImages(
     Context->CaseButton.ImageIndex = ULONG_MAX;
     Context->CaseButton.ActiveImageIndex = ULONG_MAX;
 
-    bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, Context->CaseButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+    bitmap = PhLoadImageFormatFromResource(Context->ImageBaseAddress, Context->CaseButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
     if (bitmap)
     {
         Context->CaseButton.ImageIndex = 3;
@@ -368,38 +369,19 @@ VOID PhpSearchDrawWindow(
 {
     if (PhEnableThemeSupport)
     {
-        if (GetFocus() == WindowHandle)
-        {
-            SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
-            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-            PatBlt(Hdc, WindowRect->left, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-            PatBlt(Hdc, WindowRect->right - 1, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-            PatBlt(Hdc, WindowRect->left, WindowRect->top, WindowRect->right - WindowRect->left, 1, PATCOPY);
-            PatBlt(Hdc, WindowRect->left, WindowRect->bottom - 1, WindowRect->right - WindowRect->left, 1, PATCOPY);
+        SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
+        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        PatBlt(Hdc, WindowRect->left, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
+        PatBlt(Hdc, WindowRect->right - 1, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
+        PatBlt(Hdc, WindowRect->left, WindowRect->top, WindowRect->right - WindowRect->left, 1, PATCOPY);
+        PatBlt(Hdc, WindowRect->left, WindowRect->bottom - 1, WindowRect->right - WindowRect->left, 1, PATCOPY);
 
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-            PatBlt(Hdc, WindowRect->right - 2, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->bottom - 2, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-        }
-        else
-        {
-            SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
-            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-            PatBlt(Hdc, WindowRect->left, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-            PatBlt(Hdc, WindowRect->right - 1, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-            PatBlt(Hdc, WindowRect->left, WindowRect->top, WindowRect->right - WindowRect->left, 1, PATCOPY);
-            PatBlt(Hdc, WindowRect->left, WindowRect->bottom - 1, WindowRect->right - WindowRect->left, 1, PATCOPY);
-
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-            PatBlt(Hdc, WindowRect->right - 2, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-            PatBlt(Hdc, WindowRect->left + 1, WindowRect->bottom - 2, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-        }
+        SetDCBrushColor(Hdc, RGB(60, 60, 60));
+        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
+        PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
+        PatBlt(Hdc, WindowRect->right - 2, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
+        PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
+        PatBlt(Hdc, WindowRect->left + 1, WindowRect->bottom - 2, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
     }
 }
 
@@ -1311,6 +1293,7 @@ VOID PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
     _In_opt_ PCWSTR BannerText,
+    _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,
     _In_ PCWSTR SearchButtonActiveResource,
     _In_ PCWSTR RegexButtonResource,
@@ -1331,6 +1314,7 @@ VOID PhCreateSearchControlEx(
     context->RegexSetting = RegexSetting;
     context->CaseSetting = CaseSetting;
 
+    context->ImageBaseAddress = ImageBaseAddress;
     context->SearchButtonResource = SearchButtonResource;
     context->SearchButtonActiveResource = SearchButtonActiveResource;
     context->RegexButtonResource = RegexButtonResource;

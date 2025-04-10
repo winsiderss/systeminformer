@@ -252,7 +252,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCommitReleaseInformation, // qs: PROCESS_COMMIT_RELEASE_INFORMATION
     ProcessDefaultCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
     ProcessAllowedCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
-    ProcessSubsystemProcess,
+    ProcessSubsystemProcess, // s: void // EPROCESS->SubsystemProcess
     ProcessJobMemoryInformation, // q: PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate, // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
     ProcessRaiseUMExceptionOnInvalidHandleClose, // qs: ULONG; s: 0 disables, otherwise enables
@@ -268,16 +268,16 @@ typedef enum _PROCESSINFOCLASS
     ProcessWakeInformation, // q: PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // qs: PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ProcessCaptureTrustletLiveDump,
+    ProcessCaptureTrustletLiveDump, // q: ULONG
     ProcessTelemetryCoverage, // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
     ProcessEnclaveInformation,
     ProcessEnableReadWriteVmLogging, // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
     ProcessUptimeInformation, // q: PROCESS_UPTIME_INFORMATION
     ProcessImageSection, // q: HANDLE
-    ProcessDebugAuthInformation, // since REDSTONE4 // 90
+    ProcessDebugAuthInformation, // s: CiTool.exe --device-id // PplDebugAuthorization // since RS4 // 90
     ProcessSystemResourceManagement, // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT
     ProcessSequenceNumber, // q: ULONGLONG
-    ProcessLoaderDetour, // since REDSTONE5
+    ProcessLoaderDetour, // since RS5
     ProcessSecurityDomainInformation, // q: PROCESS_SECURITY_DOMAIN_INFORMATION
     ProcessCombineSecurityDomainsInformation, // s: PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
     ProcessEnableLogging, // qs: PROCESS_LOGGING_INFORMATION

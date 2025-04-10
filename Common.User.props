@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <!-- Global -->
   <ItemDefinitionGroup>
@@ -15,7 +16,7 @@
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <FloatingPointModel>Precise</FloatingPointModel>
-          <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+          <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
       </ClCompile>
       <Link>
           <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -35,45 +36,54 @@
   </ItemDefinitionGroup>
 
   <!-- Debug Builds -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <!-- Release Builds -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
     <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-    <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-    <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
 
   <!-- Debug|Win32 Builds -->
@@ -98,9 +108,8 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -126,9 +135,8 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -155,9 +163,8 @@
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -187,12 +194,11 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -223,12 +229,11 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -256,12 +261,12 @@
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
+
 </Project>
