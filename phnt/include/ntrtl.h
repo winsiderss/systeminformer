@@ -1046,7 +1046,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlInitializeCriticalSectionAndSpinCount(
-    _Inout_ PRTL_CRITICAL_SECTION CriticalSection,
+    _Out_ PRTL_CRITICAL_SECTION CriticalSection,
     _In_ ULONG SpinCount
     );
 
