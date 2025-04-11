@@ -126,8 +126,9 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
-      <AdditionalOptions>/INTEGRITYCHECK /FILEALIGN:0x1000 /guard:retpoline /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/INTEGRITYCHECK /FILEALIGN:0x1000 /guard:retpoline /NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
+      <CETCompat>true</CETCompat>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
