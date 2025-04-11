@@ -250,6 +250,7 @@
           <FunctionLevelLinking>true</FunctionLevelLinking>
           <IntrinsicFunctions>true</IntrinsicFunctions>
           <GuardSignedReturns>true</GuardSignedReturns>
+          <GuardEHContMetadata>true</GuardEHContMetadata>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
           <WholeProgramOptimization>true</WholeProgramOptimization>
           <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

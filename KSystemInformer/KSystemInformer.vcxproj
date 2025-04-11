@@ -162,6 +162,7 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <GuardEHContMetadata>true</GuardEHContMetadata>
       <ConformanceMode>true</ConformanceMode>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
@@ -226,6 +227,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+      <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <ControlFlowGuard>Guard</ControlFlowGuard>
