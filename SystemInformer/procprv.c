@@ -55,6 +55,8 @@
 #include <phplug.h>
 #include <srvprv.h>
 
+#include <trace.h>
+
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
@@ -611,6 +613,12 @@ VOID PhpAddProcessItem(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Adding process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhAddEntryHashSet(
         PhProcessHashSet,
         PH_HASH_SET_SIZE(PhProcessHashSet),
@@ -624,6 +632,12 @@ VOID PhpRemoveProcessItem(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Removing process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhRemoveEntryHashSet(PhProcessHashSet, PH_HASH_SET_SIZE(PhProcessHashSet), &ProcessItem->HashEntry);
     PhProcessHashSetCount--;
     PhDereferenceObject(ProcessItem);
@@ -738,6 +752,12 @@ VOID PhpProcessQueryStage1(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
+
+    PhTrace(
+        "Process query stage 1: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processId)
+        );
 
     // Version info
     if (!processItem->IsSubsystemProcess)
@@ -958,6 +978,12 @@ VOID PhpProcessQueryStage2(
     )
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
+
+    PhTrace(
+        "Process query stage 2: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processItem->ProcessId)
+        );
 
     if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
@@ -2299,6 +2325,8 @@ VOID PhProcessProviderUpdate(
     PPH_PROCESS_ITEM maxIoProcessItem = NULL;
 
     // Pre-update tasks
+
+    PhTrace("Process provider run count: %lu", runCount);
 
     if (runCount % 512 == 0) // yes, a very long time
     {

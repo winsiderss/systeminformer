@@ -12,6 +12,8 @@
 
 #include "toolstatus.h"
 
+#include <trace.h>
+
 TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
@@ -1933,6 +1935,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },
                 { IntegerSettingType, SETTING_NAME_RESTOREROWAFTERSEARCH, L"0" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

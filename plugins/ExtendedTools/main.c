@@ -13,6 +13,8 @@
 #include "exttools.h"
 #include "extension\plugin.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance = NULL;
 HWND ProcessTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
@@ -1367,6 +1369,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES, L"0" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

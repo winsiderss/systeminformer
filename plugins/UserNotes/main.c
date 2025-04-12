@@ -17,6 +17,8 @@
 #include <mapimg.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -2897,6 +2899,8 @@ LOGICAL DllMain(
             { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" },
             { StringSettingType, SETTING_NAME_OPTIONS_DB_COLUMNS, L"" },
         };
+
+        WPP_INIT_TRACING(PLUGIN_NAME);
 
         PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

@@ -137,6 +137,7 @@ namespace CustomBuildTool
             "svcsup.h",
             "symprv.h",
             "templ.h",
+            "trace.h",
             "treenew.h",
             "verify.h",
             "workqueue.h"

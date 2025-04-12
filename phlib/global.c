@@ -14,6 +14,8 @@
 #include <phconsole.h>
 #include <phintrnl.h>
 
+#include <trace.h>
+
 VOID PhInitializeRuntimeInformation(
     VOID
     );
@@ -55,6 +57,10 @@ NTSTATUS PhInitializePhLib(
     _In_ PVOID ImageBaseAddress
     )
 {
+    WPP_INIT_TRACING(ApplicationName);
+
+    PhTraceInfo("%ls initializing", ApplicationName);
+
     PhApplicationName = ApplicationName;
     PhInstanceHandle = ImageBaseAddress;
 
@@ -443,6 +449,10 @@ VOID PhExitApplication(
     _In_opt_ NTSTATUS Status
     )
 {
+    PhTraceInfo("%ls exiting: %!STATUS!", PhApplicationName, Status);
+
+    WPP_CLEANUP();
+
 #define WORKAROUND_CRTBUG_EXITPROCESS
 #ifdef WORKAROUND_CRTBUG_EXITPROCESS
     HANDLE standardHandle;

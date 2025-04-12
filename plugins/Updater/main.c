@@ -11,6 +11,8 @@
 
 #include "updater.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
@@ -167,6 +169,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_UPDATE_DATA, L"" },
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK_PAGE, L"0" }
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

@@ -59,6 +59,8 @@
 #include <thirdparty.h>
 #include <ntintsafe.h>
 
+#include <trace.h>
+
 #ifndef PH_NATIVE_STRING_CONVERSION
 #define PH_NATIVE_STRING_CONVERSION 1
 #endif
@@ -3078,7 +3080,7 @@ PPH_STRING PhReferenceEmptyString(
         }
         else
         {
-            string = newString; // success  
+            string = newString; // success
         }
     }
 
@@ -6471,6 +6473,8 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
+    PhTraceFuncEnter("Invoke callback %p", Callback);
+
     PhAcquireQueuedLockShared(&Callback->ListLock);
 
     for (listEntry = Callback->ListHead.Flink; listEntry != &Callback->ListHead; listEntry = listEntry->Flink)
@@ -6506,6 +6510,8 @@ VOID PhInvokeCallback(
     }
 
     PhReleaseQueuedLockShared(&Callback->ListLock);
+
+    PhTraceFuncExit("Invoke callback %p", Callback);
 }
 
 /**

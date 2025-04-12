@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+
   <!-- Global -->
   <ItemDefinitionGroup>
       <ClCompile>
@@ -33,6 +34,42 @@
           <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       </ResourceCompile>
+  </ItemDefinitionGroup>
+
+  <!-- WPP Trace (optional, disabled by default)
+       - Conditional based on presence of necessary WDK parts.
+       - Set SI_WITH_WPP to enable WPP trace compile.
+  -->
+  <PropertyGroup>
+    <SiNoWpp Condition="'$(SI_WITH_WPP)'==''">true</SiNoWpp>
+  </PropertyGroup>
+  <Target Name="SiRunWpp"
+          BeforeTargets="BeforeClCompile"
+          Condition="'$(SiNoWpp)'!='true' and Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')"
+          Inputs="@(ClInclude);@(ClCompile)"
+          Outputs="@(ClInclude->'$(IntDir)tmh\%(Filename).tmh');@(ClCompile->'$(IntDir)tmh\%(Filename).tmh')">
+      <MakeDir Directories="$(IntDir)tmh" Condition="!Exists('$(IntDir)tmh')" />
+      <PropertyGroup>
+          <TraceWppCmd>tracewpp.exe</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -um</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)phlib\include\trace.h"</TraceWppCmd>
+      </PropertyGroup>
+      <Exec Command="$(TraceWppCmd) @(ClInclude->'&quot;%(FullPath)&quot;', ' ') @(ClCompile->'&quot;%(FullPath)&quot;', ' ')"/>
+  </Target>
+  <ItemDefinitionGroup Condition="'$(SiNoWpp)'!='true' and Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')">
+      <ClCompile>
+          <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
+          <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(SiNoWpp)'=='true' or !Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')">
+      <ClCompile>
+          <PreprocessorDefinitions>SI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
   </ItemDefinitionGroup>
 
   <!-- Debug Builds -->

@@ -21,6 +21,8 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
     PH_HASH_ENTRY HashEntry;
@@ -592,6 +594,8 @@ VOID PhpFillServiceItemStage1(
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     PPH_STRING fileName = Data->Header.FileName;
 
+    PhTrace("Service query stage 1: %ls", PhGetString(serviceItem->Name));
+
     serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     serviceItem->MicrosoftService = !!Data->MicrosoftService;
@@ -609,6 +613,8 @@ VOID PhpFillServiceItemStage2(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
+
+    PhTrace("Service query stage 2: %ls", PhGetString(serviceItem->Name));
 
     serviceItem->VerifyResult = Data->VerifyResult;
     PhMoveReference(&serviceItem->VerifySignerName, Data->VerifySignerName);
@@ -736,6 +742,8 @@ VOID PhServiceProviderUpdate(
     ULONG numberOfServices;
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
+
+    PhTrace("Service provider run count: %lu", runCount);
 
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)

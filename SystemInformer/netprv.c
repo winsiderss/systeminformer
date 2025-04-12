@@ -22,6 +22,8 @@
 #include <workqueue.h>
 #include <hvsocketcontrol.h>
 
+#include <trace.h>
+
 typedef struct _PH_NETWORK_CONNECTION
 {
     ULONG ProtocolType;
@@ -919,6 +921,8 @@ VOID PhNetworkProviderUpdate(
     PPH_NETWORK_CONNECTION connections;
     ULONG numberOfConnections;
     ULONG i;
+
+    PhTrace("Network provider run count: %lu", runCount);
 
     if (!NetworkImportDone)
     {

@@ -12,6 +12,8 @@
 
 #include "extsrv.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
@@ -573,6 +575,8 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"1" }
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

@@ -436,5 +436,8 @@
     <ClInclude Include="include\phafd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\trace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
