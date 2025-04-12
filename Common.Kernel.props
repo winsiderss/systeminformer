@@ -36,7 +36,6 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)phnt\include\</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\include\</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(ProjectDir)include\</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)</AdditionalIncludeDirectories> <!-- For WPP tmh files -->
       <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Platform)'=='x64'">/d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
@@ -48,7 +47,6 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions>_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">_AMD64_;AMD64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -58,10 +56,6 @@
       <StringPooling>true</StringPooling>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <WarningLevel>Level4</WarningLevel>
-      <WppEnabled>true</WppEnabled>
-      <WppTraceFunction>KphTracePrint(LEVEL,EVENT,MSG,...)</WppTraceFunction>
-      <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
-      <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
     </ClCompile>
     <ClCompile Condition="'$Configuration)'=='Release'">
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -87,5 +81,36 @@
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
     </ResourceCompile>
+  </ItemDefinitionGroup>
+  <!-- WPP Trace
+      - Set KSI_NO_WPP to disable WPP trace compile entirely.
+  -->
+  <Target Name="KsiRunWpp"
+          BeforeTargets="BeforeClCompile"
+          Condition="'$(KSI_NO_WPP)'==''"
+          Inputs="@(ClInclude);@(ClCompile)"
+          Outputs="@(ClInclude->'$(IntDir)tmh\%(Filename).tmh');@(ClCompile->'$(IntDir)tmh\%(Filename).tmh')">
+      <MakeDir Directories="$(IntDir)tmh" Condition="!Exists('$(IntDir)tmh')" />
+      <PropertyGroup>
+          <TraceWppCmd>tracewpp.exe</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -km</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WPP_CONFIG_PATH)\$(WPP_REVISION)"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)KSystemInformer\include\trace.h"</TraceWppCmd>
+      </PropertyGroup>
+      <Exec Command="$(TraceWppCmd) @(ClInclude->'&quot;%(FullPath)&quot;', ' ') @(ClCompile->'&quot;%(FullPath)&quot;', ' ')"/>
+  </Target>
+  <ItemDefinitionGroup Condition="'$(KSI_NO_WPP)'==''">
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(KSI_NO_WPP)'!=''">
+    <ClCompile>
+      <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
 </Project>
