@@ -863,6 +863,63 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 #define STATIC_UNICODE_BUFFER_LENGTH 261
 #define WIN32_CLIENT_INFO_LENGTH 62
 
+// private
+typedef enum tagOLETLSFLAGS
+{
+    OLETLS_LOCALTID = 0x01, // This TID is in the current process.
+    OLETLS_UUIDINITIALIZED = 0x02, // This Logical thread is init'd.
+    OLETLS_INTHREADDETACH = 0x04, // This is in thread detach.
+    OLETLS_CHANNELTHREADINITIALZED = 0x08,// This channel has been init'd
+    OLETLS_WOWTHREAD = 0x10, // This thread is a 16-bit WOW thread.
+    OLETLS_THREADUNINITIALIZING = 0x20, // This thread is in CoUninitialize.
+    OLETLS_DISABLE_OLE1DDE = 0x40, // This thread can't use a DDE window.
+    OLETLS_APARTMENTTHREADED = 0x80, // This is an STA apartment thread
+    OLETLS_MULTITHREADED = 0x100, // This is an MTA apartment thread
+    OLETLS_IMPERSONATING = 0x200, // This thread is impersonating
+    OLETLS_DISABLE_EVENTLOGGER = 0x400, // Prevent recursion in event logger
+    OLETLS_INNEUTRALAPT = 0x800, // This thread is in the NTA
+    OLETLS_DISPATCHTHREAD = 0x1000, // This is a dispatch thread
+    OLETLS_HOSTTHREAD = 0x2000, // This is a host thread
+    OLETLS_ALLOWCOINIT = 0x4000, // This thread allows inits
+    OLETLS_PENDINGUNINIT = 0x8000, // This thread has pending uninit
+    OLETLS_FIRSTMTAINIT = 0x10000,// First thread to attempt an MTA init
+    OLETLS_FIRSTNTAINIT = 0x20000,// First thread to attempt an NTA init
+    OLETLS_APTINITIALIZING = 0x40000, // Apartment Object is initializing
+    OLETLS_UIMSGSINMODALLOOP = 0x80000,
+    OLETLS_MARSHALING_ERROR_OBJECT = 0x100000, // since WIN8
+    OLETLS_WINRT_INITIALIZE = 0x200000, // This thread called RoInitialize
+    OLETLS_APPLICATION_STA = 0x400000,
+    OLETLS_IN_SHUTDOWN_CALLBACKS = 0x800000,
+    OLETLS_POINTER_INPUT_BLOCKED = 0x1000000,
+    OLETLS_IN_ACTIVATION_FILTER = 0x2000000, // since WINBLUE
+    OLETLS_ASTATOASTAEXEMPT_QUIRK = 0x4000000,
+    OLETLS_ASTATOASTAEXEMPT_PROXY = 0x8000000,
+    OLETLS_ASTATOASTAEXEMPT_INDOUBT = 0x10000000,
+    OLETLS_DETECTED_USER_INITIALIZED = 0x20000000, // since RS3
+    OLETLS_BRIDGE_STA = 0x40000000, // since RS5
+    OLETLS_NAINITIALIZING = 0x80000000UL // since 19H1
+} OLETLSFLAGS, *POLETLSFLAGS;
+
+// private
+typedef struct tagSOleTlsData
+{
+    PVOID ThreadBase;
+    PVOID SmAllocator;
+    ULONG ApartmentID;
+    OLETLSFLAGS Flags;
+    LONG TlsMapIndex;
+    PPVOID TlsSlot;
+    ULONG ComInits;
+    ULONG OleInits;
+    ULONG Calls;
+    PVOID ServerCall; // previously CallInfo (before TH1)
+    PVOID CallObjectCache; // previously FreeAsyncCall (before TH1)
+    PVOID ContextStack; // previously FreeClientCall (before TH1)
+    PVOID ObjServer;
+    ULONG TIDCaller;
+    // ... (other fields are version-dependant)
+} SOleTlsData, *PSOleTlsData;
+
 /**
  * Thread Environment Block (TEB) structure.
  *
@@ -1201,9 +1258,9 @@ typedef struct _TEB
     PVOID ReservedForPerf;
 
     //
-    // tagSOleTlsData.
+    // Per-thread COM/OLE state
     //
-    PVOID ReservedForOle;
+    PSOleTlsData ReservedForOle;
 
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
