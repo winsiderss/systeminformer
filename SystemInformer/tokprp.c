@@ -3515,9 +3515,24 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 &&
         PhEqualStringRef(Name, &winPkg, TRUE))
     {
+#define PH_ACTIVIATION_TOKEN_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
+
+        static const PH_ACCESS_ENTRY activationTokenFlag[] =
+        {
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION, L"AppX"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_SHARED_ENTITY, L"Shared token"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_FULL_TRUST, L"Trusted"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_NATIVE_SERVICE, L"Service"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_MULTIPLE_INSTANCES_ALLOWED, L"Multiple instances allowed"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_BREAKAWAY_INHIBITED, L"Breakaway inhibited"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_RUNTIME_BROKER, L"Runtime broker"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_UNIVERSAL_CONSOLE, L"Universal console"),
+            PH_ACTIVIATION_TOKEN_FLAG(PSM_ACTIVATION_TOKEN_WIN32ALACARTE_PROCESS, L"Win32 process"),
+
+        };
+
         ULONG upper = (ULONG)(Attribute->Values.Uint64[0] >> 32);
         ULONG lower = (ULONG)Attribute->Values.Uint64[0];
-        PH_STRING_BUILDER sb;
         PPH_STRING string;
 
         switch (upper)
@@ -3548,32 +3563,13 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
             break;
         }
 
-        PhInitializeStringBuilder(&sb, 10);
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION))
-            PhAppendStringBuilder2(&sb, L"AppX, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_SHARED_ENTITY))
-            PhAppendStringBuilder2(&sb, L"Shared token, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_FULL_TRUST))
-            PhAppendStringBuilder2(&sb, L"Trusted, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_NATIVE_SERVICE))
-            PhAppendStringBuilder2(&sb, L"Service, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_MULTIPLE_INSTANCES_ALLOWED))
-            PhAppendStringBuilder2(&sb, L"Multiple instances allowed, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_BREAKAWAY_INHIBITED))
-            PhAppendStringBuilder2(&sb, L"Breakaway inhibited, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_RUNTIME_BROKER))
-            PhAppendStringBuilder2(&sb, L"Runtime broker, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_UNIVERSAL_CONSOLE))
-            PhAppendStringBuilder2(&sb, L"Universal console, ");
-        if (FlagOn(lower, PSM_ACTIVATION_TOKEN_WIN32ALACARTE_PROCESS))
-            PhAppendStringBuilder2(&sb, L"Win32 process, ");
+        string = PhGetAccessString(
+            lower,
+            (PPH_ACCESS_ENTRY)activationTokenFlag,
+            RTL_NUMBER_OF(activationTokenFlag)
+            );
 
-        if (sb.String->Length != 0)
-            PhRemoveEndStringBuilder(&sb, 2);
-
-        string = PhFinalStringBuilderString(&sb);
-
-        if (string->Length != 0)
+        if (string->Length)
         {
             PhInitFormatS(&format[count++], L" : ");
             PhInitFormatSR(&format[count++], string->sr);
