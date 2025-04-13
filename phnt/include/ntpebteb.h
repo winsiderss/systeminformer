@@ -908,7 +908,7 @@ typedef struct tagSOleTlsData
     ULONG ApartmentID;
     OLETLSFLAGS Flags;
     LONG TlsMapIndex;
-    PPVOID TlsSlot;
+    PVOID *TlsSlot;
     ULONG ComInits;
     ULONG OleInits;
     ULONG Calls;

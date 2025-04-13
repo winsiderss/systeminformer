@@ -447,7 +447,7 @@ typedef struct tagSOleTlsData32
     ULONG ApartmentID;
     OLETLSFLAGS Flags;
     LONG TlsMapIndex;
-    WOW64_POINTER(PPVOID) TlsSlot;
+    WOW64_POINTER(PVOID *) TlsSlot;
     ULONG ComInits;
     ULONG OleInits;
     ULONG Calls;
