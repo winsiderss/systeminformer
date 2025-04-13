@@ -3608,7 +3608,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
             PhInitFormatS(&format[0], L"System host");
             break;
         default:
-            PhInitFormatS(&format[0], L"Invalid");
+            PhInitFormatS(&format[0], L"Unknown");
         }
 
         PhInitFormatS(&format[1], L" (");
@@ -3625,19 +3625,10 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         (Attribute->Values.OctetString[0].ValueLength == 32 && PhEqualStringRef(Name, &appidSHA256, TRUE)) ||
         (Attribute->Values.OctetString[0].ValueLength == 32 && PhEqualStringRef(Name, &appidSHA256Flat, TRUE))))
     {
-        static PWCHAR hexChars = L"0123456789ABCDEF";
-        PUCHAR hashValue = Attribute->Values.OctetString[0].Value;
-        PH_STRING_BUILDER sb;
-
-        PhInitializeStringBuilder(&sb, Attribute->Values.OctetString[0].ValueLength * 2 + sizeof(UNICODE_NULL));
-
-        for (ULONG i = 0; i < Attribute->Values.OctetString[0].ValueLength; i++)
-        {
-            PhAppendCharStringBuilder(&sb, hexChars[hashValue[i] >> 4]);
-            PhAppendCharStringBuilder(&sb, hexChars[hashValue[i] & 0x0F]);
-        }
-
-        return PhFinalStringBuilderString(&sb);
+        return PhBufferToHexString(
+            Attribute->Values.OctetString[0].Value,
+            Attribute->Values.OctetString[0].ValueLength
+            );
     }
 
     // SMARTLOCKER://SMARTSCREENORIGINCLAIM, SMARTLOCKER://SMARTSCREENORIGINCLAIMNOTINHERITED
@@ -3666,8 +3657,13 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
             PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceElevatedNoPropagation, L"Elevated no propagation"),
         };
 
-        resultsString = PhGetAccessString(claimValue->Results, (PPH_ACCESS_ENTRY)originClaimResults, RTL_NUMBER_OF(originClaimResults));
-        pathString = PhCreateStringEx(claimValue->Path, wcsnlen(claimValue->Path, sizeof(claimValue->Path) / sizeof(WCHAR)) * sizeof(WCHAR));
+        resultsString = PhGetAccessString(
+            claimValue->Results,
+            (PPH_ACCESS_ENTRY)originClaimResults,
+            RTL_NUMBER_OF(originClaimResults)
+            );
+
+        pathString = PhCreateStringZ2(claimValue->Path, sizeof(claimValue->Path));
 
         PhInitFormatSR(&format[0], resultsString->sr);
         PhInitFormatS(&format[1], L" (0x");
