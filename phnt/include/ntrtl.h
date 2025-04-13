@@ -9526,11 +9526,12 @@ RtlComputeCrc32(
  * @return The function returns the encoded pointer.
  * @sa https://learn.microsoft.com/en-us/previous-versions/bb432254(v=vs.85)
  */
+_Ret_maybenull_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEncodePointer(
-    _In_ PVOID Ptr
+    _In_opt_ PVOID Ptr
     );
 
 /**
@@ -9540,11 +9541,12 @@ RtlEncodePointer(
  * @return The function returns the decoded pointer.
  * @sa https://learn.microsoft.com/en-us/previous-versions/bb432242(v=vs.85)
  */
+_Ret_maybenull_
 NTSYSAPI
 PVOID
 NTAPI
 RtlDecodePointer(
-    _In_ PVOID Ptr
+    _In_opt_ PVOID Ptr
     );
 
 /**
@@ -9554,11 +9556,12 @@ RtlDecodePointer(
  * @return The function returns the encoded pointer.
  * @sa https://learn.microsoft.com/en-us/previous-versions/bb432255(v=vs.85)
  */
+_Ret_maybenull_
 NTSYSAPI
 PVOID
 NTAPI
 RtlEncodeSystemPointer(
-    _In_ PVOID Ptr
+    _In_opt_ PVOID Ptr
     );
 
 /**
@@ -9568,11 +9571,12 @@ RtlEncodeSystemPointer(
  * @return The function returns the decoded pointer.
  * @sa https://learn.microsoft.com/en-us/previous-versions/bb432243(v=vs.85)
  */
+_Ret_maybenull_
 NTSYSAPI
 PVOID
 NTAPI
 RtlDecodeSystemPointer(
-    _In_ PVOID Ptr
+    _In_opt_ PVOID Ptr
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
@@ -9583,15 +9587,15 @@ RtlDecodeSystemPointer(
  * @param ProcessHandle Handle to the remote process that owns the pointer.
  * @param Pointer The pointer to be encoded.
  * @param EncodedPointer The encoded pointer.
- * @return NTSTATUS Successful or errant status.
+ * @return HRESULT Successful or errant status.
  * @sa https://learn.microsoft.com/en-us/previous-versions/dn877135(v=vs.85)
  */
 NTSYSAPI
-NTSTATUS
+HRESULT
 NTAPI
 RtlEncodeRemotePointer(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID Pointer,
+    _In_opt_ PVOID Pointer,
     _Out_ PVOID *EncodedPointer
     );
 
@@ -9602,15 +9606,15 @@ RtlEncodeRemotePointer(
  * @param ProcessHandle Handle to the remote process that owns the pointer.
  * @param Pointer The pointer to be decoded.
  * @param EncodedPointer The decoded pointer.
- * @return NTSTATUS Successful or errant status.
+ * @return HRESULT Successful or errant status.
  * @sa https://learn.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)
  */
 NTSYSAPI
-NTSTATUS
+HRESULT
 NTAPI
 RtlDecodeRemotePointer(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID Pointer,
+    _In_opt_ PVOID Pointer,
     _Out_ PVOID *DecodedPointer
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
