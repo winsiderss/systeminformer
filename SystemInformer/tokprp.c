@@ -3499,10 +3499,18 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     )
 {
     static CONST PH_STRINGREF winPkg = PH_STRINGREF_INIT(L"WIN://PKG");
+    static CONST PH_STRINGREF winBgkd = PH_STRINGREF_INIT(L"WIN://BGKD");
+    static CONST PH_STRINGREF appidSHA1 = PH_STRINGREF_INIT(L"APPID://SHA1HASH");
+    static CONST PH_STRINGREF appidSHA256 = PH_STRINGREF_INIT(L"APPID://SHA256HASH");
+    static CONST PH_STRINGREF appidSHA256Flat = PH_STRINGREF_INIT(L"APPID://SHA256FLATHASH");
+    static CONST PH_STRINGREF originClaim = PH_STRINGREF_INIT(L"SMARTLOCKER://SMARTSCREENORIGINCLAIM");
+    static CONST PH_STRINGREF originClaimNI = PH_STRINGREF_INIT(L"SMARTLOCKER://SMARTSCREENORIGINCLAIMNOTINHERITED");
     PH_FORMAT format[10];
     ULONG count = 0;
 
     // Special cases for known attributes
+
+    // WIN://PKG
     if (ValueIndex == 0 &&
         Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 &&
         PhEqualStringRef(Name, &winPkg, TRUE))
@@ -3580,6 +3588,100 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         return string;
     }
 
+    // WIN://BGKD
+    if (ValueIndex == 0 &&
+        Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64 &&
+        PhEqualStringRef(Name, &winBgkd, TRUE))
+    {
+        switch (Attribute->Values.Uint64[0])
+        {
+        case PsmActNotBackground:
+            PhInitFormatS(&format[0], L"Not background");
+            break;
+        case PsmActMixedHost:
+            PhInitFormatS(&format[0], L"Mixed host");
+            break;
+        case PsmActPureHost:
+            PhInitFormatS(&format[0], L"Pure host");
+            break;
+        case PsmActSystemHost:
+            PhInitFormatS(&format[0], L"System host");
+            break;
+        default:
+            PhInitFormatS(&format[0], L"Invalid");
+        }
+
+        PhInitFormatS(&format[1], L" (");
+        PhInitFormatI64D(&format[2], Attribute->Values.Uint64[0]);
+        PhInitFormatC(&format[3], L')');
+
+        return PhFormat(format, 4, 10);
+    }
+
+    // APPID://SHA1HASH, APPID://SHA256HASH, APPID://SHA256FLATHASH
+    if (ValueIndex == 0 &&
+        Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING &&
+        ((Attribute->Values.OctetString[0].ValueLength == 20 && PhEqualStringRef(Name, &appidSHA1, TRUE)) ||
+        (Attribute->Values.OctetString[0].ValueLength == 32 && PhEqualStringRef(Name, &appidSHA256, TRUE)) ||
+        (Attribute->Values.OctetString[0].ValueLength == 32 && PhEqualStringRef(Name, &appidSHA256Flat, TRUE))))
+    {
+        static PWCHAR hexChars = L"0123456789ABCDEF";
+        PUCHAR hashValue = Attribute->Values.OctetString[0].Value;
+        PH_STRING_BUILDER sb;
+
+        PhInitializeStringBuilder(&sb, Attribute->Values.OctetString[0].ValueLength * 2 + sizeof(UNICODE_NULL));
+
+        for (ULONG i = 0; i < Attribute->Values.OctetString[0].ValueLength; i++)
+        {
+            PhAppendCharStringBuilder(&sb, hexChars[hashValue[i] >> 4]);
+            PhAppendCharStringBuilder(&sb, hexChars[hashValue[i] & 0x0F]);
+        }
+
+        return PhFinalStringBuilderString(&sb);
+    }
+
+    // SMARTLOCKER://SMARTSCREENORIGINCLAIM, SMARTLOCKER://SMARTSCREENORIGINCLAIMNOTINHERITED
+    if (ValueIndex == 0 &&
+        Attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING &&
+        Attribute->Values.OctetString[0].ValueLength == sizeof(SE_SAFE_OPEN_PROMPT_RESULTS) &&
+        (PhEqualStringRef(Name, &originClaim, TRUE) || PhEqualStringRef(Name, &originClaimNI, TRUE)))
+    {
+        PSE_SAFE_OPEN_PROMPT_RESULTS claimValue = Attribute->Values.OctetString[0].Value;
+        PPH_STRING pathString;
+        PPH_STRING resultsString;
+        PPH_STRING string;
+
+#define PH_ORIGIN_CLAIM_RESULT(x, n) { TEXT(#x), x, FALSE, FALSE, n }
+
+        static const PH_ACCESS_ENTRY originClaimResults[] =
+        {
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceCalled, L"Called"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceAppRepCalled, L"App reputation called"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperiencePromptDisplayed, L"Prompt displayed"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceUAC, L"UAC"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceUninstaller, L"Uninstaller"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceIgnoreUnknownOrBad, L"Ignore unknown or bad"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceDefenderTrustedInstaller, L"Defender trusted installer"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceMOTWPresent, L"MOTW present"),
+            PH_ORIGIN_CLAIM_RESULT(SeSafeOpenExperienceElevatedNoPropagation, L"Elevated no propagation"),
+        };
+
+        resultsString = PhGetAccessString(claimValue->Results, (PPH_ACCESS_ENTRY)originClaimResults, RTL_NUMBER_OF(originClaimResults));
+        pathString = PhCreateStringEx(claimValue->Path, wcsnlen(claimValue->Path, sizeof(claimValue->Path) / sizeof(WCHAR)) * sizeof(WCHAR));
+
+        PhInitFormatSR(&format[0], resultsString->sr);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatX(&format[2], claimValue->Results);
+        PhInitFormatS(&format[3], L") : \"");
+        PhInitFormatSR(&format[4], pathString->sr);
+        PhInitFormatC(&format[5], L'"');
+
+        string = PhFormat(format, 6, 10);
+        PhDereferenceObject(pathString);
+        PhDereferenceObject(resultsString);
+        return string;
+    }
+
     // Default handling
     switch (Attribute->ValueType)
     {
@@ -3632,7 +3734,10 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
         return PhCreateString(Attribute->Values.Int64[ValueIndex] != 0 ? L"True" : L"False");
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
-        return PhCreateString(L"(Octet string)");
+        PhInitFormatS(&format[0], L"(Octet string of ");
+        PhInitFormatD(&format[1], Attribute->Values.OctetString[ValueIndex].ValueLength);
+        PhInitFormatS(&format[2], L" bytes)");
+        return PhFormat(format, 3, 10);
     default:
         return PhCreateString(L"(Unknown)");
     }
