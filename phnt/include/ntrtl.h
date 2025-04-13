@@ -10762,6 +10762,16 @@ typedef struct _PS_PKG_CLAIM
     ULONG Origin; // PackageOrigin
 } PS_PKG_CLAIM, *PPS_PKG_CLAIM;
 
+// private // WIN://BGKD
+typedef enum _PSM_ACTIVATE_BACKGROUND_TYPE
+{
+  PsmActNotBackground = 0,
+  PsmActMixedHost = 1,
+  PsmActPureHost = 2,
+  PsmActSystemHost = 3,
+  PsmActInvalidType = 4,
+} PSM_ACTIVATE_BACKGROUND_TYPE;
+
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSAPI
 NTSTATUS
