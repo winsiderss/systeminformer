@@ -90,7 +90,7 @@
   </PropertyGroup>
   <Target Name="KsiRunWpp"
           BeforeTargets="BeforeClCompile"
-          Condition="'$(KSI_NO_WPP)'==''"
+          Condition="'$(KsiNoWpp)'!='true'"
           Inputs="@(ClInclude);@(ClCompile)"
           Outputs="@(ClInclude->'$(IntDir)tmh\%(Filename).tmh');@(ClCompile->'$(IntDir)tmh\%(Filename).tmh')">
       <MakeDir Directories="$(IntDir)tmh" Condition="!Exists('$(IntDir)tmh')" />
@@ -105,18 +105,13 @@
       </PropertyGroup>
       <Exec Command="$(TraceWppCmd) @(ClInclude->'&quot;%(FullPath)&quot;', ' ') @(ClCompile->'&quot;%(FullPath)&quot;', ' ')"/>
   </Target>
-  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'==''">
+  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!='true'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!=''">
-    <ClCompile>
-      <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!=''">
+  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'=='true'">
     <ClCompile>
       <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
