@@ -3603,8 +3603,12 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
         case PsmActSystemHost:
             PhInitFormatS(&format[0], L"System host");
             break;
+        case PsmActInvalidType:
+            PhInitFormatS(&format[0], L"Invalid");
+            break;
         default:
             PhInitFormatS(&format[0], L"Unknown");
+            break;
         }
 
         PhInitFormatS(&format[1], L" (");
