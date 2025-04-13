@@ -440,6 +440,25 @@ typedef struct _GDI_TEB_BATCH32
     ULONG Buffer[GDI_BATCH_BUFFER_SIZE];
 } GDI_TEB_BATCH32, *PGDI_TEB_BATCH32;
 
+typedef struct tagSOleTlsData32
+{
+    WOW64_POINTER(PVOID) ThreadBase;
+    WOW64_POINTER(PVOID) SmAllocator;
+    ULONG ApartmentID;
+    OLETLSFLAGS Flags;
+    LONG TlsMapIndex;
+    WOW64_POINTER(PVOID *) TlsSlot;
+    ULONG ComInits;
+    ULONG OleInits;
+    ULONG Calls;
+    WOW64_POINTER(PVOID) ServerCall; // was CallInfo before TH1
+    WOW64_POINTER(PVOID) CallObjectCache; // was FreeAsyncCall before TH1
+    WOW64_POINTER(PVOID) ContextStack; // was FreeClientCall before TH1
+    WOW64_POINTER(PVOID) ObjServer;
+    ULONG TIDCaller;
+    // ... (other fields are version-dependant)
+} SOleTlsData32, *PSOleTlsData32;
+
 typedef struct _TEB32
 {
     NT_TIB32 NtTib;
@@ -525,7 +544,7 @@ typedef struct _TEB32
 
     ULONG GuaranteedStackBytes;
     WOW64_POINTER(PVOID) ReservedForPerf;
-    WOW64_POINTER(PVOID) ReservedForOle;
+    WOW64_POINTER(PSOleTlsData32) ReservedForOle;
     ULONG WaitingOnLoaderLock;
     WOW64_POINTER(PVOID) SavedPriorityState;
     WOW64_POINTER(ULONG_PTR) ReservedForCodeCoverage;
