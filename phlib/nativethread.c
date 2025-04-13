@@ -825,11 +825,11 @@ NTSTATUS PhGetThreadApartmentState(
 
 #ifdef _WIN64
         if (isWow64)
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
         else
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0x14);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
 #endif
 
         status = NtReadVirtualMemory(
