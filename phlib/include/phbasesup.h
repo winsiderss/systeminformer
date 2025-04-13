@@ -1450,11 +1450,16 @@ PhCreateString2(
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
+/**
+ * Creates a string object from a null-terminated string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ */
 FORCEINLINE
 PPH_STRING
 NTAPI
 PhCreateStringZ(
-    _In_ PCWSTR String
+    _In_z_ PCWSTR String
     )
 {
     PH_STRINGREF string;
@@ -1462,6 +1467,28 @@ PhCreateStringZ(
     string.Length = wcslen(String) * sizeof(WCHAR);
     string.Buffer = (PWSTR)String;
     //PhInitializeStringRef(&string, (PWSTR)String);
+
+    return PhCreateString2(&string);
+}
+
+/**
+ * Creates a string object from a null-terminated string up to a maximum length.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ * \param MaximumLength The maximum length, in bytes, of the string.
+ */
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhCreateStringZ2(
+    _In_reads_or_z_(MaximumLength / sizeof(WCHAR)) PCWSTR String,
+    _In_ SIZE_T MaximumLength
+    )
+{
+    PH_STRINGREF string;
+
+    string.Length = wcsnlen(String, MaximumLength / sizeof(WCHAR)) * sizeof(WCHAR);
+    string.Buffer = (PWSTR)String;
 
     return PhCreateString2(&string);
 }
