@@ -22,13 +22,24 @@
         WPP_DEFINE_BIT(HASH)        /* bit  5 = 0x00000020 */                 \
         WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                 \
         WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                 \
-        WPP_DEFINE_BIT(SOCKET)      /* bit  6 = 0x00000100 */                 \
         )
 
 #define WPP_LEVEL_EVENT_LOGGER(level,event) WPP_LEVEL_LOGGER(event)
 #define WPP_LEVEL_EVENT_ENABLED(level,event) \
     (WPP_LEVEL_ENABLED(event) && \
      WPP_CONTROL(WPP_BIT_ ## event).Level >= level)
+
+//
+// begin_wpp config
+// FUNC KphTracePrint(LEVEL,EVENT,MSG, ...);
+// end_wpp
+//
+
+#ifdef KSI_NO_WPP
+#define KphTracePrint(LEVEL,EVENT,MSG,...) ((void)(MSG, ## __VA_ARGS__))
+#define WPP_INIT_TRACING(...)              ((void)0)
+#define WPP_CLEANUP(...)                   ((void)0)
+#endif
 
 #define TMH_STRINGIFYX(x) #x
 #define TMH_STRINGIFY(x) TMH_STRINGIFYX(x)
