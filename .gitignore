@@ -88,6 +88,11 @@ ipch/
 **/packages/
 **/vcpkg_installed/
 
+# CMake files
+build/.cmake/
+build/CMakeCache.txt
+build/CMakeFiles/
+
 ##########################
 ## Project specific rules
 ##########################
