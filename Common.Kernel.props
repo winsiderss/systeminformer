@@ -85,6 +85,9 @@
   <!-- WPP Trace
       - Set KSI_NO_WPP to disable WPP trace compile entirely.
   -->
+  <PropertyGroup>
+    <KsiNoWpp Condition="'$(KSI_NO_WPP)'!=''">true</KsiNoWpp>
+  </PropertyGroup>
   <Target Name="KsiRunWpp"
           BeforeTargets="BeforeClCompile"
           Condition="'$(KSI_NO_WPP)'==''"
@@ -102,13 +105,18 @@
       </PropertyGroup>
       <Exec Command="$(TraceWppCmd) @(ClInclude->'&quot;%(FullPath)&quot;', ' ') @(ClCompile->'&quot;%(FullPath)&quot;', ' ')"/>
   </Target>
-  <ItemDefinitionGroup Condition="'$(KSI_NO_WPP)'==''">
+  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'==''">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(KSI_NO_WPP)'!=''">
+  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!=''">
+    <ClCompile>
+      <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!=''">
     <ClCompile>
       <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
