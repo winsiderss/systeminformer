@@ -14,7 +14,7 @@
 #define PAGE_NOACCESS 0x01              // Disables all access to the committed region of pages. An attempt to read from, write to, or execute the committed region results in an access violation.
 #define PAGE_READONLY 0x02              // Enables read-only access to the committed region of pages. An attempt to write or execute the committed region results in an access violation.
 #define PAGE_READWRITE 0x04             // Enables read-only or read/write access to the committed region of pages.
-#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object. 
+#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object.
 #define PAGE_EXECUTE 0x10               // Enables execute access to the committed region of pages. An attempt to write to the committed region results in an access violation.
 #define PAGE_EXECUTE_READ 0x20          // Enables execute or read-only access to the committed region of pages. An attempt to write to the committed region results in an access violation.
 #define PAGE_EXECUTE_READWRITE 0x40     // Enables execute, read-only, or read/write access to the committed region of pages.
@@ -23,7 +23,7 @@
 #define PAGE_NOCACHE 0x200              // Sets all pages to be non-cachable. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 #define PAGE_WRITECOMBINE 0x400         // Sets all pages to be write-combined. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object. 
+#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object.
 #define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000 // Pages in the region contain a thread control structure (TCS) from the Intel Software Guard Extensions programming model.
 #define PAGE_TARGETS_NO_UPDATE      0x40000000 // Pages in the region will not update the CFG bitmap when the protection changes. The default behavior for VirtualProtect is to mark all locations as valid call targets for CFG.
 #define PAGE_TARGETS_INVALID        0x40000000 // Pages in the region are excluded from the CFG bitmap as valid targets. Any indirect call to locations in those pages will terminate the process using the __fastfail intrinsic.
@@ -119,7 +119,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MemoryBadInformation 0xC
 #define MemoryBadInformationAllProcesses 0xD
 #define MemoryImageExtensionInformation 0xE
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // MEMORY_WORKING_SET_BLOCK->Protection
 #define MEMORY_BLOCK_NOT_ACCESSED 0
@@ -158,7 +158,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
 /**
  * The MEMORY_WORKING_SET_BLOCK structure contains working set information for a page.
  *
- * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_block
+ * @ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_block
  */
 typedef struct _MEMORY_WORKING_SET_BLOCK
 {
@@ -176,7 +176,7 @@ typedef struct _MEMORY_WORKING_SET_BLOCK
 /**
  * The MEMORY_WORKING_SET_INFORMATION structure contains working set information for a process.
  *
- * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_information
+ * @ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_information
  */
 typedef struct _MEMORY_WORKING_SET_INFORMATION
 {
@@ -228,7 +228,7 @@ typedef enum _MEMORY_WORKING_SET_EX_LOCATION
 /**
  * The MEMORY_WORKING_SET_EX_BLOCK structure contains extended working set information for a page.
  *
- * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block
+ * @ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block
  */
 typedef union _MEMORY_WORKING_SET_EX_BLOCK
 {
@@ -248,8 +248,8 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
             ULONG_PTR Reserved : 3;
             ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
             ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
-            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
@@ -276,7 +276,7 @@ typedef union _MEMORY_WORKING_SET_EX_BLOCK
 /**
  * The MEMORY_WORKING_SET_EX_INFORMATION structure contains extended working set information for a process.
  *
- * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_information
+ * @ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_information
  */
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
@@ -528,7 +528,7 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Priority : 3;
     ULONGLONG NonTradeable : 1;
     ULONGLONG Reserved : 3;
-} MEMORY_FRAME_INFORMATION;
+} MEMORY_FRAME_INFORMATION, *PMEMORY_FRAME_INFORMATION;
 
 // private
 typedef struct _FILEOFFSET_INFORMATION
@@ -536,7 +536,7 @@ typedef struct _FILEOFFSET_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG Offset : 48; // mapped files
     ULONGLONG Reserved : 7;
-} FILEOFFSET_INFORMATION;
+} FILEOFFSET_INFORMATION, *PFILEOFFSET_INFORMATION;
 
 // private
 typedef struct _PAGEDIR_INFORMATION
@@ -544,7 +544,7 @@ typedef struct _PAGEDIR_INFORMATION
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG PageDirectoryBase : 48; // private pages
     ULONGLONG Reserved : 7;
-} PAGEDIR_INFORMATION;
+} PAGEDIR_INFORMATION, *PPAGEDIR_INFORMATION;
 
 // private
 typedef struct _UNIQUE_PROCESS_INFORMATION
@@ -599,11 +599,16 @@ typedef enum _SECTION_INFORMATION_CLASS
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
+/**
+ * The SECTION_BASIC_INFORMATION structure contains information of an opened section object.
+ *
+ * @sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerysection
+ */
 typedef struct _SECTION_BASIC_INFORMATION
 {
-    PVOID BaseAddress;
-    ULONG AllocationAttributes;
-    LARGE_INTEGER MaximumSize;
+    PVOID BaseAddress;              // The base virtual address of the section if the section is based.
+    ULONG AllocationAttributes;     // The allocation attributes flags.
+    LARGE_INTEGER MaximumSize;      // The maximum size of the section in bytes.
 } SECTION_BASIC_INFORMATION, *PSECTION_BASIC_INFORMATION;
 
 // symbols
@@ -685,7 +690,7 @@ typedef enum _SECTION_INHERIT
     ViewShare = 1,
     ViewUnmap = 2
 } SECTION_INHERIT;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #define MEM_EXECUTE_OPTION_ENABLE 0x1
 #define MEM_EXECUTE_OPTION_DISABLE 0x2
@@ -702,6 +707,18 @@ typedef enum _SECTION_INHERIT
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The NtAllocateVirtualMemory routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
+ *
+ * @param ProcessHandle A handle for the process for which the mapping should be done.
+ * @param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
+ * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. This value must be less than 21 and the initial value of BaseAddress must be zero.
+ * @param RegionSize A pointer to a variable that will receive the actual size, in bytes, of the allocated region of pages.
+ * @param AllocationType A bitmask containing flags that specify the type of allocation to be performed.
+ * @param PageProtection A bitmask containing page protection flags that specify the protection desired for the committed region of pages.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwallocatevirtualmemory
+ */
 _Must_inspect_result_
 _When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
@@ -716,9 +733,23 @@ NtAllocateVirtualMemory(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
+/**
+ * The NtAllocateVirtualMemoryEx routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
+ *
+ * @param ProcessHandle A handle for the process for which the mapping should be done.
+ * @param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
+ * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. This value must be less than 21 and the initial value of BaseAddress must be zero.
+ * @param RegionSize A pointer to a variable that will receive the actual size, in bytes, of the allocated region of pages.
+ * @param AllocationType A bitmask containing flags that specify the type of allocation to be performed.
+ * @param PageProtection A bitmask containing page protection flags that specify the protection desired for the committed region of pages.
+ * @param ExtendedParameters An optional pointer to one or more extended parameters of type MEM_EXTENDED_PARAMETER.
+ * @param ExtendedParameterCount Specifies the number of elements in the ExtendedParameters array.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwallocatevirtualmemory
+ */
 _Must_inspect_result_
-_When_(return == 0, __drv_allocatesMem(mem))
+_When_(return == 0, __drv_allocatesMem(Mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -731,7 +762,7 @@ NtAllocateVirtualMemoryEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 
 /**
  * Frees virtual memory allocated for a process.
@@ -747,7 +778,7 @@ NTSTATUS
 NTAPI
 NtFreeVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID *BaseAddress,
+    _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG FreeType
     );
@@ -785,7 +816,7 @@ NtWow64ReadVirtualMemory64(
     _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
-#if (PHNT_VERSION >= PHNT_WIN11)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Reads virtual memory from a process with extended options.
  *
@@ -808,7 +839,7 @@ NtReadVirtualMemoryEx(
     _Out_opt_ PSIZE_T NumberOfBytesRead,
     _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11)
 
 /**
  * Writes virtual memory to a process.
@@ -942,22 +973,23 @@ NtFlushVirtualMemory(
     _Out_ PIO_STATUS_BLOCK IoStatus
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-// begin_private
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+// begin_private
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation, // MEMORY_PREFETCH_INFORMATION
-    VmPagePriorityInformation, // OFFER_PRIORITY
+    VmPagePriorityInformation, // MEMORY_PAGE_PRIORITY_INFORMATION
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
-    VmPageDirtyStateInformation, // REDSTONE3
+    VmPageDirtyStateInformation, // MEMORY_PAGE_DIRTY_STATE_INFORMATION // REDSTONE3
     VmImageHotPatchInformation, // 19H1
-    VmPhysicalContiguityInformation, // 20H1
+    VmPhysicalContiguityInformation, // 20H1 // (requires SeLockMemoryPrivilege)
     VmVirtualMachinePrepopulateInformation,
-    VmRemoveFromWorkingSetInformation,
+    VmRemoveFromWorkingSetInformation, // MEMORY_REMOVE_WORKING_SET_INFORMATION
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
+// end_private
 #else
 #define VmPrefetchInformation 0x0
 #define VmPagePriorityInformation 0x1
@@ -968,22 +1000,38 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 #define VmVirtualMachinePrepopulateInformation 0x6
 #define VmRemoveFromWorkingSetInformation 0x7
 #define MaxVmInfoClass 0x8
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-typedef struct _MEMORY_RANGE_ENTRY
-{
-    PVOID VirtualAddress;
-    SIZE_T NumberOfBytes;
-} MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
 
 #define VM_PREFETCH_TO_WORKING_SET 0x1 // since 24H4
 
+// rev
 typedef struct _MEMORY_PREFETCH_INFORMATION
 {
     ULONG Flags;
 } MEMORY_PREFETCH_INFORMATION, *PMEMORY_PREFETCH_INFORMATION;
 
+//
+// Page/memory priorities.
+//
+
+#define MEMORY_PRIORITY_LOWEST           0
+#define MEMORY_PRIORITY_VERY_LOW         1
+#define MEMORY_PRIORITY_LOW              2
+#define MEMORY_PRIORITY_MEDIUM           3
+#define MEMORY_PRIORITY_BELOW_NORMAL     4
+#define MEMORY_PRIORITY_NORMAL           5
+#define MEMORY_PRIORITY_ABOVE_NORMAL     6 // rev
+#define MEMORY_PRIORITY_HIGH             7 // rev
+
+// VmPagePriorityInformation
+typedef struct _MEMORY_PAGE_PRIORITY_INFORMATION
+{
+    ULONG PagePriority;
+} MEMORY_PAGE_PRIORITY_INFORMATION, *PMEMORY_PAGE_PRIORITY_INFORMATION;
+
+// VmCfgCallTargetInformation
 typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 {
     ULONG NumberOfEntries;
@@ -993,12 +1041,30 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
     PVOID Section; // since REDSTONE5
     ULONGLONG FileOffset;
 } CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
-#endif
-// end_private
+
+// rev
+typedef struct _MEMORY_PAGE_DIRTY_STATE_INFORMATION
+{
+    ULONG Flags;
+} MEMORY_PAGE_DIRTY_STATE_INFORMATION, *PMEMORY_PAGE_DIRTY_STATE_INFORMATION;
+
+// rev
+typedef struct _MEMORY_REMOVE_WORKING_SET_INFORMATION
+{
+    ULONG Flags;
+} MEMORY_REMOVE_WORKING_SET_INFORMATION, *PMEMORY_REMOVE_WORKING_SET_INFORMATION;
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
+
+typedef struct _MEMORY_RANGE_ENTRY
+{
+    PVOID VirtualAddress;
+    SIZE_T NumberOfBytes;
+} MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1012,11 +1078,21 @@ NtSetInformationVirtualMemory(
     _In_ ULONG VmInformationLength
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
-#define MAP_PROCESS 1
-#define MAP_SYSTEM 2
+#define MAP_PROCESS 1 // Process WorkingSet
+#define MAP_SYSTEM 2 // Physical Memory // (requires SeLockMemoryPrivilege)
 
+/**
+ * Locks the specified region of the process's virtual address space into physical memory, ensuring that subsequent access to the region will not incur a page fault.
+ *
+ * @param ProcessHandle A handle to the process whose virtual address space is to be locked.
+ * @param BaseAddress A pointer to the base address of the region of pages to be locked.
+ * @param RegionSize The size of the region to be locked, in bytes. The size is rounded up to the nearest multiple of PAGE_SIZE.
+ * @param MapType A bitmask containing one or more flags that specify the type of operations to be performed.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1027,6 +1103,16 @@ NtLockVirtualMemory(
     _In_ ULONG MapType
     );
 
+/**
+ * Unlocks a specified range of pages in the virtual address space of a process, enabling the system to swap the pages out to the paging file if necessary.
+ *
+ * @param ProcessHandle A handle to the process whose virtual address space is to be unlocked.
+ * @param BaseAddress A pointer to the base address of the region of pages to be unlocked.
+ * @param RegionSize The size of the region to be unlocked, in bytes. The size is rounded up to the nearest multiple of PAGE_SIZE.
+ * @param MapType A bitmask containing one or more flags that specify the type of operations to be performed.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualunlock
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1037,12 +1123,26 @@ NtUnlockVirtualMemory(
     _In_ ULONG MapType
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+//
 // Sections
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
+/**
+ * The NtCreateSection routine creates a section object.
+ *
+ * @param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * @param DesiredAccess The access mask that specifies the requested access to the section object.
+ * @param ObjectAttributes Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
+ * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * @param SectionPageProtection Specifies the protection to place on each page in the section.
+ * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatesection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1056,7 +1156,22 @@ NtCreateSection(
     _In_opt_ HANDLE FileHandle
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
+/**
+ * The NtCreateSectionEx routine creates a section object.
+ *
+ * @param SectionHandle Pointer to a variable that receives a handle to the section object.
+ * @param DesiredAccess The access mask that specifies the requested access to the section object.
+ * @param ObjectAttributes Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
+ * @param MaximumSize The maximum size, in bytes, of the section. The actual size when backed by the paging file, or the maximum the file can be extended or mapped when backed by an ordinary file.
+ * @param SectionPageProtection Specifies the protection to place on each page in the section.
+ * @param AllocationAttributes A bitmask of SEC_XXX flags that determines the allocation attributes of the section.
+ * @param FileHandle Optionally specifies a handle for an open file object. If the value of FileHandle is NULL, the section is backed by the paging file. Otherwise, the section is backed by the specified file.
+ * @param ExtendedParameters An optional pointer to one or more extended parameters of type MEM_EXTENDED_PARAMETER.
+ * @param ExtendedParameterCount Specifies the number of elements in the ExtendedParameters array.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatesection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1071,8 +1186,17 @@ NtCreateSectionEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 
+/**
+ * The NtOpenSection routine opens a handle for an existing section object.
+ *
+ * @param SectionHandle Handle to a process object that was previously passed to NtMapViewOfSection.
+ * @param DesiredAccess The access mask that specifies the requested access to the section object.
+ * @param ObjectAttributes Pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and other attributes.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopensection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1082,6 +1206,22 @@ NtOpenSection(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * Maps a view of a section into the virtual address space of a subject process.
+ *
+ * @param SectionHandle A handle to an existing section object.
+ * @param ProcessHandle A handle to the object that represents the process that the view should be mapped into. The handle must have been opened with PROCESS_VM_OPERATION access.
+ * @param BaseAddress A pointer to a variable that receives the base address of the view. If the value is not NULL, the view is allocated starting at the specified virtual address rounded down to the next 64-kilobyte address boundary.
+ * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. The value of this parameter must be less than 21 and is used only if BaseAddress is NULL.
+ * @param CommitSize Specifies the size, in bytes, of the initially committed region of the view. CommitSize is meaningful only for page-file backed sections and is rounded up to the nearest multiple of PAGE_SIZE.
+ * @param SectionOffset A pointer to a variable that receives the offset, in bytes, from the beginning of the section to the view. 
+ * @param ViewSize A pointer to a variable that specifies the size of the view in bytes. If the initial value is zero, NtMapViewOfSection maps a view of the section that starts at SectionOffset and continues to the end of the section. 
+ * @param InheritDisposition A value that specifies how the view is to be shared with child processes. 
+ * @param AllocationType Specifies the type of allocation to be performed for the specified region of pages. The valid flags are MEM_RESERVE, MEM_TOP_DOWN, MEM_LARGE_PAGES, MEM_DIFFERENT_IMAGE_BASE_OK and MEM_REPLACE_PLACEHOLDER. Although MEM_COMMIT is not allowed, it is implied unless MEM_RESERVE is specified. 
+ * @param PageProtection Specifies the page protection to be applied to the mapped view. Not used with SEC_IMAGE, must be set to PAGE_READONLY for SEC_IMAGE_NO_EXECUTE. For non-image sections, the value must be compatible with the section's page protection from NtCreateSection.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmapviewofsection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1098,7 +1238,25 @@ NtMapViewOfSection(
     _In_ ULONG PageProtection
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
+/**
+ * Maps a view of a section into the virtual address space of a subject process.
+ *
+ * @param SectionHandle A handle to an existing section object.
+ * @param ProcessHandle A handle to the object that represents the process that the view should be mapped into. The handle must have been opened with PROCESS_VM_OPERATION access.
+ * @param BaseAddress A pointer to a variable that receives the base address of the view. If the value is not NULL, the view is allocated starting at the specified virtual address rounded down to the next 64-kilobyte address boundary.
+ * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. The value of this parameter must be less than 21 and is used only if BaseAddress is NULL.
+ * @param CommitSize Specifies the size, in bytes, of the initially committed region of the view. CommitSize is meaningful only for page-file backed sections and is rounded up to the nearest multiple of PAGE_SIZE.
+ * @param SectionOffset A pointer to a variable that receives the offset, in bytes, from the beginning of the section to the view.
+ * @param ViewSize A pointer to a variable that specifies the size of the view in bytes. If the initial value is zero, NtMapViewOfSection maps a view of the section that starts at SectionOffset and continues to the end of the section.
+ * @param InheritDisposition A value that specifies how the view is to be shared with child processes.
+ * @param AllocationType Specifies the type of allocation to be performed for the specified region of pages. The valid flags are MEM_RESERVE, MEM_TOP_DOWN, MEM_LARGE_PAGES, MEM_DIFFERENT_IMAGE_BASE_OK and MEM_REPLACE_PLACEHOLDER. Although MEM_COMMIT is not allowed, it is implied unless MEM_RESERVE is specified.
+ * @param PageProtection Specifies the page protection to be applied to the mapped view. Not used with SEC_IMAGE, must be set to PAGE_READONLY for SEC_IMAGE_NO_EXECUTE. For non-image sections, the value must be compatible with the section's page protection from NtCreateSection.
+ * @param ExtendedParameters An optional pointer to one or more extended parameters of type MEM_EXTENDED_PARAMETER.
+ * @param ExtendedParameterCount Specifies the number of elements in the ExtendedParameters array.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmapviewofsectionex
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1113,8 +1271,16 @@ NtMapViewOfSectionEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 
+/**
+ * The NtUnmapViewOfSection routine unmaps a view of a section from the virtual address space of a subject process.
+ *
+ * @param ProcessHandle Handle to a process object that was previously passed to NtMapViewOfSection.
+ * @param BaseAddress Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunmapviewofsection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1123,7 +1289,16 @@ NtUnmapViewOfSection(
     _In_opt_ PVOID BaseAddress
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
+/**
+ * The NtUnmapViewOfSectionEx routine unmaps a view of a section from the virtual address space of a subject process.
+ *
+ * @param ProcessHandle Handle to a process object that was previously passed to NtMapViewOfSection.
+ * @param BaseAddress Pointer to the base virtual address of the view to unmap. This value can be any virtual address within the view.
+ * @param Flags Additional flags for the unmap operation.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwunmapviewofsection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1132,7 +1307,7 @@ NtUnmapViewOfSectionEx(
     _In_opt_ PVOID BaseAddress,
     _In_ ULONG Flags
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1142,6 +1317,17 @@ NtExtendSection(
     _Inout_ PLARGE_INTEGER NewSectionSize
     );
 
+/**
+ * Provides the capability to determine the base address, size, granted access, and allocation of an opened section object.
+ *
+ * @param SectionHandle An open handle to a section object.
+ * @param SectionInformationClass The section information class about which to retrieve information.
+ * @param SectionInformation A pointer to a buffer that receives the specified information. The format and content of the buffer depend on the specified section class.
+ * @param SectionInformationLength Specifies the length in bytes of the section information buffer.
+ * @param ReturnLength An optional pointer which, if specified, receives the number of bytes placed in the section information buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerysection
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1161,16 +1347,30 @@ NtAreMappedFilesTheSame(
     _In_ PVOID File2MappedAsFile
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-// Partitions
+//
+// Memory Partitions
+//
+
+#ifndef MEMORY_CURRENT_PARTITION_HANDLE
+#define MEMORY_CURRENT_PARTITION_HANDLE         ((HANDLE)(LONG_PTR)-1)
+#endif // MEMORY_CURRENT_PARTITION_HANDLE
+
+#ifndef MEMORY_SYSTEM_PARTITION_HANDLE
+#define MEMORY_SYSTEM_PARTITION_HANDLE          ((HANDLE)(LONG_PTR)-2)
+#endif // MEMORY_SYSTEM_PARTITION_HANDLE
+
+#ifndef MEMORY_EXISTING_VAD_PARTITION_HANDLE
+#define MEMORY_EXISTING_VAD_PARTITION_HANDLE    ((HANDLE)(LONG_PTR)-3)
+#endif // MEMORY_EXISTING_VAD_PARTITION_HANDLE
 
 #ifndef MEMORY_PARTITION_QUERY_ACCESS
 #define MEMORY_PARTITION_QUERY_ACCESS 0x0001
 #define MEMORY_PARTITION_MODIFY_ACCESS 0x0002
 #define MEMORY_PARTITION_ALL_ACCESS \
     (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
-#endif
+#endif // MEMORY_PARTITION_QUERY_ACCESS
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
@@ -1210,7 +1410,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
 #define SystemMemoryPartitionSetMemoryThresholds 0xD
 #define SystemMemoryPartitionMemoryListCommand 0xE
 #define SystemMemoryPartitionMax 0xF
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // private
 typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
@@ -1297,8 +1497,7 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
 } MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION, *PMEMORY_PARTITION_MEMORY_EVENTS_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1331,14 +1530,23 @@ NtManagePartition(
     _In_ ULONG PartitionInformationLength
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
-
+//
 // User physical pages
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
+/**
+ * Maps previously allocated physical memory pages at a specified address in an Address Windowing Extensions (AWE) region.
+ *
+ * @param VirtualAddress A pointer to the starting address of the region of memory to remap. The value of VirtualAddress must be within the address range that the VirtualAlloc function returns when the Address Windowing Extensions (AWE) region is allocated.
+ * @param NumberOfPages The size of the physical memory and virtual address space for which to establish translations, in pages.
+ * @param UserPfnArray A pointer to an array of physical page frame numbers.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapuserphysicalpages
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1348,6 +1556,15 @@ NtMapUserPhysicalPages(
     _In_reads_opt_(NumberOfPages) PULONG_PTR UserPfnArray
     );
 
+/**
+ * Maps previously allocated physical memory pages at a specified address in an Address Windowing Extensions (AWE) region.
+ *
+ * @param VirtualAddresses A pointer to an array of starting addresses of the regions of memory to remap. The value of VirtualAddress must be within the address range that the VirtualAlloc function returns when the Address Windowing Extensions (AWE) region is allocated.
+ * @param NumberOfPages The size of the physical memory and virtual address space for which to establish translations, in pages.
+ * @param UserPfnArray A pointer to an array of values that indicates how each corresponding page in VirtualAddresses should be treated. A 0 (zero) indicates the entry should be unmapped, and any nonzero value should be mapped.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-mapuserphysicalpagesscatter
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1357,6 +1574,15 @@ NtMapUserPhysicalPagesScatter(
     _In_reads_opt_(NumberOfPages) PULONG_PTR UserPfnArray
     );
 
+/**
+ * Allocates physical memory pages to be mapped and unmapped within any Address Windowing Extensions (AWE) region of a specified process.
+ *
+ * @param ProcessHandle A handle to the process whose physical memory pages are to be allocated within the virtual address space of this process.
+ * @param NumberOfPages The size of the physical memory to allocate, in pages.
+ * @param UserPfnArray A pointer to an array to store the page frame numbers of the allocated memory. Do not attempt to modify this buffer. It contains operating system data, and corruption could be catastrophic. The information in the buffer is not useful to an application.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-allocateuserphysicalpages
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1366,7 +1592,18 @@ NtAllocateUserPhysicalPages(
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * Allocates physical memory pages to be mapped and unmapped within any Address Windowing Extensions (AWE) region of a specified process, with extended parameters.
+ *
+ * @param ProcessHandle A handle to the process whose physical memory pages are to be allocated within the virtual address space of this process.
+ * @param NumberOfPages The size of the physical memory to allocate, in pages.
+ * @param UserPfnArray A pointer to an array to store the page frame numbers of the allocated memory. Do not attempt to modify this buffer. It contains operating system data, and corruption could be catastrophic. The information in the buffer is not useful to an application.
+ * @param ExtendedParameters Pointer to an array of MEM_EXTENDED_PARAMETER structures.
+ * @param ExtendedParameterCount The number of MEM_EXTENDED_PARAMETER in the ExtendedParameters array.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-allocateuserphysicalpages
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1377,8 +1614,17 @@ NtAllocateUserPhysicalPagesEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+/**
+ * Frees physical memory pages that are allocated previously by using NtAllocateUserPhysicalPages.
+ *
+ * @param ProcessHandle A handle to the process. The function frees memory within the virtual address space of this process.
+ * @param NumberOfPages The size of the physical memory to free, in pages. On return, if the function fails, this parameter indicates the number of pages that are freed.
+ * @param UserPfnArray A pointer to an array of page frame numbers of the allocated memory to be freed.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-freeuserphysicalpages
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1388,12 +1634,27 @@ NtFreeUserPhysicalPages(
     _In_reads_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
+//
 // Misc.
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * Retrieves the addresses of the pages that are written to in a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose watch information is to be queried.
+ * @param Flags Additional flags for the operation. To reset the write-tracking state, set this parameter to WRITE_WATCH_FLAG_RESET. Otherwise, set this parameter to zero.
+ * @param BaseAddress The base address of the memory region for which to retrieve write-tracking information. This address must a region that is allocated using MEM_WRITE_WATCH.
+ * @param RegionSize The size of the memory region for which to retrieve write-tracking information, in bytes.
+ * @param UserAddressArray A pointer to a buffer that receives an array of page addresses that have been written to since the region has been allocated or the write-tracking state has been reset.
+ * @param EntriesInUserAddressArray On input, this variable indicates the size of the UserAddressArray array. On output, the variable receives the number of page addresses that are returned in the array.
+ * @param Granularity A pointer to a variable that receives the page size, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-getwritewatch
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1407,6 +1668,15 @@ NtGetWriteWatch(
     _Out_ PULONG Granularity
     );
 
+/**
+ * Resets the write-tracking state for a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose watch information is to be reset.
+ * @param BaseAddress A pointer to the base address of the memory region for which to reset the write-tracking state.
+ * @param RegionSize The size of the memory region for which to reset the write-tracking information, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-resetwritewatch
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1420,21 +1690,36 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePagingFile(
-    _In_ PUNICODE_STRING PageFileName,
+    _In_ PCUNICODE_STRING PageFileName,
     _In_ PLARGE_INTEGER MinimumSize,
     _In_ PLARGE_INTEGER MaximumSize,
     _In_ ULONG Priority
     );
 
+/**
+ * Flushes the instruction cache for the specified process.
+ *
+ * @param ProcessHandle A handle to the process whose instruction cache is to be flushed.
+ * @param BaseAddress A pointer to the base address of the memory region to be flushed. This parameter can be NULL.
+ * @param RegionSize The size of the memory region to be flushed, in bytes.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks Applications should call NtFlushInstructionCache if they generate or modify code in memory. The CPU cannot detect the change, and may execute the old code it cached.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-flushinstructioncache
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFlushInstructionCache(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _In_ SIZE_T Length
+    _In_ SIZE_T RegionSize
     );
 
+/**
+ * The NtFlushWriteBuffer routine flushes the write queue of the current processor that is running a thread of the current process.
+ *
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1442,10 +1727,28 @@ NtFlushWriteBuffer(
     VOID
     );
 
-#endif
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+/**
+ * The NtFlushProcessWriteBuffers routine flushes the write queue of each processor that is running a thread of the current process.
+ *
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-flushprocesswritebuffers
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFlushProcessWriteBuffers(
+    VOID
+    );
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
+//
 // Enclave support
+//
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1503,7 +1806,6 @@ NtTerminateEnclave(
     );
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 // rev
 #define ENCLAVE_CALL_VALID_FLAGS  0x00000001ul
 #define ENCLAVE_CALL_FLAG_NO_WAIT 0x00000001ul
@@ -1518,8 +1820,8 @@ NtCallEnclave(
     _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
     _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_10)
 
 #endif

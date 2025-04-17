@@ -611,7 +611,7 @@ VOID LoadRaplDeviceImages(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG bufferSize;
     PPH_STRING deviceIconPath;
@@ -656,7 +656,17 @@ VOID LoadRaplDeviceImages(
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
 
-    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(
+        &deviceIconPath->sr,
+        FALSE,
+        (INT)index,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        0,
+        0,
+        &largeIcon,
+        NULL
+        ))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)
@@ -666,10 +676,12 @@ VOID LoadRaplDeviceImages(
             1
             );
 
-        PhImageListAddIcon(imageList, smallIcon);
-        DestroyIcon(smallIcon);
-
-        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+        if (imageList)
+        {
+            PhImageListAddIcon(imageList, largeIcon);
+            ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+            DestroyIcon(largeIcon);
+        }
     }
 
     PhDereferenceObject(deviceIconPath);

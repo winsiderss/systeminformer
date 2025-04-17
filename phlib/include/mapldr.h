@@ -33,7 +33,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadLibraryAsImageResource(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _Out_opt_ PVOID *BaseAddress
     );
@@ -74,7 +74,7 @@ NTSTATUS
 NTAPI
 PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PCSTR ProcedureName,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
@@ -104,9 +104,8 @@ PhGetProcedureAddressRemoteZ(
         );
 }
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLoadResource(
     _In_ PVOID DllBase,
@@ -116,9 +115,8 @@ PhLoadResource(
     _Out_opt_ PVOID *ResourceBuffer
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLoadResourceCopy(
     _In_ PVOID DllBase,
@@ -132,7 +130,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhLoadIndirectString(
-    _In_ PPH_STRINGREF SourceString
+    _In_ PCPH_STRINGREF SourceString
     );
 
 _Success_(return != NULL)
@@ -149,7 +147,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetLoaderEntryData(
-    _In_ PPH_STRINGREF BaseDllName,
+    _In_ PCPH_STRINGREF BaseDllName,
     _Out_opt_ PVOID* DllBase,
     _Out_opt_ ULONG* SizeOfImage,
     _Out_opt_ PPH_STRING* FullName
@@ -324,7 +322,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoaderEntryLoadDll(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PVOID* BaseAddress
     );
 
@@ -348,7 +346,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadPluginImage(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     );
 

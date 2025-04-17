@@ -202,10 +202,12 @@ PhMapGenericMask(
     _In_ PGENERIC_MAPPING GenericMapping
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_ACCOUNT_CALLBACK)(
-    _In_ PPH_STRING AccountName,
+typedef _Function_class_(PH_ENUM_ACCOUNT_CALLBACK)
+NTSTATUS PH_ENUM_ACCOUNT_CALLBACK(
+    _In_ PPH_STRINGREF AccountName,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_ACCOUNT_CALLBACK* PPH_ENUM_ACCOUNT_CALLBACK;
 
 PHLIBAPI
 NTSTATUS

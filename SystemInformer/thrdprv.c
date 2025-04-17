@@ -270,6 +270,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->StartAddressWin32String) PhDereferenceObject(threadItem->StartAddressWin32String);
     if (threadItem->StartAddressWin32FileName) PhDereferenceObject(threadItem->StartAddressWin32FileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
+    if (threadItem->AffinityMasks) PhFree(threadItem->AffinityMasks);
 }
 
 BOOLEAN PhpThreadHashtableEqualFunction(
@@ -872,19 +873,44 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Get the base priority increment (relative to the process priority).
-            // Get the thread affinity.
             if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                 threadItem->ThreadHandle,
                 &basicInfo
                 )))
             {
                 threadItem->BasePriorityIncrement = basicInfo.BasePriority;
-                threadItem->AffinityMask = basicInfo.AffinityMask;
             }
             else
             {
                 threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
-                threadItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+            }
+
+            // Affinity
+            {
+                ULONG affinityPopulationCount = 0;
+
+                threadItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
+
+                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                {
+                    GROUP_AFFINITY affinity;
+
+                    affinity.Group = i;
+
+                    if (threadItem->ThreadHandle &&
+                        NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
+                    {
+                        threadItem->AffinityMasks[i] = affinity.Mask;
+                    }
+                    else
+                    {
+                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                    }
+
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                }
+
+                threadItem->AffinityPopulationCount = affinityPopulationCount;
             }
 
             // Start address
@@ -961,6 +987,7 @@ VOID PhpThreadProviderUpdate(
             if (WindowsVersion >= WINDOWS_11_22H2 && threadItem->ThreadHandle)
             {
                 POWER_THROTTLING_THREAD_STATE powerThrottlingState;
+
                 if (NT_SUCCESS(PhGetThreadPowerThrottlingState(threadItem->ThreadHandle, &powerThrottlingState)))
                 {
                     if (powerThrottlingState.ControlMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED &&
@@ -1170,7 +1197,6 @@ VOID PhpThreadProviderUpdate(
             // Update the thread affinity.
             {
                 KPRIORITY oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
-                KAFFINITY oldAffinityMask = threadItem->AffinityMask;
 
                 if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
@@ -1178,17 +1204,44 @@ VOID PhpThreadProviderUpdate(
                     )))
                 {
                     threadItem->BasePriorityIncrement = basicInfo.BasePriority;
-                    threadItem->AffinityMask = basicInfo.AffinityMask;
                 }
                 else
                 {
                     threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
-                    threadItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
                 }
 
-                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement ||
-                    threadItem->AffinityMask != oldAffinityMask)
+                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement)
                 {
+                    modified = TRUE;
+                }
+            }
+
+            // Affinity
+            {
+                ULONG affinityPopulationCount = 0;
+
+                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+                {
+                    GROUP_AFFINITY affinity;
+
+                    affinity.Group = i;
+
+                    if (threadItem->ThreadHandle &&
+                        NT_SUCCESS(PhGetThreadGroupAffinity(threadItem->ThreadHandle, &affinity)))
+                    {
+                        threadItem->AffinityMasks[i] = affinity.Mask;
+                    }
+                    else
+                    {
+                        threadItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                    }
+
+                    affinityPopulationCount += PhCountBitsUlongPtr(threadItem->AffinityMasks[i]);
+                }
+
+                if (threadItem->AffinityPopulationCount != affinityPopulationCount)
+                {
+                    threadItem->AffinityPopulationCount = affinityPopulationCount;
                     modified = TRUE;
                 }
             }

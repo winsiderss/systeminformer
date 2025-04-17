@@ -64,20 +64,26 @@ static NTSTATUS PhJsonErrorToNtStatus(
     return STATUS_UNSUCCESSFUL;
 }
 
-PVOID PhCreateJsonParser(
+NTSTATUS PhCreateJsonParser(
+    _Out_ PVOID* JsonObject,
     _In_ PCSTR JsonString
     )
 {
-    return json_tokener_parse(JsonString);
+    if (*JsonObject = json_tokener_parse(JsonString))
+        return STATUS_SUCCESS;
+
+    return STATUS_UNSUCCESSFUL;
 }
 
-PVOID PhCreateJsonParserEx(
+NTSTATUS PhCreateJsonParserEx(
+    _Out_ PVOID* JsonObject,
     _In_ PVOID JsonString,
     _In_ BOOLEAN Unicode
     )
 {
     json_tokener* tokenerObject;
     json_object* jsonObject;
+    enum json_tokener_error jsonStatus;
 
     if (Unicode)
     {
@@ -85,9 +91,9 @@ PVOID PhCreateJsonParserEx(
         PPH_BYTES jsonStringUtf8;
 
         if (jsonStringUtf16->Length / sizeof(WCHAR) >= INT32_MAX)
-            return NULL; // STATUS_INVALID_BUFFER_SIZE
+            return STATUS_INVALID_BUFFER_SIZE;
         if (!(tokenerObject = json_tokener_new()))
-            return NULL; // STATUS_NO_MEMORY
+            return STATUS_NO_MEMORY;
 
         json_tokener_set_flags(
             tokenerObject,
@@ -110,9 +116,9 @@ PVOID PhCreateJsonParserEx(
         PPH_BYTES jsonStringUtf8 = JsonString;
 
         if (jsonStringUtf8->Length >= INT32_MAX)
-            return NULL; // STATUS_INVALID_BUFFER_SIZE
+            return STATUS_INVALID_BUFFER_SIZE;
         if (!(tokenerObject = json_tokener_new()))
-            return NULL; // STATUS_NO_MEMORY
+            return STATUS_NO_MEMORY;
 
         json_tokener_set_flags(
             tokenerObject,
@@ -126,15 +132,16 @@ PVOID PhCreateJsonParserEx(
             );
     }
 
-    if (json_tokener_get_error(tokenerObject) != json_tokener_success)
+    jsonStatus = json_tokener_get_error(tokenerObject);
+    if (jsonStatus != json_tokener_success)
     {
         json_tokener_free(tokenerObject);
-        return NULL; // STATUS_UNSUCCESSFUL
+        return PhJsonErrorToNtStatus(jsonStatus);
     }
 
     json_tokener_free(tokenerObject);
-
-    return jsonObject;
+    *JsonObject = jsonObject;
+    return STATUS_SUCCESS;
 }
 
 VOID PhFreeJsonObject(
@@ -206,6 +213,13 @@ ULONG PhGetJsonUInt32Object(
     )
 {
     return json_object_get_int(Object);
+}
+
+ULONGLONG PhGetJsonUInt64Object(
+    _In_ PVOID Object
+    )
+{
+    return json_object_get_uint64(Object);
 }
 
 PVOID PhCreateJsonObject(
@@ -419,22 +433,21 @@ PVOID PhGetJsonObjectAsArrayList(
     return listArray;
 }
 
-PVOID PhLoadJsonObjectFromFile(
-    _In_ PPH_STRINGREF FileName
+NTSTATUS PhLoadJsonObjectFromFile(
+    _Out_ PVOID* JsonObject,
+    _In_ PCPH_STRINGREF FileName
     )
 {
+    NTSTATUS status;
     PPH_BYTES content;
-    PVOID object;
 
-    if (content = PhFileReadAllText(FileName, FALSE))
+    if (NT_SUCCESS(status = PhFileReadAllText(&content, FileName, FALSE)))
     {
-        object = PhCreateJsonParserEx(content, FALSE);
-
+        status = PhCreateJsonParserEx(JsonObject, content, FALSE);
         PhDereferenceObject(content);
-        return object;
     }
 
-    return NULL;
+    return status;
 }
 
 static CONST PH_FLAG_MAPPING PhJsonFormatFlagMappings[] =
@@ -445,19 +458,19 @@ static CONST PH_FLAG_MAPPING PhJsonFormatFlagMappings[] =
 };
 
 NTSTATUS PhSaveJsonObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID Object,
     _In_opt_ ULONG Flags
     )
 {
     static PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
     NTSTATUS status;
-    LONG json_flags = 0;
+    ULONG json_flags = 0;
     HANDLE fileHandle = NULL;
     PPH_STRING fileName;
     IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
-    size_t json_length;
+    SIZE_T json_length;
     PCSTR json_string;
 
     json_flags = 0;
@@ -568,43 +581,26 @@ static mxml_node_t* PhXmlLoadString(
     return currentNode;
 }
 
-static size_t mxml_io_callback(
-    _In_ void* cbdata,
-    _In_ void* buffer,
-    _In_ size_t bytes
-    )
-{
-    PPH_BYTES_BUILDER stringBuilder = cbdata;
-    PH_BYTESREF string;
-
-    string.Buffer = buffer;
-    string.Length = bytes;
-
-    PhAppendBytesBuilder(stringBuilder, &string);
-
-    return bytes;
-}
-
 static PPH_BYTES PhXmlSaveString(
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     )
 {
     mxml_options_t* options;
-    PH_BYTES_BUILDER stringBuilder;
-    BOOLEAN success;
-
-    PhInitializeBytesBuilder(&stringBuilder, 0x8000);
+    PPH_BYTES string;
 
     options = mxmlOptionsNew();
-    mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, nullptr);
     mxmlOptionsSetTypeValue(options, MXML_TYPE_OPAQUE);
-    success = !!mxmlSaveIO(XmlRootObject, options, mxml_io_callback, &stringBuilder);
+
+    if (XmlSaveCallback)
+    {
+        mxmlOptionsSetWhitespaceCallback(options, XmlSaveCallback, NULL);
+    }
+
+    string = PhCreateBytes(mxmlSaveAllocString(XmlRootObject, options));
     mxmlOptionsDelete(options);
 
-    if (success) return PhFinalBytesBuilderBytes(&stringBuilder);
-    PhDeleteBytesBuilder(&stringBuilder);
-    return NULL;
+    return string;
 }
 
 PVOID PhLoadXmlObjectFromString(
@@ -627,7 +623,7 @@ PVOID PhLoadXmlObjectFromString(
 }
 
 NTSTATUS PhLoadXmlObjectFromFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     )
 {
@@ -657,7 +653,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
         return STATUS_END_OF_FILE;
     }
 
-    if (fileContent = PhGetFileText(fileHandle, FALSE))
+    if (NT_SUCCESS(status = PhGetFileText(&fileContent, fileHandle, FALSE)))
     {
         currentNode = PhXmlLoadString(fileContent->Buffer);
         PhDereferenceObject(fileContent);
@@ -682,7 +678,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
 }
 
 NTSTATUS PhSaveXmlObjectToFile(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     )

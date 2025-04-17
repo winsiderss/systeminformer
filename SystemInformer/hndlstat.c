@@ -63,7 +63,7 @@ VOID PhShowHandleStatisticsDialog(
     status = PhEnumHandlesGeneric(
         context.ProcessId,
         context.ProcessHandle,
-        PhCsEnableHandleSnapshot,
+        !!PhCsEnableHandleSnapshot,
         &context.Handles
         );
 
@@ -94,7 +94,7 @@ VOID PhShowHandleStatisticsDialog(
     NtClose(context.ProcessHandle);
 }
 
-static INT NTAPI PhpTypeCountCompareFunction(
+static LONG NTAPI PhpTypeCountCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -134,15 +134,12 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
         {
             HANDLE processId;
             ULONG_PTR i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             processId = context->ProcessId;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Type");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Count");
@@ -156,9 +153,10 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (PhGetScalableIntegerPairSetting(L"HandleStatisticsWindowSize", TRUE, dpiValue).X)
-                PhLoadWindowPlacementFromSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            if (PhValidWindowPlacementFromSetting(L"HandleStatisticsWindowPosition"))
+                PhLoadWindowPlacementFromSetting(L"HandleStatisticsWindowPosition", L"HandleStatisticsWindowSize", hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             for (i = 0; i < context->Handles->NumberOfHandles; i++)
             {
@@ -204,31 +202,37 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                 PHANDLE_STATISTICS_ENTRY entry;
                 PPH_STRING unknownType;
                 PPH_STRING countString;
-                INT lvItemIndex;
+                LONG lvItemIndex;
 
                 entry = &context->Entries[i];
 
                 if (entry->Count == 0)
                     continue;
 
-                unknownType = NULL;
-
                 if (PhIsNullOrEmptyString(entry->Name))
+                {
                     unknownType = PhFormatString(L"(unknown: %lu)", (ULONG)i);
-
-                lvItemIndex = PhAddListViewItem(
-                    context->ListViewHandle,
-                    MAXINT,
-                    PhIsNullOrEmptyString(entry->Name) ? PhGetString(entry->Name) : PhGetString(unknownType),
-                    entry
-                    );
+                    lvItemIndex = PhAddListViewItem(
+                        context->ListViewHandle,
+                        MAXINT,
+                        PhGetString(unknownType),
+                        entry
+                        );
+                    PhDereferenceObject(unknownType);
+                }
+                else
+                {
+                    lvItemIndex = PhAddListViewItem(
+                        context->ListViewHandle,
+                        MAXINT,
+                        PhGetString(entry->Name),
+                        entry
+                        );
+                }
 
                 countString = PhFormatUInt64(entry->Count, TRUE);
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, countString->Buffer);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, PhGetString(countString));
                 PhDereferenceObject(countString);
-
-                if (unknownType)
-                    PhDereferenceObject(unknownType);
             }
 
             ExtendedListView_SortItems(context->ListViewHandle);
@@ -240,7 +244,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
         {
             PhSaveListViewSortColumnsToSetting(L"HandleStatisticsListViewSort", context->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"HandleStatisticsListViewColumns", context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
+            PhSaveWindowPlacementToSetting(L"HandleStatisticsWindowPosition", L"HandleStatisticsWindowSize", hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

@@ -939,6 +939,7 @@ VOID FASTCALL PhfPulseAllCondition(
  *
  * \remarks The associated lock must be acquired before calling the function.
  */
+_Use_decl_annotations_
 VOID FASTCALL PhfWaitForCondition(
     _Inout_ PPH_CONDITION Condition,
     _Inout_ PPH_QUEUED_LOCK Lock,
@@ -1091,7 +1092,7 @@ VOID FASTCALL PhfQueueWakeEvent(
 
     WaitBlock->Flags = PH_QUEUED_WAITER_SPINNING;
 
-    value = _InterlockedCompareExchangePointer((volatile PVOID *)&WakeEvent->Value, nullptr, nullptr);
+    value = _InterlockedCompareExchangePointer((volatile PVOID *)&WakeEvent->Value, NULL, NULL);
 
     while (TRUE)
     {

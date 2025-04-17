@@ -43,9 +43,9 @@ extern PPH_PLUGIN PluginInstance;
 typedef struct _SERVICE_INFO
 {
     ULONG Id;
-    PWSTR HostName;
-    PWSTR UploadObjectName;
-    PWSTR FileNameFieldName;
+    PCWSTR HostName;
+    PCWSTR UploadObjectName;
+    PCWSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
 
 typedef struct _PROCESS_EXTENSION
@@ -105,6 +105,7 @@ typedef struct _UPLOAD_CONTEXT
     BOOLEAN VtApiUpload;
     BOOLEAN FileExists;
     BOOLEAN Cancel;
+
     ULONG Service;
     ULONG ErrorCode;
     ULONG TotalFileLength;
@@ -114,21 +115,22 @@ typedef struct _UPLOAD_CONTEXT
 
     HANDLE TaskbarListClass;
 
+    PPH_STRING HybridPat;
+    PPH_STRING TotalPat;
+
     PPH_STRING FileSize;
     PPH_STRING ErrorString;
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
     PPH_STRING LaunchCommand;
+
     PPH_STRING Detected;
-    PPH_STRING MaxDetected;
-    PPH_STRING UploadUrl;
-    PPH_STRING ReAnalyseUrl;
     PPH_STRING FirstAnalysisDate;
     PPH_STRING LastAnalysisDate;
     PPH_STRING LastAnalysisUrl;
-    PPH_STRING LastAnalysisAgo;
 
     PPH_STRING FileHash;
+    PPH_STRING FileUpload;
 
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
@@ -204,6 +206,7 @@ VOID UploadToOnlineService(
     );
 
 VOID UploadServiceToOnlineService(
+    _In_opt_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG Service
     );
@@ -240,8 +243,8 @@ typedef struct _VT_SYSINT_FILE_REPORT_RESULT
     PPH_LIST ScanResults;
 } VT_SYSINT_FILE_REPORT_RESULT, *PVT_SYSINT_FILE_REPORT_RESULT;
 
-PPH_STRING VirusTotalStringToTime(
-    _In_ PPH_STRING Time
+PPH_STRING VirusTotalDateToTime(
+    _In_ ULONG TimeDateStamp
     );
 
 typedef struct _VIRUSTOTAL_API_RESPONSE
@@ -254,11 +257,9 @@ typedef struct _VIRUSTOTAL_API_RESPONSE
 
 typedef struct _VIRUSTOTAL_FILE_REPORT
 {
-    INT64 ResponseCode;
-    PPH_STRING StatusMessage;
-    PPH_STRING PermaLink;
+    //PPH_STRING StatusMessage;
+    //PPH_STRING PermaLink;
     PPH_STRING ScanId;
-
     PPH_STRING ScanDate;
     PPH_STRING Positives;
     PPH_STRING Total;
@@ -267,8 +268,7 @@ typedef struct _VIRUSTOTAL_FILE_REPORT
 
 typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
 {
-    BOOLEAN Detected;
-
+    //BOOLEAN Detected;
     PPH_STRING Vendor;
     PPH_STRING DetectionName;
     PPH_STRING EngineVersion;
@@ -276,7 +276,8 @@ typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
 } VIRUSTOTAL_FILE_REPORT_RESULT, *PVIRUSTOTAL_FILE_REPORT_RESULT;
 
 PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
-    _In_ PPH_STRING FileHash
+    _In_ PPH_STRING FileHash,
+    _In_ PPH_STRING FilePat
     );
 
 VOID VirusTotalFreeFileReport(
@@ -284,7 +285,8 @@ VOID VirusTotalFreeFileReport(
     );
 
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
-    _In_ PPH_STRING FileHash
+    _In_ PPH_STRING FileHash,
+    _In_ PPH_STRING FilePat
     );
 
 VOID VirusTotalFreeFileReScan(

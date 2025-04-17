@@ -279,7 +279,7 @@ static VOID PhpSymbolProviderEventCallback(
                         progressValueLength - (RTL_NUMBER_OF(L"percent=\"") - 1)
                         );
 
-                    if (PhStringToInteger64(&valueString->sr, 10, &integer))
+                    if (PhStringToUInt64(&valueString->sr, 10, &integer))
                     {
                         PPH_STRING status;
                         PH_FORMAT format[4];
@@ -453,26 +453,26 @@ VOID PhpSymbolProviderCompleteInitialization(
 #endif
         if (dbgcoreName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbgcoreFileName))
         {
-            dbgcoreHandle = PhLoadLibrary(dbgcoreName->Buffer);
+            dbgcoreHandle = PhLoadLibrary(PhGetString(dbgcoreName));
             PhDereferenceObject(dbgcoreName);
         }
 
-        if (dbgcoreHandle && (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbghelpFileName)))
+        if (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbghelpFileName))
         {
-            dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
+            dbghelpHandle = PhLoadLibrary(PhGetString(dbghelpName));
             PhDereferenceObject(dbghelpName);
         }
 
         if (dbghelpHandle && (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName)))
         {
-            symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
+            symsrvHandle = PhLoadLibrary(PhGetString(symsrvName));
             PhDereferenceObject(symsrvName);
         }
 
         PhDereferenceObject(winsdkPath);
     }
 
-    if (!dbgcoreHandle)
+    if (!dbghelpHandle)
     {
         PPH_STRING applicationDirectory;
         PPH_STRING dbgcoreName;
@@ -487,7 +487,7 @@ VOID PhpSymbolProviderCompleteInitialization(
                 PhDereferenceObject(dbgcoreName);
             }
 
-            if (dbgcoreHandle && (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &dbghelpFileName)))
+            if (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &dbghelpFileName))
             {
                 dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
                 PhDereferenceObject(dbghelpName);
@@ -510,6 +510,11 @@ VOID PhpSymbolProviderCompleteInitialization(
     if (!symsrvHandle)
         symsrvHandle = PhLoadLibrary(L"symsrv.dll");
 
+    if (dbgcoreHandle)
+    {
+        MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbgcoreHandle, "MiniDumpWriteDump", 0);
+    }
+
     if (dbghelpHandle)
     {
         SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
@@ -528,8 +533,12 @@ VOID PhpSymbolProviderCompleteInitialization(
         StackWalkEx_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "StackWalkEx", 0);
         SymFromInlineContextW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromInlineContextW", 0);
         SymGetLineFromInlineContextW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromInlineContextW", 0);
-        MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
         UnDecorateSymbolNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
+
+        if (!MiniDumpWriteDump_I)
+        {
+            MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
+        }
     }
 }
 

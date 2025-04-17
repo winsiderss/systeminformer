@@ -20,6 +20,8 @@
 #include <settings.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 typedef struct _PHP_PLUGIN_LOAD_ERROR
 {
     PPH_STRING FileName;
@@ -32,7 +34,7 @@ typedef struct _PHP_PLUGIN_MENU_HOOK
     PVOID Context;
 } PHP_PLUGIN_MENU_HOOK, *PPHP_PLUGIN_MENU_HOOK;
 
-INT NTAPI PhpPluginsCompareFunction(
+LONG NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
     );
@@ -55,7 +57,7 @@ PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 BOOLEAN PhPluginsLoadNative = FALSE;
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
-static PH_STRINGREF PhpDefaultPluginName[] =
+static CONST PH_STRINGREF DefaultPluginName[] =
 {
     PH_STRINGREF_INIT(L"DotNetTools.dll"),
     PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
@@ -70,7 +72,7 @@ static PH_STRINGREF PhpDefaultPluginName[] =
     PH_STRINGREF_INIT(L"WindowExplorer.dll"),
 };
 
-INT NTAPI PhpPluginsCompareFunction(
+LONG NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
     )
@@ -84,7 +86,7 @@ INT NTAPI PhpPluginsCompareFunction(
 _Success_(return)
 BOOLEAN PhpLocateDisabledPlugin(
     _In_ PPH_STRING List,
-    _In_ PPH_STRINGREF BaseName,
+    _In_ PCPH_STRINGREF BaseName,
     _Out_opt_ PULONG_PTR FoundIndex
     )
 {
@@ -110,7 +112,7 @@ BOOLEAN PhpLocateDisabledPlugin(
 }
 
 BOOLEAN PhIsPluginDisabled(
-    _In_ PPH_STRINGREF BaseName
+    _In_ PCPH_STRINGREF BaseName
     )
 {
     BOOLEAN found;
@@ -124,7 +126,7 @@ BOOLEAN PhIsPluginDisabled(
 }
 
 VOID PhSetPluginDisabled(
-    _In_ PPH_STRINGREF BaseName,
+    _In_ PCPH_STRINGREF BaseName,
     _In_ BOOLEAN Disable
     )
 {
@@ -280,9 +282,9 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     if (!PhEndsWithStringRef(&baseName, &extension, FALSE))
         return TRUE;
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
     {
-        if (PhEqualStringRef(&baseName, &PhpDefaultPluginName[i], TRUE))
+        if (PhEqualStringRef(&baseName, &DefaultPluginName[i], TRUE))
             return TRUE;
     }
 
@@ -415,12 +417,12 @@ VOID PhLoadPlugins(
 
     pluginLoadErrors = PhCreateList(1);
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(DefaultPluginName); i++)
     {
-        if (PhIsPluginDisabled(&PhpDefaultPluginName[i]))
+        if (PhIsPluginDisabled(&DefaultPluginName[i]))
             continue;
 
-        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
+        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &DefaultPluginName[i]))
         {
             status = PhLoadPlugin(&fileName->sr);
 
@@ -680,6 +682,8 @@ PPH_PLUGIN PhRegisterPlugin(
     PH_STRINGREF pluginName;
     PPH_AVL_LINKS existingLinks;
     ULONG i;
+
+    PhTraceInfo("%ls plugin registering", Name);
 
     PhInitializeStringRefLongHint(&pluginName, Name);
 

@@ -32,6 +32,7 @@
 *.tlb
 *.tli
 *.tlh
+*.tlog
 *.tmp
 *.vspscc
 *_i.c
@@ -40,6 +41,7 @@
 
 # Visual C++ cache files
 *.aps
+*.idb
 *.ncb
 *.opendb
 *.opensdf
@@ -86,11 +88,17 @@ ipch/
 **/packages/
 **/vcpkg_installed/
 
+# CMake files
+build/.cmake/
+build/CMakeCache.txt
+build/CMakeFiles/
+
 ##########################
 ## Project specific rules
 ##########################
 
 **/bin/
+**/out/
 build/output/
 plugins-extra/
 sdk/

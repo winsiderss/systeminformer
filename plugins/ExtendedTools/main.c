@@ -13,6 +13,8 @@
 #include "exttools.h"
 #include "extension\plugin.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance = NULL;
 HWND ProcessTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
@@ -1303,7 +1305,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                 { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
-                { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|670,470" },
                 { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE, L"@96|850,490" },
@@ -1367,6 +1369,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES, L"0" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

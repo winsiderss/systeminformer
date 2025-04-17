@@ -13,6 +13,8 @@
 #include "devices.h"
 #include <hndlinfo.h>
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
 ULONG NetWindowsVersion = WINDOWS_ANCIENT;
@@ -646,7 +648,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_NETWORK_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_NETWORK_SORTCOLUMN, L"" },
                 { StringSettingType, SETTING_NAME_DISK_LIST, L"" },
-                { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_DISK_SIZE, L"@96|309,265" },
                 { StringSettingType, SETTING_NAME_DISK_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_SMART_COUNTERS_COLUMNS, L"" },
@@ -682,6 +684,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_ARRIVED_COLOR, L"00ff7f" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION, L"bb8" }, // 3000ms
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

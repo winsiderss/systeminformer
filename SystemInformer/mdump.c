@@ -683,7 +683,7 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;
@@ -720,7 +720,7 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
             config.pszMainInstruction = L"Unable to create the minidump.";
             config.pszContent = PhGetStringOrDefault(context->ErrorMessage, L"Unknown error.");
 
-            SendMessage(context->WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+            PhTaskDialogNavigatePage(context->WindowHandle, &config);
         }
         break;
     case WM_PH_MINIDUMP_COMPLETED:
@@ -750,9 +750,9 @@ HRESULT CALLBACK PhpProcessMiniDumpTaskDialogCallbackProc(
             PhSetApplicationWindowIcon(hwndDlg);
             PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            context->DefaultTaskDialogWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultTaskDialogWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, 0xF, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpProcessMiniDumpTaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, PhpProcessMiniDumpTaskDialogSubclassProc);
 
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
@@ -833,7 +833,7 @@ INT_PTR CALLBACK PhpProcDumpDlgProc(
     _In_ LPARAM lParam
     )
 {
-    static PH_MINIDUMP_OPTION_ENTRY options[] =
+    static CONST PH_MINIDUMP_OPTION_ENTRY options[] =
     {
         { IDC_MINIDUMP_NORMAL, MiniDumpNormal },
         { IDC_MINIDUMP_WITH_DATA_SEGS, MiniDumpWithDataSegs },

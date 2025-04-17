@@ -55,6 +55,8 @@
 #include <phplug.h>
 #include <srvprv.h>
 
+#include <trace.h>
+
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
@@ -474,6 +476,7 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->Sid) PhFree(processItem->Sid);
     if (processItem->ProtectionString) PhDereferenceObject(processItem->ProtectionString);
+    if (processItem->AffinityMasks) PhFree(processItem->AffinityMasks);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
@@ -610,6 +613,12 @@ VOID PhpAddProcessItem(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Adding process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhAddEntryHashSet(
         PhProcessHashSet,
         PH_HASH_SET_SIZE(PhProcessHashSet),
@@ -623,6 +632,12 @@ VOID PhpRemoveProcessItem(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Removing process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhRemoveEntryHashSet(PhProcessHashSet, PH_HASH_SET_SIZE(PhProcessHashSet), &ProcessItem->HashEntry);
     PhProcessHashSetCount--;
     PhDereferenceObject(ProcessItem);
@@ -738,6 +753,12 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
+    PhTrace(
+        "Process query stage 1: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processId)
+        );
+
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
@@ -755,7 +776,7 @@ VOID PhpProcessQueryStage1(
                 &Data->VersionInfo,
                 processItem->FileName,
                 FALSE,
-                PhEnableVersionShortText
+                !!PhCsEnableVersionSupport
                 );
         }
 
@@ -958,6 +979,12 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
+    PhTrace(
+        "Process query stage 2: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processItem->ProcessId)
+        );
+
     if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
@@ -1034,7 +1061,7 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, !!PhCsEnableVersionSupport);
     }
 }
 
@@ -1244,12 +1271,35 @@ VOID PhpFillProcessItem(
             ProcessItem->IsCrossSessionProcess = basicInfo.IsCrossSessionCreate;
             ProcessItem->IsFrozenProcess = basicInfo.IsFrozen;
             ProcessItem->IsBackgroundProcess = basicInfo.IsBackground;
-            ProcessItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
         }
-        else
+    }
+
+    // Affinity
+    {
+        ULONG affinitPopulationCount = 0;
+
+        ProcessItem->AffinityMasks = PhAllocateZero(sizeof(KAFFINITY) * PhSystemProcessorInformation.NumberOfProcessorGroups);
+
+        for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
         {
-            ProcessItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+            GROUP_AFFINITY affinity;
+
+            affinity.Group = i;
+
+            if (ProcessItem->QueryHandle &&
+                NT_SUCCESS(PhGetProcessGroupAffinity(ProcessItem->QueryHandle, &affinity)))
+            {
+                ProcessItem->AffinityMasks[i] = affinity.Mask;
+            }
+            else
+            {
+                ProcessItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+            }
+
+            affinitPopulationCount += PhCountBitsUlongPtr(ProcessItem->AffinityMasks[i]);
         }
+
+        ProcessItem->AffinityPopulationCount = affinitPopulationCount;
     }
 
     // Process information
@@ -1367,7 +1417,7 @@ VOID PhpFillProcessItem(
         if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(ProcessItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
         {
             SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
-            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            PSID UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
             SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
             PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
             SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
@@ -1384,9 +1434,10 @@ VOID PhpFillProcessItem(
             ProcessItem->ImageChecksum = telemetryInfo->ImageChecksum;
             ProcessItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
 
-            if (!ProcessItem->Sid && RtlValidSid(UserSidBuffer))
+            if (!ProcessItem->Sid && PhValidSid(UserSidBuffer))
             {
                 ProcessItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+                ProcessItem->UserName = PhpGetSidFullNameCached(UserSidBuffer);
             }
 
             if (PhIsNullOrEmptyString(ProcessItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
@@ -1405,7 +1456,7 @@ VOID PhpFillProcessItem(
             //}
         }
     }
-    
+
     // Known Process Type
     if (ProcessItem->FileName)
     {
@@ -1547,7 +1598,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
         {
             PROCESS_NETWORK_COUNTERS networkCounters;
 
-            if (NT_SUCCESS(PhGetProcesNetworkIoCounters(ProcessItem->QueryHandle, &networkCounters)))
+            if (NT_SUCCESS(PhGetProcessNetworkIoCounters(ProcessItem->QueryHandle, &networkCounters)))
             {
                 ProcessItem->NetworkCounters = networkCounters;
             }
@@ -1562,7 +1613,7 @@ VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->UserTime = Process->UserTime;
     ProcessItem->NumberOfHandles = Process->HandleCount;
     ProcessItem->NumberOfThreads = Process->NumberOfThreads;
-    ProcessItem->WorkingSetPrivateSize = (SIZE_T)Process->WorkingSetPrivateSize.QuadPart;
+    ProcessItem->WorkingSetPrivateSize = Process->WorkingSetPrivateSize;
     ProcessItem->PeakNumberOfThreads = Process->NumberOfThreadsHighWatermark;
     ProcessItem->HardFaultCount = Process->HardFaultCount;
 
@@ -2275,6 +2326,8 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
+    PhTrace("Process provider run count: %lu", runCount);
+
     if (runCount % 512 == 0) // yes, a very long time
     {
         if (PhEnablePurgeProcessRecords)
@@ -2754,11 +2807,6 @@ VOID PhProcessProviderUpdate(
                         processItem->IsBackgroundProcess = basicInfo.IsBackground;
                         modified = TRUE;
                     }
-                    if (processItem->AffinityMask != basicInfo.BasicInfo.AffinityMask)
-                    {
-                        processItem->AffinityMask = basicInfo.BasicInfo.AffinityMask;
-                        modified = TRUE;
-                    }
                 }
                 else
                 {
@@ -2802,34 +2850,36 @@ VOID PhProcessProviderUpdate(
                         processItem->IsBackgroundProcess = FALSE;
                         modified = TRUE;
                     }
-                    if (processItem->AffinityMask != PhSystemBasicInformation.ActiveProcessorsAffinityMask)
-                    {
-                        processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
-                        modified = TRUE;
-                    }
                 }
             }
 
-            // Update the process affinity. Usually not frequently changed, do so lazily.
+            // Affinity, usually not frequently changed, do so lazily.
             if (runCount % 5 == 0)
             {
-                KAFFINITY oldAffinityMask;
-                KAFFINITY affinityMask;
+                ULONG affinityPopulationCount = 0;
 
-                oldAffinityMask = processItem->AffinityMask;
-
-                if (processItem->QueryHandle &&
-                    NT_SUCCESS(PhGetProcessAffinityMask(processItem->QueryHandle, &affinityMask)))
+                for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
                 {
-                    processItem->AffinityMask = affinityMask;
+                    GROUP_AFFINITY affinity;
+
+                    affinity.Group = i;
+
+                    if (processItem->QueryHandle &&
+                        NT_SUCCESS(PhGetProcessGroupAffinity(processItem->QueryHandle, &affinity)))
+                    {
+                        processItem->AffinityMasks[i] = affinity.Mask;
+                    }
+                    else
+                    {
+                        processItem->AffinityMasks[i] = PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[i];
+                    }
+
+                    affinityPopulationCount = PhCountBitsUlongPtr(processItem->AffinityMasks[i]);
                 }
-                else
-                {
-                    processItem->AffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
-                }
 
-                if (processItem->AffinityMask != oldAffinityMask)
+                if (processItem->AffinityPopulationCount != affinityPopulationCount)
                 {
+                    processItem->AffinityPopulationCount = affinityPopulationCount;
                     modified = TRUE;
                 }
             }
@@ -3311,7 +3361,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &runCount);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
     runCount++;
 }
 
@@ -4003,9 +4053,12 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
                 &FileName->sr,
                 NativeFileName,
                 0,
+                PhGetSystemMetrics(SM_CXICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYICON, SystemDpi),
+                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
                 &largeIcon,
-                &smallIcon,
-                SystemDpi
+                &smallIcon
                 );
         }
     }
@@ -4015,9 +4068,12 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             &FileName->sr,
             NativeFileName,
             0,
+            PhGetSystemMetrics(SM_CXICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYICON, SystemDpi),
+            PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
             &largeIcon,
-            &smallIcon,
-            SystemDpi
+            &smallIcon
             );
     }
 
@@ -4284,7 +4340,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
         if (NT_SUCCESS(PhGetProcessTelemetryIdInformation(processItem->QueryHandle, &telemetryInfo, &telemetryInfoLength)))
         {
             SIZE_T UserSidLength = telemetryInfo->ImagePathOffset - telemetryInfo->UserSidOffset;
-            PWSTR UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
+            PSID UserSidBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->UserSidOffset);
             SIZE_T ImagePathLength = telemetryInfo->PackageNameOffset - telemetryInfo->ImagePathOffset;
             PWSTR ImagePathBuffer = PTR_ADD_OFFSET(telemetryInfo, telemetryInfo->ImagePathOffset);
             SIZE_T PackageNameLength = telemetryInfo->RelativeAppNameOffset - telemetryInfo->PackageNameOffset;
@@ -4301,9 +4357,10 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
             processItem->ImageChecksum = telemetryInfo->ImageChecksum;
             processItem->ImageTimeStamp = telemetryInfo->ImageTimeDateStamp;
 
-            if (!processItem->Sid && RtlValidSid(UserSidBuffer))
+            if (!processItem->Sid && PhValidSid(UserSidBuffer))
             {
                 processItem->Sid = PhAllocateCopy(UserSidBuffer, UserSidLength);
+                processItem->UserName = PhpGetSidFullNameCached(UserSidBuffer);
             }
 
             if (PhIsNullOrEmptyString(processItem->FileName) && ImagePathLength > sizeof(UNICODE_NULL))
@@ -4336,7 +4393,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
         }
 
         // Version info.
-        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, !!PhCsEnableVersionSupport);
     }
 
     // Command line

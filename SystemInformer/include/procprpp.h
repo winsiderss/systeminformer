@@ -166,6 +166,12 @@ NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _In_ PVOID Context
     );
 
+NTSTATUS NTAPI PhpCloseProcessJobForPage(
+    _In_ HANDLE Handle,
+    _In_ BOOLEAN Release,
+    _In_opt_ PVOID Context
+    );
+
 INT_PTR CALLBACK PhpProcessJobHookProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

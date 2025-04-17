@@ -356,7 +356,7 @@ VOID PhHandleProviderUpdate(
     handleProvider->RunStatus = PhEnumHandlesGeneric(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
-        PhCsEnableHandleSnapshot,
+        !!PhCsEnableHandleSnapshot,
         &handleInfo
         );
 

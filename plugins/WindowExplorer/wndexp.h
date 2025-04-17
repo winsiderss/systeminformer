@@ -101,10 +101,6 @@ HICON WepGetWindowIcon(
 
 // utils
 
-PVOID WeGetProcedureAddress(
-    _In_ USHORT Name
-    );
-
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     );

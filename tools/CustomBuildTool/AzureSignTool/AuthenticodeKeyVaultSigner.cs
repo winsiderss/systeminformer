@@ -1,4 +1,4 @@
-﻿namespace CustomBuildTool
+namespace CustomBuildTool
 {
     /// <summary>
     /// Signs a file with an Authenticode signature.
@@ -226,21 +226,21 @@
                     //digestCallback.V1.cbSize = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V1);
                     //digestCallback.V1.pfnAuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
 
-                    digestCallback.V2.cbSize = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V2);
-                    digestCallback.V2.pfnAuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
-                    digestCallback.V2.pfnAuthenticodeDigestSignEx = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx;
+                    digestCallback.V2.Size = (uint)sizeof(SIGNER_DIGEST_SIGN_INFO_V2);
+                    digestCallback.V2.AuthenticodeDigestSign = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSign;
+                    digestCallback.V2.AuthenticodeDigestSignEx = signCallbackInfo.Anonymous.pfnAuthenticodeDigestSignEx;
 
                     clientData = &sipclientdata;
-                    clientData->pSignerParams = &parameters;
-                    clientData->pSignerParams->Ex3.dwFlags = (SIGNER_SIGN_FLAGS)(SignerSignEx3Flags.SPC_DIGEST_SIGN_FLAG | SignerSignEx3Flags.SPC_EXC_PE_PAGE_HASHES_FLAG);
-                    clientData->pSignerParams->Ex3.dwTimestampFlags = timeStampFlags;
-                    clientData->pSignerParams->Ex3.pSubjectInfo = &subjectInfo;
-                    clientData->pSignerParams->Ex3.pSignerCert = &signerCert;
-                    clientData->pSignerParams->Ex3.pSignatureInfo = &signatureInfo;
-                    clientData->pSignerParams->Ex3.ppSignerContext = &signerContext;
-                    clientData->pSignerParams->Ex3.pwszTimestampURL = timestampUrl;
-                    clientData->pSignerParams->Ex3.pszTimestampAlgorithmOid = timestampAlg;
-                    clientData->pSignerParams->Ex3.pSignCallBack = &digestCallback;
+                    clientData->SignerParams = &parameters;
+                    clientData->SignerParams->Ex3.Flags = (SIGNER_SIGN_FLAGS)(SignerSignEx3Flags.SPC_DIGEST_SIGN_FLAG | SignerSignEx3Flags.SPC_EXC_PE_PAGE_HASHES_FLAG);
+                    clientData->SignerParams->Ex3.TimestampFlags = timeStampFlags;
+                    clientData->SignerParams->Ex3.SubjectInfo = &subjectInfo;
+                    clientData->SignerParams->Ex3.SignerCert = &signerCert;
+                    clientData->SignerParams->Ex3.SignatureInfo = &signatureInfo;
+                    clientData->SignerParams->Ex3.SignerContext = &signerContext;
+                    clientData->SignerParams->Ex3.TimestampURL = timestampUrl;
+                    clientData->SignerParams->Ex3.TimestampAlgorithmOid = timestampAlg;
+                    clientData->SignerParams->Ex3.SignCallBack = &digestCallback;
                 }
 
                 result = PInvoke.SignerSignEx3(
@@ -267,9 +267,9 @@
                         PInvoke.SignerFreeSignerContext(signerContext);
                     }
 
-                    if (clientData != null && clientData->pAppxSipState != IntPtr.Zero)
+                    if (clientData != null && clientData->AppxSipState != IntPtr.Zero)
                     {
-                        Marshal.Release(clientData->pAppxSipState);
+                        Marshal.Release(clientData->AppxSipState);
                     }
                 }
 
@@ -331,7 +331,8 @@
 
                 fixed (void* memory = &digest[0])
                 {
-                    Unsafe.CopyBlock(SignedDigest->pbData, memory, (uint)digest.Length);
+                    //Unsafe.CopyBlock(SignedDigest->pbData, memory, (uint)digest.Length);
+                    NativeMemory.Copy(memory, SignedDigest->pbData, (uint)digest.Length);
                 }
             }
 

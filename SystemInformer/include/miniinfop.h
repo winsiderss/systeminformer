@@ -220,7 +220,8 @@ VOID PhMipToggleRefreshAutomatically(
     );
 
 VOID PhMipSetPinned(
-    _In_ BOOLEAN Pinned
+    _In_ BOOLEAN Pinned,
+    _In_ BOOLEAN Update
     );
 
 VOID PhMipShowSectionMenu(

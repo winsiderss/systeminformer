@@ -11,24 +11,35 @@
 
 #pragma once
 
-#define WPP_CONTROL_GUIDS                                                     \
-    WPP_DEFINE_CONTROL_GUID(                                                  \
-        KSystemInformer, (f64b58a2, 8214, 4037, 8c7d, b96ce6098f3d),          \
-        WPP_DEFINE_BIT(GENERAL)     /* bit  0 = 0x00000001 */                 \
-        WPP_DEFINE_BIT(UTIL)        /* bit  1 = 0x00000002 */                 \
-        WPP_DEFINE_BIT(COMMS)       /* bit  2 = 0x00000004 */                 \
-        WPP_DEFINE_BIT(INFORMER)    /* bit  3 = 0x00000008 */                 \
-        WPP_DEFINE_BIT(VERIFY)      /* bit  4 = 0x00000010 */                 \
-        WPP_DEFINE_BIT(HASH)        /* bit  5 = 0x00000020 */                 \
-        WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                 \
-        WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                 \
-        WPP_DEFINE_BIT(SOCKET)      /* bit  6 = 0x00000100 */                 \
+#define WPP_CONTROL_GUIDS                                                      \
+    WPP_DEFINE_CONTROL_GUID(                                                   \
+        KSystemInformer, (f64b58a2, 8214, 4037, 8c7d, b96ce6098f3d),           \
+        WPP_DEFINE_BIT(GENERAL)     /* bit  0 = 0x00000001 */                  \
+        WPP_DEFINE_BIT(UTIL)        /* bit  1 = 0x00000002 */                  \
+        WPP_DEFINE_BIT(COMMS)       /* bit  2 = 0x00000004 */                  \
+        WPP_DEFINE_BIT(INFORMER)    /* bit  3 = 0x00000008 */                  \
+        WPP_DEFINE_BIT(VERIFY)      /* bit  4 = 0x00000010 */                  \
+        WPP_DEFINE_BIT(HASH)        /* bit  5 = 0x00000020 */                  \
+        WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                  \
+        WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                  \
         )
 
 #define WPP_LEVEL_EVENT_LOGGER(level,event) WPP_LEVEL_LOGGER(event)
 #define WPP_LEVEL_EVENT_ENABLED(level,event) \
     (WPP_LEVEL_ENABLED(event) && \
      WPP_CONTROL(WPP_BIT_ ## event).Level >= level)
+
+//
+// begin_wpp config
+// FUNC KphTracePrint(LEVEL,EVENT,MSG, ...);
+// end_wpp
+//
+
+#ifdef KSI_NO_WPP
+#define KphTracePrint(LEVEL,EVENT,MSG,...) ((void)(MSG, ## __VA_ARGS__))
+#define WPP_INIT_TRACING(...)              ((void)0)
+#define WPP_CLEANUP(...)                   ((void)0)
+#endif
 
 #define TMH_STRINGIFYX(x) #x
 #define TMH_STRINGIFY(x) TMH_STRINGIFYX(x)

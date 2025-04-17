@@ -73,109 +73,6 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-PPH_STRING PhpGetDnsReverseNameFromAddress(
-    _In_ PTRACERT_RESOLVE_WORKITEM Address
-    )
-{
-#define IP4_REVERSE_DOMAIN_STRING_LENGTH (IP4_ADDRESS_STRING_LENGTH + sizeof(DNS_IP4_REVERSE_DOMAIN_STRING_W) + 1)
-#define IP6_REVERSE_DOMAIN_STRING_LENGTH (IP6_ADDRESS_STRING_LENGTH + sizeof(DNS_IP6_REVERSE_DOMAIN_STRING_W) + 1)
-
-    switch (Address->Type)
-    {
-    case PH_IPV4_NETWORK_TYPE:
-        {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP4_REVERSE_DOMAIN_STRING);
-            IN_ADDR inAddr4 = ((PSOCKADDR_IN)&Address->SocketAddress)->sin_addr;
-            PH_FORMAT format[9];
-            SIZE_T returnLength;
-            WCHAR reverseNameBuffer[IP4_REVERSE_DOMAIN_STRING_LENGTH];
-
-            PhInitFormatU(&format[0], inAddr4.s_impno);
-            PhInitFormatC(&format[1], L'.');
-            PhInitFormatU(&format[2], inAddr4.s_lh);
-            PhInitFormatC(&format[3], L'.');
-            PhInitFormatU(&format[4], inAddr4.s_host);
-            PhInitFormatC(&format[5], L'.');
-            PhInitFormatU(&format[6], inAddr4.s_net);
-            PhInitFormatC(&format[7], L'.');
-            PhInitFormatSR(&format[8], reverseLookupDomainNameSr);
-
-            if (PhFormatToBuffer(
-                format,
-                RTL_NUMBER_OF(format),
-                reverseNameBuffer,
-                sizeof(reverseNameBuffer),
-                &returnLength
-                ))
-            {
-                PH_STRINGREF reverseNameString;
-
-                reverseNameString.Buffer = reverseNameBuffer;
-                reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
-
-                return PhCreateString2(&reverseNameString);
-            }
-            else
-            {
-                return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
-            }
-        }
-        break;
-    case PH_IPV6_NETWORK_TYPE:
-        {
-            static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
-            IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&Address->SocketAddress)->sin6_addr;
-            PH_STRING_BUILDER stringBuilder;
-
-            // DNS_MAX_IP6_REVERSE_NAME_LENGTH
-            PhInitializeStringBuilder(&stringBuilder, IP6_REVERSE_DOMAIN_STRING_LENGTH);
-
-            for (INT i = sizeof(IN6_ADDR) - 1; i >= 0; i--)
-            {
-                PH_FORMAT format[4];
-                SIZE_T returnLength;
-                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
-
-                PhInitFormatX(&format[0], inAddr6.s6_addr[i] & 0xF);
-                PhInitFormatC(&format[1], L'.');
-                PhInitFormatX(&format[2], (inAddr6.s6_addr[i] >> 4) & 0xF);
-                PhInitFormatC(&format[3], L'.');
-
-                if (PhFormatToBuffer(
-                    format,
-                    RTL_NUMBER_OF(format),
-                    reverseNameBuffer,
-                    sizeof(reverseNameBuffer),
-                    &returnLength
-                    ))
-                {
-                    PhAppendStringBuilderEx(
-                        &stringBuilder,
-                        reverseNameBuffer,
-                        returnLength - sizeof(UNICODE_NULL)
-                        );
-                }
-                else
-                {
-                    PhAppendFormatStringBuilder(
-                        &stringBuilder,
-                        L"%hhx.%hhx.",
-                        inAddr6.s6_addr[i] & 0xF,
-                        (inAddr6.s6_addr[i] >> 4) & 0xF
-                        );
-                }
-            }
-
-            PhAppendStringBuilder(&stringBuilder, &reverseLookupDomainNameSr);
-
-            return PhFinalStringBuilderString(&stringBuilder);
-        }
-        break;
-    }
-
-    return NULL;
-}
-
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
@@ -183,10 +80,10 @@ NTSTATUS TracertHostnameLookupCallback(
     PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString;
+    PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList;
 
-    if (workitem->Type == PH_IPV4_NETWORK_TYPE)
+    if (workitem->Type == PH_NETWORK_TYPE_IPV4)
     {
         IN_ADDR inAddr4 = ((PSOCKADDR_IN)&workitem->SocketAddress)->sin_addr;
 
@@ -199,8 +96,10 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             dnsLocalQuery = TRUE;
         }
+
+        dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV4, &inAddr4);
     }
-    else if (workitem->Type == PH_IPV6_NETWORK_TYPE)
+    else if (workitem->Type == PH_NETWORK_TYPE_IPV6)
     {
         IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&workitem->SocketAddress)->sin6_addr;
 
@@ -211,9 +110,11 @@ NTSTATUS TracertHostnameLookupCallback(
         {
             dnsLocalQuery = TRUE;
         }
+
+        dnsReverseNameString = PhDnsReverseLookupNameFromAddress(PH_NETWORK_TYPE_IPV6, &inAddr6);
     }
 
-    if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(workitem)))
+    if (PhIsNullOrEmptyString(dnsReverseNameString))
     {
         PhFree(workitem);
         return STATUS_FAIL_CHECK;
@@ -299,14 +200,14 @@ VOID TracertQueueHostLookup(
     ULONG addressStringLength = INET6_ADDRSTRLEN;
     WCHAR addressString[INET6_ADDRSTRLEN] = L"";
 
-    if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (Context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         IN_ADDR sockAddrIn;
 
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
+        if (NT_SUCCESS(PhIpv4AddressToString(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
             if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
@@ -331,7 +232,7 @@ VOID TracertQueueHostLookup(
             PTRACERT_RESOLVE_WORKITEM resolve;
 
             resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
-            resolve->Type = PH_IPV4_NETWORK_TYPE;
+            resolve->Type = PH_NETWORK_TYPE_IPV4;
             resolve->WindowHandle = Context->WindowHandle;
             resolve->Index = Node->TTL;
 
@@ -351,7 +252,7 @@ VOID TracertQueueHostLookup(
             PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
-    else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    else if (Context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV6)
     {
         IN6_ADDR sockAddrIn6;
 
@@ -383,7 +284,7 @@ VOID TracertQueueHostLookup(
             PTRACERT_RESOLVE_WORKITEM resolve;
 
             resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
-            resolve->Type = PH_IPV6_NETWORK_TYPE;
+            resolve->Type = PH_NETWORK_TYPE_IPV6;
             resolve->WindowHandle = Context->WindowHandle;
             resolve->Index = Node->TTL;
 
@@ -451,10 +352,10 @@ NTSTATUS NetworkTracertThreadStart(
 
     switch (context->RemoteEndpoint.Address.Type)
     {
-    case PH_IPV4_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV4:
         icmpHandle = IcmpCreateFile();
         break;
-    case PH_IPV6_NETWORK_TYPE:
+    case PH_NETWORK_TYPE_IPV6:
         icmpHandle = Icmp6CreateFile();
         break;
     }
@@ -462,13 +363,13 @@ NTSTATUS NetworkTracertThreadStart(
     if (icmpHandle == INVALID_HANDLE_VALUE)
         goto CleanupExit;
 
-    if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         ((PSOCKADDR_IN)&destinationAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&destinationAddress)->sin_addr = context->RemoteEndpoint.Address.InAddr;
         //((PSOCKADDR_IN)&destinationAddress)->sin_port = (USHORT)context->RemoteEndpoint.Port;
     }
-    else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    else if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV6)
     {
         ((PSOCKADDR_IN6)&destinationAddress)->sin6_family = AF_INET6;
         ((PSOCKADDR_IN6)&destinationAddress)->sin6_addr = context->RemoteEndpoint.Address.In6Addr;
@@ -492,7 +393,7 @@ NTSTATUS NetworkTracertThreadStart(
             if (context->Cancel)
                 break;
 
-            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
             {
                 icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer->Length);
                 icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
@@ -659,12 +560,12 @@ NTSTATUS NetworkTracertThreadStart(
             break;
         }
 
-        if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+        if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
         {
             if (RtlEqualMemory(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
                 break;
         }
-        else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+        else if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV6)
         {
             if (RtlEqualMemory(&last6ReplyAddress, &((PSOCKADDR_IN6)&destinationAddress)->sin6_addr, sizeof(IN6_ADDR)))
                 break;
@@ -701,26 +602,26 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
                     ShowPingWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
                     ShowPingWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
@@ -736,26 +637,26 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
                     ShowTracertWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
                     ShowTracertWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
@@ -771,26 +672,26 @@ VOID TracertMenuActionCallback(
 
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                if (NT_SUCCESS(PhIpv4StringToAddress(
                     PhGetString(node->IpAddressString),
                     TRUE,
                     &remoteEndpoint.Address.InAddr,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
                     ShowWhoisWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                if (NT_SUCCESS(PhIpv6StringToAddress(
                     PhGetString(node->IpAddressString),
                     &remoteEndpoint.Address.In6Addr,
                     &remoteEndpointScope,
                     &remoteEndpointPort
                     )))
                 {
-                    remoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    remoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
                     ShowWhoisWindowFromAddress(Context->WindowHandle, remoteEndpoint);
                     break;
                 }
@@ -978,7 +879,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
                         if (!PhIsNullOrEmptyString(selectedNode->IpAddressString))
                         {
-                            if (NT_SUCCESS(RtlIpv4StringToAddressEx(
+                            if (NT_SUCCESS(PhIpv4StringToAddress(
                                 PhGetString(selectedNode->IpAddressString),
                                 TRUE,
                                 &remoteEndpoint.Address.InAddr,
@@ -1005,7 +906,7 @@ INT_PTR CALLBACK TracertDlgProc(
                                 }
                             }
 
-                            if (NT_SUCCESS(RtlIpv6StringToAddressEx(
+                            if (NT_SUCCESS(PhIpv6StringToAddress(
                                 PhGetString(selectedNode->IpAddressString),
                                 &remoteEndpoint.Address.In6Addr,
                                 &remoteEndpointScope,
@@ -1184,11 +1085,11 @@ VOID ShowTracertWindow(
         sizeof(NetworkItem->RemoteEndpoint)
         );
 
-    if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (NetworkItem->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &NetworkItem->RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,
@@ -1235,11 +1136,11 @@ VOID ShowTracertWindowFromAddress(
         sizeof(RemoteEndpoint)
         );
 
-    if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &RemoteEndpoint.Address.InAddr,
             0,
             context->RemoteAddressString,

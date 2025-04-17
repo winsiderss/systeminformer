@@ -17,15 +17,17 @@ EXTERN_C_START
 
 extern BOOLEAN PhEnableSecurityAdvancedDialog;
 
+//
 // secedit
+//
 
 typedef struct _PH_ACCESS_ENTRY
 {
-    PWSTR Name;
+    PCWSTR Name;
     ACCESS_MASK Access;
     BOOLEAN General;
     BOOLEAN Specific;
-    PWSTR ShortName;
+    PCWSTR ShortName;
 } PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
 
 PHLIBAPI

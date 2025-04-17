@@ -1079,7 +1079,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
                     if (!NT_SUCCESS(status))
                     {
-                        PhShowStatus(nullptr, L"Unidentified third party object.", status, 0);
+                        PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
                     }
                 }
             }
@@ -1237,7 +1237,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            if (PhGetIntegerPairSetting(L"FindObjWindowPosition").X)
+            if (PhValidWindowPlacementFromSetting(L"FindObjWindowPosition"))
                 PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);
@@ -1602,29 +1602,17 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                         if (handleObjectNode->ResultType == HandleSearchResult)
                         {
                             PPH_HANDLE_ITEM handleItem;
-                            BOOLEAN isAlpcPort = FALSE;
 
                             handleItem = PhCreateHandleItem(&handleObjectNode->HandleInfo);
 
                             if (!PhIsNullOrEmptyString(handleObjectNode->TypeNameString))
-                            {
-                                isAlpcPort = PhEqualString2(handleObjectNode->TypeNameString, L"ALPC Port", TRUE);
-                                handleItem->TypeName = handleObjectNode->TypeNameString;
-                                PhReferenceObject(handleObjectNode->TypeNameString);
-                            }
+                                handleItem->TypeName = PhReferenceObject(handleObjectNode->TypeNameString);
 
-                            // Best object name for the ALPC port contains information about the connection
-                            // between the client and server, use the original object name string instead.
-                            if (isAlpcPort && !PhIsNullOrEmptyString(handleObjectNode->ObjectNameString))
-                            {
-                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->ObjectNameString;
-                                PhReferenceObjectEx(handleItem->BestObjectName, 2);
-                            }
-                            else if (!isAlpcPort && !PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
-                            {
-                                handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
-                                PhReferenceObjectEx(handleItem->BestObjectName, 2);
-                            }
+                            if (!PhIsNullOrEmptyString(handleObjectNode->ObjectNameString))
+                                handleItem->ObjectName = PhReferenceObject(handleObjectNode->ObjectNameString);
+
+                            if (!PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
+                                handleItem->BestObjectName = PhReferenceObject(handleObjectNode->BestObjectName);
 
                             PhShowHandleProperties(
                                 hwndDlg,

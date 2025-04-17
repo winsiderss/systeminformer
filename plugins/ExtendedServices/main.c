@@ -12,6 +12,8 @@
 
 #include "extsrv.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
@@ -56,26 +58,28 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_SERVICE_RESTART:
         {
-            PPH_SERVICE_ITEM serviceItem = menuItem->Context;
-            SC_HANDLE serviceHandle;
-            NTSTATUS status;
+            PhUiRestartServices(menuItem->OwnerWindow, (PPH_SERVICE_ITEM*)&menuItem->Context, 1);
 
-            status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, PhGetString(serviceItem->Name));
-
-            if (NT_SUCCESS(status))
-            {
-                EsRestartServiceWithProgress(menuItem->OwnerWindow, serviceItem, serviceHandle);
-                PhCloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                PhShowStatus(
-                    menuItem->OwnerWindow,
-                    PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
-                    status,
-                    0
-                    );
-            }
+            //PPH_SERVICE_ITEM serviceItem = menuItem->Context;
+            //SC_HANDLE serviceHandle;
+            //NTSTATUS status;
+            //
+            //status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, PhGetString(serviceItem->Name));
+            //
+            //if (NT_SUCCESS(status))
+            //{
+            //    EsRestartServiceWithProgress(menuItem->OwnerWindow, serviceItem, serviceHandle);
+            //    PhCloseServiceHandle(serviceHandle);
+            //}
+            //else
+            //{
+            //    PhShowStatus(
+            //        menuItem->OwnerWindow,
+            //        PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
+            //        status,
+            //        0
+            //        );
+            //}
         }
         break;
     }
@@ -571,6 +575,8 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"1" }
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

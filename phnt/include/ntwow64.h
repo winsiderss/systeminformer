@@ -7,6 +7,14 @@
 #ifndef _NTWOW64_H
 #define _NTWOW64_H
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+#ifdef __has_include
+#if __has_include (<ntxcapi.h>)
+#include <ntxcapi.h>
+#endif // __has_include
+#endif // __has_include
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
 #define WOW64_SYSTEM_DIRECTORY "SysWOW64"
 #define WOW64_SYSTEM_DIRECTORY_U L"SysWOW64"
 #define WOW64_X86_TAG " (x86)"
@@ -415,12 +423,13 @@ typedef struct _PEB32
     ULONGLONG ExtendedFeatureDisableMask; // since WIN11
 } PEB32, *PPEB32;
 
-//C_ASSERT(sizeof(PEB32) == 0x460); // REDSTONE3
-//C_ASSERT(sizeof(PEB32) == 0x470); // REDSTONE5
-C_ASSERT(sizeof(PEB32) == 0x488); // WIN11
+//static_assert(sizeof(PEB32) == 0x460, "sizeof(PEB32) is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB32) == 0x470, "sizeof(PEB32) is incorrect"); // REDSTONE5
+static_assert(sizeof(PEB32) == 0x488, "sizeof(PEB32) is incorrect"); // WIN11
 
 // Note: Use PhGetProcessPeb32 instead. (dmex)
-//#define WOW64_GET_PEB32(peb64) ((PPEB32)PTR_ADD_OFFSET((peb64), ALIGN_UP_BY(sizeof(PEB), PAGE_SIZE)))
+//#define WOW64_GET_PEB32(peb64) \
+//    ((PPEB32)RtlOffsetToPointer((peb64), ALIGN_UP_BY(sizeof(PEB), PAGE_SIZE)))
 
 #define GDI_BATCH_BUFFER_SIZE 310
 
@@ -430,6 +439,25 @@ typedef struct _GDI_TEB_BATCH32
     WOW64_POINTER(ULONG_PTR) HDC;
     ULONG Buffer[GDI_BATCH_BUFFER_SIZE];
 } GDI_TEB_BATCH32, *PGDI_TEB_BATCH32;
+
+typedef struct tagSOleTlsData32
+{
+    WOW64_POINTER(PVOID) ThreadBase;
+    WOW64_POINTER(PVOID) SmAllocator;
+    ULONG ApartmentID;
+    OLETLSFLAGS Flags;
+    LONG TlsMapIndex;
+    WOW64_POINTER(PVOID *) TlsSlot;
+    ULONG ComInits;
+    ULONG OleInits;
+    ULONG Calls;
+    WOW64_POINTER(PVOID) ServerCall; // was CallInfo before TH1
+    WOW64_POINTER(PVOID) CallObjectCache; // was FreeAsyncCall before TH1
+    WOW64_POINTER(PVOID) ContextStack; // was FreeClientCall before TH1
+    WOW64_POINTER(PVOID) ObjServer;
+    ULONG TIDCaller;
+    // ... (other fields are version-dependant)
+} SOleTlsData32, *PSOleTlsData32;
 
 typedef struct _TEB32
 {
@@ -516,7 +544,7 @@ typedef struct _TEB32
 
     ULONG GuaranteedStackBytes;
     WOW64_POINTER(PVOID) ReservedForPerf;
-    WOW64_POINTER(PVOID) ReservedForOle;
+    WOW64_POINTER(PSOleTlsData32) ReservedForOle;
     ULONG WaitingOnLoaderLock;
     WOW64_POINTER(PVOID) SavedPriorityState;
     WOW64_POINTER(ULONG_PTR) ReservedForCodeCoverage;
@@ -577,27 +605,21 @@ typedef struct _TEB32
     GUID EffectiveContainerId;
 } TEB32, *PTEB32;
 
-C_ASSERT(FIELD_OFFSET(TEB32, ProcessEnvironmentBlock) == 0x030);
-C_ASSERT(FIELD_OFFSET(TEB32, ExceptionCode) == 0x1a4);
-C_ASSERT(FIELD_OFFSET(TEB32, TxFsContext) == 0x1d0);
-C_ASSERT(FIELD_OFFSET(TEB32, glContext) == 0xbf0);
-C_ASSERT(FIELD_OFFSET(TEB32, StaticUnicodeBuffer) == 0xc00);
-C_ASSERT(FIELD_OFFSET(TEB32, TlsLinks) == 0xf10);
-C_ASSERT(FIELD_OFFSET(TEB32, DbgSsReserved) == 0xf20);
-C_ASSERT(FIELD_OFFSET(TEB32, ActivityId) == 0xf50);
-C_ASSERT(FIELD_OFFSET(TEB32, GdiBatchCount) == 0xf70);
-C_ASSERT(FIELD_OFFSET(TEB32, TlsExpansionSlots) == 0xf94);
-C_ASSERT(FIELD_OFFSET(TEB32, FlsData) == 0xfb4);
-C_ASSERT(FIELD_OFFSET(TEB32, MuiImpersonation) == 0xfc4);
-C_ASSERT(FIELD_OFFSET(TEB32, ReservedForCrt) == 0xfe8);
-C_ASSERT(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0);
-C_ASSERT(sizeof(TEB32) == 0x1000);
+static_assert(FIELD_OFFSET(TEB32, ProcessEnvironmentBlock) == 0x030, "FIELD_OFFSET(TEB32, ProcessEnvironmentBlock) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, ExceptionCode) == 0x1a4, "FIELD_OFFSET(TEB32, ExceptionCode) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, StaticUnicodeBuffer) == 0xc00, "FIELD_OFFSET(TEB32, StaticUnicodeBuffer) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, TlsLinks) == 0xf10, "FIELD_OFFSET(TEB32, TlsLinks) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, TlsExpansionSlots) == 0xf94, "FIELD_OFFSET(TEB32, TlsExpansionSlots) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, FlsData) == 0xfb4, "FIELD_OFFSET(TEB32, FlsData) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, MuiImpersonation) == 0xfc4, "FIELD_OFFSET(TEB32, MuiImpersonation) is incorrect");
+static_assert(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0, "FIELD_OFFSET(TEB32, EffectiveContainerId) is incorrect");
+static_assert(sizeof(TEB32) == 0x1000, "sizeof(TEB32) is incorrect");
 
 // Conversion
 
 FORCEINLINE VOID UStr32ToUStr(
     _Out_ PUNICODE_STRING Destination,
-    _In_ PUNICODE_STRING32 Source
+    _In_ PCUNICODE_STRING32 Source
     )
 {
     Destination->Length = Source->Length;
@@ -607,7 +629,7 @@ FORCEINLINE VOID UStr32ToUStr(
 
 FORCEINLINE VOID UStrToUStr32(
     _Out_ PUNICODE_STRING32 Destination,
-    _In_ PUNICODE_STRING Source
+    _In_ PCUNICODE_STRING Source
     )
 {
     Destination->Length = Source->Length;
@@ -628,7 +650,7 @@ FORCEINLINE VOID UStrToUStr32(
 // Convert the number of native pages to sub x86-pages
 //
 #define Wow64GetNumberOfX86Pages(NativePages) \
-    (NativePages * (PAGE_SIZE_X86NT >> PAGE_SHIFT_X86NT))
+    ((NativePages) * (PAGE_SIZE_X86NT >> PAGE_SHIFT_X86NT))
 
 //
 // Macro to round to the nearest page size
@@ -648,6 +670,9 @@ FORCEINLINE VOID UStrToUStr32(
 #define WOW64_GET_TEB32(teb64) ((PTEB32)(((ULONG_PTR)(teb64)) + ((ULONG_PTR)WOW64_ROUND_TO_PAGES(sizeof(TEB)))))
 #define WOW64_TEB32_POINTER_ADDRESS(teb64) ((PVOID)&(((PTEB)(teb64))->NtTib.ExceptionList))
 
+//
+// Get the 32-bit execute options.
+//
 typedef union _WOW64_EXECUTE_OPTIONS
 {
     ULONG Flags;
@@ -711,13 +736,14 @@ Wow64CurrentGuestTeb(
     if (Teb->WowTebOffset < 0)
     {
         //
-        // Was called while running under WoW. The current teb is the guest
-        // teb.
+        // Was called while running under WoW. The current teb is the guest teb.
         //
 
         Teb32 = (PTEB32)Teb;
 
+#if defined(RTL_ASSERT)
         RTL_ASSERT(&Teb32->WowTebOffset == &Teb->WowTebOffset);
+#endif
     }
     else
     {
@@ -729,7 +755,9 @@ Wow64CurrentGuestTeb(
         Teb32 = (PTEB32)RtlOffsetToPointer(Teb, Teb->WowTebOffset);
     }
 
+#if defined(RTL_ASSERT)
     RTL_ASSERT(Teb32->NtTib.Self == PtrToUlong(Teb32));
+#endif
 
     return Teb32;
 }
@@ -765,7 +793,9 @@ Wow64CurrentNativeTeb(
         HostTeb = (PVOID)RtlOffsetToPointer(Teb, Teb->WowTebOffset);
     }
 
+#if defined(RTL_ASSERT)
     RTL_ASSERT((((PTEB32)HostTeb)->NtTib.Self == PtrToUlong(HostTeb)) || ((ULONG_PTR)((PTEB)HostTeb)->NtTib.Self == (ULONG_PTR)HostTeb));
+#endif
 
     return HostTeb;
 }
@@ -776,7 +806,7 @@ Wow64CurrentNativeTeb(
 #define Wow64GetNativeTebField(teb, field) (((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) ? (((PTEB32)(teb))->##field) : (((PTEB)(teb))->##field) )
 #define Wow64SetNativeTebField(teb, field, value) { if ((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) {(((PTEB32)(teb))->##field) = (value);} else {(((PTEB)(teb))->##field) = (value);} }
 
-#endif
-#endif
+#endif // _M_X64
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

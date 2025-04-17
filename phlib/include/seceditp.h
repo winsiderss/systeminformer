@@ -52,10 +52,10 @@ typedef struct
     ULONG NumberOfAccessEntries;
     GENERIC_MAPPING GenericMapping;
 
-    PH_SE_OBJECT_TYPE ObjectTypeMask;
+    PH_SE_OBJECT_TYPE ObjectType;
 
-    PPH_STRING ObjectName;
-    PPH_STRING ObjectType;
+    PPH_STRING ObjectNameString;
+    PPH_STRING ObjectTypeString;
 
     PPH_OPEN_OBJECT OpenObject;
     PPH_CLOSE_OBJECT CloseObject;

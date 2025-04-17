@@ -170,82 +170,139 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     )
 {
     PPH_LIST deviceAdapterList;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
-    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
 
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
-        ) != CR_SUCCESS)
+    ULONG deviceCount = 0;
+    PDEV_OBJECT deviceObjects = NULL;
+    DEVPROPCOMPKEY deviceProperties[1];
+    DEVPROP_FILTER_EXPRESSION deviceFilter[1];
+    DEVPROPERTY deviceFilterProperty;
+    DEVPROPCOMPKEY deviceFilterCompoundProp;
+
+    memset(deviceProperties, 0, sizeof(deviceProperties));
+    deviceProperties[0].Key = DEVPKEY_Device_InstanceId;
+    deviceProperties[0].Store = DEVPROP_STORE_SYSTEM;
+
+    memset(&deviceFilterCompoundProp, 0, sizeof(deviceFilterCompoundProp));
+    deviceFilterCompoundProp.Key = DEVPKEY_DeviceInterface_ClassGuid;
+    deviceFilterCompoundProp.Store = DEVPROP_STORE_SYSTEM;
+
+    memset(&deviceFilterProperty, 0, sizeof(deviceFilterProperty));
+    deviceFilterProperty.CompKey = deviceFilterCompoundProp;
+    deviceFilterProperty.Type = DEVPROP_TYPE_GUID;
+    deviceFilterProperty.BufferSize = (ULONG)sizeof(GUID);
+    deviceFilterProperty.Buffer = (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL;
+
+    memset(deviceFilter, 0, sizeof(deviceFilter));
+    deviceFilter[0].Operator = DEVPROP_OPERATOR_EQUALS;
+    deviceFilter[0].Property = deviceFilterProperty;
+
+    if (HR_SUCCESS(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
     {
-        return FALSE;
+        deviceAdapterList = PhCreateList(deviceCount);
+
+        for (ULONG i = 0; i < deviceCount; i++)
+        {
+            DEV_OBJECT device = deviceObjects[i];
+
+            PhAddItemList(deviceAdapterList, PhCreateString(device.pszObjectId));
+        }
+
+        PhDevFreeObjects(deviceCount, deviceObjects);
     }
-
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
-        ) != CR_SUCCESS)
+    else
     {
+        PWSTR deviceInterfaceList;
+        ULONG deviceInterfaceListLength = 0;
+        PWSTR deviceInterface;
+
+        if (CM_Get_Device_Interface_List_Size(
+            &deviceInterfaceListLength,
+            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
+            NULL,
+            CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+            ) != CR_SUCCESS)
+        {
+            return FALSE;
+        }
+
+        deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+        memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+        if (CM_Get_Device_Interface_List(
+            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
+            NULL,
+            deviceInterfaceList,
+            deviceInterfaceListLength,
+            CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+            ) != CR_SUCCESS)
+        {
+            PhFree(deviceInterfaceList);
+            return FALSE;
+        }
+
+        deviceAdapterList = PhCreateList(10);
+        deviceInterface = deviceInterfaceList;
+
+        while (TRUE)
+        {
+            PH_STRINGREF string;
+
+            PhInitializeStringRefLongHint(&string, deviceInterface);
+
+            if (string.Length == 0)
+                break;
+
+            PhAddItemList(deviceAdapterList, PhCreateString2(&string));
+
+            deviceInterface = PTR_ADD_OFFSET(deviceInterface, string.Length + sizeof(UNICODE_NULL));
+        }
+
         PhFree(deviceInterfaceList);
-        return FALSE;
-    }
-
-    deviceAdapterList = PhCreateList(10);
-    deviceInterface = deviceInterfaceList;
-
-    while (TRUE)
-    {
-        PH_STRINGREF string;
-
-        PhInitializeStringRefLongHint(&string, deviceInterface);
-
-        if (string.Length == 0)
-            break;
-
-        PhAddItemList(deviceAdapterList, PhCreateString2(&string));
-
-        deviceInterface = PTR_ADD_OFFSET(deviceInterface, string.Length + sizeof(UNICODE_NULL));
     }
 
     for (ULONG i = 0; i < deviceAdapterList->Count; i++)
     {
         ET_ADAPTER_ATTRIBUTES adapterAttributes;
+        D3DKMT_HANDLE adapterHandle;
+        LUID adapterLuid;
 
-        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.pDeviceName = PhGetString(deviceAdapterList->Items[i]);
-
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(
+            &adapterHandle,
+            &adapterLuid,
+            PhGetString(deviceAdapterList->Items[i])
+            )))
+        {
             continue;
+        }
 
         if (NT_SUCCESS(EtQueryAdapterAttributes(
-            openAdapterFromDeviceName.hAdapter,
+            adapterHandle,
             &adapterAttributes
             )))
         {
             if (!adapterAttributes.TypeGpu)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+                EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
         }
 
         if (EtGpuSupported && deviceAdapterList->Count > 1)
         {
-            if (EtIsSoftwareDevice(openAdapterFromDeviceName.hAdapter))
+            if (EtIsSoftwareDevice(adapterHandle))
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+                EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
         }
@@ -257,7 +314,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             memset(&segmentInfo, 0, sizeof(D3DKMT_SEGMENTSIZEINFO));
 
             if (NT_SUCCESS(EtQueryAdapterInformation(
-                openAdapterFromDeviceName.hAdapter,
+                adapterHandle,
                 KMTQAITYPE_GETSEGMENTSIZE,
                 &segmentInfo,
                 sizeof(D3DKMT_SEGMENTSIZEINFO)
@@ -270,7 +327,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             memset(&perfCaps, 0, sizeof(D3DKMT_ADAPTER_PERFDATACAPS));
 
             if (NT_SUCCESS(EtQueryAdapterInformation(
-                openAdapterFromDeviceName.hAdapter,
+                adapterHandle,
                 KMTQAITYPE_ADAPTERPERFDATA_CAPS,
                 &perfCaps,
                 sizeof(D3DKMT_ADAPTER_PERFDATACAPS)
@@ -286,7 +343,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
         queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
-        queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+        queryStatistics.AdapterLuid = adapterLuid;
 
         if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
         {
@@ -294,8 +351,8 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
             gpuAdapter = EtpAddGpuAdapter(
                 deviceAdapterList->Items[i],
-                openAdapterFromDeviceName.hAdapter,
-                openAdapterFromDeviceName.AdapterLuid,
+                adapterHandle,
+                adapterLuid,
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
                 queryStatistics.QueryResult.AdapterInformation.NodeCount
                 );
@@ -345,7 +402,7 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
             }
         }
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+        EtCloseAdapterHandle(adapterHandle);
     }
 
     if (EtGpuSupported && deviceAdapterList->Count > 0)
@@ -363,7 +420,6 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
 
     PhDereferenceObjects(deviceAdapterList->Items, deviceAdapterList->Count);
     PhDereferenceObject(deviceAdapterList);
-    PhFree(deviceInterfaceList);
 
     if (EtGpuTotalNodeCount == 0)
         return FALSE;
@@ -592,8 +648,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     )
 {
     ULONG runCount = PtrToUlong(Parameter);
-    DOUBLE elapsedTime = 0; // total GPU node elapsed time in micro-seconds
-    DOUBLE tempGpuUsage = 0;
+    FLOAT elapsedTime = 0; // total GPU node elapsed time in micro-seconds
+    FLOAT tempGpuUsage = 0;
     ULONG i;
     PLIST_ENTRY listEntry;
     FLOAT maxNodeValue = 0;
@@ -609,14 +665,12 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         dedicatedTotal = EtLookupTotalGpuDedicated();
         sharedTotal = EtLookupTotalGpuShared();
 
-        if (gpuTotal > 100.0)
-            gpuTotal = 100.0;
-        if (gpuTotal < 0.0)
-            gpuTotal = 0.0;
+        if (gpuTotal > 1)
+            gpuTotal = 1;
         if (gpuTotal > tempGpuUsage)
             tempGpuUsage = gpuTotal;
 
-        EtGpuNodeUsage = (FLOAT)tempGpuUsage;
+        EtGpuNodeUsage = tempGpuUsage;
         EtGpuDedicatedUsage = dedicatedTotal;
         EtGpuSharedUsage = sharedTotal;
     }
@@ -625,25 +679,22 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         EtpGpuUpdateSystemSegmentInformation();
         EtpGpuUpdateSystemNodeInformation();
 
-        elapsedTime = (DOUBLE)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / EtGpuClockTotalRunningTimeFrequency.QuadPart;
+        elapsedTime = (FLOAT)EtGpuClockTotalRunningTimeDelta.Delta * 10000000 / EtGpuClockTotalRunningTimeFrequency.QuadPart;
 
         if (elapsedTime != 0)
         {
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
-                DOUBLE usage = (EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime) * 100.0;
+                FLOAT usage = (FLOAT)EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime;
 
-                if (usage > 100.0)
-                    usage = 100.0;
-                if (usage < 0.0)
-                    usage = 0.0;
-
+                if (usage > 1)
+                    usage = 1;
                 if (usage > tempGpuUsage)
                     tempGpuUsage = usage;
             }
         }
 
-        EtGpuNodeUsage = (FLOAT)tempGpuUsage;
+        EtGpuNodeUsage = tempGpuUsage;
     }
 
     if (EtGpuSupported && EtpGpuAdapterList->Count)
@@ -667,7 +718,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             //
             // jxy-s: we open this frequently, consider opening this once in the list
             //
-            if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, PhGetString(gpuAdapter->DeviceInterface))))
+            if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(gpuAdapter->DeviceInterface))))
                 continue;
 
             memset(&adapterPerfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
@@ -679,8 +730,13 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 sizeof(D3DKMT_ADAPTER_PERFDATA)
                 )))
             {
-                powerUsage += (((FLOAT)adapterPerfData.Power / 1000) * 100);
-                temperature += (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
+                //powerUsage += (((FLOAT)adapterPerfData.Power / 1000) * 100);
+                //temperature += (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
+
+                // Value * 100 / 1000 is equivalent to dividing by 10. (dmex)
+                powerUsage += (FLOAT)adapterPerfData.Power / 10;
+                temperature += (FLOAT)adapterPerfData.Temperature / 10;
+
                 fanRpm += adapterPerfData.FanRPM;
             }
 
@@ -783,7 +839,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
             if (elapsedTime != 0)
             {
-                block->GpuNodeUtilization = (FLOAT)(block->GpuRunningTimeDelta.Delta / elapsedTime);
+                block->GpuNodeUtilization = (FLOAT)block->GpuRunningTimeDelta.Delta / elapsedTime;
 
                 // HACK
                 if (block->GpuNodeUtilization > EtGpuNodeUsage)
@@ -860,14 +916,14 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             {
                 for (i = 0; i < EtGpuTotalNodeCount; i++)
                 {
-                    DOUBLE usage;
+                    FLOAT usage;
 
-                    usage = (DOUBLE)(EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime) * 100;
+                    usage = (FLOAT)EtGpuNodesTotalRunningTimeDelta[i].Delta / elapsedTime;
 
-                    if (usage > 100)
-                        usage = 100;
+                    if (usage > 1)
+                        usage = 1;
 
-                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], (FLOAT)usage);
+                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
                 }
             }
             else

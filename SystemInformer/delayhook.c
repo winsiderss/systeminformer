@@ -1281,97 +1281,20 @@ VOID PhRegisterHeaderSuperClass(
 
 // Detours export procedure hooks
 
-static HRESULT (WINAPI* DefaultDrawThemeBackground)(
-    _In_ HTHEME Theme,
-    _In_ HDC Hdc,
-    _In_ INT PartId,
-    _In_ INT StateId,
-    _In_ LPCRECT Rect,
-    _In_ LPCRECT ClipRect
-    ) = NULL;
-
-static HRESULT (WINAPI* DefaultDrawThemeBackgroundEx)(
-    _In_ HTHEME         hTheme,
-    _In_ HDC            hdc,
-    _In_ int            iPartId,
-    _In_ int            iStateId,
-    _In_ LPCRECT        pRect,
-    _In_ const DTBGOPTS* pOptions
-    ) = NULL;
-
-static HRESULT(WINAPI* DefaultDrawThemeText)(
-    _In_ HTHEME  hTheme,
-    _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
-    _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
-    _In_ LPCRECT pRect
-    ) = NULL;
-
-static HRESULT(WINAPI* DefaultDrawThemeTextEx)(
-    _In_      HTHEME        hTheme,
-    _In_      HDC           hdc,
-    _In_      int           iPartId,
-    _In_      int           iStateId,
-    _In_      LPCWSTR       pszText,
-    _In_      int           cchText,
-    _In_      DWORD         dwTextFlags,
-    _Inout_   LPRECT        pRect,
-    _In_      const DTTOPTS* pOptions
-    ) = NULL;
-
-int (WINAPI* DefaultComCtl32DrawTextW)(
-    _In_      HDC     hdc,
-    _Inout_   LPCWSTR lpchText,
-    _In_      int     cchText,
-    _Inout_   LPRECT  lprc,
-    _In_      UINT    format
-    ) = NULL;
-
-static HRESULT(WINAPI* DefaultTaskDialogIndirect)(
-    _In_      const TASKDIALOGCONFIG* pTaskConfig,
-    _Out_opt_ int* pnButton,
-    _Out_opt_ int* pnRadioButton,
-    _Out_opt_ BOOL* pfVerificationFlagChecked
-    ) = NULL;
-
-static HRESULT(WINAPI* DefaultGetThemeColor)(
-    _In_  HTHEME   hTheme,
-    _In_  int      iPartId,
-    _In_  int      iStateId,
-    _In_  int      iPropId,
-    _Out_ COLORREF* pColor
-    ) = NULL;
+static __typeof__(&DrawThemeBackground) DefaultDrawThemeBackground = NULL;
+static __typeof__(&DrawThemeBackgroundEx) DefaultDrawThemeBackgroundEx = NULL;
+static __typeof__(&DrawThemeText) DefaultDrawThemeText = NULL;
+static __typeof__(&DrawThemeTextEx) DefaultDrawThemeTextEx = NULL;
+static __typeof__(&DrawTextW) DefaultComCtl32DrawTextW = NULL;
+static __typeof__(&TaskDialogIndirect) DefaultTaskDialogIndirect = NULL;
+static __typeof__(&GetThemeColor) DefaultGetThemeColor = NULL;
+static __typeof__(&SystemParametersInfoW) DefaultSystemParametersInfo = NULL;
+static __typeof__(&CreateWindowExW) DefaultCreateWindowEx = NULL;
 
 // uxtheme.dll ordinal 49
 static HTHEME(WINAPI* DefaultOpenNcThemeData)(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
-    ) = NULL;
-
-static BOOL (WINAPI* DefaultSystemParametersInfo)(
-    _In_ UINT uiAction,
-    _In_ UINT uiParam,
-    _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-    _In_ UINT fWinIni
-    ) = NULL;
-
-static HWND (WINAPI* DefaultCreateWindowEx)(
-    _In_ ULONG ExStyle,
-    _In_opt_ PCWSTR ClassName,
-    _In_opt_ PCWSTR WindowName,
-    _In_ ULONG Style,
-    _In_ INT X,
-    _In_ INT Y,
-    _In_ INT Width,
-    _In_ INT Height,
-    _In_opt_ HWND Parent,
-    _In_opt_ HMENU Menu,
-    _In_opt_ PVOID Instance,
-    _In_opt_ PVOID Param
     ) = NULL;
 
 typedef struct _TASKDIALOG_CALLBACK_WRAP

@@ -34,7 +34,7 @@ LONG PhAddListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width < 0 ? -Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -59,7 +59,7 @@ LONG PhAddIListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width < 0 ? -Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -110,7 +110,7 @@ LONG PhAddIListViewColumn(
     HWND windowHandle;
 
     if (!SUCCEEDED(ListView->GetHeaderControl(&windowHandle)))
-        return INT_MAX;
+        return INT_ERROR;
 
     dpiValue = PhGetWindowDpi(windowHandle);
 
@@ -185,7 +185,7 @@ LONG PhFindIListViewItemByFlags(
     LVITEMINDEX nextItemIndex;
 
     itemIndex.iItem = StartIndex;
-    itemIndex.iGroup = -1;
+    itemIndex.iGroup = INT_ERROR;
 
     if (SUCCEEDED(ListView->GetNextItem(itemIndex, Flags, &nextItemIndex)))
         return nextItemIndex.iItem;
@@ -207,28 +207,37 @@ LONG PhFindListViewItemByParam(
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
 }
 
-//LONG PhFindIListViewItemByParam(
-//    _In_ IListView* ListView,
-//    _In_ LONG GroupIndex,
-//    _In_ LONG StartIndex,
-//    _In_opt_ PVOID Param
-//    )
-//{
-//    LVITEMINDEX itemIndex;
-//    LVITEMINDEX nextItemIndex;
-//    LVFINDINFO findInfo;
-//
-//    itemIndex.iItem = StartIndex;
-//    itemIndex.iGroup = GroupIndex;
-//
-//    findInfo.flags = LVFI_PARAM;
-//    findInfo.lParam = reinterpret_cast<LPARAM>(Param);
-//
-//    if (SUCCEEDED(ListView->FindItem(itemIndex, &findInfo, &nextItemIndex)))
-//        return nextItemIndex.iItem;
-//
-//    return INT_ERROR;
-//}
+LONG PhFindIListViewItemByParam(
+    _In_ IListView* ListView,
+    _In_ LONG StartIndex,
+    _In_opt_ PVOID Param
+    )
+{
+    LVITEMINDEX itemIndex;
+    LVITEMINDEX foundIndex;
+    LVFINDINFO findInfo;
+
+    itemIndex.iItem = StartIndex;
+    itemIndex.iGroup = INT_ERROR;
+
+    findInfo.flags = LVFI_PARAM;
+    findInfo.lParam = reinterpret_cast<LPARAM>(Param);
+
+    if (SUCCEEDED(ListView->FindItem(itemIndex, &findInfo, &foundIndex)))
+    {
+#if DEBUG
+        HWND windowHandle = nullptr;
+        ListView->GetHeaderControl(&windowHandle);
+        windowHandle = GetParent(windowHandle);
+        LONG index = PhFindListViewItemByParam(windowHandle, StartIndex, Param);
+        assert(index == foundIndex.iItem); // Items changed during enumeration. (dmex)
+#endif
+
+        return foundIndex.iItem;
+    }
+
+    return INT_ERROR;
+}
 
 _Success_(return)
 BOOLEAN PhGetListViewItemImageIndex(
@@ -483,8 +492,10 @@ LONG PhAddIListViewGroup(
     group.iGroupId = GroupId;
     group.pszHeader = const_cast<PWSTR>(Text);
 
-    ListView->InsertGroup(MAXUINT, &group, &index);
-    return index;
+    if (SUCCEEDED(ListView->InsertGroup(MAXUINT, &group, &index)))
+        return index;
+
+    return INT_ERROR;
 }
 
 LONG PhAddListViewGroupItem(

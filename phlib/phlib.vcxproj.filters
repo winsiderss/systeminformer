@@ -206,6 +206,15 @@
     <ClCompile Include="firmware.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativetoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nativesocket.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apistubs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -415,9 +424,6 @@
     <ClInclude Include="include\thirdparty.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\user.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\searchbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -425,6 +431,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phfirmware.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phafd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

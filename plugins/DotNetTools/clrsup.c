@@ -597,10 +597,53 @@ PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
         &appdomainAddressData
         );
 
-    if (entry->Status == S_OK)
+    if (HR_SUCCESS(entry->Status))
     {
         entry->AppDomainNumber = appdomainAddressData.dwId;
         entry->AppDomainID = (ULONG64)appdomainAddressData.AppDomainPtr;
+
+        switch (appdomainAddressData.appDomainStage)
+        {
+        case STAGE_CREATING:
+            entry->AppDomainStage = PhCreateString(L"Creating");
+            break;
+        case STAGE_READYFORMANAGEDCODE:
+            entry->AppDomainStage = PhCreateString(L"ReadyForManagedCode");
+            break;
+        case STAGE_ACTIVE:
+            entry->AppDomainStage = PhCreateString(L"Active");
+            break;
+        case STAGE_OPEN:
+            entry->AppDomainStage = PhCreateString(L"Open");
+            break;
+        case STAGE_UNLOAD_REQUESTED:
+            entry->AppDomainStage = PhCreateString(L"UnloadRequested");
+            break;
+        case STAGE_EXITING:
+            entry->AppDomainStage = PhCreateString(L"Exiting");
+            break;
+        case STAGE_EXITED:
+            entry->AppDomainStage = PhCreateString(L"Exited");
+            break;
+        case STAGE_FINALIZING:
+            entry->AppDomainStage = PhCreateString(L"Finalizing");
+            break;
+        case STAGE_FINALIZED:
+            entry->AppDomainStage = PhCreateString(L"Finalized");
+            break;
+        case STAGE_HANDLETABLE_NOACCESS:
+            entry->AppDomainStage = PhCreateString(L"HandleTableNoAccess");
+            break;
+        case STAGE_CLEARED:
+            entry->AppDomainStage = PhCreateString(L"Cleared");
+            break;
+        case STAGE_COLLECTED:
+            entry->AppDomainStage = PhCreateString(L"Collected");
+            break;
+        case STAGE_CLOSED:
+            entry->AppDomainStage = PhCreateString(L"Closed");
+            break;
+        }
     }
     else
     {
@@ -759,6 +802,8 @@ VOID DnDestroyProcessDotNetAppDomainList(
 
         if (appdomain->AppDomainName)
             PhDereferenceObject(appdomain->AppDomainName);
+        if (appdomain->AppDomainStage)
+            PhDereferenceObject(appdomain->AppDomainStage);
 
         PhFree(appdomain);
     }
@@ -789,6 +834,10 @@ PPH_BYTES DnProcessAppDomainListSerialize(
 
         valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainName->Buffer, appdomain->AppDomainName->Length);
         PhAddJsonObject2(appdomainEntry, "AppDomainName", valueUtf8->Buffer, valueUtf8->Length);
+        PhDereferenceObject(valueUtf8);
+
+        valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainStage->Buffer, appdomain->AppDomainStage->Length);
+        PhAddJsonObject2(appdomainEntry, "AppDomainStage", valueUtf8->Buffer, valueUtf8->Length);
         PhDereferenceObject(valueUtf8);
 
         if (appdomain->AssemblyList)
@@ -868,7 +917,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
     PVOID jsonArray;
     ULONG arrayLength;
 
-    if (!(jsonArray = PhCreateJsonParserEx(String, FALSE)))
+    if (!NT_SUCCESS(PhCreateJsonParserEx(&jsonArray, String, FALSE)))
         return NULL;
     if (PhGetJsonObjectType(jsonArray) != PH_JSON_OBJECT_TYPE_ARRAY)
         goto CleanupExit;
@@ -892,6 +941,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
         appdomain->AppDomainNumber = (ULONG32)PhGetJsonValueAsUInt64(jsonArrayObject, "AppDomainNumber");
         appdomain->AppDomainID = PhGetJsonValueAsUInt64(jsonArrayObject, "AppDomainID");
         appdomain->AppDomainName = PhGetJsonValueAsString(jsonArrayObject, "AppDomainName");
+        appdomain->AppDomainStage = PhGetJsonValueAsString(jsonArrayObject, "AppDomainStage");
 
         if (jsonAssemblyArray = PhGetJsonObject(jsonArrayObject, "assemblies"))
         {

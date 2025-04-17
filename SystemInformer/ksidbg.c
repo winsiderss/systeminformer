@@ -1511,13 +1511,54 @@ VOID KsiDebugLogMessageRaw(
     PhReleaseFastLockExclusive(&KsiDebugRawFileStreamLock);
 }
 
+volatile ULONG64 KsiMessagesReceived = 0;
+volatile ULONG64 KsiBytesReceived = 0;
+
 VOID NTAPI KsiDebugLogMessageCallback(
-    _In_ PKPH_MESSAGE Message,
+    _In_ PPH_INFORMER_CONTEXT Informer,
     _In_opt_ PVOID Context
     )
 {
-    KsiDebugLogMessageRaw(Message);
-    KsiDebugLogMessageLog(Message);
+    KsiDebugLogMessageRaw(Informer->Message);
+    KsiDebugLogMessageLog(Informer->Message);
+
+    InterlockedIncrementRelease64(&KsiMessagesReceived);
+    InterlockedAddRelease64(&KsiBytesReceived, Informer->Message->Header.Size);
+}
+
+NTSTATUS NTAPI KsiDebugMonitorRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    ULONG64 lastMessagesReceived = 0;
+    ULONG64 lastBytesReceived = 0;
+
+    for (NOTHING; NOTHING; PhDelayExecution(500))
+    {
+        ULONG64 messagesReceived;
+        ULONG64 bytesReceived;
+
+        messagesReceived = ReadULong64Acquire(&KsiMessagesReceived);
+        bytesReceived = ReadULong64Acquire(&KsiBytesReceived);
+
+        if (lastMessagesReceived)
+        {
+            ULONG64 bytesDiff = (bytesReceived - lastBytesReceived);
+            ULONG64 messagesDiff = (messagesReceived - lastMessagesReceived);
+            PPH_STRING size;
+
+            size = PhFormatSize(bytesDiff, ULONG_MAX);
+
+            dprintf("KSI: %ls\t%llu\n", PhGetString(size), messagesDiff);
+
+            PhDereferenceObject(size);
+        }
+
+        lastMessagesReceived = messagesReceived;
+        lastBytesReceived = bytesReceived;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 VOID KsiDebugLogInitialize(
@@ -1573,6 +1614,8 @@ VOID KsiDebugLogInitialize(
 
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
+        PhCreateThread2(KsiDebugMonitorRoutine, NULL);
+
         PhRegisterCallback(
             &PhInformerCallback,
             KsiDebugLogMessageCallback,
@@ -1596,12 +1639,31 @@ VOID KsiDebugLogFinalize(
     VOID
     )
 {
+    ULONG64 messagesRecieved;
+    ULONG64 bytesReceived;
+
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
         PhUnregisterCallback(&PhInformerCallback, &KsiDebugMessageRegistration);
     }
     PhClearReference(&KsiDebugRawFileStream);
     PhClearReference(&KsiDebugLogFileStream);
+
+    messagesRecieved = ReadULong64Acquire(&KsiMessagesReceived);
+    if (messagesRecieved)
+    {
+        bytesReceived = ReadULong64Acquire(&KsiBytesReceived);
+
+        PhShowMessage2(
+            NULL,
+            MB_OK,
+            IDI_INFORMATION,
+            L"Debug Log Finalize",
+            L"%llu messages totaling %.4f GB",
+            messagesRecieved,
+            (FLOAT)bytesReceived / (1024 * 1024 * 1024)
+            );
+    }
 }
 
 #endif

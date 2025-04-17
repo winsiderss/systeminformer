@@ -48,6 +48,7 @@ typedef struct _PHP_HEXEDIT_CONTEXT
     LONG NullWidth;
     PWCHAR CharBuffer;
     ULONG CharBufferLength;
+    LONG WindowDpi;
     BOOLEAN Update;
 
     LONG HexOffset;

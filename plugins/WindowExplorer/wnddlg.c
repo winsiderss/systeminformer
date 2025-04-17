@@ -616,7 +616,7 @@ LRESULT CALLBACK WepFindWindowButtonSubclassProc(
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        PhSetWindowProcedure(hwndDlg, oldWndProc);
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         break;
     case WM_LBUTTONDOWN:
@@ -851,9 +851,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 PhCenterWindow(hwndDlg, NULL);
 
             // Subclass the button.
-            context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
+            context->FindWindowButtonWindowProc = PhGetWindowProcedure(context->FindWindowButtonHandle);
             PhSetWindowContext(context->FindWindowButtonHandle, PH_WINDOW_CONTEXT_DEFAULT, context->FindWindowButtonWindowProc);
-            SetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC, (LONG_PTR)WepFindWindowButtonSubclassProc);
+            PhSetWindowProcedure(context->FindWindowButtonHandle, WepFindWindowButtonSubclassProc);
 
             WepRefreshWindows(context);
 
@@ -1246,7 +1246,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             {
                                 SystemInformer_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(processNode);
-                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             PhDereferenceObject(processItem);
@@ -1624,9 +1623,9 @@ INT_PTR CALLBACK WepWindowsPageProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
 
             // Subclass the button.
-            context->FindWindowButtonWindowProc = (WNDPROC)GetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC);
+            context->FindWindowButtonWindowProc = PhGetWindowProcedure(context->FindWindowButtonHandle);
             PhSetWindowContext(context->FindWindowButtonHandle, PH_WINDOW_CONTEXT_DEFAULT, context->FindWindowButtonWindowProc);
-            SetWindowLongPtr(context->FindWindowButtonHandle, GWLP_WNDPROC, (LONG_PTR)WepFindWindowButtonSubclassProc);
+            PhSetWindowProcedure(context->FindWindowButtonHandle, WepFindWindowButtonSubclassProc);
 
             WepRefreshWindows(context);
 

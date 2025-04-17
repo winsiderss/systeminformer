@@ -48,9 +48,9 @@ VOID PhGenerateSyscallLists(
     _Out_ PPH_LIST* Win32kSystemCallList
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    static PH_STRINGREF win32kFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
-    static PH_STRINGREF win32uFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.dll");
+    static CONST PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
+    static CONST PH_STRINGREF win32kFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
+    static CONST PH_STRINGREF win32uFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.dll");
     PPH_LIST ntdllSystemCallList = NULL;
     PPH_LIST win32kSystemCallList = NULL;
     PH_MAPPED_IMAGE mappedImage;
@@ -190,14 +190,14 @@ VOID PhGenerateSyscallLists(
                                     PNT_SYSTEMCALL_NUMBER systemCallEntry = NULL;
 
                                 #ifdef _WIN64
-                                    BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
+                                    const BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
 
                                     if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
                                     {
                                         systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
                                     }
                                 #else
-                                    BYTE prologue[1] = { 0xB8 };
+                                    const BYTE prologue[1] = { 0xB8 };
 
                                     if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
                                     {

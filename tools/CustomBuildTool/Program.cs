@@ -178,25 +178,24 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release;
 
-                if (ProgramArgs.ContainsKey("-msix-build"))
-                    flags |= BuildFlags.BuildMsix;
-
                 Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", flags))
                         return;
+                    //if (!Build.BuildValidateExportDefinitions(flags))
+                    //    return;
                     if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                         return;
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
@@ -239,20 +238,24 @@ namespace CustomBuildTool
             {
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildMsix;
 
+                Build.WriteTimeStampFile();
                 Build.SetupBuildEnvironment(true);
+                Build.CopySourceLink(true);
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", flags))
                         return;
+                    //if (!Build.BuildValidateExportDefinitions(flags))
+                    //    return;
                     if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                         return;
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 if (!Build.CopyDebugEngineFiles(flags))
@@ -272,16 +275,18 @@ namespace CustomBuildTool
 
                 try
                 {
-                    Build.ExportDefinitions(true);
+                    //Build.ExportDefinitions(true);
 
                     if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                        return;
+                        return;                    
+                    //if (!Build.BuildValidateExportDefinitions(BuildFlags.Release))
+                    //    return;
                     if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
                         return;
                 }
                 finally
                 {
-                    Build.ExportDefinitionsRevert();
+                    //Build.ExportDefinitionsRevert();
                 }
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
@@ -339,10 +344,16 @@ namespace CustomBuildTool
 #if RELEASE
             string currentId = GetToolsId();
             string previousId = string.Empty;
+
             if (File.Exists("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt"))
+            {
                 previousId = File.ReadAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt");
-            if (previousId != currentId)
-                PrintColorMessage($"[WARN] Build tools are out of date!", ConsoleColor.Yellow);
+            }
+
+            if (string.IsNullOrWhiteSpace(previousId) || !previousId.Equals(currentId, StringComparison.OrdinalIgnoreCase))
+            {
+                PrintColorMessage($"[WARNING] Build tools are out of date!", ConsoleColor.Yellow);
+            }
 #endif
         }
 
@@ -350,38 +361,51 @@ namespace CustomBuildTool
         {
             string currentHash = GetToolsId();
             File.WriteAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt", currentHash);
+            Program.PrintColorMessage("Tools Hash: ", ConsoleColor.Gray, false);
+            Program.PrintColorMessage($"{currentHash}", ConsoleColor.Green);
         }
 
         private static string GetToolsId()
         {
-            int bufferSize = 0x1000;
+            const int bufferSize = 0x1000;
             string[] directories =
-            {
+            [
                 "tools\\CustomBuildTool",
                 "tools\\CustomBuildTool\\AzureSignTool",
-            };
+            ];
 
             using (var sha256 = SHA256.Create())
             {
-                foreach (var directory in directories)
-                foreach (string source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
-                {
-                    byte[] buffer = new byte[bufferSize];
-                    int bytesRead;
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
 
-                    using (var filestream = File.OpenRead(source))
-                    using (var bufferedStream = new BufferedStream(filestream, bufferSize))
+                try
+                {
+                    foreach (var directory in directories)
                     {
-                        while ((bytesRead = bufferedStream.Read(buffer, 0, buffer.Length)) > 0)
+                        foreach (string source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
                         {
-                            sha256.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                            int bytesRead;
+
+                            using (var filestream = File.OpenRead(source))
+                            using (var bufferedStream = new BufferedStream(filestream, bufferSize))
+                            {
+                                while ((bytesRead = bufferedStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+                                }
+                            }
                         }
                     }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
 
                 sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
 
-                return BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
+                byte[] hash = sha256.Hash;
+                return hash == null ? string.Empty : Convert.ToHexString(hash);
             }
         }
     }

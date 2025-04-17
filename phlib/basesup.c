@@ -54,9 +54,12 @@
 #include <phbase.h>
 #include <phintrnl.h>
 #include <phintrin.h>
+#include <phnative.h>
 #include <circbuf.h>
 #include <thirdparty.h>
 #include <ntintsafe.h>
+
+#include <trace.h>
 
 #ifndef PH_NATIVE_STRING_CONVERSION
 #define PH_NATIVE_STRING_CONVERSION 1
@@ -76,16 +79,19 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
     PVOID Parameter;
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -108,7 +114,7 @@ static PPH_STRING PhSharedEmptyString = NULL;
 static PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
-LIST_ENTRY PhDbgThreadListHead = { &PhDbgThreadListHead, &PhDbgThreadListHead };
+RTL_STATIC_LIST_HEAD(PhDbgThreadListHead);
 PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
@@ -1043,7 +1049,7 @@ PVOID PhAllocatePageAligned(
     _In_ SIZE_T Alignment
     )
 {
-    return _aligned_malloc(Size, Alignment);;
+    return _aligned_malloc(Size, Alignment);
 
     //NTSTATUS status;
     //PVOID baseAddress = NULL;
@@ -1244,7 +1250,8 @@ NTSTATUS PhReadVirtualMemory(
     if (ProcessHandle == NtCurrentProcess())
     {
         RtlMoveMemory(Buffer, BaseAddress, BufferSize);
-        *NumberOfBytesRead = BufferSize;
+        if (NumberOfBytesRead)
+            *NumberOfBytesRead = BufferSize;
         return STATUS_SUCCESS;
     }
 
@@ -2543,8 +2550,8 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefAtString(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ BOOLEAN IgnoreCase,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart
@@ -2607,8 +2614,8 @@ BOOLEAN PhSplitStringRefAtString(
  * \return TRUE if a separator was found in \a Input, otherwise FALSE.
  */
 BOOLEAN PhSplitStringRefEx(
-    _In_ PPH_STRINGREF Input,
-    _In_ PPH_STRINGREF Separator,
+    _In_ PCPH_STRINGREF Input,
+    _In_ PCPH_STRINGREF Separator,
     _In_ ULONG Flags,
     _Out_ PPH_STRINGREF FirstPart,
     _Out_ PPH_STRINGREF SecondPart,
@@ -2825,7 +2832,7 @@ SeparatorNotFound:
 
 VOID PhTrimStringRef(
     _Inout_ PPH_STRINGREF String,
-    _In_ PPH_STRINGREF CharSet,
+    _In_ PCPH_STRINGREF CharSet,
     _In_ ULONG Flags
     )
 {
@@ -2993,17 +3000,6 @@ PPH_STRING PhCreateStringEx(
         memcpy(string->Buffer, Buffer, Length);
     }
 
-    if (Buffer)
-    {
-        SIZE_T len = string->Length;
-        SIZE_T len2 = PhCountStringZ(string->Buffer) * sizeof(WCHAR);
-
-        if (len != len2)
-        {
-            dprintf("PhTrimToNullTerminatorString\n");
-        }
-    }
-
     return string;
 }
 
@@ -3015,9 +3011,9 @@ PPH_STRING PhCreateStringEx(
  * \param TrimCharSet A string containing characters to trim. If NULL, no trimming is performed.
  */
 PPH_STRING PhCreateString3(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Flags,
-    _In_opt_ PPH_STRINGREF TrimCharSet
+    _In_opt_ PCPH_STRINGREF TrimCharSet
     )
 {
     PPH_STRING string;
@@ -3078,13 +3074,13 @@ PPH_STRING PhReferenceEmptyString(
             NULL
             );
 
-        if (!string)
+        if (string)
         {
-            string = newString; // success
+            PhDereferenceObject(newString);
         }
         else
         {
-            PhDereferenceObject(newString);
+            string = newString; // success
         }
     }
 
@@ -3311,6 +3307,7 @@ PPH_STRING PhConcatStringRef4(
  * Creates a string using format specifiers.
  *
  * \param Format The format-control string.
+ * \param ... The list of arguments.
  */
 PPH_STRING PhFormatString(
     _In_ _Printf_format_string_ PCWSTR Format,
@@ -4700,7 +4697,7 @@ VOID PhAppendFormatStringBuilder_V(
 VOID PhInsertStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PPH_STRINGREF String
+    _In_ PCPH_STRINGREF String
     )
 {
     PhInsertStringBuilderEx(
@@ -5200,6 +5197,7 @@ PPH_LIST PhCreateList(
     return list;
 }
 
+_Use_decl_annotations_
 VOID PhpListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -5444,6 +5442,7 @@ PPH_POINTER_LIST PhCreatePointerList(
     return pointerList;
 }
 
+_Use_decl_annotations_
 VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -5700,6 +5699,7 @@ PPH_HASHTABLE PhCreateHashtable(
     return hashtable;
 }
 
+_Use_decl_annotations_
 VOID PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -6171,6 +6171,7 @@ ULONG PhHashStringRefEx(
     return 0;
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -6182,6 +6183,7 @@ BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     return entry1->Key == entry2->Key;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpSimpleHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -6471,6 +6473,8 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
+    PhTraceFuncEnter("Invoke callback %p", Callback);
+
     PhAcquireQueuedLockShared(&Callback->ListLock);
 
     for (listEntry = Callback->ListHead.Flink; listEntry != &Callback->ListHead; listEntry = listEntry->Flink)
@@ -6506,6 +6510,8 @@ VOID PhInvokeCallback(
     }
 
     PhReleaseQueuedLockShared(&Callback->ListLock);
+
+    PhTraceFuncExit("Invoke callback %p", Callback);
 }
 
 /**
@@ -6618,7 +6624,7 @@ ULONG64 PhExponentiate64(
  * \return TRUE if the string was successfully converted, otherwise FALSE.
  */
 BOOLEAN PhHexStringToBuffer(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Out_writes_bytes_(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     )
 {
@@ -6642,7 +6648,7 @@ BOOLEAN PhHexStringToBuffer(
 }
 
 BOOLEAN PhHexStringToBufferEx(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ SIZE_T BufferLength,
     _Out_writes_bytes_(BufferLength) PVOID Buffer
     )
@@ -6765,7 +6771,7 @@ BOOLEAN PhBufferToHexStringBuffer(
  * \param Integer The resulting integer.
  */
 BOOLEAN PhpStringToInteger64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Base,
     _Out_opt_ PULONG64 Integer
     )
@@ -6820,7 +6826,7 @@ BOOLEAN PhpStringToInteger64(
  */
 _Success_(return)
 BOOLEAN PhStringToInteger64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
     _Out_opt_ PLONG64 Integer
     )
@@ -6904,7 +6910,7 @@ BOOLEAN PhStringToInteger64(
 
 _Success_(return)
 BOOLEAN PhStringToUInt64(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_opt_ ULONG Base,
     _Out_opt_ PULONG64 Integer
     )
@@ -6975,7 +6981,7 @@ BOOLEAN PhStringToUInt64(
 }
 
 BOOLEAN PhpStringToDouble(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _In_ ULONG Base,
     _Out_ DOUBLE *Double
     )
@@ -7038,7 +7044,7 @@ BOOLEAN PhpStringToDouble(
  * \param Double The resulting double value.
  */
 BOOLEAN PhStringToDouble(
-    _In_ PPH_STRINGREF String,
+    _In_ PCPH_STRINGREF String,
     _Reserved_ ULONG Base,
     _Out_opt_ DOUBLE *Double
     )

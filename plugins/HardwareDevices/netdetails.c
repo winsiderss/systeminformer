@@ -155,7 +155,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv4SockAddr = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                if (NT_SUCCESS(PhIpv4AddressToString(
                     &ipv4SockAddr->sin_addr,
                     0,
                     ipv4AddressString,
@@ -167,7 +167,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                if (NT_SUCCESS(PhIpv4AddressToString(
                     &subnetMask,
                     0,
                     subnetAddressString,
@@ -215,7 +215,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv4SockAddr = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                if (NT_SUCCESS(PhIpv4AddressToString(
                     &ipv4SockAddr->sin_addr,
                     0,
                     ipv4AddressString,
@@ -256,7 +256,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv4SockAddr = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                if (NT_SUCCESS(PhIpv4AddressToString(
                     &ipv4SockAddr->sin_addr,
                     0,
                     ipv4AddressString,
@@ -540,6 +540,14 @@ VOID NetAdapterUpdateDetails(
         interfaceRcvSpeed = 0;
         interfaceXmitSpeed = 0;
         Context->HaveFirstSample = TRUE;
+    }
+    else
+    {
+        interfaceRcvSpeed *= 1000;
+        interfaceRcvSpeed /= NetUpdateInterval;
+
+        interfaceXmitSpeed *= 1000;
+        interfaceXmitSpeed /= NetUpdateInterval;
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");

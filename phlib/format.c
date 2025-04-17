@@ -55,7 +55,7 @@ VOID PhpFormatSingleToUtf8Locale(
     _In_ FLOAT Value,
     _In_ ULONG Type,
     _In_ LONG Precision,
-    _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength
     )
 {
@@ -101,7 +101,7 @@ VOID PhpFormatDoubleToUtf8Locale(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
     _In_ LONG Precision,
-    _Out_writes_bytes_opt_(BufferLength) PSTR Buffer,
+    _Out_writes_bytes_(BufferLength) PSTR Buffer,
     _In_opt_ SIZE_T BufferLength
     )
 {

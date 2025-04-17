@@ -208,9 +208,11 @@ typedef ULONG GDI_HANDLE_BUFFER[GDI_HANDLE_BUFFER_SIZE];
 typedef ULONG GDI_HANDLE_BUFFER32[GDI_HANDLE_BUFFER_SIZE32];
 typedef ULONG GDI_HANDLE_BUFFER64[GDI_HANDLE_BUFFER_SIZE64];
 
-typedef VOID (NTAPI* PPS_POST_PROCESS_INIT_ROUTINE)(
+typedef _Function_class_(PS_POST_PROCESS_INIT_ROUTINE)
+VOID NTAPI PS_POST_PROCESS_INIT_ROUTINE(
     VOID
     );
+typedef PS_POST_PROCESS_INIT_ROUTINE* PPS_POST_PROCESS_INIT_ROUTINE;
 
 #ifndef FLS_MAXIMUM_AVAILABLE
 #define FLS_MAXIMUM_AVAILABLE 128
@@ -225,7 +227,7 @@ typedef VOID (NTAPI* PPS_POST_PROCESS_INIT_ROUTINE)(
 /**
  * Process Environment Block (PEB) structure.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
  */
 typedef struct _PEB
 {
@@ -249,13 +251,13 @@ typedef struct _PEB
         BOOLEAN BitField;
         struct
         {
-            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).  
+            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).
             BOOLEAN IsProtectedProcess : 1;             // The process is a protected process.
-            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.         
-            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.            
+            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.
+            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.
             BOOLEAN IsPackagedProcess : 1;              // The process is a packaged store process (APPX/MSIX).
-            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.      
-            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).            
+            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.
+            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).
             BOOLEAN IsLongPathAwareProcess : 1;         // The process is long path aware.
         };
     };
@@ -314,7 +316,7 @@ typedef struct _PEB
         struct
         {
             ULONG ProcessInJob : 1;                 // The process is part of a job.
-            ULONG ProcessInitializing : 1;          // The process is initializing. 
+            ULONG ProcessInitializing : 1;          // The process is initializing.
             ULONG ProcessUsingVEH : 1;              // The process is using VEH.
             ULONG ProcessUsingVCH : 1;              // The process is using VCH.
             ULONG ProcessUsingFTH : 1;              // The process is using FTH.
@@ -402,7 +404,45 @@ typedef struct _PEB
     //
     // Global flags for the system.
     //
-    ULONG NtGlobalFlag;
+    union
+    {
+        ULONG NtGlobalFlag;
+        struct
+        {
+            ULONG StopOnException : 1;          // FLG_STOP_ON_EXCEPTION
+            ULONG ShowLoaderSnaps : 1;          // FLG_SHOW_LDR_SNAPS
+            ULONG DebugInitialCommand : 1;      // FLG_DEBUG_INITIAL_COMMAND
+            ULONG StopOnHungGUI : 1;            // FLG_STOP_ON_HUNG_GUI
+            ULONG HeapEnableTailCheck : 1;      // FLG_HEAP_ENABLE_TAIL_CHECK
+            ULONG HeapEnableFreeCheck : 1;      // FLG_HEAP_ENABLE_FREE_CHECK
+            ULONG HeapValidateParameters : 1;   // FLG_HEAP_VALIDATE_PARAMETERS
+            ULONG HeapValidateAll : 1;          // FLG_HEAP_VALIDATE_ALL
+            ULONG ApplicationVerifier : 1;      // FLG_APPLICATION_VERIFIER
+            ULONG MonitorSilentProcessExit : 1; // FLG_MONITOR_SILENT_PROCESS_EXIT
+            ULONG PoolEnableTagging : 1;        // FLG_POOL_ENABLE_TAGGING
+            ULONG HeapEnableTagging : 1;        // FLG_HEAP_ENABLE_TAGGING
+            ULONG UserStackTraceDb : 1;         // FLG_USER_STACK_TRACE_DB
+            ULONG KernelStackTraceDb : 1;       // FLG_KERNEL_STACK_TRACE_DB
+            ULONG MaintainObjectTypeList : 1;   // FLG_MAINTAIN_OBJECT_TYPELIST
+            ULONG HeapEnableTagByDll : 1;       // FLG_HEAP_ENABLE_TAG_BY_DLL
+            ULONG DisableStackExtension : 1;    // FLG_DISABLE_STACK_EXTENSION
+            ULONG EnableCsrDebug : 1;           // FLG_ENABLE_CSRDEBUG
+            ULONG EnableKDebugSymbolLoad : 1;   // FLG_ENABLE_KDEBUG_SYMBOL_LOAD
+            ULONG DisablePageKernelStacks : 1;  // FLG_DISABLE_PAGE_KERNEL_STACKS
+            ULONG EnableSystemCritBreaks : 1;   // FLG_ENABLE_SYSTEM_CRIT_BREAKS
+            ULONG HeapDisableCoalescing : 1;    // FLG_HEAP_DISABLE_COALESCING
+            ULONG EnableCloseExceptions : 1;    // FLG_ENABLE_CLOSE_EXCEPTIONS
+            ULONG EnableExceptionLogging : 1;   // FLG_ENABLE_EXCEPTION_LOGGING
+            ULONG EnableHandleTypeTagging : 1;  // FLG_ENABLE_HANDLE_TYPE_TAGGING
+            ULONG HeapPageAllocs : 1;           // FLG_HEAP_PAGE_ALLOCS
+            ULONG DebugInitialCommandEx : 1;    // FLG_DEBUG_INITIAL_COMMAND_EX
+            ULONG DisableDbgPrint : 1;          // FLG_DISABLE_DBGPRINT
+            ULONG CritSecEventCreation : 1;     // FLG_CRITSEC_EVENT_CREATION
+            ULONG LdrTopDown : 1;               // FLG_LDR_TOP_DOWN
+            ULONG EnableHandleExceptions : 1;   // FLG_ENABLE_HANDLE_EXCEPTIONS
+            ULONG DisableProtDlls : 1;          // FLG_DISABLE_PROTDLLS
+        } NtGlobalFlags;
+    };
 
     //
     // Timeout for critical sections.
@@ -432,7 +472,7 @@ typedef struct _PEB
     //
     // Number of process heaps.
     //
-    ULONG NumberOfHeaps;        
+    ULONG NumberOfHeaps;
 
     //
     // Maximum number of process heaps.
@@ -604,12 +644,20 @@ typedef struct _PEB
 
     //
     // Packaged process feature state.
-    // 
-    ULONG AppModelFeatureState;
+    //
+    union
+    {
+        ULONG AppModelFeatureState;
+        struct
+        {
+            ULONG ForegroundBoostProcesses : 1;
+            ULONG AppModelFeatureStateReserved : 31;
+        };
+    };
 
     //
     // SpareUlongs
-    // 
+    //
     ULONG SpareUlongs[2];
 
     //
@@ -746,17 +794,17 @@ typedef struct _PEB
 } PEB, * PPEB;
 
 #ifdef _WIN64
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
-//static_assert(sizeof(PEB) == 0x7B0); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x7B8); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x7d0); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x7B0, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x7B8, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x7C8, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x7d0, "Size of PEB is incorrect"); // WIN11
 #else
-static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
-//static_assert(sizeof(PEB) == 0x468); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x470); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
-static_assert(sizeof(PEB) == 0x488); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
+//static_assert(sizeof(PEB) == 0x468, "Size of PEB is incorrect"); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x470, "Size of PEB is incorrect"); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x480, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x488, "Size of PEB is incorrect"); // WIN11
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -815,10 +863,67 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 #define STATIC_UNICODE_BUFFER_LENGTH 261
 #define WIN32_CLIENT_INFO_LENGTH 62
 
+// private
+typedef enum tagOLETLSFLAGS
+{
+    OLETLS_LOCALTID = 0x01, // This TID is in the current process.
+    OLETLS_UUIDINITIALIZED = 0x02, // This Logical thread is init'd.
+    OLETLS_INTHREADDETACH = 0x04, // This is in thread detach.
+    OLETLS_CHANNELTHREADINITIALZED = 0x08,// This channel has been init'd
+    OLETLS_WOWTHREAD = 0x10, // This thread is a 16-bit WOW thread.
+    OLETLS_THREADUNINITIALIZING = 0x20, // This thread is in CoUninitialize.
+    OLETLS_DISABLE_OLE1DDE = 0x40, // This thread can't use a DDE window.
+    OLETLS_APARTMENTTHREADED = 0x80, // This is an STA apartment thread
+    OLETLS_MULTITHREADED = 0x100, // This is an MTA apartment thread
+    OLETLS_IMPERSONATING = 0x200, // This thread is impersonating
+    OLETLS_DISABLE_EVENTLOGGER = 0x400, // Prevent recursion in event logger
+    OLETLS_INNEUTRALAPT = 0x800, // This thread is in the NTA
+    OLETLS_DISPATCHTHREAD = 0x1000, // This is a dispatch thread
+    OLETLS_HOSTTHREAD = 0x2000, // This is a host thread
+    OLETLS_ALLOWCOINIT = 0x4000, // This thread allows inits
+    OLETLS_PENDINGUNINIT = 0x8000, // This thread has pending uninit
+    OLETLS_FIRSTMTAINIT = 0x10000,// First thread to attempt an MTA init
+    OLETLS_FIRSTNTAINIT = 0x20000,// First thread to attempt an NTA init
+    OLETLS_APTINITIALIZING = 0x40000, // Apartment Object is initializing
+    OLETLS_UIMSGSINMODALLOOP = 0x80000,
+    OLETLS_MARSHALING_ERROR_OBJECT = 0x100000, // since WIN8
+    OLETLS_WINRT_INITIALIZE = 0x200000, // This thread called RoInitialize
+    OLETLS_APPLICATION_STA = 0x400000,
+    OLETLS_IN_SHUTDOWN_CALLBACKS = 0x800000,
+    OLETLS_POINTER_INPUT_BLOCKED = 0x1000000,
+    OLETLS_IN_ACTIVATION_FILTER = 0x2000000, // since WINBLUE
+    OLETLS_ASTATOASTAEXEMPT_QUIRK = 0x4000000,
+    OLETLS_ASTATOASTAEXEMPT_PROXY = 0x8000000,
+    OLETLS_ASTATOASTAEXEMPT_INDOUBT = 0x10000000,
+    OLETLS_DETECTED_USER_INITIALIZED = 0x20000000, // since RS3
+    OLETLS_BRIDGE_STA = 0x40000000, // since RS5
+    OLETLS_NAINITIALIZING = 0x80000000UL // since 19H1
+} OLETLSFLAGS, *POLETLSFLAGS;
+
+// private
+typedef struct tagSOleTlsData
+{
+    PVOID ThreadBase;
+    PVOID SmAllocator;
+    ULONG ApartmentID;
+    OLETLSFLAGS Flags;
+    LONG TlsMapIndex;
+    PVOID *TlsSlot;
+    ULONG ComInits;
+    ULONG OleInits;
+    ULONG Calls;
+    PVOID ServerCall; // previously CallInfo (before TH1)
+    PVOID CallObjectCache; // previously FreeAsyncCall (before TH1)
+    PVOID ContextStack; // previously FreeClientCall (before TH1)
+    PVOID ObjServer;
+    ULONG TIDCaller;
+    // ... (other fields are version-dependant)
+} SOleTlsData, *PSOleTlsData;
+
 /**
  * Thread Environment Block (TEB) structure.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-teb
+ * @remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-teb
  */
 typedef struct _TEB
 {
@@ -1127,8 +1232,8 @@ typedef struct _TEB
     ULONG GdiBatchCount;
 
     //
-    // The preferred processor for the curremt thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
-    // 
+    // The preferred processor for the current thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
+    //
     union
     {
         PROCESSOR_NUMBER CurrentIdealProcessor;
@@ -1144,7 +1249,7 @@ typedef struct _TEB
 
     //
     // The minimum size of the stack available during any stack overflow exceptions. (SetThreadStackGuarantee)
-    // 
+    //
     ULONG GuaranteedStackBytes;
 
     //
@@ -1153,9 +1258,9 @@ typedef struct _TEB
     PVOID ReservedForPerf;
 
     //
-    // tagSOleTlsData.
+    // Per-thread COM/OLE state
     //
-    PVOID ReservedForOle;
+    PSOleTlsData ReservedForOle;
 
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
@@ -1232,11 +1337,11 @@ typedef struct _TEB
 } TEB, *PTEB;
 
 #ifdef _WIN64
-//static_assert(sizeof(TEB) == 0x1850); // WIN11
-static_assert(sizeof(TEB) == 0x1878); // 24H2
+//static_assert(sizeof(TEB) == 0x1850, "Size of TEB is incorrect"); // WIN11
+static_assert(sizeof(TEB) == 0x1878, "Size of TEB is incorrect"); // 24H2
 #else
-//static_assert(sizeof(TEB) == 0x1018); // WIN11
-static_assert(sizeof(TEB) == 0x1038); // 24H2
+//static_assert(sizeof(TEB) == 0x1018, "Size of TEB is incorrect"); // WIN11
+static_assert(sizeof(TEB) == 0x1038, "Size of TEB is incorrect"); // 24H2
 #endif
 
 #endif

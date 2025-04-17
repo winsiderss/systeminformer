@@ -11,14 +11,16 @@
 
 #include "setup.h"
 
-NTSTATUS SetupUpdateBuild(
+NTSTATUS CALLBACK SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
+
     // Create the folder.
-    if (!NT_SUCCESS(PhCreateDirectoryWin32(&Context->SetupInstallPath->sr)))
+    if (!NT_SUCCESS(status = PhCreateDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        Context->LastStatus = status;
         goto CleanupExit;
     }
 
@@ -159,14 +161,15 @@ VOID ShowUpdatePageDialog(
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = PhaFormatString(
-        L"Updating to version %lu.%lu.%lu...",
+        L"Updating to version %lu.%lu.%lu.%lu...",
         PHAPP_VERSION_MAJOR,
         PHAPP_VERSION_MINOR,
+        PHAPP_VERSION_BUILD,
         PHAPP_VERSION_REVISION
         )->Buffer;
     config.pszContent = L" ";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowUpdateCompletedPageDialog(
@@ -188,7 +191,7 @@ VOID ShowUpdateCompletedPageDialog(
     config.pszMainInstruction = L"Update complete.";
     config.pszContent = L"Select Close to exit.";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 VOID ShowUpdateErrorPageDialog(
@@ -213,18 +216,15 @@ VOID ShowUpdateErrorPageDialog(
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    if (Context->ErrorCode)
-        config.pszMainInstruction = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
-    else
-        config.pszMainInstruction = L"Error updating to the latest version.";
+    config.pszMainInstruction = L"Error updating to the latest version.";
 
-    if (Context->ErrorCode)
+    if (Context->LastStatus)
     {
         PPH_STRING errorString;
 
-        if (errorString = PhGetStatusMessage(0, Context->ErrorCode))
+        if (errorString = PhGetStatusMessage(Context->LastStatus, 0))
             config.pszContent = PhGetString(errorString);
     }
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

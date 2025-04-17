@@ -5,8 +5,8 @@
  *
  * Authors:
  *
- *     jxy-s   2022
- *     dmex    2022-2023
+ *     jxy-s   2022-2025
+ *     dmex    2022-2025
  *
  */
 
@@ -64,9 +64,7 @@ VOID KphpCommsCallbackUnhandled(
     PKPH_MESSAGE msg;
 
     if (!ReplyToken)
-    {
         return;
-    }
 
     freelist = KphGetMessageFreeList();
 
@@ -100,60 +98,38 @@ VOID WINAPI KphpCommsIoCallback(
     ULONG_PTR replyToken;
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
-    {
         return;
-    }
 
     msg = CONTAINING_RECORD(ApcContext, KPH_UMESSAGE, Overlapped);
 
     if (IoSB->Status != STATUS_SUCCESS)
-    {
-        goto Exit;
-    }
+        goto QueueIoOperation;
+
+    assert(IoSB->Information >= KPH_MESSAGE_MIN_SIZE);
 
     if (IoSB->Information < KPH_MESSAGE_MIN_SIZE)
-    {
-        assert(FALSE);
-        goto Exit;
-    }
+        goto QueueIoOperation;
 
-    status = KphMsgValidate(&msg->Message);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = KphMsgValidate(&msg->Message)))
     {
-        assert(FALSE);
-        goto Exit;
-    }
-
-    // Boost the priority of the thread handling this message (dmex)
-    if (msg->Overlapped.hEvent)
-    {
-        NtSetEventBoostPriority(msg->Overlapped.hEvent);
+        assert(NT_SUCCESS(status));
+        goto QueueIoOperation;
     }
 
     if (msg->MessageHeader.ReplyLength)
-    {
         replyToken = (ULONG_PTR)&msg->MessageHeader;
-    }
     else
-    {
         replyToken = 0;
-    }
 
     if (KphpCommsRegisteredCallback)
-    {
         handled = KphpCommsRegisteredCallback(replyToken, &msg->Message);
-    }
     else
-    {
         handled = FALSE;
-    }
 
     if (!handled)
-    {
         KphpCommsCallbackUnhandled(replyToken, &msg->Message);
-    }
 
-Exit:
+QueueIoOperation:
 
     RtlZeroMemory(&msg->Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
 
@@ -168,6 +144,8 @@ Exit:
 
     if (status != STATUS_PENDING)
     {
+        assert(status == STATUS_PORT_DISCONNECTED);
+
         if (status == STATUS_PORT_DISCONNECTED)
         {
             //
@@ -175,10 +153,6 @@ Exit:
             // This can happen if the driver goes away before the client.
             //
             KphpCommsPortDisconnected = TRUE;
-        }
-        else
-        {
-            assert(FALSE);
         }
 
         TpCancelAsyncIoOperation(KphpCommsThreadPoolIo);
@@ -205,7 +179,7 @@ static VOID KphpTpSetPoolThreadBasePriority(
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(RtlNtdllName))
         {
             TpSetPoolThreadBasePriority_I = PhGetDllBaseProcedureAddress(baseAddress, "TpSetPoolThreadBasePriority", 0);
         }
@@ -240,21 +214,18 @@ NTSTATUS KphCommsStart(
     if (KphpCommsFltPortHandle)
     {
         status = STATUS_ALREADY_INITIALIZED;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    status = PhFilterConnectCommunicationPort(
+    if (!NT_SUCCESS(status = PhFilterConnectCommunicationPort(
         PortName,
         0,
         NULL,
         0,
         NULL,
         &KphpCommsFltPortHandle
-        );
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        )))
+        goto CleanupExit;
 
     KphpCommsPortDisconnected = FALSE;
     KphpCommsRegisteredCallback = Callback;
@@ -271,9 +242,8 @@ NTSTATUS KphCommsStart(
     if (KphpCommsMessageCount > KPH_COMMS_MAX_MESSAGES)
         KphpCommsMessageCount = KPH_COMMS_MAX_MESSAGES;
 
-    status = TpAllocPool(&KphpCommsThreadPool, NULL);
-    if (!NT_SUCCESS(status))
-        goto Exit;
+    if (!NT_SUCCESS(status = TpAllocPool(&KphpCommsThreadPool, NULL)))
+        goto CleanupExit;
 
     TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
     TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
@@ -287,37 +257,33 @@ NTSTATUS KphCommsStart(
 
     PhSetFileCompletionNotificationMode(KphpCommsFltPortHandle, FILE_SKIP_SET_EVENT_ON_HANDLE);
 
-    status = TpAllocIoCompletion(
+    if (!NT_SUCCESS(status = TpAllocIoCompletion(
         &KphpCommsThreadPoolIo,
         KphpCommsFltPortHandle,
         KphpCommsIoCallback,
         NULL,
         &KphpCommsThreadPoolEnv
-        );
-    if (!NT_SUCCESS(status))
-        goto Exit;
+        )))
+        goto CleanupExit;
 
     KphpCommsMessages = PhAllocateZeroSafe(sizeof(KPH_UMESSAGE) * KphpCommsMessageCount);
     if (!KphpCommsMessages)
     {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
     }
 
     for (ULONG i = 0; i < KphpCommsMessageCount; i++)
     {
-        status = PhCreateEvent(&KphpCommsMessages[i].Overlapped.hEvent,
-                               EVENT_ALL_ACCESS,
-                               NotificationEvent,
-                               FALSE);
+        if (!NT_SUCCESS(status = PhCreateEvent(
+            &KphpCommsMessages[i].Overlapped.hEvent,
+            EVENT_ALL_ACCESS,
+            NotificationEvent,
+            FALSE
+            )))
+            goto CleanupExit;
 
-        if (!NT_SUCCESS(status))
-            goto Exit;
-
-        //NtSetEventBoostPriority(KphpCommsMessages[i].Overlapped.hEvent);
-
-        RtlZeroMemory(&KphpCommsMessages[i].Overlapped,
-            FIELD_OFFSET(OVERLAPPED, hEvent));
+        RtlZeroMemory(&KphpCommsMessages[i].Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
 
         TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
@@ -334,17 +300,16 @@ NTSTATUS KphCommsStart(
         else
         {
             status = STATUS_FLT_INTERNAL_ERROR;
-            goto Exit;
+            goto CleanupExit;
         }
     }
 
     status = STATUS_SUCCESS;
 
-Exit:
+CleanupExit:
+
     if (!NT_SUCCESS(status))
-    {
         KphCommsStop();
-    }
 
     return status;
 }
@@ -357,9 +322,7 @@ VOID KphCommsStop(
     )
 {
     if (!KphpCommsFltPortHandle)
-    {
         return;
-    }
 
     PhWaitForRundownProtection(&KphpCommsRundown);
 
@@ -439,7 +402,7 @@ NTSTATUS KphCommsReplyMessage(
     if (!KphpCommsFltPortHandle)
     {
         status = STATUS_FLT_NOT_INITIALIZED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     if (!header || !header->ReplyLength)
@@ -448,20 +411,16 @@ NTSTATUS KphCommsReplyMessage(
         // Kernel is not expecting a reply.
         //
         status = STATUS_INVALID_PARAMETER_1;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    status = KphMsgValidate(Message);
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+    if (!NT_SUCCESS(status = KphMsgValidate(Message)))
+        goto CleanupExit;
 
-    reply = PhAllocateFromFreeList(&KphpCommsReplyFreeList);
-    if (!reply)
+    if (!(reply = PhAllocateFromFreeList(&KphpCommsReplyFreeList)))
     {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
     }
 
     RtlZeroMemory(reply, sizeof(KPH_UREPLY));
@@ -483,12 +442,10 @@ NTSTATUS KphCommsReplyMessage(
         KphpCommsPortDisconnected = TRUE;
     }
 
-Exit:
+CleanupExit:
 
     if (reply)
-    {
         PhFreeToFreeList(&KphpCommsReplyFreeList, reply);
-    }
 
     return status;
 }
@@ -510,15 +467,10 @@ NTSTATUS KphCommsSendMessage(
     ULONG bytesReturned;
 
     if (!KphpCommsFltPortHandle)
-    {
         return STATUS_FLT_NOT_INITIALIZED;
-    }
 
-    status = KphMsgValidate(Message);
-    if (!NT_SUCCESS(status))
-    {
+    if (!NT_SUCCESS(status = KphMsgValidate(Message)))
         return status;
-    }
 
     status = PhFilterSendMessage(
         KphpCommsFltPortHandle,

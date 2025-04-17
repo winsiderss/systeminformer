@@ -35,6 +35,7 @@ PhIsProcessSuspended(
     _In_ HANDLE ProcessId
     );
 
+PHAPPAPI
 BOOLEAN
 NTAPI
 PhIsProcessBackground(
@@ -42,7 +43,7 @@ PhIsProcessBackground(
     );
 
 PHAPPAPI
-PPH_STRINGREF
+PCPH_STRINGREF
 NTAPI
 PhGetProcessPriorityClassString(
     _In_ ULONG PriorityClass
@@ -656,6 +657,15 @@ PVOID
 NTAPI
 PhCreateKsiSettingsBlob( // ksisup.c
     VOID
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhQueryKphCounters( // ksisup.c
+    _Out_ PULONG64 Duration,
+    _Out_ PULONG64 DurationDown,
+    _Out_ PULONG64 DurationUp
     );
 // end_phapppub
 

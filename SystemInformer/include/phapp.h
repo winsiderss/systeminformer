@@ -138,11 +138,11 @@ VOID PhInitializeCallbacks(
     );
 
 BOOLEAN PhIsPluginDisabled(
-    _In_ PPH_STRINGREF BaseName
+    _In_ PCPH_STRINGREF BaseName
     );
 
 VOID PhSetPluginDisabled(
-    _In_ PPH_STRINGREF BaseName,
+    _In_ PCPH_STRINGREF BaseName,
     _In_ BOOLEAN Disable
     );
 
@@ -480,6 +480,11 @@ VOID PhShowProcessHeapsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhShowProcessLocksDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // hidnproc
 
 VOID PhShowZombieProcessesDialog(
@@ -514,12 +519,14 @@ VOID PhShowInformationDialog(
 VOID PhShowJobProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ PCWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateJobPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     );
@@ -632,22 +639,31 @@ VOID PhShowProcessMitigationPolicyDialog(
 
 HPROPSHEETPAGE PhCreateEventPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateEventPairPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateTimerPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
+    );
+
+HPROPSHEETPAGE PhCreateAfdSocketPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE HandleValue
     );
 
 HPROPSHEETPAGE PhCreateMappingsPage(
@@ -776,12 +792,8 @@ NTSTATUS PhInvokeRunAsService(
 
 // begin_phapppub
 
-_Function_class_(PH_SEARCHCONTROL_CALLBACK)
-typedef
-_Must_inspect_result_
-VOID
-NTAPI
-PH_SEARCHCONTROL_CALLBACK(
+typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
+VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     );
@@ -878,7 +890,7 @@ _Success_(return)
 BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType,
-    _Out_ PPH_STRINGREF* ElevationTypeString
+    _Out_ PCPH_STRINGREF* ElevationTypeString
     );
 
 VOID PhShowTokenProperties(

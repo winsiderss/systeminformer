@@ -6,11 +6,11 @@ del %~dp0\output\KSystemInformer.cab
 
 call %~dp0\build_zdriver.cmd release rebuild
 if %ERRORLEVEL% neq 0 (
-    echo [-] Build failed, CAB was not generated. 
+    echo [-] Build failed, CAB was not generated.
     goto end
 )
 
-mkdir %~dp0\output\cab 
+mkdir %~dp0\output\cab
 
 (robocopy %~dp0\..\KSystemInformer\bin %~dp0\output\cab *.sys *.dll *.pdb /mir) ^& if %ERRORLEVEL% lss 8 set ERRORLEVEL = 0
 if %ERRORLEVEL% neq 0 (
@@ -27,7 +27,7 @@ if %ERRORLEVEL% neq 0 (
 pushd %~dp0\output\cab
 makecab /f %~dp0\KSystemInformer.ddf
 if %ERRORLEVEL% neq 0 (
-    echo [-] Failed to generate CAB. 
+    echo [-] Failed to generate CAB.
     popd
     goto end
 )

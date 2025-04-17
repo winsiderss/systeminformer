@@ -17,8 +17,8 @@ BOOLEAN GeoDbExpired = FALSE;
 ULONG GeoLiteDatabaseType = 0;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbInstance = { 0 };
-PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
-PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
+CONST PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
+CONST PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
 PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
 PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -32,12 +32,12 @@ typedef struct _GEODB_IPADDR_CACHE_ENTRY
 typedef struct _GEODB_GEONAME_CACHE_TABLE
 {
     ULONG GeoNameID;
-    INT32 ResourceID;
+    LONG ResourceID;
 } GEODB_GEONAME_CACHE_TABLE, *PGEODB_GEONAME_CACHE_TABLE;
 
 typedef struct _GEODB_IMAGE_CACHE_TABLE
 {
-    INT IconIndex;
+    LONG IconIndex;
 } GEODB_IMAGE_CACHE_TABLE, *PGEODB_IMAGE_CACHE_TABLE;
 
 CONST GEODB_GEONAME_CACHE_TABLE GeoCountryResourceTable[] =
@@ -405,7 +405,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
             return FALSE;
     }
 
-    if (RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
+    if (RemoteAddress.Type == PH_NETWORK_TYPE_IPV4)
     {
         SOCKADDR_IN ipv4SockAddr;
 
@@ -483,7 +483,7 @@ BOOLEAN LookupSockInAddr4CountryCode(
     PH_IP_ADDRESS remoteAddress;
 
     memset(&remoteAddress, 0, sizeof(PH_IP_ADDRESS));
-    remoteAddress.Type = PH_IPV4_NETWORK_TYPE;
+    remoteAddress.Type = PH_NETWORK_TYPE_IPV4;
     remoteAddress.InAddr = RemoteAddress;
 
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);
@@ -499,7 +499,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     PH_IP_ADDRESS remoteAddress;
 
     memset(&remoteAddress, 0, sizeof(PH_IP_ADDRESS));
-    remoteAddress.Type = PH_IPV6_NETWORK_TYPE;
+    remoteAddress.Type = PH_NETWORK_TYPE_IPV6;
     remoteAddress.In6Addr = RemoteAddress;
 
     return LookupCountryCodeFromMmdb(remoteAddress, CountryCode, CountryName);

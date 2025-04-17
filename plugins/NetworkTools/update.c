@@ -172,30 +172,12 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
-    {
-        PPH_STRING userAgentString = GeoLiteCreateUserAgentString();
-
-        if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
-        {
-            PhClearReference(&userAgentString);
-            Context->ErrorCode = ERROR_INVALID_DATA;
-            goto CleanupExit;
-        }
-
-        PhClearReference(&userAgentString);
-    }
-
-    if (!PhHttpSocketConnect(httpContext, L"download.maxmind.com", PH_HTTP_DEFAULT_HTTPS_PORT))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(httpContext, NULL, PhGetString(httpRequestString), PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"download.maxmind.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
         goto CleanupExit;
-    }
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpRequestString), PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
@@ -205,15 +187,14 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
         if (PhIsNullOrEmptyString(key) || PhIsNullOrEmptyString(id))
         {
-            Context->ErrorCode = ERROR_GENERIC_COMMAND_FAILED;
+            status = STATUS_GENERIC_COMMAND_FAILED;
             PhClearReference(&key);
             PhClearReference(&id);
             goto CleanupExit;
         }
 
-        if (!PhHttpSocketSetCredentials(httpContext, PhGetString(id), PhGetString(key)))
+        if (!NT_SUCCESS(status = PhHttpSetCredentials(httpContext, PhGetString(id), PhGetString(key))))
         {
-            Context->ErrorCode = GetLastError();
             PhClearReference(&key);
             PhClearReference(&id);
             goto CleanupExit;
@@ -223,53 +204,17 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         PhClearReference(&id);
     }
 
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
         goto CleanupExit;
-    }
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
-    if (!PhHttpSocketEndRequest(httpContext))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
         goto CleanupExit;
-    }
-
-    // Check http request status.
-
-    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus))
-    {
-        Context->ErrorCode = GetLastError();
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
-    }
-
-    if (httpStatus != PH_HTTP_STATUS_OK)
-    {
-        switch (httpStatus)
-        {
-        case 401:
-            Context->ErrorCode = ERROR_ACCESS_DENIED;
-            break;
-        default:
-            Context->ErrorCode = ERROR_UNHANDLED_ERROR;
-            break;
-        }
-
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &httpContentLength)))
         goto CleanupExit;
-    }
-
-    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &httpContentLength))
-    {
-        Context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-    if (httpContentLength == 0)
-    {
-        Context->ErrorCode = ERROR_INVALID_DATA;
-        goto CleanupExit;
-    }
 
     // Update status message.
 
@@ -280,11 +225,11 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     // Extract the content hash from the request headers.
 
-    httpHeaderFileHash = PhHttpSocketQueryHeaderString(httpContext, L"ETag");
+    httpHeaderFileHash = PhHttpQueryHeaderString(httpContext, L"ETag");
 
     if (PhIsNullOrEmptyString(httpHeaderFileHash))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_DATA_CHECKSUM_ERROR;
         goto CleanupExit;
     }
 
@@ -295,17 +240,17 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     // Extract the filename from the request headers.
 
-    httpHeaderFileName = PhHttpSocketQueryHeaderString(httpContext, L"content-disposition");
+    httpHeaderFileName = PhHttpQueryHeaderString(httpContext, L"content-disposition");
 
     if (PhIsNullOrEmptyString(httpHeaderFileName))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
     if (!PhStartsWithString2(httpHeaderFileName, L"attachment; filename=", TRUE))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
@@ -314,7 +259,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     httpString = GeoLiteDatabaseNameFormatString(L"GeoLite2-%s");
     if (!PhStartsWithString(httpHeaderFileName, httpString, TRUE))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_FAIL_CHECK;
         PhDereferenceObject(httpString);
         goto CleanupExit;
     }
@@ -322,7 +267,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     if (!PhEndsWithString2(httpHeaderFileName, L".tar.gz", TRUE))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
@@ -332,7 +277,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
     if (PhIsNullOrEmptyString(httpHeaderFileName))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        status = STATUS_FAIL_CHECK;
         goto CleanupExit;
     }
 
@@ -341,7 +286,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     status = PhCreateFileWin32Ex(
         &tempFileHandle,
         PhGetString(httpHeaderFileName),
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_GENERIC_WRITE,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -351,10 +296,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        Context->ErrorCode = PhNtStatusToDosError(status);
         goto CleanupExit;
-    }
 
     // Start downloading the update into the cache.
     {
@@ -370,8 +312,13 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
         memset(buffer, 0, sizeof(buffer));
         PhQuerySystemTime(&timeStart);
 
-        while (PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
+        while (TRUE)
         {
+            status = PhHttpReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
             // If we get zero bytes, the file was downloaded or there was an error.
             if (bytesDownloaded == 0)
                 break;
@@ -379,7 +326,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
             // If the dialog was closed then cleanup and exit.
             if (!Context->DialogHandle)
             {
-                Context->ErrorCode = ERROR_INVALID_DATA;
+                status = STATUS_FAIL_CHECK;
                 goto CleanupExit;
             }
 
@@ -396,15 +343,12 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
                 );
 
             if (!NT_SUCCESS(status))
-            {
-                Context->ErrorCode = PhNtStatusToDosError(status);
                 goto CleanupExit;
-            }
 
             // Check the downloaded was copied to the file.
             if (bytesDownloaded != isb.Information)
             {
-                Context->ErrorCode = ERROR_INVALID_DATA;
+                status = STATUS_FAIL_CHECK;
                 goto CleanupExit;
             }
 
@@ -453,7 +397,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
         if (!PhFinalHash(&hashContext, finalHashBuffer, 16, NULL))
         {
-            Context->ErrorCode = ERROR_INVALID_DATA;
+            status = STATUS_FAIL_CHECK;
             goto CleanupExit;
         }
 
@@ -461,7 +405,7 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
 
         if (!PhEqualString(finalHashString, httpHeaderFileHash, TRUE))
         {
-            Context->ErrorCode = ERROR_SYSTEM_IMAGE_BAD_SIGNATURE;
+            status = STATUS_FAIL_CHECK;
             goto CleanupExit;
         }
 
@@ -471,11 +415,12 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     }
 
 CleanupExit:
+    Context->ErrorCode = PhNtStatusToDosError(status);
 
     if (tempFileHandle)
         NtClose(tempFileHandle);
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+        PhHttpDestroy(httpContext);
     if (httpHeaderFileHash)
         PhDereferenceObject(httpHeaderFileHash);
     if (httpRequestString)
@@ -509,10 +454,20 @@ BOOLEAN GeoLiteMoveUpdateToFile(
 
     // Get the current database filename.
 
-    if (GeoLiteDatabaseType)
-        existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
+    if (SystemInformer_IsPortableMode())
+    {
+        if (GeoLiteDatabaseType)
+            existingFileName = PhGetApplicationDirectoryFileName(&GeoDbCityFileName, FALSE);
+        else
+            existingFileName = PhGetApplicationDirectoryFileName(&GeoDbCountryFileName, FALSE);
+    }
     else
-        existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
+    {
+        if (GeoLiteDatabaseType)
+            existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
+        else
+            existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
+    }
 
     if (PhIsNullOrEmptyString(existingFileName))
     {
@@ -644,7 +599,7 @@ LRESULT CALLBACK GeoLiteDialogSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
 
             PhUnregisterWindowCallback(hwndDlg);
@@ -700,9 +655,9 @@ HRESULT CALLBACK GeoLiteDialogBootstrapCallback(
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             // Subclass the Taskdialog.
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)GeoLiteDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, GeoLiteDialogSubclassProc);
 
             ShowDbCheckForUpdatesDialog(context);
         }

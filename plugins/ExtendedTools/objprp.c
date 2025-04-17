@@ -285,26 +285,32 @@ LRESULT CALLBACK EtpGeneralPageWindowSubclassProc(
     )
 {
     PET_GENERAL_PAGE_CONTEXT context;
+    WNDPROC oldWndProc;
 
     if (!(context = PhGetWindowContext(hWnd, 'OBJH')))
         return FALSE;
 
-    WNDPROC oldWndProc = context->OldWndProc;
+    oldWndProc = context->OldWndProc;
 
-    if (uMsg == WM_NOTIFY && ((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
+    switch (uMsg)
     {
-        if (!context->PageSwitched)
+    case WM_NCDESTROY:
         {
-            PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
-            context->PageSwitched = TRUE;
+            PhSetWindowProcedure(hWnd, oldWndProc);
+            PhRemoveWindowContext(hWnd, 'OBJH');
+            PhFree(context);
         }
+        break;
     }
-    else if (uMsg == WM_NCDESTROY)
-    {
-        PhSetWindowProcedure(hWnd, oldWndProc);
-        PhRemoveWindowContext(hWnd, 'OBJH');
-        PhFree(context);
-    }
+
+    //if (uMsg == WM_NOTIFY && ((LPNMHDR)lParam)->code == PSN_QUERYINITIALFOCUS)  // HACK
+    //{
+    //    if (!context->PageSwitched)
+    //    {
+    //        PropSheet_SetCurSel(context->ParentWindow, NULL, 1);
+    //        context->PageSwitched = TRUE;
+    //    }
+    //}
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
@@ -319,31 +325,34 @@ VOID EtHandlePropertiesWindowInitialized(
     if (EtObjectManagerDialogHandle)
     {
         // HACK
-        if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
-        else
-            PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
+        //if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION).X != 0)
+        //    PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
+        //else
+        //    PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
         PhSetWindowIcon(context->ParentWindow, EtObjectManagerPropIcon, NULL, 0);
 
         // Open Handles page if needed
-        if (EtObjectManagerShowHandlesPage)
-        {
-            HWND generalPage = GetParent(context->ListViewHandle);  // HACK
-            PET_GENERAL_PAGE_CONTEXT pageContext = PhAllocateZero(sizeof(ET_GENERAL_PAGE_CONTEXT));
-            pageContext->OldWndProc = PhGetWindowProcedure(generalPage);
-            pageContext->ParentWindow = context->ParentWindow;
-            PhSetWindowContext(generalPage, 'OBJH', pageContext);
-            PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
-
-            EtObjectManagerShowHandlesPage = FALSE;
-        }
+        //if (EtObjectManagerShowHandlesPage)
+        //{
+        //    HWND generalPage = GetParent(context->ListViewHandle);  // HACK
+        //    PET_GENERAL_PAGE_CONTEXT pageContext = PhAllocateZero(sizeof(ET_GENERAL_PAGE_CONTEXT));
+        //    pageContext->OldWndProc = PhGetWindowProcedure(generalPage);
+        //    pageContext->ParentWindow = context->ParentWindow;
+        //    PhSetWindowContext(generalPage, 'OBJH', pageContext);
+        //    PhSetWindowProcedure(generalPage, EtpGeneralPageWindowSubclassProc);
+        //
+        //    EtObjectManagerShowHandlesPage = FALSE;
+        //}
 
         // Show real handles count
         if (context->ProcessId == NtCurrentProcessId())
         {
             ULONG64 real_count = ULONG64_MAX;
-            PPH_STRING count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
+            PPH_STRING count;
+
+            count = PH_AUTO(PhGetListViewItemText(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_INDEX_HANDLES, 1));
+
             if (!PhIsNullOrEmptyString(count) && PhStringToUInt64(&count->sr, 0, &real_count) && real_count > 0)
             {
                 PhPrintUInt32(string, OBJECT_CORRECT_HANDLES_COUNT(real_count));
@@ -382,26 +391,28 @@ VOID EtHandlePropertiesWindowInitialized(
 
         PhAddListViewGroupItem(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_BASICINFO, OBJECT_GENERAL_INDEX_ATTRIBUTES, L"Object attributes", NULL);
 
-        // Show object attributes
-        PPH_STRING Attributes;
-        PH_STRING_BUILDER stringBuilder;
+        {
+            // Show object attributes
+            PPH_STRING Attributes;
+            PH_STRING_BUILDER stringBuilder;
 
-        PhInitializeStringBuilder(&stringBuilder, 10);
-        if (context->HandleItem->Attributes & OBJ_PERMANENT)
-            PhAppendStringBuilder2(&stringBuilder, L"Permanent, ");
-        if (context->HandleItem->Attributes & OBJ_EXCLUSIVE)
-            PhAppendStringBuilder2(&stringBuilder, L"Exclusive, ");
-        if (context->HandleItem->Attributes & OBJ_KERNEL_HANDLE)
-            PhAppendStringBuilder2(&stringBuilder, L"Kernel object, ");
-        if (context->HandleItem->Attributes & PH_OBJ_KERNEL_ACCESS_ONLY)
-            PhAppendStringBuilder2(&stringBuilder, L"Kernel only access, ");
+            PhInitializeStringBuilder(&stringBuilder, 10);
+            if (context->HandleItem->Attributes & OBJ_PERMANENT)
+                PhAppendStringBuilder2(&stringBuilder, L"Permanent, ");
+            if (context->HandleItem->Attributes & OBJ_EXCLUSIVE)
+                PhAppendStringBuilder2(&stringBuilder, L"Exclusive, ");
+            if (context->HandleItem->Attributes & OBJ_KERNEL_HANDLE)
+                PhAppendStringBuilder2(&stringBuilder, L"Kernel object, ");
+            if (context->HandleItem->Attributes & PH_OBJ_KERNEL_ACCESS_ONLY)
+                PhAppendStringBuilder2(&stringBuilder, L"Kernel only access, ");
 
-        // Remove the trailing ", ".
-        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-            PhRemoveEndStringBuilder(&stringBuilder, 2);
+            // Remove the trailing ", ".
+            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-        Attributes = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
-        PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_ATTRIBUTES, 1, PhGetString(Attributes));
+            Attributes = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+            PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_ATTRIBUTES, 1, PhGetString(Attributes));
+        }
     }
 
     // General ET plugin extensions
@@ -450,8 +461,11 @@ VOID EtHandlePropertiesWindowInitialized(
                     NULL
                     )))
                 {
-                    PPH_STRING size = PH_AUTO(PhFormatSize(basicInfo.DriverSize, ULONG_MAX));
-                    PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DRIVERSIZE, 1, PhGetString(size));
+                    PhSetListViewSubItem(
+                        context->ListViewHandle,
+                        OBJECT_GENERAL_INDEX_DRIVERSIZE, 1,
+                        PhGetString(PH_AUTO_T(PH_STRING, PhFormatSize(basicInfo.DriverSize, ULONG_MAX)))
+                        );
 
                     PhPrintPointer(string, basicInfo.DriverStart);
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DRIVERSTART, 1, string);
@@ -523,6 +537,7 @@ VOID EtHandlePropertiesWindowInitialized(
 
                             NtClose(driverObject);
                         }
+
                         NtClose(deviceBaseObject);
                     }
 
@@ -607,23 +622,20 @@ VOID EtHandlePropertiesWindowInitialized(
                 context->HandleItem->Handle
                 )))
             {
-                DWORD nLengthNeeded = 0;
                 ULONG vInfo = 0;
-                PSID UserSid = NULL;
+                ULONG length = SECURITY_MAX_SID_SIZE;
+                UCHAR buffer[SECURITY_MAX_SID_SIZE];
+                PSID UserSid = (PSID)buffer;
 
                 if (GetUserObjectInformation(hDesktop, UOI_IO, &vInfo, sizeof(vInfo), NULL))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DESKTOPIO, 1, !!vInfo ? L"True" : L"False");
                 }
 
-                GetUserObjectInformation(hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
-                if (nLengthNeeded)
-                    UserSid = PhAllocate(nLengthNeeded);
-                if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+                if (GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, SECURITY_MAX_SID_SIZE, &length))
                 {
                     PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
                     PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_DESKTOPSID, 1, PhGetString(sid));
-                    PhFree(UserSid);
                 }
 
                 if (GetUserObjectInformation(hDesktop, UOI_HEAPSIZE, &vInfo, sizeof(vInfo), NULL))
@@ -644,8 +656,6 @@ VOID EtHandlePropertiesWindowInitialized(
             ULONG typeIndex;
             PPH_STRING accessString;
             PH_STRING_BUILDER stringBuilder;
-
-            ListView_RemoveGroup(context->ListViewHandle, PH_PLUGIN_HANDLE_GENERAL_CATEGORY_QUOTA);
 
             PhAddListViewGroup(context->ListViewHandle, OBJECT_GENERAL_CATEGORY_TYPE, L"Type information");
             PhAddListViewGroupItem(context->ListViewHandle,OBJECT_GENERAL_CATEGORY_TYPE, OBJECT_GENERAL_INDEX_TYPEINDEX, L"Index", NULL);
@@ -682,22 +692,16 @@ VOID EtHandlePropertiesWindowInitialized(
                             PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPEPEAKHANDLES, 1, string);
                             PhPrintUInt32(string, objectType->DefaultPagedPoolCharge);
 
-                            PWSTR PoolType = NULL;
-                            switch (objectType->PoolType) {
-                                case NonPagedPool:
-                                    PoolType = L"Non Paged";
-                                    break;
-                                case PagedPool:
-                                    PoolType = L"Paged";
-                                    break;
-                                case NonPagedPoolNx:
-                                    PoolType = L"Non Paged NX";
-                                    break;
-                                case PagedPoolSessionNx:
-                                    PoolType = L"Paged Session NX";
-                                    break;
+                            PWSTR poolTypeString = L"";
+                            switch (objectType->PoolType)
+                            {
+                                case NonPagedPool: poolTypeString = L"Non Paged"; break;
+                                case PagedPool: poolTypeString = L"Paged"; break;
+                                case NonPagedPoolNx: poolTypeString = L"Non Paged NX"; break;
+                                case PagedPoolSessionNx: poolTypeString = L"Paged Session NX"; break;
                             }
-                            PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, 1, PoolType);
+
+                            PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPEPOOLTYPE, 1, poolTypeString);
                             PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPEPAGECHARGE, 1, string);
                             PhPrintUInt32(string, objectType->DefaultNonPagedPoolCharge);
                             PhSetListViewSubItem(context->ListViewHandle, OBJECT_GENERAL_INDEX_TYPENPAGECHARGE, 1, string);
@@ -853,13 +857,11 @@ ULONG EtSessionIdFromObjectName(
     )
 {
     static PH_STRINGREF session = PH_STRINGREF_INIT(L"Session");
-
     ULONG sessionId = ULONG_MAX;
     PH_STRINGREF firstPart;
     PH_STRINGREF idString;
 
-    if (PhSplitStringRefAtString(Name, &session, TRUE, &firstPart, &idString) &&
-        idString.Length > 0)
+    if (PhSplitStringRefAtString(Name, &session, TRUE, &firstPart, &idString) && idString.Length > 0)
     {
         LONG64 id;
         if (PhStringToInteger64(&idString, 0, &id))
@@ -869,7 +871,7 @@ ULONG EtSessionIdFromObjectName(
     return sessionId;
 }
 
-PWSTR EtMapSessionConnectState(
+PCWSTR EtMapSessionConnectState(
     _In_ WINSTATIONSTATECLASS State
     )
 {
@@ -887,9 +889,9 @@ PWSTR EtMapSessionConnectState(
         SIP(L"Init", State_Init)
     };
 
-    PWSTR stateString = NULL;
+    PCWSTR stateString = NULL;
 
-    PhFindStringSiKeyValuePairs(
+    PhIndexStringSiKeyValuePairs(
         EtpConnectStatePairs,
         sizeof(EtpConnectStatePairs),
         State,
@@ -1244,7 +1246,7 @@ VOID EtpEnumObjectHandles(
                         // Open a handle to the process if we don't already have one.
                         processHandlePtr = PhFindItemSimpleHashtable(
                             processHandleHashtable,
-                            (PVOID)handleInfo->UniqueProcessId
+                            handleInfo->UniqueProcessId
                             );
 
                         if (processHandlePtr)
@@ -1256,12 +1258,12 @@ VOID EtpEnumObjectHandles(
                             if (NT_SUCCESS(PhOpenProcess(
                                 &processHandle,
                                 (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
-                                (HANDLE)handleInfo->UniqueProcessId
+                                handleInfo->UniqueProcessId
                                 )))
                             {
                                 PhAddItemSimpleHashtable(
                                     processHandleHashtable,
-                                    (PVOID)handleInfo->UniqueProcessId,
+                                    handleInfo->UniqueProcessId,
                                     processHandle
                                     );
                             }
@@ -1275,7 +1277,7 @@ VOID EtpEnumObjectHandles(
                         {
                             if (NT_SUCCESS(PhGetHandleInformation(
                                 processHandle,
-                                (HANDLE)handleInfo->HandleValue,
+                                handleInfo->HandleValue,
                                 handleInfo->ObjectTypeIndex,
                                 NULL,
                                 NULL,
@@ -1305,7 +1307,7 @@ VOID EtpEnumObjectHandles(
 
                             if (NT_SUCCESS(PhGetHandleInformation(
                                 processHandle,
-                                (HANDLE)handleInfo->HandleValue,
+                                handleInfo->HandleValue,
                                 handleInfo->ObjectTypeIndex,
                                 NULL,
                                 NULL,
@@ -1335,7 +1337,7 @@ VOID EtpEnumObjectHandles(
         }
 
         while (PhEnumHashtable(processHandleHashtable, &procEntry, &j))
-            NtClose((HANDLE)procEntry->Value);
+            NtClose(procEntry->Value);
 
         PhDereferenceObject(processHandleHashtable);
 
@@ -1354,7 +1356,7 @@ VOID EtpEnumObjectHandles(
 
             // Skip Object Manager own handles
             if (handleInfo->UniqueProcessId == NtCurrentProcessId() &&
-                PhFindItemList(EtObjectManagerOwnHandles, (PVOID)handleInfo->HandleValue) != ULONG_MAX)
+                PhFindItemList(EtObjectManagerOwnHandles, handleInfo->HandleValue) != ULONG_MAX)
             {
                 continue;
             }
@@ -1489,7 +1491,7 @@ VOID EtpShowHandleProperties(
 {
     EtUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
 
-    PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, (PPH_PLUGIN)((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW), NULL);
+    PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, NULL, NULL);
 }
 
 VOID EtpUpdateGeneralTab(
@@ -2069,16 +2071,12 @@ static BOOL CALLBACK EtpEnumDesktopsCallback(
 
     if (hDesktop = OpenDesktop(lpszDesktop, 0, FALSE, DESKTOP_READOBJECTS))
     {
-        DWORD nLengthNeeded = 0;
+        ULONG length = SECURITY_MAX_SID_SIZE;
+        UCHAR buffer[SECURITY_MAX_SID_SIZE];
+        PSID UserSid = (PSID)buffer;
         ULONG vInfo = 0;
-        PSID UserSid = NULL;
 
-        GetUserObjectInformation(hDesktop, UOI_USER_SID, NULL, 0, &nLengthNeeded);
-
-        if (nLengthNeeded)
-            UserSid = PhAllocate(nLengthNeeded);
-
-        if (UserSid && GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, nLengthNeeded, &nLengthNeeded))
+        if (GetUserObjectInformation(hDesktop, UOI_USER_SID, UserSid, SECURITY_MAX_SID_SIZE, &length))
         {
             PPH_STRING sid = PH_AUTO(PhSidToStringSid(UserSid));
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, ETDTLVC_SID, PhGetString(sid));
@@ -2324,6 +2322,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             ULONG numberOfItems;
 
             PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
             if (numberOfItems != 0)
             {
                 POINT point;
@@ -2338,7 +2337,6 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 menu = PhCreateEMenu();
-
                 PhInsertEMenuItem(menu, secMenuItem = PhCreateEMenuItem(0, IDC_SECURITY, L"&Security\bEnter", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);

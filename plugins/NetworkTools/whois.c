@@ -195,32 +195,36 @@ BOOLEAN WhoisExtractReferralServer(
     _Out_opt_ USHORT *WhoisServerPort
     )
 {
-    ULONG_PTR whoisServerHostnameIndex;
+    ULONG_PTR whoisServerHostnameStartIndex;
+    ULONG_PTR whoisServerHostnameEndIndex;
     ULONG_PTR whoisServerHostnameLength;
     PPH_STRING whoisServerName;
-    PPH_STRING whoisServerHostname;
     WCHAR urlProtocal[0x100] = L"";
     WCHAR urlHost[0x100] = L"";
     WCHAR urlPort[0x100] = L"";
     WCHAR urlPath[0x100] = L"";
 
-    if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponse, 0, L"ReferralServer:")) == SIZE_MAX)
+    whoisServerHostnameStartIndex = PhFindStringInString(WhoisResponse, 0, L"ReferralServer:");
+    if (whoisServerHostnameStartIndex == SIZE_MAX)
         return FALSE;
-    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponse, whoisServerHostnameIndex, L"\n")) == SIZE_MAX)
+
+    whoisServerHostnameEndIndex = PhFindStringInString(WhoisResponse, whoisServerHostnameStartIndex, L"\n");
+    if (whoisServerHostnameEndIndex == SIZE_MAX)
         return FALSE;
-    if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
+
+    whoisServerHostnameLength = whoisServerHostnameEndIndex - whoisServerHostnameStartIndex;
+    if (whoisServerHostnameLength == 0)
         return FALSE;
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + (RTL_NUMBER_OF(L"ReferralServer:") - 1),
+        whoisServerHostnameStartIndex + (RTL_NUMBER_OF(L"ReferralServer:") - 1),
         whoisServerHostnameLength - (RTL_NUMBER_OF(L"ReferralServer:") - 1)
         );
-
-    whoisServerHostname = TrimString(whoisServerName);
+    PhMoveReference(&whoisServerName, TrimString(whoisServerName));
 
     if (swscanf_s(
-        whoisServerHostname->Buffer,
+        whoisServerName->Buffer,
         L"%255[^:]://%255[^:]:%255[^/]/%255s",
         urlProtocal,
         (UINT)RTL_NUMBER_OF(urlProtocal),
@@ -234,7 +238,14 @@ BOOLEAN WhoisExtractReferralServer(
     {
         if (WhoisServerAddress)
         {
-            *WhoisServerAddress = PhCreateString(urlHost);
+            if (PhFindStringInString(whoisServerName, 0, L"://") == SIZE_MAX)
+            {
+                *WhoisServerAddress = PhCreateString(urlProtocal);
+            }
+            else
+            {
+                *WhoisServerAddress = PhCreateString(urlHost);
+            }
         }
 
         if (WhoisServerPort)
@@ -258,14 +269,10 @@ BOOLEAN WhoisExtractReferralServer(
         }
 
         PhDereferenceObject(whoisServerName);
-        PhDereferenceObject(whoisServerHostname);
-
         return TRUE;
     }
 
     PhDereferenceObject(whoisServerName);
-    PhDereferenceObject(whoisServerHostname);
-
     return FALSE;
 }
 
@@ -274,7 +281,7 @@ SOCKET WhoisDualStackSocketCreate(
     )
 {
     SOCKET socketHandle;
-    INT socketOpt;
+    LONG socketOpt;
 
     socketHandle = WSASocket(
         AF_INET6,
@@ -295,7 +302,7 @@ SOCKET WhoisDualStackSocketCreate(
         IPPROTO_IPV6,
         IPV6_V6ONLY,
         (PCSTR)&socketOpt,
-        sizeof(INT)
+        sizeof(LONG)
         ) == SOCKET_ERROR)
     {
         closesocket(socketHandle);
@@ -319,8 +326,8 @@ BOOLEAN WhoisDualStackSocketConnectByAddressList(
     ULONG socketAddressListBytes = 0;
     PSOCKADDR_IN6 socketAddressArray = NULL;
     PSOCKET_ADDRESS_LIST socketAddressList = NULL;
-    INT dnsRecordListCount = 0;
-    INT socketAddressCount = 0;
+    LONG dnsRecordListCount = 0;
+    LONG socketAddressCount = 0;
 
     for (PDNS_RECORD i = DnsRecordList; i; i = i->pNext)
     {
@@ -829,9 +836,9 @@ VOID WhoisParseAddressString(
 {
     ULONG remoteAddressStringLength = RTL_NUMBER_OF(Context->RemoteAddressString);
 
-    if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    if (Context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
     {
-        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+        if (NT_SUCCESS(PhIpv4AddressToString(
             &Context->RemoteEndpoint.Address.InAddr,
             0,
             Context->RemoteAddressString,

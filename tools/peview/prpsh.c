@@ -475,7 +475,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     dpiValue = PhGetWindowDpi(hwnd);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue)->Pair;
 
     if (!windowRectangle.Position.X)
         return;
@@ -648,7 +648,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
 
         // Calculate the margin from the original rectangle.
         GetWindowRect(Handle, &margin);
-        margin = PhMapRect(margin, dialogRect);
+        PhMapRect(&margin, &margin, &dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
         item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);

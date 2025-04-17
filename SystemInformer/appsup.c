@@ -85,37 +85,36 @@ BOOLEAN PhIsProcessBackground(
     return FALSE;
 }
 
-PPH_STRINGREF PhGetProcessPriorityClassString(
+static CONST PH_KEY_VALUE_PAIR ProcessPriorityClassTypePairs[] =
+{
+    SIP(SREF(L"Unknown"), PROCESS_PRIORITY_CLASS_UNKNOWN),
+    SIP(SREF(L"Idle"), PROCESS_PRIORITY_CLASS_IDLE),
+    SIP(SREF(L"Normal"), PROCESS_PRIORITY_CLASS_NORMAL),
+    SIP(SREF(L"High"), PROCESS_PRIORITY_CLASS_HIGH),
+    SIP(SREF(L"Real time"), PROCESS_PRIORITY_CLASS_REALTIME),
+    SIP(SREF(L"Below normal"), PROCESS_PRIORITY_CLASS_BELOW_NORMAL),
+    SIP(SREF(L"Above normal"), PROCESS_PRIORITY_CLASS_ABOVE_NORMAL),
+};
+
+PCPH_STRINGREF PhGetProcessPriorityClassString(
     _In_ ULONG PriorityClass
     )
 {
-    static PH_STRINGREF PriorityClassString[] =
-    {
-        PH_STRINGREF_INIT(L"Unknown"),
-        PH_STRINGREF_INIT(L"Idle"),
-        PH_STRINGREF_INIT(L"Normal"),
-        PH_STRINGREF_INIT(L"High"),
-        PH_STRINGREF_INIT(L"Real time"),
-        PH_STRINGREF_INIT(L"Below normal"),
-        PH_STRINGREF_INIT(L"Above normal")
-    };
+    PCPH_STRINGREF string;
 
-    static_assert(ARRAYSIZE(PriorityClassString) == PROCESS_PRIORITY_CLASS_ABOVE_NORMAL + 1, "PriorityClassString must equal PROCESS_PRIORITY_CLASS_MAX");
-
-    switch (PriorityClass)
+    if (PhIndexStringRefSiKeyValuePairs(
+        ProcessPriorityClassTypePairs,
+        sizeof(ProcessPriorityClassTypePairs),
+        PriorityClass,
+        &string
+        ))
     {
-    case PROCESS_PRIORITY_CLASS_UNKNOWN:
-    case PROCESS_PRIORITY_CLASS_IDLE:
-    case PROCESS_PRIORITY_CLASS_NORMAL:
-    case PROCESS_PRIORITY_CLASS_HIGH:
-    case PROCESS_PRIORITY_CLASS_REALTIME:
-    case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
-    case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
-        return &PriorityClassString[PriorityClass];
+        return string;
     }
 
-    assert(FALSE);
-    return NULL;
+    static_assert(ARRAYSIZE(ProcessPriorityClassTypePairs) == PROCESS_PRIORITY_CLASS_ABOVE_NORMAL + 1, "PriorityClassString must equal PROCESS_PRIORITY_CLASS_MAX");
+
+    return (PCPH_STRINGREF)ProcessPriorityClassTypePairs[PROCESS_PRIORITY_CLASS_UNKNOWN].Key;
 
     //switch (PriorityClass)
     //{
@@ -1321,7 +1320,7 @@ NTSTATUS PhShellProcessHacker(
 
 VOID PhpAppendCommandLineArgument(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PPH_STRINGREF Value
     )
 {
@@ -2046,7 +2045,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 
     context = PhAllocate(sizeof(PH_COPY_ITEM_CONTEXT));
     context->ListViewHandle = ListViewHandle;
-    context->ListViewClass = nullptr;
+    context->ListViewClass = NULL;
     context->Id = lvHitInfo.iItem;
     context->SubId = lvHitInfo.iSubItem;
     context->MenuItemText = menuItemText;

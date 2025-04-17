@@ -79,6 +79,26 @@ NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     );
 
+VOID PhMwpInvokePrepareEarlyExit(
+    _In_ HWND WindowHandle
+    );
+
+VOID PhMwpInvokeActivateWindow(
+    _In_ BOOLEAN Toggle
+    );
+
+VOID PhMwpInvokeSelectTabPage(
+    _In_ PVOID Parameter
+    );
+
+VOID PhMwpInvokeSelectServiceItem(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    );
+
+VOID PhMwpInvokeSelectNetworkItem(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    );
+
 VOID PhMwpInvokeUpdateWindowFont(
     _In_opt_ PVOID Parameter
     );

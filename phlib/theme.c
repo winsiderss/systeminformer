@@ -2171,6 +2171,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
         {
             LONG dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
             HFONT fontHandle = NULL;
+            HFONT oldFontHandle = NULL;
             LVGROUP groupInfo;
 
             {
@@ -2187,7 +2188,10 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
             //SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
-            SelectFont(DrawInfo->nmcd.hdc, fontHandle);
+            if (fontHandle)
+            {
+                oldFontHandle = SelectFont(DrawInfo->nmcd.hdc, fontHandle);
+            }
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);
@@ -2216,6 +2220,11 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                         );
                     DrawInfo->rcText.left -= PhGetDpi(10, dpiValue);
                 }
+            }
+
+            if (oldFontHandle)
+            {
+                SelectFont(DrawInfo->nmcd.hdc, oldFontHandle);
             }
 
             if (fontHandle)
@@ -2429,6 +2438,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_ENABLE:
         if (!wParam)    // fix drawing when window visible and switches to disabled
             return 0;
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;

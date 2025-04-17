@@ -772,21 +772,21 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
 
 typedef struct _TS_ALL_PROCESSES_INFO
 {
-    PTS_SYS_PROCESS_INFORMATION pTsProcessInfo;
+    PTS_SYS_PROCESS_INFORMATION TsProcessInfo;
     ULONG SizeOfSid;
-    PSID pSid;
+    PSID Sid;
 } TS_ALL_PROCESSES_INFO, *PTS_ALL_PROCESSES_INFO;
 
 typedef struct _TS_COUNTER_HEADER
 {
-    DWORD dwCounterID;
-    BOOLEAN bResult;
+    ULONG CounterID;
+    BOOLEAN Result;
 } TS_COUNTER_HEADER, *PTS_COUNTER_HEADER;
 
 typedef struct _TS_COUNTER
 {
     TS_COUNTER_HEADER CounterHead;
-    DWORD dwValue;
+    ULONG Value;
     LARGE_INTEGER StartTime;
 } TS_COUNTER, *PTS_COUNTER;
 
@@ -1097,7 +1097,7 @@ WinStationGetProcessSid(
 
 // Services isolation
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // rev
 NTSYSAPI

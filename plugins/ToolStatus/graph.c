@@ -196,7 +196,8 @@ VOID ToolbarRegisterGraph(
 
 BOOLEAN ToolbarAddGraph(
     _In_ PPH_TOOLBAR_GRAPH Graph,
-    _In_ ULONG RebarHeight
+    _In_ ULONG Width,
+    _In_ ULONG Height
     )
 {
     if (!Graph->GraphHandle && RebarHandle && ToolStatusConfig.ToolBarEnabled)
@@ -207,9 +208,6 @@ BOOLEAN ToolbarAddGraph(
         graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
         graphCreateParams.Callback = Graph->GraphCallback;
         graphCreateParams.Context = Graph;
-
-        LONG width = PhGetDpi(145, SystemInformer_GetWindowDpi());
-        LONG height = RebarHeight;
 
         if (Graph->GraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
@@ -228,7 +226,7 @@ BOOLEAN ToolbarAddGraph(
             PhAddItemSimpleHashtable(PhpToolbarGraphHashtable, Graph->GraphHandle, Graph);
 
             if (!RebarBandExists(Graph->GraphId))
-                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, width, height); // height: 85
+                RebarBandInsert(Graph->GraphId, Graph->GraphHandle, Width, Height); // height: 85
 
             if (!IsWindowVisible(Graph->GraphHandle))
                 ShowWindow(Graph->GraphHandle, SW_SHOW);
@@ -265,9 +263,11 @@ VOID ToolbarCreateGraphs(
     ToolbarGraphLoadSettings();
 
     {
-        ULONG rebarHeight;
+        ULONG height;
+        ULONG width;
 
-        rebarHeight = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        height = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        width = PhGetDpi(145, SystemInformer_GetWindowDpi());
 
         for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
         {
@@ -276,7 +276,7 @@ VOID ToolbarCreateGraphs(
             if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
                 continue;
 
-            ToolbarAddGraph(graph, rebarHeight);
+            ToolbarAddGraph(graph, width, height);
         }
     }
 }
@@ -361,10 +361,11 @@ VOID ToolbarSetVisibleGraph(
 {
     if (Visible)
     {
-        ULONG rebarHeight = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        ULONG height = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        ULONG width = PhGetDpi(145, SystemInformer_GetWindowDpi());
 
         SetFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
-        ToolbarAddGraph(Graph, rebarHeight);
+        ToolbarAddGraph(Graph, width, height);
     }
     else
     {

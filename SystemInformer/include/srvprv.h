@@ -63,7 +63,8 @@ typedef struct _PH_SERVICE_ITEM
             BOOLEAN HasTriggers : 1;
             BOOLEAN PendingProcess : 1;
             BOOLEAN NeedsConfigUpdate : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN MicrosoftService : 1;
+            BOOLEAN Spare : 3;
         };
     };
 

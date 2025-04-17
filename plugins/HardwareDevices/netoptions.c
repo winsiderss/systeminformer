@@ -477,25 +477,10 @@ VOID FindNetworkAdapters(
 
                 adapterEntry = PhAllocateZero(sizeof(NET_ENUM_ENTRY));
                 adapterEntry->DeviceGuidString = PhQueryRegistryStringZ(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DevicePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &adapterEntry->DeviceGuidString->sr);
+                adapterEntry->DevicePath = PhConcatStringRef2(&PhNtDevicePathPrefix, &adapterEntry->DeviceGuidString->sr);
                 adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64Z(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64Z(keyHandle, L"NetLuidIndex");
                 PhStringToGuid(&adapterEntry->DeviceGuidString->sr, &deviceGuid);
-
-                {
-                    MIB_IF_ROW2 interfaceRow = { 0 };
-                    DV_NETADAPTER_ID id;
-
-                    memset(&id, 0, sizeof(DV_NETADAPTER_ID));
-                    id.InterfaceLuid = adapterEntry->DeviceLuid;
-                    id.InterfaceIndex = 0;
-
-                    if (NetworkAdapterQueryInterfaceRow(&id, MibIfEntryNormalWithoutStatistics, &interfaceRow))
-                    {
-                        //adapterEntry->InterfaceIndex = interfaceRow.InterfaceIndex;
-                        adapterEntry->SoftwareDevice = !interfaceRow.InterfaceAndOperStatusFlags.ConnectorPresent;
-                    }
-                }
 
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,
@@ -520,6 +505,26 @@ VOID FindNetworkAdapters(
                     adapterEntry->DevicePresent = TRUE;
 
                     NtClose(deviceHandle);
+                }
+
+                {
+                    MIB_IF_ROW2 interfaceRow = { 0 };
+                    DV_NETADAPTER_ID id;
+
+                    memset(&id, 0, sizeof(DV_NETADAPTER_ID));
+                    id.InterfaceLuid = adapterEntry->DeviceLuid;
+                    id.InterfaceIndex = 0;
+
+                    if (NetworkAdapterQueryInterfaceRow(&id, MibIfEntryNormalWithoutStatistics, &interfaceRow))
+                    {
+                        //adapterEntry->InterfaceIndex = interfaceRow.InterfaceIndex;
+                        adapterEntry->SoftwareDevice = !interfaceRow.InterfaceAndOperStatusFlags.ConnectorPresent;
+
+                        if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
+                        {
+                            adapterEntry->DeviceName = PhCreateString(interfaceRow.Description);
+                        }
+                    }
                 }
 
                 if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
@@ -763,7 +768,7 @@ VOID LoadNetworkAdapterImages(
     _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
-    HICON smallIcon;
+    HICON largeIcon;
     CONFIGRET result;
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
@@ -818,7 +823,17 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(
+                    &dllIconPath->sr,
+                    FALSE,
+                    (INT)index,
+                    PhGetSystemMetrics(SM_CXICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYICON, dpiValue),
+                    0,
+                    0,
+                    &largeIcon,
+                    NULL
+                    ))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
                         PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CXSMICON)
@@ -828,9 +843,12 @@ VOID LoadNetworkAdapterImages(
                         1
                         );
 
-                    PhImageListAddIcon(imageList, smallIcon);
-                    ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
-                    DestroyIcon(smallIcon);
+                    if (imageList)
+                    {
+                        PhImageListAddIcon(imageList, largeIcon);
+                        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
+                        DestroyIcon(largeIcon);
+                    }
                 }
 
                 PhDereferenceObject(dllIconPath);

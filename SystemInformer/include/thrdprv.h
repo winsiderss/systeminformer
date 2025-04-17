@@ -43,7 +43,8 @@ typedef struct _PH_THREAD_ITEM
 
     KPRIORITY Priority;
     KPRIORITY BasePriority;
-    KAFFINITY AffinityMask;
+    PKAFFINITY AffinityMasks; // PhSystemProcessorInformation.NumberOfProcessorGroups
+    ULONG AffinityPopulationCount;
     ULONG WaitTime;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;

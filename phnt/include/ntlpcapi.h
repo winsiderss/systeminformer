@@ -203,7 +203,7 @@ NTSTATUS
 NTAPI
 NtConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_ PSECURITY_QUALITY_OF_SERVICE SecurityQos,
     _Inout_opt_ PPORT_VIEW ClientView,
     _Inout_opt_ PREMOTE_PORT_VIEW ServerView,
@@ -217,7 +217,7 @@ NTSTATUS
 NTAPI
 NtSecureConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_ PSECURITY_QUALITY_OF_SERVICE SecurityQos,
     _Inout_opt_ PPORT_VIEW ClientView,
     _In_opt_ PSID RequiredServerSid,
@@ -654,7 +654,7 @@ typedef struct _ALPC_MESSAGE_HANDLE_INFORMATION
 
 // begin_private
 
-#if (PHNT_VERSION >= PHNT_VISTA)
+#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 //
 // System calls
@@ -811,7 +811,7 @@ NTSTATUS
 NTAPI
 NtAlpcConnectPort(
     _Out_ PHANDLE PortHandle,
-    _In_ PUNICODE_STRING PortName,
+    _In_ PCUNICODE_STRING PortName,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
     _In_ ULONG Flags,
@@ -823,7 +823,7 @@ NtAlpcConnectPort(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -897,7 +897,7 @@ NtAlpcImpersonateClientOfPort(
     _In_ PVOID Flags
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -990,7 +990,7 @@ AlpcUnregisterCompletionList(
     _In_ HANDLE PortHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WINDOWS_7)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -1062,7 +1062,7 @@ AlpcGetCompletionListMessageAttributes(
     _In_ PPORT_MESSAGE Message
     );
 
-#endif
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // end_private
 

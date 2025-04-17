@@ -435,13 +435,13 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         if (
             NT_SUCCESS(status) &&
             (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
-            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) >= (ULONG_PTR)baseDllNameOriginal &&
-            (ULONG_PTR)PTR_ADD_OFFSET(baseDllNameOriginal, Entry->BaseDllName.Length) <= (ULONG_PTR)PTR_ADD_OFFSET(fullDllNameOriginal, Entry->FullDllName.Length)
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
+            (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
             )
         {
             baseDllNameBuffer = NULL;
 
-            Entry->BaseDllName.Buffer = PTR_ADD_OFFSET(Entry->FullDllName.Buffer, (baseDllNameOriginal - fullDllNameOriginal));
+            Entry->BaseDllName.Buffer = (PWCHAR)((ULONG_PTR)Entry->FullDllName.Buffer + ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
         }
         else
         {
@@ -756,7 +756,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     nativeEntry.ObsoleteLoadCount = Entry->ObsoleteLoadCount;
     nativeEntry.TlsIndex = Entry->TlsIndex;
     nativeEntry.TimeDateStamp = Entry->TimeDateStamp;
-    nativeEntry.OriginalBase = Entry->OriginalBase;
+    nativeEntry.OriginalBase = UlongToPtr(Entry->OriginalBase);
     nativeEntry.LoadTime = Entry->LoadTime;
     nativeEntry.BaseNameHashValue = Entry->BaseNameHashValue;
     nativeEntry.LoadReason = Entry->LoadReason;
@@ -1303,81 +1303,85 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     return result;
 }
 
-typedef struct _PH_ENUM_MAPPED_MODULES_PARAMETERS
-{
-    PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
-    PVOID Context;
-    BOOLEAN TrackingAllocationBase;
-    PVOID LastAllocationBase;
-    SIZE_T AllocationSize;
-    PPH_HASHTABLE BaseAddressHashtable;
-} PH_ENUM_MAPPED_MODULES_PARAMETERS, *PPH_ENUM_MAPPED_MODULES_PARAMETERS;
-
-NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
-    _In_ HANDLE ProcessHandle,
-    _In_ PMEMORY_BASIC_INFORMATION MemoryBasicInfo,
-    _In_ SIZE_T Count,
-    _In_ PPH_ENUM_MAPPED_MODULES_PARAMETERS Parameters
-    )
-{
-    ULONG type;
-    PPH_STRING fileName;
-
-    for (SIZE_T i = 0; i < Count; i++)
-    {
-        PMEMORY_BASIC_INFORMATION basicInfo = &MemoryBasicInfo[i];
-
-        if (
-            basicInfo->Type == MEM_MAPPED ||
-            basicInfo->Type == MEM_IMAGE ||
-            basicInfo->Type == SEC_PROTECTED_IMAGE ||
-            basicInfo->Type == (MEM_MAPPED | MEM_IMAGE | SEC_PROTECTED_IMAGE))
-        {
-            if (basicInfo->Type == MEM_MAPPED)
-                type = PH_MODULE_TYPE_MAPPED_FILE;
-            else
-                type = PH_MODULE_TYPE_MAPPED_IMAGE;
-
-            if (Parameters->LastAllocationBase == basicInfo->AllocationBase)
-            {
-                Parameters->TrackingAllocationBase = TRUE;
-                Parameters->AllocationSize += basicInfo->RegionSize;
-            }
-            else
-            {
-                if (Parameters->TrackingAllocationBase)
-                {
-                    Parameters->TrackingAllocationBase = FALSE;
-
-                    if (!PhFindEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase))
-                    {
-                        if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, Parameters->LastAllocationBase, &fileName)))
-                        {
-                            PhAddEntryHashtable(Parameters->BaseAddressHashtable, &Parameters->LastAllocationBase);
-
-                            if (!PhpCallbackMappedFileOrImage(
-                                Parameters->LastAllocationBase,
-                                Parameters->AllocationSize,
-                                type,
-                                fileName,
-                                Parameters->Callback,
-                                Parameters->Context
-                                ))
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                Parameters->AllocationSize = basicInfo->RegionSize;
-                Parameters->LastAllocationBase = basicInfo->AllocationBase;
-            }
-        }
-    }
-
-    return STATUS_SUCCESS;
-}
+//typedef struct _PH_ENUM_MAPPED_MODULES_PARAMETERS
+//{
+//    PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
+//    PVOID Context;
+//    PPH_HASHTABLE BaseAddressHashtable;
+//} PH_ENUM_MAPPED_MODULES_PARAMETERS, *PPH_ENUM_MAPPED_MODULES_PARAMETERS;
+//
+//NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
+//    _In_ HANDLE ProcessHandle,
+//    _In_ PMEMORY_BASIC_INFORMATION MemoryBasicInfo,
+//    _In_ SIZE_T Count,
+//    _In_ PPH_ENUM_MAPPED_MODULES_PARAMETERS Parameters
+//    )
+//{
+//    ULONG type;
+//    PPH_STRING fileName;
+//
+//    for (SIZE_T i = 0; i < Count; i++)
+//    {
+//        PMEMORY_BASIC_INFORMATION basicInfo = &MemoryBasicInfo[i];
+//
+//        if (basicInfo->Type == MEM_MAPPED || basicInfo->Type == MEM_IMAGE)
+//        {
+//            if (basicInfo->Type == MEM_MAPPED)
+//                type = PH_MODULE_TYPE_MAPPED_FILE;
+//            else
+//                type = PH_MODULE_TYPE_MAPPED_IMAGE;
+//
+//            if (!PhFindEntryHashtable(Parameters->BaseAddressHashtable, &basicInfo->AllocationBase))
+//            {
+//                if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, basicInfo->AllocationBase, &fileName)))
+//                {
+//                    PhAddEntryHashtable(Parameters->BaseAddressHashtable, &basicInfo->AllocationBase);
+//
+//                    if (!PhpCallbackMappedFileOrImage(
+//                        basicInfo->AllocationBase,
+//                        basicInfo->RegionSize,
+//                        type,
+//                        fileName,
+//                        Parameters->Callback,
+//                        Parameters->Context
+//                        ))
+//                    {
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    return STATUS_SUCCESS;
+//}
+//
+//VOID PhpEnumGenericBulkMappedFilesAndImages(
+//    _In_ HANDLE ProcessHandle,
+//    _In_ ULONG Flags,
+//    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+//    _In_ PPH_HASHTABLE BaseAddressHashtable,
+//    _In_opt_ PVOID Context
+//    )
+//{
+//    PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
+//
+//    memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
+//    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
+//    enumParameters.Callback = Callback;
+//    enumParameters.Context = Context;
+//
+//    if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
+//        ProcessHandle,
+//        NULL,
+//        FALSE,
+//        PhpEnumGenericMappedFilesAndImagesBulk,
+//        &enumParameters
+//        )))
+//    {
+//        return;
+//    }
+//}
 
 VOID PhpEnumGenericMappedFilesAndImages(
     _In_ HANDLE ProcessHandle,
@@ -1390,25 +1394,8 @@ VOID PhpEnumGenericMappedFilesAndImages(
     BOOLEAN querySucceeded;
     PVOID baseAddress;
     MEMORY_BASIC_INFORMATION basicInfo;
-    PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
-
-    memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
-    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
-    enumParameters.Callback = Callback;
-    enumParameters.Context = Context;
 
     baseAddress = (PVOID)0;
-
-    if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
-        ProcessHandle,
-        baseAddress,
-        FALSE,
-        PhpEnumGenericMappedFilesAndImagesBulk,
-        &enumParameters
-        )))
-    {
-        return;
-    }
 
     if (!NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
@@ -1699,9 +1686,10 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK WorkingSetBlock,
-    _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS Parameters
+    _In_ PVOID Context
     )
 {
+    PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS parameters = Context;
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     MEMORY_IMAGE_INFORMATION imageInformation;
     PVOID baseAddress = NULL;
@@ -1731,10 +1719,10 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
             continue;
         }
 
-        if (PhFindEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase))
+        if (PhFindEntryHashtable(parameters->BaseAddressHashtable, &imageInformation.ImageBase))
             continue;
 
-        PhAddEntryHashtable(Parameters->BaseAddressHashtable, &imageInformation.ImageBase);
+        PhAddEntryHashtable(parameters->BaseAddressHashtable, &imageInformation.ImageBase);
 
         status = PhGetProcessMappedFileName(
             ProcessHandle,
@@ -1745,13 +1733,13 @@ NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
         if (!NT_SUCCESS(status))
             continue;
 
-        status = Parameters->Callback(
+        status = parameters->Callback(
             ProcessHandle,
             virtualAddress,
             imageInformation.ImageBase,
             imageInformation.SizeOfImage,
             fileName,
-            Parameters->Context
+            parameters->Context
             );
 
         PhDereferenceObject(fileName);
@@ -1798,23 +1786,6 @@ NTSTATUS PhEnumProcessModulesLimited(
         &limitedParameters
         );
 
-    //if (!NT_SUCCESS(status))
-    //{
-    //    PH_ENUM_MAPPED_MODULES_PARAMETERS mappedParameters;
-    //
-    //    memset(&mappedParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
-    //    mappedParameters.BaseAddressHashtable = baseAddressHashtable;
-    //    mappedParameters.Callback = Callback;
-    //    mappedParameters.Context = Context;
-    //
-    //    status = PhEnumVirtualMemoryBulk(
-    //        ProcessHandle,
-    //        nullptr,
-    //        FALSE,
-    //        PhpEnumGenericMappedFilesAndImagesBulk,
-    //        &mappedParameters
-    //        );
-    //}
 
     PhDereferenceObject(baseAddressHashtable);
 

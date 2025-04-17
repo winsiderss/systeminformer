@@ -33,10 +33,10 @@ _CryptCATAdminReleaseContext CryptCATAdminReleaseContext;
 //_WTHelperProvDataFromStateData WTHelperProvDataFromStateData_I;
 //_WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
 _WinVerifyTrust WinVerifyTrust_I;
-typeof(&CertNameToStrW) CertNameToStr_I;
-typeof(&CertGetEnhancedKeyUsage) CertGetEnhancedKeyUsage_I;
-typeof(&CertDuplicateCertificateContext) CertDuplicateCertificateContext_I;
-typeof(&CertFreeCertificateContext) CertFreeCertificateContext_I;
+__typeof__(&CertNameToStrW) CertNameToStr_I;
+__typeof__(&CertGetEnhancedKeyUsage) CertGetEnhancedKeyUsage_I;
+__typeof__(&CertDuplicateCertificateContext) CertDuplicateCertificateContext_I;
+__typeof__(&CertFreeCertificateContext) CertFreeCertificateContext_I;
 
 static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 static CONST GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
@@ -168,12 +168,12 @@ BOOLEAN PhIsChainedToMicrosoft(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&CertOpenStore) CertOpenStore_I = NULL;
-    static typeof(&CertAddStoreToCollection) CertAddStoreToCollection_I = NULL;
-    static typeof(&CertGetCertificateChain) CertGetCertificateChain_I = NULL;
-    static typeof(&CertVerifyCertificateChainPolicy) CertVerifyCertificateChainPolicy_I = NULL;
-    static typeof(&CertFreeCertificateChain) CertFreeCertificateChain_I = NULL;
-    static typeof(&CertCloseStore) CertCloseStore_I = NULL;
+    static __typeof__(&CertOpenStore) CertOpenStore_I = NULL;
+    static __typeof__(&CertAddStoreToCollection) CertAddStoreToCollection_I = NULL;
+    static __typeof__(&CertGetCertificateChain) CertGetCertificateChain_I = NULL;
+    static __typeof__(&CertVerifyCertificateChainPolicy) CertVerifyCertificateChainPolicy_I = NULL;
+    static __typeof__(&CertFreeCertificateChain) CertFreeCertificateChain_I = NULL;
+    static __typeof__(&CertCloseStore) CertCloseStore_I = NULL;
     BOOLEAN status = FALSE;
     HCERTSTORE cryptStoreHandle;
     CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
@@ -1101,7 +1101,7 @@ ULONG PhpVerifyCacheHashtableHashFunction(
 {
     PPH_VERIFY_CACHE_ENTRY entry = Entry;
 
-    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
+    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
 VOID PhFlushVerifyCache(
@@ -1258,6 +1258,8 @@ VERIFY_RESULT PhVerifyFileCached(
             return VrUnknown;
         }
     }
+
+    PhSetFileIoPriorityHint(fileHandle, IoPriorityVeryLow);
 
     {
         PPH_VERIFY_CACHE_ENTRY entry;

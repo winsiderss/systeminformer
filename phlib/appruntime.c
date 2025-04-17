@@ -421,7 +421,7 @@ static PVOID PhDetoursPackageSystemIdentificationContext(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static ULONG index = 0;
+    static ULONG index = TLS_OUT_OF_INDEXES;
 
     if (PhBeginInitOnce(&initOnce))
     {

@@ -367,11 +367,12 @@ PhGetServiceConfigFileName(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetServiceHandleFileName(
     _In_ SC_HANDLE ServiceHandle,
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
     );
 
 PHLIBAPI
@@ -410,6 +411,15 @@ PPH_STRING
 NTAPI
 PhGetServicePackageFullName(
     _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitForServiceStatus(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG WaitForState,
+    _In_ ULONG Timeout
     );
 
 FORCEINLINE

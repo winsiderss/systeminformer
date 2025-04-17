@@ -200,7 +200,7 @@ VOID EtProcessNetworkEvent(
         Event->ClientId.UniqueProcess
         );
 
-    if (!networkItem && FlagOn(Event->ProtocolType, PH_UDP_PROTOCOL_TYPE))
+    if (!networkItem && FlagOn(Event->ProtocolType, PH_PROTOCOL_TYPE_UDP))
     {
         PH_IP_ENDPOINT networkEndpoint;
 
@@ -301,19 +301,22 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
         if (EtDiskCountersEnabled)
         {
-            ULONG64 diskReads = block->ProcessItem->DiskCounters.ReadOperationCount;
-            ULONG64 diskWrites = block->ProcessItem->DiskCounters.WriteOperationCount;
-            ULONG64 diskReadRaw = block->ProcessItem->DiskCounters.BytesRead;
-            ULONG64 diskWriteRaw = block->ProcessItem->DiskCounters.BytesWritten;
+            if (EtWindowsVersion >= WINDOWS_10_RS3)
+            {
+                ULONG64 diskReads = block->ProcessItem->DiskCounters.ReadOperationCount;
+                ULONG64 diskWrites = block->ProcessItem->DiskCounters.WriteOperationCount;
+                ULONG64 diskReadRaw = block->ProcessItem->DiskCounters.BytesRead;
+                ULONG64 diskWriteRaw = block->ProcessItem->DiskCounters.BytesWritten;
 
-            if (block->DiskReadCount < diskReads)
-                block->DiskReadCount = diskReads;
-            if (block->DiskWriteCount < diskWrites)
-                block->DiskWriteCount = diskWrites;
-            if (block->DiskReadRaw < diskReadRaw)
-                block->DiskReadRaw = diskReadRaw;
-            if (block->DiskWriteRaw < diskWriteRaw)
-                block->DiskWriteRaw = diskWriteRaw;
+                if (block->DiskReadCount < diskReads)
+                    block->DiskReadCount = diskReads;
+                if (block->DiskWriteCount < diskWrites)
+                    block->DiskWriteCount = diskWrites;
+                if (block->DiskReadRaw < diskReadRaw)
+                    block->DiskReadRaw = diskReadRaw;
+                if (block->DiskWriteRaw < diskWriteRaw)
+                    block->DiskWriteRaw = diskWriteRaw;
+            }
 
             if (EtWindowsVersion >= WINDOWS_11_24H2)
             {

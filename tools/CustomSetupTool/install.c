@@ -11,14 +11,16 @@
 
 #include "setup.h"
 
-NTSTATUS SetupProgressThread(
+NTSTATUS CALLBACK SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
+
     // Create the folder.
-    if (!NT_SUCCESS(PhCreateDirectoryWin32(&Context->SetupInstallPath->sr)))
+    if (!NT_SUCCESS(status = PhCreateDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+        Context->LastStatus = status;
         goto CleanupExit;
     }
 

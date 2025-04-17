@@ -47,25 +47,7 @@ VOID SetupShowBrowseDialog(
     }
 }
 
-NTSTATUS SetupDownloadProgressThread(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    if (!SetupQueryUpdateDataWithFailover(Context))
-        goto CleanupExit;
-
-    if (!UpdateDownloadUpdateData(Context))
-        goto CleanupExit;
-
-    PostMessage(Context->DialogHandle, SETUP_SHOWINSTALL, 0, 0);
-    return STATUS_SUCCESS;
-
-CleanupExit:
-    PostMessage(Context->DialogHandle, SETUP_SHOWERROR, 0, 0);
-    return STATUS_FAIL_CHECK;
-}
-
-static BOOLEAN SetupCheckDirectoryCallback(
+static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
@@ -136,14 +118,14 @@ VOID ShowErrorPageDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszWindowTitle = PhApplicationName;
-    if (Context->ErrorCode)
-        config.pszMainInstruction = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    if (Context->LastStatus)
+        config.pszMainInstruction = PhGetStatusMessage(Context->LastStatus, 0)->Buffer;
     else
         config.pszMainInstruction = L"Setup failed with an error.";
     config.pszContent = L"Select Close to exit setup.";
     config.cxWidth = 200;
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 HRESULT CALLBACK SetupWelcomePageCallbackProc(
@@ -182,36 +164,42 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
                 {
                     NTSTATUS status;
                     PPH_STRING applicationFileName;
-                    PH_STRINGREF applicationCommandLine;
+                    PPH_STRING applicationCommandLine;
+                    PH_STRINGREF applicationCommandLineStringRef;
 
-                    if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                    if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLineStringRef)))
                     {
-                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+                        context->LastStatus = status;
                         return S_FALSE;
                     }
                     if (!(applicationFileName = PhGetApplicationFileNameWin32()))
                     {
-                        context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+                        context->LastStatus = STATUS_NO_MEMORY;
                         return S_FALSE;
                     }
+                    applicationCommandLine = PhCreateString2(&applicationCommandLineStringRef);
 
-                    if (NT_SUCCESS(status = PhShellExecuteEx(
+                    status = PhShellExecuteEx(
                         hwndDlg,
                         PhGetString(applicationFileName),
-                        PhGetStringRefZ(&applicationCommandLine),
+                        PhGetString(applicationCommandLine),
                         NULL,
                         SW_SHOW,
                         PH_SHELL_EXECUTE_ADMIN,
                         0,
                         &context->SubProcessHandle
-                        )))
+                        );
+
+                    PhDereferenceObject(applicationCommandLine);
+                    PhDereferenceObject(applicationFileName);
+
+                    if (NT_SUCCESS(status))
                     {
                         ShowWindow(hwndDlg, SW_HIDE);
                     }
                     else
                     {
-                        context->ErrorCode = WIN32_FROM_NTSTATUS(status);
-                        PhDereferenceObject(applicationFileName);
+                        context->LastStatus = status;
                         return S_FALSE;
                     }
                 }
@@ -251,7 +239,7 @@ VOID ShowWelcomePageDialog(
     config.pszContent = L"A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.";
     config.cxWidth = 200;
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 HRESULT CALLBACK SetupCompletePageCallbackProc(
@@ -296,7 +284,7 @@ VOID ShowCompletedPageDialog(
     ClearFlag(config.dwFlags, TDF_VERIFICATION_FLAG_CHECKED);
 #endif
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 HRESULT CALLBACK SetupConfigPageCallbackProc(
@@ -355,11 +343,7 @@ HRESULT CALLBACK SetupConfigPageCallbackProc(
                     return S_FALSE;
                 }
 
-#ifdef PH_BUILD_API
                 ShowInstallPageDialog(context);
-#else
-                ShowDownloadPageDialog(context);
-#endif
                 return S_FALSE;
             }
         }
@@ -394,7 +378,7 @@ VOID ShowConfigPageDialog(
     config.pszMainInstruction = L"Setup Options";
     config.pszContent = L"Installation Folder:\r\n\r\nSelect \"Browse\" to continue.";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 HRESULT CALLBACK SetupDirectoryNonEmptyTaskDialogCallbackProc(
@@ -413,11 +397,7 @@ HRESULT CALLBACK SetupDirectoryNonEmptyTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDNO)
             {
-#ifdef PH_BUILD_API
                 ShowInstallPageDialog(context);
-#else
-                ShowDownloadPageDialog(context);
-#endif
                 return S_FALSE;
             }
 
@@ -459,61 +439,7 @@ VOID ShowConfigDirectoryNonEmptyDialog(
     config.pszContent = L"The selected installation directory already contains files and data. "
         L"If you continue this directory and files will be deleted.\r\n\r\nDo you want to change the directory?";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
-}
-
-HRESULT CALLBACK SetupDownloadPageCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
-    )
-{
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
-
-    switch (uMsg)
-    {
-    case TDN_NAVIGATED:
-        {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-
-            PhCreateThread2(SetupDownloadProgressThread, context);
-        }
-        break;
-    case TDN_BUTTON_CLICKED:
-        {
-            if ((INT)wParam == IDCANCEL)
-            {
-                return S_FALSE;
-            }
-        }
-        break;
-    }
-
-    return S_OK;
-}
-
-VOID ShowDownloadPageDialog(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    TASKDIALOGCONFIG config;
-
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_SHOW_PROGRESS_BAR;
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = Context->IconLargeHandle;
-    config.cxWidth = 200;
-    config.pfCallback = SetupDownloadPageCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Downloading System Informer...";
-    config.pszContent = L"Downloading System Informer...";
-
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
 HRESULT CALLBACK SetupInstallPageCallbackProc(
@@ -564,5 +490,5 @@ VOID ShowInstallPageDialog(
     config.pszMainInstruction = L"Preparing to install...";
     config.pszContent = L" ";
 
-    TaskDialogNavigatePage(Context->DialogHandle, &config);
+    PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

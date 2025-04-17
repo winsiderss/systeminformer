@@ -1484,6 +1484,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
                 break;
             }
         }
+        break;
     case WM_KEYDOWN:
         {
             switch (wParam)

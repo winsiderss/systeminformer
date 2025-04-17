@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -30,68 +22,11 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{B1863396-A667-42DB-97AC-C5E033CEE321}</ProjectGuid>
     <TemplateGuid>{dd38f7fc-d7bd-488b-9242-7d8754cde80d}</TemplateGuid>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <RootNamespace>kphlib_km</RootNamespace>
     <ProjectName>kphlib</ProjectName>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
-    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <WindowsTargetPlatformVersion>10.0.22000.0</WindowsTargetPlatformVersion>
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <WindowsTargetPlatformVersion>10.0.22000.0</WindowsTargetPlatformVersion>
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0A00</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0A00</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -100,291 +35,18 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
+    <IntDir>$(SystemInformerRoot)KSystemInformer\obj\$(Configuration)$(PlatformArchitecture)\$(ProjectName)\</IntDir>
+    <OutDir>$(SystemInformerRoot)KSystemInformer\bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
     <TargetName>kphlib_km</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>kphlib_km</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>kphlib_km</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>kphlib_km</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>kphlib_km</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\km\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>kphlib_km</TargetName>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_DEBUG;DEBUG;_X86_=1;i386=1;STD_CALL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <BuildStlModules>false</BuildStlModules>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
+  <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
     <PreBuildEvent>
       <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_X86_=1;i386=1;STD_CALL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-      <BuildStlModules>false</BuildStlModules>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
-      <CETCompat>true</CETCompat>
-    </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
-    <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
-    </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_DEBUG;DEBUG;_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
-      <BuildStlModules>false</BuildStlModules>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
-    <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
-    </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_DEBUG;DEBUG;_WIN64;_ARM64_;ARM64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <SupportJustMyCode>false</SupportJustMyCode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <GuardSignedReturns>true</GuardSignedReturns>
-      <BuildStlModules>false</BuildStlModules>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
-    <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
-    </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
-      <BuildStlModules>false</BuildStlModules>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
-      <CETCompat>true</CETCompat>
-    </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
-    <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
-    </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\phlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_WIN64;_ARM64_;ARM64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-      <GuardSignedReturns>true</GuardSignedReturns>
-      <BuildStlModules>false</BuildStlModules>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <Lib>
-      <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
-    </Lib>
-    <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
-    </PreBuildEvent>
-    <MessageCompile>
-      <UnicodeInputFile>true</UnicodeInputFile>
-      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
-      <Verbose>true</Verbose>
-      <RCFilePath>$(IntDir)\include</RCFilePath>
-      <SetCustomerbit>true</SetCustomerbit>
-      <TerminateMessageWithNull>true</TerminateMessageWithNull>
-    </MessageCompile>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <FilesToPackage Include="$(TargetPath)" />
-  </ItemGroup>
   <!-- sistatus
     Compiling of the message file is only done in the kernelmode side of KPHLIB
     so that the WDK is not a requirement only building the usermode parts. If
@@ -398,6 +60,10 @@
       <GeneratedRcAndMessagesPath>true</GeneratedRcAndMessagesPath>
       <RCFilePath>$(ProjectDir)include</RCFilePath>
       <SetCustomerbit>true</SetCustomerbit>
+      <TerminateMessageWithNull>true</TerminateMessageWithNull>
+      <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
+      <UnicodeInputFile>true</UnicodeInputFile>
+      <Verbose>true</Verbose>
     </MessageCompile>
     <None Include="include\sistatus_MSG00001.bin" />
     <ResourceCompile Include="include\sistatus.rc" />

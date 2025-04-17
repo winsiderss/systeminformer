@@ -832,8 +832,8 @@ CleanupExit:
 
 BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
     _In_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF TypeName,
+    _In_ PCPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF TypeName,
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {

@@ -14,7 +14,7 @@
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,
-    _In_ PWSTR DeviceName
+    _In_ PCWSTR DeviceName
     )
 {
     NTSTATUS status;
@@ -218,9 +218,51 @@ NTSTATUS GraphicsQueryAdapterDevicePerfData(
 
     if (NT_SUCCESS(status))
     {
-        *PowerUsage = (((FLOAT)adapterPerfData.Power / 1000) * 100);
-        *Temperature = (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
+        //*PowerUsage = (((FLOAT)adapterPerfData.Power / 1000) * 100);
+        //*Temperature = (((FLOAT)adapterPerfData.Temperature / 1000) * 100);
+        *PowerUsage = (FLOAT)adapterPerfData.Power / 10;
+        *Temperature = (FLOAT)adapterPerfData.Temperature / 10;
         *FanRPM = adapterPerfData.FanRPM;
+    }
+
+    return status;
+}
+
+NTSTATUS GraphicsQueryAdapterDeviceNodePerfData(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ ULONG NodeOrdinal,
+    _Out_opt_ PULONG64 Frequency,
+    _Out_opt_ PULONG64 MaxFrequency,
+    _Out_opt_ PULONG64 MaxFrequencyOC,
+    _Out_opt_ PULONG Voltage,
+    _Out_opt_ PULONG VoltageMax,
+    _Out_opt_ PULONG VoltageMaxOC,
+    _Out_opt_ PULONG64 MaxTransitionLatency
+    )
+{
+    NTSTATUS status;
+    D3DKMT_NODE_PERFDATA nodePerfData;
+
+    memset(&nodePerfData, 0, sizeof(D3DKMT_NODE_PERFDATA));
+    nodePerfData.NodeOrdinal = NodeOrdinal;
+    nodePerfData.PhysicalAdapterIndex = 0;
+
+    status = GraphicsQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_NODEPERFDATA,
+        &nodePerfData,
+        sizeof(D3DKMT_NODE_PERFDATA)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (Frequency) *Frequency = nodePerfData.Frequency;
+        if (MaxFrequency) *MaxFrequency = nodePerfData.MaxFrequency;
+        if (MaxFrequencyOC) *MaxFrequencyOC = nodePerfData.MaxFrequencyOC;
+        if (Voltage) *Voltage = nodePerfData.Voltage;
+        if (VoltageMax) *VoltageMax = nodePerfData.VoltageMax;
+        if (VoltageMaxOC) *VoltageMaxOC = nodePerfData.VoltageMaxOC;
+        if (MaxTransitionLatency) *MaxTransitionLatency = nodePerfData.MaxTransitionLatency;
     }
 
     return status;

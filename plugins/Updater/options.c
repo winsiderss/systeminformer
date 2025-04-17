@@ -24,58 +24,55 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
             {
-                ULONG64 lastUpdateTimeTicks;
-                PPH_STRING lastUpdateTimeString;
+                ULONG lastTimeUpdateSeconds;
+                LARGE_INTEGER lastTimeUpdateTicks;
 
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_AUTOCHECKBOX), BST_CHECKED);
 
-                if (lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK))
+                if (lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK))
                 {
-                    if (PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks))
+                    PPH_STRING timeRelativeString;
+                    PPH_STRING timeString;
+                    LARGE_INTEGER time;
+                    LARGE_INTEGER currentTime;
+                    SYSTEMTIME timeFields;
+
+                    PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart;
+                    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                    timeString = PhaFormatDateTime(&timeFields);
+
+                    PhQuerySystemTime(&currentTime);
+                    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastTimeUpdateTicks.QuadPart));
+
+                    PhSetDialogItemText(WindowHandle, IDC_TEXT, PhaFormatString(
+                        L"Last update check: %s (%s ago)",
+                        PhGetStringOrEmpty(timeString),
+                        PhGetStringOrEmpty(timeRelativeString)
+                        )->Buffer);
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (7 * PH_TICKS_PER_DAY);
+                    PhLargeIntegerToLocalSystemTime(&timeFields, &time);
+                    timeString = PhaFormatDateTime(&timeFields);
+
+                    time.QuadPart = time.QuadPart - currentTime.QuadPart;
+                    if (time.QuadPart > 0)
                     {
-                        PPH_STRING timeRelativeString;
-                        PPH_STRING timeString;
-                        LARGE_INTEGER time;
-                        LARGE_INTEGER currentTime;
-                        SYSTEMTIME timeFields;
-
-                        time.QuadPart = lastUpdateTimeTicks;
-                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-                        timeString = PhaFormatDateTime(&timeFields);
-
-                        PhQuerySystemTime(&currentTime);
-                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastUpdateTimeTicks));
-
-                        PhSetDialogItemText(WindowHandle, IDC_TEXT, PhaFormatString(
-                            L"Last update check: %s (%s ago)",
+                        timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
+                        PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
+                            L"Next update check: %s (%s)",
                             PhGetStringOrEmpty(timeString),
                             PhGetStringOrEmpty(timeRelativeString)
                             )->Buffer);
-
-                        time.QuadPart = lastUpdateTimeTicks + (7 * PH_TICKS_PER_DAY);
-                        PhLargeIntegerToLocalSystemTime(&timeFields, &time);
-                        timeString = PhaFormatDateTime(&timeFields);
-
-                        time.QuadPart = time.QuadPart - currentTime.QuadPart;
-                        if (time.QuadPart > 0)
-                        {
-                            timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
-                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
-                                L"Next update check: %s (%s)",
-                                PhGetStringOrEmpty(timeString),
-                                PhGetStringOrEmpty(timeRelativeString)
-                                )->Buffer);
-                        }
-                        else
-                        {
-                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
-                                L"Next update check: %s",
-                                PhGetStringOrEmpty(timeString)
-                                )->Buffer);
-                        }
                     }
-
-                    PhDereferenceObject(lastUpdateTimeString);
+                    else
+                    {
+                        PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
+                            L"Next update check: %s",
+                            PhGetStringOrEmpty(timeString)
+                            )->Buffer);
+                    }
                 }
             }
 
@@ -215,49 +212,40 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     VOID
     )
 {
+    NTSTATUS status;
     PPH_LIST results = NULL;
     PPH_BYTES jsonString = NULL;
-    PPH_STRING userAgentString;
     PPH_HTTP_CONTEXT httpContext = NULL;
-    PVOID jsonRootObject = NULL;
+    PVOID jsonObject = NULL;
     ULONG i;
     ULONG arrayLength;
 
-    userAgentString = PhUpdaterCreateUserAgentString();
-
-    if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"api.github.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, L"/repos/winsiderss/systeminformer/commits", PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, NULL, 0, 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonObject, jsonString, FALSE)))
         goto CleanupExit;
 
-    if (!PhHttpSocketConnect(httpContext, L"api.github.com", PH_HTTP_DEFAULT_HTTPS_PORT))
-        goto CleanupExit;
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        L"/repos/winsiderss/systeminformer/commits",
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
+    if (PhGetJsonObjectType(jsonObject) != PH_JSON_OBJECT_TYPE_ARRAY)
     {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+    if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
+    {
+        status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
-        goto CleanupExit;
-
-    if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
-        goto CleanupExit;
-
-    if (!(jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE)))
-        goto CleanupExit;
-
-    if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)
-        goto CleanupExit;
-
-    if (!(arrayLength = PhGetJsonArrayLength(jsonRootObject)))
-        goto CleanupExit;
+    }
 
     if (arrayLength > 0)
     {
@@ -270,7 +258,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
             PVOID jsonCommitObject;
             PVOID jsonAuthorObject;
 
-            if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonRootObject, i)))
+            if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonObject, i)))
                 continue;
 
             entry = PhAllocateZero(sizeof(PH_UPDATER_COMMIT_ENTRY));
@@ -347,13 +335,16 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
 CleanupExit:
 
     if (httpContext)
-        PhHttpSocketDestroy(httpContext);
+    {
+        PhHttpDestroy(httpContext);
+    }
 
-    if (jsonRootObject)
-        PhFreeJsonObject(jsonRootObject);
+    if (jsonObject)
+    {
+        PhFreeJsonObject(jsonObject);
+    }
 
     PhClearReference(&jsonString);
-    PhClearReference(&userAgentString);
 
     return results;
 }
@@ -386,7 +377,7 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     PH_STRINGREF mnPartSr;
     PH_STRINGREF ssPartSr;
     PH_STRINGREF remainingPart;
-    LONG64 year, month, day, hour, minute, second;
+    ULONG64 year, month, day, hour, minute, second;
 
     // %hu-%hu-%huT%hu:%hu:%huZ
     remainingPart = PhGetStringRef(Time);
@@ -404,17 +395,17 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     if (!PhSplitStringRefAtChar(&remainingPart, L'Z', &ssPartSr, &remainingPart))
         return NULL;
 
-    if (!PhStringToInteger64(&yyPart, 10, &year))
+    if (!PhStringToUInt64(&yyPart, 10, &year))
         return NULL;
-    if (!PhStringToInteger64(&mmPartSr, 10, &month))
+    if (!PhStringToUInt64(&mmPartSr, 10, &month))
         return NULL;
-    if (!PhStringToInteger64(&ddPartSr, 10, &day))
+    if (!PhStringToUInt64(&ddPartSr, 10, &day))
         return NULL;
-    if (!PhStringToInteger64(&hrPartSr, 10, &hour))
+    if (!PhStringToUInt64(&hrPartSr, 10, &hour))
         return NULL;
-    if (!PhStringToInteger64(&mnPartSr, 10, &minute))
+    if (!PhStringToUInt64(&mnPartSr, 10, &minute))
         return NULL;
-    if (!PhStringToInteger64(&ssPartSr, 10, &second))
+    if (!PhStringToUInt64(&ssPartSr, 10, &second))
         return NULL;
 
     if (year < SHRT_MIN || year > SHRT_MAX)
@@ -454,7 +445,7 @@ NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
 
     if (commentHistoryList = PhpUpdaterQueryCommitHistory())
     {
-        SendMessage(windowHandle, WM_UPDATER_COMMITS, 0, (LPARAM)commentHistoryList);
+        PostMessage(windowHandle, WM_UPDATER_COMMITS, 0, (LPARAM)commentHistoryList);
     }
 
     return STATUS_SUCCESS;
@@ -519,7 +510,7 @@ INT_PTR CALLBACK TextDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_COMMITS);
             context->ListViewBoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, FALSE); // TRUE, TRUE (tooltips)
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -604,6 +595,13 @@ INT_PTR CALLBACK TextDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            LONG windowDpi = HIWORD(wParam);
+
+            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -628,6 +626,17 @@ INT_PTR CALLBACK TextDlgProc(
             //        PhCopyListViewInfoTip(getInfoTip, &tip);
             //    }
             //    break;
+            case LVN_GETEMPTYMARKUP:
+                {
+                    NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
+
+                    listview->dwFlags = EMF_CENTERED;
+                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying changelog...", _TRUNCATE);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                    return TRUE;
+                }
+                break;
             case NM_DBLCLK:
                 {
                     if (header->hwndFrom == context->ListViewHandle)

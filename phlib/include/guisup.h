@@ -53,6 +53,7 @@ typedef HANDLE HTHEME;
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
+extern LONG PhFontQuality;
 extern LONG PhSystemDpi;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
@@ -73,18 +74,23 @@ PhGuiSupportUpdateSystemMetrics(
     );
 
 PHLIBAPI
-VOID
+LONG
+NTAPI
+PhGetFontQualitySetting(
+    _In_ LONG FontQuality
+    );
+
+PHLIBAPI
+HFONT
 NTAPI
 PhInitializeFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+HFONT
 NTAPI
 PhInitializeMonospaceFont(
-    _In_ HWND WindowHandle,
     _In_ LONG WindowDpi
     );
 
@@ -286,6 +292,19 @@ NTAPI
 PhGetMonitorDpi(
     _In_ LPCRECT rect
     );
+
+FORCEINLINE
+LONG
+PhGetMonitorDpiFromRect(
+    _In_ PPH_RECTANGLE Rectangle
+    )
+{
+    RECT rect = { 0 };
+
+    PhRectangleToRect(&rect, Rectangle);
+
+    return PhGetMonitorDpi(&rect);
+}
 
 PHLIBAPI
 LONG
@@ -965,7 +984,7 @@ PhGetListViewInterface(
     _In_ HWND ListViewHandle
     )
 {
-    IListView* listviewInterface = nullptr;
+    IListView* listviewInterface = NULL;
 
     SendMessage(
         ListViewHandle,
@@ -1345,12 +1364,16 @@ VOID PhEnumChildWindows(
     _In_opt_ PVOID Context
     );
 
-HWND PhGetProcessMainWindow(
+HWND
+NTAPI
+PhGetProcessMainWindow(
     _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle
     );
 
-HWND PhGetProcessMainWindowEx(
+HWND
+NTAPI
+PhGetProcessMainWindowEx(
     _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle,
     _In_ BOOLEAN SkipInvisible
@@ -1824,9 +1847,8 @@ PhGetProcessDpiAwareness(
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetPhysicallyInstalledSystemMemory(
     _Out_ PULONGLONG TotalMemory,
@@ -1850,7 +1872,6 @@ PhGetProcessGuiResources(
     _Out_ PULONG Total
     );
 
-_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -1858,9 +1879,8 @@ PhGetThreadWin32Thread(
     _In_ HANDLE ThreadId
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
@@ -1877,17 +1897,19 @@ PhExtractIcon(
     _Out_opt_ HICON *IconSmall
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ LONG IconIndex,
+    _In_ LONG IconLargeWidth,
+    _In_ LONG IconLargeHeight,
+    _In_ LONG IconSmallWidth,
+    _In_ LONG IconSmallHeight,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall,
-    _In_ LONG WindowDpi
+    _Out_opt_ HICON *IconSmall
     );
 
 // Imagelist support
@@ -2064,7 +2086,12 @@ PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     );
 
+//
 // Windows Imaging Component (WIC) bitmap support
+//
+
+DEFINE_GUID(IID_IWICBitmapSource, 0x00000120, 0xa8f2, 0x4877, 0xba, 0x0a, 0xfd, 0x2b, 0x66, 0x45, 0xfb, 0x94);
+DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
 
 typedef enum _PH_BUFFERFORMAT
 {
@@ -2106,6 +2133,16 @@ PhLoadImageFormatFromResource(
 PHLIBAPI
 HBITMAP
 NTAPI
+PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_ LONG Width,
+    _In_ LONG Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
 PhLoadImageFromResource(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
@@ -2128,15 +2165,15 @@ PhLoadImageFromFile(
 typedef enum _WINDOWCOMPOSITIONATTRIB
 {
     WCA_UNDEFINED = 0,
-    WCA_NCRENDERING_ENABLED = 1,
-    WCA_NCRENDERING_POLICY = 2,
-    WCA_TRANSITIONS_FORCEDISABLED = 3,
-    WCA_ALLOW_NCPAINT = 4,
-    WCA_CAPTION_BUTTON_BOUNDS = 5,
-    WCA_NONCLIENT_RTL_LAYOUT = 6,
-    WCA_FORCE_ICONIC_REPRESENTATION = 7,
-    WCA_EXTENDED_FRAME_BOUNDS = 8,
-    WCA_HAS_ICONIC_BITMAP = 9,
+    WCA_NCRENDERING_ENABLED = 1, // BOOL
+    WCA_NCRENDERING_POLICY = 2, // DWMNCRENDERINGPOLICY
+    WCA_TRANSITIONS_FORCEDISABLED = 3, // BOOL
+    WCA_ALLOW_NCPAINT = 4, // BOOL
+    WCA_CAPTION_BUTTON_BOUNDS = 5, // RECT
+    WCA_NONCLIENT_RTL_LAYOUT = 6, // BOOL
+    WCA_FORCE_ICONIC_REPRESENTATION = 7, // BOOL
+    WCA_EXTENDED_FRAME_BOUNDS = 8, // RECT
+    WCA_HAS_ICONIC_BITMAP = 9, // BOOL
     WCA_THEME_ATTRIBUTES = 10,
     WCA_NCRENDERING_EXILED = 11,
     WCA_NCADORNMENTINFO = 12,
@@ -2145,21 +2182,26 @@ typedef enum _WINDOWCOMPOSITIONATTRIB
     WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
     WCA_DISALLOW_PEEK = 16,
     WCA_CLOAK = 17,
-    WCA_CLOAKED = 18,
-    WCA_ACCENT_POLICY = 19,
+    WCA_CLOAKED = 18, // DWM_CLOAKED_*
+    WCA_ACCENT_POLICY = 19, // ACCENT_POLICY // since WIN11
     WCA_FREEZE_REPRESENTATION = 20,
     WCA_EVER_UNCLOAKED = 21,
     WCA_VISUAL_OWNER = 22,
     WCA_HOLOGRAPHIC = 23,
     WCA_EXCLUDED_FROM_DDA = 24,
     WCA_PASSIVEUPDATEMODE = 25,
-    WCA_USEDARKMODECOLORS = 26,
+    WCA_USEDARKMODECOLORS = 26, // BOOL
     WCA_CORNER_STYLE = 27,
-    WCA_PART_COLOR = 28,
+    WCA_PART_COLOR = 28, // ULONG
     WCA_DISABLE_MOVESIZE_FEEDBACK = 29,
     WCA_SYSTEMBACKDROP_TYPE = 30,
     WCA_SET_TAGGED_WINDOW_RECT = 31,
     WCA_CLEAR_TAGGED_WINDOW_RECT = 32,
+    WCA_REMOTEAPP_POLICY = 33, // since 24H2
+    WCA_HAS_ACCENT_POLICY = 34,
+    WCA_REDIRECTIONBITMAP_FILL_COLOR = 35,
+    WCA_REDIRECTIONBITMAP_ALPHA = 36,
+    WCA_BORDER_MARGINS = 37,
     WCA_LAST
 } WINDOWCOMPOSITIONATTRIB;
 
@@ -2315,6 +2357,14 @@ PhEnumerateRecentList(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTerminateWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Force
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
@@ -2432,160 +2482,64 @@ PhThemeWindowDrawToolbar(
 
 // Font support
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateFont(
     _In_opt_ PCWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        PitchAndFamily,
-        Name
-        );
-}
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG Dpi
+    );
 
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateCommonFont(
     _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
-    )
-{
-    HFONT fontHandle;
-    LOGFONT logFont;
+    _In_ LONG Weight,
+    _In_opt_ HWND WindowHandle,
+    _In_ LONG WindowDpi
+    );
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
-        return NULL;
-
-    fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
-        );
-
-    if (!fontHandle)
-        return NULL;
-
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
-
-    return fontHandle;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateIconTitleFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhCreateMessageFont(
     _In_opt_ LONG WindowDpi
-    )
-{
-    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+    );
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
-        return CreateFontIndirect(&metrics.lfMessageFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFont(
     _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
+);
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewWeight(
     _In_ HFONT Font,
     _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
+    );
 
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
-FORCEINLINE
+PHLIBAPI
 HFONT
 NTAPI
 PhDuplicateFontWithNewHeight(
     _In_ HFONT Font,
     _In_ LONG NewHeight,
     _In_ LONG dpiValue
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
+    );
 
 FORCEINLINE
 BOOLEAN
@@ -2675,11 +2629,12 @@ HICON PhGdiplusConvertBitmapToIcon(
     );
 
 HWND PhCreateBackgroundWindow(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN DesktopWindow
     );
 
 HICON PhGdiplusConvertHBitmapToHIcon(
-    _In_ HBITMAP NitmapHandle
+    _In_ HBITMAP BitmapHandle
     );
 
 EXTERN_C_END

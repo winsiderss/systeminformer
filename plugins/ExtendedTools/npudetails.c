@@ -301,24 +301,26 @@ VOID EtpNpuDetailsEnumAdapters(
     _In_ HWND ListViewHandle
     )
 {
-    PETP_NPU_ADAPTER gpuAdapter;
-    D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
-
     for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
     {
-        gpuAdapter = EtpNpuAdapterList->Items[i];
+        PETP_NPU_ADAPTER gpuAdapter = EtpNpuAdapterList->Items[i];
+        D3DKMT_HANDLE adapterHandle;
+        LUID adapterLuid;
 
-        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.pDeviceName = PhGetString(gpuAdapter->DeviceInterface);
-
-        if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
+        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(
+            &adapterHandle,
+            &adapterLuid,
+            PhGetString(gpuAdapter->DeviceInterface)
+            )))
+        {
             continue;
+        }
 
         if (!ListView_HasGroup(ListViewHandle, i))
         {
             if (PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description)) == MAXINT)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+                EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
 
@@ -327,13 +329,13 @@ VOID EtpNpuDetailsEnumAdapters(
 
         EtpNpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpNpuQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterDriverModel(adapterHandle, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpNpuQueryAdapterDeviceIds(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterDeviceIds(adapterHandle, ListViewHandle);
         //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
-        EtpNpuQueryAdapterPerfInfo(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterPerfInfo(adapterHandle, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
+        EtCloseAdapterHandle(adapterHandle);
     }
 }
 

@@ -186,14 +186,13 @@ mxmlGetRefCount(mxml_node_t *node)	// I - Node
 // 'mxmlNewCDATA()' - Create a new CDATA node.
 //
 // The new CDATA node is added to the end of the specified parent's child
-// list.  The constant `MXML_NO_PARENT` can be used to specify that the new
-// CDATA node has no parent.  The data string must be nul-terminated and
-// is copied into the new node.  CDATA nodes currently use the
-// `MXML_TYPE_ELEMENT` type.
+// list.  The constant `NULL` can be used to specify that the new CDATA node
+// has no parent.  The data string must be nul-terminated and is copied into the
+// new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewCDATA(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewCDATA(mxml_node_t *parent,	// I - Parent node or `NULL`
 	     const char  *data)		// I - Data string
 {
   mxml_node_t	*node;			// New node
@@ -222,14 +221,14 @@ mxmlNewCDATA(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 //
 // 'mxmlNewCDATAf()' - Create a new formatted CDATA node.
 //
-// The new CDATA node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new opaque string node has no parent.  The format string must be
-// nul-terminated and is formatted into the new node.
+// The new CDATA node is added to the end of the specified parent's child list.
+// The constant `NULL` can be used to specify that the new opaque string node
+// has no parent.  The format string must be nul-terminated and is formatted
+// into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewCDATAf(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewCDATAf(mxml_node_t *parent,	// I - Parent node or `NULL`
               const char  *format,	// I - Printf-style format string
 	      ...)			// I - Additional args as needed
 {
@@ -262,13 +261,13 @@ mxmlNewCDATAf(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewComment()' - Create a new comment node.
 //
 // The new comment node is added to the end of the specified parent's child
-// list.  The constant `MXML_NO_PARENT` can be used to specify that the new
-// comment node has no parent.  The comment string must be nul-terminated and
-// is copied into the new node.
+// list.  The constant `NULL` can be used to specify that the new comment node
+// has no parent.  The comment string must be nul-terminated and is copied into
+// the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewComment(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewComment(mxml_node_t *parent,	// I - Parent node or `NULL`
 	       const char  *comment)	// I - Comment string
 {
   mxml_node_t	*node;			// New node
@@ -298,13 +297,13 @@ mxmlNewComment(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewCommentf()' - Create a new formatted comment string node.
 //
 // The new comment string node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new opaque string node has no parent.  The format string must be
-// nul-terminated and is formatted into the new node.
+// child list.  The constant `NULL` can be used to specify that the new opaque
+// string node has no parent.  The format string must be nul-terminated and is
+// formatted into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewCommentf(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewCommentf(mxml_node_t *parent,	// I - Parent node or `NULL`
                 const char  *format,	// I - Printf-style format string
 	        ...)			// I - Additional args as needed
 {
@@ -343,7 +342,7 @@ mxmlNewCommentf(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 
 mxml_node_t *				// O - New node
 mxmlNewCustom(
-    mxml_node_t        *parent,		// I - Parent node or `MXML_NO_PARENT`
+    mxml_node_t        *parent,		// I - Parent node or `NULL`
     void               *data,		// I - Pointer to data
     mxml_custfree_cb_t free_cb,		// I - Free callback function or `NULL` if none needed
     void               *free_cbdata)	// I - Free callback data
@@ -369,14 +368,14 @@ mxmlNewCustom(
 // 'mxmlNewDeclaration()' - Create a new declaraction node.
 //
 // The new declaration node is added to the end of the specified parent's child
-// list.  The constant `MXML_NO_PARENT` can be used to specify that the new
+// list.  The constant `NULL` can be used to specify that the new
 // declaration node has no parent.  The declaration string must be nul-
 // terminated and is copied into the new node.
 //
 
 mxml_node_t *				// O - New node
 mxmlNewDeclaration(
-    mxml_node_t *parent,		// I - Parent node or `MXML_NO_PARENT`
+    mxml_node_t *parent,		// I - Parent node or `NULL`
     const char  *declaration)		// I - Declaration string
 {
   mxml_node_t	*node;			// New node
@@ -406,14 +405,14 @@ mxmlNewDeclaration(
 // 'mxmlNewDeclarationf()' - Create a new formatted declaration node.
 //
 // The new declaration node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
+// child list.  The constant `NULL` can be used to specify that
 // the new opaque string node has no parent.  The format string must be
 // nul-terminated and is formatted into the new node.
 //
 
 mxml_node_t *				// O - New node
 mxmlNewDeclarationf(
-    mxml_node_t *parent,		// I - Parent node or `MXML_NO_PARENT`
+    mxml_node_t *parent,		// I - Parent node or `NULL`
     const char  *format,		// I - Printf-style format string
     ...)				// I - Additional args as needed
 {
@@ -446,13 +445,13 @@ mxmlNewDeclarationf(
 // 'mxmlNewDirective()' - Create a new processing instruction node.
 //
 // The new processing instruction node is added to the end of the specified
-// parent's child list.  The constant `MXML_NO_PARENT` can be used to specify
-// that the new processing instruction node has no parent.  The data string must
-// be nul-terminated and is copied into the new node.
+// parent's child list.  The constant `NULL` can be used to specify that the new
+// processing instruction node has no parent.  The data string must be
+// nul-terminated and is copied into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewDirective(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewDirective(mxml_node_t *parent,	// I - Parent node or `NULL`
 	         const char  *directive)// I - Directive string
 {
   mxml_node_t	*node;			// New node
@@ -481,14 +480,14 @@ mxmlNewDirective(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 //
 // 'mxmlNewDirectivef()' - Create a new formatted processing instruction node.
 //
-// The new processing instruction node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new opaque string node has no parent.  The format string must be
+// The new processing instruction node is added to the end of the specified
+// parent's child list.  The constant `NULL` can be used to specify that the new
+// opaque string node has no parent.  The format string must be
 // nul-terminated and is formatted into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewDirectivef(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewDirectivef(mxml_node_t *parent,	// I - Parent node or `NULL`
                   const char  *format,	// I - Printf-style format string
 	          ...)			// I - Additional args as needed
 {
@@ -521,12 +520,12 @@ mxmlNewDirectivef(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewElement()' - Create a new element node.
 //
 // The new element node is added to the end of the specified parent's child
-// list. The constant `MXML_NO_PARENT` can be used to specify that the new
-// element node has no parent.
+// list. The constant `NULL` can be used to specify that the new element node
+// has no parent.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewElement(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewElement(mxml_node_t *parent,	// I - Parent node or `NULL`
                const char  *name)	// I - Name of element
 {
   mxml_node_t	*node;			// New node
@@ -550,12 +549,12 @@ mxmlNewElement(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewInteger()' - Create a new integer node.
 //
 // The new integer node is added to the end of the specified parent's child
-// list. The constant `MXML_NO_PARENT` can be used to specify that the new
-// integer node has no parent.
+// list. The constant `NULL` can be used to specify that the new integer node
+// has no parent.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewInteger(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewInteger(mxml_node_t *parent,	// I - Parent node or `NULL`
                long        integer)	// I - Integer value
 {
   mxml_node_t	*node;			// New node
@@ -575,13 +574,13 @@ mxmlNewInteger(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewOpaque()' - Create a new opaque string.
 //
 // The new opaque string node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new opaque string node has no parent.  The opaque string must be nul-
-// terminated and is copied into the new node.
+// child list.  The constant `NULL` can be used to specify that the new opaque
+// string node has no parent.  The opaque string must be nul-terminated and is
+// copied into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewOpaque(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewOpaque(mxml_node_t *parent,	// I - Parent node or `NULL`
               const char  *opaque)	// I - Opaque string
 {
   mxml_node_t	*node;			// New node
@@ -605,13 +604,13 @@ mxmlNewOpaque(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewOpaquef()' - Create a new formatted opaque string node.
 //
 // The new opaque string node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new opaque string node has no parent.  The format string must be
-// nul-terminated and is formatted into the new node.
+// child list.  The constant `NULL` can be used to specify that the new opaque
+// string node has no parent.  The format string must be nul-terminated and is
+// formatted into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewOpaquef(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewOpaquef(mxml_node_t *parent,	// I - Parent node or `NULL`
                const char  *format,	// I - Printf-style format string
 	       ...)			// I - Additional args as needed
 {
@@ -644,12 +643,12 @@ mxmlNewOpaquef(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewReal()' - Create a new real number node.
 //
 // The new real number node is added to the end of the specified parent's
-// child list.  The constant `MXML_NO_PARENT` can be used to specify that
-// the new real number node has no parent.
+// child list.  The constant `NULL` can be used to specify that the new real
+// number node has no parent.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewReal(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewReal(mxml_node_t *parent,	// I - Parent node or `NULL`
             double      real)		// I - Real number value
 {
   mxml_node_t	*node;			// New node
@@ -669,14 +668,14 @@ mxmlNewReal(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewText()' - Create a new text fragment node.
 //
 // The new text node is added to the end of the specified parent's child
-// list.  The constant `MXML_NO_PARENT` can be used to specify that the new
-// text node has no parent.  The whitespace parameter is used to specify
-// whether leading whitespace is present before the node.  The text
-// string must be nul-terminated and is copied into the new node.
+// list.  The constant `NULL` can be used to specify that the new text node has
+// no parent.  The whitespace parameter is used to specify whether leading
+// whitespace is present before the node.  The text string must be
+// nul-terminated and is copied into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewText(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewText(mxml_node_t *parent,	// I - Parent node or `NULL`
             bool        whitespace,	// I - `true` = leading whitespace, `false` = no whitespace
 	    const char  *string)	// I - String
 {
@@ -704,14 +703,14 @@ mxmlNewText(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
 // 'mxmlNewTextf()' - Create a new formatted text fragment node.
 //
 // The new text node is added to the end of the specified parent's child
-// list.  The constant `MXML_NO_PARENT` can be used to specify that the new
-// text node has no parent.  The whitespace parameter is used to specify
-// whether leading whitespace is present before the node.  The format
-// string must be nul-terminated and is formatted into the new node.
+// list.  The constant `NULL` can be used to specify that the new text node has
+// no parent.  The whitespace parameter is used to specify whether leading
+// whitespace is present before the node.  The format string must be
+// nul-terminated and is formatted into the new node.
 //
 
 mxml_node_t *				// O - New node
-mxmlNewTextf(mxml_node_t *parent,	// I - Parent node or `MXML_NO_PARENT`
+mxmlNewTextf(mxml_node_t *parent,	// I - Parent node or `NULL`
              bool        whitespace,	// I - `true` = leading whitespace, `false` = no whitespace
 	     const char  *format,	// I - Printf-style format string
 	     ...)			// I - Additional args as needed
@@ -801,7 +800,7 @@ mxmlNewXML(const char *version)		// I - Version number to use
 // is deleted via @link mxmlDelete@.
 //
 
-size_t					// O - New reference count
+int					// O - New reference count
 mxmlRelease(mxml_node_t *node)		// I - Node
 {
   if (node)
@@ -811,9 +810,13 @@ mxmlRelease(mxml_node_t *node)		// I - Node
       mxmlDelete(node);
       return (0);
     }
+    else if (node->ref_count < INT_MAX)
+    {
+      return ((int)node->ref_count);
+    }
     else
     {
-      return (node->ref_count);
+      return (INT_MAX);
     }
   }
   else
@@ -827,13 +830,22 @@ mxmlRelease(mxml_node_t *node)		// I - Node
 // 'mxmlRetain()' - Retain a node.
 //
 
-size_t					// O - New reference count
+int					// O - New reference count
 mxmlRetain(mxml_node_t *node)		// I - Node
 {
   if (node)
-    return (++ node->ref_count);
+  {
+    node->ref_count ++;
+
+    if (node->ref_count < INT_MAX)
+      return ((int)node->ref_count);
+    else
+      return (INT_MAX);
+  }
   else
+  {
     return (-1);
+  }
 }
 
 

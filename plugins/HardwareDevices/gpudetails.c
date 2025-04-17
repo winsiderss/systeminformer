@@ -21,6 +21,8 @@ typedef enum _GPUADAPTER_DETAILS_INDEX
     GPUADAPTER_DETAILS_INDEX_DEVICEID,
     GPUADAPTER_DETAILS_INDEX_TOTALMEMORY,
     GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY,
+    GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY,
+    GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY,
     GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY,
     GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH,
     GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH,
@@ -56,6 +58,8 @@ VOID EtpGpuDetailsAddListViewItemGroups(
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
+    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, L"GPU Frequency", NULL);
+    PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, L"Max GPU Frequency", NULL);
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
     PhAddIListViewItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
@@ -217,7 +221,38 @@ VOID EtpQueryAdapterPerfInfo(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ IListView* ListViewClass)
 {
+    D3DKMT_NODE_PERFDATA nodePerfData;
     D3DKMT_ADAPTER_PERFDATA adapterPerfData;
+
+    memset(&nodePerfData, 0, sizeof(D3DKMT_NODE_PERFDATA));
+    nodePerfData.NodeOrdinal = 0;
+
+    if (NT_SUCCESS(GraphicsQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_NODEPERFDATA,
+        &nodePerfData,
+        sizeof(D3DKMT_NODE_PERFDATA)
+        )))
+    {
+        PH_FORMAT format[2];
+        WCHAR formatBuffer[256];
+
+        PhInitFormatI64U(&format[0], nodePerfData.Frequency / 1000 / 1000);
+        PhInitFormatS(&format[1], L" MHz");
+
+        if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, formatBuffer);
+        else
+            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.Frequency / 1000 / 1000)->Buffer);
+
+        PhInitFormatI64U(&format[0], nodePerfData.MaxFrequency / 1000 / 1000);
+        PhInitFormatS(&format[1], L" MHz");
+
+        if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
+            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, formatBuffer);
+        else
+            PhSetIListViewSubItem(ListViewClass, GPUADAPTER_DETAILS_INDEX_GPUMAXFREQUENCY, 1, PhaFormatString(L"%I64u MHz", nodePerfData.MaxFrequency / 1000 / 1000)->Buffer);
+    }
 
     memset(&adapterPerfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
 
@@ -339,7 +374,8 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    //PostMessage((HWND)Context, ET_WM_UPDATE, 0, 0);
+    //PGPU_DETAILS_CONTEXT context = Context;
+    //PostMessage(context->DialogHandle, ET_WM_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
@@ -374,7 +410,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
             context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -397,7 +433,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
-                hwndDlg,
+                context,
                 &context->ProcessesUpdatedCallbackRegistration
                 );
         }
@@ -438,6 +474,13 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            LONG windowDpi = HIWORD(wParam);
+
+            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
         }
         break;
     case WM_PH_UPDATE_DIALOG:

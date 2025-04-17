@@ -21,250 +21,28 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}</ProjectGuid>
     <TemplateGuid>{dd38f7fc-d7bd-488b-9242-7d8754cde80d}</TemplateGuid>
-    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <ConfigurationType>Driver</ConfigurationType>
     <RootNamespace>KSystemInformer</RootNamespace>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
-    <SignMode>Off</SignMode>
-    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
-    <ResolveNuGetPackages>false</ResolveNuGetPackages>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0A00</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0x0A00</_NT_TARGET_VERSION>
-    <TargetVersion>Windows10</TargetVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
-    <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>WDM</DriverType>
-    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
-    <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <IntDir>$(SystemInformerRoot)KSystemInformer\obj\$(Configuration)$(PlatformArchitecture)\$(ProjectName)\</IntDir>
+    <OutDir>$(SystemInformerRoot)KSystemInformer\bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <TargetName>SystemInformer</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>systeminformer</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>systeminformer</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>systeminformer</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <OutDir>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <EnableInf2cat>false</EnableInf2cat>
-    <TargetName>systeminformer</TargetName>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\kphlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_DEBUG;DEBUG;_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
-      <CallingConvention>StdCall</CallingConvention>
-      <StringPooling>true</StringPooling>
-      <SupportJustMyCode>false</SupportJustMyCode>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <WppEnabled>true</WppEnabled>
-      <WppTraceFunction>KphTracePrint(LEVEL,EVENT,MSG,...)</WppTraceFunction>
-      <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
-      <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
-      <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <GuardEHContMetadata>true</GuardEHContMetadata>
-      <BuildStlModules>false</BuildStlModules>
-      <ConformanceMode>true</ConformanceMode>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
+  <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SystemInformerRoot)kphlib\include\</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\kphlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_DEBUG;DEBUG;_WIN64;_ARM64_;ARM64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <SupportJustMyCode>false</SupportJustMyCode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-      <CallingConvention>StdCall</CallingConvention>
-      <StringPooling>true</StringPooling>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <WppEnabled>true</WppEnabled>
-      <WppTraceFunction>KphTracePrint(LEVEL,EVENT,MSG,...)</WppTraceFunction>
-      <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
-      <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
-      <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <GuardSignedReturns>true</GuardSignedReturns>
-      <BuildStlModules>false</BuildStlModules>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <ConformanceMode>true</ConformanceMode>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-    </Link>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\kphlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_WIN64;_AMD64_;AMD64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
-      <GuardEHContMetadata>true</GuardEHContMetadata>
-      <CallingConvention>StdCall</CallingConvention>
-      <StringPooling>true</StringPooling>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <WppEnabled>true</WppEnabled>
-      <WppTraceFunction>KphTracePrint(LEVEL,EVENT,MSG,...)</WppTraceFunction>
-      <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
-      <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
-      <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <BuildStlModules>false</BuildStlModules>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <ConformanceMode>true</ConformanceMode>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-      <CETCompat>true</CETCompat>
-      <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-    </Link>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(CRT_IncludePath);$(KM_IncludePath);$(KIT_SHARED_IncludePath);$(SolutionDir)..\phnt\include\;$(SolutionDir)..\kphlib\include\;$(ProjectDir)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;POOL_NX_OPTIN;POOL_ZERO_DOWN_LEVEL_SUPPORT;_WIN64;_ARM64_;ARM64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-      <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
-      <CallingConvention>StdCall</CallingConvention>
-      <StringPooling>true</StringPooling>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
-      <WppEnabled>true</WppEnabled>
-      <WppTraceFunction>KphTracePrint(LEVEL,EVENT,MSG,...)</WppTraceFunction>
-      <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
-      <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
-      <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <GuardSignedReturns>true</GuardSignedReturns>
-      <BuildStlModules>false</BuildStlModules>
-      <Optimization>MaxSpeed</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <ConformanceMode>true</ConformanceMode>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;volatileaccessk.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions>/NATVIS:$(SolutionDir)\..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-    <ResourceCompile>
-      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\kphlib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <FilesToPackage Include="$(TargetPath)" />
-    <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="alloc.c" />
     <ClCompile Include="alpc.c" />

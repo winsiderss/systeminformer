@@ -35,10 +35,10 @@ typedef struct _PH_MAPPED_IMAGE
                 PIMAGE_NT_HEADERS64 NtHeaders64;
                 PIMAGE_NT_HEADERS NtHeaders;
             };
-
-            ULONG NumberOfSections;
-            PIMAGE_SECTION_HEADER Sections;
+            
             USHORT Magic;
+            USHORT NumberOfSections;
+            PIMAGE_SECTION_HEADER Sections;
         };
 
         struct // ELF image
@@ -87,7 +87,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImageEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -96,7 +96,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImageHeaderPageSize(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -122,7 +122,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhMapViewOfEntireFileEx(
-    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ PCPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID* ViewBase,
     _Out_ PSIZE_T ViewSize
@@ -133,6 +133,15 @@ VOID
 NTAPI
 PhMappedImagePrefetch(
     _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+PIMAGE_SECTION_HEADER
+NTAPI
+PhMappedImageSectionByName(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN IgnoreCase
     );
 
 PHLIBAPI
@@ -226,9 +235,9 @@ typedef struct _PH_REMOTE_MAPPED_IMAGE
         PIMAGE_NT_HEADERS64 NtHeaders64;
         PIMAGE_NT_HEADERS NtHeaders;
     };
-    ULONG NumberOfSections;
-    PIMAGE_SECTION_HEADER Sections;
     USHORT Magic;
+    USHORT NumberOfSections;
+    PIMAGE_SECTION_HEADER Sections;
     PVOID PageCache;
 } PH_REMOTE_MAPPED_IMAGE, *PPH_REMOTE_MAPPED_IMAGE;
 

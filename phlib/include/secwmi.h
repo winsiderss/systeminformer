@@ -36,10 +36,26 @@ PhGetWbemClassObjectString(
     _In_ PCWSTR Name
     );
 
+PHLIBAPI
+ULONG64
+NTAPI
+PhGetWbemClassObjectUlong64(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetWbemClassObjectUlongPtr(
+    _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    );
+
 #define PhStringRefToBSTR(String) \
     SysAllocStringLen((String)->Buffer, (UINT)(String)->Length / sizeof(WCHAR))
 #define PhStringZToBSTR(String) \
-    SysAllocStringLen((String), (UINT)sizeof(String) - sizeof(UNICODE_NULL) / sizeof(WCHAR))
+    SysAllocStringLen((String), (UINT)((sizeof(String) / sizeof(WCHAR)) - 1))
 
 // powrprof.h
 typedef enum _POWER_DATA_ACCESSOR POWER_DATA_ACCESSOR;

@@ -35,7 +35,7 @@ NTSTATUS PhCreatePipeEx(
     )
 {
     NTSTATUS status;
-    PACL pipeAcl = nullptr;
+    PACL pipeAcl = NULL;
     HANDLE pipeDirectoryHandle;
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
@@ -57,8 +57,8 @@ NTSTATUS PhCreatePipeEx(
         &objectAttributes,
         &pipeName,
         OBJ_CASE_INSENSITIVE,
-        nullptr,
-        nullptr
+        NULL,
+        NULL
         );
 
     status = NtOpenFile(
@@ -73,7 +73,7 @@ NTSTATUS PhCreatePipeEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    RtlInitEmptyUnicodeString(&pipeName, nullptr, 0);
+    RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
     InitializeObjectAttributes(
         &objectAttributes,
         &pipeName,
@@ -127,13 +127,13 @@ NTSTATUS PhCreatePipeEx(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    RtlInitEmptyUnicodeString(&pipeName, nullptr, 0);
+    RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
     InitializeObjectAttributes(
         &objectAttributes,
         &pipeName,
         OBJ_CASE_INSENSITIVE,
         pipeReadHandle,
-        nullptr
+        NULL
         );
     objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
@@ -948,7 +948,7 @@ NTSTATUS PhDefaultNpAcl(
 
         if (appContainerSidParent)
         {
-            PhFreeSid(appContainerSidParent);
+            RtlFreeSid(appContainerSidParent);
         }
     }
 

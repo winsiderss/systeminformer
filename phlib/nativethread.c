@@ -192,7 +192,6 @@ NTSTATUS PhTerminateThread(
     return status;
 }
 
-
 /*
  * Retrieves the context of a thread.
  *
@@ -211,6 +210,32 @@ NTSTATUS PhGetContextThread(
     status = NtGetContextThread(
         ThreadHandle,
         ThreadContext
+        );
+
+    return status;
+}
+
+NTSTATUS PhGetThreadTebInformationAtomic(
+    _In_ HANDLE ThreadHandle,
+    _Inout_bytecount_(BytesToRead) PVOID TebInformation,
+    _In_ ULONG TebOffset,
+    _In_ ULONG BytesToRead
+    )
+{
+    NTSTATUS status;
+    THREAD_TEB_INFORMATION threadInfo;
+    ULONG returnLength;
+
+    threadInfo.TebInformation = TebInformation;
+    threadInfo.TebOffset = TebOffset; // FIELD_OFFSET(TEB, Value);
+    threadInfo.BytesToRead = BytesToRead; // RTL_FIELD_SIZE(TEB, Value);
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadTebInformationAtomic,
+        &threadInfo,
+        sizeof(THREAD_TEB_INFORMATION),
+        &returnLength
         );
 
     return status;
@@ -753,7 +778,7 @@ NTSTATUS PhGetThreadApartmentState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -800,11 +825,11 @@ NTSTATUS PhGetThreadApartmentState(
 
 #ifdef _WIN64
         if (isWow64)
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
         else
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0x14);
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, 0xC);
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
 #endif
 
         status = NtReadVirtualMemory(
@@ -844,7 +869,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -1058,7 +1083,7 @@ NTSTATUS PhGetThreadSocketState(
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    typeof(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = nullptr;
+    __typeof__(RTL_FIELD_TYPE(TEB, WinSockData)) winsockHandleAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
@@ -3066,10 +3091,7 @@ NTSTATUS PhSetHandleInformationRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if ((BOOL)basicInformation.ExitStatus) // Read TEB->LastErrorStatus?
-        status = STATUS_SUCCESS;
-    else
-        status = STATUS_UNSUCCESSFUL;
+    status = basicInformation.ExitStatus;
 
 CleanupExit:
 

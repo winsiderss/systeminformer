@@ -32,8 +32,7 @@ typedef struct _KSI_SUPPORT_DATA
     ULONG SizeOfImage;
 } KSI_SUPPORT_DATA, *PKSI_SUPPORT_DATA;
 
-static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
-static PPH_STRING KsiKernelFileName = NULL;
+static CONST PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
 static PPH_STRING KsiKernelVersion = NULL;
 static KSI_SUPPORT_DATA KsiSupportData = { MAXWORD, 0, 0, 0 };
 static PPH_STRING KsiSupportString = NULL;
@@ -56,43 +55,16 @@ VOID KsiDebugLogFinalize(
     );
 #endif
 
-PPH_STRING KsiGetKernelFileNameInternal(
-    VOID
-    )
-{
-    NTSTATUS status;
-    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
-    PRTL_PROCESS_MODULES modules;
-    ULONG modulesLength;
-
-    modules = (PRTL_PROCESS_MODULES)buffer;
-    modulesLength = sizeof(buffer);
-
-    status = NtQuerySystemInformation(
-        SystemModuleInformation,
-        modules,
-        modulesLength,
-        &modulesLength
-        );
-
-    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
-        return NULL;
-    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
-        return NULL;
-
-    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-}
-
 PPH_STRING KsiGetKernelFileName(
     VOID
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING KsiKernelFileName = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        KsiKernelFileName = KsiGetKernelFileNameInternal();
-
+        KsiKernelFileName = PhGetKernelFileName();
         PhEndInitOnce(&initOnce);
     }
 
@@ -250,7 +222,7 @@ VOID PhShowKsiStatus(
         if (PhShowMessageOneTime(
             NULL,
             TD_OK_BUTTON,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             L"Access to the kernel driver is restricted.",
             L"%s",
             PhGetString(infoString)
@@ -391,12 +363,23 @@ LONG PhpShowKsiMessage(
     else
     {
         BOOLEAN checked;
+        LONG bufferLength;
+        WCHAR buffer[0x100];
+
+        bufferLength = _snwprintf(
+            buffer,
+            ARRAYSIZE(buffer) - sizeof(UNICODE_NULL),
+            L"%s (0x%08x)",
+            Title,
+            Status
+            );
+        buffer[bufferLength] = UNICODE_NULL;
 
         result = PhShowMessageOneTime2(
             WindowHandle,
             Buttons,
             Icon,
-            Title,
+            buffer,
             &checked,
             PhGetString(errorMessage)
             );
@@ -451,7 +434,6 @@ LONG PhShowKsiMessage2(
     return result;
  }
 
-
 VOID PhShowKsiMessageEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR Icon,
@@ -485,7 +467,7 @@ VOID PhShowKsiMessage(
 }
 
 NTSTATUS PhRestartSelf(
-    _In_ PPH_STRINGREF AdditionalCommandLine
+    _In_ PCPH_STRINGREF AdditionalCommandLine
     )
 {
 #ifndef DEBUG
@@ -641,7 +623,7 @@ BOOLEAN KsiCommsCallback(
 }
 
 NTSTATUS KsiReadConfiguration(
-    _In_ PWSTR FileName,
+    _In_ PCWSTR FileName,
     _Out_ PBYTE* Data,
     _Out_ PULONG Length
     )
@@ -845,7 +827,7 @@ NTSTATUS KsiCreateTemporaryDriverFile(
 }
 
 VOID KsiCreateRandomizedName(
-    _In_ PWSTR Prefix,
+    _In_ PCWSTR Prefix,
     _Out_ PPH_STRING* Name
     )
 {
@@ -877,9 +859,16 @@ VOID KsiConnect(
     KPH_LEVEL level;
 
     if (tempDriverDir = PhGetTemporaryKsiDirectory())
+    {
         PhDeleteDirectoryWin32(&tempDriverDir->sr);
+    }
 
-    status = KsiGetDynData(&dynData, &dynDataLength, &signature, &signatureLength);
+    status = KsiGetDynData(
+        &dynData,
+        &dynDataLength,
+        &signature,
+        &signatureLength
+        );
 
     if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
     {
@@ -887,7 +876,7 @@ VOID KsiConnect(
         {
             PhShowKsiMessageEx(
                 WindowHandle,
-                TD_ERROR_ICON,
+                TD_SHIELD_ERROR_ICON,
                 0,
                 FALSE,
                 L"Unable to load kernel driver",
@@ -900,7 +889,7 @@ VOID KsiConnect(
         {
             PhShowKsiMessageEx(
                 WindowHandle,
-                TD_ERROR_ICON,
+                TD_SHIELD_ERROR_ICON,
                 0,
                 FALSE,
                 L"Unable to load kernel driver",
@@ -916,7 +905,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -929,12 +918,13 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
             L"Failed to access the dynamic configuration."
             );
+
         goto CleanupExit;
     }
 
@@ -945,7 +935,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1053,7 +1043,7 @@ VOID KsiConnect(
         if (PhShowKsiMessage2(
             WindowHandle,
             TD_YES_BUTTON | TD_NO_BUTTON,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
@@ -1093,8 +1083,7 @@ VOID KsiConnect(
             PhSetStringSetting2(L"KsiPortName", &randomPortName->sr);
             PhSetStringSetting2(L"KsiObjectName", &randomObjectName->sr);
 
-            if (!PhIsNullOrEmptyString(PhSettingsFileName))
-                PhSaveSettings(&PhSettingsFileName->sr);
+            PhSaveSettings2(PhSettingsFileName);
 
             PhShowKsiMessage(
                 WindowHandle,
@@ -1115,7 +1104,7 @@ VOID KsiConnect(
     {
         PhShowKsiMessageEx(
             WindowHandle,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             status,
             FALSE,
             L"Unable to load kernel driver",
@@ -1133,7 +1122,7 @@ VOID KsiConnect(
         if ((level == KphLevelHigh) &&
             !PhStartupParameters.KphStartupMax)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1141,7 +1130,7 @@ VOID KsiConnect(
             !PhStartupParameters.KphStartupMax &&
             !PhStartupParameters.KphStartupHigh)
         {
-            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
+            static CONST PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
             status = PhRestartSelf(&commandline);
         }
 
@@ -1309,7 +1298,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1323,7 +1312,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             STATUS_PENDING,
             FALSE,
             L"Unable to load kernel driver",
@@ -1336,7 +1325,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1351,7 +1340,7 @@ VOID PhInitializeKsi(
     {
         PhShowKsiMessageEx(
             NULL,
-            TD_ERROR_ICON,
+            TD_SHIELD_ERROR_ICON,
             0,
             FALSE,
             L"Unable to load kernel driver",
@@ -1438,7 +1427,7 @@ BOOLEAN PhParseKsiSettingsBlob(
     {
         value = PhCreateBytesEx(string, stringLength);
 
-        if (object = PhCreateJsonParserEx(value, FALSE))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&object, value, FALSE)))
         {
             directory = PhGetJsonValueAsString(object, "KsiDirectory");
             serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
@@ -1505,4 +1494,43 @@ PVOID PhCreateKsiSettingsBlob(
     PhFreeJsonObject(object);
 
     return string;
+}
+
+NTSTATUS PhQueryKphCounters(
+    _Out_ PULONG64 Duration,
+    _Out_ PULONG64 DurationDown,
+    _Out_ PULONG64 DurationUp
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterStop;
+    LARGE_INTEGER performanceCounter;
+    ULONG64 performanceCounterDuration;
+    ULONG64 performanceCounterDown;
+    ULONG64 performanceCounterUp;
+
+    if (KsiLevel() < KphLevelLow)
+    {
+        *Duration = 0;
+        *DurationDown = 0;
+        *DurationUp = 0;
+        status = STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        PhQueryPerformanceCounter(&performanceCounterStart);
+        status = KphQueryPerformanceCounter(&performanceCounter, NULL);
+        PhQueryPerformanceCounter(&performanceCounterStop);
+
+        performanceCounterDuration = performanceCounterStop.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterDown = performanceCounter.QuadPart - performanceCounterStart.QuadPart;
+        performanceCounterUp = performanceCounterStop.QuadPart - performanceCounter.QuadPart;
+
+        *Duration = performanceCounterDuration;
+        *DurationDown = performanceCounterDown;
+        *DurationUp = performanceCounterUp;
+    }
+
+    return status;
 }

@@ -38,7 +38,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDOK)
+            if ((LONG)wParam == IDOK)
             {
                 {
                     PPH_STRING key;
@@ -121,7 +121,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
     {
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDYES)
+            if ((LONG)wParam == IDYES)
             {
                 SystemInformer_PrepareForEarlyShutdown();
 
@@ -171,7 +171,7 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDRETRY)
+            if ((LONG)wParam == IDRETRY)
             {
                 ShowDbCheckForUpdatesDialog(context);
                 return S_FALSE;
@@ -280,7 +280,7 @@ VOID ShowDbUpdateFailedDialog(
         {
             config.pszContent = PhaFormatString(L"[%lu] Access denied (invalid license key)", Context->ErrorCode)->Buffer;
         }
-        else if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
+        else if (errorMessage = PhHttpGetErrorMessage(Context->ErrorCode))
         {
             config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
             PhDereferenceObject(errorMessage);

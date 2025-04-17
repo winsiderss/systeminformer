@@ -21,6 +21,8 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
     PH_HASH_ENTRY HashEntry;
@@ -68,6 +70,8 @@ typedef struct _PH_SERVICE_QUERY_S1_DATA
     PH_SERVICE_QUERY_DATA Header;
 
     PPH_IMAGELIST_ITEM IconEntry;
+    //PH_IMAGE_VERSION_INFO VersionInfo;
+    BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S1_DATA, *PPH_SERVICE_QUERY_S1_DATA;
 
 typedef struct _PH_SERVICE_QUERY_S2_DATA
@@ -76,6 +80,7 @@ typedef struct _PH_SERVICE_QUERY_S2_DATA
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
+    BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S2_DATA, *PPH_SERVICE_QUERY_S2_DATA;
 
 VOID NTAPI PhpServiceItemDeleteProcedure(
@@ -124,12 +129,12 @@ ULONG PhServiceNonPollFlushInterval = 10;
 static BOOLEAN PhNonPollActive = FALSE;
 static volatile LONG PhNonPollGate = 0;
 static HANDLE PhNonPollEventHandle = NULL;
-static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
-static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
+static RTL_STATIC_LIST_HEAD(PhpNonPollServiceListHead);
+static RTL_STATIC_LIST_HEAD(PhpNonPollServicePendingListHead);
 static SLIST_HEADER PhpServiceQueryDataListHead;
-static typeof(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
-static typeof(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
-static typeof(&UnsubscribeServiceChangeNotifications) UnsubscribeServiceChangeNotifications_I = NULL;
+static __typeof__(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
+static __typeof__(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
+static __typeof__(&UnsubscribeServiceChangeNotifications) UnsubscribeServiceChangeNotifications_I = NULL;
 
 BOOLEAN PhServiceProviderInitialization(
     VOID
@@ -223,7 +228,7 @@ ULONG PhpServiceHashtableHashFunction(
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
 
-    return PhHashStringRefEx(&serviceItem->Key, TRUE, PH_STRING_HASH_XXH32);
+    return PhHashStringRefEx(&serviceItem->Key, TRUE, PH_STRING_HASH_X65599);
 }
 
 PPH_SERVICE_ITEM PhpLookupServiceItem(
@@ -457,8 +462,27 @@ VOID PhServiceQueryStage1(
             Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, 0, NULL, PhSystemDpi);
         }
 
-        // Version info.
-        //PhInitializeImageVersionInfo(&Data->VersionInfo, fileName->Buffer);
+        if (!PhEnableProcessQueryStage2)
+        {
+            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+            PH_IMAGE_VERSION_INFO versionInfo;
+
+            if (PhInitializeImageVersionInfoCached(
+                &versionInfo, // Data->VersionInfo
+                fileName,
+                FALSE,
+                !!PhCsEnableVersionSupport
+                ))
+            {
+                // Note: This is how msconfig determines default services. (dmex)
+                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                {
+                    Data->MicrosoftService = TRUE;
+                }
+
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+        }
     }
 }
 
@@ -478,6 +502,16 @@ VOID PhServiceQueryStage2(
             FALSE,
             FALSE
             );
+
+        if (!PhIsNullOrEmptyString(Data->VerifySignerName))
+        {
+            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+
+            if (PhEqualStringRef(&Data->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+            {
+                Data->MicrosoftService = TRUE;
+            }
+        }
     }
 }
 
@@ -560,8 +594,11 @@ VOID PhpFillServiceItemStage1(
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     PPH_STRING fileName = Data->Header.FileName;
 
+    PhTrace("Service query stage 1: %ls", PhGetString(serviceItem->Name));
+
     serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    serviceItem->MicrosoftService = !!Data->MicrosoftService;
 
     // Note: Queue stage 2 processing after filling stage1 process data.
 
@@ -577,8 +614,11 @@ VOID PhpFillServiceItemStage2(
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
 
+    PhTrace("Service query stage 2: %ls", PhGetString(serviceItem->Name));
+
     serviceItem->VerifyResult = Data->VerifyResult;
     PhMoveReference(&serviceItem->VerifySignerName, Data->VerifySignerName);
+    serviceItem->MicrosoftService = !!Data->MicrosoftService;
 }
 
 VOID PhFlushServiceQueryData(
@@ -702,6 +742,8 @@ VOID PhServiceProviderUpdate(
     ULONG numberOfServices;
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
+
+    PhTrace("Service provider run count: %lu", runCount);
 
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)

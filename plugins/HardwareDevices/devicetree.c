@@ -14,6 +14,8 @@
 
 #include <devguid.h>
 
+#include <trace.h>
+
 typedef struct _DEVICE_NODE
 {
     PH_TREENEW_NODE Node;
@@ -238,6 +240,8 @@ PDEVICE_TREE DeviceTreeCreate(
 {
     PDEVICE_TREE tree = PhCreateObject(sizeof(DEVICE_TREE), DeviceTreeType);
 
+    PhTrace("Creating device tree...");
+
     tree->Nodes = PhCreateList(Tree->DeviceList->AllocatedCount);
     if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_ROOT))
     {
@@ -260,6 +264,9 @@ PDEVICE_TREE DeviceTreeCreate(
     qsort(tree->Nodes->Items, tree->Nodes->Count, sizeof(PVOID), DeviceNodeSortFunction);
 
     tree->Tree = PhReferenceObject(Tree);
+
+    PhTrace("Created device tree with %lu nodes", tree->Nodes->Count);
+
     return tree;
 }
 
@@ -1057,9 +1064,12 @@ VOID DevicesTreeImageListInitialize(
             );
     }
 
-    PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
+    if (DeviceImageList)
+    {
+        PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
 
-    TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
+        TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
+    }
 }
 
 const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =

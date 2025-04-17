@@ -9,7 +9,9 @@
 
 // begin_private
 
+//
 // Prefetch
+//
 
 typedef enum _PF_BOOT_PHASE_ID
 {
@@ -83,7 +85,9 @@ typedef struct _PREFETCHER_INFORMATION
     _Inout_ ULONG PrefetcherInformationLength;
 } PREFETCHER_INFORMATION, *PPREFETCHER_INFORMATION;
 
+//
 // Superfetch
+//
 
 typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
 {
@@ -291,6 +295,14 @@ typedef struct _PF_ROBUSTNESS_CONTROL
 } PF_ROBUSTNESS_CONTROL, *PPF_ROBUSTNESS_CONTROL;
 
 // rev
+typedef struct _PF_SCENARIO_PREFETCH_INFO
+{
+    USHORT Version;
+    USHORT PrefetchEnd : 1;
+    PF_PHASED_SCENARIO_TYPE ScenType;
+} PF_SCENARIO_PREFETCH_INFO, *PPF_SCENARIO_PREFETCH_INFO;
+
+// rev
 typedef struct _PF_TIME_CONTROL
 {
     LONG TimeAdjustment;
@@ -332,6 +344,40 @@ typedef struct _PF_PHYSICAL_MEMORY_RANGE_INFO_V2
 } PF_PHYSICAL_MEMORY_RANGE_INFO_V2, *PPF_PHYSICAL_MEMORY_RANGE_INFO_V2;
 
 // rev
+#define PF_ACCESS_TRACING_CONTROL_VERSION 1
+
+// rev
+typedef struct _PF_ACCESS_TRACING_CONTROL
+{
+    ULONG Version;
+    ULONG Command;
+    ULONG ComponentMask;
+} PF_ACCESS_TRACING_CONTROL, *PPF_ACCESS_TRACING_CONTROL;
+
+typedef enum _PF_TRIM_WHILE_AGING_STATE
+{
+	PfTrimWhileAgingOff = 0,
+	PfTrimWhileAgingLowPriority = 1,
+	PfTrimWhileAgingPassive = 2,
+	PfTrimWhileAgingNormal = 3,
+	PfTrimWhileAgingAggressive = 4,
+	PfTrimWhileAgingMax = 5,
+} PF_TRIM_WHILE_AGING_STATE, *PPF_TRIM_WHILE_AGING_STATE;
+
+// rev
+#define PF_TRIM_WHILE_AGING_CONTROL_VERSION 1
+
+// rev
+typedef struct _PF_TRIM_WHILE_AGING_CONTROL
+{
+    ULONG Version;
+    PF_TRIM_WHILE_AGING_STATE TrimWhileAgingState;
+    BOOLEAN PrivatePageTrimAge;
+    BOOLEAN SharedPageTrimAge;
+    USHORT Spare;
+} PF_TRIM_WHILE_AGING_CONTROL, *PPF_TRIM_WHILE_AGING_CONTROL;
+
+// rev
 #define PF_REPURPOSED_BY_PREFETCH_INFO_VERSION 1
 
 // rev
@@ -364,6 +410,18 @@ typedef struct _PF_VIRTUAL_QUERY
 } PF_VIRTUAL_QUERY, *PPF_VIRTUAL_QUERY;
 
 // rev
+#define PF_PAGECOMBINE_AGGREGATE_STAT_VERSION 1
+
+// rev
+typedef struct _PF_PAGECOMBINE_AGGREGATE_STAT
+{
+    ULONG Version;
+    ULONG CombineScanCount;
+    ULONG CombinedBlocksInUse;
+    ULONG SumCombinedBlocksReferenceCount;
+} PF_PAGECOMBINE_AGGREGATE_STAT, *PPF_PAGECOMBINE_AGGREGATE_STAT;
+
+// rev
 #define PF_MIN_WS_AGE_RATE_CONTROL_VERSION 1
 
 // rev
@@ -394,6 +452,22 @@ typedef struct _PF_DEPRIORITIZE_OLD_PAGES
 } PF_DEPRIORITIZE_OLD_PAGES, *PPF_DEPRIORITIZE_OLD_PAGES;
 
 // rev
+#define PF_FILE_EXTENTS_INFO_VERSION 1
+
+// rev
+typedef struct _PF_FILE_EXTENTS_INFO
+{
+    ULONG Version;
+    PWSTR FilePath;
+    ULONG FilePathSize;
+    ULONG VolumePathSize;
+    LARGE_INTEGER FileIndexNumber;
+    ULONG VolumeSerialNumber;
+    RETRIEVAL_POINTERS_BUFFER ExtentsBuffer;
+    ULONGLONG ExtentsBufferSize;
+} PF_FILE_EXTENTS_INFO, *PPF_FILE_EXTENTS_INFO;
+
+// rev
 #define PF_GPU_UTILIZATION_INFO_VERSION 1
 
 // rev
@@ -416,21 +490,21 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
     SuperfetchPfnSetPriority,
     SuperfetchPrivSourceQuery, // q: PF_PRIVSOURCE_QUERY_REQUEST
     SuperfetchSequenceNumberQuery, // q: ULONG
-    SuperfetchScenarioPhase, // 10
+    SuperfetchScenarioPhase,  // q: PF_SCENARIO_PHASE_INFO // 10
     SuperfetchWorkerPriority, // s: KPRIORITY
-    SuperfetchScenarioQuery, // q: PF_SCENARIO_PHASE_INFO
-    SuperfetchScenarioPrefetch,
+    SuperfetchScenarioQuery,
+    SuperfetchScenarioPrefetch, // PF_SCENARIO_PREFETCH_INFO
     SuperfetchRobustnessControl, // s: PF_ROBUSTNESS_CONTROL
     SuperfetchTimeControl, // s: PF_TIME_CONTROL
     SuperfetchMemoryListQuery, // q: PF_MEMORY_LIST_INFO
     SuperfetchMemoryRangesQuery, // q: PF_PHYSICAL_MEMORY_RANGE_INFO
-    SuperfetchTracingControl,
-    SuperfetchTrimWhileAgingControl,
+    SuperfetchTracingControl, // PF_ACCESS_TRACING_CONTROL
+    SuperfetchTrimWhileAgingControl, // PF_TRIM_WHILE_AGING_CONTROL
     SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // 20
     SuperfetchChannelPowerRequest,
     SuperfetchMovePages,
     SuperfetchVirtualQuery, // q: PF_VIRTUAL_QUERY
-    SuperfetchCombineStatsQuery,
+    SuperfetchCombineStatsQuery, // PF_PAGECOMBINE_AGGREGATE_STAT
     SuperfetchSetMinWsAgeRate, // s: PF_MIN_WS_AGE_RATE_CONTROL
     SuperfetchDeprioritizeOldPagesInWs, // s: PF_DEPRIORITIZE_OLD_PAGES
     SuperfetchFileExtentsQuery, // q: PF_FILE_EXTENTS_INFO
@@ -453,4 +527,4 @@ typedef struct _SUPERFETCH_INFORMATION
 
 // end_private
 
-#endif
+#endif // _NTPFAPI_H

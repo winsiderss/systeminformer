@@ -22,6 +22,7 @@
 #include <extmgri.h>
 #include <phsettings.h>
 #include <thrdprv.h>
+#include <secedit.h>
 
 BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -131,7 +132,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LXSSTID, FALSE, L"TID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     //PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTAINERID, FALSE, L"Container ID", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, TRUE, L"Start address (Native)", 180, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTADDRESS, FALSE, L"Start address (Native)", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -1702,7 +1703,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100.f;
-                    cpuUsage *= PhCountBitsUlongPtr(threadItem->AffinityMask);  // linux style (dmex)
+                    cpuUsage *= threadItem->AffinityPopulationCount;  // linux style (dmex)
 
                     if (cpuUsage >= PhMaxPrecisionLimit)
                     {
@@ -2335,81 +2336,54 @@ PPH_STRING PhGetApartmentStateString(
     _In_ OLETLSFLAGS ApartmentState
     )
 {
-    PH_STRING_BUILDER stringBuilder;
-    WCHAR pointer[PH_PTR_STR_LEN_1];
+#define PH_OLE_TLS_FLAG(x, n) { TEXT(#x), x, FALSE, FALSE, n }
 
-    PhInitializeStringBuilder(&stringBuilder, 10);
+    static const PH_ACCESS_ENTRY oleTlsflags[] =
+    {
+        PH_OLE_TLS_FLAG(OLETLS_LOCALTID, L"Local TID"),
+        PH_OLE_TLS_FLAG(OLETLS_UUIDINITIALIZED, L"UUID initialized"),
+        PH_OLE_TLS_FLAG(OLETLS_INTHREADDETACH, L"In thread detach"),
+        PH_OLE_TLS_FLAG(OLETLS_CHANNELTHREADINITIALZED, L"Channel thread initialized"),
+        PH_OLE_TLS_FLAG(OLETLS_WOWTHREAD, L"WoW thread"),
+        PH_OLE_TLS_FLAG(OLETLS_THREADUNINITIALIZING, L"Thread uninitializing"),
+        PH_OLE_TLS_FLAG(OLETLS_DISABLE_OLE1DDE, L"OLE1DDE disabled"),
+        PH_OLE_TLS_FLAG(OLETLS_APARTMENTTHREADED, L"Single threaded (STA)"),
+        PH_OLE_TLS_FLAG(OLETLS_MULTITHREADED, L"Multi threaded (MTA)"),
+        PH_OLE_TLS_FLAG(OLETLS_IMPERSONATING, L"Impersonating"),
+        PH_OLE_TLS_FLAG(OLETLS_DISABLE_EVENTLOGGER, L"Eventlogger disabled"),
+        PH_OLE_TLS_FLAG(OLETLS_INNEUTRALAPT, L"Neutral threaded (NTA)"),
+        PH_OLE_TLS_FLAG(OLETLS_DISPATCHTHREAD, L"Dispatch thread"),
+        PH_OLE_TLS_FLAG(OLETLS_HOSTTHREAD, L"Host thread"),
+        PH_OLE_TLS_FLAG(OLETLS_ALLOWCOINIT, L"Allow CoInit"),
+        PH_OLE_TLS_FLAG(OLETLS_PENDINGUNINIT, L"Pending uninit"),
+        PH_OLE_TLS_FLAG(OLETLS_FIRSTMTAINIT, L"First MTA init"),
+        PH_OLE_TLS_FLAG(OLETLS_FIRSTNTAINIT, L"First NTA init"),
+        PH_OLE_TLS_FLAG(OLETLS_APTINITIALIZING, L"Apartment initializing"),
+        PH_OLE_TLS_FLAG(OLETLS_UIMSGSINMODALLOOP, L"UI messages in modal loop"),
+        PH_OLE_TLS_FLAG(OLETLS_MARSHALING_ERROR_OBJECT, L"Marshaling error object"),
+        PH_OLE_TLS_FLAG(OLETLS_WINRT_INITIALIZE, L"WinRT initialized"),
+        PH_OLE_TLS_FLAG(OLETLS_APPLICATION_STA, L"Application STA"),
+        PH_OLE_TLS_FLAG(OLETLS_IN_SHUTDOWN_CALLBACKS, L"In shutdown callbacks"),
+        PH_OLE_TLS_FLAG(OLETLS_POINTER_INPUT_BLOCKED, L"Pointer input blocked"),
+        PH_OLE_TLS_FLAG(OLETLS_IN_ACTIVATION_FILTER, L"In activation filter"),
+        PH_OLE_TLS_FLAG(OLETLS_ASTATOASTAEXEMPT_QUIRK, L"ASTA-to-ASTA exempt quirk"),
+        PH_OLE_TLS_FLAG(OLETLS_ASTATOASTAEXEMPT_PROXY, L"ASTA-to-ASTA exempt proxy"),
+        PH_OLE_TLS_FLAG(OLETLS_ASTATOASTAEXEMPT_INDOUBT, L"ASTA-to-ASTA exempt in doubt"),
+        PH_OLE_TLS_FLAG(OLETLS_DETECTED_USER_INITIALIZED, L"Detected user initialized"),
+        PH_OLE_TLS_FLAG(OLETLS_BRIDGE_STA, L"Bridge STA"),
+        PH_OLE_TLS_FLAG(OLETLS_NAINITIALIZING, L"NTA initializing"),
+    };
 
-    if (ApartmentState & OLETLS_LOCALTID)
-        PhAppendStringBuilder2(&stringBuilder, L"Local TID, ");
-    if (ApartmentState & OLETLS_UUIDINITIALIZED)
-        PhAppendStringBuilder2(&stringBuilder, L"UUID initialized, ");
-    if (ApartmentState & OLETLS_INTHREADDETACH)
-        PhAppendStringBuilder2(&stringBuilder, L"Inside thread detach, ");
-    if (ApartmentState & OLETLS_CHANNELTHREADINITIALZED)
-        PhAppendStringBuilder2(&stringBuilder, L"Channel thread initialzed, ");
-    if (ApartmentState & OLETLS_WOWTHREAD)
-        PhAppendStringBuilder2(&stringBuilder, L"WOW Thread, ");
-    if (ApartmentState & OLETLS_THREADUNINITIALIZING)
-        PhAppendStringBuilder2(&stringBuilder, L"Thread Uninitializing, ");
-    if (ApartmentState & OLETLS_DISABLE_OLE1DDE)
-        PhAppendStringBuilder2(&stringBuilder, L"OLE1DDE disabled, ");
-    if (ApartmentState & OLETLS_APARTMENTTHREADED)
-        PhAppendStringBuilder2(&stringBuilder, L"Single threaded (STA), ");
-    if (ApartmentState & OLETLS_MULTITHREADED)
-        PhAppendStringBuilder2(&stringBuilder, L"Multi threaded (MTA), ");
-    if (ApartmentState & OLETLS_IMPERSONATING)
-        PhAppendStringBuilder2(&stringBuilder, L"Impersonating, ");
-    if (ApartmentState & OLETLS_DISABLE_EVENTLOGGER)
-        PhAppendStringBuilder2(&stringBuilder, L"Eventlogger disabled, ");
-    if (ApartmentState & OLETLS_INNEUTRALAPT)
-        PhAppendStringBuilder2(&stringBuilder, L"Neutral threaded (NTA), ");
-    if (ApartmentState & OLETLS_DISPATCHTHREAD)
-        PhAppendStringBuilder2(&stringBuilder, L"Dispatch thread, ");
-    if (ApartmentState & OLETLS_HOSTTHREAD)
-        PhAppendStringBuilder2(&stringBuilder, L"HOSTTHREAD, ");
-    if (ApartmentState & OLETLS_ALLOWCOINIT)
-        PhAppendStringBuilder2(&stringBuilder, L"ALLOWCOINIT, ");
-    if (ApartmentState & OLETLS_PENDINGUNINIT)
-        PhAppendStringBuilder2(&stringBuilder, L"PENDINGUNINIT, ");
-    if (ApartmentState & OLETLS_FIRSTMTAINIT)
-        PhAppendStringBuilder2(&stringBuilder, L"FIRSTMTAINIT, ");
-    if (ApartmentState & OLETLS_FIRSTNTAINIT)
-        PhAppendStringBuilder2(&stringBuilder, L"FIRSTNTAINIT, ");
-    if (ApartmentState & OLETLS_APTINITIALIZING)
-        PhAppendStringBuilder2(&stringBuilder, L"APTIN INITIALIZING, ");
-    if (ApartmentState & OLETLS_UIMSGSINMODALLOOP)
-        PhAppendStringBuilder2(&stringBuilder, L"UIMSGS IN MODAL LOOP, ");
-    if (ApartmentState & OLETLS_MARSHALING_ERROR_OBJECT)
-        PhAppendStringBuilder2(&stringBuilder, L"Marshaling error object, ");
-    if (ApartmentState & OLETLS_WINRT_INITIALIZE)
-        PhAppendStringBuilder2(&stringBuilder, L"WinRT initialized, ");
-    if (ApartmentState & OLETLS_APPLICATION_STA)
-        PhAppendStringBuilder2(&stringBuilder, L"ApplicationSTA, ");
-    if (ApartmentState & OLETLS_IN_SHUTDOWN_CALLBACKS)
-        PhAppendStringBuilder2(&stringBuilder, L"IN_SHUTDOWN_CALLBACKS, ");
-    if (ApartmentState & OLETLS_POINTER_INPUT_BLOCKED)
-        PhAppendStringBuilder2(&stringBuilder, L"POINTER_INPUT_BLOCKED, ");
-    if (ApartmentState & OLETLS_IN_ACTIVATION_FILTER)
-        PhAppendStringBuilder2(&stringBuilder, L"IN_ACTIVATION_FILTER, ");
-    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_QUIRK)
-        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_QUIRK, ");
-    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_PROXY)
-        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_PROXY, ");
-    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_INDOUBT)
-        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_INDOUBT, ");
-    if (ApartmentState & OLETLS_DETECTED_USER_INITIALIZED)
-        PhAppendStringBuilder2(&stringBuilder, L"DETECTED_USER_INITIALIZED, ");
-    if (ApartmentState & OLETLS_BRIDGE_STA)
-        PhAppendStringBuilder2(&stringBuilder, L"BRIDGE_STA, ");
-    if (ApartmentState & OLETLS_NAINITIALIZING)
-        PhAppendStringBuilder2(&stringBuilder, L"NA_INITIALIZING, ");
+    PPH_STRING string;
+    PH_FORMAT format[4];
 
-    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+    string = PhGetAccessString(ApartmentState, (PPH_ACCESS_ENTRY)oleTlsflags, RTL_NUMBER_OF(oleTlsflags));
 
-    PhPrintPointer(pointer, UlongToPtr(ApartmentState));
-    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+    PhInitFormatSR(&format[0], string->sr);
+    PhInitFormatS(&format[1], L" (0x");
+    PhInitFormatX(&format[2], ApartmentState);
+    PhInitFormatC(&format[3], L')');
 
-    return PhFinalStringBuilderString(&stringBuilder);
+    PhMoveReference(&string, PhFormat(format, RTL_NUMBER_OF(format), 10));
+    return string;
 }

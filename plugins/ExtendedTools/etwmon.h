@@ -15,51 +15,6 @@
 
 #include <evntcons.h>
 
-typedef struct
-{
-    ULONG DiskNumber;
-    ULONG IrpFlags;
-    ULONG TransferSize;
-    ULONG ResponseTime;
-    ULONGLONG ByteOffset;
-    ULONG_PTR FileObject;
-    ULONG_PTR Irp;
-    ULONGLONG HighResResponseTime;
-    ULONG IssuingThreadId; // since WIN8 (ETW_DISKIO_READWRITE_V3)
-} DiskIo_TypeGroup1;
-
-typedef struct
-{
-    ULONG_PTR FileObject;
-    WCHAR FileName[1];
-} FileIo_Name;
-
-typedef struct
-{
-    ULONGLONG FileObject;
-    WCHAR FileName[1];
-} FileIo_Name_Wow64;
-
-typedef struct
-{
-    ULONG PID;
-    ULONG size;
-    IN_ADDR daddr;
-    IN_ADDR saddr;
-    USHORT dport;
-    USHORT sport;
-} TcpIpOrUdpIp_IPV4_Header;
-
-typedef struct
-{
-    ULONG PID;
-    ULONG size;
-    IN6_ADDR daddr;
-    IN6_ADDR saddr;
-    USHORT dport;
-    USHORT sport;
-} TcpIpOrUdpIp_IPV6_Header;
-
 #define KERNEL_FILE_KEYWORD_FILENAME 0x10
 #define KERNEL_FILE_KEYWORD_FILEIO 0x20
 #define KERNEL_FILE_KEYWORD_OP_END 0x40

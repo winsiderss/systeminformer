@@ -2,6 +2,13 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
+set BUILD_TOOL="tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe"
+
+if not exist %BUILD_TOOL% (
+    echo Build tool not found. Run build\build_init.cmd first.
+    exit /b 1
+)
+
 set BUILD_CONFIGURATION=Debug
 set BUILD_TARGET=Build
 set PREFAST_ANALYSIS=
@@ -47,7 +54,7 @@ for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual S
 )
 
 if not defined VSINSTALLPATH (
-    echo [-] Visual Studio not found 
+    echo [-] Visual Studio not found
     goto end
 )
 
@@ -60,10 +67,10 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
 
 echo [+] Building... %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -terminalLogger:auto -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -terminalLogger:auto -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
 
 echo [+] Build Complete! %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%

@@ -45,6 +45,7 @@ VOID PhFreeConsole(
     processParameters->StandardInput = NULL;
     processParameters->StandardOutput = NULL;
     processParameters->StandardError = NULL;
+    processParameters->ConsoleHandle = NULL;
 }
 
 HANDLE PhGetStdHandle(

@@ -107,8 +107,8 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_ENABLE_NPU_MONITOR (PLUGIN_NAME L".EnableNpuMonitor")
 #define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
-#define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
-#define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
+#define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".UnloadedWindowPosition")
+#define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".UnloadedWindowSize")
 #define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_POSITION (PLUGIN_NAME L".ModuleServiceWindowPosition")
 #define SETTING_NAME_MODULE_SERVICES_WINDOW_SIZE (PLUGIN_NAME L".ModuleServiceWindowSize")
@@ -580,13 +580,13 @@ VOID EtFormatNetworkRate(
     _In_ PPH_PLUGIN_TREENEW_MESSAGE Message
     );
 
-_Success_(return)
-BOOLEAN EtOpenAdapterFromDeviceName(
+NTSTATUS EtOpenAdapterFromDeviceName(
     _Out_ PD3DKMT_HANDLE AdapterHandle,
-    _In_ PWSTR DeviceName
+    _Out_opt_ PLUID AdapterLuid,
+    _In_ PCWSTR DeviceName
     );
 
-BOOLEAN EtCloseAdapterHandle(
+NTSTATUS EtCloseAdapterHandle(
     _In_ D3DKMT_HANDLE AdapterHandle
     );
 
@@ -1291,7 +1291,7 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
     PPH_STRING RemoteCountryName;
-    INT32 CountryIconIndex;
+    LONG CountryIconIndex;
 
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
@@ -1693,7 +1693,7 @@ ULONG EtSessionIdFromObjectName(
     _In_ PPH_STRINGREF Name
     );
 
-PWSTR EtMapSessionConnectState(
+PCWSTR EtMapSessionConnectState(
     _In_ WINSTATIONSTATECLASS State
     );
 

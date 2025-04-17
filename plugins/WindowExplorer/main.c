@@ -12,6 +12,8 @@
 
 #include "wndexp.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -216,6 +218,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL, L"0" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

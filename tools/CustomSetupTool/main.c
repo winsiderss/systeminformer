@@ -11,10 +11,13 @@
 
 #include "setup.h"
 
-#define SETUP_CMD_INSTALL   1
-#define SETUP_CMD_UNINSTALL 2
-#define SETUP_CMD_UPDATE    3
-#define SETUP_CMD_SILENT    4
+#define SETUP_CMD_INSTALL    1
+#define SETUP_CMD_UNINSTALL  2
+#define SETUP_CMD_UPDATE     3
+#define SETUP_CMD_SILENT     4
+#define SETUP_CMD_UNATTENDED 5
+#define SETUP_CMD_NOSTART    6
+#define SETUP_CMD_HIDE       7
 
 LRESULT CALLBACK SetupTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
@@ -251,7 +254,7 @@ VOID SetupSilent(
         default:
         case SetupCommandInstall:
             status = SetupProgressThread(Context);
-            start = TRUE;
+            start = !Context->NoStart;
             break;
         case SetupCommandUninstall:
             status = SetupUninstallBuild(Context);
@@ -259,12 +262,14 @@ VOID SetupSilent(
             break;
         case SetupCommandUpdate:
             status = SetupUpdateBuild(Context);
-            start = TRUE;
+            start = !Context->NoStart;
             break;
         }
 
-        if (start && NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
+        if (start && NT_SUCCESS(status) && NT_SUCCESS(Context->LastStatus))
+        {
             SetupExecuteApplication(Context);
+        }
     }
     else
     {
@@ -273,17 +278,17 @@ VOID SetupSilent(
 
         if (!NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->LastStatus = status;
             return;
         }
 
         if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         {
-            Context->ErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+            Context->LastStatus = STATUS_NO_MEMORY;
             return;
         }
 
-        if (!NT_SUCCESS(status = PhShellExecuteEx(
+        status = PhShellExecuteEx(
             NULL,
             PhGetString(applicationFileName),
             PhGetStringRefZ(&applicationCommandLine),
@@ -292,15 +297,16 @@ VOID SetupSilent(
             PH_SHELL_EXECUTE_ADMIN,
             INFINITE,
             &Context->SubProcessHandle
-            )))
+            );
+
+        if (!NT_SUCCESS(status))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->LastStatus = status;
             return;
         }
     }
 
-    if (!NT_SUCCESS(status) && Context->ErrorCode == ERROR_SUCCESS)
-        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+    Context->LastStatus = status;
 }
 
 _Success_(return)
@@ -325,7 +331,7 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     {
         value = PhCreateBytesEx(string, stringLength);
 
-        if (object = PhCreateJsonParserEx(value, FALSE))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&object, value, FALSE)))
         {
             directory = PhGetJsonValueAsString(object, "KsiDirectory");
             serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
@@ -365,13 +371,10 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_SETUP_CONTEXT context = Context;
-
-    if (!context)
-        return FALSE;
 
     if (Option)
     {
@@ -387,7 +390,14 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             context->SetupMode = SetupCommandUpdate;
             break;
         case SETUP_CMD_SILENT:
+        case SETUP_CMD_UNATTENDED:
             context->Silent = TRUE;
+            break;
+        case SETUP_CMD_NOSTART:
+            context->NoStart = TRUE;
+            break;
+        case SETUP_CMD_HIDE:
+            context->Hide = TRUE;
             break;
         }
 
@@ -416,6 +426,19 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             }
         }
     }
+    else
+    {
+        // Note: PhParseCommandLine requires "-" for commandline parameters 
+        // and we already support the -silent parameter however we need to maintain 
+        // compatibility with the legacy Inno Setup. (dmex)
+        if (!PhIsNullOrEmptyString(Value))
+        {
+            if (PhEqualString2(Value, L"/silent", TRUE))
+            {
+                context->Silent = TRUE;
+            }
+        }
+    }
 
     return TRUE;
 }
@@ -426,10 +449,33 @@ VOID SetupParseCommandLine(
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
-        { SETUP_CMD_INSTALL,   L"install",   NoArgumentType },
-        { SETUP_CMD_UNINSTALL, L"uninstall", NoArgumentType },
-        { SETUP_CMD_UPDATE,    L"update",    OptionalArgumentType },
-        { SETUP_CMD_SILENT,    L"silent",    NoArgumentType },
+        { SETUP_CMD_INSTALL,   L"install",     NoArgumentType },
+        { SETUP_CMD_UNINSTALL, L"uninstall",   NoArgumentType },
+        { SETUP_CMD_UPDATE,    L"update",      OptionalArgumentType },
+        //
+        // Perform an "unattended" install/uninstall/update. This skips dialogs
+        // and is implemented to support package managers (WinGet). Note that
+        // "silent" is an alias for "unattended".
+        //
+        // TODO(jxy-s) Transition package manager manifests (WinGet) to use
+        // "unattended" instead of "silent". This takes coordination with the
+        // package manager repos and workflows. Both "silent" and "unattended"
+        // will exist for a while until that transition is complete.
+        //
+        { SETUP_CMD_SILENT,     L"silent",     NoArgumentType },
+        { SETUP_CMD_UNATTENDED, L"unattended", NoArgumentType },
+        //
+        // When performing an unattended install/update, the application is not
+        // started when the setup completes. The default behavior starts the
+        // application after the setup completes.
+        //
+        { SETUP_CMD_NOSTART,    L"nostart",    NoArgumentType },
+        //
+        // After the setup completes the application is started with "-hide".
+        // See: PH_ARG_SHOWHIDDEN - This starts the application to the system
+        // tray and does not show the main window.
+        //
+        { SETUP_CMD_HIDE,       L"hide",       NoArgumentType },
     };
     PH_STRINGREF commandLine;
 
@@ -524,10 +570,11 @@ INT WINAPI wWinMain(
         PhWaitForSingleObject(context->SubProcessHandle, 0);
         PhGetProcessBasicInformation(context->SubProcessHandle, &processInfo);
 
-        context->ErrorCode = WIN32_FROM_NTSTATUS(processInfo.ExitStatus);
+        context->LastStatus = processInfo.ExitStatus;
 
         NtClose(context->SubProcessHandle);
     }
 
-    return context->ErrorCode;
+    PhExitApplication(context->LastStatus);
+    return PhNtStatusToDosError(context->LastStatus);
 }
