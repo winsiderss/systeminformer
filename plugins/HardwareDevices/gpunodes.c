@@ -104,7 +104,43 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage((HWND)Context, WM_PH_UPDATE_DIALOG, 0, 0);
+    PDV_GPU_NODES_WINDOW_CONTEXT context = Context;
+    //D3DKMT_HANDLE adapterHandle;
+    //LUID adapterLuid;
+    //
+    //if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(context->DeviceEntry->Id.DevicePath))))
+    //{
+    //    for (ULONG i = 0; i < context->DeviceEntry->NumberOfNodes; i++)
+    //    {
+    //        ULONG64 frequency;
+    //        ULONG64 maxFrequency;
+    //        ULONG64 maxFrequencyOC;
+    //        ULONG voltage;
+    //        ULONG voltageMax;
+    //        ULONG voltageMaxOC;
+    //        ULONG64 maxTransitionLatency;
+    //
+    //        if (NT_SUCCESS(GraphicsQueryAdapterDeviceNodePerfData(
+    //            adapterHandle,
+    //            i,
+    //            &frequency,
+    //            &maxFrequency,
+    //            &maxFrequencyOC,
+    //            &voltage,
+    //            &voltageMax,
+    //            &voltageMaxOC,
+    //            &maxTransitionLatency
+    //            )))
+    //        {
+    //            dprintf("Node %lu: frequency=%llu, maxFrequency=%llu, maxFrequencyOC=%llu, voltage=%lu, voltageMax=%lu, voltageMaxOC=%lu, maxTransitionLatency=%llu\n",
+    //                i, frequency, maxFrequency, maxFrequencyOC, voltage, voltageMax, voltageMaxOC, maxTransitionLatency);
+    //        }
+    //    }
+    //
+    //    GraphicsCloseAdapterHandle(adapterHandle);
+    //}
+
+    PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
 }
 
 INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
@@ -201,7 +237,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,
-                hwndDlg,
+                context,
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 

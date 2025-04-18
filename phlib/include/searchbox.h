@@ -13,14 +13,10 @@
 #ifndef _PH_SEARCHBOX_H
 #define _PH_SEARCHBOX_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
-typedef
-VOID
-NTAPI
-PH_SEARCHCONTROL_CALLBACK(
+typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
+VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     );
@@ -33,6 +29,7 @@ PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
     _In_opt_ PCWSTR BannerText,
+    _In_ PVOID ImageBaseAddress,
     _In_ PCWSTR SearchButtonResource,
     _In_ PCWSTR SearchButtonActiveResource,
     _In_ PCWSTR RegexButtonResource,
@@ -88,8 +85,6 @@ PhSearchControlMatchPointerRange(
     _In_ SIZE_T Size
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

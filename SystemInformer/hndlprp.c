@@ -23,6 +23,7 @@
 #include <hndlinfo.h>
 #include <procprv.h>
 #include <secedit.h>
+#include <phafd.h>
 
 CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
@@ -32,6 +33,21 @@ CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
     { L"FILE_FLAG_NO_BUFFERING", FILE_NO_INTERMEDIATE_BUFFERING, FALSE, FALSE, L"No buffering" },
     { L"FILE_SYNCHRONOUS_IO_ALERT", FILE_SYNCHRONOUS_IO_ALERT, FALSE, FALSE, L"Synchronous alert" },
     { L"FILE_SYNCHRONOUS_IO_NONALERT", FILE_SYNCHRONOUS_IO_NONALERT, FALSE, FALSE, L"Synchronous non-alert" },
+};
+
+CONST PH_ACCESS_ENTRY AlpcFlags[] =
+{
+    { L"ALPC_PORFLG_LPC_MODE", ALPC_PORFLG_LPC_MODE, FALSE, FALSE, L"LPC mode"},
+    { L"ALPC_PORFLG_ALLOW_IMPERSONATION", ALPC_PORFLG_ALLOW_IMPERSONATION, FALSE, FALSE, L"Allow impersonation"},
+    { L"ALPC_PORFLG_ALLOW_LPC_REQUESTS", ALPC_PORFLG_ALLOW_LPC_REQUESTS, FALSE, FALSE, L"Allow LPC requests"},
+    { L"ALPC_PORFLG_WAITABLE_PORT", ALPC_PORFLG_WAITABLE_PORT, FALSE, FALSE, L"Waitable"},
+    { L"ALPC_PORFLG_ALLOW_DUP_OBJECT", ALPC_PORFLG_ALLOW_DUP_OBJECT, FALSE, FALSE, L"Allow object duplication"},
+    { L"ALPC_PORFLG_SYSTEM_PROCESS", ALPC_PORFLG_SYSTEM_PROCESS, FALSE, FALSE, L"System process only"},
+    { L"ALPC_PORFLG_WAKE_POLICY1", ALPC_PORFLG_WAKE_POLICY1, FALSE, FALSE, L"Wake policy (1)"},
+    { L"ALPC_PORFLG_WAKE_POLICY2", ALPC_PORFLG_WAKE_POLICY2, FALSE, FALSE, L"Wake policy (2)"},
+    { L"ALPC_PORFLG_WAKE_POLICY3", ALPC_PORFLG_WAKE_POLICY3, FALSE, FALSE, L"Wake policy (3)"},
+    { L"ALPC_PORFLG_DIRECT_MESSAGE", ALPC_PORFLG_DIRECT_MESSAGE, FALSE, FALSE, L"No shared section (direct)"},
+    { L"ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE", ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE, FALSE, FALSE, L"Allow multi-handle attributes"},
 };
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
@@ -111,6 +127,28 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     PPH_PLUGIN OwnerPlugin;
     PWSTR Caption;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
+
+BOOLEAN PhpIsVerboseBestObjectName(
+    _In_ PPH_HANDLE_ITEM HandleItem
+    )
+{
+    // Some handles use a verbose BestObjectName for the sake of searching. And will display
+    // extended information in the property window consisting of the information contained in the
+    // BestObjectName. This routine is used to fall back to the normal ObjectName in the property
+    // window for these cases. (jxy-s)
+
+    if (PhIsNullOrEmptyString(HandleItem->TypeName))
+        return FALSE;
+
+    if (PhEqualString2(HandleItem->TypeName, L"ALPC Port", TRUE))
+        return TRUE;
+
+    if (PhEqualString2(HandleItem->TypeName, L"File", TRUE) &&
+        PhAfdIsSocketObjectName(HandleItem->ObjectName))
+        return TRUE;
+
+    return FALSE;
+}
 
 NTSTATUS PhpShowHandlePropertiesThread(
     _In_ PVOID Parameter
@@ -215,22 +253,23 @@ NTSTATUS PhpShowHandlePropertiesThread(
             handleContext->HandleItem->Handle
             );
     }
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"File", TRUE) &&
+        PhAfdIsSocketObjectName(handleContext->HandleItem->ObjectName))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateAfdSocketPage(
+            context.ProcessId,
+            context.HandleItem->Handle
+        );
+    }
 
     // Security page
     {
         PCWSTR objectName;
 
-        // Best object name for the ALPC port contains information about the connection
-        // between the client and server, use the original object name string instead.
-        if (!PhIsNullOrEmptyString(handleContext->HandleItem->TypeName) &&
-            PhEqualString2(handleContext->HandleItem->TypeName, L"ALPC Port", TRUE))
-        {
+        if (PhpIsVerboseBestObjectName(handleContext->HandleItem))
             objectName = PhGetStringOrEmpty(handleContext->HandleItem->ObjectName);
-        }
         else
-        {
             objectName = PhGetStringOrEmpty(handleContext->HandleItem->BestObjectName);
-        }
 
         pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             objectName,
@@ -435,7 +474,11 @@ VOID PhpUpdateHandleGeneral(
     ULONG numberOfAccessEntries;
     WCHAR string[PH_INT64_STR_LEN_1];
 
-    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+    if (PhpIsVerboseBestObjectName(Context->HandleItem))
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->ObjectName));
+    else
+        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_NAME, 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
+
     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_TYPE, 1, PhGetStringOrEmpty(Context->HandleItem->TypeName));
 
     if (Context->HandleItem->Object)
@@ -548,85 +591,24 @@ VOID PhpUpdateHandleGeneral(
                 NULL
                 )))
             {
-                ULONG remainingFlags = basicInfo.Flags;
-                PH_STRING_BUILDER stringBuilder;
+                PH_FORMAT format[5];
+                PPH_STRING alpcFlagsString;
 
-                PhInitializeStringBuilder(&stringBuilder, 0x100);
+                alpcFlagsString = PhGetAccessString(
+                    basicInfo.Flags,
+                    (PPH_ACCESS_ENTRY)AlpcFlags,
+                    RTL_NUMBER_OF(AlpcFlags)
+                    );
 
-                if (basicInfo.Flags & ALPC_PORFLG_LPC_MODE)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"LPC mode, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_LPC_MODE);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_IMPERSONATION)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Allow impersonation, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_IMPERSONATION);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_LPC_REQUESTS)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Allow LPC requests, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_LPC_REQUESTS);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_WAITABLE_PORT)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Waitable, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_WAITABLE_PORT);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_DUP_OBJECT)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Allow object duplication, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_DUP_OBJECT);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_SYSTEM_PROCESS)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"System process only, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_SYSTEM_PROCESS);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY1)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (1), ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY1);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY2)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (2), ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY2);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY3)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (3), ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY3);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_DIRECT_MESSAGE)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"No shared section (direct), ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_DIRECT_MESSAGE);
-                }
-                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE)
-                {
-                    PhAppendStringBuilder2(&stringBuilder, L"Allow multi-handle attributes, ");
-                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE);
-                }
-                if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                    PhRemoveEndStringBuilder(&stringBuilder, 2);
+                PhInitFormatS(&format[0], L"0x");
+                PhInitFormatX(&format[1], basicInfo.Flags);
+                PhInitFormatS(&format[2], L" (");
+                PhInitFormatSR(&format[3], alpcFlagsString->sr);
+                PhInitFormatS(&format[4], L")");
 
-                if (basicInfo.Flags == 0)
-                    PhAppendStringBuilder2(&stringBuilder, L"None ");
-                else
-                {
-                    PhPrintPointer(string, UlongToPtr(basicInfo.Flags));
-                    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", string);
-                }
-
-                if (remainingFlags)
-                {
-                    PhPrintPointer(string, UlongToPtr(remainingFlags));
-                    PhAppendFormatStringBuilder(&stringBuilder, L" (UNKNOWN: %s)", string);
-                }
-
-                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
-                PhDeleteStringBuilder(&stringBuilder);
+                PhMoveReference(&alpcFlagsString, PhFormat(format, RTL_NUMBER_OF(format), 40));
+                PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhGetString(alpcFlagsString));
+                PhDereferenceObject(alpcFlagsString);
 
                 PhPrintUInt32(string, basicInfo.SequenceNo);
                 PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);
@@ -769,85 +751,26 @@ VOID PhpUpdateHandleGeneral(
                         NULL
                         )))
                     {
-                        ULONG remainingFlags = alpcBasicInfo.Flags;
-                        PH_STRING_BUILDER stringBuilder;
+                        PH_FORMAT format[5];
+                        PPH_STRING alpcFlagsString;
 
-                        PhInitializeStringBuilder(&stringBuilder, 0x100);
+                        alpcFlagsString = PhGetAccessString(
+                            alpcBasicInfo.Flags,
+                            (PPH_ACCESS_ENTRY)AlpcFlags,
+                            RTL_NUMBER_OF(AlpcFlags)
+                            );
 
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_LPC_MODE))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"LPC mode, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_LPC_MODE);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_IMPERSONATION))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Allow impersonation, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_IMPERSONATION);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_LPC_REQUESTS))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Allow LPC requests, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_LPC_REQUESTS);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAITABLE_PORT))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Waitable, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_WAITABLE_PORT);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_DUP_OBJECT))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Allow object duplication, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_DUP_OBJECT);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_SYSTEM_PROCESS))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"System process only, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_SYSTEM_PROCESS);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY1))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Wake policy (1), ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY1);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY2))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Wake policy (2), ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY2);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_WAKE_POLICY3))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Wake policy (3), ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY3);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_DIRECT_MESSAGE))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"No shared section (direct), ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_DIRECT_MESSAGE);
-                        }
-                        if (FlagOn(alpcBasicInfo.Flags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE))
-                        {
-                            PhAppendStringBuilder2(&stringBuilder, L"Allow multi-handle attributes, ");
-                            ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE);
-                        }
-                        if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                            PhRemoveEndStringBuilder(&stringBuilder, 2);
+                        PhInitFormatS(&format[0], L"0x");
+                        PhInitFormatX(&format[1], alpcBasicInfo.Flags);
+                        PhInitFormatS(&format[2], L" (");
+                        PhInitFormatSR(&format[3], alpcFlagsString->sr);
+                        PhInitFormatS(&format[4], L")");
 
-                        if (basicInfo.Flags == 0)
-                            PhAppendStringBuilder2(&stringBuilder, L"None ");
-                        else
-                        {
-                            PhPrintPointer(string, UlongToPtr(basicInfo.Flags));
-                            PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", string);
-                        }
+                        PhMoveReference(&alpcFlagsString, PhFormat(format, RTL_NUMBER_OF(format), 40));
 
-                        if (remainingFlags)
-                        {
-                            PhPrintPointer(string, UlongToPtr(remainingFlags));
-                            PhAppendFormatStringBuilder(&stringBuilder, L" (UNKNOWN: %s)", string);
-                        }
+                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhGetString(alpcFlagsString));
 
-                        PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FLAGS, 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
-                        PhDeleteStringBuilder(&stringBuilder);
+                        PhDereferenceObject(alpcFlagsString);
 
                         PhPrintUInt32(string, basicInfo.SequenceNo);
                         PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, 1, string);

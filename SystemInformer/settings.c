@@ -20,7 +20,6 @@ VOID PhAddDefaultSettings(
     VOID
     )
 {
-    PhpAddIntegerSetting(L"ReleaseChannel", L"0"); // PhReleaseChannel
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");
@@ -79,12 +78,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
     PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
     PhpAddIntegerSetting(L"EnableThemeTabBorders", L"0");
-    PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
-    PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
-    PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)
-    PhpAddIntegerSetting(L"ThemeWindowHighlightColor", L"808080"); // RGB(128, 128, 128)
-    PhpAddIntegerSetting(L"ThemeWindowHighlight2Color", L"8f8f8f"); // RGB(143, 143, 143)
-    PhpAddIntegerSetting(L"ThemeWindowTextColor", L"ffffff"); // RGB(255, 255, 255)
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
     PhpAddIntegerSetting(L"EnableTokenRemovedPrivileges", L"0");
@@ -222,6 +215,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ProcStatPropPageGroupStates", L"");
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
+    PhpAddIntegerSetting(L"ReleaseChannel", L"0"); // PhReleaseChannel
     PhpAddIntegerSetting(L"RunAsEnableAutoComplete", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
@@ -256,6 +250,12 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"SysInfoWindowSize", L"@96|900,590");
     PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
     PhpAddIntegerSetting(L"TaskmgrWindowState", L"0");
+    PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
+    PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
+    PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)
+    PhpAddIntegerSetting(L"ThemeWindowHighlightColor", L"808080"); // RGB(128, 128, 128)
+    PhpAddIntegerSetting(L"ThemeWindowHighlight2Color", L"8f8f8f"); // RGB(143, 143, 143)
+    PhpAddIntegerSetting(L"ThemeWindowTextColor", L"ffffff"); // RGB(255, 255, 255)
     PhpAddIntegerSetting(L"ThinRows", L"0");
     PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
@@ -470,10 +470,10 @@ VOID PhUpdateCachedSettings(
 
     PH_GET_INTEGER_CACHED_SETTING(ImageCoherencyScanLevel);
 
-    PhCsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
-    PhCsEnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
-    PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
-    PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
-    PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
-    PhCsEnableHandleSnapshot = !!PhGetIntegerSetting(L"EnableHandleSnapshot");
+    PH_GET_INTEGER_CACHED_SETTING(EnableAvxSupport);
+    PH_GET_INTEGER_CACHED_SETTING(EnableGraphMaxScale);
+    PH_GET_INTEGER_CACHED_SETTING(EnableGraphMaxText);
+    PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
+    PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
+    PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
 }

@@ -599,7 +599,7 @@ LRESULT CALLBACK GeoLiteDialogSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
 
             PhUnregisterWindowCallback(hwndDlg);
@@ -655,9 +655,9 @@ HRESULT CALLBACK GeoLiteDialogBootstrapCallback(
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             // Subclass the Taskdialog.
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)GeoLiteDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, GeoLiteDialogSubclassProc);
 
             ShowDbCheckForUpdatesDialog(context);
         }

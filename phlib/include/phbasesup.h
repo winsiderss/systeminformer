@@ -1035,13 +1035,8 @@ typedef struct _PH_RELATIVE_BYTESREF
     ULONG Offset;
 } PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
 
-#ifdef __cplusplus
-#define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), const_cast<PWCH>(String) }
-#define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), const_cast<PCH>(String) }
-#else
-#define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), (String) }
-#define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), (String) }
-#endif
+#define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), RTL_CONST_CAST(PWCH)(String) }
+#define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), RTL_CONST_CAST(PCH)(String) }
 
 FORCEINLINE
 VOID
@@ -1117,7 +1112,7 @@ PhStringRefToUnicodeString(
 FORCEINLINE
 VOID
 PhUnicodeStringToStringRef(
-    _In_ PUNICODE_STRING UnicodeString,
+    _In_ PCUNICODE_STRING UnicodeString,
     _Out_ PPH_STRINGREF String
     )
 {
@@ -1455,11 +1450,16 @@ PhCreateString2(
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
+/**
+ * Creates a string object from a null-terminated string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ */
 FORCEINLINE
 PPH_STRING
 NTAPI
 PhCreateStringZ(
-    _In_ PCWSTR String
+    _In_z_ PCWSTR String
     )
 {
     PH_STRINGREF string;
@@ -1467,6 +1467,28 @@ PhCreateStringZ(
     string.Length = wcslen(String) * sizeof(WCHAR);
     string.Buffer = (PWSTR)String;
     //PhInitializeStringRef(&string, (PWSTR)String);
+
+    return PhCreateString2(&string);
+}
+
+/**
+ * Creates a string object from a null-terminated string up to a maximum length.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ * \param MaximumLength The maximum length, in bytes, of the string.
+ */
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhCreateStringZ2(
+    _In_reads_or_z_(MaximumLength / sizeof(WCHAR)) PCWSTR String,
+    _In_ SIZE_T MaximumLength
+    )
+{
+    PH_STRINGREF string;
+
+    string.Length = wcsnlen(String, MaximumLength / sizeof(WCHAR)) * sizeof(WCHAR);
+    string.Buffer = (PWSTR)String;
 
     return PhCreateString2(&string);
 }
@@ -1582,7 +1604,7 @@ PhLowerStringRef(
 FORCEINLINE
 PPH_STRING
 PhCreateStringFromUnicodeString(
-    _In_ PUNICODE_STRING UnicodeString
+    _In_ PCUNICODE_STRING UnicodeString
     )
 {
     if (UnicodeString->Length == 0)
@@ -4526,7 +4548,7 @@ FORCEINLINE
 VOID
 PhInitFormatUCS(
     _Out_ PPH_FORMAT Format,
-    _In_ PUNICODE_STRING String
+    _In_ PCUNICODE_STRING String
     )
 {
     Format->Type = StringFormatType;

@@ -55,6 +55,8 @@
 #include <phplug.h>
 #include <srvprv.h>
 
+#include <trace.h>
+
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
@@ -611,6 +613,12 @@ VOID PhpAddProcessItem(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Adding process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhAddEntryHashSet(
         PhProcessHashSet,
         PH_HASH_SET_SIZE(PhProcessHashSet),
@@ -624,6 +632,12 @@ VOID PhpRemoveProcessItem(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhTrace(
+        "Removing process item: %ls (%lu)",
+        PhGetString(ProcessItem->ProcessName),
+        HandleToUlong(ProcessItem->ProcessId)
+        );
+
     PhRemoveEntryHashSet(PhProcessHashSet, PH_HASH_SET_SIZE(PhProcessHashSet), &ProcessItem->HashEntry);
     PhProcessHashSetCount--;
     PhDereferenceObject(ProcessItem);
@@ -739,6 +753,12 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
+    PhTrace(
+        "Process query stage 1: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processId)
+        );
+
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
@@ -756,7 +776,7 @@ VOID PhpProcessQueryStage1(
                 &Data->VersionInfo,
                 processItem->FileName,
                 FALSE,
-                PhEnableVersionShortText
+                !!PhCsEnableVersionSupport
                 );
         }
 
@@ -959,6 +979,12 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
+    PhTrace(
+        "Process query stage 2: %ls (%lu)",
+        PhGetString(processItem->ProcessName),
+        HandleToUlong(processItem->ProcessId)
+        );
+
     if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
@@ -1035,7 +1061,7 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, !!PhCsEnableVersionSupport);
     }
 }
 
@@ -2299,6 +2325,8 @@ VOID PhProcessProviderUpdate(
     PPH_PROCESS_ITEM maxIoProcessItem = NULL;
 
     // Pre-update tasks
+
+    PhTrace("Process provider run count: %lu", runCount);
 
     if (runCount % 512 == 0) // yes, a very long time
     {
@@ -4365,7 +4393,7 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
         }
 
         // Version info.
-        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, !!PhCsEnableVersionSupport);
     }
 
     // Command line

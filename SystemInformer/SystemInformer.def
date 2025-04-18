@@ -553,7 +553,6 @@ EXPORTS
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
     PhEnumProcessesEx
-    PhEnumProcessHandles
     PhEnumReparsePointInformation
     PhEnumerateKey
     PhEnumerateValueKey

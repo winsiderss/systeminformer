@@ -34,7 +34,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetObjectBasicInformation(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     );

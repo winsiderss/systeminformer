@@ -1,4 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project>
+
   <!-- Global -->
   <ItemDefinitionGroup>
       <ClCompile>
@@ -8,22 +10,25 @@
           <MinimalRebuild>false</MinimalRebuild>
           <MultiProcessorCompilation>true</MultiProcessorCompilation>
           <LanguageStandard>stdcpplatest</LanguageStandard>
-          <LanguageStandard_C Condition="'$(MSBuildVersion)' &lt; '17.11'">stdc17</LanguageStandard_C>
-          <LanguageStandard_C Condition="'$(MSBuildVersion)' &gt;= '17.11'">stdclatest</LanguageStandard_C>
+          <LanguageStandard_C>stdclatest</LanguageStandard_C>
           <StringPooling>true</StringPooling>
           <SupportJustMyCode>false</SupportJustMyCode>
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
-          <OmitFramePointers>true</OmitFramePointers>
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <FloatingPointModel>Precise</FloatingPointModel>
-          <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+          <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
       </ClCompile>
       <Link>
           <GenerateDebugInformation>true</GenerateDebugInformation>
           <SubSystem>Windows</SubSystem>
           <LargeAddressAware>true</LargeAddressAware>
       </Link>
+      <Lib>
+          <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
+          <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+      </Lib>
       <ResourceCompile>
           <Culture>0x0009</Culture>
           <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -31,46 +36,91 @@
       </ResourceCompile>
   </ItemDefinitionGroup>
 
+  <!-- WPP Trace (optional, disabled by default)
+       - Conditional based on presence of necessary WDK parts.
+       - Set SI_WITH_WPP to enable WPP trace compile.
+  -->
+  <PropertyGroup>
+    <SiNoWpp Condition="'$(SI_WITH_WPP)'==''">true</SiNoWpp>
+  </PropertyGroup>
+  <Target Name="SiRunWpp"
+          BeforeTargets="BeforeClCompile"
+          Condition="'$(SiNoWpp)'!='true' and Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')"
+          Inputs="@(ClInclude);@(ClCompile)"
+          Outputs="@(ClInclude->'$(IntDir)tmh\%(Filename).tmh');@(ClCompile->'$(IntDir)tmh\%(Filename).tmh')">
+      <MakeDir Directories="$(IntDir)tmh" Condition="!Exists('$(IntDir)tmh')" />
+      <PropertyGroup>
+          <TraceWppCmd>tracewpp.exe</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -um</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -cfgdir:"$(WindowsSdkDir)bin\$(TargetPlatformVersion)\WppConfig\Rev1"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)phlib\include\trace.h"</TraceWppCmd>
+      </PropertyGroup>
+      <Exec Command="$(TraceWppCmd) @(ClInclude->'&quot;%(FullPath)&quot;', ' ') @(ClCompile->'&quot;%(FullPath)&quot;', ' ')"/>
+  </Target>
+  <ItemDefinitionGroup Condition="'$(SiNoWpp)'!='true' and Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')">
+      <ClCompile>
+          <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
+          <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(SiNoWpp)'=='true' or !Exists('$(WindowsSdkDir)\bin\$(TargetPlatformVersion)\WppConfig\Rev1\')">
+      <ClCompile>
+          <PreprocessorDefinitions>SI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
+  </ItemDefinitionGroup>
+
   <!-- Debug Builds -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <LinkIncremental>true</LinkIncremental>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <!-- Release Builds -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
     <PlatformToolset>v143</PlatformToolset>
     <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-    <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-    <SpectreMitigation>Spectre</SpectreMitigation>
     <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>Spectre</SpectreMitigation>
+    <LinkIncremental>false</LinkIncremental>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
 
   <!-- Debug|Win32 Builds -->
@@ -95,9 +145,8 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -123,9 +172,8 @@
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -152,9 +200,8 @@
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -183,13 +230,12 @@
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX86</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -219,13 +265,12 @@
           <CETCompat>true</CETCompat>
           <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
           <TargetMachine>MachineX64</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
 
@@ -242,6 +287,7 @@
           <FunctionLevelLinking>true</FunctionLevelLinking>
           <IntrinsicFunctions>true</IntrinsicFunctions>
           <GuardSignedReturns>true</GuardSignedReturns>
+          <GuardEHContMetadata>true</GuardEHContMetadata>
           <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
           <WholeProgramOptimization>true</WholeProgramOptimization>
           <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -252,13 +298,13 @@
           <AdditionalDependencies>invalidcontinue.obj;noarg.obj;noenv.obj;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
           <MinimumRequiredVersion>10</MinimumRequiredVersion>
           <TargetMachine>MachineARM64</TargetMachine>
-          <GenerateDebugInformation>false</GenerateDebugInformation>
-          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-          <LinkIncremental>false</LinkIncremental>
+          <GenerateDebugInformation>true</GenerateDebugInformation>
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+          <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
   </ItemDefinitionGroup>
+
 </Project>

@@ -5900,3 +5900,28 @@ BOOLEAN PhpShouldShowImageCoherency(
 
     return FALSE;
 }
+
+NTSTATUS PhGetProcessItemFileNameWin32(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_STRING* FileNameWin32
+    )
+{
+    if (ProcessItem->QueryHandle)
+    {
+        PPH_STRING fileName;
+
+        if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
+        {
+            *FileNameWin32 = fileName;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    if (ProcessItem->FileName)
+    {
+        *FileNameWin32 = PhGetFileName(ProcessItem->FileName);
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}

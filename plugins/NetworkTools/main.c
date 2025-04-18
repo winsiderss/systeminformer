@@ -13,6 +13,8 @@
 #include "nettools.h"
 #include <networktoolsintf.h>
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -1006,6 +1008,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_GEOLITE_API_ID, L"" },
                 { IntegerSettingType, SETTING_NAME_GEOLITE_DB_TYPE, L"0" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

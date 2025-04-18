@@ -56,11 +56,16 @@ NTSTATUS KphConnect(
 
     // Try to start the service, if it exists.
 
-    status = PhOpenService(&serviceHandle, SERVICE_START, PhGetStringRefZ(Config->ServiceName));
+    status = PhOpenService(&serviceHandle, SERVICE_START | SERVICE_QUERY_STATUS, PhGetStringRefZ(Config->ServiceName));
 
     if (NT_SUCCESS(status))
     {
         status = PhStartService(serviceHandle, 0, NULL);
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhWaitForServiceStatus(serviceHandle, SERVICE_RUNNING, 5000);
+        }
 
         PhCloseServiceHandle(serviceHandle);
 
@@ -105,6 +110,11 @@ NTSTATUS KphConnect(
         goto CreateAndConnectEnd;
 
     status = PhStartService(serviceHandle, 0, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto CreateAndConnectEnd;
+
+    status = PhWaitForServiceStatus(serviceHandle, SERVICE_RUNNING, 5000);
 
     if (!NT_SUCCESS(status))
         goto CreateAndConnectEnd;

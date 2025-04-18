@@ -683,7 +683,7 @@ LRESULT CALLBACK PhpProcessMiniDumpTaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;

@@ -550,7 +550,7 @@ LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwndDlg, oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;
@@ -597,9 +597,9 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             // Subclass the Taskdialog.
-            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, 0xF, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpMemoryStringTaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, PhpMemoryStringTaskDialogSubclassProc);
 
             // Create the search thread.
             PhCreateThread2(PhpMemoryStringThreadStart, context);

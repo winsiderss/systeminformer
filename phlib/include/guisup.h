@@ -350,7 +350,7 @@ PhGetMonitorDpiFromRect(
     _In_ PPH_RECTANGLE Rectangle
     )
 {
-    RECT rect;
+    RECT rect = { 0 };
 
     PhRectangleToRect(&rect, Rectangle);
 
@@ -1441,12 +1441,16 @@ VOID PhEnumChildWindows(
     _In_opt_ PVOID Context
     );
 
-HWND PhGetProcessMainWindow(
+HWND
+NTAPI
+PhGetProcessMainWindow(
     _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle
     );
 
-HWND PhGetProcessMainWindowEx(
+HWND
+NTAPI
+PhGetProcessMainWindowEx(
     _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle,
     _In_ BOOLEAN SkipInvisible
@@ -2192,7 +2196,12 @@ PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     );
 
+//
 // Windows Imaging Component (WIC) bitmap support
+//
+
+DEFINE_GUID(IID_IWICBitmapSource, 0x00000120, 0xa8f2, 0x4877, 0xba, 0x0a, 0xfd, 0x2b, 0x66, 0x45, 0xfb, 0x94);
+DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
 
 typedef enum _PH_BUFFERFORMAT
 {
@@ -2266,15 +2275,15 @@ PhLoadImageFromFile(
 typedef enum _WINDOWCOMPOSITIONATTRIB
 {
     WCA_UNDEFINED = 0,
-    WCA_NCRENDERING_ENABLED = 1,
-    WCA_NCRENDERING_POLICY = 2,
-    WCA_TRANSITIONS_FORCEDISABLED = 3,
-    WCA_ALLOW_NCPAINT = 4,
-    WCA_CAPTION_BUTTON_BOUNDS = 5,
-    WCA_NONCLIENT_RTL_LAYOUT = 6,
-    WCA_FORCE_ICONIC_REPRESENTATION = 7,
-    WCA_EXTENDED_FRAME_BOUNDS = 8,
-    WCA_HAS_ICONIC_BITMAP = 9,
+    WCA_NCRENDERING_ENABLED = 1, // BOOL
+    WCA_NCRENDERING_POLICY = 2, // DWMNCRENDERINGPOLICY
+    WCA_TRANSITIONS_FORCEDISABLED = 3, // BOOL
+    WCA_ALLOW_NCPAINT = 4, // BOOL
+    WCA_CAPTION_BUTTON_BOUNDS = 5, // RECT
+    WCA_NONCLIENT_RTL_LAYOUT = 6, // BOOL
+    WCA_FORCE_ICONIC_REPRESENTATION = 7, // BOOL
+    WCA_EXTENDED_FRAME_BOUNDS = 8, // RECT
+    WCA_HAS_ICONIC_BITMAP = 9, // BOOL
     WCA_THEME_ATTRIBUTES = 10,
     WCA_NCRENDERING_EXILED = 11,
     WCA_NCADORNMENTINFO = 12,
@@ -2283,21 +2292,26 @@ typedef enum _WINDOWCOMPOSITIONATTRIB
     WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
     WCA_DISALLOW_PEEK = 16,
     WCA_CLOAK = 17,
-    WCA_CLOAKED = 18,
-    WCA_ACCENT_POLICY = 19,
+    WCA_CLOAKED = 18, // DWM_CLOAKED_*
+    WCA_ACCENT_POLICY = 19, // ACCENT_POLICY // since WIN11
     WCA_FREEZE_REPRESENTATION = 20,
     WCA_EVER_UNCLOAKED = 21,
     WCA_VISUAL_OWNER = 22,
     WCA_HOLOGRAPHIC = 23,
     WCA_EXCLUDED_FROM_DDA = 24,
     WCA_PASSIVEUPDATEMODE = 25,
-    WCA_USEDARKMODECOLORS = 26,
+    WCA_USEDARKMODECOLORS = 26, // BOOL
     WCA_CORNER_STYLE = 27,
-    WCA_PART_COLOR = 28,
+    WCA_PART_COLOR = 28, // ULONG
     WCA_DISABLE_MOVESIZE_FEEDBACK = 29,
     WCA_SYSTEMBACKDROP_TYPE = 30,
     WCA_SET_TAGGED_WINDOW_RECT = 31,
     WCA_CLEAR_TAGGED_WINDOW_RECT = 32,
+    WCA_REMOTEAPP_POLICY = 33, // since 24H2
+    WCA_HAS_ACCENT_POLICY = 34,
+    WCA_REDIRECTIONBITMAP_FILL_COLOR = 35,
+    WCA_REDIRECTIONBITMAP_ALPHA = 36,
+    WCA_BORDER_MARGINS = 37,
     WCA_LAST
 } WINDOWCOMPOSITIONATTRIB;
 
@@ -2790,11 +2804,12 @@ HICON PhGdiplusConvertBitmapToIcon(
     );
 
 HWND PhCreateBackgroundWindow(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN DesktopWindow
     );
 
 HICON PhGdiplusConvertHBitmapToHIcon(
-    _In_ HBITMAP NitmapHandle
+    _In_ HBITMAP BitmapHandle
     );
 
 EXTERN_C_END

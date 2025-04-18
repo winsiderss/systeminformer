@@ -33,7 +33,6 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     _In_ PPH_STRINGREF FileName
     );
 
-_Success_(return)
 BOOLEAN PhCreateProcessLxss(
     _In_ PPH_STRING LxssDistribution,
     _In_ PPH_STRING LxssCommandLine,

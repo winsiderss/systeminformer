@@ -268,23 +268,9 @@ BOOLEAN SetupUninstallDriver(
         {
             if (serviceStatus.dwCurrentState != SERVICE_STOPPED)
             {
-                ULONG attempts = 60;
+                PhStopService(serviceHandle);
 
-                do
-                {
-                    PhStopService(serviceHandle);
-
-                    if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &serviceStatus)))
-                    {
-                        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
-                        {
-                            break;
-                        }
-                    }
-
-                    PhDelayExecution(1000);
-
-                } while (--attempts != 0);
+                PhWaitForServiceStatus(serviceHandle, SERVICE_STOPPED, 30 * 1000);
             }
         }
 
@@ -686,13 +672,20 @@ VOID SetupUpgradeSettingsFile(
     )
 {
     BOOLEAN migratedNightly = FALSE;
+    PPH_STRING settingsFileName;
     PPH_STRING settingsFilePath;
     PPH_STRING legacyNightlyFileName;
     PPH_STRING legacySettingsFileName;
 
     settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
-    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
+
+    settingsFileName = PhConcatStrings(5, L"\\", L"Process", L" Hacker", L"\\", L"settings.xml");
+    legacyNightlyFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &settingsFileName->sr);
+    PhDereferenceObject(settingsFileName);
+
+    settingsFileName = PhConcatStrings(6, L"\\", L"Process", L" Hacker", L" 2", L"\\", L"settings.xml");
+    legacySettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, &settingsFileName->sr);
+    PhDereferenceObject(settingsFileName);
 
     if (settingsFilePath && legacyNightlyFileName)
     {
@@ -718,32 +711,33 @@ VOID SetupUpgradeSettingsFile(
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
-VOID ExtractResourceToFile(
+NTSTATUS ExtractResourceToFile(
     _In_ PVOID DllBase,
-    _In_ PWSTR Name,
-    _In_ PWSTR FileName
+    _In_ PCWSTR Name,
+    _In_ PCWSTR FileName
     )
 {
+    NTSTATUS status;
     HANDLE fileHandle = NULL;
     PVOID resourceBuffer;
     ULONG resourceLength;
     LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
 
-    if (!PhLoadResource(
+    status = PhLoadResource(
         DllBase,
         Name,
         RT_RCDATA,
         &resourceLength,
         &resourceBuffer
-        ))
-    {
-        goto CleanupExit;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     allocationSize.QuadPart = resourceLength;
 
-    if (!NT_SUCCESS(PhCreateFileWin32Ex(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
@@ -753,12 +747,12 @@ VOID ExtractResourceToFile(
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(NtWriteFile(
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtWriteFile(
         fileHandle,
         NULL,
         NULL,
@@ -768,18 +762,19 @@ VOID ExtractResourceToFile(
         resourceLength,
         NULL,
         NULL
-        )))
+        );
+
+    NtClose(fileHandle);
+
+    if (NT_SUCCESS(status))
     {
-        goto CleanupExit;
+        if (isb.Information != resourceLength)
+        {
+            return STATUS_FAIL_CHECK;
+        }
     }
 
-    if (isb.Information != resourceLength)
-        goto CleanupExit;
-
-CleanupExit:
-
-    if (fileHandle)
-        NtClose(fileHandle);
+    return status;
 }
 
 BOOLEAN ConnectionAvailable(VOID)
@@ -815,10 +810,10 @@ BOOLEAN ConnectionAvailable(VOID)
 }
 
 VOID SetupCreateLink(
-    _In_ PWSTR LinkFilePath,
-    _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir,
-    _In_ PWSTR AppId
+    _In_ PCWSTR LinkFilePath,
+    _In_ PCWSTR FilePath,
+    _In_ PCWSTR FileParentDir,
+    _In_ PCWSTR AppId
     )
 {
     IShellLink* shellLinkPtr = NULL;
@@ -905,20 +900,39 @@ BOOLEAN CheckApplicationInstalled(
     return installed;
 }
 
+PPH_STRING CreateLegacyApplicationName(
+    VOID
+    )
+{
+    PH_FORMAT format[4];
+
+    PhInitFormatC(&format[0], OBJ_NAME_PATH_SEPARATOR);
+    PhInitFormatS(&format[1], L"Process");
+    PhInitFormatS(&format[2], L"Hacker");
+    PhInitFormatS(&format[3], L".exe");
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 BOOLEAN CheckApplicationInstallPathLegacy(
     _In_ PPH_STRING Directory
     )
 {
     BOOLEAN installed = FALSE;
+    PPH_STRING fileName;
     PPH_STRING exePath;
+
+    fileName = CreateLegacyApplicationName();
 
     // Check the directory for the legacy 'ProcessHacker.exe' executable.
 
-    if (exePath = SetupCreateFullPath(Directory, L"\\ProcessHacker.exe"))
+    if (exePath = SetupCreateFullPath(Directory, PhGetString(fileName)))
     {
         installed = PhDoesFileExistWin32(PhGetString(exePath));
         PhDereferenceObject(exePath);
     }
+
+    PhDereferenceObject(fileName);
 
     return installed;
 }
@@ -1108,7 +1122,7 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
 
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
-    _In_ PWSTR FileName
+    _In_ PCWSTR FileName
     )
 {
     PPH_STRING pathString;

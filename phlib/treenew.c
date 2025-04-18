@@ -4894,9 +4894,15 @@ VOID PhTnpProcessSearchKey(
     if (!Context->SearchString)
     {
         Context->AllocatedSearchString = 32;
-        Context->SearchString = PhAllocate(Context->AllocatedSearchString * sizeof(WCHAR));
+        Context->SearchString = PhAllocateSafe(Context->AllocatedSearchString * sizeof(WCHAR));
         newSearch = TRUE;
         Context->SearchSingleCharMode = TRUE;
+    }
+
+    if (!Context->SearchString)
+    {
+        Context->SearchFailed = TRUE;
+        return;
     }
 
     if (Context->SearchStringCount > PH_TREENEW_SEARCH_MAXIMUM_LENGTH)
@@ -4913,7 +4919,13 @@ VOID PhTnpProcessSearchKey(
     else if (Context->SearchStringCount == Context->AllocatedSearchString)
     {
         Context->AllocatedSearchString *= 2;
-        Context->SearchString = PhReAllocate(Context->SearchString, Context->AllocatedSearchString * sizeof(WCHAR));
+        Context->SearchString = PhReAllocateSafe(Context->SearchString, Context->AllocatedSearchString * sizeof(WCHAR));
+
+        if (!Context->SearchString)
+        {
+            Context->SearchFailed = TRUE;
+            return;
+        }
     }
 
     Context->SearchString[Context->SearchStringCount++] = (WCHAR)Character;
@@ -7041,11 +7053,11 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     {
     case WM_DESTROY:
         {
+            PhSetWindowProcedure(hwnd, oldWndProc);
+
             PhRemoveWindowContext(hwnd, MAXCHAR);
 
             PhTnpHeaderDestroyBufferedContext(context);
-
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
     case WM_MOUSEMOVE:

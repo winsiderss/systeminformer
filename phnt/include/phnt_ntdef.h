@@ -195,6 +195,7 @@ typedef PSTRING PUTF8_STRING;
 typedef const STRING *PCSTRING;
 typedef const ANSI_STRING *PCANSI_STRING;
 typedef const OEM_STRING *PCOEM_STRING;
+typedef const STRING *PCUTF8_STRING;
 
 typedef struct _UNICODE_STRING
 {
@@ -205,7 +206,28 @@ typedef struct _UNICODE_STRING
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
-#define RTL_CONSTANT_STRING(s) { sizeof((s)) - sizeof((s)[0]), sizeof((s)), (PWCH)(s) }
+#ifdef __cplusplus
+extern "C++"
+{
+template <size_t N> char _RTL_CONSTANT_STRING_type_check(const char  (&s)[N]);
+template <size_t N> char _RTL_CONSTANT_STRING_type_check(const WCHAR (&s)[N]);
+// __typeof would be desirable here instead of sizeof.
+template <size_t N> class _RTL_CONSTANT_STRING_remove_const_template_class;
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(char)>  {public: typedef  char T; };
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(WCHAR)> {public: typedef WCHAR T; };
+#define _RTL_CONSTANT_STRING_remove_const_macro(s) \
+    (const_cast<_RTL_CONSTANT_STRING_remove_const_template_class<sizeof((s)[0])>::T*>(s))
+}
+#else
+char _RTL_CONSTANT_STRING_type_check(const void *s);
+#define _RTL_CONSTANT_STRING_remove_const_macro(s) (s)
+#endif
+#define RTL_CONSTANT_STRING(s) \
+{ \
+    sizeof( s ) - sizeof( (s)[0] ), \
+    sizeof( s ) / sizeof(_RTL_CONSTANT_STRING_type_check(s)), \
+    _RTL_CONSTANT_STRING_remove_const_macro(s) \
+}
 
 #define DECLARE_CONST_UNICODE_STRING(_var, _str) \
 const WCHAR _var ## _buffer[] = _str; \
@@ -269,6 +291,9 @@ typedef struct _STRING32
 typedef STRING32 UNICODE_STRING32, *PUNICODE_STRING32;
 typedef STRING32 ANSI_STRING32, *PANSI_STRING32;
 
+typedef const STRING32 *PCUNICODE_STRING32;
+typedef const STRING32 *PCANSI_STRING32;
+
 typedef struct _STRING64
 {
     USHORT Length;
@@ -278,6 +303,9 @@ typedef struct _STRING64
 
 typedef STRING64 UNICODE_STRING64, *PUNICODE_STRING64;
 typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
+
+typedef const STRING64 *PCUNICODE_STRING64;
+typedef const STRING64 *PCANSI_STRING64;
 
 //
 // Object attributes

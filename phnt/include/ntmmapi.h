@@ -735,7 +735,7 @@ NtAllocateVirtualMemory(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS5)
 /**
- * The NtAllocateVirtualMemory routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
+ * The NtAllocateVirtualMemoryEx routine reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
  *
  * @param ProcessHandle A handle for the process for which the mapping should be done.
  * @param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
@@ -749,7 +749,7 @@ NtAllocateVirtualMemory(
  * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwallocatevirtualmemory
  */
 _Must_inspect_result_
-_When_(return == 0, __drv_allocatesMem(mem))
+_When_(return == 0, __drv_allocatesMem(Mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -778,7 +778,7 @@ NTSTATUS
 NTAPI
 NtFreeVirtualMemory(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID *BaseAddress,
+    _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG FreeType
     );
@@ -1690,7 +1690,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePagingFile(
-    _In_ PUNICODE_STRING PageFileName,
+    _In_ PCUNICODE_STRING PageFileName,
     _In_ PLARGE_INTEGER MinimumSize,
     _In_ PLARGE_INTEGER MaximumSize,
     _In_ ULONG Priority

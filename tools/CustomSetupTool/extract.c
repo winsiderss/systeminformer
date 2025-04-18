@@ -163,7 +163,7 @@ USHORT SetupGetCurrentArchitecture(
     return info.wProcessorArchitecture;
 }
 
-BOOLEAN SetupExtractBuild(
+BOOLEAN CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -180,7 +180,7 @@ BOOLEAN SetupExtractBuild(
     ULONG resourceLength;
     PVOID resourceBuffer = NULL;
 
-    if (!PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer))
+    if (!NT_SUCCESS(PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer)))
         return FALSE;
 
     if (!(status = mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0)))

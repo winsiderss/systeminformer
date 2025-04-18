@@ -11,7 +11,7 @@
 
 #include "setup.h"
 
-NTSTATUS SetupProgressThread(
+NTSTATUS CALLBACK SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {

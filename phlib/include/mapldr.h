@@ -104,9 +104,8 @@ PhGetProcedureAddressRemoteZ(
         );
 }
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLoadResource(
     _In_ PVOID DllBase,
@@ -116,9 +115,8 @@ PhLoadResource(
     _Out_opt_ PVOID *ResourceBuffer
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLoadResourceCopy(
     _In_ PVOID DllBase,

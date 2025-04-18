@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2023
+ *     jxy-s   2023-2025
  *
  */
 
@@ -38,24 +38,110 @@ static const OBJECT_ATTRIBUTES HvSocketControlAttributes       = RTL_CONSTANT_OB
 
 #define HVSOCKET_SYSTEM_PATH_LENGTH  (sizeof(L"\\Device\\HvSocketSystem") /* \\ */ + sizeof(L"AddressInfo") /* \\ */ + sizeof(L"{00000000-0000-0000-0000-000000000000}"))
 
-NTSTATUS HvSocketOpenSystemControl(
+NTSTATUS PhHvSocketOpenSystemControl(
     _Out_ PHANDLE SystemHandle,
     _In_opt_ const GUID* VmId
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK ioStatusBlock;
-    BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
-    UNICODE_STRING systemPath;
-    UNICODE_STRING guidString;
-    OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!VmId)
+    if (VmId)
     {
-        return NtCreateFile(
+#if defined(PHNT_USE_NATIVE_APPEND)
+        UNICODE_STRING systemPath;
+        UNICODE_STRING guidString;
+        OBJECT_ATTRIBUTES objectAttributes;
+        BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
+
+        RtlInitEmptyUnicodeString(&systemPath, (PWCHAR)buffer, sizeof(buffer));
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketSystemDevicePath);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeToString(&systemPath, L"\\");
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlStringFromGUID((PGUID)VmId, &guidString);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
+        RtlFreeUnicodeString(&guidString);
+
+        if (!NT_SUCCESS(status))
+            return status;
+#else
+        PPH_STRING gidString;
+        UNICODE_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PH_STRINGREF stringRef;
+        SIZE_T returnLength;
+        PH_FORMAT format[5];
+        WCHAR formatBuffer[0x100];
+
+        if (!(gidString = PhFormatGuid((PGUID)VmId)))
+            return STATUS_NO_MEMORY;
+
+        PhInitFormatUCS(&format[0], &HvSocketSystemDevicePath);
+        PhInitFormatSR(&format[1], PhNtPathSeperatorString);
+        PhInitFormatUCS(&format[2], &HvSocketAddressInfoName);
+        PhInitFormatSR(&format[3], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[4], gidString->sr);
+
+        if (!PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), &returnLength))
+        {
+            PhDereferenceObject(gidString);
+            return STATUS_NO_MEMORY;
+        }
+
+        PhDereferenceObject(gidString);
+
+        stringRef.Length = returnLength - sizeof(UNICODE_NULL);
+        stringRef.Buffer = formatBuffer;
+
+        if (!PhStringRefToUnicodeString(&stringRef, &objectName))
+            return STATUS_NO_MEMORY;
+#endif
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &objectName,
+            0,
+            NULL,
+            NULL
+            );
+
+        status = NtCreateFile(
             SystemHandle,
             FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-            (POBJECT_ATTRIBUTES)&HvSocketControlAttributes,
+            &objectAttributes,
+            &ioStatusBlock,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_CREATE, // required by hvsocketcontrol.sys
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL,
+            0
+            );
+    }
+    else
+    {
+        status = NtCreateFile(
+            SystemHandle,
+            FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
+            &HvSocketControlAttributes,
             &ioStatusBlock,
             NULL,
             FILE_ATTRIBUTE_NORMAL,
@@ -67,45 +153,10 @@ NTSTATUS HvSocketOpenSystemControl(
             );
     }
 
-    systemPath.Buffer = (PWCHAR)buffer;
-    systemPath.Length = 0;
-    systemPath.MaximumLength = sizeof(buffer);
-    RtlAppendUnicodeStringToString(&systemPath, &HvSocketSystemDevicePath);
-    RtlAppendUnicodeToString(&systemPath, L"\\");
-    RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
-    RtlAppendUnicodeToString(&systemPath, L"\\");
-
-    status = RtlStringFromGUID((PGUID)VmId, &guidString);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
-    RtlFreeUnicodeString(&guidString);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    InitializeObjectAttributes(&objectAttributes, &systemPath, 0, NULL, NULL);
-
-    return NtCreateFile(
-        SystemHandle,
-        FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-        &objectAttributes,
-        &ioStatusBlock,
-        NULL,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_CREATE, // required by hvsocketcontrol.sys
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-        NULL,
-        0
-        );
+    return status;
 }
 
-NTSTATUS HvSocketGetListeners(
+NTSTATUS PhHvSocketGetListeners(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_LISTENERS Listeners,
@@ -139,7 +190,7 @@ NTSTATUS HvSocketGetListeners(
     return status;
 }
 
-NTSTATUS HvSocketGetConnections(
+NTSTATUS PhHvSocketGetConnections(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId,
     _In_opt_ PHVSOCKET_CONNECTIONS Connections,
@@ -173,7 +224,7 @@ NTSTATUS HvSocketGetConnections(
     return status;
 }
 
-NTSTATUS HvSocketGetServiceInfo(
+NTSTATUS PhHvSocketGetServiceInfo(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* ServiceId,
     _Out_ PHVSOCKET_SERVICE_INFO ServiceInfo
@@ -204,3 +255,145 @@ NTSTATUS HvSocketGetServiceInfo(
 }
 
 #endif // _WIN64
+
+BOOLEAN PhHvSocketIsVSockTemplate(
+    _In_ PGUID ServiceId
+    )
+{
+    GUID template = *ServiceId;
+
+    template.Data1 = 0;
+
+    return !!IsEqualGUID(&template, &HV_GUID_VSOCK_TEMPLATE);
+}
+
+_Maybenull_
+PPH_STRING PhHvSocketGetVmName(
+    _In_ PGUID VmId
+    )
+{
+    static const PH_STRINGREF hvComputeSystemKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\HostComputeService\\VolatileStore\\ComputeSystem\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING vmName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(VmId);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvComputeSystemKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING value;
+
+        if (value = PhQueryRegistryStringZ(keyHandle, L"VmName"))
+            PhMoveReference(&vmName, value);
+        else if (value = PhQueryRegistryStringZ(keyHandle, L"VmId"))
+            PhMoveReference(&vmName, value);
+        else
+            PhMoveReference(&vmName, PhCreateString3(&guidStringTrimmed, PH_STRING_UPPER_CASE, NULL));
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return vmName;
+}
+
+_Maybenull_
+PPH_STRING PhHvSocketGetServiceName(
+    _In_ PGUID ServiceId
+    )
+{
+    static const PH_STRINGREF hvGuestServicesKey = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\");
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+    PPH_STRING serviceName = NULL;
+    PPH_STRING guidString;
+    PH_STRINGREF guidStringTrimmed;
+    PPH_STRING keyName;
+    HANDLE keyHandle;
+
+    guidString = PhFormatGuid(ServiceId);
+    guidStringTrimmed = guidString->sr;
+    PhTrimStringRef(&guidStringTrimmed, &trimSet, 0);
+
+    keyName = PhConcatStringRef2(&hvGuestServicesKey, &guidStringTrimmed);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING elementName;
+
+        if (elementName = PhQueryRegistryStringZ(keyHandle, L"ElementName"))
+            PhMoveReference(&serviceName, elementName);
+
+        NtClose(keyHandle);
+    }
+
+    // Keep this after element name lookup. Certain services define the VSOCK
+    // template with a specific port (e.g. Docker). (jxy-s)
+    if (!serviceName && PhHvSocketIsVSockTemplate(ServiceId))
+        PhMoveReference(&serviceName, PhCreateString(L"VSOCK"));
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(guidString);
+
+    return serviceName;
+}
+
+PPH_STRING PhHvSocketAddressString(
+    _In_ PGUID Address
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING wildcardString;
+    static PPH_STRING broadcastString;
+    static PPH_STRING childrenString;
+    static PPH_STRING loopbackString;
+    static PPH_STRING hostString;
+    static PPH_STRING siloHostString;
+    PPH_STRING addressString = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        wildcardString = PhCreateString(L"*");
+        broadcastString = PhCreateString(L"Broadcast");
+        childrenString = PhCreateString(L"Children");
+        loopbackString = PhCreateString(L"Loopback");
+        hostString = PhCreateString(L"Host");
+        siloHostString = PhCreateString(L"Silo Host");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (IsEqualGUID(Address, &HV_GUID_WILDCARD))
+        return PhReferenceObject(wildcardString);
+    if (IsEqualGUID(Address, &HV_GUID_BROADCAST))
+        return PhReferenceObject(broadcastString);
+    if (IsEqualGUID(Address, &HV_GUID_CHILDREN))
+        return PhReferenceObject(childrenString);
+    if (IsEqualGUID(Address, &HV_GUID_LOOPBACK))
+        return PhReferenceObject(loopbackString);
+    if (IsEqualGUID(Address, &HV_GUID_PARENT))
+        return PhReferenceObject(hostString);
+    if (IsEqualGUID(Address, &HV_GUID_SILOHOST))
+        return PhReferenceObject(siloHostString);
+
+    return PhFormatGuid(Address);
+}

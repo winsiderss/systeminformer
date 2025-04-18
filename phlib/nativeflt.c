@@ -212,7 +212,7 @@ NTSTATUS PhFilterLoadUnload(
     }
     else
     {
-        status = STATUS_INSUFFICIENT_RESOURCES;
+        status = STATUS_NO_MEMORY;
     }
 
     NtClose(fileHandle);
@@ -360,9 +360,10 @@ NTSTATUS PhFilterConnectCommunicationPort(
     //
 
     eaLength = FLT_PORT_FULL_EA_SIZE + FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext;
+    ea = _malloca(eaLength);
 
-    if (!(ea = _malloca(eaLength)))
-        return STATUS_INSUFFICIENT_RESOURCES;
+    if (!ea)
+        return STATUS_NO_MEMORY;
 
     RtlZeroMemory(ea, eaLength);
     ea->Flags = 0;

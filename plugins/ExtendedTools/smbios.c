@@ -227,19 +227,26 @@ VOID EtAddSMBIOSFlags(
     _In_ ULONG Value
     )
 {
-    PH_FORMAT format[4];
-    PPH_STRING string;
+    if (Value)
+    {
+        PH_FORMAT format[4];
+        PPH_STRING string;
 
-    string = PhGetAccessString(Value, (PPH_ACCESS_ENTRY)Entries, Count);
+        string = PhGetAccessString(Value, (PPH_ACCESS_ENTRY)Entries, Count);
 
-    PhInitFormatSR(&format[0], string->sr);
-    PhInitFormatS(&format[1], L" (0x");
-    PhInitFormatX(&format[2], Value);
-    PhInitFormatS(&format[3], L")");
+        PhInitFormatSR(&format[0], string->sr);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatX(&format[2], Value);
+        PhInitFormatS(&format[3], L")");
 
-    PhMoveReference(&string, PhFormat(format, 4, 10));
-    EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
-    PhDereferenceObject(string);
+        PhMoveReference(&string, PhFormat(format, 4, 10));
+
+        EtAddSMBIOSItem(Context, Group, Name, PhGetString(string));
+    }
+    else
+    {
+        EtAddSMBIOSItem(Context, Group, Name, L"");
+    }
 }
 
 VOID EtAddSMBIOSEnum(

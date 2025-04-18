@@ -24,6 +24,7 @@ VOID PhCreateSearchControl(
         ParentWindowHandle,
         WindowHandle,
         BannerText,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_MODERN_LIGHT),
         MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_MODERN_LIGHT),
         MAKEINTRESOURCE(IDB_SEARCH_REGEX_MODERN_LIGHT),

@@ -63,7 +63,7 @@ VOID PhShowHandleStatisticsDialog(
     status = PhEnumHandlesGeneric(
         context.ProcessId,
         context.ProcessHandle,
-        PhCsEnableHandleSnapshot,
+        !!PhCsEnableHandleSnapshot,
         &context.Handles
         );
 

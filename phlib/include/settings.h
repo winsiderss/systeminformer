@@ -477,7 +477,7 @@ FORCEINLINE
 BOOLEAN
 NTAPI
 PhValidWindowPlacementFromSetting(
-    _In_opt_ PCWSTR Name
+    _In_ PCWSTR Name
     )
 {
     PH_STRINGREF name;

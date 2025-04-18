@@ -131,6 +131,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PRTL_UNLOAD_EVENT_TRACE32 rtlEvent = PTR_ADD_OFFSET(capturedEventTrace, sizeof(RTL_UNLOAD_EVENT_TRACE32) * i);
             INT lvItemIndex;
             WCHAR buffer[128];
+            PH_FORMAT format[7];
             PPH_STRING string;
             LARGE_INTEGER time;
             SYSTEMTIME systemTime;
@@ -153,19 +154,31 @@ NTSTATUS EtpRefreshUnloadedDlls(
 
             // Size
             string = PhFormatSize(rtlEvent->SizeOfImage, ULONG_MAX);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, string->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, PhGetString(string));
             PhDereferenceObject(string);
 
             // Time Stamp
             PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, PhGetString(string));
             PhDereferenceObject(string);
 
             // Checksum
             PhPrintPointer(buffer, UlongToPtr(rtlEvent->CheckSum));
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, buffer);
+
+            // Version
+            PhInitFormatU(&format[0], HIWORD(rtlEvent->Version[0]));
+            PhInitFormatC(&format[1], L'.');
+            PhInitFormatU(&format[2], LOWORD(rtlEvent->Version[0]));
+            PhInitFormatC(&format[3], L'.');
+            PhInitFormatU(&format[4], HIWORD(rtlEvent->Version[1]));
+            PhInitFormatC(&format[5], L'.');
+            PhInitFormatU(&format[6], LOWORD(rtlEvent->Version[1]));
+            string = PhFormat(format, 7, 48);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, PhGetString(string));
+            PhDereferenceObject(string);
         }
 
         ExtendedListView_SortItems(Context->ListViewHandle);
@@ -196,6 +209,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PRTL_UNLOAD_EVENT_TRACE rtlEvent = currentEvent;
             INT lvItemIndex;
             WCHAR buffer[128];
+            PH_FORMAT format[7];
             PPH_STRING string;
             LARGE_INTEGER time;
             SYSTEMTIME systemTime;
@@ -218,19 +232,31 @@ NTSTATUS EtpRefreshUnloadedDlls(
 
             // Size
             string = PhFormatSize(rtlEvent->SizeOfImage, ULONG_MAX);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, string->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, PhGetString(string));
             PhDereferenceObject(string);
 
             // Time Stamp
             PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
-            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, PhGetString(string));
             PhDereferenceObject(string);
 
             // Checksum
             PhPrintPointer(buffer, UlongToPtr(rtlEvent->CheckSum));
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, buffer);
+
+            // Version
+            PhInitFormatU(&format[0], HIWORD(rtlEvent->Version[0]));
+            PhInitFormatC(&format[1], L'.');
+            PhInitFormatU(&format[2], LOWORD(rtlEvent->Version[0]));
+            PhInitFormatC(&format[3], L'.');
+            PhInitFormatU(&format[4], HIWORD(rtlEvent->Version[1]));
+            PhInitFormatC(&format[5], L'.');
+            PhInitFormatU(&format[6], LOWORD(rtlEvent->Version[1]));
+            string = PhFormat(format, 7, 48);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, PhGetString(string));
+            PhDereferenceObject(string);
 
             currentEvent = PTR_ADD_OFFSET(currentEvent, capturedElementSize);
         }
@@ -354,6 +380,41 @@ static INT NTAPI EtpTimeStampCompareFunction(
     }
 }
 
+static INT NTAPI EtpVersionCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    // N.B. The unload event stores version 1.2.3.4 as {0x0001'0002, 0x0003'0004}
+    // We want to convert it to 0x0001'0002'0003'0004 so we can compare values directly.
+
+#ifdef _WIN64
+    PUNLOADED_DLLS_CONTEXT context = Context;
+
+    if (context && context->IsWow64Process)
+    {
+        PRTL_UNLOAD_EVENT_TRACE32 item1 = Item1;
+        PRTL_UNLOAD_EVENT_TRACE32 item2 = Item2;
+
+        return uint64cmp(
+            (ULONG64)item1->Version[1] | ((ULONG64)item1->Version[0] << 32),
+            (ULONG64)item2->Version[1] | ((ULONG64)item2->Version[0] << 32)
+            );
+    }
+    else
+#endif
+    {
+        PRTL_UNLOAD_EVENT_TRACE item1 = Item1;
+        PRTL_UNLOAD_EVENT_TRACE item2 = Item2;
+
+        return uint64cmp(
+            (ULONG64)item1->Version[1] | ((ULONG64)item1->Version[0] << 32),
+            (ULONG64)item2->Version[1] | ((ULONG64)item2->Version[0] << 32)
+            );
+    }
+}
+
 static INT NTAPI EtpCheckSumCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
@@ -421,10 +482,11 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"No.");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Base Address");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Base Address");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Size");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Time Stamp");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 60, L"Checksum");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"Time Stamp");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 65, L"Checksum");
+            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Version");
 
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 0, EtpNumberCompareFunction);
@@ -432,6 +494,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 3, EtpSizeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 4, EtpTimeStampCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 5, EtpCheckSumCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 6, EtpVersionCompareFunction);
             ExtendedListView_SetContext(lvHandle, context);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_UNLOADED_COLUMNS, lvHandle);
 

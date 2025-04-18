@@ -12,7 +12,7 @@
 #include <ph.h>
 
 NTSTATUS InitializeAttributeList(
-    _In_ STARTUPINFOEX* StartupInfo
+    _Out_ STARTUPINFOEX* StartupInfo
     )
 {
     static ULONG64 mitigationFlags[] =
@@ -32,38 +32,34 @@ NTSTATUS InitializeAttributeList(
          PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_ON)
     };
+    NTSTATUS status;
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
 
-    SIZE_T attributeListLength = 0;
+    RtlZeroMemory(StartupInfo, sizeof(STARTUPINFOEX));
+    StartupInfo->StartupInfo.cb = sizeof(STARTUPINFOEX);
 
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-        return PhGetLastWin32ErrorAsNtStatus();
+    status = PhInitializeProcThreadAttributeList(&attributeList, 1);
 
-    StartupInfo->lpAttributeList = PhAllocate(attributeListLength);
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!InitializeProcThreadAttributeList(StartupInfo->lpAttributeList, 1, 0, &attributeListLength))
-        return PhGetLastWin32ErrorAsNtStatus();
+    StartupInfo->lpAttributeList = attributeList;
 
-    if (!UpdateProcThreadAttribute(
-        StartupInfo->lpAttributeList,
-        0,
+    status = PhUpdateProcThreadAttribute(
+        attributeList,
         PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
         mitigationFlags,
-        sizeof(mitigationFlags),
-        NULL,
-        NULL
-        ))
-    {
-        return PhGetLastWin32ErrorAsNtStatus();
-    }
+        sizeof(mitigationFlags)
+        );
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 NTSTATUS DestroyAttributeList(
     _In_ STARTUPINFOEX* StartupInfo
     )
 {
-    DeleteProcThreadAttributeList(StartupInfo->lpAttributeList);
+    PhDeleteProcThreadAttributeList(StartupInfo->lpAttributeList);
     return STATUS_SUCCESS;
 }
 
@@ -120,18 +116,30 @@ NTSTATUS InitializeFileName(
     _Out_ PPH_STRING* FileName
     )
 {
-#ifdef _DEBUG
-    PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"\\..\\..\\..\\..\\bin\\Debug64\\SystemInformer.exe");
-#else
-    PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"SystemInformer.exe");
-#endif
+    NTSTATUS status;
     PPH_STRING fileName;
+    PPH_STRING fullPath;
 
-    fileName = PhGetApplicationDirectoryFileNameWin32(&fileNameStringRef);
-    PhMoveReference(&fileName, PhGetFullPath(fileName->Buffer, NULL));
+#ifdef _DEBUG
+    fileName = PhGetApplicationDirectoryFileNameZ(L"\\..\\..\\..\\..\\bin\\Debug64\\SystemInformer.exe", FALSE);
+#else
+    fileName = PhGetApplicationDirectoryFileNameZ(L"SystemInformer.exe", FALSE);
+#endif
 
-    *FileName = fileName;
-    return STATUS_SUCCESS;
+    status = PhGetFullPath(
+        PhGetString(fileName),
+        &fullPath,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileName = fullPath;
+    }
+
+    PhDereferenceObject(fileName);
+
+    return status;
 }
 
 INT WINAPI wWinMain(
@@ -144,7 +152,7 @@ INT WINAPI wWinMain(
     HANDLE processHandle;
     HANDLE jobObjectHandle;
     PPH_STRING fileName;
-    STARTUPINFOEX info = { sizeof(STARTUPINFOEX) };
+    STARTUPINFOEX info;
 
     if (!NT_SUCCESS(PhInitializePhLib(L"CustomStartTool", Instance)))
         return EXIT_FAILURE;

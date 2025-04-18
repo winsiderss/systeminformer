@@ -243,7 +243,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         {
             PhUnregisterWindowCallback(hwnd);
 
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);

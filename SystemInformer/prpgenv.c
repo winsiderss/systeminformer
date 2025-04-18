@@ -640,8 +640,8 @@ ULONG_PTR CALLBACK PhpEditEnvSubclassProc(
     {
     case WM_DESTROY:
         {
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
     case WM_GETDLGCODE:

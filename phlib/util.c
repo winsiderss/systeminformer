@@ -14,6 +14,7 @@
 
 #include <commdlg.h>
 #include <d3dkmthk.h>
+#include <ntintsafe.h>
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
@@ -28,6 +29,11 @@
 #include <lsasup.h>
 #include <wslsup.h>
 #include <thirdparty.h>
+
+#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+#include <roapi.h>
+#include <winstring.h>
+#endif
 
 DECLSPEC_SELECTANY CONST WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;
@@ -2383,13 +2389,13 @@ PVOID PhGetFileVersionInfo(
     if (!libraryModule)
         return NULL;
 
-    if (PhLoadResourceCopy(
+    if (NT_SUCCESS(PhLoadResourceCopy(
         libraryModule,
         MAKEINTRESOURCE(VS_VERSION_INFO),
         VS_FILE_INFO,
         NULL,
         &versionInfo
-        ))
+        )))
     {
         if (PhIsFileVersionInfo32(versionInfo))
         {
@@ -2414,21 +2420,54 @@ PVOID PhGetFileVersionInfoEx(
     if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, TRUE, &imageBaseAddress)))
         return NULL;
 
-    if (PhLoadResourceCopy(
-        imageBaseAddress,
-        MAKEINTRESOURCE(VS_VERSION_INFO),
-        VS_FILE_INFO,
-        NULL,
-        &versionInfo
-        ))
+    // MUI version information
+    if (PRIMARYLANGID(LANGIDFROMLCID(PhGetCurrentThreadLCID())) != LANG_ENGLISH)
     {
-        if (PhIsFileVersionInfo32(versionInfo))
-        {
-            PhFreeLibraryAsImageResource(imageBaseAddress);
-            return versionInfo;
-        }
+        PVOID resourceDllBase;
+        SIZE_T resourceDllSize;
 
-        PhFree(versionInfo);
+        if (NT_SUCCESS(LdrLoadAlternateResourceModule(imageBaseAddress, &resourceDllBase, &resourceDllSize, 0)))
+        {
+            if (NT_SUCCESS(PhLoadResourceCopy(
+                resourceDllBase,
+                MAKEINTRESOURCE(VS_VERSION_INFO),
+                VS_FILE_INFO,
+                NULL,
+                &versionInfo
+                )))
+            {
+                if (PhIsFileVersionInfo32(versionInfo))
+                {
+                    LdrUnloadAlternateResourceModule(resourceDllBase);
+                    PhFreeLibraryAsImageResource(imageBaseAddress);
+                    return versionInfo;
+                }
+
+                PhFree(versionInfo);
+            }
+
+            LdrUnloadAlternateResourceModule(resourceDllBase);
+        }
+    }
+
+    // EXE version information
+    {
+        if (NT_SUCCESS(PhLoadResourceCopy(
+            imageBaseAddress,
+            MAKEINTRESOURCE(VS_VERSION_INFO),
+            VS_FILE_INFO,
+            NULL,
+            &versionInfo
+            )))
+        {
+            if (PhIsFileVersionInfo32(versionInfo))
+            {
+                PhFreeLibraryAsImageResource(imageBaseAddress);
+                return versionInfo;
+            }
+
+            PhFree(versionInfo);
+        }
     }
 
     PhFreeLibraryAsImageResource(imageBaseAddress);
@@ -3126,12 +3165,21 @@ NTSTATUS PhGetFullPathName(
     _Out_opt_ PULONG BytesRequired)
 {
     NTSTATUS status;
+    ULONG bufferLength;
     ULONG bytesRequired;
+
+    status = RtlSizeTToULong(
+        BufferLength,
+        &bufferLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     bytesRequired = 0;
     status = RtlGetFullPathName_UEx(
         FileName,
-        (ULONG)BufferLength, // * sizeof(WCHAR)
+        bufferLength, // * sizeof(WCHAR)
         Buffer,
         FilePart,
         &bytesRequired
@@ -3172,7 +3220,7 @@ NTSTATUS PhGetFullPath(
     ULONG returnLength = 0;
     PWSTR filePart = NULL;
 
-    fullPathLength = 0x100;
+    fullPathLength = DOS_MAX_PATH_LENGTH;
     fullPath = PhCreateStringEx(NULL, fullPathLength);
 
     status = PhGetFullPathName(
@@ -3185,6 +3233,7 @@ NTSTATUS PhGetFullPath(
 
     if (status == STATUS_BUFFER_TOO_SMALL && returnLength > sizeof(UNICODE_NULL))
     {
+        PhDereferenceObject(fullPath);
         fullPathLength = returnLength - sizeof(UNICODE_NULL);
         fullPath = PhCreateStringEx(NULL, fullPathLength);
 
@@ -3825,6 +3874,7 @@ PPH_STRING PhGetApplicationDataFileName(
     return applicationDataFileName;
 }
 
+#if defined(PH_SHGETFOLDERPATH)
 /**
  * Gets a known location as a file name.
  *
@@ -3872,6 +3922,7 @@ PPH_STRING PhGetApplicationDataFileName(
 //
 //    return NULL;
 //}
+#endif
 
 /**
  * Retrieves the full path of a known folder.
@@ -4212,7 +4263,7 @@ PPH_STRING PhGetTemporaryDirectory(
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
     if (
-        PhGetOwnTokenAttributes().Elevated ||
+        PhGetOwnTokenAttributes().Elevated &&
         PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
         )
     {
@@ -8163,13 +8214,30 @@ HRESULT PhGetActivationFactory(
     )
 {
 #if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
-    #include <roapi.h>
-    #include <winstring.h>
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static __typeof__(&RoGetActivationFactory) RoGetActivationFactory_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
 
-    status = WindowsCreateStringReference(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"combase.dll"))
+        {
+            WindowsCreateStringReference_I = PhGetDllBaseProcedureAddress(baseAddress, "WindowsCreateStringReference", 0);
+            RoGetActivationFactory_I = PhGetDllBaseProcedureAddress(baseAddress, "RoGetActivationFactory", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(WindowsCreateStringReference_I && RoGetActivationFactory_I))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = WindowsCreateStringReference_I(
         RuntimeClass,
         (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
@@ -8178,7 +8246,7 @@ HRESULT PhGetActivationFactory(
 
     if (HR_SUCCESS(status))
     {
-        status = RoGetActivationFactory(
+        status = RoGetActivationFactory_I(
             runtimeClassStringHandle,
             Riid,
             Ppv
@@ -8268,14 +8336,31 @@ HRESULT PhActivateInstance(
     )
 {
 #if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
-    #include <roapi.h>
-    #include <winstring.h>
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static __typeof__(&WindowsCreateStringReference) WindowsCreateStringReference_I = NULL;
+    static __typeof__(&RoActivateInstance) RoActivateInstance_I = NULL;
     HRESULT status;
     HSTRING runtimeClassStringHandle = NULL;
     HSTRING_HEADER runtimeClassStringHeader;
     IInspectable* inspectableObject;
 
-    status = WindowsCreateStringReference(
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"combase.dll"))
+        {
+            WindowsCreateStringReference_I = PhGetDllBaseProcedureAddress(baseAddress, "WindowsCreateStringReference", 0);
+            RoActivateInstance_I = PhGetDllBaseProcedureAddress(baseAddress, "RoActivateInstance", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(WindowsCreateStringReference_I && RoActivateInstance_I))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = WindowsCreateStringReference_I(
         RuntimeClass,
         (UINT32)PhCountStringZ(RuntimeClass),
         &runtimeClassStringHeader,
@@ -8284,7 +8369,7 @@ HRESULT PhActivateInstance(
 
     if (HR_SUCCESS(status))
     {
-        status = RoActivateInstance(
+        status = RoActivateInstance_I(
             runtimeClassStringHandle,
             &inspectableObject
             );
@@ -9279,7 +9364,7 @@ BOOLEAN PhIsDirectXRunningFullScreen(
     VOID
     )
 {
-    static BOOLEAN (WINAPI* D3DKMTCheckExclusiveOwnership_I)(VOID) = NULL;
+    static __typeof__(&D3DKMTCheckExclusiveOwnership) D3DKMTCheckExclusiveOwnership_I = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     if (PhBeginInitOnce(&initOnce))

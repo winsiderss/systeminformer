@@ -20,6 +20,8 @@
 #include <settings.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 typedef struct _PHP_PLUGIN_LOAD_ERROR
 {
     PPH_STRING FileName;
@@ -680,6 +682,8 @@ PPH_PLUGIN PhRegisterPlugin(
     PH_STRINGREF pluginName;
     PPH_AVL_LINKS existingLinks;
     ULONG i;
+
+    PhTraceInfo("%ls plugin registering", Name);
 
     PhInitializeStringRefLongHint(&pluginName, Name);
 

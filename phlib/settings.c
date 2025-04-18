@@ -97,6 +97,7 @@ PPH_STRING PhSettingToString(
 
             return (PPH_STRING)Setting->u.Pointer;
         }
+        break;
     case IntegerSettingType:
         {
             PH_FORMAT format[1];
@@ -106,6 +107,7 @@ PPH_STRING PhSettingToString(
 
             return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
+        break;
     case IntegerPairSettingType:
         {
             PPH_INTEGER_PAIR integerPair = &Setting->u.IntegerPair;
@@ -118,6 +120,7 @@ PPH_STRING PhSettingToString(
 
             return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
+        break;
     case ScalableIntegerPairSettingType:
         {
             PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = Setting->u.Pointer;
@@ -136,6 +139,7 @@ PPH_STRING PhSettingToString(
 
             return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
+        break;
     }
 
     return PhReferenceEmptyString();
@@ -163,6 +167,7 @@ BOOLEAN PhSettingFromString(
 
             return TRUE;
         }
+        break;
     case IntegerSettingType:
         {
             ULONG64 integer;
@@ -177,6 +182,7 @@ BOOLEAN PhSettingFromString(
                 return FALSE;
             }
         }
+        break;
     case IntegerPairSettingType:
         {
             ULONG64 x;
@@ -198,6 +204,7 @@ BOOLEAN PhSettingFromString(
                 return FALSE;
             }
         }
+        break;
     case ScalableIntegerPairSettingType:
         {
             ULONG64 scale;
@@ -241,6 +248,7 @@ BOOLEAN PhSettingFromString(
                 return FALSE;
             }
         }
+        break;
     }
 
     return FALSE;
@@ -1403,12 +1411,13 @@ HRESULT PhLoadSettingsXmlRead(
     IXmlReader* xmlReader = NULL;
     IStream* fileStream = NULL;
     PPH_SETTING setting;
+    SIZE_T settingBufferLength;
+    WCHAR settingBuffer[0x100];
     PH_STRINGREF settingName;
-    PPH_STRING settingValue;
+    PH_STRINGREF settingValue;
     XmlNodeType nodeType;
     PCWSTR nodeName;
-    PCWSTR attributeName;
-    PCWSTR attributeValue;
+    PCWSTR attrName;
 
     status = SHCreateStreamOnFileEx_Import()(
         FileName,
@@ -1444,24 +1453,42 @@ HRESULT PhLoadSettingsXmlRead(
                 {
                     if (HR_SUCCESS(IXmlReader_MoveToFirstAttribute(xmlReader)))
                     {
-                        if (HR_SUCCESS(IXmlReader_GetLocalName(xmlReader, &attributeName, NULL)))
+                        if (HR_SUCCESS(IXmlReader_GetLocalName(xmlReader, &attrName, NULL)))
                         {
-                            if (PhEqualStringZ(attributeName, L"name", TRUE))
+                            if (PhEqualStringZ(attrName, L"name", TRUE))
                             {
-                                if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &attributeValue, NULL)))
+                                ULONG nameStringLength = 0;
+                                PCWSTR nameStringBuffer;
+
+                                if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &nameStringBuffer, &nameStringLength)))
                                 {
+                                    settingBufferLength = nameStringLength * sizeof(WCHAR);
+
+                                    if (settingBufferLength % 2 != 0)
+                                        continue;
+                                    if (settingBufferLength > sizeof(settingBuffer))
+                                        continue;
+
+                                    // Note: IXmlReader_GetValue returns a pointer to the string offset in the IStream buffer.
+                                    // Copy the string since since the offset might be invalid after the next buffer read. (dmex)
+                                    memcpy(settingBuffer, nameStringBuffer, settingBufferLength);
+                                    settingName.Buffer = settingBuffer;
+                                    settingName.Length = settingBufferLength;
+
                                     if (HR_SUCCESS(IXmlReader_Read(xmlReader, &nodeType)) && nodeType == XmlNodeType_Text)
                                     {
-                                        ULONG bytesRead = 0;
-                                        ULONG bufferSize = 1024;
-                                        WCHAR buffer[1024];
+                                        ULONG valueStringLength = 0;
+                                        PCWSTR valueStringBuffer;
 
-                                        if (HR_SUCCESS(IXmlReader_ReadValueChunk(xmlReader, buffer, bufferSize - 1, &bytesRead)))
+                                        if (HR_SUCCESS(IXmlReader_GetValue(xmlReader, &valueStringBuffer, &valueStringLength)))
                                         {
-                                            buffer[bytesRead] = UNICODE_NULL;
+                                            settingBufferLength = valueStringLength * sizeof(WCHAR);
 
-                                            PhInitializeStringRefLongHint(&settingName, attributeValue);
-                                            settingValue = PhCreateString(buffer);
+                                            if (settingBufferLength % 2 != 0)
+                                                continue;
+
+                                            settingValue.Buffer = (PWCH)valueStringBuffer;
+                                            settingValue.Length = settingBufferLength;
 
                                             {
                                                 setting = PhpLookupSetting(&settingName);
@@ -1472,8 +1499,8 @@ HRESULT PhLoadSettingsXmlRead(
 
                                                     if (!PhSettingFromString(
                                                         setting->Type,
-                                                        &settingValue->sr,
-                                                        settingValue,
+                                                        &settingValue,
+                                                        NULL,
                                                         setting
                                                         ))
                                                     {
@@ -1490,8 +1517,7 @@ HRESULT PhLoadSettingsXmlRead(
                                                     setting = PhAllocate(sizeof(PH_SETTING));
                                                     setting->Name.Buffer = PhAllocateCopy(settingName.Buffer, settingName.Length + sizeof(UNICODE_NULL));
                                                     setting->Name.Length = settingName.Length;
-                                                    PhReferenceObject(settingValue);
-                                                    setting->u.Pointer = settingValue;
+                                                    setting->u.Pointer = PhCreateString2(&settingValue);
 
                                                     PhAddItemList(PhIgnoredSettings, setting);
                                                 }
@@ -1548,6 +1574,7 @@ HRESULT PhSaveSettingsXmlWrite(
     )
 {
     HRESULT status;
+    PH_AUTO_POOL autoPool;
     IStream* fileStream = NULL;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SETTING setting;
@@ -1564,65 +1591,12 @@ HRESULT PhSaveSettingsXmlWrite(
     if (HR_FAILED(status))
         return status;
 
-#if defined(TRUE)
-    {
-        IXmlWriterLite* xmlWriterLite = NULL;
+    PhInitializeAutoPool(&autoPool);
 
-        status = CreateXmlWriter_Import()(&IID_IXmlWriterLite, &xmlWriterLite, NULL);
-
-        if (HR_FAILED(status))
-            goto CleanupExit;
-
-        status = IXmlWriterLite_SetOutput(xmlWriterLite, (IUnknown*)fileStream);
-
-        if (HR_FAILED(status))
-            goto CleanupExit;
-
-        IXmlWriterLite_WriteStartElement(xmlWriterLite, L"settings", 8);
-        IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
-
-        PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
-
-        while (setting = PhNextEnumHashtable(&enumContext))
-        {
-            PPH_STRING settingValue;
-
-            settingValue = PhSettingToString(setting->Type, setting);
-            IXmlWriterLite_WriteStartElement(xmlWriterLite, L"setting", 7);
-            IXmlWriterLite_WriteAttributeString(xmlWriterLite, L"name", 4, setting->Name.Buffer, (ULONG)setting->Name.Length / sizeof(WCHAR));
-            IXmlWriterLite_WriteString(xmlWriterLite, PhGetStringRefZ(&settingValue->sr));
-            //IXmlWriterLite_WriteChars(xmlWriterLite, settingValue->Buffer, (ULONG)settingValue->Length / sizeof(WCHAR));
-            IXmlWriterLite_WriteEndElement(xmlWriterLite, L"setting", 7);
-            IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
-            PhDereferenceObject(settingValue);
-        }
-
-        // Write the ignored settings.
-
-        for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
-        {
-            PPH_STRING settingValue;
-
-            setting = PhIgnoredSettings->Items[i];
-            settingValue = setting->u.Pointer;
-            IXmlWriterLite_WriteStartElement(xmlWriterLite, L"setting", 7);
-            IXmlWriterLite_WriteAttributeString(xmlWriterLite, L"name", 4, setting->Name.Buffer, (ULONG)setting->Name.Length / sizeof(WCHAR));
-            IXmlWriterLite_WriteString(xmlWriterLite, PhGetStringRefZ(&settingValue->sr));
-            IXmlWriterLite_WriteEndElement(xmlWriterLite, L"setting", 7);
-            IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
-        }
-
-        IXmlWriterLite_WriteEndElement(xmlWriterLite, L"settings", 8);
-
-        status = IXmlWriterLite_Flush(xmlWriterLite);
-
-        IXmlWriterLite_Release(xmlWriterLite);
-    }
-#else
     {
         IXmlWriter* xmlWriter = NULL;
 
-        status = CreateXmlWriter(&IID_IXmlWriter, &xmlWriter, NULL);
+        status = CreateXmlWriter_Import()(&IID_IXmlWriter, &xmlWriter, NULL);
 
         if (HR_FAILED(status))
             goto CleanupExit;
@@ -1643,12 +1617,11 @@ HRESULT PhSaveSettingsXmlWrite(
         {
             PPH_STRING settingValue;
 
-            settingValue = PhSettingToString(setting->Type, setting);
+            settingValue = PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting));
             IXmlWriter_WriteStartElement(xmlWriter, NULL, L"setting", NULL);
             IXmlWriter_WriteAttributeString(xmlWriter, NULL, L"name", NULL, PhGetStringRefZ(&setting->Name));
             IXmlWriter_WriteString(xmlWriter, PhGetStringRefZ(&settingValue->sr));
             IXmlWriter_WriteEndElement(xmlWriter);
-            PhDereferenceObject(settingValue);
         }
 
         for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
@@ -1670,11 +1643,66 @@ HRESULT PhSaveSettingsXmlWrite(
 
         IXmlWriter_Release(xmlWriter);
     }
-#endif
+
+    //{
+    //    IXmlWriterLite* xmlWriterLite = NULL;
+    //
+    //    status = CreateXmlWriter_Import()(&IID_IXmlWriterLite, &xmlWriterLite, NULL);
+    //
+    //    if (HR_FAILED(status))
+    //        goto CleanupExit;
+    //
+    //    status = IXmlWriterLite_SetOutput(xmlWriterLite, (IUnknown*)fileStream);
+    //
+    //    if (HR_FAILED(status))
+    //        goto CleanupExit;
+
+    //    IXmlWriterLite_WriteStartElement(xmlWriterLite, L"settings", 8);
+    //    IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
+    //
+    //    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+    //
+    //    while (setting = PhNextEnumHashtable(&enumContext))
+    //    {
+    //        PPH_STRING settingValue;
+    //
+    //        settingValue = PhSettingToString(setting->Type, setting);
+    //        IXmlWriterLite_WriteStartElement(xmlWriterLite, L"setting", 7);
+    //        IXmlWriterLite_WriteAttributeString(xmlWriterLite, L"name", 4, setting->Name.Buffer, (ULONG)setting->Name.Length / sizeof(WCHAR));
+    //        IXmlWriterLite_WriteString(xmlWriterLite, PhGetStringRefZ(&settingValue->sr));
+    //        //IXmlWriterLite_WriteChars(xmlWriterLite, settingValue->Buffer, (ULONG)settingValue->Length / sizeof(WCHAR));
+    //        IXmlWriterLite_WriteEndElement(xmlWriterLite, L"setting", 7);
+    //        IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
+    //        PhDereferenceObject(settingValue);
+    //    }
+    //
+    //    // Write the ignored settings.
+    //
+    //    for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
+    //    {
+    //        PPH_STRING settingValue;
+    //
+    //        setting = PhIgnoredSettings->Items[i];
+    //        settingValue = setting->u.Pointer;
+    //        IXmlWriterLite_WriteStartElement(xmlWriterLite, L"setting", 7);
+    //        IXmlWriterLite_WriteAttributeString(xmlWriterLite, L"name", 4, setting->Name.Buffer, (ULONG)setting->Name.Length / sizeof(WCHAR));
+    //        IXmlWriterLite_WriteString(xmlWriterLite, PhGetStringRefZ(&settingValue->sr));
+    //        IXmlWriterLite_WriteEndElement(xmlWriterLite, L"setting", 7);
+    //        IXmlWriterLite_WriteWhitespace(xmlWriterLite, L"\n");
+    //    }
+    //
+    //    IXmlWriterLite_WriteEndElement(xmlWriterLite, L"settings", 8);
+
+    //    status = IXmlWriterLite_Flush(xmlWriterLite);
+    //
+    //    IXmlWriterLite_Release(xmlWriterLite);
+    //}
 
 CleanupExit:
     //IStream_Commit(fileStream, STGC_DEFAULT);
     IStream_Release(fileStream);
+
+    PhDeleteAutoPool(&autoPool);
 
     return status;
 }
@@ -1933,6 +1961,7 @@ VOID PhAddSetting(
 {
     PH_SETTING setting;
 
+    memset(&setting, 0, sizeof(PH_SETTING));
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;

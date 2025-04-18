@@ -21,6 +21,8 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <trace.h>
+
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
     PH_HASH_ENTRY HashEntry;
@@ -127,8 +129,8 @@ ULONG PhServiceNonPollFlushInterval = 10;
 static BOOLEAN PhNonPollActive = FALSE;
 static volatile LONG PhNonPollGate = 0;
 static HANDLE PhNonPollEventHandle = NULL;
-static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
-static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
+static RTL_STATIC_LIST_HEAD(PhpNonPollServiceListHead);
+static RTL_STATIC_LIST_HEAD(PhpNonPollServicePendingListHead);
 static SLIST_HEADER PhpServiceQueryDataListHead;
 static __typeof__(&NotifyServiceStatusChangeW) NotifyServiceStatusChange_I = NULL;
 static __typeof__(&SubscribeServiceChangeNotifications) SubscribeServiceChangeNotifications_I = NULL;
@@ -469,7 +471,7 @@ VOID PhServiceQueryStage1(
                 &versionInfo, // Data->VersionInfo
                 fileName,
                 FALSE,
-                PhEnableVersionShortText
+                !!PhCsEnableVersionSupport
                 ))
             {
                 // Note: This is how msconfig determines default services. (dmex)
@@ -592,6 +594,8 @@ VOID PhpFillServiceItemStage1(
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     PPH_STRING fileName = Data->Header.FileName;
 
+    PhTrace("Service query stage 1: %ls", PhGetString(serviceItem->Name));
+
     serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     serviceItem->MicrosoftService = !!Data->MicrosoftService;
@@ -609,6 +613,8 @@ VOID PhpFillServiceItemStage2(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
+
+    PhTrace("Service query stage 2: %ls", PhGetString(serviceItem->Name));
 
     serviceItem->VerifyResult = Data->VerifyResult;
     PhMoveReference(&serviceItem->VerifySignerName, Data->VerifySignerName);
@@ -736,6 +742,8 @@ VOID PhServiceProviderUpdate(
     ULONG numberOfServices;
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
+
+    PhTrace("Service provider run count: %lu", runCount);
 
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)

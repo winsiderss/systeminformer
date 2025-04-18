@@ -19,6 +19,7 @@
 
 #include <devquery.h>
 #include <devpkey.h>
+#include <phafd.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
 
@@ -129,14 +130,14 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
 }
 
 NTSTATUS PhGetObjectBasicInformation(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
 {
     NTSTATUS status;
 
-    if (KsiLevel() >= KphLevelMed)
+    if (KsiLevel() >= KphLevelMed && ProcessHandle)
     {
         status = KphQueryInformationObject(
             ProcessHandle,
@@ -1099,24 +1100,49 @@ NTSTATUS PhpGetBestObjectName(
     }
     else if (PhEqualString2(TypeName, L"File", TRUE))
     {
-        // Convert the file name to a DOS file name.
-        bestObjectName = PhResolveDevicePrefix(&ObjectName->sr);
+        // Use the socket address for AFD handles
+        if (PhAfdIsSocketObjectName(ObjectName))
+        {
+            HANDLE dupHandle;
+
+            status = NtDuplicateObject(
+                ProcessHandle,
+                Handle,
+                NtCurrentProcess(),
+                &dupHandle,
+                0,
+                0,
+                DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                bestObjectName = PhAfdFormatSocketBestName(dupHandle);
+                PhQueryCloseHandle(dupHandle);
+            }
+        }
 
         if (PhIsNullOrEmptyString(bestObjectName))
         {
-            if (PhEnableProcessHandlePnPDeviceNameSupport)
-            {
-                if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
-                {
-                    // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
-                    bestObjectName = PhGetPnPDeviceName(ObjectName);
-                }
-            }
+            // Convert the file name to a DOS file name.
+            bestObjectName = PhResolveDevicePrefix(&ObjectName->sr);
 
             if (PhIsNullOrEmptyString(bestObjectName))
             {
-                // The file doesn't have a DOS filename and doesn't have a PnP friendly name.
-                PhSetReference(&bestObjectName, ObjectName);
+                if (PhEnableProcessHandlePnPDeviceNameSupport)
+                {
+                    if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
+                    {
+                        // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
+                        bestObjectName = PhGetPnPDeviceName(ObjectName);
+                    }
+                }
+
+                if (PhIsNullOrEmptyString(bestObjectName))
+                {
+                    // The file doesn't have a DOS filename and doesn't have a PnP friendly name.
+                    PhSetReference(&bestObjectName, ObjectName);
+                }
             }
         }
 
@@ -1356,7 +1382,7 @@ NTSTATUS PhpGetBestObjectName(
             if (NT_SUCCESS(status))
             {
                 PH_FORMAT format[4];
-                PWSTR sectionType = L"Unknown";
+                PCWSTR sectionType = L"Unknown";
 
                 if (basicInfo.AllocationAttributes & SEC_COMMIT)
                     sectionType = L"Commit";

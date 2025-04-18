@@ -2074,6 +2074,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
         {
             LONG dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
             HFONT fontHandle = NULL;
+            HFONT oldFontHandle = NULL;
             LVGROUP groupInfo;
 
             {
@@ -2090,7 +2091,10 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
             //SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
-            if (fontHandle) SelectFont(DrawInfo->nmcd.hdc, fontHandle);
+            if (fontHandle)
+            {
+                oldFontHandle = SelectFont(DrawInfo->nmcd.hdc, fontHandle);
+            }
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);
@@ -2154,6 +2158,11 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                         );
                 }
+            }
+
+            if (oldFontHandle)
+            {
+                SelectFont(DrawInfo->nmcd.hdc, oldFontHandle);
             }
 
             if (fontHandle)

@@ -148,6 +148,10 @@
 // Process information structures
 //
 
+/**
+ * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+ */
 typedef struct _PEB_LDR_DATA
 {
     ULONG Length;
@@ -173,6 +177,10 @@ typedef struct _INITIAL_TEB
     PVOID StackAllocationBase;
 } INITIAL_TEB, *PINITIAL_TEB;
 
+//
+// NtQueryInformationProcess/NtSetInformationProcess types
+//
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
@@ -189,7 +197,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessLdtInformation, // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize, // s: PROCESS_LDT_SIZE
     ProcessDefaultHardErrorMode, // qs: ULONG
-    ProcessIoPortHandlers, // (kernel-mode only) // s: PROCESS_IO_PORT_HANDLER_INFORMATION
+    ProcessIoPortHandlers, // s: PROCESS_IO_PORT_HANDLER_INFORMATION // (kernel-mode only)
     ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
     ProcessWorkingSetWatch, // q: PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL, // qs: ULONG (requires SeTcbPrivilege)
@@ -244,7 +252,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCommitReleaseInformation, // qs: PROCESS_COMMIT_RELEASE_INFORMATION
     ProcessDefaultCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
     ProcessAllowedCpuSetsInformation, // qs: SYSTEM_CPU_SET_INFORMATION[5]
-    ProcessSubsystemProcess,
+    ProcessSubsystemProcess, // s: void // EPROCESS->SubsystemProcess
     ProcessJobMemoryInformation, // q: PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate, // q: BOOLEAN; s: void // ETW // since THRESHOLD2 // 70
     ProcessRaiseUMExceptionOnInvalidHandleClose, // qs: ULONG; s: 0 disables, otherwise enables
@@ -260,16 +268,16 @@ typedef enum _PROCESSINFOCLASS
     ProcessWakeInformation, // q: PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // qs: PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ProcessCaptureTrustletLiveDump,
+    ProcessCaptureTrustletLiveDump, // q: ULONG
     ProcessTelemetryCoverage, // q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
     ProcessEnclaveInformation,
     ProcessEnableReadWriteVmLogging, // qs: PROCESS_READWRITEVM_LOGGING_INFORMATION
     ProcessUptimeInformation, // q: PROCESS_UPTIME_INFORMATION
     ProcessImageSection, // q: HANDLE
-    ProcessDebugAuthInformation, // since REDSTONE4 // 90
+    ProcessDebugAuthInformation, // s: CiTool.exe --device-id // PplDebugAuthorization // since RS4 // 90
     ProcessSystemResourceManagement, // s: PROCESS_SYSTEM_RESOURCE_MANAGEMENT
     ProcessSequenceNumber, // q: ULONGLONG
-    ProcessLoaderDetour, // since REDSTONE5
+    ProcessLoaderDetour, // since RS5
     ProcessSecurityDomainInformation, // q: PROCESS_SECURITY_DOMAIN_INFORMATION
     ProcessCombineSecurityDomainsInformation, // s: PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
     ProcessEnableLogging, // qs: PROCESS_LOGGING_INFORMATION
@@ -296,7 +304,11 @@ typedef enum _PROCESSINFOCLASS
     ProcessAvailableCpus,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+
+//
+// NtQueryInformationThread/NtSetInformationThread types
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _THREADINFOCLASS
@@ -363,7 +375,7 @@ typedef enum _THREADINFOCLASS
     ThreadIndexInformation, // THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -605,7 +617,7 @@ typedef struct _LDT_ENTRY
         } Bits;
     } HighWord;
 } LDT_ENTRY, *PLDT_ENTRY;
-#endif
+#endif // _LDT_ENTRY_DEFINED
 
 /**
  * The PROCESS_LDT_INFORMATION structure is used to manage Local Descriptor Table (LDT) entries for a process.
@@ -636,7 +648,7 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION
     PVOID FaultingVa; // A pointer to the page that was added to the working set.
 } PROCESS_WS_WATCH_INFORMATION, *PPROCESS_WS_WATCH_INFORMATION;
 
-#endif
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 /**
  * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
@@ -1284,13 +1296,31 @@ typedef struct _WIN32K_SYSCALL_FILTER
     ULONG FilterSet;
 } WIN32K_SYSCALL_FILTER, *PWIN32K_SYSCALL_FILTER;
 
-typedef struct _JOBOBJECT_WAKE_FILTER *PJOBOBJECT_WAKE_FILTER; // from ntpsapi.h
+// private
+typedef struct _JOBOBJECT_WAKE_FILTER
+{
+    ULONG HighEdgeFilter;
+    ULONG LowEdgeFilter;
+} JOBOBJECT_WAKE_FILTER, *PJOBOBJECT_WAKE_FILTER;
+
+// private
+typedef enum _PS_WAKE_REASON
+{
+    PsWakeReasonUser = 0,
+    PsWakeReasonExecutionRequired = 1,
+    PsWakeReasonKernel = 2,
+    PsWakeReasonInstrumentation = 3,
+    PsWakeReasonPreserveProcess = 4,
+    PsWakeReasonActivityReference = 5,
+    PsWakeReasonWorkOnBehalf = 6,
+    PsMaxWakeReasons = 7,
+} PS_WAKE_REASON, *PPS_WAKE_REASON;
 
 typedef struct _PROCESS_WAKE_INFORMATION
 {
     ULONGLONG NotificationChannel;
-    ULONG WakeCounters[7];
-    PJOBOBJECT_WAKE_FILTER WakeFilter;
+    ULONG WakeCounters[PsMaxWakeReasons];
+    JOBOBJECT_WAKE_FILTER WakeFilter;
 } PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
 
 typedef struct _PROCESS_ENERGY_TRACKING_STATE
@@ -1464,7 +1494,7 @@ NtQueryPortInformationProcess(
     VOID
     );
 
-#endif // PHNT_MODE != PHNT_MODE_KERNEL
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // Thread information structures
@@ -1688,7 +1718,7 @@ typedef enum _SUBSYSTEM_INFORMATION_TYPE
     SubsystemInformationTypeWSL,
     MaxSubsystemInformationType
 } SUBSYSTEM_INFORMATION_TYPE;
-#endif // PHNT_MODE != PHNT_MODE_KERNEL
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 typedef enum _THREAD_WORKLOAD_CLASS
 {
@@ -1724,57 +1754,57 @@ typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
     // Control flags.
     //
 
-    DWORD ContextFlags;
+    ULONG ContextFlags;
 
     //
     // Integer registers
     //
 
-    DWORD R0;
-    DWORD R1;
-    DWORD R2;
-    DWORD R3;
-    DWORD R4;
-    DWORD R5;
-    DWORD R6;
-    DWORD R7;
-    DWORD R8;
-    DWORD R9;
-    DWORD R10;
-    DWORD R11;
-    DWORD R12;
+    ULONG R0;
+    ULONG R1;
+    ULONG R2;
+    ULONG R3;
+    ULONG R4;
+    ULONG R5;
+    ULONG R6;
+    ULONG R7;
+    ULONG R8;
+    ULONG R9;
+    ULONG R10;
+    ULONG R11;
+    ULONG R12;
 
     //
     // Control Registers
     //
 
-    DWORD Sp;
-    DWORD Lr;
-    DWORD Pc;
-    DWORD Cpsr;
+    ULONG Sp;
+    ULONG Lr;
+    ULONG Pc;
+    ULONG Cpsr;
 
     //
     // Floating Point/NEON Registers
     //
 
-    DWORD Fpscr;
-    DWORD Padding;
+    ULONG Fpscr;
+    ULONG Padding;
     union {
         ARM_NT_NEON128 Q[16];
         ULONGLONG D[32];
-        DWORD S[32];
+        ULONG S[32];
     } DUMMYUNIONNAME;
 
     //
     // Debug registers
     //
 
-    DWORD Bvr[ARM_MAX_BREAKPOINTS];
-    DWORD Bcr[ARM_MAX_BREAKPOINTS];
-    DWORD Wvr[ARM_MAX_WATCHPOINTS];
-    DWORD Wcr[ARM_MAX_WATCHPOINTS];
+    ULONG Bvr[ARM_MAX_BREAKPOINTS];
+    ULONG Bcr[ARM_MAX_BREAKPOINTS];
+    ULONG Wvr[ARM_MAX_WATCHPOINTS];
+    ULONG Wcr[ARM_MAX_WATCHPOINTS];
 
-    DWORD Padding2[2];
+    ULONG Padding2[2];
 
 } ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
 
@@ -2120,13 +2150,6 @@ NtChangeProcessState(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
-typedef enum _THREAD_STATE_CHANGE_TYPE
-{
-    ThreadStateChangeSuspend,
-    ThreadStateChangeResume,
-    ThreadStateChangeMax,
-} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
-
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 /**
  * Creates a state change handle for changing the suspension state of a thread.
@@ -2148,6 +2171,13 @@ NtCreateThreadStateChange(
     _In_ HANDLE ThreadHandle,
     _In_opt_ ULONG64 Reserved
     );
+
+typedef enum _THREAD_STATE_CHANGE_TYPE
+{
+    ThreadStateChangeSuspend,
+    ThreadStateChangeResume,
+    ThreadStateChangeMax,
+} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
 /**
  * Changes the suspension state of a thread.
@@ -2553,11 +2583,13 @@ RtlDispatchAPC(
  * @param ApcArgument2 Optional. A pointer to the second argument to be passed to the APC routine.
  * @param ApcArgument3 Optional. A pointer to the third argument to be passed to the APC routine.
  */
-typedef VOID (NTAPI* PPS_APC_ROUTINE)(
+typedef _Function_class_(PS_APC_ROUTINE)
+VOID NTAPI PS_APC_ROUTINE(
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
+typedef PS_APC_ROUTINE* PPS_APC_ROUTINE;
 
 /**
  * Encodes an APC routine pointer for use in a WOW64 environment.
@@ -2847,17 +2879,17 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeMemoryReserve, // in PPS_MEMORY_RESERVE
     PsAttributePriorityClass, // in UCHAR
     PsAttributeErrorMode, // in ULONG
-    PsAttributeStdHandleInfo, // 10, in PPS_STD_HANDLE_INFO
+    PsAttributeStdHandleInfo, // in PPS_STD_HANDLE_INFO // 10
     PsAttributeHandleList, // in HANDLE[]
     PsAttributeGroupAffinity, // in PGROUP_AFFINITY
     PsAttributePreferredNode, // in PUSHORT
     PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
-    PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeUmsThread, // in PUMS_CREATE_THREAD_ATTRIBUTES
     PsAttributeMitigationOptions, // in PPS_MITIGATION_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_POLICY_*) // since WIN8
     PsAttributeProtectionLevel, // in PS_PROTECTION // since WINBLUE
     PsAttributeSecureProcess, // in PPS_TRUSTLET_CREATE_ATTRIBUTES, since THRESHOLD
     PsAttributeJobList, // in HANDLE[]
-    PsAttributeChildProcessPolicy, // 20, in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2
+    PsAttributeChildProcessPolicy, // in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2 // 20
     PsAttributeAllApplicationPackagesPolicy, // in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
     PsAttributeWin32kFilter, // in PWIN32K_SYSCALL_FILTER
     PsAttributeSafeOpenPromptOriginClaim, // in SE_SAFE_OPEN_PROMPT_RESULTS
@@ -2866,9 +2898,9 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeChpe, // in BOOLEAN // since REDSTONE3
     PsAttributeMitigationAuditOptions, // in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
     PsAttributeMachineType, // in USHORT // since 21H2
-    PsAttributeComponentFilter,
-    PsAttributeEnableOptionalXStateFeatures, // since WIN11
-    PsAttributeSupportedMachines, // since 24H2
+    PsAttributeComponentFilter, // in COMPONENT_FILTER
+    PsAttributeEnableOptionalXStateFeatures, // in ULONG64 // since WIN11 // 30
+    PsAttributeSupportedMachines, // in ULONG // since 24H2
     PsAttributeSveVectorLength, // PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
@@ -3016,19 +3048,16 @@ typedef union _PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS
     UCHAR AccessRights;
 } PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS, *PPS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS;
 
-typedef struct _PS_TRUSTLET_ATTRIBUTE_TYPE
+typedef union _PS_TRUSTLET_ATTRIBUTE_TYPE
 {
-    union
+    ULONG AttributeType;
+    struct
     {
-        struct
-        {
-            UCHAR Version;
-            UCHAR DataCount;
-            UCHAR SemanticType;
-            PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS AccessRights;
-        };
-        ULONG AttributeType;
-    };
+        UCHAR Version;
+        UCHAR DataCount;
+        UCHAR SemanticType;
+        PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS AccessRights;
+    } DUMMYSTRUCTNAME;
 } PS_TRUSTLET_ATTRIBUTE_TYPE, *PPS_TRUSTLET_ATTRIBUTE_TYPE;
 
 typedef struct _PS_TRUSTLET_ATTRIBUTE_HEADER
@@ -3249,9 +3278,11 @@ NtCreateUserProcess(
  * @param ThreadParameter A pointer to a variable to be passed to the thread.
  * @return NTSTATUS Successful or errant status.
  */
-typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
+typedef _Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI USER_THREAD_START_ROUTINE(
     _In_ PVOID ThreadParameter
     );
+typedef USER_THREAD_START_ROUTINE* PUSER_THREAD_START_ROUTINE;
 
 /**
  * Creates a new thread in the specified process.
@@ -3381,7 +3412,7 @@ typedef struct _JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
 typedef struct _JOBOBJECT_WAKE_INFORMATION
 {
     HANDLE NotificationChannel;
-    ULONG64 WakeCounters[7];
+    ULONG64 WakeCounters[PsMaxWakeReasons];
 } JOBOBJECT_WAKE_INFORMATION, *PJOBOBJECT_WAKE_INFORMATION;
 
 // private
@@ -3396,13 +3427,6 @@ typedef struct _JOBOBJECT_INTERFERENCE_INFORMATION
 {
     ULONG64 Count;
 } JOBOBJECT_INTERFERENCE_INFORMATION, *PJOBOBJECT_INTERFERENCE_INFORMATION;
-
-// private
-typedef struct _JOBOBJECT_WAKE_FILTER
-{
-    ULONG HighEdgeFilter;
-    ULONG LowEdgeFilter;
-} JOBOBJECT_WAKE_FILTER, *PJOBOBJECT_WAKE_FILTER;
 
 // private
 typedef struct _JOBOBJECT_FREEZE_INFORMATION

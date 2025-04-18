@@ -513,7 +513,7 @@ NTAPI
 NtAcquireProcessActivityReference(
     _Out_ PHANDLE ActivityReferenceHandle,
     _In_ HANDLE ParentProcessHandle,
-    _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
+    _In_ ULONG ProcessActivityType // PROCESS_ACTIVITY_TYPE
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_10_RS2)
@@ -767,7 +767,7 @@ WINAPI
 GetCurrentPackageApplicationResourcesContext(
     _In_ ULONG Index,
     _Reserved_ ULONG_PTR Unused,
-    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageResourcesContext
+    _Out_ PACKAGE_RESOURCES_CONTEXT_REFERENCE *PackageResourcesContext
     );
 
 // rev
@@ -778,7 +778,7 @@ GetPackageApplicationResourcesContext(
     _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
     _In_ ULONG Index,
     _Reserved_ ULONG_PTR Unused,
-    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageResourcesContext
+    _Out_ PACKAGE_RESOURCES_CONTEXT_REFERENCE *PackageResourcesContext
     );
 
 // rev
@@ -786,10 +786,11 @@ WINBASEAPI
 LONG
 WINAPI
 GetPackageResourcesProperty(
-    _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageResourcesContext,
+    _In_ PACKAGE_RESOURCES_CONTEXT_REFERENCE PackageResourcesContext,
     _In_ PackageResourcesProperty PropertyId,
     _Inout_ PULONG BufferSize,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _Out_opt_ PULONG Flags
     );
 
 //
@@ -872,11 +873,11 @@ WINBASEAPI
 HRESULT
 WINAPI
 GetCurrentPackageInfo3(
-    _In_ ULONG flags,
-    _In_ ULONG packagePathType, // PackagePathType
-    _Inout_ PULONG bufferLength,
-    _Out_writes_bytes_opt_(*bufferLength) PVOID buffer,
-    _Out_opt_ PULONG count
+    _In_ ULONG Flags,
+    _In_ ULONG PackagePathType, // PackagePathType
+    _Inout_ PULONG BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Out_opt_ PULONG ReturnLength
     );
 
 //

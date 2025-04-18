@@ -475,4 +475,9 @@ PhDuplicateProcessNodeList(
     );
 // end_phapppub
 
+NTSTATUS PhGetProcessItemFileNameWin32(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_STRING *FileNameWin32
+    );
+
 #endif

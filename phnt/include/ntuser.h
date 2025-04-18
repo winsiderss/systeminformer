@@ -186,7 +186,7 @@ NtUserCreateWindowStation(
     _In_opt_ PVOID KeyboardLayoutOffset,
     _In_opt_ PVOID NlsTableOffset,
     _In_opt_ PVOID KeyboardDescriptor,
-    _In_opt_ PUNICODE_STRING LanguageIdString,
+    _In_opt_ PCUNICODE_STRING LanguageIdString,
     _In_opt_ ULONG KeyboardLocale
     );
 
@@ -697,7 +697,7 @@ ULONG
 NTAPI
 NtUserGetGuiResources(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG uiFlags
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -705,9 +705,9 @@ BOOL
 NTAPI
 NtUserGetLayeredWindowAttributes(
     _In_ HWND WindowHandle,
-    _In_ COLORREF* pcrKey,
-    _In_ BYTE* pbAlpha,
-    _In_ ULONG pdwFlags
+    _Out_opt_ COLORREF* Key,
+    _Out_opt_ PBYTE Alpha,
+    _Out_opt_ PULONG Flags
     );
 
 NTSYSCALLAPI
@@ -864,7 +864,7 @@ BOOL
 NTAPI
 NtUserInvalidateRgn(
     _In_ HWND WindowHandle,
-    _In_ HRGN hRgn,
+    _In_ HRGN RgnHandle,
     _In_ BOOL Erase
     );
 
@@ -934,7 +934,7 @@ BOOL
 NTAPI
 NtUserPhysicalToLogicalPoint(
     _In_ HWND WindowHandle,
-    _In_ LPPOINT lpPoint
+    _In_ LPPOINT Point
     );
 
 NTSYSCALLAPI
@@ -942,8 +942,8 @@ BOOL
 NTAPI
 NtUserPrintWindow(
     _In_ HWND WindowHandle,
-    _In_ HDC hdcBlt,
-    _In_ ULONG nFlags
+    _In_ HDC Hdc,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -952,7 +952,7 @@ NTAPI
 NtUserQueryInformationThread(
     _In_ HANDLE ThreadHandle,
     _In_ USERTHREADINFOCLASS ThreadInformationClass,
-    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _Out_writes_bytes_(ReturnLength) PVOID ThreadInformation,
     _Out_opt_ PULONG ReturnLength
     );
 
@@ -988,7 +988,7 @@ NtUserRedrawWindow(
     _In_ HWND WindowHandle,
     _In_ const PRECT lprcUpdate,
     _In_ HRGN hrgnUpdate,
-    _In_ ULONG flags
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -1004,7 +1004,7 @@ BOOL
 NTAPI
 NtUserRegisterHotKey(
     _In_ HWND WindowHandle,
-    _In_ LONG id,
+    _In_ LONG Id,
     _In_ ULONG fsModifiers,
     _In_ ULONG vk
     );
@@ -1014,17 +1014,17 @@ BOOL
 NTAPI
 NtUserRemoveMenu(
     _In_ HMENU MenuHandle,
-    _In_ ULONG uPosition,
-    _In_ ULONG uFlags
+    _In_ ULONG Position,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
 ULONG
 NTAPI
 NtUserSendInput(
-    _In_ ULONG cInputs,
-    _In_ LPINPUT pInputs,
-    _In_ LONG cbSize
+    _In_ ULONG Count,
+    _In_ LPINPUT Inputs,
+    _In_ LONG Size
     );
 
 NTSYSCALLAPI
@@ -1046,19 +1046,19 @@ ULONG_PTR
 NTAPI
 NtUserSetTimer(
     _In_ HWND WindowHandle,
-    _In_ ULONG_PTR nIDEvent,
-    _In_ ULONG uElapse,
-    _In_ TIMERPROC lpTimerFunc,
-    _In_ ULONG uToleranceDelay
+    _In_ ULONG_PTR IDEvent,
+    _In_ ULONG Elapse,
+    _In_ TIMERPROC TimerFunc,
+    _In_ ULONG ToleranceDelay
     );
 
 NTSYSCALLAPI
-WORD
+USHORT
 NTAPI
 NtUserSetClassWord(
     _In_ HWND WindowHandle,
-    _In_ LONG nIndex,
-    _In_ WORD wNewWord
+    _In_ LONG Index,
+    _In_ USHORT NewWord
     );
 
 NTSYSCALLAPI
@@ -1081,9 +1081,9 @@ BOOL
 NTAPI
 NtUserSetLayeredWindowAttributes(
     _In_ HWND WindowHandle,
-    _In_ COLORREF crKey,
-    _In_ BYTE bAlpha,
-    _In_ DWORD dwFlags
+    _In_ COLORREF Key,
+    _In_ BYTE Alpha,
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -1103,16 +1103,16 @@ NtUserSetWindowPos(
     _In_ LONG Y,
     _In_ LONG cx,
     _In_ LONG cy,
-    _In_ ULONG uFlags
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
-WORD
+USHORT
 NTAPI
 NtUserSetWindowWord(
     _In_ HWND WindowHandle,
-    _In_ LONG nIndex,
-    _In_ WORD wNewWord
+    _In_ LONG Index,
+    _In_ USHORT NewWord
     );
 
 NTSYSCALLAPI
@@ -1148,7 +1148,7 @@ NTSYSCALLAPI
 LONG
 NTAPI
 NtUserShowCursor(
-    _In_ BOOL bShow
+    _In_ BOOL Show
     );
 
 NTSYSCALLAPI
@@ -1156,7 +1156,7 @@ BOOL
 NTAPI
 NtUserShowWindow(
     _In_ HWND WindowHandle,
-    _In_ LONG nCmdShow
+    _In_ LONG CmdShow
     );
 
 NTSYSCALLAPI
@@ -1164,7 +1164,7 @@ BOOL
 NTAPI
 NtUserShowWindowAsync(
     _In_ HWND WindowHandle,
-    _In_ LONG nCmdShow
+    _In_ LONG CmdShow
     );
 
 NTSYSCALLAPI
@@ -1187,7 +1187,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserTrackMouseEvent(
-    _In_ LPTRACKMOUSEEVENT lpEventTrack
+    _In_ LPTRACKMOUSEEVENT EventTrack
     );
 
 NTSYSCALLAPI
@@ -1195,7 +1195,7 @@ BOOL
 NTAPI
 NtUserTrackPopupMenuEx(
     _In_ HMENU MenuHandle,
-    _In_ ULONG uFlags,
+    _In_ ULONG Flags,
     _In_ LONG x,
     _In_ LONG y,
     _In_ HWND WindowHandle,
@@ -1206,7 +1206,7 @@ NTSYSCALLAPI
 BOOL
 NTAPI
 NtUserUnhookWinEvent(
-    _In_ HWINEVENTHOOK hWinEventHook
+    _In_ HWINEVENTHOOK WinEventHookHandle
     );
 
 NTSYSCALLAPI
@@ -1214,7 +1214,7 @@ BOOL
 NTAPI
 NtUserUnregisterHotKey(
     _In_ HWND WindowHandle,
-    _In_ LONG id
+    _In_ LONG Id
     );
 
 NTSYSCALLAPI
@@ -1238,7 +1238,7 @@ NTSYSCALLAPI
 HWND
 NTAPI
 NtUserWindowFromDC(
-    _In_ HDC hDC
+    _In_ HDC Hdc
     );
 
 NTSYSCALLAPI

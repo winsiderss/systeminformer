@@ -209,6 +209,12 @@
     <ClCompile Include="nativetoken.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="nativesocket.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="apistubs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -425,6 +431,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phfirmware.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phafd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClCompile Include="delayhook.c">

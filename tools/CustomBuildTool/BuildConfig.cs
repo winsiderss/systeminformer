@@ -34,7 +34,7 @@ namespace CustomBuildTool
             //new BuildFile("\\systeminformer-build-developer-bin.zip", true),
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", true),
+            new BuildFile("\\systeminformer-build-pdb.zip", false),
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         ];
 
@@ -137,6 +137,7 @@ namespace CustomBuildTool
             "svcsup.h",
             "symprv.h",
             "templ.h",
+            "trace.h",
             "treenew.h",
             "verify.h",
             "workqueue.h"

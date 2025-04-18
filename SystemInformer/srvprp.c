@@ -155,9 +155,9 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
 
     switch (uMsg)
     {
-        case WM_NCDESTROY:
+    case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
@@ -199,11 +199,10 @@ INT CALLBACK PhpPropSheetSrvProc(
 {
     switch (uMsg)
     {
-        case PSCB_INITIALIZED:
+    case PSCB_INITIALIZED:
         {
-            PhSetWindowContext(hwndDlg, 0xF, (PVOID)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
-
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetSrvWndProc);
+            PhSetWindowContext(hwndDlg, 0xF, (PVOID)PhGetWindowProcedure(hwndDlg));
+            PhSetWindowProcedure(hwndDlg, PhpPropSheetSrvWndProc);
         }
         break;
     }

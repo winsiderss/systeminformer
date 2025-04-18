@@ -377,7 +377,7 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     PH_STRINGREF mnPartSr;
     PH_STRINGREF ssPartSr;
     PH_STRINGREF remainingPart;
-    LONG64 year, month, day, hour, minute, second;
+    ULONG64 year, month, day, hour, minute, second;
 
     // %hu-%hu-%huT%hu:%hu:%huZ
     remainingPart = PhGetStringRef(Time);
@@ -395,17 +395,17 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     if (!PhSplitStringRefAtChar(&remainingPart, L'Z', &ssPartSr, &remainingPart))
         return NULL;
 
-    if (!PhStringToInteger64(&yyPart, 10, &year))
+    if (!PhStringToUInt64(&yyPart, 10, &year))
         return NULL;
-    if (!PhStringToInteger64(&mmPartSr, 10, &month))
+    if (!PhStringToUInt64(&mmPartSr, 10, &month))
         return NULL;
-    if (!PhStringToInteger64(&ddPartSr, 10, &day))
+    if (!PhStringToUInt64(&ddPartSr, 10, &day))
         return NULL;
-    if (!PhStringToInteger64(&hrPartSr, 10, &hour))
+    if (!PhStringToUInt64(&hrPartSr, 10, &hour))
         return NULL;
-    if (!PhStringToInteger64(&mnPartSr, 10, &minute))
+    if (!PhStringToUInt64(&mnPartSr, 10, &minute))
         return NULL;
-    if (!PhStringToInteger64(&ssPartSr, 10, &second))
+    if (!PhStringToUInt64(&ssPartSr, 10, &second))
         return NULL;
 
     if (year < SHRT_MIN || year > SHRT_MAX)
@@ -445,7 +445,7 @@ NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
 
     if (commentHistoryList = PhpUpdaterQueryCommitHistory())
     {
-        SendMessage(windowHandle, WM_UPDATER_COMMITS, 0, (LPARAM)commentHistoryList);
+        PostMessage(windowHandle, WM_UPDATER_COMMITS, 0, (LPARAM)commentHistoryList);
     }
 
     return STATUS_SUCCESS;

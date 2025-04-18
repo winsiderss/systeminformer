@@ -5995,7 +5995,7 @@ NtTraceEvent(
 // private
 typedef struct _TELEMETRY_COVERAGE_POINT
 {
-    PWSTR Name;
+    PSTR Name;
     ULONG Hash;
     ULONG LastCoveredRound;
     ULONG Flags;
@@ -6197,8 +6197,8 @@ WmiExecuteMethodW(
 #define NOTIFICATION_LIGHTWEIGHT_FLAG 0x00000020
 
 // Event notification callback function prototype
-_Function_class_(NOTIFICATIONCALLBACK)
-typedef void (WINAPI NOTIFICATIONCALLBACK)(
+typedef _Function_class_(NOTIFICATIONCALLBACK) 
+VOID NTAPI NOTIFICATIONCALLBACK(
     _In_ PWNODE_HEADER Wnode,
     _In_ ULONG_PTR NotificationContext
     );

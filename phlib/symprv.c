@@ -279,7 +279,7 @@ static VOID PhpSymbolProviderEventCallback(
                         progressValueLength - (RTL_NUMBER_OF(L"percent=\"") - 1)
                         );
 
-                    if (PhStringToInteger64(&valueString->sr, 10, &integer))
+                    if (PhStringToUInt64(&valueString->sr, 10, &integer))
                     {
                         PPH_STRING status;
                         PH_FORMAT format[4];

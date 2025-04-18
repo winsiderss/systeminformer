@@ -875,11 +875,12 @@ PhGetTokenSecurityAttribute(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PCPH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName,
+    _Out_ PBOOLEAN SecurityAttributeExists
     );
 
 PHLIBAPI
@@ -1110,28 +1111,6 @@ PhEqualIdentifierAuthoritySid(
 #endif
 }
 
-// rev from RtlFreeSid (dmex)
-FORCEINLINE
-BOOLEAN
-NTAPI
-PhFreeSid(
-    _In_ _Post_invalid_ PSID Sid
-    )
-{
-    return !!RtlFreeSid(Sid);
-}
-
-// rev from RtlFreeUnicodeString (dmex)
-FORCEINLINE
-VOID
-NTAPI
-PhFreeUnicodeString(
-    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_ _Post_invalid_) PUNICODE_STRING UnicodeString
-    )
-{
-    RtlFreeUnicodeString(UnicodeString);
-}
-
 FORCEINLINE
 NTSTATUS
 NTAPI
@@ -1140,9 +1119,13 @@ PhCreateSecurityDescriptor(
     _In_ ULONG Revision
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlCreateSecurityDescriptor(SecurityDescriptor, Revision);
+#else
     memset(SecurityDescriptor, 0, sizeof(SECURITY_DESCRIPTOR));
     ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision = (BYTE)Revision;
     return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1163,13 +1146,16 @@ PhFirstFreeAce(
     _Out_ PULONG_PTR NextAce
     )
 {
-    ULONG_PTR Current = (ULONG_PTR)Acl + sizeof(ACL);
-    ULONG_PTR AclEnd = (ULONG_PTR)Acl + Acl->AclSize;
+    ULONG_PTR Current = (ULONG_PTR)PTR_ADD_OFFSET(Acl, sizeof(ACL));
+    ULONG_PTR AclEnd = (ULONG_PTR)PTR_ADD_OFFSET(Acl, Acl->AclSize);
 
     for (USHORT i = 0; i < Acl->AceCount; i++)
     {
         if (Current >= AclEnd)
-            return FALSE;
+        {
+            *NextAce = 0;
+            return STATUS_UNSUCCESSFUL;
+        }
 
         Current += ((PACE_HEADER)Current)->AceSize;
     }
@@ -1177,9 +1163,11 @@ PhFirstFreeAce(
     if (Current <= AclEnd)
     {
         *NextAce = Current;
+        return STATUS_SUCCESS;
     }
 
-    return STATUS_SUCCESS;
+    *NextAce = 0;
+    return STATUS_UNSUCCESSFUL;
 }
 
 FORCEINLINE
@@ -1191,6 +1179,9 @@ PhCreateAcl(
     _In_ ULONG Revision
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlCreateAcl(Acl, Length, Revision);
+#else
     if (Length < sizeof(ACL))
         return STATUS_BUFFER_TOO_SMALL;
     if (Length > USHRT_MAX)
@@ -1202,8 +1193,8 @@ PhCreateAcl(
     Acl->AclRevision = (BYTE)Revision;
     Acl->AclSize = (USHORT)(Length & ~0x0003);
     return STATUS_SUCCESS;
+#endif
 }
-
 
 FORCEINLINE
 NTSTATUS
@@ -1254,6 +1245,9 @@ PhSetDaclSecurityDescriptor(
     _In_opt_ BOOLEAN DaclDefaulted
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetDaclSecurityDescriptor(SecurityDescriptor, DaclPresent, Dacl, DaclDefaulted);
+#else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
@@ -1271,6 +1265,7 @@ PhSetDaclSecurityDescriptor(
 
     ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Dacl = Dacl;
     return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1282,6 +1277,9 @@ PhSetOwnerSecurityDescriptor(
     _In_opt_ BOOLEAN OwnerDefaulted
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetOwnerSecurityDescriptor(SecurityDescriptor, Owner, OwnerDefaulted);
+#else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
@@ -1294,6 +1292,7 @@ PhSetOwnerSecurityDescriptor(
 
     ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Owner = Owner;
     return STATUS_SUCCESS;
+#endif
 }
 
 FORCEINLINE
@@ -1305,6 +1304,9 @@ PhSetGroupSecurityDescriptor(
     _In_opt_ BOOLEAN GroupDefaulted
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlSetGroupSecurityDescriptor(SecurityDescriptor, Group, GroupDefaulted);
+#else
     if (((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision != SECURITY_DESCRIPTOR_REVISION)
         return STATUS_UNKNOWN_REVISION;
     if (FlagOn(((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Control, SE_SELF_RELATIVE))
@@ -1317,7 +1319,275 @@ PhSetGroupSecurityDescriptor(
 
     ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Group = Group;
     return STATUS_SUCCESS;
+#endif
 }
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAcquirePebLock(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlAcquirePebLock();
+#else
+    return RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhReleasePebLock(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlReleasePebLock();
+#else
+    return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
+#endif
+}
+
+FORCEINLINE
+USHORT
+NTAPI
+PhGetCurrentThreadPrimaryGroup(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetCurrentThreadPrimaryGroup();
+#else
+    return NtCurrentTeb()->PrimaryGroupAffinity.Group;
+#endif
+}
+
+FORCEINLINE
+ULONG
+NTAPI
+PhGetCurrentServiceSessionId(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetCurrentServiceSessionId();
+#else
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ServiceSessionId;
+    else
+        return 0;
+#endif
+}
+
+FORCEINLINE
+ULONG
+NTAPI
+PhGetActiveConsoleId(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetActiveConsoleId();
+#else
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ActiveConsoleId;
+    else
+        return USER_SHARED_DATA->ActiveConsoleId;
+#endif
+}
+
+FORCEINLINE
+LONGLONG
+NTAPI
+PhGetConsoleSessionForegroundProcessId(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetConsoleSessionForegroundProcessId();
+#else
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId)
+        return NtCurrentPeb()->SharedData->ConsoleSessionForegroundProcessId;
+    else
+        return USER_SHARED_DATA->ConsoleSessionForegroundProcessId;
+#endif
+}
+
+FORCEINLINE
+PWSTR
+NTAPI
+PhRtlGetNtSystemRoot(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlGetNtSystemRoot();
+#else
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId) // RtlGetCurrentServiceSessionId
+        return NtCurrentPeb()->SharedData->NtSystemRoot;
+    else
+        return USER_SHARED_DATA->NtSystemRoot;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhAreLongPathsEnabled(
+    VOID
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlAreLongPathsEnabled();
+#else
+    return NtCurrentPeb()->IsLongPathAwareProcess;
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhFreeUnicodeString(
+    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    RtlFreeUnicodeString(UnicodeString);
+#else
+    if (UnicodeString->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, UnicodeString->Buffer);
+        memset(UnicodeString, 0, sizeof(UNICODE_STRING));
+    }
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhFreeAnsiString(
+    _Inout_ _At_(AnsiString->Buffer, _Frees_ptr_opt_) PANSI_STRING AnsiString
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    RtlFreeAnsiString(UnicodeString);
+#else
+    if (AnsiString->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, AnsiString->Buffer);
+        memset(AnsiString, 0, sizeof(ANSI_STRING));
+    }
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhFreeUTF8String(
+    _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
+    )
+{
+    if (Utf8String->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, Utf8String->Buffer);
+        memset(Utf8String, 0, sizeof(UTF8_STRING));
+    }
+}
+
+FORCEINLINE
+PVOID
+NTAPI
+PhFreeSid(
+    _In_ _Post_invalid_ PSID Sid
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlFreeSid(Sid);
+#else
+    RtlFreeHeap(RtlProcessHeap(), 0, Sid);
+    return NULL;
+#endif
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhDeleteBoundaryDescriptor(
+    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    RtlDeleteBoundaryDescriptor(BoundaryDescriptor);
+#else
+    RtlFreeHeap(RtlProcessHeap(), 0, BoundaryDescriptor);
+#endif
+}
+
+//#define RtlDeleteSecurityObject(ObjectDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, *(ObjectDescriptor))
+//FORCEINLINE
+//NTSTATUS
+//RtlDeleteSecurityObject(
+//    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
+//    )
+//{
+//    RtlFreeHeap(RtlProcessHeap(), 0, *ObjectDescriptor);
+//    return STATUS_SUCCESS;
+//}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDestroyEnvironment(
+    _In_ _Post_invalid_ PVOID Environment
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlDestroyEnvironment(Environment);
+#else
+    RtlFreeHeap(RtlProcessHeap(), 0, Environment);
+    return STATUS_SUCCESS;
+#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDestroyProcessParameters(
+    _In_ _Post_invalid_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlDestroyProcessParameters(ProcessParameters);
+#else
+    RtlFreeHeap(RtlProcessHeap(), 0, ProcessParameters);
+    return STATUS_SUCCESS;
+#endif
+}
+
+#define RtlAcquirePebLock PhAcquirePebLock
+#define RtlReleasePebLock PhReleasePebLock
+#define RtlGetCurrentThreadPrimaryGroup PhGetCurrentThreadPrimaryGroup
+#define RtlGetCurrentServiceSessionId PhGetCurrentServiceSessionId
+#define RtlGetActiveConsoleId PhGetActiveConsoleId
+#define RtlGetConsoleSessionForegroundProcessId PhGetConsoleSessionForegroundProcessId
+#define RtlGetNtSystemRoot PhRtlGetNtSystemRoot
+#define RtlAreLongPathsEnabled PhAreLongPathsEnabled
+//#define RtlFreeUnicodeString(UnicodeString) { if ((UnicodeString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (UnicodeString)->Buffer); memset(UnicodeString, 0, sizeof(UNICODE_STRING)); }
+#define RtlFreeUnicodeString PhFreeUnicodeString
+//#define RtlFreeAnsiString(UnicodeString) {if ((AnsiString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (AnsiString)->Buffer); memset(AnsiString, 0, sizeof(ANSI_STRING));}
+#define RtlFreeAnsiString PhFreeAnsiString
+//#define RtlFreeUTF8String(Utf8String) {if ((Utf8String)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (Utf8String)->Buffer); memset(Utf8String, 0, sizeof(UTF8_STRING));}
+#define RtlFreeUTF8String PhFreeUTF8String
+//#define RtlFreeSid(Sid) RtlFreeHeap(RtlProcessHeap(), 0, (Sid))
+#define RtlFreeSid PhFreeSid
+//#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
+#define RtlDeleteBoundaryDescriptor PhDeleteBoundaryDescriptor
+//#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
+#define RtlDestroyEnvironment PhDestroyEnvironment
+//#define RtlDestroyProcessParameters(ProcessParameters) RtlFreeHeap(RtlProcessHeap(), 0, (ProcessParameters))
+#define RtlDestroyProcessParameters PhDestroyProcessParameters
 
 PHLIBAPI
 NTSTATUS
@@ -1781,12 +2051,14 @@ PhEnumProcessModulesLimited(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI* PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)(
+typedef  _Function_class_(PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)
+NTSTATUS NTAPI PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK(
     _In_ PVOID ImageBase,
     _In_ SIZE_T ImageSize,
     _In_ PPH_STRING FileName,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK* PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
@@ -2540,7 +2812,7 @@ NTAPI
 PhDosLongPathNameToNtPathNameWithStatus(
     _In_ PCWSTR DosFileName,
     _Out_ PUNICODE_STRING NtFileName,
-    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PWSTR* FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 
@@ -3571,42 +3843,6 @@ PhGetThreadLastStatusValue(
     _In_ HANDLE ProcessHandle,
     _Out_ PNTSTATUS LastStatusValue
     );
-
-typedef enum tagOLETLSFLAGS
-{
-    OLETLS_LOCALTID = 0x01, // This TID is in the current process.
-    OLETLS_UUIDINITIALIZED = 0x02, // This Logical thread is init'd.
-    OLETLS_INTHREADDETACH = 0x04, // This is in thread detach.
-    OLETLS_CHANNELTHREADINITIALZED = 0x08,// This channel has been init'd
-    OLETLS_WOWTHREAD = 0x10, // This thread is a 16-bit WOW thread.
-    OLETLS_THREADUNINITIALIZING = 0x20, // This thread is in CoUninitialize.
-    OLETLS_DISABLE_OLE1DDE = 0x40, // This thread can't use a DDE window.
-    OLETLS_APARTMENTTHREADED = 0x80, // This is an STA apartment thread
-    OLETLS_MULTITHREADED = 0x100, // This is an MTA apartment thread
-    OLETLS_IMPERSONATING = 0x200, // This thread is impersonating
-    OLETLS_DISABLE_EVENTLOGGER = 0x400, // Prevent recursion in event logger
-    OLETLS_INNEUTRALAPT = 0x800, // This thread is in the NTA
-    OLETLS_DISPATCHTHREAD = 0x1000, // This is a dispatch thread
-    OLETLS_HOSTTHREAD = 0x2000, // This is a host thread
-    OLETLS_ALLOWCOINIT = 0x4000, // This thread allows inits
-    OLETLS_PENDINGUNINIT = 0x8000, // This thread has pending uninit
-    OLETLS_FIRSTMTAINIT = 0x10000,// First thread to attempt an MTA init
-    OLETLS_FIRSTNTAINIT = 0x20000,// First thread to attempt an NTA init
-    OLETLS_APTINITIALIZING = 0x40000, // Apartment Object is initializing
-    OLETLS_UIMSGSINMODALLOOP = 0x80000,
-    OLETLS_MARSHALING_ERROR_OBJECT = 0x100000,
-    OLETLS_WINRT_INITIALIZE = 0x200000,
-    OLETLS_APPLICATION_STA = 0x400000,
-    OLETLS_IN_SHUTDOWN_CALLBACKS = 0x800000,
-    OLETLS_POINTER_INPUT_BLOCKED = 0x1000000,
-    OLETLS_IN_ACTIVATION_FILTER = 0x2000000,
-    OLETLS_ASTATOASTAEXEMPT_QUIRK = 0x4000000,
-    OLETLS_ASTATOASTAEXEMPT_PROXY = 0x8000000,
-    OLETLS_ASTATOASTAEXEMPT_INDOUBT = 0x10000000,
-    OLETLS_DETECTED_USER_INITIALIZED = 0x20000000,
-    OLETLS_BRIDGE_STA = 0x40000000,
-    OLETLS_NAINITIALIZING = 0x80000000UL
-} OLETLSFLAGS, *POLETLSFLAGS;
 
 PHLIBAPI
 NTSTATUS

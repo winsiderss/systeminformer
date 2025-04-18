@@ -17,6 +17,8 @@
 #include "extnoti.h"
 #include "resource.h"
 
+#include <trace.h>
+
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -79,6 +81,8 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

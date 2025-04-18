@@ -840,7 +840,7 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
     RemoteMappedImage->ViewSize = ViewSize;
 
     if (ViewSize < PAGE_SIZE)
-        return STATUS_NO_MEMORY;
+        return STATUS_INSUFFICIENT_RESOURCES;
 
     // Get a pointer to the base address and probe it.
 
@@ -855,7 +855,7 @@ NTSTATUS PhLoadRemoteMappedImagePageSize(
 
     if (!dosHeader)
     {
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
     }
 
     if (ReadVirtualMemoryCallback)
@@ -1111,7 +1111,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
 
     if (!RemoteMappedImage->NtHeaders)
     {
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
     }
 
     if (ReadVirtualMemoryCallback)
@@ -1231,7 +1231,7 @@ NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     dataBuffer = PhAllocatePageZero(dataLength);
 
     if (!dataBuffer)
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
 
     if (ReadVirtualMemoryCallback)
     {
@@ -4820,8 +4820,8 @@ PVOID PhpFillDynamicRelocationsArray32(
     PIMAGE_BASE_RELOCATION base;
     PVOID end;
 
-    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
-    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize));
+    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize));
     end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
 
     PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Array);

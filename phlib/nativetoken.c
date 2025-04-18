@@ -584,9 +584,10 @@ NTSTATUS PhGetTokenSecurityAttribute(
     return status;
 }
 
-BOOLEAN PhDoesTokenSecurityAttributeExist(
+NTSTATUS PhDoesTokenSecurityAttributeExist(
     _In_ HANDLE TokenHandle,
-    _In_ PCPH_STRINGREF AttributeName
+    _In_ PCPH_STRINGREF AttributeName,
+    _Out_ PBOOLEAN SecurityAttributeExists
     )
 {
     NTSTATUS status;
@@ -606,9 +607,12 @@ BOOLEAN PhDoesTokenSecurityAttributeExist(
         );
 
     if (status == STATUS_BUFFER_TOO_SMALL)
-        return TRUE;
+    {
+        *SecurityAttributeExists = TRUE;
+        return STATUS_SUCCESS;
+    }
 
-    return FALSE;
+    return status;
 }
 
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
@@ -637,9 +641,10 @@ BOOLEAN PhGetTokenIsFullTrustPackage(
     )
 {
     static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    BOOLEAN tokenIsStronglyNamedAttribute = FALSE;
     BOOLEAN tokenIsAppContainer = FALSE;
 
-    if (NT_SUCCESS(PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName)))
+    if (NT_SUCCESS(PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName, &tokenIsStronglyNamedAttribute)) && tokenIsStronglyNamedAttribute)
     {
         if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
         {
@@ -666,6 +671,25 @@ NTSTATUS PhGetProcessIsStronglyNamed(
     if (NT_SUCCESS(status))
     {
         *IsStronglyNamed = !!basicInfo.IsStronglyNamed;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenIsStronglyNamed(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsStronglyNamed
+    )
+{
+    static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    BOOLEAN attributeExists = FALSE;
+    NTSTATUS status;
+
+    status = PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName, &attributeExists);
+
+    if (NT_SUCCESS(status))
+    {
+        *IsStronglyNamed = attributeExists;
     }
 
     return status;
@@ -723,15 +747,23 @@ NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     )
 {
     static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
+    NTSTATUS status;
+    BOOLEAN attributeExists = FALSE;
 
-    if (PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName))
+    status = PhDoesTokenSecurityAttributeExist(
+        TokenHandle,
+        &attributeName,
+        &attributeExists
+        );
+
+    if (NT_SUCCESS(status) && attributeExists)
         *IsLessPrivilegedAppContainer = TRUE;
     else
         *IsLessPrivilegedAppContainer = FALSE;
 
     // TODO: NtQueryInformationToken(TokenIsLessPrivilegedAppContainer);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 ULONG64 PhGetTokenSecurityAttributeValueUlong64(

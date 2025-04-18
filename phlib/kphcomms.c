@@ -269,7 +269,7 @@ NTSTATUS KphCommsStart(
     KphpCommsMessages = PhAllocateZeroSafe(sizeof(KPH_UMESSAGE) * KphpCommsMessageCount);
     if (!KphpCommsMessages)
     {
-        status = STATUS_INSUFFICIENT_RESOURCES;
+        status = STATUS_NO_MEMORY;
         goto CleanupExit;
     }
 
@@ -419,7 +419,7 @@ NTSTATUS KphCommsReplyMessage(
 
     if (!(reply = PhAllocateFromFreeList(&KphpCommsReplyFreeList)))
     {
-        status = STATUS_INSUFFICIENT_RESOURCES;
+        status = STATUS_NO_MEMORY;
         goto CleanupExit;
     }
 

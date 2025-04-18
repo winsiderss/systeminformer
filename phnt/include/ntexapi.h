@@ -64,7 +64,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValue(
-    _In_ PUNICODE_STRING VariableName,
+    _In_ PCUNICODE_STRING VariableName,
     _Out_writes_bytes_(ValueLength) PWSTR VariableValue,
     _In_ USHORT ValueLength,
     _Out_opt_ PUSHORT ReturnLength
@@ -1265,7 +1265,9 @@ NtSetIntervalProfile(
     _In_ KPROFILE_SOURCE Source
     );
 
+//
 // Keyed Event
+//
 
 #define KEYEDEVENT_WAIT 0x0001
 #define KEYEDEVENT_WAKE 0x0002
@@ -1436,8 +1438,8 @@ NtQueryWnfStateData(
     _In_opt_ PCWNF_TYPE_ID TypeId,
     _In_opt_ const VOID* ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
-    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
-    _Inout_ PULONG BufferSize
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength
     );
 
 NTSYSCALLAPI
@@ -1447,8 +1449,8 @@ NtQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
     _In_opt_ const VOID* ExplicitScope,
-    _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
-    _In_ ULONG InfoBufferSize
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     );
 
 NTSYSCALLAPI
@@ -1650,7 +1652,7 @@ NtWaitForWorkViaWorkerFactory(
     _Out_writes_to_(Count, *PacketsReturned) PFILE_IO_COMPLETION_INFORMATION MiniPackets,
     _In_ ULONG Count,
     _Out_ PULONG PacketsReturned,
-    _In_ PWORKER_FACTORY_DEFERRED_WORK DeferredWork
+    _In_ PVOID DeferredWork // PWORKER_FACTORY_DEFERRED_WORK
     );
 
 #else
@@ -2094,33 +2096,36 @@ typedef struct _SYSTEM_BASIC_INFORMATION
     ULONG AllocationGranularity;
     ULONG_PTR MinimumUserModeAddress;
     ULONG_PTR MaximumUserModeAddress;
-    KAFFINITY ActiveProcessorsAffinityMask;
-    CCHAR NumberOfProcessors;
+    KAFFINITY ActiveProcessorsAffinityMask; // deprecated
+    UCHAR NumberOfProcessors; // deprecated
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 // SYSTEM_PROCESSOR_INFORMATION // ProcessorFeatureBits (see also SYSTEM_PROCESSOR_FEATURES_INFORMATION)
-#define KF_V86_VIS 0x00000001
-#define KF_RDTSC 0x00000002 // Indicates support for the RDTSC instruction.
-#define KF_CR4 0x00000004 // Indicates support for the CR4 register.
-#define KF_CMOV 0x00000008
-#define KF_GLOBAL_PAGE 0x00000010 // Indicates support for global pages.
-#define KF_LARGE_PAGE 0x00000020 // Indicates support for large pages.
-#define KF_MTRR 0x00000040
-#define KF_CMPXCHG8B 0x00000080 // Indicates support for the CMPXCHG8B instruction.
-#define KF_MMX 0x00000100
-#define KF_WORKING_PTE 0x00000200
-#define KF_PAT 0x00000400
-#define KF_FXSR 0x00000800
-#define KF_FAST_SYSCALL 0x00001000 // Indicates support for fast system calls.
-#define KF_XMMI 0x00002000
-#define KF_3DNOW 0x00004000
-#define KF_AMDK6MTRR 0x00008000
-#define KF_XMMI64 0x00010000
-#define KF_DTS 0x00020000
-#define KF_NOEXECUTE 0x20000000
+#define KF_V86_VIS      0x00000001 // Virtual 8086 mode.
+#define KF_RDTSC        0x00000002 // RDTSC (Read Time-Stamp Counter) instruction.
+#define KF_CR4          0x00000004 // CR4 (Control Register 4) register.
+#define KF_CMOV         0x00000008 // CMOV (Conditional Move) instruction.
+#define KF_GLOBAL_PAGE  0x00000010 // Global memory pages.
+#define KF_LARGE_PAGE   0x00000020 // Large memory pages.
+#define KF_MTRR         0x00000040 // MTRR (Memory Type Range Registers).
+#define KF_CMPXCHG8B    0x00000080 // CMPXCHG8B (CompareExchange) instruction.
+#define KF_MMX          0x00000100 // MMX (MultiMedia eXtensions).
+#define KF_WORKING_PTE  0x00000200 // PTE (Page Table Entries).
+#define KF_PAT          0x00000400 // PAT (Page Attribute Table).
+#define KF_FXSR         0x00000800 // FXSR (Floating Point Extended Save and Restore).
+#define KF_FAST_SYSCALL 0x00001000 // Fast system calls.
+#define KF_XMMI         0x00002000 // XMMI (Streaming SIMD Extensions - 32-bit).
+#define KF_3DNOW        0x00004000 // AMD 3DNow! technology.
+#define KF_AMDK6MTRR    0x00008000 // AMD K6 MTRR.
+#define KF_XMMI64       0x00010000 // XMMI (Streaming SIMD Extensions - 64-bit).
+#define KF_DTS          0x00020000 // DTS (Digital Thermal Sensor).
+#define KF_NOEXECUTE    0x20000000 // No-Execute (NX) bit.
 #define KF_GLOBAL_32BIT_EXECUTE 0x40000000
 #define KF_GLOBAL_32BIT_NOEXECUTE 0x80000000
 
+/**
+ * The SYSTEM_PROCESSOR_INFORMATION structure contains information about processor feature support.
+ */
 typedef struct _SYSTEM_PROCESSOR_INFORMATION
 {
     USHORT ProcessorArchitecture;
@@ -2130,6 +2135,9 @@ typedef struct _SYSTEM_PROCESSOR_INFORMATION
     ULONG ProcessorFeatureBits;
 } SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
 
+/**
+ * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about system performance.
+ */
 typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 {
     LARGE_INTEGER IdleProcessTime;
@@ -2216,6 +2224,9 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
     ULONGLONG ContiguousPagesAllocated;
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
+/**
+ * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about the system uptime.
+ */
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
 {
     LARGE_INTEGER BootTime;
@@ -2254,7 +2265,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     ULONG HardFaultCount;                   // since WIN7
     ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
     ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
-    LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes resullting in an incorrect value.
+    LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
     UNICODE_STRING ImageName;               // The file name of the executable image.
@@ -2284,14 +2295,6 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     LARGE_INTEGER OtherTransferCount;       // The total number of bytes transferred during operations other than read and write operations.
     SYSTEM_THREAD_INFORMATION Threads[1];   // This type is not defined in the structure but was added for convenience.
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
-
-#define SYSTEM_PROCESS_INFORMATION_SIZE RTL_SIZEOF_THROUGH_FIELD(SYSTEM_PROCESS_INFORMATION, OtherTransferCount)
-
-#ifdef _WIN64
-static_assert(SYSTEM_PROCESS_INFORMATION_SIZE == 0x100, "SYSTEM_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#else
-static_assert(SYSTEM_PROCESS_INFORMATION_SIZE == 0xB8, "SYSTEM_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#endif
 
 // private
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
@@ -2363,14 +2366,6 @@ typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
     // SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
 } SYSTEM_EXTENDED_PROCESS_INFORMATION, *PSYSTEM_EXTENDED_PROCESS_INFORMATION;
 
-#define SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE RTL_SIZEOF_THROUGH_FIELD(SYSTEM_EXTENDED_PROCESS_INFORMATION, OtherTransferCount)
-
-#ifdef _WIN64
-static_assert(SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE == 0x100, "SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#else
-static_assert(SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE == 0xB8, "SYSTEM_EXTENDED_PROCESS_INFORMATION_SIZE must equal SIZEOF_THROUGH_FIELD(OtherTransferCount)");
-#endif
-
 typedef struct _SYSTEM_CALL_COUNT_INFORMATION
 {
     ULONG Length;
@@ -2395,6 +2390,7 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
     LARGE_INTEGER DpcTime;
     LARGE_INTEGER InterruptTime;
     ULONG InterruptCount;
+    ULONG Spare0;
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
 
 typedef struct _SYSTEM_FLAGS_INFORMATION
@@ -5057,6 +5053,9 @@ typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 #endif // NTDDI_WIN10_FE
 
 // private
+/**
+ * The SYSTEM_MEMORY_USAGE_INFORMATION structure contains information about the memory usage of the system.
+ */
 typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
 {
     ULONGLONG TotalPhysicalBytes;
@@ -5629,6 +5628,16 @@ typedef struct _SYSTEM_OSL_RAMDISK_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+/**
+ * The NtQuerySystemInformation routine queries information about the system.
+ *
+ * @param SystemInformationClass The type of information to be retrieved.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5640,6 +5649,16 @@ NtQuerySystemInformation(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
+/**
+ * The NtQuerySystemInformationEx routine queries information about the system.
+ *
+ * @param SystemInformationClass The type of information to be retrieved.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5653,6 +5672,15 @@ NtQuerySystemInformationEx(
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
 
+/**
+ * The NtSetSystemInformation routine sets information about the system.
+ *
+ * @param SystemInformationClass The type of information to be set.
+ * @param SystemInformation A pointer to a buffer that receives the requested information.
+ * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -5662,7 +5690,9 @@ NtSetSystemInformation(
     _In_ ULONG SystemInformationLength
     );
 
+//
 // SysDbg APIs
+//
 
 // private
 typedef enum _SYSDBG_COMMAND
@@ -5874,7 +5904,9 @@ NtSystemDebugControl(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Hard errors
+//
 
 typedef enum _HARDERROR_RESPONSE_OPTION
 {
@@ -5906,6 +5938,8 @@ typedef enum _HARDERROR_RESPONSE
 
 #define HARDERROR_OVERRIDE_ERRORMODE 0x10000000
 
+_Analysis_noreturn_
+DECLSPEC_NORETURN
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6559,6 +6593,10 @@ typedef struct _KUSER_SHARED_DATA
         };
     };
 
+    //
+    // Reserved for future use.
+    //
+
     LARGE_INTEGER TimeZoneBiasEffectiveStart;
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
 
@@ -6568,8 +6606,22 @@ typedef struct _KUSER_SHARED_DATA
 
     XSTATE_CONFIGURATION XState;
 
+    //
+    // RtlQueryFeatureConfigurationChangeStamp
+    //
+
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
+
+    //
+    // Spare (available for re-use).
+    //
+
     ULONG Spare;
+
+    //
+    // This field holds a mask that is used in the process of authenticating pointers in user mode.
+    // It helps in determining which bits of the pointer are used for authentication in user mode.
+    //
 
     ULONG64 UserPointerAuthMask;
 
@@ -7053,7 +7105,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryLicenseValue(
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Out_opt_ PULONG Type,
     _Out_writes_bytes_to_opt_(DataSize, *ResultDataSize) PVOID Data,
     _In_ ULONG DataSize,
@@ -7091,7 +7143,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDisplayString(
-    _In_ PUNICODE_STRING String
+    _In_ PCUNICODE_STRING String
     );
 
 // Boot graphics
@@ -7102,7 +7154,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDrawText(
-    _In_ PUNICODE_STRING Text
+    _In_ PCUNICODE_STRING Text
     );
 #endif
 

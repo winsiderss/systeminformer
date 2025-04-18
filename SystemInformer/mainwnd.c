@@ -1999,26 +1999,28 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && processItem->QueryHandle)
+            if (processItem)
             {
                 NTSTATUS status;
-                PPH_STRING fileNameWin32;
+                PPH_STRING fileName;
 
-                if (NT_SUCCESS(status = PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
+                status = PhGetProcessItemFileNameWin32(processItem, &fileName);
+
+                if (NT_SUCCESS(status))
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
                         L"FileBrowseExecutable",
-                        PhGetString(fileNameWin32),
+                        PhGetString(fileName),
                         FALSE,
                         L"Make sure the Explorer executable file is present."
                         );
 
-                    PhDereferenceObject(fileNameWin32);
+                    PhDereferenceObject(fileName);
                 }
                 else
                 {
-                    PhShowStatus(WindowHandle, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                    PhShowStatus(WindowHandle, L"Unable to locate the file.", status, 0);
                 }
             }
         }
@@ -2173,25 +2175,41 @@ VOID PhMwpOnCommand(
     case ID_SERVICE_OPENFILELOCATION:
         {
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            NTSTATUS status;
             SC_HANDLE serviceHandle;
 
-            if (serviceItem && NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
+            if (serviceItem)
             {
-                PPH_STRING fileName;
+                status = PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name));
 
-                if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
+                if (NT_SUCCESS(status))
                 {
-                    PhShellExecuteUserString(
-                        WindowHandle,
-                        L"FileBrowseExecutable",
-                        fileName->Buffer,
-                        FALSE,
-                        L"Make sure the Explorer executable file is present."
-                        );
-                    PhDereferenceObject(fileName);
-                }
+                    PPH_STRING fileName;
 
-                PhCloseServiceHandle(serviceHandle);
+                    status = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr, &fileName);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        PhShellExecuteUserString(
+                            WindowHandle,
+                            L"FileBrowseExecutable",
+                            fileName->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
+                        PhDereferenceObject(fileName);
+                    }
+                    else
+                    {
+                        PhShowStatus(WindowHandle, L"Unable to locate the file.", status, 0);
+                    }
+
+                    PhCloseServiceHandle(serviceHandle);
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to locate the file.", status, 0);
+                }
             }
         }
         break;
@@ -2595,6 +2613,89 @@ LRESULT PhMwpOnUserMessage(
     case WM_PH_NOTIFY_ICON_MESSAGE:
         {
             PhNfForwardMessage(WindowHandle, WParam, LParam);
+        }
+        break;
+    case WM_PH_DESTROY:
+        {
+            DestroyWindow(PhMainWndHandle);
+        }
+        break;
+    case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
+        {
+            PhMwpInvokePrepareEarlyExit(PhMainWndHandle);
+        }
+        break;
+    case WM_PH_SAVE_ALL_SETTINGS:
+        {
+            PhMwpSaveSettings(PhMainWndHandle);
+        }
+        break;
+    case WM_PH_SHOW_PROPERTIES:
+        {
+            PhMwpShowProcessProperties((PPH_PROCESS_ITEM)LParam);
+        }
+        break;
+    case WM_PH_ACTIVATE_WINDOW:
+        {
+            BOOLEAN visibility = (BOOLEAN)(ULONG_PTR)LParam;
+
+            PhMwpInvokeActivateWindow(visibility);
+        }
+        break;
+    case WM_PH_SELECT_NODE:
+        {
+            switch ((ULONG)WParam)
+            {
+            case 1:
+                PhMwpInvokeSelectTabPage((PVOID)LParam);
+                break;
+            case 2:
+                PhSelectAndEnsureVisibleProcessNode((PVOID)LParam);
+                break;
+            case 3:
+                PhMwpInvokeSelectServiceItem((PVOID)LParam);
+                break;
+            case 4:
+                PhMwpInvokeSelectNetworkItem((PVOID)LParam);
+                break;
+            case 5:
+                PhMwpInvokeUpdateWindowFont((PVOID)LParam);
+                break;
+            }
+        }
+        break;
+    case WM_PH_SHOW_EDITOR:
+        {
+            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)WParam;
+
+            PhShowMemoryEditorDialog(
+                showMemoryEditor->OwnerWindow,
+                showMemoryEditor->ProcessId,
+                showMemoryEditor->BaseAddress,
+                showMemoryEditor->RegionSize,
+                showMemoryEditor->SelectOffset,
+                showMemoryEditor->SelectLength,
+                showMemoryEditor->Title,
+                showMemoryEditor->Flags
+                );
+            PhClearReference(&showMemoryEditor->Title);
+            PhFree(showMemoryEditor);
+        }
+        break;
+    case WM_PH_SHOW_RESULT:
+        {
+            PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)WParam;
+
+            PhShowMemoryResultsDialog(
+                showMemoryResults->ProcessId,
+                showMemoryResults->Results
+                );
+            PhDereferenceMemoryResults(
+                (PPH_MEMORY_RESULT*)showMemoryResults->Results->Items,
+                showMemoryResults->Results->Count
+                );
+            PhDereferenceObject(showMemoryResults->Results);
+            PhFree(showMemoryResults);
         }
         break;
     case WM_PH_INVOKE:
@@ -4458,10 +4559,10 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
 }
 
 VOID PhMwpInvokePrepareEarlyExit(
-    _In_ PVOID Parameter
+    _In_ HWND WindowHandle
     )
 {
-    PhMwpSaveSettings(PhMainWndHandle);
+    PhMwpSaveSettings(WindowHandle);
     PhMainWndEarlyExit = TRUE;
 }
 
@@ -4542,22 +4643,22 @@ PVOID PhPluginInvokeWindowCallback(
     {
     case PH_MAINWINDOW_CALLBACK_TYPE_DESTROY:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)PhMainWndHandle, (LPARAM)DestroyWindow);
+            SendMessage(PhMainWndHandle, WM_PH_DESTROY, 0, 0);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpShowProcessProperties);
+            SendMessage(PhMainWndHandle, WM_PH_SHOW_PROPERTIES, 0, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)PhMainWndHandle, (LPARAM)PhMwpSaveSettings);
+            SendMessage(PhMainWndHandle, WM_PH_SAVE_ALL_SETTINGS, 0, 0);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_PREPARE_FOR_EARLY_SHUTDOWN:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, 0, (LPARAM)PhMwpInvokePrepareEarlyExit);
+            SendMessage(PhMainWndHandle, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_CANCEL_EARLY_SHUTDOWN:
@@ -4569,33 +4670,33 @@ PVOID PhPluginInvokeWindowCallback(
         {
             BOOLEAN visibility = !(BOOLEAN)(ULONG_PTR)wparam;
 
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)visibility, (LPARAM)PhMwpInvokeActivateWindow);
+            SendMessage(PhMainWndHandle, WM_PH_ACTIVATE_WINDOW, 0, (LPARAM)visibility);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK:
         {
             BOOLEAN visibility = !!PhGetIntegerSetting(L"IconTogglesVisibility");
 
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)visibility, (LPARAM)PhMwpInvokeActivateWindow);
+            SendMessage(PhMainWndHandle, WM_PH_ACTIVATE_WINDOW, 0, (LPARAM)visibility);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_EDITOR:
         {
             PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)lparam;
 
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryEditor, (LPARAM)PhMwpInvokeShowMemoryEditorDialog);
+            PostMessage(PhMainWndHandle, WM_PH_SHOW_EDITOR, (WPARAM)showMemoryEditor, 0);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS:
         {
             PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)lparam;
 
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)showMemoryResults, (LPARAM)PhMwpInvokeShowMemoryResultsDialog);
+            PostMessage(PhMainWndHandle, WM_PH_SHOW_RESULT, (WPARAM)showMemoryResults, 0);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)PhMwpInvokeSelectTabPage);
+            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)1, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING:
@@ -4610,22 +4711,22 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_PROCESS_NODE:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhSelectAndEnsureVisibleProcessNode);
+            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)2, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_SERVICE_ITEM:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeSelectServiceItem);
+            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)3, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SELECT_NETWORK_ITEM:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeSelectNetworkItem);
+            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)4, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_UPDATE_FONT:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)lparam, (LPARAM)PhMwpInvokeUpdateWindowFont);
+            SendMessage(PhMainWndHandle, WM_PH_SELECT_NODE, (WPARAM)5, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT:

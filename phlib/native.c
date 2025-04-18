@@ -2580,7 +2580,7 @@ NTSTATUS PhSetFileRename(
         }
         else
         {
-            status = STATUS_INSUFFICIENT_RESOURCES;
+            status = STATUS_NO_MEMORY;
         }
     }
     else
@@ -2626,7 +2626,7 @@ NTSTATUS PhSetFileRename(
         }
         else
         {
-            status = STATUS_INSUFFICIENT_RESOURCES;
+            status = STATUS_NO_MEMORY;
         }
     }
 
@@ -3280,6 +3280,7 @@ typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
     HANDLE DriverHandle;
 } OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT, *POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT;
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
@@ -4760,7 +4761,7 @@ NTSTATUS PhEnumProcessHandles(
     ULONG attempts = 0;
 
     bufferSize = 0x8000;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocatePage(bufferSize, NULL);
     buffer->NumberOfHandles = 0;
 
     status = NtQueryInformationProcess(
@@ -4773,9 +4774,9 @@ NTSTATUS PhEnumProcessHandles(
 
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
-        PhFree(buffer);
+        PhFreePage(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocatePage(bufferSize, NULL);
         buffer->NumberOfHandles = 0;
 
         status = NtQueryInformationProcess(
@@ -4798,7 +4799,7 @@ NTSTATUS PhEnumProcessHandles(
         if (buffer->NumberOfHandles == 0)
         {
             status = STATUS_UNSUCCESSFUL;
-            PhFree(buffer);
+            PhFreePage(buffer);
         }
         else
         {
@@ -4807,7 +4808,7 @@ NTSTATUS PhEnumProcessHandles(
     }
     else
     {
-        PhFree(buffer);
+        PhFreePage(buffer);
     }
 
     return status;
@@ -4893,7 +4894,7 @@ NTSTATUS PhEnumHandlesGeneric(
                 convertedHandles->Handles[i].HandleAttributes = handle->HandleAttributes;
             }
 
-            PhFree(handles);
+            PhFreePage(handles);
 
             *Handles = convertedHandles;
         }
@@ -4931,22 +4932,22 @@ NTSTATUS PhEnumHandlesGeneric(
                     memcpy(
                         &convertedHandles->Handles[0],
                         &handles->Handles[firstIndex],
-                        (lastIndex - firstIndex + 1) * sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX)
+                        numberOfHandles * sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX)
                         );
 
                     *Handles = convertedHandles;
                 }
                 else
                 {
-                    for (i = 0; i < handles->NumberOfHandles; i++)
+                    ULONG j = 0;
+
+                    for (i = firstIndex; i <= lastIndex; i++)
                     {
                         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles->Handles[i];
 
                         if (handle->UniqueProcessId == ProcessId)
                         {
-                            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX convertedHandle = &convertedHandles->Handles[i++];
-
-                            memcpy(convertedHandle, handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+                            memcpy(&convertedHandles->Handles[j++], handle, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
                         }
                     }
 
@@ -5257,6 +5258,7 @@ typedef struct _PHP_PIPE_NAME_HASH
     ULONG Found;
 } PHP_PIPE_NAME_HASH, *PPHP_PIPE_NAME_HASH;
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -7020,7 +7022,7 @@ PPH_STRING PhDosPathNameToNtPathName(
 NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
     _In_ PCWSTR DosFileName,
     _Out_ PUNICODE_STRING NtFileName,
-    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PWSTR* FilePart,
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     )
 {

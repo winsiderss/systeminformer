@@ -661,6 +661,11 @@ HPROPSHEETPAGE PhCreateTimerPage(
     _In_opt_ PVOID Context
     );
 
+HPROPSHEETPAGE PhCreateAfdSocketPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE HandleValue
+    );
+
 HPROPSHEETPAGE PhCreateMappingsPage(
     _In_ HANDLE ProcessId,
     _In_ HANDLE SectionHandle
@@ -787,12 +792,8 @@ NTSTATUS PhInvokeRunAsService(
 
 // begin_phapppub
 
-_Function_class_(PH_SEARCHCONTROL_CALLBACK)
-typedef
-_Must_inspect_result_
-VOID
-NTAPI
-PH_SEARCHCONTROL_CALLBACK(
+typedef _Function_class_(PH_SEARCHCONTROL_CALLBACK)
+VOID NTAPI PH_SEARCHCONTROL_CALLBACK(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
     );

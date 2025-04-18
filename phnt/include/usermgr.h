@@ -33,7 +33,7 @@ typedef struct _CRED_PROV_CREDENTIAL
 // rev
 USERMGRAPI
 VOID
-WINAPI
+NTAPI
 UMgrFreeSessionUsers(
     _In_ _Post_invalid_ PSESSION_USER_CONTEXT SessionUsers
     );
@@ -41,7 +41,7 @@ UMgrFreeSessionUsers(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrEnumerateSessionUsers(
     _Out_ PULONG Count,
     _Outptr_ PSESSION_USER_CONTEXT *SessionUsers
@@ -50,7 +50,7 @@ UMgrEnumerateSessionUsers(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserContext(
     _In_ HANDLE TokenHandle,
     _Out_ PULONGLONG ContextToken
@@ -59,7 +59,7 @@ UMgrQueryUserContext(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserContextFromSid(
     _In_ PCWSTR SidString,
     _Out_ PULONGLONG ContextToken
@@ -68,7 +68,7 @@ UMgrQueryUserContextFromSid(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserContextFromName(
     _In_ PCWSTR UserName,
     _Out_ PULONGLONG ContextToken
@@ -83,7 +83,7 @@ UMgrQueryUserContextFromName(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryDefaultAccountToken(
     _Out_ PHANDLE TokenHandle
     );
@@ -91,7 +91,7 @@ UMgrQueryDefaultAccountToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQuerySessionUserToken(
     _In_ ULONG SessionId,
     _Out_ PHANDLE TokenHandle
@@ -100,7 +100,7 @@ UMgrQuerySessionUserToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserToken(
     _In_ ULONGLONG Context,
     _Out_ PHANDLE TokenHandle
@@ -109,7 +109,7 @@ UMgrQueryUserToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserTokenFromSid(
     _In_ PCWSTR SidString,
     _Out_ PHANDLE TokenHandle
@@ -118,7 +118,7 @@ UMgrQueryUserTokenFromSid(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrQueryUserTokenFromName(
     _In_ PCWSTR UserName,
     _Out_ PHANDLE TokenHandle
@@ -127,7 +127,7 @@ UMgrQueryUserTokenFromName(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrGetConstrainedUserToken(
     _In_opt_ HANDLE InputTokenHandle,
     _In_ ULONGLONG Context,
@@ -142,7 +142,7 @@ UMgrGetConstrainedUserToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrChangeSessionUserToken(
     _In_ HANDLE TokenHandle
     );
@@ -150,7 +150,7 @@ UMgrChangeSessionUserToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrGetImpersonationTokenForContext(
     _In_ HANDLE InputTokenHandle,
     _In_ ULONGLONG Context,
@@ -164,7 +164,7 @@ UMgrGetImpersonationTokenForContext(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrGetSessionActiveShellUserToken(
     _In_ ULONG SessionId,
     _Out_ PHANDLE TokenHandle
@@ -179,7 +179,7 @@ UMgrGetSessionActiveShellUserToken(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrOpenProcessTokenForQuery(
     _In_ ULONG ProcessId,
     _Out_ PHANDLE TokenHandle
@@ -188,7 +188,7 @@ UMgrOpenProcessTokenForQuery(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrOpenProcessHandleForAccess(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG ProcessId,
@@ -204,7 +204,7 @@ UMgrOpenProcessHandleForAccess(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrFreeUserCredentials(
     _In_ PCRED_PROV_CREDENTIAL Credentials
     );
@@ -212,7 +212,7 @@ UMgrFreeUserCredentials(
 // rev
 USERMGRAPI
 HRESULT
-WINAPI
+NTAPI
 UMgrGetCachedCredentials(
     _In_ PSID Sid,
     _Outptr_ PCRED_PROV_CREDENTIAL *Credentials

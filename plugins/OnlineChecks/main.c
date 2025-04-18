@@ -12,6 +12,8 @@
 
 #include "onlnchk.h"
 
+#include <trace.h>
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -54,7 +56,7 @@ VOID NTAPI ShowOptionsCallback(
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-    
+
     optionsEntry->CreateSection(
         L"OnlineChecks",
         PluginInstance->DllBase,
@@ -590,6 +592,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },
             };
+
+            WPP_INIT_TRACING(PLUGIN_NAME);
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 

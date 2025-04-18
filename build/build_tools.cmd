@@ -2,6 +2,13 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
+set "TIB=false"
+if "%GITHUB_ACTIONS%"=="true" (
+    set "TIB=true"
+) else if "%TF_BUILD%"=="true" (
+    set "TIB=true"
+)
+
 for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
    set "VSINSTALLPATH=%%a"
 )
@@ -24,9 +31,9 @@ if exist "tools\CustomBuildTool\.vs" (
 
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
-   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=true --verbosity diagnostic
+   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\amd64.pubxml /p:ContinuousIntegrationBuild=%TIB%
    call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" arm64
-   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=true --verbosity diagnostic
+   dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\arm64.pubxml /p:ContinuousIntegrationBuild=%TIB%
 ) else (
    goto end
 )
