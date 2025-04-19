@@ -246,22 +246,20 @@ namespace CustomBuildTool
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
         }
 
-        public static bool CopyTextFiles(bool Update)
+        public static bool CopyTextFiles(BuildFlags Flags)
         {
-            if (Update)
-            {
-                Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-                //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
-                Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
-                Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
-            }
-            else
-            {
-                Win32.DeleteFile("bin\\README.txt");
-                //Win32.DeleteFile("bin\\CHANGELOG.txt");
-                Win32.DeleteFile("bin\\COPYRIGHT.txt");
-                Win32.DeleteFile("bin\\LICENSE.txt");
-            }
+            //if (Update)
+
+            Win32.CopyIfNewer("README.txt", "bin\\README.txt");
+            Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
+            Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
+
+            //else
+            //{
+            //    Win32.DeleteFile("bin\\README.txt");
+            //    Win32.DeleteFile("bin\\COPYRIGHT.txt");
+            //    Win32.DeleteFile("bin\\LICENSE.txt");
+            //}
 
             return true;
         }
@@ -614,8 +612,8 @@ namespace CustomBuildTool
 
             // Copy the resource header and prefix types with PHAPP
             {
-                Win32.GetFileTime("SystemInformer\\resource.h", out long sourceCreationTime, out long sourceWriteTime);
-                Win32.GetFileTime("sdk\\include\\phappresource.h", out long destCreationTime, out long destWriteTime);
+                Win32.GetFileTime("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime);
+                Win32.GetFileTime("sdk\\include\\phappresource.h", out var destCreationTime, out var destWriteTime);
 
                 if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
                 {

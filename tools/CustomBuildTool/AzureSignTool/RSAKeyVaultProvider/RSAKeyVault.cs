@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     dmex
+ *
+ */
+
 namespace CustomBuildTool
 {
     /// <summary>
@@ -21,7 +32,7 @@ namespace CustomBuildTool
             this.context = context;
             publicKey = context.Key.ToRSA();
             KeySizeValue = publicKey.KeySize;
-            LegalKeySizesValue = new[] { new KeySizes(publicKey.KeySize, publicKey.KeySize, 0) };
+            LegalKeySizesValue = [new KeySizes(publicKey.KeySize, publicKey.KeySize, 0)];
         }
 
         /// <inheritdoc/>
@@ -103,7 +114,7 @@ namespace CustomBuildTool
             if (includePrivateParameters)
                 throw new NotSupportedException("Private keys cannot be exported by this provider");
 
-            return publicKey.ExportParameters(includePrivateParameters);
+            return publicKey.ExportParameters(false);
         }
 
         /// <inheritdoc/>

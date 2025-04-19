@@ -29,7 +29,7 @@ namespace CustomBuildTool
 
         public static HttpResponseMessage SendMessageResponse(HttpRequestMessage HttpMessage)
         {
-            HttpResponseMessage response = null;
+            HttpResponseMessage response;
 
             try
             {
@@ -68,7 +68,7 @@ namespace CustomBuildTool
 
         public static TValue SendMessage<TValue>(HttpRequestMessage HttpMessage, JsonTypeInfo<TValue> jsonTypeInfo) where TValue : class
         {
-            TValue result = default;
+            TValue result;
 
             try
             {

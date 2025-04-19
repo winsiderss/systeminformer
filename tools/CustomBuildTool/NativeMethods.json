@@ -5,5 +5,7 @@
   "useSafeHandles": false,
   "wideCharOnly": true,
   "friendlyOverloads": { "enabled": false },
-  "allowMarshaling": false
+  "allowMarshaling": false,
+  "comInterop": { "preserveSigMethods": [ "*" ] },
+  "className": "PInvoke"
 }
