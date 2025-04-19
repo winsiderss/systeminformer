@@ -301,7 +301,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessNetworkIoCounters, // q: PROCESS_NETWORK_COUNTERS
     ProcessFindFirstThreadByTebValue, // PROCESS_TEB_VALUE_INFORMATION
     ProcessEnclaveAddressSpaceRestriction, // since 25H2
-    ProcessAvailableCpus,
+    ProcessAvailableCpus, // PROCESS_AVAILABLE_CPUS_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -328,7 +328,7 @@ typedef enum _THREADINFOCLASS
     ThreadAmILastThread, // q: ULONG
     ThreadIdealProcessor, // s: ULONG
     ThreadPriorityBoost, // qs: ULONG
-    ThreadSetTlsArrayAddress, // s: ULONG_PTR // Obsolete
+    ThreadSetTlsArrayAddress, // s: ULONG_PTR
     ThreadIsIoPending, // q: ULONG
     ThreadHideFromDebugger, // q: BOOLEAN; s: void
     ThreadBreakOnTermination, // qs: ULONG
@@ -1481,6 +1481,15 @@ typedef struct _PROCESS_TEB_VALUE_INFORMATION
     ULONG TebOffset;
     ULONG_PTR Value;
 } PROCESS_TEB_VALUE_INFORMATION, *PPROCESS_TEB_VALUE_INFORMATION;
+
+// rev
+typedef struct _PROCESS_AVAILABLE_CPUS_INFORMATION
+{
+    ULONG64 ObservedSequenceNumber;
+    ULONG64 SequenceNumber;
+    ULONG AvailableCpusCount;
+    PKAFFINITY_EX Affinity;
+} PROCESS_AVAILABLE_CPUS_INFORMATION, *PPROCESS_AVAILABLE_CPUS_INFORMATION;
 
 /**
  * The NtQueryPortInformationProcess function retrieves the status of the current process exception port.
