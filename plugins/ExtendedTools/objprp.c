@@ -1604,10 +1604,11 @@ VOID EtUpdateHandleItem(
     )
 {
     HANDLE processHandle;
+    BOOLEAN useKsi = KsiLevel() >= KphLevelMed;
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        (KsiLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
+        (useKsi ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
         ProcessId
         )))
     {
@@ -1622,6 +1623,15 @@ VOID EtUpdateHandleItem(
             );
 
         NtClose(processHandle);
+
+        if (useKsi && HandleItem->ObjectName && PhStartsWithStringRef2(&HandleItem->ObjectName->sr, L"\\Device\\Afd", TRUE))
+        {
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, ProcessId)))
+            {
+                PhGetHandleInformation(processHandle, HandleItem->Handle, HandleItem->TypeIndex, NULL, NULL, NULL, &HandleItem->BestObjectName);
+                NtClose(processHandle);
+            }
+        }
     }
 
     if (PhIsNullOrEmptyString(HandleItem->TypeName))
@@ -1635,7 +1645,7 @@ VOID EtpShowHandleProperties(
 {
     EtUpdateHandleItem(Entry->ProcessId, Entry->HandleItem);
 
-    PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, ((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW), NULL);
+    PhShowHandlePropertiesEx(WindowHandle, Entry->ProcessId, Entry->HandleItem, (PPH_PLUGIN)((ULONG_PTR)PluginInstance | OBJECT_CHILD_HANDLEPROP_WINDOW), NULL);
 }
 
 VOID EtpUpdateGeneralTab(
