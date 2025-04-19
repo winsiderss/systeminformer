@@ -738,6 +738,7 @@ VOID PhServiceProviderUpdate(
     static PPHP_SERVICE_NAME_ENTRY nameEntries = NULL;
     static ULONG nameEntriesCount;
     static ULONG nameEntriesAllocated = 0;
+    NTSTATUS status;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
     ULONG i;
@@ -769,9 +770,9 @@ VOID PhServiceProviderUpdate(
 
 UpdateStart:
 
-    if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServices)))
+    if (!NT_SUCCESS(status = PhEnumServices(&services, &numberOfServices)))
     {
-        PhTraceFuncExit("Failed to enumerate services: %lu", runCount);
+        PhTraceFuncExit("Failed to enumerate services: %lu %!STATUS!", runCount, status);
         return;
     }
 
