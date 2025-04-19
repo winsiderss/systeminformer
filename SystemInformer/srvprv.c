@@ -459,13 +459,15 @@ VOID PhServiceQueryStage1(
     {
         if (!FlagOn(serviceItem->Type, SERVICE_DRIVER)) // Skip icons for kernel drivers (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, 0, NULL, PhSystemDpi);
+            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, SYSTEM_IDLE_PROCESS_ID, NULL, PhSystemDpi);
         }
 
         if (!PhEnableProcessQueryStage2)
         {
             static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
             PH_IMAGE_VERSION_INFO versionInfo;
+
+            PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
 
             if (PhInitializeImageVersionInfoCached(
                 &versionInfo, // Data->VersionInfo
