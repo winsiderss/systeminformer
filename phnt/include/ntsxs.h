@@ -397,8 +397,8 @@ typedef struct _ACTIVATION_CONTEXT_DATA_CLR_SURROGATE
     GUID    SurrogateIdent;
     ULONG   VersionOffset;
     ULONG   VersionLength;
-    ULONG   TypeNameOffset;
-    ULONG   TypeNameLength; // to WCHAR[], from this struct base
+    ULONG   TypeNameOffset; // to WCHAR[], from this struct base
+    ULONG   TypeNameLength;
 } ACTIVATION_CONTEXT_DATA_CLR_SURROGATE, *PACTIVATION_CONTEXT_DATA_CLR_SURROGATE;
 
 #define ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS_FORMAT_LONGHORN 1
