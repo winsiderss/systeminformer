@@ -46,24 +46,26 @@ C_ASSERT(sizeof(_DETOUR_ALIGN) == 1);
 // So we likely must allocate in the system DLL range to be +/- 2GB.
 // But we want to avoid at least the first 1GB that will be used for system DLLs.
 // Due to wrapping, this may be two seperate ranges.
-static PVOID    s_pSystemRegionUpperBound = (PVOID)((ULONG_PTR)GetModuleHandleW(L"ntdll.dll") + (ULONG_PTR)0x100000);
-static PVOID    s_pSystemRegionLowerBound = (PVOID)((ULONG_PTR)s_pSystemRegionUpperBound < (ULONG_PTR)0x7FF83F000000 ?
-                                                    (ULONG_PTR)0x7FF7FF000000 : ((ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)0x40000000));
-static SIZE_T   s_pSystemRegionSize       = (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // up to 1GB
-static SIZE_T   s_pSystemRegion2Size       = (SIZE_T)0x40000000 - s_pSystemRegionSize;
-static PVOID    s_pSystemRegion2UpperBound = (PVOID)(ULONG_PTR)0x800000000000;
-static PVOID    s_pSystemRegion2LowerBound = (PVOID)((ULONG_PTR)s_pSystemRegion2UpperBound - s_pSystemRegion2Size);
+static PVOID    s_pSystemRegionUpperBound = nullptr; // (PVOID)((ULONG_PTR)GetModuleHandleW(L"ntdll.dll") + (ULONG_PTR)0x100000);
+static PVOID    s_pSystemRegionLowerBound = nullptr; // (PVOID)((ULONG_PTR)s_pSystemRegionUpperBound < (ULONG_PTR)0x7FF83F000000 ?
+                                                     // (ULONG_PTR)0x7FF7FF000000 : ((ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)0x40000000));
+static SIZE_T   s_pSystemRegionSize        = 0;      // (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // up to 1GB
+static SIZE_T   s_pSystemRegion2Size       = 0;      // (SIZE_T)0x40000000 - s_pSystemRegionSize;
+static PVOID    s_pSystemRegion2UpperBound = nullptr; //(PVOID)(ULONG_PTR)0x800000000000;
+static PVOID    s_pSystemRegion2LowerBound = nullptr; //(PVOID)((ULONG_PTR)s_pSystemRegion2UpperBound - s_pSystemRegion2Size);
 #else
 // On X86 the range was originally 0x70000000..0x80000000
 // However, since Windows 8, the range is now 0x50000000..0x78000000
 // Reference: Windows Internals, 7th Edition, page 368
 // We just exclude both ranges.
-static PVOID    s_pSystemRegionUpperBound = (PVOID)((ULONG_PTR)0x80000000);
-static PVOID    s_pSystemRegionLowerBound = (PVOID)((ULONG_PTR)0x50000000 - 0x100000);
-static SIZE_T   s_pSystemRegionSize       = (ULONG_PTR)s_pSystemRegionUpperBound - (ULONG_PTR)s_pSystemRegionLowerBound; // 769MB
+static PVOID    s_pSystemRegionUpperBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x80000000));
+static PVOID    s_pSystemRegionLowerBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x50000000) - 0x100000);
+static SIZE_T   s_pSystemRegionSize       = reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - reinterpret_cast<ULONG_PTR>(s_pSystemRegionLowerBound); // 769MB
 #endif
 
-inline SIZE_T should_skip_sytem_range_size(PBYTE pbTry)
+FORCEINLINE
+SIZE_T
+should_skip_sytem_range_size(PBYTE pbTry)
 {
     if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) {
         return s_pSystemRegionSize;
@@ -1246,7 +1248,9 @@ static void detour_runnable_trampoline_regions()
             &protection
             );
 
+#if defined(_M_ARM64)
         NtFlushInstructionCache(NtCurrentProcess(), pRegion, DETOUR_REGION_SIZE);
+#endif
     }
 }
 
@@ -1730,6 +1734,25 @@ _Benign_race_end_
     // Make sure the trampoline pages are writable.
     s_nPendingError = detour_writable_trampoline_regions();
 
+    if (!NT_SUCCESS(s_nPendingError))
+        return s_nPendingError;
+
+#if defined(DETOURS_64BIT)
+    // On X64 the range is 0x7FF800000000..0x7FFFFFFF0000 - which is 32GB!
+    // So we likely must allocate in the system DLL range to be +/- 2GB.
+    // But we want to avoid at least the first 1GB that will be used for system DLLs.
+    // Due to wrapping, this may be two seperate ranges.
+    s_pSystemRegionUpperBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(GetModuleHandleW(L"ntdll.dll")) + static_cast<ULONG_PTR>(0x100000));
+    s_pSystemRegionLowerBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) < static_cast<ULONG_PTR>(0x7FF83F000000)
+                                                            ? static_cast<ULONG_PTR>(0x7FF7FF000000)
+                                                            : (reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - static_cast<ULONG_PTR>(
+                                                                0x40000000)));
+    s_pSystemRegionSize = reinterpret_cast<ULONG_PTR>(s_pSystemRegionUpperBound) - reinterpret_cast<ULONG_PTR>(s_pSystemRegionLowerBound); // up to 1GB
+    s_pSystemRegion2Size = static_cast<SIZE_T>(0x40000000) - s_pSystemRegionSize;
+    s_pSystemRegion2UpperBound = reinterpret_cast<PVOID>(static_cast<ULONG_PTR>(0x800000000000));
+    s_pSystemRegion2LowerBound = reinterpret_cast<PVOID>(reinterpret_cast<ULONG_PTR>(s_pSystemRegion2UpperBound) - s_pSystemRegion2Size);
+#endif
+
     return s_nPendingError;
 }
 
@@ -2001,10 +2024,16 @@ NTSTATUS NTAPI DetourTransactionCommitEx(_Out_opt_ PVOID **pppFailedPointer)
 #endif // DETOURS_ARM64
 
 typedef ULONG_PTR DETOURS_EIP_TYPE;
+NTSTATUS status;
 
-        if (NtGetContextThread(t->hThread, &cxt)) {
-            for (o = s_pPendingOperations; o != nullptr; o = o->pNext) {
-                if (o->fIsRemove) {
+        status = NtGetContextThread(t->hThread, &cxt);
+
+        if (NT_SUCCESS(status))
+        {
+            for (o = s_pPendingOperations; o != nullptr; o = o->pNext)
+            {
+                if (o->fIsRemove)
+                {
                     if (cxt.DETOURS_EIP >= (DETOURS_EIP_TYPE)(ULONG_PTR)o->pTrampoline &&
                         cxt.DETOURS_EIP < (DETOURS_EIP_TYPE)((ULONG_PTR)o->pTrampoline
                                                              + sizeof(*o->pTrampoline))
@@ -2017,7 +2046,10 @@ typedef ULONG_PTR DETOURS_EIP_TYPE;
                                                                    - (DETOURS_EIP_TYPE)(ULONG_PTR)
                                                                    o->pTrampoline)));
 
-                        NtSetContextThread(t->hThread, &cxt);
+                        status = NtSetContextThread(t->hThread, &cxt);
+
+                        if (!NT_SUCCESS(status))
+                            break;
                     }
                 }
                 else {
@@ -2033,11 +2065,20 @@ typedef ULONG_PTR DETOURS_EIP_TYPE;
                                                                - (DETOURS_EIP_TYPE)(ULONG_PTR)
                                                                o->pbTarget)));
 
-                        NtSetContextThread(t->hThread, &cxt);
+                        status = NtSetContextThread(t->hThread, &cxt);
+
+                        if (!NT_SUCCESS(status))
+                            break;
                     }
                 }
             }
         }
+
+        if (NT_SUCCESS(s_nPendingError) && !NT_SUCCESS(status))
+        {
+            s_nPendingError = status;
+        }
+
 #undef DETOURS_EIP
     }
 
@@ -2058,11 +2099,13 @@ typedef ULONG_PTR DETOURS_EIP_TYPE;
             &protection
             );
 
+#if defined(_M_ARM64)
         NtFlushInstructionCache(
             NtCurrentProcess(), 
             o->pbTarget, 
             o->pTrampoline->cbRestore
             );
+#endif
 
         if (o->fIsRemove && o->pTrampoline) 
         {

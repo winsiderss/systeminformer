@@ -5467,9 +5467,7 @@ BOOLEAN PhShellExecuteWin32(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *ShellExecuteExW_I)(
-        _Inout_ SHELLEXECUTEINFOW *pExecInfo
-        ) = NULL;
+    static __typeof__(&ShellExecuteExW) ShellExecuteExW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5502,8 +5500,10 @@ VOID PhShellExecute(
     _In_opt_ PCWSTR Parameters
     )
 {
-    SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+    SHELLEXECUTEINFO info;
 
+    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
+    info.cbSize = sizeof(SHELLEXECUTEINFO);
     info.lpFile = FileName;
     info.lpParameters = Parameters;
     info.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
@@ -5685,10 +5685,7 @@ BOOLEAN PhShellNotifyIcon(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *Shell_NotifyIconW_I)(
-        _In_ ULONG dwMessage,
-        _In_ PNOTIFYICONDATAW Data
-        ) = NULL;
+    static __typeof__(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5716,12 +5713,7 @@ HRESULT PhShellGetKnownFolderPath(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *SHGetKnownFolderPath_I)(
-        _In_ REFKNOWNFOLDERID rfid,
-        _In_ ULONG dwFlags, // KNOWN_FOLDER_FLAG
-        _In_opt_ HANDLE hToken,
-        _Outptr_ PWSTR* ppszPath // CoTaskMemFree
-        ) = NULL;
+    static __typeof__(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5750,13 +5742,7 @@ HRESULT PhShellGetKnownFolderItem(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *SHGetKnownFolderItem_I)(
-        _In_ REFKNOWNFOLDERID rfid,
-        _In_ ULONG flags, // KNOWN_FOLDER_FLAG
-        _In_opt_ HANDLE hToken,
-        _In_ REFIID riid,
-        _Outptr_ void** ppv
-        ) = NULL;
+    static __typeof__(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {

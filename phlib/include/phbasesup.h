@@ -380,6 +380,17 @@ PhFreeVirtualMemory(
     _In_ ULONG FreeType
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhProtectVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG NewProtection,
+    _Out_opt_ PULONG OldProtection
+    );
+
 FORCEINLINE
 PVOID
 PhAllocateCopy(

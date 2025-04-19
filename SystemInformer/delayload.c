@@ -34,10 +34,10 @@ VOID PhDelayLoadImportAcquire(
     {
         NTSTATUS status;
 
-        if (!NT_SUCCESS(status = NtProtectVirtualMemory(
+        if (!NT_SUCCESS(status = PhProtectVirtualMemory(
             NtCurrentProcess(),
-            &ImportDirectorySectionAddress,
-            &ImportDirectorySectionSize,
+            ImportDirectorySectionAddress,
+            ImportDirectorySectionSize,
             PAGE_READWRITE,
             &PhDelayLoadOldProtection
             )))
@@ -60,10 +60,10 @@ VOID PhDelayLoadImportRelease(
     if (PhDelayLoadLockCount == 0)
     {
         ULONG importSectionOldProtection;
-        NtProtectVirtualMemory(
+        PhProtectVirtualMemory(
             NtCurrentProcess(),
-            &ImportDirectorySectionAddress,
-            &ImportDirectorySectionSize,
+            ImportDirectorySectionAddress,
+            ImportDirectorySectionSize,
             PhDelayLoadOldProtection,
             &importSectionOldProtection
             );

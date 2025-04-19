@@ -102,7 +102,7 @@ INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                     HANDLE processHandle;
                     ULONG64 protect;
 
-                    PhStringToInteger64(&PhaGetDlgItemText(hwndDlg, IDC_VALUE)->sr, 0, &protect);
+                    PhStringToUInt64(&PhaGetDlgItemText(hwndDlg, IDC_VALUE)->sr, 0, &protect);
 
                     if (NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,
@@ -117,16 +117,18 @@ INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                         baseAddress = context->MemoryItem->BaseAddress;
                         regionSize = context->MemoryItem->RegionSize;
 
-                        status = NtProtectVirtualMemory(
+                        status = PhProtectVirtualMemory(
                             processHandle,
-                            &baseAddress,
-                            &regionSize,
+                            baseAddress,
+                            regionSize,
                             (ULONG)protect,
                             &oldProtect
                             );
 
                         if (NT_SUCCESS(status))
                             context->MemoryItem->Protect = (ULONG)protect;
+
+                        NtClose(processHandle);
                     }
 
                     if (NT_SUCCESS(status))

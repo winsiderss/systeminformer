@@ -1120,7 +1120,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     if (WindowsVersion >= WINDOWS_8)
     {
         moduleInfo.ParentBaseAddress = Module->ParentDllBase;
-        moduleInfo.OriginalBaseAddress = (PVOID)Module->OriginalBase;
+        moduleInfo.OriginalBaseAddress = Module->OriginalBase;
         moduleInfo.LoadReason = (USHORT)Module->LoadReason;
         moduleInfo.LoadTime = Module->LoadTime;
     }
@@ -1186,13 +1186,13 @@ VOID PhpRtlModulesToGenericModules(
             // We only have the file name, without a path. The driver must be in the default drivers
             // directory.
             PhGetNtSystemRoot(&systemRoot);
-            moduleInfo.Name = PhConvertUtf8ToUtf16(module->FullPathName);
+            moduleInfo.Name = PhConvertUtf8ToUtf16((PSTR)module->FullPathName);
             moduleInfo.FileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);
         }
         else
         {
-            moduleInfo.Name = PhConvertUtf8ToUtf16(&module->FullPathName[module->OffsetToFileName]);
-            moduleInfo.FileName = PhConvertUtf8ToUtf16((PCSTR)module->FullPathName);
+            moduleInfo.Name = PhConvertUtf8ToUtf16((PSTR)&module->FullPathName[module->OffsetToFileName]);
+            moduleInfo.FileName = PhConvertUtf8ToUtf16((PSTR)module->FullPathName);
         }
 
         result = Callback(&moduleInfo, Context);
@@ -1254,7 +1254,7 @@ VOID PhpRtlModulesExToGenericModules(
         }
         else
         {
-            moduleInfo.Name = PhConvertUtf8ToUtf16(&module->FullPathName[module->OffsetToFileName]);
+            moduleInfo.Name = PhConvertUtf8ToUtf16((PSTR)&module->FullPathName[module->OffsetToFileName]);
             moduleInfo.FileName = PhConvertUtf8ToUtf16((PSTR)module->FullPathName);
         }
 
