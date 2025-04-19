@@ -261,7 +261,7 @@ VOID PhInitializeWindowThemeEx(
     _In_ HWND WindowHandle
     )
 {
-    static PH_STRINGREF keyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+    static CONST PH_STRINGREF keyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
     HANDLE keyHandle;
     BOOLEAN enableThemeSupport = FALSE;
 
@@ -1075,7 +1075,7 @@ BOOLEAN PhThemeWindowDrawItem(
 
             if (isChecked)
             {
-                static PH_STRINGREF menuCheckText = PH_STRINGREF_INIT(L"\u2713");
+                static CONST PH_STRINGREF menuCheckText = PH_STRINGREF_INIT(L"\u2713");
                 COLORREF oldTextColor;
 
                 //HFONT marlettFontHandle = CreateFont(

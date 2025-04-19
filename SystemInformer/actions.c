@@ -296,7 +296,7 @@ BOOLEAN PhpStartPhSvcProcess(
         break;
     case Wow64PhSvcMode:
         {
-            static PH_STRINGREF relativeFileNames[] =
+            static CONST PH_STRINGREF relativeFileNames[] =
             {
                 PH_STRINGREF_INIT(L"\\x86\\"),
 #ifdef DEBUG

@@ -154,8 +154,8 @@ HRESULT PhpWmiProviderExecMethod(
     _In_ PPH_WMI_ENTRY Entry
     )
 {
-    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
-    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
+    static CONST PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static CONST PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
@@ -304,7 +304,7 @@ HRESULT PhpQueryWmiProviderFileName(
     _Out_ PPH_STRING *FileName
     )
 {
-    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
+    static CONST PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PPH_STRING fileName = NULL;
     PPH_STRING clsidString = NULL;
@@ -457,8 +457,8 @@ HRESULT PhpQueryWmiProviderHostProcess(
     _Out_ PPH_LIST* ProviderList
     )
 {
-    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
-    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
+    static CONST PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static CONST PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PPH_LIST providerList = NULL;
     PPH_STRING querySelectString = NULL;
@@ -587,7 +587,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     _In_ PPH_WMI_ENTRY Entry
     )
 {
-    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static CONST PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
     HRESULT status;
     PPH_STRING wbemProviderString = NULL;
     BSTR wbemResourceString = NULL;
@@ -861,7 +861,7 @@ PPH_STRING PhpQueryWmiDefaultNamespace(
     VOID
     )
 {
-    static PH_STRINGREF wbemKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Wbem\\Scripting");
+    static CONST PH_STRINGREF wbemKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Wbem\\Scripting");
     PPH_STRING defaultNameSpace = NULL;
     HANDLE keyHandle;
 

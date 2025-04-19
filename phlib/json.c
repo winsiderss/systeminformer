@@ -463,7 +463,7 @@ NTSTATUS PhSaveJsonObjectToFile(
     _In_opt_ ULONG Flags
     )
 {
-    static PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
+    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".backup");
     NTSTATUS status;
     ULONG json_flags = 0;
     HANDLE fileHandle = NULL;

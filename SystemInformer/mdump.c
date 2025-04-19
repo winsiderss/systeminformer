@@ -360,7 +360,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         break;
     case WriteKernelMinidumpCallback:
         {
-            static PH_STRINGREF kernelDumpFileExt = PH_STRINGREF_INIT(L".kernel.dmp");
+            static CONST PH_STRINGREF kernelDumpFileExt = PH_STRINGREF_INIT(L".kernel.dmp");
             HANDLE kernelDumpFileHandle;
             PPH_STRING kernelDumpFileName;
 

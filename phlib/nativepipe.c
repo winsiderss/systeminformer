@@ -851,7 +851,7 @@ NTSTATUS PhEnumDirectoryNamedPipe(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    static CONST PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
     HANDLE objectHandle;
     NTSTATUS status;
 

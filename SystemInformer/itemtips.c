@@ -501,8 +501,8 @@ VOID PhpFillUmdfDrivers(
     _Inout_ PPH_STRING_BUILDER Drivers
     )
 {
-    static PH_STRINGREF activeDevices = PH_STRINGREF_INIT(L"ACTIVE_DEVICES");
-    static PH_STRINGREF currentControlSetEnum = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
+    static CONST PH_STRINGREF activeDevices = PH_STRINGREF_INIT(L"ACTIVE_DEVICES");
+    static CONST PH_STRINGREF currentControlSetEnum = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
 
     HANDLE processHandle;
     ULONG flags = 0;

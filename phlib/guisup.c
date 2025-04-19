@@ -1530,7 +1530,7 @@ VOID PhGetStockApplicationIcon(
         }
         else
         {
-            static PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\imageres.dll");
+            static CONST PH_STRINGREF imageFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\imageres.dll");
 
             PhExtractIconEx(
                 &imageFileName,

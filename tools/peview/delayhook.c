@@ -2122,7 +2122,7 @@ BOOLEAN PhIsThemeTransparencyEnabled(
     VOID
     )
 {
-    static PH_STRINGREF themesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+    static CONST PH_STRINGREF themesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
     BOOLEAN themesEnableTransparency = FALSE;
     HANDLE keyHandle;
 

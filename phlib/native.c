@@ -6986,7 +6986,7 @@ PPH_STRING PhDosPathNameToNtPathName(
 
         if (prefix.Length != 0)
         {
-            static PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
+            static CONST PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
 
             // \\SystemRoot\\Name -> \\Device\\HardDiskVolumeX\\Windows\\Name
             newName = PhCreateStringEx(NULL, prefix.Length + Name->Length + systemRoot.Length - sizeof(L"SystemRoot"));
@@ -7495,7 +7495,7 @@ NTSTATUS PhLoadAppKey(
     if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
         goto CleanupExit;
 #else
-    static PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
+    static CONST PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
     PPH_STRING guidString;
 
     if (!(guidString = PhFormatGuid(&guid)))

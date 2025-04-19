@@ -1164,7 +1164,7 @@ NTSTATUS PhpGetBestObjectName(
             {
                 if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
                 {
-                    static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
+                    static CONST PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
 
                     PhMoveReference(&bestObjectName, PhConcatStringRef2(&prefix, &driverName->sr));
                     PhDereferenceObject(driverName);

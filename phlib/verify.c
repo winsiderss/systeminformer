@@ -934,7 +934,7 @@ PH_STRINGREF PhVerifyResultToStringRef(
     _In_ VERIFY_RESULT Result
     )
 {
-    static PH_STRINGREF Results[] =
+    static CONST PH_STRINGREF Results[] =
     {
         { 0, NULL },
         PH_STRINGREF_INIT(L"No signature"),

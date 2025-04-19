@@ -565,7 +565,7 @@ BOOLEAN PhDoesOldKsiExist(
     VOID
     )
 {
-    static PH_STRINGREF ksiOld = PH_STRINGREF_INIT(L"ksi.dll-old");
+    static CONST PH_STRINGREF ksiOld = PH_STRINGREF_INIT(L"ksi.dll-old");
     BOOLEAN result = FALSE;
     PPH_STRING applicationDirectory;
     PPH_STRING fileName;

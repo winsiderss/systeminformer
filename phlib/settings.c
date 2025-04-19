@@ -859,7 +859,7 @@ NTSTATUS PhLoadSettingsKey(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
     NTSTATUS status;
     HANDLE keyHandle;
 
@@ -894,7 +894,7 @@ NTSTATUS PhSaveSettingsKey(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
     NTSTATUS status;
     HANDLE keyHandle;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;

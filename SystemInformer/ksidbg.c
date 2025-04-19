@@ -19,9 +19,8 @@
 
 #ifdef DEBUG
 
-typedef
-PPH_STRING
-KSI_DEBUG_LOG_GET_LOG_STRING(
+typedef _Function_class_(KSI_DEBUG_LOG_GET_LOG_STRING)
+PPH_STRING KSI_DEBUG_LOG_GET_LOG_STRING(
     _In_ PCKPH_MESSAGE Message
     );
 typedef KSI_DEBUG_LOG_GET_LOG_STRING* PKSI_DEBUG_LOG_GET_LOG_STRING;
@@ -35,12 +34,12 @@ typedef struct _KSI_DEBUG_LOG_DEF
 static BOOLEAN KsiDebugLogEnabled = FALSE;
 static PH_FAST_LOCK KsiDebugLogFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugLogFileStream = NULL;
-static PH_STRINGREF KsiDebugLogSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.log");
+static CONST PH_STRINGREF KsiDebugLogSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.log");
 
 static BOOLEAN KsiDebugRawEnabled = FALSE;
 static PH_FAST_LOCK KsiDebugRawFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugRawFileStream = NULL;
-static PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
+static CONST PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
 
 static PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
 static PH_CALLBACK_REGISTRATION KsiDebugMessageRegistration = { 0 };

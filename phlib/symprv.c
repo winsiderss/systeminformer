@@ -1310,7 +1310,7 @@ VOID PhLoadSymbolProviderModules(
 
     // Load symbols for ntdll.dll and kernel32.dll.
     {
-        static PH_STRINGREF fileNames[] =
+        static CONST PH_STRINGREF fileNames[] =
         {
             PH_STRINGREF_INIT(L"ntdll.dll"),
             PH_STRINGREF_INIT(L"kernel32.dll"),
@@ -1385,7 +1385,7 @@ VOID PhLoadModulesForVirtualSymbolProvider(
 
     // Load symbols for ntdll.dll and kernel32.dll (dmex)
     {
-        static PH_STRINGREF fileNames[] =
+        static CONST PH_STRINGREF fileNames[] =
         {
             PH_STRINGREF_INIT(L"ntdll.dll"),
             PH_STRINGREF_INIT(L"kernel32.dll"),

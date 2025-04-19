@@ -35,7 +35,7 @@ extern ULONG PhMaxSizeUnit;
 #define PHP_FORMAT_PAD 0x4
 
 // Keep in sync with PhSizeUnitNames
-static PH_STRINGREF PhpSizeUnitNamesCounted[7] =
+static CONST PH_STRINGREF PhpSizeUnitNamesCounted[7] =
 {
     PH_STRINGREF_INIT(L"B"),
     PH_STRINGREF_INIT(L"kB"),

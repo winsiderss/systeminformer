@@ -603,7 +603,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         {
             // dllhost.exe /processid:<Guid>
 
-            static PH_STRINGREF inprocServer32Name = PH_STRINGREF_INIT(L"InprocServer32");
+            static CONST PH_STRINGREF inprocServer32Name = PH_STRINGREF_INIT(L"InprocServer32");
 
             SIZE_T i;
             ULONG_PTR indexOfProcessId;
@@ -793,7 +793,7 @@ VOID PhShellExecuteUserString(
     _In_opt_ PCWSTR ErrorMessage
     )
 {
-    static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
+    static CONST PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
     PPH_STRING applicationDirectory;
     PPH_STRING executeString;
     PH_STRINGREF stringBefore;
@@ -816,8 +816,8 @@ VOID PhShellExecuteUserString(
     // here because the string may be a URL. (dmex)
     if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
-        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-        static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
         PPH_LIST stringArgList;
         PPH_STRING fileName = NULL;
         PPH_STRING fileArgs = NULL;
@@ -956,7 +956,7 @@ VOID PhLoadSymbolProviderOptions(
     _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
-    static PH_STRINGREF symbolPath = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+    static CONST PH_STRINGREF symbolPath = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
     PPH_STRING searchPath = NULL;
 
     PhSetOptionsSymbolProvider(
@@ -2288,7 +2288,7 @@ VOID PhShellOpenKey(
     _In_ PPH_STRING KeyName
     )
 {
-    static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+    static CONST PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
     NTSTATUS status;
     HANDLE regeditKeyHandle;
     PPH_STRING lastKey;
@@ -2374,7 +2374,7 @@ BOOLEAN PhShellOpenKey2(
     _In_ PPH_STRING KeyName
     )
 {
-    static PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
+    static CONST PH_STRINGREF favoritesKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit\\Favorites");
     BOOLEAN result = FALSE;
     HWND regeditWindow;
     HANDLE favoritesKeyHandle;

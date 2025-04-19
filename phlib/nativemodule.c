@@ -162,7 +162,7 @@ PPH_STRING PhGetKernelFileName2(
 {
     if (WindowsVersion >= WINDOWS_10)
     {
-        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+        static CONST PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
 
         return PhCreateString2(&kernelFileName);
     }
@@ -1180,7 +1180,7 @@ VOID PhpRtlModulesToGenericModules(
 
         if (module->OffsetToFileName == 0)
         {
-            static PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
+            static CONST PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
             PH_STRINGREF systemRoot;
 
             // We only have the file name, without a path. The driver must be in the default drivers
@@ -1243,7 +1243,7 @@ VOID PhpRtlModulesExToGenericModules(
 
         if (module->OffsetToFileName == 0)
         {
-            static PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
+            static CONST PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
             PH_STRINGREF systemRoot;
 
             // We only have the file name, without a path. The driver must be in the default drivers
