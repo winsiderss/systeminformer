@@ -445,8 +445,11 @@ static NTSTATUS PresentMonTraceThread(
     _In_ PVOID ThreadParameter
     )
 {
-    ULONG result;
+    ULONG result = 0;
     TRACEHANDLE traceHandle = reinterpret_cast<TRACEHANDLE>(ThreadParameter);
+
+    PhSetThreadName(NtCurrentThread(), L"FpsEtwConsumerThread");
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
     while (TRUE)
     {
@@ -478,7 +481,6 @@ VOID StartConsumerThread(
 
         if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(TraceHandle))))
         {
-            PhSetThreadName(threadHandle, L"FpsEtwConsumerThread");
             NtClose(threadHandle);
         }
 
