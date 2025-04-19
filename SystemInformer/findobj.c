@@ -1251,7 +1251,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

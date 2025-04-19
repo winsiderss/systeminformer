@@ -859,7 +859,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1309,7 +1309,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
                         {
-                            PhShowError2(hwndDlg, L"The window does not exist.", L"%s", L"");
+                            //PhShowError2(hwndDlg, L"The window does not exist.", L"%s", L"");
                         }
                     }
                 }
@@ -1413,6 +1413,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     //    break;
     case WE_WM_FINDWINDOW:
         {
+            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, BN_CLICKED), 0);
+
             // Direct all mouse events to this window.
             SetCapture(hwndDlg);
 
@@ -1629,7 +1631,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
             WepRefreshWindows(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2023,7 +2025,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
                         {
-                            PhShowError2(hwndDlg, L"The window does not exist.", L"%s", L"");
+                            //PhShowError2(hwndDlg, L"The window does not exist.", L"%s", L"");
                         }
                     }
                 }
@@ -2119,6 +2121,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
         break;
     case WE_WM_FINDWINDOW:
         {
+            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, BN_CLICKED), 0);
+
             // Direct all mouse events to this window.
             SetCapture(hwndDlg);
 

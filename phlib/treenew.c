@@ -5492,7 +5492,11 @@ VOID PhTnpPaint(
             RECT tempRect;
             BLENDFUNCTION blendFunction;
 
-            SetTextColor(hdc, PhThemeWindowTextColor);
+            // Fix ForeColor for theme, previously it was always white. Plus 90-100 brightness adjustments seems fine for good contrast. (Dart Vanya)
+            SetTextColor(hdc,
+                !node->UseAutoForeColor && node->s.DrawForeColor != 0 ?
+                PhMakeColorBrighter(node->s.DrawForeColor, node->s.DrawBackColor == 16777215 ? 95 : 105) :
+                PhThemeWindowTextColor);
             SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
             FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
 

@@ -26,7 +26,9 @@ static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 
 HWND EtObjectManagerDialogHandle = NULL;
+LARGE_INTEGER EtObjectManagerTimeCached = { 0 };
 PPH_LIST EtObjectManagerOwnHandles = NULL;
+PPH_HASHTABLE EtObjectManagerPropWindows = NULL;
 HICON EtObjectManagerPropIcon = NULL;
 BOOLEAN EtObjectManagerShowHandlesPage = FALSE;
 
@@ -54,6 +56,11 @@ static PPH_STRING ObjectAbandonedString = NULL;
 #define ETOBLVC_TYPE 1
 #define ETOBLVC_TARGET 2
 #define ETOBLVC_OBJECT 3
+
+// StatusBar parts
+#define ETOBSBP_TOTAL 1
+#define ETOBSBP_VISIBLE 3
+#define ETOBSBP_HANDLES 5
 
 typedef enum _ET_OBJECT_TYPE
 {
@@ -87,6 +94,7 @@ typedef struct _ET_OBJECT_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
+    IListView* ListViewClass;
     HWND TreeViewHandle;
     HWND SearchBoxHandle;
     HWND PathControlHandle;
@@ -101,10 +109,10 @@ typedef struct _ET_OBJECT_CONTEXT
     HIMAGELIST ListImageList;
 
     PPH_STRING CurrentPath;
-    volatile PPH_LIST CurrentDirectoryList;
+    PPH_LIST CurrentDirectoryList;
     BOOLEAN DisableSelChanged;
 
-    PBOOLEAN BreakResolverThread;
+    volatile PBOOLEAN BreakResolverThread;
 
     BOOLEAN UseAddressColumn;
 } ET_OBJECT_CONTEXT, * PET_OBJECT_CONTEXT;
@@ -190,7 +198,7 @@ VOID NTAPI EtpObjectManagerChangeSelection(
 
 VOID NTAPI EtpObjectManagerSortAndSelectOld(
     _In_ PET_OBJECT_CONTEXT context,
-    _In_opt_ PPH_STRING oldSelection
+    _In_opt_ PET_OBJECT_ENTRY OldSelection
     );
 
 VOID NTAPI EtpObjectManagerSearchControlCallback(
@@ -210,12 +218,17 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     ObjectContext.Object = &entry_##ObjectContext; \
     ObjectContext.FullName = NULL; \
 
-
 #define ET_CREATE_DIRECTORY_OBJECT_ENTRY(DirectoryName, ObjectContext, Entry) \
     ET_OBJECT_ENTRY Entry = { 0 }; \
     Entry.Name = directory; \
     Entry.EtObjectType = EtObjectDirectory; \
     Entry.Context = ObjectContext; \
+
+#define ET_CREATE_OBJECT_CONTEXT(ObjectContext, Path, Entry) \
+    ET_HANDLE_OPEN_CONTEXT ObjectContext; \
+    ObjectContext.CurrentPath = Path; \
+    ObjectContext.Object = Entry; \
+    ObjectContext.FullName = NULL; \
 
 _Success_(return)
 BOOLEAN PhGetTreeViewItemParam(
@@ -453,15 +466,15 @@ VOID EtInitializeListImages(
         );
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_FOLDER), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
@@ -535,10 +548,12 @@ VOID EtInitializeListImages(
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_CALLBACK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
     index = PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
+
+    assert(index + 1 == EtObjectMax);
 }
 
 static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
-    _In_ HANDLE RootDirectory,
+    _In_opt_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF Name,
     _In_ PCPH_STRINGREF TypeName,
     _In_ PET_DIRECTORY_ENUM_CONTEXT Context
@@ -800,7 +815,7 @@ NTSTATUS EtpTargetResolverThreadStart(
 
         if (status != STATUS_ABANDONED)
         {
-            entry->ItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);    // need to update index
+            entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, entry);    // need to update index
             PhQueueItemWorkQueue(&workQueue, EtpTargetResolverWorkThreadStart, entry);
         }
         else
@@ -827,9 +842,14 @@ NTSTATUS EtpTargetResolverThreadStart(
             {
                 ExtendedListView_SortItems(context->ListViewHandle);
 
-                INT index = ListView_GetNextItem(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
-                if (index != INT_ERROR)
-                    ListView_EnsureVisible(context->ListViewHandle, index, TRUE);
+                LVITEMINDEX start = { INT_ERROR, 0 };
+                LVITEMINDEX item = { INT_ERROR, 0 };
+                IListView_GetNextItem(context->ListViewClass, start, LVNI_SELECTED, &item);
+                if (item.iItem != INT_ERROR)
+                {
+                    //IListView_EnsureItemVisible(context->ListViewClass, item, FALSE);
+                    ListView_EnsureVisible(context->ListViewHandle, item.iItem, FALSE);
+                }  
             }
         }
         if (curentFilter)
@@ -853,15 +873,12 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
     PET_OBJECT_ENTRY entry = Parameter;
 
     NTSTATUS status;
-    ET_HANDLE_OPEN_CONTEXT objectContext;
     HANDLE objectHandle = NULL;
     HANDLE processId = NtCurrentProcessId();
     HANDLE processHandle = NtCurrentProcess();
     BOOLEAN alpcSourceOpened = FALSE;
 
-    objectContext.CurrentPath = entry->BaseDirectory;
-    objectContext.Object = entry;
-    objectContext.FullName = NULL;
+    ET_CREATE_OBJECT_CONTEXT(objectContext, entry->BaseDirectory, entry);
 
     switch (entry->EtObjectType)
     {
@@ -1275,8 +1292,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                         if (winStationInfo.Domain[0] == UNICODE_NULL || winStationInfo.UserName[0] == UNICODE_NULL)
                         {
                             entry->Target = PhFormatString(L"%s (%s)", winStationInfo.WinStationName, EtMapSessionConnectState(winStationInfo.ConnectState));
-                        }
-
+                        }                            
                         else
                         {
                             entry->Target = PhFormatString(
@@ -1348,6 +1364,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
 
     // Target was successfully resolved, redraw list entry
     entry->TargetIsResolving = FALSE;
+    //IListView_RedrawItems(entry->Context->ListViewClass, entry->ItemIndex, entry->ItemIndex);
     ListView_RedrawItems(entry->Context->ListViewHandle, entry->ItemIndex, entry->ItemIndex);
 
     PhDereferenceObject(entry);
@@ -1376,6 +1393,19 @@ NTSTATUS EtpObjectManagerStartResolver(
     return PhCreateThread2(EtpTargetResolverThreadStart, threadContext);
 }
 
+VOID StatusBarUpdate(
+    _In_ PET_OBJECT_CONTEXT Context
+    )
+{
+    WCHAR string[PH_INT32_STR_LEN_1];
+    LONG count;
+    PhPrintUInt32(string, Context->CurrentDirectoryList->Count);
+    SendMessage(Context->StatusBarHandle, SB_SETTEXT, ETOBSBP_TOTAL, (LPARAM)string);
+    IListView_GetItemCount(Context->ListViewClass, &count);
+    PhPrintUInt32(string, count);
+    SendMessage(Context->StatusBarHandle, SB_SETTEXT, ETOBSBP_VISIBLE, (LPARAM)string);
+}
+
 NTSTATUS EtEnumCurrentDirectoryObjects(
     _In_ PET_OBJECT_CONTEXT Context
     )
@@ -1384,7 +1414,6 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     HANDLE directoryHandle;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
-    WCHAR string[PH_INT32_STR_LEN_1];
 
     PhMoveReference(&Context->CurrentPath, EtGetSelectedTreeViewPath(Context));
 
@@ -1409,8 +1438,7 @@ NTSTATUS EtEnumCurrentDirectoryObjects(
     PhSetWindowText(Context->PathControlHandle, PhGetString(Context->CurrentPath));
     Edit_SetSel(Context->PathControlEdit, -2, -1);
 
-    PhPrintUInt32(string, ListView_GetItemCount(Context->ListViewHandle));
-    PhSetWindowText(Context->StatusBarHandle, PH_AUTO_T(PH_STRING, PhFormatString(L"Objects in current directory: %s", string))->Buffer);
+    StatusBarUpdate(Context);
 
     // Apply current filter and sort
     PPH_STRING curentFilter = PH_AUTO(PhGetWindowText(Context->SearchBoxHandle));
@@ -1443,10 +1471,7 @@ VOID EtObjectManagerFreeListViewItems(
 
     PhClearReference(&Context->CurrentPath);
 
-    for (ULONG i = 0; i < Context->CurrentDirectoryList->Count; i++)
-    {
-        PhDereferenceObject(Context->CurrentDirectoryList->Items[i]);
-    }
+    PhDereferenceObjects(Context->CurrentDirectoryList->Items, Context->CurrentDirectoryList->Count);
 
     //INT index = INT_ERROR;
     //while ((index = PhFindListViewItemByFlags(
@@ -1478,6 +1503,20 @@ NTSTATUS EtDuplicateHandleFromProcessEx(
     HANDLE processHandle;
 
     *Handle = NULL;
+
+    if (!ProcessHandle && ProcessId == NtCurrentProcessId())
+    {
+        return NtDuplicateObject(
+            NtCurrentProcess(),
+            SourceHandle,
+            NtCurrentProcess(),
+            Handle,
+            DesiredAccess,
+            0,
+            0
+            );
+    }
+
     processHandle = ProcessHandle;
 
     if (ProcessHandle ||
@@ -1870,7 +1909,7 @@ NTSTATUS EtObjectManagerOpenRealObject(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING fullName;
     ULONG targetIndex;
-    ULONG i;
+    ULONG_PTR i;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
     PVOID* processHandlePtr;
@@ -2002,14 +2041,16 @@ NTSTATUS EtObjectManagerOpenRealObject(
             }
         }
 
-        i = 0;
-        while (PhEnumHashtable(processHandleHashtable, &procEntry, &i))
         {
-            status = NtClose(procEntry->Value);
-
-            if (!NT_SUCCESS(status))
+            ULONG j = 0;
+            while (PhEnumHashtable(processHandleHashtable, &procEntry, &j))
             {
-                PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
+                NTSTATUS status = NtClose(procEntry->Value);
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(NULL, L"Unidentified third party object.", status, 0);
+                }
             }
         }
 
@@ -2217,7 +2258,6 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     NTSTATUS status;
     NTSTATUS subStatus = STATUS_UNSUCCESSFUL;
     HANDLE objectHandle = NULL;
-    ET_HANDLE_OPEN_CONTEXT objectContext;
     PPH_HANDLE_ITEM handleItem;
     HANDLE processId = NtCurrentProcessId();
     HANDLE processHandle = NtCurrentProcess();
@@ -2228,9 +2268,27 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     else
         objectName = EtGetObjectFullPath(Entry->BaseDirectory, Entry->Name);
 
-    objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = PhReferenceObject(Entry);
-    objectContext.FullName = NULL;
+    if (!!PhGetIntegerSetting(L"ForceNoParent"))
+    {
+        PPH_KEY_VALUE_PAIR entry;
+        ULONG i = 0;
+
+        while (PhEnumHashtable(EtObjectManagerPropWindows, &entry, &i))
+        {
+            if (PhEqualString(objectName, ((PPH_HANDLE_ITEM)entry->Value)->ObjectName, TRUE))   // HACK: activate already opened window for this object if any
+            {
+                FLASHWINFO fi = {sizeof(FLASHWINFO), entry->Key, FLASHW_CAPTION, 7, GetCaretBlinkTime() / 8};
+                ShowWindow(entry->Key, SW_SHOW);
+                SetForegroundWindow(entry->Key);
+                FlashWindowEx(&fi);
+
+                PhDereferenceObject(objectName);
+                return;
+            }
+        }
+    }
+
+    ET_CREATE_OBJECT_CONTEXT(objectContext, PhReferenceObject(context->CurrentPath), Entry);
 
     if (Entry->EtObjectType == EtObjectDirectory)
         objectContext.Object->TypeName = PhCreateString2(&DirectoryObjectType);
@@ -2251,6 +2309,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     handleItem = PhCreateHandleItem(NULL);
     handleItem->Handle = objectHandle;
     handleItem->TypeIndex = ULONG_MAX;
+    EtObjectManagerTimeCached.QuadPart = 0;
 
     switch (Entry->EtObjectType)
     {
@@ -2290,6 +2349,12 @@ VOID NTAPI EtpObjectManagerObjectProperties(
                 &handleItem->Attributes
                 );
 
+            // Show only real source object address
+            if (status == STATUS_NOT_ALL_ASSIGNED)
+            {
+                handleItem->Object = 0;
+            }
+
             if (NT_SUCCESS(status = PhGetHandleInformation(
                 processHandle,
                 objectHandle,
@@ -2305,6 +2370,7 @@ VOID NTAPI EtpObjectManagerObjectProperties(
                 {
                     handleItem->Attributes = basicInfo.Attributes;
                 }
+                EtObjectManagerTimeCached = basicInfo.CreationTime; // all symbolic links has valid creation time (Dart Vanya)
             }
 
             if (processHandle != NtCurrentProcess())
@@ -2328,7 +2394,16 @@ VOID NTAPI EtpObjectManagerObjectProperties(
     // Object Manager plugin window
     PhShowHandlePropertiesEx(context->WindowHandle, processId, handleItem, PluginInstance, PhGetString(Entry->TypeName));
 
-    PhDereferenceObject(Entry);
+    // Update the object address for items skipped by resolver
+    Entry->Object = handleItem->Object;
+    if (Entry->Object)  PhPrintPointer(Entry->ObjectString, Entry->Object);
+    else                Entry->ObjectString[0] = UNICODE_NULL;
+    if (Entry->Context->UseAddressColumn)
+    {
+        Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
+        IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
+    }
+
     PhDereferenceObject(objectContext.CurrentPath);
 }
 
@@ -2349,16 +2424,18 @@ BOOLEAN EtListViewFindAndSelectItem(
     LVFINDINFO findinfo;
     findinfo.psz = PH_AUTO_T(PH_STRING, PhCreateString2(Name))->Buffer;
     findinfo.flags = LVFI_STRING;
+    LVITEMINDEX start = { INT_ERROR, 0 };
+    LVITEMINDEX item = { INT_ERROR, 0 };
 
-    INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
+    IListView_FindItem(Context->ListViewClass, start, &findinfo, &item);
 
     // Navigate to target object
-    if (item != INT_ERROR)
+    if (item.iItem != INT_ERROR)
     {
-        ListView_SetItemState(Context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-        ListView_EnsureVisible(Context->ListViewHandle, item, TRUE);
+        IListView_SetItemState(Context->ListViewClass, item.iItem, 0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+        IListView_EnsureItemVisible(Context->ListViewClass, item, FALSE);
     }
-    return item != INT_ERROR;
+    return item.iItem != INT_ERROR;
 }
 
 BOOLEAN NTAPI EtpObjectManagerOpenTarget(
@@ -2377,7 +2454,7 @@ BOOLEAN NTAPI EtpObjectManagerOpenTarget(
 
     remainingPart = PhGetStringRef(PhReferenceObject(Target));
     Context->SelectedTreeItem = Context->RootTreeObject;
-    ListView_SetItemState(Context->ListViewHandle, -1, 0, LVIS_SELECTED);
+    IListView_SetItemState(Context->ListViewClass, INT_ERROR, 0, LVIS_SELECTED, 0);
 
     PhSplitStringRefAtLastChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &pathPart, &namePart);
 
@@ -2479,23 +2556,19 @@ VOID NTAPI EtpObjectManagerRefresh(
     )
 {
     PPH_STRING currentPath = PhReferenceObject(Context->CurrentPath);
-    PPH_STRING oldSelect = NULL;
-    PET_OBJECT_ENTRY* listviewItems;
-    ULONG numberOfItems;
+    PET_OBJECT_ENTRY oldSelect = NULL;
     PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
     BOOLEAN reverseScan = FALSE;
 
+    if (oldSelect = PhGetSelectedIListViewItemParam(Context->ListViewClass))
+        PhReferenceObject(oldSelect);
+
     SendMessage(Context->TreeViewHandle, WM_SETREDRAW, FALSE, 0);
-
-    PhGetSelectedListViewItemParams(Context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
-        oldSelect = PhReferenceObject(listviewItems[0]->Name);
-
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
 
     EtObjectManagerFreeListViewItems(Context);
-    ListView_DeleteAllItems(Context->ListViewHandle);
+    IListView_DeleteAllItems(Context->ListViewClass);
     EtCleanupTreeViewItemParams(Context, Context->RootTreeObject);
     TreeView_DeleteAllItems(Context->TreeViewHandle);
 
@@ -2547,12 +2620,11 @@ start_scan:
     // Reapply old selection
     EtpObjectManagerSortAndSelectOld(Context, oldSelect);
 
+    SendMessage(Context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
     Context->DisableSelChanged = FALSE;
 
     PhDereferenceObject(currentPath);
-
-    SendMessage(Context->TreeViewHandle, WM_SETREDRAW, TRUE, 0);
 }
 
 VOID NTAPI EtpObjectManagerOpenSecurity(
@@ -2598,18 +2670,15 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
     )
 {
     PET_OBJECT_CONTEXT context = Context;
-    PET_OBJECT_ENTRY* listviewItems;
-    ULONG numberOfItems;
-    PPH_STRING oldSelect = NULL;
+    PET_OBJECT_ENTRY oldSelect = NULL;
 
     assert(context);
 
-    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
-        oldSelect = PhReferenceObject(listviewItems[0]->Name);
+    if (oldSelect = PhGetSelectedIListViewItemParam(context->ListViewClass))
+        PhReferenceObject(oldSelect);
 
     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
-    ListView_DeleteAllItems(context->ListViewHandle);
+    IListView_DeleteAllItems(context->ListViewClass);
 
     PPH_LIST Array = context->CurrentDirectoryList;
 
@@ -2624,8 +2693,8 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
             entry->Object && PhSearchControlMatchPointer(MatchHandle, entry->Object)
             )
         {
-            entry->ItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, LPSTR_TEXTCALLBACK, entry);
-            PhSetListViewItemImageIndex(context->ListViewHandle, entry->ItemIndex, entry->EtObjectType);
+            entry->ItemIndex = PhAddIListViewItem(context->ListViewClass, MAXINT, LPSTR_TEXTCALLBACK, entry);
+            PhSetIListViewItemImageIndex(context->ListViewClass, entry->ItemIndex, entry->EtObjectType);
         }
     }
 
@@ -2634,23 +2703,21 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
-        oldSelect = EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name);
+    PPH_STRING currentPath;
+    if (oldSelect = PhGetSelectedIListViewItemParam(context->ListViewClass))
+        currentPath = EtGetObjectFullPath(oldSelect->BaseDirectory, oldSelect->Name);
     else
-        oldSelect = PhReferenceObject(context->CurrentPath);
+        currentPath = PhReferenceObject(context->CurrentPath);
 
-    PhSetDialogItemText(context->WindowHandle, IDC_OBJMGR_PATH, PhGetString(oldSelect));
-    PhDereferenceObject(oldSelect);
+    PhSetWindowText(context->PathControlHandle, PhGetString(currentPath));
+    PhDereferenceObject(currentPath);
 
-    WCHAR string[PH_INT32_STR_LEN_1];
-    PhPrintUInt32(string, ListView_GetItemCount(context->ListViewHandle));
-    PhSetWindowText(context->StatusBarHandle, PH_AUTO_T(PH_STRING, PhFormatString(L"Objects in current directory: %s", string))->Buffer);
+    StatusBarUpdate(context);
 }
 
 VOID NTAPI EtpObjectManagerSortAndSelectOld(
     _In_ PET_OBJECT_CONTEXT Context,
-    _In_opt_ PPH_STRING OldSelection
+    _In_opt_ PET_OBJECT_ENTRY OldSelection
     )
 {
     ULONG sortColumn;
@@ -2664,15 +2731,17 @@ VOID NTAPI EtpObjectManagerSortAndSelectOld(
     if (OldSelection)
     {
         LVFINDINFO findinfo;
-        findinfo.psz = OldSelection->Buffer;
+        findinfo.psz = PhGetString(OldSelection->Name);
         findinfo.flags = LVFI_STRING;
+        LVITEMINDEX start = { INT_ERROR, 0 };
+        LVITEMINDEX item = { INT_ERROR, 0 };
 
-        INT item = ListView_FindItem(Context->ListViewHandle, INT_ERROR, &findinfo);
+        IListView_FindItem(Context->ListViewClass, start, &findinfo, &item);
 
-        if (item != INT_ERROR)
+        if (item.iItem != INT_ERROR)
         {
-            ListView_SetItemState(Context->ListViewHandle, item, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-            ListView_EnsureVisible(Context->ListViewHandle, item, TRUE);
+            IListView_SetItemState(Context->ListViewClass, item.iItem, 0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+            IListView_EnsureItemVisible(Context->ListViewClass, item, FALSE);
         }
 
         PhDereferenceObject(OldSelection);
@@ -2688,7 +2757,7 @@ VOID NTAPI EtpObjectManagerChangeSelection(
     if (!Context->DisableSelChanged)
         ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     EtObjectManagerFreeListViewItems(Context);
-    ListView_DeleteAllItems(Context->ListViewHandle);
+    IListView_DeleteAllItems(Context->ListViewClass);
 
     EtEnumCurrentDirectoryObjects(Context);
 
@@ -2707,7 +2776,6 @@ VOID EtpObjectManagerCopyObjectAddress(
     HANDLE objectHandle;
     HANDLE processId = NtCurrentProcessId();
     HANDLE processHandle = NtCurrentProcess();
-    ET_HANDLE_OPEN_CONTEXT objectContext;
 
     if (Entry->Object)
     {
@@ -2716,9 +2784,7 @@ VOID EtpObjectManagerCopyObjectAddress(
         return;
     }
 
-    objectContext.CurrentPath = PhReferenceObject(context->CurrentPath);
-    objectContext.Object = PhReferenceObject(Entry);
-    objectContext.FullName = NULL;
+    ET_CREATE_OBJECT_CONTEXT(objectContext, PhReferenceObject(context->CurrentPath), Entry);
 
     if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, &objectContext, READ_CONTROL, OBJECT_OPENSOURCE_ALL)) ||
         NT_SUCCESS(status = EtObjectManagerOpenRealObject(&objectHandle, &objectContext, 0, &processId)))
@@ -2746,7 +2812,11 @@ VOID EtpObjectManagerCopyObjectAddress(
             {
                 Entry->Object = objectAddress;
                 PhPrintPointer(Entry->ObjectString, objectAddress);
-                ListView_RedrawItems(Entry->Context->ListViewHandle, Entry->ItemIndex, Entry->ItemIndex);
+                if (Entry->Context->UseAddressColumn)
+                {
+                    Entry->ItemIndex = PhFindIListViewItemByParam(context->ListViewClass, INT_ERROR, Entry);
+                    IListView_RedrawItems(Entry->Context->ListViewClass, Entry->ItemIndex, Entry->ItemIndex);
+                }
                 PhInitializeStringRef(&pointer, Entry->ObjectString);
             }
         }
@@ -2757,7 +2827,6 @@ VOID EtpObjectManagerCopyObjectAddress(
 cleanup_exit:
     PhSetClipboardString(context->WindowHandle, &pointer);
 
-    PhDereferenceObject(Entry);
     PhDereferenceObject(objectContext.CurrentPath);
 }
 
@@ -2776,7 +2845,7 @@ VOID EtpObjectEntryDeleteProcedure(
     PhClearReference(&entry->BaseDirectory);
 }
 
-VOID EtpLoadComboBoxHistoryToSettings(
+VOID EtpLoadComboBoxHistoryFromSettings(
     _In_ PET_OBJECT_CONTEXT Context
     )
 {
@@ -2891,18 +2960,16 @@ INT_PTR CALLBACK WinObjDlgProc(
             context->ParentWindowHandle = (HWND)lParam;
             context->TreeViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_TREE);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_LIST);
+            context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_SEARCH);
             context->PathControlHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_PATH);
-
             if (GetComboBoxInfo(context->PathControlHandle, &info))
-            {
                 context->PathControlEdit = info.hwndItem;
-                SetWindowFont(context->PathControlHandle, GetWindowFont(hwndDlg), TRUE);
-            }
-
             context->CurrentDirectoryList = PhCreateList(100);
             if (!EtObjectManagerOwnHandles || !PhReferenceObjectSafe(EtObjectManagerOwnHandles))
                 EtObjectManagerOwnHandles = PhCreateList(10);
+            if (!EtObjectManagerPropWindows || !PhReferenceObjectSafe(EtObjectManagerPropWindows))
+                EtObjectManagerPropWindows = PhCreateSimpleHashtable(10);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -2918,13 +2985,13 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhSetListViewStyle(context->ListViewHandle, TRUE, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
-            ListView_SetImageList(context->ListViewHandle, context->ListImageList, LVSIL_SMALL);
-            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_NAME, ETOBLVC_NAME, ETOBLVC_NAME, LVCFMT_LEFT, 445, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_TYPE, ETOBLVC_TYPE, ETOBLVC_TYPE, LVCFMT_LEFT, 150, L"Type");
-            PhAddListViewColumn(context->ListViewHandle, ETOBLVC_TARGET, ETOBLVC_TARGET, ETOBLVC_TARGET, LVCFMT_LEFT, 200, L"Target");
+            IListView_SetImageList(context->ListViewClass, LVSIL_SMALL, context->ListImageList, NULL);
+            PhAddIListViewColumn(context->ListViewClass, ETOBLVC_NAME, ETOBLVC_NAME, ETOBLVC_NAME, LVCFMT_LEFT, 445, L"Name");
+            PhAddIListViewColumn(context->ListViewClass, ETOBLVC_TYPE, ETOBLVC_TYPE, ETOBLVC_TYPE, LVCFMT_LEFT, 150, L"Type");
+            PhAddIListViewColumn(context->ListViewClass, ETOBLVC_TARGET, ETOBLVC_TARGET, ETOBLVC_TARGET, LVCFMT_LEFT, 200, L"Target");
             context->UseAddressColumn = KsiLevel() >= KphLevelMed;
             if (context->UseAddressColumn)
-                PhAddListViewColumn(context->ListViewHandle, ETOBLVC_OBJECT, ETOBLVC_OBJECT, ETOBLVC_OBJECT, LVCFMT_LEFT, 120, L"Object address");
+                PhAddIListViewColumn(context->ListViewClass, ETOBLVC_OBJECT, ETOBLVC_OBJECT, ETOBLVC_OBJECT, LVCFMT_LEFT, 120, L"Object address");
             PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
 
             PH_INTEGER_PAIR sortSettings;
@@ -2964,11 +3031,18 @@ INT_PTR CALLBACK WinObjDlgProc(
                 0,
                 hwndDlg,
                 NULL,
-                NULL,
+                PluginInstance->DllBase,
                 NULL
                 );
 
             PhAddLayoutItem(&context->LayoutManager, context->StatusBarHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT | PH_LAYOUT_IMMEDIATE_RESIZE);
+
+            ULONG i;
+            ULONG widths[] = { i = 155, i += 40, i += 60, -1 };
+            SendMessage(context->StatusBarHandle, SB_SETPARTS, ARRAYSIZE(widths), (LPARAM)widths);
+            SendMessage(context->StatusBarHandle, SB_SETTEXT, ETOBSBP_TOTAL - 1, (LPARAM)L"Objects in current directory");
+            SendMessage(context->StatusBarHandle, SB_SETTEXT, ETOBSBP_VISIBLE - 1, (LPARAM)L"Visible");
+            //SendMessage(context->StatusBarHandle, SB_SETTEXT, ETOBSBP_HANDLES - 1, (LPARAM)L"Handles");
 
             if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
@@ -2981,25 +3055,20 @@ INT_PTR CALLBACK WinObjDlgProc(
                 context->CurrentPath
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
-            {
-                PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
+            PPH_STRING Target = PH_AUTO(PhGetStringSetting(SETTING_NAME_OBJMGR_LAST_PATH));
+            if (PhIsNullOrEmptyString(Target))  // HACK
+                Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
 
-                if (PhIsNullOrEmptyString(Target))  // HACK
-                {
-                    Target = PH_AUTO(PhCreateString2(&EtObjectManagerRootDirectoryObject));
-                }
+            EtpLoadComboBoxHistoryFromSettings(context);
 
-                EtpLoadComboBoxHistoryToSettings(context);
+            context->DisableSelChanged = TRUE;
+            EtpObjectManagerOpenTarget(context, Target);
+            TreeView_EnsureVisible(context->TreeViewHandle, context->SelectedTreeItem);
+            context->DisableSelChanged = FALSE;
 
-                context->DisableSelChanged = TRUE;
-                EtpObjectManagerOpenTarget(context, Target);
-                TreeView_EnsureVisible(context->TreeViewHandle, context->SelectedTreeItem);
-                context->DisableSelChanged = FALSE;
-
-                EtEnumCurrentDirectoryObjects(context);
-            }
+            EtEnumCurrentDirectoryObjects(context);
 
             PhSetDialogFocus(hwndDlg, context->TreeViewHandle);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
@@ -3023,6 +3092,8 @@ INT_PTR CALLBACK WinObjDlgProc(
                 PhDereferenceObject(context->CurrentDirectoryList);
             if (EtObjectManagerOwnHandles)
                 PhDereferenceObject(EtObjectManagerOwnHandles);
+            if (EtObjectManagerPropWindows)
+                PhDereferenceObject(EtObjectManagerPropWindows);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
@@ -3038,6 +3109,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             EtpSaveComboBoxHistoryToSettings(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhDestroyListViewInterface(context->ListViewClass);
 
             PostQuitMessage(0);
         }
@@ -3176,21 +3249,23 @@ INT_PTR CALLBACK WinObjDlgProc(
                     LPNMITEMACTIVATE info = (LPNMITEMACTIVATE)header;
                     PET_OBJECT_ENTRY entry;
 
-                    if (header->hwndFrom == context->ListViewHandle &&
-                        (entry = PhGetSelectedListViewItemParam(context->ListViewHandle)))
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
-                        if (GetKeyState(VK_CONTROL) < 0)
+                        if (entry = PhGetSelectedIListViewItemParam(context->ListViewClass))
                         {
-                            EtpObjectManagerOpenSecurity(entry);
-                        }
-                        else if (entry->EtObjectType == EtObjectSymLink && !(GetKeyState(VK_SHIFT) < 0))
-                        {
-                            if (!PhIsNullOrEmptyString(entry->Target))
-                                EtpObjectManagerOpenTarget(context, entry->TargetDrvLow ? entry->TargetDrvLow : entry->Target); // HACK
-                        }
-                        else
-                        {
-                            EtpObjectManagerObjectProperties(entry);
+                            if (GetKeyState(VK_CONTROL) < 0)
+                            {
+                                EtpObjectManagerOpenSecurity(entry);
+                            }
+                            else if (entry->EtObjectType == EtObjectSymLink && !(GetKeyState(VK_SHIFT) < 0))
+                            {
+                                if (!PhIsNullOrEmptyString(entry->Target))
+                                    EtpObjectManagerOpenTarget(context, entry->TargetDrvLow ? entry->TargetDrvLow : entry->Target); // HACK
+                            }
+                            else
+                            {
+                                EtpObjectManagerObjectProperties(entry);
+                            }
                         }
                     }
                 }
@@ -3204,25 +3279,27 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     if ((keyDown->wVKey == 'C' || keyDown->wVKey == 'H') && GetKeyState(VK_CONTROL))
                     {
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                        PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
                         if (numberOfItems == 1)
                         {
+                            PET_OBJECT_ENTRY entry = listviewItems[0];
+
                             if (keyDown->wVKey == 'C')
                             {
                                 if (GetKeyState(VK_MENU) < 0)
                                 {
-                                    PhSetClipboardString(hwndDlg, &PH_AUTO_T(PH_STRING, EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name))->sr);
+                                    PhSetClipboardString(hwndDlg, &PH_AUTO_T(PH_STRING, EtGetObjectFullPath(entry->BaseDirectory, entry->Name))->sr);
                                     break;
                                 }
                                 else if (GetKeyState(VK_SHIFT) < 0)
                                 {
-                                    EtpObjectManagerCopyObjectAddress(listviewItems[0]);
+                                    EtpObjectManagerCopyObjectAddress(entry);
                                     break;
                                 }
                             }
                             else
                             {
-                                EtpObjectManagerObjectHandles(listviewItems[0]);
+                                EtpObjectManagerObjectHandles(entry);
                             }
                         }
                     }
@@ -3270,16 +3347,18 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             if ((HWND)wParam == context->ListViewHandle)
             {
-                PVOID *listviewItems;
+                PET_OBJECT_ENTRY* listviewItems;
                 ULONG numberOfItems;
 
                 point.x = GET_X_LPARAM(lParam);
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+                    PhGetIListViewContextMenuPoint(context->ListViewClass, &point);
 
-                if (WindowFromPoint(point) == ListView_GetHeader(context->ListViewHandle))
+                HWND headerControl = NULL;
+                IListView_GetHeaderControl(context->ListViewClass, &headerControl);
+                if (WindowFromPoint(point) == headerControl)
                 {
                     ULONG sortColumn;
                     PH_SORT_ORDER sortOrder;
@@ -3310,7 +3389,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     break;
                 }
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
                 if (numberOfItems != 0)
                 {
                     PET_OBJECT_ENTRY entry = listviewItems[0];
@@ -3385,7 +3464,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PhInsertEMenuItem(menu, copyPathMenuItem = PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+                    PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
                     PhSetFlagsEMenuItem(menu, isSymlink ? IDC_OPENLINK : IDC_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                     if (numberOfItems > 1)
@@ -3481,7 +3560,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                                             PhGetString(target),
                                             FALSE,
                                             L"Make sure the Explorer executable file is present."
-                                        );
+                                            );
                                     }
                                     else
                                     {
@@ -3496,7 +3575,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                                 break;
                             case IDC_COPY:
                                 {
-                                    PhCopyListView(context->ListViewHandle);
+                                    PhCopyIListView(context->ListViewHandle, context->ListViewClass);
                                 }
                                 break;
                             case IDC_COPYPATH:
@@ -3551,8 +3630,6 @@ INT_PTR CALLBACK WinObjDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPYPATH, L"Copy &Full Name\bCtrl+Alt+C", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
-
-                    PhInsertCopyListViewEMenuItem(menu, IDC_COPYOBJECTADDRESS, context->ListViewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -3616,101 +3693,103 @@ INT_PTR CALLBACK WinObjDlgProc(
     {
         switch (LOWORD(wParam))
         {
-            case 'K':
-                if (GetKeyState(VK_CONTROL) < 0)
-                {
-                    SetFocus(context->SearchBoxHandle);
-                    return TRUE;
-                }
-                break;
-            case VK_F5:
-                {
-                    EtpObjectManagerRefresh(context);
-                    return TRUE;
-                }
-                break;
-            case VK_RETURN:
-                if (GetFocus() == context->ListViewHandle)
-                {
-                    PET_OBJECT_ENTRY* listviewItems;
-                    ULONG numberOfItems;
+        case 'K':
+            if (GetKeyState(VK_CONTROL) < 0)
+            {
+                SetFocus(context->SearchBoxHandle);
+                return TRUE;
+            }
+            break;
+        case VK_F5:
+            {
+                EtpObjectManagerRefresh(context);
+                return TRUE;
+            }
+            break;
+        case VK_RETURN:
+            if (GetFocus() == context->ListViewHandle)
+            {
+                PET_OBJECT_ENTRY* listviewItems;
+                ULONG numberOfItems;
 
-                    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-                    if (numberOfItems == 1)
+                PhGetSelectedIListViewItemParams(context->ListViewClass, &listviewItems, &numberOfItems);
+                if (numberOfItems == 1)
+                {
+                    PET_OBJECT_ENTRY entry = listviewItems[0];
+
+                    if (entry->EtObjectType == EtObjectSymLink && GetKeyState(VK_SHIFT) < 0)
                     {
-                        if (listviewItems[0]->EtObjectType == EtObjectSymLink && GetKeyState(VK_SHIFT) < 0)
-                        {
-                            EtpObjectManagerObjectProperties(listviewItems[0]);
-                        }
-                        else if (GetKeyState(VK_CONTROL) < 0)
-                        {
-                            EtpObjectManagerOpenSecurity(listviewItems[0]);
-                        }
-                        else
-                        {
-                            if (listviewItems[0]->EtObjectType == EtObjectSymLink)
-                            {
-                                if (!PhIsNullOrEmptyString(listviewItems[0]->Target))
-                                    EtpObjectManagerOpenTarget(context, listviewItems[0]->TargetDrvLow ? listviewItems[0]->TargetDrvLow : listviewItems[0]->Target); // HACK
-                                else
-                                    break;
-                            }
-                            else
-                            {
-                                EtpObjectManagerObjectProperties(listviewItems[0]);
-                            }
-                        }
-
-                        return TRUE;
-                    }
-                }
-                else if (GetFocus() == context->TreeViewHandle)
-                {
-                    PPH_STRING directory;
-
-                    if (GetKeyState(VK_SHIFT) < 0)
-                    {
-                        if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
-                        {
-                            ET_CREATE_DIRECTORY_OBJECT_ENTRY(directory, context, entry);
-                            EtpObjectManagerObjectProperties(&entry);
-                            return TRUE;
-                        }
+                        EtpObjectManagerObjectProperties(entry);
                     }
                     else if (GetKeyState(VK_CONTROL) < 0)
                     {
-                        if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
-                        {
-                            ET_CREATE_DIRECTORY_OBJECT_ENTRY(directory, context, entry);
-                            EtpObjectManagerOpenSecurity(&entry);
-                            return TRUE;
-                        }
+                        EtpObjectManagerOpenSecurity(entry);
                     }
-                }
-                else if (GetFocus() == context->PathControlEdit)
-                {
-                    PPH_STRING newTarget = PH_AUTO(PhGetWindowText(context->PathControlHandle));
-                    PPH_STRING comboEntry;
-                    BOOLEAN alreadyExist = FALSE;
-
-                    if (!PhIsNullOrEmptyString(newTarget) &&
-                        EtpObjectManagerOpenTarget(context, newTarget))
+                    else
                     {
-                        for (INT i = 0; i < ComboBox_GetCount(context->PathControlHandle); i++)
+                        if (entry->EtObjectType == EtObjectSymLink)
                         {
-                            comboEntry = PH_AUTO(PhGetComboBoxString(context->PathControlHandle, i));
-                            if (PhEqualString(newTarget, comboEntry, TRUE))
-                            {
-                                alreadyExist = TRUE;
+                            if (!PhIsNullOrEmptyString(entry->Target))
+                                EtpObjectManagerOpenTarget(context, entry->TargetDrvLow ? entry->TargetDrvLow : entry->Target); // HACK
+                            else
                                 break;
-                            }
                         }
+                        else
+                        {
+                            EtpObjectManagerObjectProperties(entry);
+                        }
+                    }
 
-                        if (!alreadyExist)
-                            ComboBox_InsertString(context->PathControlHandle, 0, PhGetString(newTarget));
+                    return TRUE;
+                }
+            }
+            else if (GetFocus() == context->TreeViewHandle)
+            {
+                PPH_STRING directory;
+
+                if (GetKeyState(VK_SHIFT) < 0)
+                {
+                    if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
+                    {
+                        ET_CREATE_DIRECTORY_OBJECT_ENTRY(directory, context, entry);
+                        EtpObjectManagerObjectProperties(&entry);
+                        return TRUE;
                     }
                 }
-                break;
+                else if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    if (PhGetTreeViewItemParam(context->TreeViewHandle, context->SelectedTreeItem, &directory, NULL))
+                    {
+                        ET_CREATE_DIRECTORY_OBJECT_ENTRY(directory, context, entry);
+                        EtpObjectManagerOpenSecurity(&entry);
+                        return TRUE;
+                    }
+                }
+            }
+            else if (GetFocus() == context->PathControlEdit)
+            {
+                PPH_STRING newTarget = PH_AUTO(PhGetWindowText(context->PathControlHandle));
+                PPH_STRING comboEntry;
+                BOOLEAN alreadyExist = FALSE;
+
+                if (!PhIsNullOrEmptyString(newTarget) &&
+                    EtpObjectManagerOpenTarget(context, newTarget))
+                {
+                    for (INT i = 0; i < ComboBox_GetCount(context->PathControlHandle); i++)
+                    {
+                        comboEntry = PH_AUTO(PhGetComboBoxString(context->PathControlHandle, i));
+                        if (PhEqualString(newTarget, comboEntry, TRUE))
+                        {
+                            alreadyExist = TRUE;
+                            break;
+                        }
+                    }
+
+                    if (!alreadyExist)
+                        ComboBox_InsertString(context->PathControlHandle, 0, PhGetString(newTarget));
+                }
+            }
+            break;
         }
         break;
     }
@@ -3749,6 +3828,11 @@ NTSTATUS EtShowObjectManagerDialogThread(
     {
         if (result == INT_ERROR)
             break;
+
+        if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages, need for F5 and Return (Dart Vanya)
+        {
+            CallWindowProc(WinObjDlgProc, EtObjectManagerDialogHandle, message.message, message.wParam, message.lParam);
+        }
 
         if (!IsDialogMessage(EtObjectManagerDialogHandle, &message))
         {

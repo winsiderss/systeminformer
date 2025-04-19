@@ -246,17 +246,20 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
 
             if (PhEnableThemeSupport)
             {
-                switch (PhCsGraphColorMode)
-                {
-                case 0: // New colors
-                    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor((HDC)wParam, RGB(0xef, 0xef, 0xef)); // GetSysColor(COLOR_WINDOW)
-                    break;
-                case 1: // Old colors
-                    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
-                    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor); // RGB(30, 30, 30));
-                    break;
-                }
+                //switch (PhCsGraphColorMode)
+                //{
+                //case 0: // New colors
+                //    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                //    SetDCBrushColor((HDC)wParam, RGB(0xef, 0xef, 0xef)); // GetSysColor(COLOR_WINDOW)
+                //    break;
+                //case 1: // Old colors
+                //    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                //    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor); // RGB(30, 30, 30));
+                //    break;
+                //}
+
+                SetTextColor((HDC)wParam, PhThemeWindowTextColor);
+                SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor); // RGB(30, 30, 30));
             }
             else
             {
@@ -327,17 +330,20 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
 
             if (PhEnableThemeSupport)
             {
-                switch (PhCsGraphColorMode)
-                {
-                case 0: // New colors
-                    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
-                    break;
-                case 1: // Old colors
-                    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
-                    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor);
-                    break;
-                }
+                //switch (PhCsGraphColorMode)
+                //{
+                //case 0: // New colors
+                //    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                //    SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
+                //    break;
+                //case 1: // Old colors
+                //    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                //    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor);
+                //    break;
+                //}
+
+                SetTextColor((HDC)wParam, PhThemeWindowTextColor);
+                SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor); // RGB(30, 30, 30));
             }
             else
             {
@@ -486,7 +492,7 @@ VOID PhSipOnInitDialog(
 
     PhRegisterWindowCallback(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-    //PhInitializeWindowTheme(PhSipWindow, PhEnableThemeSupport);
+    //PhInitializeWindowTheme(PhSipWindow);
     PhInitializeThemeWindowFrame(PhSipWindow);
 
     PhSipOnSize(PhSipWindow, 0, 0, 0);
@@ -1068,15 +1074,15 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
         break;
     case 1: // Old colors
-        DrawInfo->BackColor = RGB(0x00, 0x00, 0x00);
+        DrawInfo->BackColor = PhThemeWindowForegroundColor;
         DrawInfo->LineColor1 = Color1;
         DrawInfo->LineBackColor1 = PhHalveColorBrightness(Color1);
         DrawInfo->LineColor2 = Color2;
         DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
-        DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
+        DrawInfo->GridColor = PhThemeWindowBackground2Color;
         DrawInfo->LabelYColor = RGB(0xd0, 0xa0, 0x70);
-        DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
-        DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
+        DrawInfo->TextColor = PhMakeColorDarker(PhThemeWindowTextColor, 7);
+        DrawInfo->TextBoxColor = PhThemeWindowBackgroundColor;
         break;
     }
 }
@@ -1427,19 +1433,22 @@ VOID PhSipDrawRestoreSummaryPanel(
 
     if (PhEnableThemeSupport)
     {
-        switch (PhCsGraphColorMode)
-        {
-        case 0: // New colors
-            SetTextColor(bufferDc, RGB(0x00, 0x00, 0x00));
-            SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
-            break;
-        case 1: // Old colors
-            SetTextColor(bufferDc, PhThemeWindowTextColor);
-            SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-            FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
-            break;
-        }
+        //switch (PhCsGraphColorMode)
+        //{
+        //case 0: // New colors
+        //    SetTextColor(bufferDc, RGB(0x00, 0x00, 0x00));
+        //    SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
+        //    FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+        //    break;
+        //case 1: // Old colors
+        //    SetTextColor(bufferDc, PhThemeWindowTextColor);
+        //    SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
+        //    FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+        //    break;
+        //}
+
+        SetTextColor(bufferDc, PhThemeWindowTextColor);
+        FillRect(bufferDc, &bufferRect, PhThemeWindowBackgroundBrush);
     }
     else
     {
@@ -1526,8 +1535,7 @@ VOID PhSipDrawSeparator(
             break;
         case 1: // Old colors
             {
-                SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-                FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
+                FillRect(bufferDc, &bufferRect, PhThemeWindowBackgroundBrush);
             }
             break;
         }
@@ -1574,17 +1582,19 @@ VOID PhSipDrawPanel(
     {
         if (PhEnableThemeSupport)
         {
-            switch (PhCsGraphColorMode)
-            {
-            case 0: // New colors
-                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-                FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
-                break;
-            case 1: // Old colors
-                SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-                FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
-                break;
-            }
+            //switch (PhCsGraphColorMode)
+            //{
+            //case 0: // New colors
+            //    SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+            //    FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            //    break;
+            //case 1: // Old colors
+            //    SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
+            //    FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+            //    break;
+            //}
+
+            FillRect(hdc, Rect, PhThemeWindowBackgroundBrush);
         }
         else
         {
@@ -1733,20 +1743,21 @@ VOID PhSipDefaultDrawPanel(
 
     if (PhEnableThemeSupport)
     {
-        switch (PhCsGraphColorMode)
-        {
-        case 0: // New colors
-            SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
-            //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
-            break;
-        case 1: // Old colors
-            SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-            //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0x00));
-            //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
-            break;
-        }
+        //switch (PhCsGraphColorMode)
+        //{
+        //case 0: // New colors
+        //    SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
+        //    //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+        //    //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+        //    break;
+        //case 1: // Old colors
+        //    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+        //    //SetDCBrushColor(hdc, RGB(0xff, 0xff, 0x00));
+        //    //FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
+        //    break;
+        //}
 
+        SetTextColor(hdc, PhThemeWindowTextColor);
         //SetTextColor(hdc, CurrentParameters.PanelForeColor);
     }
     else
@@ -2136,10 +2147,7 @@ VOID PhSipCreateSectionDialog(
                 createDialog.Parameter
                 );
 
-            if (PhEnableThemeSupport)
-            {
-                PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
-            }
+            PhInitializeWindowTheme(Section->DialogHandle);
         }
     }
 }

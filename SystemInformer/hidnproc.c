@@ -228,7 +228,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

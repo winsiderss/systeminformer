@@ -318,7 +318,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             context->LoadCompleted = TRUE;
         }

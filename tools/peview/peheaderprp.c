@@ -793,7 +793,7 @@ INT_PTR CALLBACK PvPeHeadersDlgProc(
 
             PvPeUpdateImageHeaderProperties(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

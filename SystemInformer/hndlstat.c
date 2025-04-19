@@ -237,7 +237,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
             ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -511,6 +511,7 @@ VOID FindGraphicsDevices(
         PhFree(entry);
     }
     PhReleaseQueuedLockShared(&GraphicsDevicesListLock);
+    PhDereferenceObject(deviceList);
 
     // HACK: Show all unknown devices.
     PhAcquireQueuedLockShared(&GraphicsDevicesListLock);

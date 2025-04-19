@@ -314,7 +314,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size, dpiValue);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

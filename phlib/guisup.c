@@ -76,6 +76,12 @@ static __typeof__(&DrawThemeBackground) DrawThemeBackground_I = NULL;
 static __typeof__(&DrawThemeTextEx) DrawThemeTextEx_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
+static _ShouldAppsUseDarkMode ShouldAppsUseDarkMode_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 132)
+// Win10-RS5 (uxtheme.dll ordinal 135)
+// Win10 build 17763: AllowDarkModeForApp(BOOL)
+// Win10 build 18334: SetPreferredAppMode(enum PreferredAppMode)
+static _SetPreferredAppMode SetPreferredAppMode_I = NULL;
+static _FlushMenuThemes FlushMenuThemes_I = NULL;
 static __typeof__(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
 static __typeof__(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
 static __typeof__(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
@@ -127,6 +133,9 @@ VOID PhGuiSupportInitialization(
         {
             AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
             IsDarkModeAllowedForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 137);
+            ShouldAppsUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 132);
+            SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
+            FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
         }
     }
 
@@ -608,6 +617,45 @@ BOOLEAN PhIsDarkModeAllowedForWindow(
         return FALSE;
 
     return !!IsDarkModeAllowedForWindow_I(WindowHandle);
+}
+
+BOOLEAN PhShouldAppsUseDarkMode(
+    VOID
+    )
+{
+    if (!ShouldAppsUseDarkMode_I)
+        return FALSE;
+
+    return !!ShouldAppsUseDarkMode_I();
+}
+
+BOOLEAN PhIsThemeSupportEnabled(
+    VOID
+    )
+{
+    return PhEnableThemeSupport;
+}
+
+PreferredAppMode PhSetPreferredAppMode(
+    _In_ PreferredAppMode AppMode
+    )
+{
+    if (!SetPreferredAppMode_I)
+        return PreferredAppModeDisabled;
+
+    PreferredAppMode prevMode = SetPreferredAppMode_I(AppMode);
+    PhFlushMenuThemes();
+    return prevMode;
+}
+
+VOID PhFlushMenuThemes(
+    VOID
+    )
+{
+    if (FlushMenuThemes_I)
+    {
+        FlushMenuThemes_I();
+    }
 }
 
 // rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
@@ -1914,19 +1962,6 @@ LRESULT CALLBACK PhpGeneralPropSheetWndProc(
             }
         }
         break;
-    case WM_KEYDOWN: // forward key messages
-        {
-            HWND pageWindowHandle;
-
-            if (pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd))
-            {
-                if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
-                {
-                    return TRUE;
-                }
-            }
-        }
-        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -2013,6 +2048,17 @@ BOOLEAN PhModalPropertySheet(
 
         if (!processed)
         {
+            if (message.message == WM_KEYDOWN /*|| message.message == WM_KEYUP*/) // forward key messages
+            {
+                HWND pageWindowHandle;
+
+                if ((pageWindowHandle = PropSheet_GetCurrentPageHwnd(hwnd)) &&
+                    SendMessage(pageWindowHandle, message.message, message.wParam, message.lParam))
+                {
+                    continue;
+                }
+            }
+
             if (!PropSheet_IsDialogMessage(hwnd, &message))
             {
                 TranslateMessage(&message);
@@ -4557,14 +4603,15 @@ BOOLEAN PhSetWindowCompositionAttribute(
 
 BOOLEAN PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
-    _In_ ULONG GradientColor
+    _In_ ULONG GradientColor,
+    _In_ BOOLEAN Enable
     )
 {
     ACCENT_POLICY policy =
     {
-        ACCENT_ENABLE_ACRYLICBLURBEHIND,
-        ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,
-        GradientColor,
+        Enable ? ACCENT_ENABLE_ACRYLICBLURBEHIND : 0,
+        Enable ? ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL : 0,
+        Enable ? GradientColor : 0,
         0
     };
     WINDOWCOMPOSITIONATTRIBUTEDATA attribute =

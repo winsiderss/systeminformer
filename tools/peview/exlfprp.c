@@ -463,7 +463,7 @@ INT_PTR CALLBACK PvpExlfGeneralDlgProc(
 
             PvpLoadWslSections(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

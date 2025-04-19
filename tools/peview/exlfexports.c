@@ -81,7 +81,7 @@ INT_PTR CALLBACK PvpExlfExportsDlgProc(
             PvpProcessElfExports(lvHandle);
             ExtendedListView_SortItems(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

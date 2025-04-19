@@ -280,7 +280,7 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
 
             PvEnumerateDynamicRelocationEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

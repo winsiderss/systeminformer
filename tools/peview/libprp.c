@@ -156,7 +156,7 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

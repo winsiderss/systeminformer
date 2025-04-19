@@ -290,28 +290,22 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
-            {
-                context->BrushNormal = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
-                context->BrushHot = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
-                context->BrushPushed = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
-                context->TextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
-            }
-            else
-            {
-                context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-                context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
-                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-                context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
-            }
+            context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+            context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
+            context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+            context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
 
+            context->BrushNormalDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowBackgroundColor"));
+            context->BrushHotDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlightColor"));
+            context->BrushPushedDark = CreateSolidBrush(PhGetIntegerSetting(L"ThemeWindowHighlight2Color"));
+            context->TextColorDark = PhGetIntegerSetting(L"ThemeWindowTextColor");
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }
@@ -330,6 +324,15 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             if (context->BrushPushed)
                 DeleteBrush(context->BrushPushed);
+
+            if (context->BrushNormalDark)
+                DeleteBrush(context->BrushNormalDark);
+
+            if (context->BrushHotDark)
+                DeleteBrush(context->BrushHotDark);
+
+            if (context->BrushPushedDark)
+                DeleteBrush(context->BrushPushedDark);
 
             if (context->FontHandle)
                 DeleteFont(context->FontHandle);
@@ -595,12 +598,12 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 SetBkMode(bufferDc, TRANSPARENT);
 
                 if (isSelected || isFocused)
-                    FillRect(bufferDc, &bufferRect, context->BrushHot);
+                    FillRect(bufferDc, &bufferRect, PhIsThemeSupportEnabled() ? context->BrushHotDark : context->BrushHot);
                 else
-                    FillRect(bufferDc, &bufferRect, context->BrushNormal);
+                    FillRect(bufferDc, &bufferRect, PhIsThemeSupportEnabled() ? context->BrushNormalDark : context->BrushNormal);
 
                 if (!button->IsVirtual)
-                    SetTextColor(bufferDc, context->TextColor);
+                    SetTextColor(bufferDc, PhIsThemeSupportEnabled() ? context->TextColorDark : context->TextColor);
                 else
                     SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
 

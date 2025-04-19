@@ -2050,7 +2050,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhReferenceObject(context);
             DotNetAsmRefreshTraceQuery(context, FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
