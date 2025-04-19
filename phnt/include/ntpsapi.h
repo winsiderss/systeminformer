@@ -357,7 +357,7 @@ typedef enum _THREADINFOCLASS
     ThreadActualGroupAffinity, // q: GROUP_AFFINITY // since THRESHOLD2
     ThreadDynamicCodePolicyInfo, // q: ULONG; s: ULONG (NtCurrentThread)
     ThreadExplicitCaseSensitivity, // qs: ULONG; s: 0 disables, otherwise enables // (requires SeDebugPrivilege and PsProtectedSignerAntimalware)
-    ThreadWorkOnBehalfTicket, // RTL_WORK_ON_BEHALF_TICKET_EX
+    ThreadWorkOnBehalfTicket, // ALPC_WORK_ON_BEHALF_TICKET // RTL_WORK_ON_BEHALF_TICKET_EX // NtCurrentThread
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive, // s: ULONG; s: 0 disables, otherwise enables
     ThreadAttachContainer, // s: HANDLE (job object) // NtCurrentThread
@@ -2873,7 +2873,9 @@ typedef struct _ISOLATION_MANIFEST_PROPERTIES
     ULONG_PTR Level;
 } ISOLATION_MANIFEST_PROPERTIES, *PISOLATION_MANIFEST_PROPERTIES;
 
+//
 // Attributes (Native)
+//
 
 // private
 typedef enum _PS_ATTRIBUTE_NUM
@@ -3859,7 +3861,6 @@ PssNtDuplicateSnapshot(
 /**
  * Frees a remote process snapshot.
  *
- * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
@@ -3874,6 +3875,7 @@ PssNtFreeSnapshot(
 /**
  * Frees a snapshot.
  *
+ * @param ProcessHandle A handle to the process that contains the snapshot. The handle must have PROCESS_VM_READ, PROCESS_VM_OPERATION, and PROCESS_DUP_HANDLE rights.
  * @param SnapshotHandle Handle to the snapshot to free.
  * @return NTSTATUS Successful or errant status.
  */
