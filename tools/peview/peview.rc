@@ -860,14 +860,6 @@ IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.p
 // remains consistent on all systems.
 IDI_APPICON             ICON                    "resources\\application.ico"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RT_MANIFEST
-//
-
-IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
-
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

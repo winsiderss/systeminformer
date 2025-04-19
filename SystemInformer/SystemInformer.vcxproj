@@ -108,6 +108,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -126,6 +129,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -144,6 +150,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -162,6 +171,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -180,6 +192,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -198,6 +213,9 @@
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>systeminformer.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="about.c" />
