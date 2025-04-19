@@ -922,7 +922,7 @@ VOID PhNetworkProviderUpdate(
     ULONG numberOfConnections;
     ULONG i;
 
-    PhTrace("Network provider run count: %lu", runCount);
+    PhTraceFuncEnter("Network provider run count: %lu", runCount);
 
     if (!NetworkImportDone)
     {
@@ -940,7 +940,10 @@ VOID PhNetworkProviderUpdate(
     }
 
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
+    {
+        PhTraceFuncExit("Failed to get network connections: %lu", runCount);
         return;
+    }
 
     // Look for closed connections.
     {
@@ -1257,6 +1260,9 @@ VOID PhNetworkProviderUpdate(
     PhFree(connections);
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), UlongToPtr(runCount));
+
+    PhTraceFuncExit("Network provider run count: %lu", runCount);
+
     runCount++;
 }
 

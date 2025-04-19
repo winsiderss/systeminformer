@@ -743,7 +743,7 @@ VOID PhServiceProviderUpdate(
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
 
-    PhTrace("Service provider run count: %lu", runCount);
+    PhTraceFuncEnter("Service provider run count: %lu", runCount);
 
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)
@@ -770,7 +770,10 @@ VOID PhServiceProviderUpdate(
 UpdateStart:
 
     if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServices)))
+    {
+        PhTraceFuncExit("Failed to enumerate services: %lu", runCount);
         return;
+    }
 
     // Build a hash set containing the service names.
 
@@ -1082,6 +1085,9 @@ UpdateStart:
 
 UpdateEnd:
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), UlongToPtr(runCount));
+
+    PhTraceFuncExit("Service provider run count: %lu", runCount);
+
     runCount++;
 }
 

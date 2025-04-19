@@ -2326,7 +2326,7 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    PhTrace("Process provider run count: %lu", runCount);
+    PhTraceFuncEnter("Process provider run count: %lu", runCount);
 
     if (runCount % 512 == 0) // yes, a very long time
     {
@@ -2373,7 +2373,10 @@ VOID PhProcessProviderUpdate(
     PhTotalCpuQueueLength = 0;
 
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+    {
+        PhTraceFuncExit("Failed to enumerate processes: %lu", runCount);
         return;
+    }
 
     // Notes on cycle-based CPU usage:
     //
@@ -3362,6 +3365,9 @@ VOID PhProcessProviderUpdate(
     }
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
+
+    PhTraceFuncExit("Process provider run count: %lu", runCount);
+
     runCount++;
 }
 
