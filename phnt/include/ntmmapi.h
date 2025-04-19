@@ -739,7 +739,6 @@ NtAllocateVirtualMemory(
  *
  * @param ProcessHandle A handle for the process for which the mapping should be done.
  * @param BaseAddress A pointer to a variable that will receive the base address of the allocated region of pages. If the initial value is not zero, the region is allocated at the specified virtual address.
- * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. This value must be less than 21 and the initial value of BaseAddress must be zero.
  * @param RegionSize A pointer to a variable that will receive the actual size, in bytes, of the allocated region of pages.
  * @param AllocationType A bitmask containing flags that specify the type of allocation to be performed.
  * @param PageProtection A bitmask containing page protection flags that specify the protection desired for the committed region of pages.
@@ -984,7 +983,7 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation, // MEMORY_PAGE_DIRTY_STATE_INFORMATION // REDSTONE3
     VmImageHotPatchInformation, // 19H1
-    VmPhysicalContiguityInformation, // 20H1 // (requires SeLockMemoryPrivilege)
+    VmPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // 20H1 // (requires SeLockMemoryPrivilege)
     VmVirtualMachinePrepopulateInformation,
     VmRemoveFromWorkingSetInformation, // MEMORY_REMOVE_WORKING_SET_INFORMATION
     MaxVmInfoClass
@@ -1245,11 +1244,8 @@ NtMapViewOfSection(
  * @param SectionHandle A handle to an existing section object.
  * @param ProcessHandle A handle to the object that represents the process that the view should be mapped into. The handle must have been opened with PROCESS_VM_OPERATION access.
  * @param BaseAddress A pointer to a variable that receives the base address of the view. If the value is not NULL, the view is allocated starting at the specified virtual address rounded down to the next 64-kilobyte address boundary.
- * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. The value of this parameter must be less than 21 and is used only if BaseAddress is NULL.
- * @param CommitSize Specifies the size, in bytes, of the initially committed region of the view. CommitSize is meaningful only for page-file backed sections and is rounded up to the nearest multiple of PAGE_SIZE.
  * @param SectionOffset A pointer to a variable that receives the offset, in bytes, from the beginning of the section to the view.
  * @param ViewSize A pointer to a variable that specifies the size of the view in bytes. If the initial value is zero, NtMapViewOfSection maps a view of the section that starts at SectionOffset and continues to the end of the section.
- * @param InheritDisposition A value that specifies how the view is to be shared with child processes.
  * @param AllocationType Specifies the type of allocation to be performed for the specified region of pages. The valid flags are MEM_RESERVE, MEM_TOP_DOWN, MEM_LARGE_PAGES, MEM_DIFFERENT_IMAGE_BASE_OK and MEM_REPLACE_PLACEHOLDER. Although MEM_COMMIT is not allowed, it is implied unless MEM_RESERVE is specified.
  * @param PageProtection Specifies the page protection to be applied to the mapped view. Not used with SEC_IMAGE, must be set to PAGE_READONLY for SEC_IMAGE_NO_EXECUTE. For non-image sections, the value must be compatible with the section's page protection from NtCreateSection.
  * @param ExtendedParameters An optional pointer to one or more extended parameters of type MEM_EXTENDED_PARAMETER.
@@ -1750,6 +1746,24 @@ NtFlushProcessWriteBuffers(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+/**
+ * Creates a new uninitialized enclave. An enclave is an isolated region of code and data within the address space for an application.
+ * Only code that runs within the enclave can access data within the same enclave.
+ *
+ * @param ProcessHandle A handle to the process for which you want to create an enclave.
+ * @param BaseAddress The preferred base address of the enclave. Specify NULL to have the operating system assign the base address.
+ * @param ZeroBits The number of high-order address bits that must be zero in the base address of the section view. This value must be less than 21 and the initial value of BaseAddress must be zero.
+ * @param Size The size of the enclave that you want to create, including the size of the code that you will load into the enclave, in bytes. VBS enclaves must be a multiple of 2 MB in size.
+ * SGX enclaves must be a power of 2 in size and must have their base aligned to the same power of 2 as the size, with a minimum alignment of 2 MB. As an example, if the enclave is 128 MB, then its base must be aligned to a 128 MB boundary.
+ * @param InitialCommitment The amount of memory to commit for the enclave, in bytes.
+ * @param EnclaveType The architecture type of the enclave that you want to create. To verify that an enclave type is supported, call IsEnclaveTypeSupported.
+ * @param EnclaveInformation A pointer to the architecture-specific information to use to create the enclave.
+ * @param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
+ * For the ENCLAVE_TYPE_SGX and ENCLAVE_TYPE_SGX2 enclave types, this value must be 4096. For the ENCLAVE_TYPE_VBS enclave type, this value must be sizeof(ENCLAVE_CREATE_INFO_VBS), which is 36 bytes.
+ * @param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-createenclave
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1765,6 +1779,21 @@ NtCreateEnclave(
     _Out_opt_ PULONG EnclaveError
     );
 
+/**
+ * Loads data into an uninitialized enclave that you created by calling NtCreateEnclave.
+ *
+ * @param ProcessHandle A handle to the process for which the enclave was created.
+ * @param BaseAddress The address in the enclave where you want to load the data.
+ * @param Buffer A pointer to the data the you want to load into the enclave.
+ * @param BufferSize The size of the data that you want to load into the enclave, in bytes. This value must be a whole-number multiple of the page size.
+ * @param Protect The memory protection to use for the pages that you want to add to the enclave.
+ * @param PageInformation A pointer to information that describes the pages that you want to add to the enclave.
+ * @param PageInformationLength The length of the structure that the PageInformation parameter points to, in bytes.
+ * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes that NtLoadEnclaveData copied into the enclave.
+ * @param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific. 
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-loadenclavedata
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1780,6 +1809,17 @@ NtLoadEnclaveData(
     _Out_opt_ PULONG EnclaveError
     );
 
+/**
+ * Initializes an enclave that you created and loaded with data.
+ *
+ * @param ProcessHandle A handle to the process for which the enclave was created.
+ * @param BaseAddress Any address within the enclave.
+ * @param EnclaveInformation A pointer to architecture-specific information to use to initialize the enclave.
+ * @param EnclaveInformationLength The length of the structure that the EnclaveInformation parameter points to, in bytes.
+ * @param EnclaveError An optional pointer to a variable that receives an enclave error code that is architecture-specific.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-initializeenclave
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1797,6 +1837,14 @@ NtInitializeEnclave(
 #define TERMINATE_ENCLAVE_FLAG_WAIT_ERROR 0x00000004ul // STATUS_PENDING -> STATUS_ENCLAVE_NOT_TERMINATED
 
 // rev
+/**
+ * Ends the execution of the threads that are running within an enclave.
+ *
+ * @param BaseAddress The base address of the enclave in which to end the execution of the threads.
+ * @param Flags Additional flags for the termination operation.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-terminateenclave
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1811,12 +1859,22 @@ NtTerminateEnclave(
 #define ENCLAVE_CALL_FLAG_NO_WAIT 0x00000001ul
 
 // rev
+/**
+ * Calls a function within an enclave. NtCallEnclave can also be called within an enclave to call a function outside of the enclave.
+ *
+ * @param Routine The address of the function that you want to call.
+ * @param Reserved Reserved for dispatch (RtlEnclaveCallDispatch)
+ * @param Flags Additional flags for the call operation.
+ * @param RoutineParamReturn The parameter than you want to pass to the function and return value of the function.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows/win32/api/enclaveapi/nf-enclaveapi-callenclave
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCallEnclave(
     _In_ PENCLAVE_ROUTINE Routine,
-    _In_ PVOID Reserved,              // reserved for dispatch (RtlEnclaveCallDispatch)
+    _In_ PVOID Reserved,              // SelectVsmEnclaveByNumber > 0 // reserved for dispatch (RtlEnclaveCallDispatch)
     _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
     _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
