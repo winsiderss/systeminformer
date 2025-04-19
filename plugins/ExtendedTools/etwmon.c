@@ -651,6 +651,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
     TRACEHANDLE traceHandle;
 
     PhSetThreadName(NtCurrentThread(), L"EtwMonitorThread");
+    PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
     EtStartEtwSession();
 
