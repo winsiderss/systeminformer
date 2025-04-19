@@ -35,6 +35,48 @@
 #define RTL_TICKS_PER_DAY           (RTL_TICKS_PER_HOUR * 24)        // 864,000,000,000
 
 //
+// Errors
+//
+
+/**
+ * The RtlFailFast routine brings down the caller immediately in the event that critical corruption has been detected. No exception handlers are invoked.
+ * The routine may be used in libraries shared with user mode and kernel mode. In user mode, the process is terminated, whereas in kernel mode, a KERNEL_SECURITY_CHECK_FAILURE bug check is raised.
+ *
+ * @param Code A FAST_FAIL_<description> symbolic constant from winnt.h or wdm.h that indicates the reason for process termination.
+ * @return None. There is no return from this routine.
+ */
+DECLSPEC_NORETURN
+FORCEINLINE
+VOID
+RtlFailFast(
+    _In_ ULONG Code
+    )
+{
+    __fastfail(Code);
+}
+
+FORCEINLINE
+VOID
+RtlFatalListEntryError(
+    _In_ PVOID p1,
+    _In_ PVOID p2,
+    _In_ PVOID p3
+    )
+{
+    //++
+    //    This routine reports a fatal list entry error.  It is implemented here as a
+    //    wrapper around RtlFailFast so that alternative reporting mechanisms (such
+    //    as simply logging and trying to continue) can be easily switched in.
+    //--
+    
+    UNREFERENCED_PARAMETER(p1);
+    UNREFERENCED_PARAMETER(p2);
+    UNREFERENCED_PARAMETER(p3);
+
+    RtlFailFast(FAST_FAIL_CORRUPT_LIST_ENTRY);
+}
+
+//
 // Linked lists
 //
 
@@ -45,6 +87,26 @@ typedef struct _LIST_ENTRY LIST_ENTRY, *PLIST_ENTRY;
 
 #define RTL_LIST_FOREACH(Entry, ListHead) \
     for ((Entry) = &(ListHead); (Entry) != &(ListHead); (Entry) = (Entry)->Flink)
+
+// #ifndef NO_LIST_ENTRY_CHECKS
+// #define NO_LIST_ENTRY_CHECKS
+// #endif
+
+FORCEINLINE
+VOID
+RtlCheckListEntry(
+    _In_ PLIST_ENTRY Entry
+    )
+{
+    if ((((Entry->Flink)->Blink) != Entry) || (((Entry->Blink)->Flink) != Entry)) 
+    {
+        RtlFatalListEntryError(
+            (PVOID)(Entry), 
+            (PVOID)((Entry->Flink)->Blink), 
+            (PVOID)((Entry->Blink)->Flink)
+            );
+    }
+}
 
 FORCEINLINE
 VOID
@@ -61,7 +123,7 @@ InitializeListHead32(
     _Out_ PLIST_ENTRY32 ListHead
     )
 {
-    ListHead->Flink = ListHead->Blink = ((ULONG)(ULONG_PTR)ListHead);
+    ListHead->Flink = ListHead->Blink = PtrToUlong(ListHead);
 }
 
 _Must_inspect_result_
@@ -77,7 +139,7 @@ IsListEmpty(
 FORCEINLINE
 BOOLEAN
 NTAPI
-RemoveEntryList(
+RemoveEntryListUnsafe(
     _In_ PLIST_ENTRY Entry
     )
 {
@@ -88,8 +150,33 @@ RemoveEntryList(
     Blink = Entry->Blink;
     Blink->Flink = Flink;
     Flink->Blink = Blink;
+    return (BOOLEAN)(Flink == Blink);
+}
 
-    return Flink == Blink;
+FORCEINLINE
+BOOLEAN
+NTAPI
+RemoveEntryList(
+    _In_ PLIST_ENTRY Entry
+    )
+{
+    PLIST_ENTRY PrevEntry;
+    PLIST_ENTRY NextEntry;
+
+    NextEntry = Entry->Flink;
+    PrevEntry = Entry->Blink;
+
+#if !defined(NO_LIST_ENTRY_CHECKS)
+    if ((NextEntry->Blink != Entry) || (PrevEntry->Flink != Entry))
+    {
+        RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)Entry, (PVOID)NextEntry);
+    }
+#endif
+
+    PrevEntry->Flink = NextEntry;
+    NextEntry->Blink = PrevEntry;
+
+    return NextEntry == PrevEntry;
 }
 
 FORCEINLINE
@@ -99,13 +186,21 @@ RemoveHeadList(
     _Inout_ PLIST_ENTRY ListHead
     )
 {
-    PLIST_ENTRY Flink;
     PLIST_ENTRY Entry;
+    PLIST_ENTRY NextEntry;
 
     Entry = ListHead->Flink;
-    Flink = Entry->Flink;
-    ListHead->Flink = Flink;
-    Flink->Blink = ListHead;
+    NextEntry = Entry->Flink;
+
+#if !defined(NO_LIST_ENTRY_CHECKS)
+    if ((Entry->Blink != ListHead) || (NextEntry->Blink != Entry)) 
+    {
+        RtlFatalListEntryError((PVOID)ListHead, (PVOID)Entry, (PVOID)NextEntry);
+    }
+#endif
+
+    ListHead->Flink = NextEntry;
+    NextEntry->Blink = ListHead;
 
     return Entry;
 }
@@ -117,13 +212,19 @@ RemoveTailList(
     _Inout_ PLIST_ENTRY ListHead
     )
 {
-    PLIST_ENTRY Blink;
     PLIST_ENTRY Entry;
+    PLIST_ENTRY PrevEntry;
 
     Entry = ListHead->Blink;
-    Blink = Entry->Blink;
-    ListHead->Blink = Blink;
-    Blink->Flink = ListHead;
+    PrevEntry = Entry->Blink;
+
+    if ((Entry->Flink != ListHead) || (PrevEntry->Flink != Entry)) 
+    {
+        RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)Entry, (PVOID)ListHead);
+    }
+
+    ListHead->Blink = PrevEntry;
+    PrevEntry->Flink = ListHead;
 
     return Entry;
 }
@@ -136,12 +237,18 @@ InsertTailList(
     _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
     )
 {
-    PLIST_ENTRY Blink;
+    PLIST_ENTRY PrevEntry;
 
-    Blink = ListHead->Blink;
+    PrevEntry = ListHead->Blink;
+
+    if (PrevEntry->Flink != ListHead) 
+    {
+        RtlFatalListEntryError((PVOID)PrevEntry, (PVOID)ListHead, (PVOID)PrevEntry->Flink);
+    }
+
     Entry->Flink = ListHead;
-    Entry->Blink = Blink;
-    Blink->Flink = Entry;
+    Entry->Blink = PrevEntry;
+    PrevEntry->Flink = Entry;
     ListHead->Blink = Entry;
 }
 
@@ -153,12 +260,20 @@ InsertHeadList(
     _Inout_ __drv_aliasesMem PLIST_ENTRY Entry
     )
 {
-    PLIST_ENTRY Flink;
+    PLIST_ENTRY NextEntry;
 
-    Flink = ListHead->Flink;
-    Entry->Flink = Flink;
+    NextEntry = ListHead->Flink;
+
+    RtlCheckListEntry(ListHead);
+
+    if (NextEntry->Blink != ListHead) 
+    {
+        RtlFatalListEntryError((PVOID)ListHead, (PVOID)NextEntry, (PVOID)NextEntry->Blink);
+    }
+
+    Entry->Flink = NextEntry;
     Entry->Blink = ListHead;
-    Flink->Blink = Entry;
+    NextEntry->Blink = Entry;
     ListHead->Flink = Entry;
 }
 
@@ -171,6 +286,9 @@ AppendTailList(
     )
 {
     PLIST_ENTRY ListEnd = ListHead->Blink;
+
+    RtlCheckListEntry(ListHead);
+    RtlCheckListEntry(ListToAppend);
 
     ListHead->Blink->Flink = ListToAppend;
     ListHead->Blink = ListToAppend->Blink;
@@ -1956,6 +2074,8 @@ RtlSanitizeUnicodeStringPadding(
     PaddingSize = FIELD_OFFSET(UNICODE_STRING, Buffer) - PaddingStart;
 
     memset((PCH)String + PaddingStart, 0, PaddingSize);
+#else
+    UNREFERENCED_PARAMETER(String);
 #endif
 }
 #pragma prefast(pop)
