@@ -1527,12 +1527,15 @@ RtlWakeAddressSingleNoFence(
 // Strings
 //
 
+_At_(AnsiString->Buffer, _Post_equal_to_(Buffer))
+_At_(AnsiString->Length, _Post_equal_to_(0))
+_At_(AnsiString->MaximumLength, _Post_equal_to_(BufferSize))
 FORCEINLINE
 VOID
 NTAPI
 RtlInitEmptyAnsiString(
     _Out_ PANSI_STRING AnsiString,
-    _Pre_maybenull_ _Pre_readable_size_(MaximumLength) PCHAR Buffer,
+    _Pre_maybenull_ _Pre_readable_size_(MaximumLength) __drv_aliasesMem PCHAR Buffer,
     _In_ USHORT MaximumLength
     )
 {
@@ -1717,6 +1720,7 @@ RtlUpperString(
 
 FORCEINLINE
 BOOLEAN
+NTAPI
 RtlIsNullOrEmptyUnicodeString(
     _In_opt_ PCUNICODE_STRING String
     )
@@ -1724,12 +1728,15 @@ RtlIsNullOrEmptyUnicodeString(
     return !String || String->Length == 0;
 }
 
+_At_(UnicodeString->Buffer, _Post_equal_to_(Buffer))
+_At_(UnicodeString->Length, _Post_equal_to_(0))
+_At_(UnicodeString->MaximumLength, _Post_equal_to_(BufferSize))
 FORCEINLINE
 VOID
 NTAPI
 RtlInitEmptyUnicodeString(
     _Out_ PUNICODE_STRING DestinationString,
-    _Writable_bytes_(MaximumLength) _When_(MaximumLength != 0, _Notnull_) PWCHAR Buffer,
+    _Writable_bytes_(MaximumLength) _When_(MaximumLength != 0, _Notnull_) __drv_aliasesMem PWCHAR Buffer,
     _In_ USHORT MaximumLength
     )
 {
@@ -1932,6 +1939,26 @@ RtlSuffixUnicodeString(
     _In_ BOOLEAN CaseInSensitive
     );
 #endif // PHNT_MODE == PHNT_MODE_KERNEL && PHNT_VERSION >= PHNT_WINDOWS_10
+
+#pragma prefast(push)
+#pragma prefast(disable : 6101, "Out parameter is not written fully or at all.")
+FORCEINLINE
+VOID
+RtlSanitizeUnicodeStringPadding(
+    _Out_ PUNICODE_STRING String
+    )
+{
+#if defined(_WIN64)
+    ULONG PaddingSize;
+    ULONG PaddingStart;
+
+    PaddingStart = FIELD_OFFSET(UNICODE_STRING, MaximumLength) + sizeof(String->MaximumLength);
+    PaddingSize = FIELD_OFFSET(UNICODE_STRING, Buffer) - PaddingStart;
+
+    memset((PCH)String + PaddingStart, 0, PaddingSize);
+#endif
+}
+#pragma prefast(pop)
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 _Must_inspect_result_
@@ -2834,7 +2861,9 @@ RtlCompressChunks(
     _In_ PVOID WorkSpace
     );
 
+//
 // Locale
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
@@ -3242,6 +3271,22 @@ typedef struct _RTL_USER_PROCESS_INFORMATION
 } RTL_USER_PROCESS_INFORMATION, *PRTL_USER_PROCESS_INFORMATION;
 
 // private
+/**
+ * Creates a new process and its primary thread. The new process runs in the security context of the calling process.
+ *
+ * @param NtImagePathName The path of the image to be executed.
+ * @param ExtendedParameters Reserved
+ * @param ProcessParameters The process parameter information.
+ * @param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a default security descriptor.
+ * @param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a default security descriptor.
+ * @param ParentProcess The handle of a process to use (instead of the calling process) as the parent for the process being created.
+ * @param InheritHandles If this parameter is TRUE, each inheritable handle in the calling process is inherited by the new process.
+ * @param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port. (WindowsErrorReportingServicePort)
+ * @param TokenHandle The handle of a Token to use as the security context.
+ * @param ProcessInformation The user process information.
+ * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3306,6 +3351,16 @@ RtlExitUserProcess(
 // end_rev
 
 // private
+/**
+ * Creates a new process from the current process.
+ *
+ * @param ProcessFlags The path of the image to be executed.
+ * @param ProcessSecurityDescriptor The security descriptor for the new process. If NULL, the process gets a default security descriptor.
+ * @param ThreadSecurityDescriptor The security descriptor for the initial thread. If NULL, the thread gets a default security descriptor.
+ * @param DebugPort The handle of an ALPC port for debug messages. If NULL, the process gets a default port. (WindowsErrorReportingServicePort)
+ * @param ProcessInformation The new process information.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4868,15 +4923,15 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDosApplyFileIsolationRedirection_Ustr(
-    _In_ ULONG                  Flags,
-    _In_ PCUNICODE_STRING        OriginalName,
-    _In_ PCUNICODE_STRING        Extension,
-    _In_opt_ PCUNICODE_STRING    StaticString,
-    _In_opt_ PCUNICODE_STRING    DynamicString,
-    _In_opt_ PCUNICODE_STRING*   NewName,
-    _In_ PULONG                 NewFlags,
-    _In_ PSIZE_T                FileNameSize,
-    _In_ PSIZE_T                RequiredLength
+    _In_ ULONG Flags,
+    _In_ PCUNICODE_STRING OriginalName,
+    _In_ PCUNICODE_STRING Extension,
+    _In_opt_ PCUNICODE_STRING StaticString,
+    _In_opt_ PCUNICODE_STRING DynamicString,
+    _In_opt_ PCUNICODE_STRING* NewName,
+    _In_ PULONG NewFlags,
+    _In_ PSIZE_T FileNameSize,
+    _In_ PSIZE_T RequiredLength
     );
 
 NTSYSAPI
@@ -5064,7 +5119,9 @@ RtlDllShutdownInProgress(
     VOID
     );
 
+//
 // Heaps
+//
 
 typedef struct _RTL_HEAP_ENTRY
 {
@@ -5252,7 +5309,9 @@ typedef struct _RTL_SEGMENT_HEAP_PARAMETERS
     SIZE_T Reserved[4];
 } RTL_SEGMENT_HEAP_PARAMETERS, *PRTL_SEGMENT_HEAP_PARAMETERS;
 
+//
 // Heap parameters.
+//
 
 typedef
 _Function_class_(RTL_HEAP_COMMIT_ROUTINE)
@@ -5371,12 +5430,12 @@ RtlDestroyHeap(
  * @return If the call to RtlAllocateHeap succeeds, the return value is a pointer to the newly-allocated block. The return value is NULL if the allocation failed.
  * @remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap
  */
-NTSYSAPI
 _Success_(return != 0)
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 __drv_allocatesMem(Mem)
+NTSYSAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -5451,12 +5510,12 @@ RtlUnlockHeap(
     _In_ PVOID HeapHandle
     );
 
-NTSYSAPI
 _Success_(return != 0)
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _When_(Size > 0, __drv_allocatesMem(Mem))
+NTSYSAPI
 DECLSPEC_ALLOCATOR
 DECLSPEC_NOALIAS
 DECLSPEC_RESTRICT
@@ -5972,7 +6031,9 @@ RtlFlushHeaps(
     VOID
     );
 
+//
 // Memory zones
+//
 
 // begin_private
 
@@ -6239,7 +6300,9 @@ RtlCopyLuidAndAttributesArray(
     _In_ PLUID_AND_ATTRIBUTES Dest
     );
 
+//
 // Byte swap routines.
+//
 
 #ifndef PHNT_RTL_BYTESWAP
 #define RtlUshortByteSwap(_x) _byteswap_ushort((USHORT)(_x))
@@ -6302,7 +6365,9 @@ RtlEnlargedUnsignedMultiply(
     _In_ ULONG Multiplier
     );
 
+//
 // Debugging
+//
 
 // private
 typedef struct _RTL_PROCESS_MODULES *PRTL_PROCESS_MODULES;
@@ -7050,12 +7115,22 @@ RtlGetInterruptTimePrecise(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 NTSYSAPI
-BOOLEAN
+ULONGLONG
 NTAPI
 RtlQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER InterruptTime
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
+// rev
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlQueryUnbiasedInterruptTimePrecise(
+    _Out_ PLARGE_INTEGER InterruptTime
+    );
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11_24H2
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 FORCEINLINE
@@ -9076,6 +9151,16 @@ RtlDeregisterWait(
 
 #define RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION ((HANDLE)(LONG_PTR)-1)
 
+/**
+ * Releases all resources used by a wait object.
+ *
+ * @param WaitHandle The access mask that specifies the granted access rights.
+ * @param CompletionEvent Optional completion event for wait callback completion.
+ * @remarks RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION: blocking wait for wait callback completion.
+ * NULL: non-blocking wait for wait callback completion.
+ * EventHandle: caller wait for wait callback completion.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -9272,7 +9357,7 @@ RtlCheckRegistryKey(
 
 typedef _Function_class_(RTL_QUERY_REGISTRY_ROUTINE) 
 NTSTATUS NTAPI RTL_QUERY_REGISTRY_ROUTINE(
-    _In_ PCWSTR ValueName,
+    _In_z_ PCWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
     _In_ ULONG ValueLength,
@@ -9299,6 +9384,11 @@ typedef struct _RTL_QUERY_REGISTRY_TABLE
 #define RTL_QUERY_REGISTRY_NOEXPAND 0x00000010
 #define RTL_QUERY_REGISTRY_DIRECT 0x00000020
 #define RTL_QUERY_REGISTRY_DELETE 0x00000040
+#define RTL_QUERY_REGISTRY_NOSTRING 0x00000080 // deprecated
+#define RTL_QUERY_REGISTRY_TYPECHECK 0x00000100
+
+#define RTL_QUERY_REGISTRY_TYPECHECK_SHIFT 24
+#define RTL_QUERY_REGISTRY_TYPECHECK_MASK (0xff << RTL_QUERY_REGISTRY_TYPECHECK_SHIFT)
 
 NTSYSAPI
 NTSTATUS
@@ -9345,7 +9435,7 @@ NTAPI
 RtlWriteRegistryValue(
     _In_ ULONG RelativeTo,
     _In_ PCWSTR Path,
-    _In_ PCWSTR ValueName,
+    _In_z_ PCWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
     _In_ ULONG ValueLength
@@ -9357,7 +9447,7 @@ NTAPI
 RtlDeleteRegistryValue(
     _In_ ULONG RelativeTo,
     _In_ PCWSTR Path,
-    _In_ PCWSTR ValueName
+    _In_z_ PCWSTR ValueName
     );
 
 //
@@ -9605,7 +9695,7 @@ RtlEncodeRemotePointer(
  *
  * @param ProcessHandle Handle to the remote process that owns the pointer.
  * @param Pointer The pointer to be decoded.
- * @param EncodedPointer The decoded pointer.
+ * @param DecodedPointer The decoded pointer.
  * @return HRESULT Successful or errant status.
  * @sa https://learn.microsoft.com/en-us/previous-versions/dn877133(v=vs.85)
  */
@@ -11735,6 +11825,29 @@ RtlGetCurrentThreadPrimaryGroup(
     VOID
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS1
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryProcessAvailableCpus(
+    _In_ HANDLE ProcessHandle,
+    _In_ PKAFFINITY_EX Affinity,
+    _In_ ULONG64 ObservedSequenceNumber,
+    _Out_opt_ PULONG64 SequenceNumber
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryProcessAvailableCpusCount(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG AvailableCpusCount,
+    _Out_opt_ PULONG64 SequenceNumber
+    );
+#endif // PHNT_VERSION >= PHNT_WINDOWS_11_24H2
 
 #endif // _NTRTL_H
 
