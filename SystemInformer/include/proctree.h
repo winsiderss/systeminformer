@@ -237,6 +237,7 @@ typedef struct _PH_PROCESS_NODE
 
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
+    PPH_STRING FileNameWin32;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1 + 3];
