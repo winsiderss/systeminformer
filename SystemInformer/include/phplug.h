@@ -521,7 +521,7 @@ typedef struct _PH_OPTIONS_SECTION
     // end_phapppub
 
     PVOID Instance;
-    PWSTR Template;
+    PCWSTR Template;
     DLGPROC DialogProc;
     PVOID Parameter;
 
