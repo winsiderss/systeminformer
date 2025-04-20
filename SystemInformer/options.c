@@ -84,7 +84,7 @@ VOID PhOptionsCreateSectionDialog(
     );
 
 PPH_OPTIONS_SECTION PhOptionsFindSection(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 VOID PhOptionsOnSize(
@@ -92,17 +92,17 @@ VOID PhOptionsOnSize(
     );
 
 PPH_OPTIONS_SECTION PhOptionsCreateSection(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     );
 
 PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     );
@@ -176,7 +176,7 @@ VOID PhShowOptionsDialog(
 
 static HTREEITEM PhpTreeViewInsertItem(
     _In_opt_ HTREEITEM HandleInsertAfter,
-    _In_ PWSTR Text,
+    _In_ PCWSTR Text,
     _In_ PVOID Context
     )
 {
@@ -187,7 +187,7 @@ static HTREEITEM PhpTreeViewInsertItem(
     insert.hParent = TVI_ROOT;
     insert.hInsertAfter = HandleInsertAfter;
     insert.item.mask = TVIF_TEXT | TVIF_PARAM;
-    insert.item.pszText = Text;
+    insert.item.pszText = (PWSTR)Text;
     insert.item.lParam = (LPARAM)Context;
 
     return TreeView_InsertItem(OptionsTreeControl, &insert);
@@ -197,8 +197,8 @@ static VOID PhpOptionsShowHideTreeViewItem(
     _In_ BOOLEAN Hide
     )
 {
-    static PH_STRINGREF generalName = PH_STRINGREF_INIT(L"General");
-    static PH_STRINGREF advancedName = PH_STRINGREF_INIT(L"Advanced");
+    static CONST PH_STRINGREF generalName = PH_STRINGREF_INIT(L"General");
+    static CONST PH_STRINGREF advancedName = PH_STRINGREF_INIT(L"Advanced");
 
     if (Hide)
     {
@@ -550,9 +550,9 @@ VOID PhOptionsOnSize(
 }
 
 PPH_OPTIONS_SECTION PhOptionsCreateSection(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     )
@@ -573,9 +573,9 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
 }
 
 PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
-    _In_ PWSTR Name,
+    _In_ PCWSTR Name,
     _In_ PVOID Instance,
-    _In_ PWSTR Template,
+    _In_ PCWSTR Template,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
     )
@@ -602,7 +602,7 @@ VOID PhOptionsDestroySection(
 }
 
 PPH_OPTIONS_SECTION PhOptionsFindSection(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     ULONG i;
@@ -878,8 +878,8 @@ static VOID WriteCurrentUserRun(
         0
         )))
     {
-        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
-        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
+        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
         if (Present)
         {
@@ -1020,8 +1020,8 @@ VOID PhpSetDefaultTaskManager(
 
         if (NT_SUCCESS(status))
         {
-            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
-            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
+            static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
             if (PhpIsDefaultTaskManager())
             {
@@ -1217,13 +1217,13 @@ VOID PhpSetDefaultTaskManager(
 NTSTATUS PhpSetSilentProcessNotifyEnabled(
     _In_ BOOLEAN Enabled)
 {
-    static PH_STRINGREF processExitKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit");
-    static PH_STRINGREF valueModeName = PH_STRINGREF_INIT(L"ReportingMode");
+    static CONST PH_STRINGREF processExitKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit");
+    static CONST PH_STRINGREF valueModeName = PH_STRINGREF_INIT(L"ReportingMode");
     static ULONG valueMode = 4;
-    //static PH_STRINGREF valueSelfName = PH_STRINGREF_INIT(L"IgnoreSelfExits");
+    //static CONST PH_STRINGREF valueSelfName = PH_STRINGREF_INIT(L"IgnoreSelfExits");
     //static ULONG valueSelf = 1;
-    //static PH_STRINGREF valueMonitorName = PH_STRINGREF_INIT(L"MonitorProcess");
-    static PH_STRINGREF valueGlobalName = PH_STRINGREF_INIT(L"GlobalFlag");
+    //static CONST PH_STRINGREF valueMonitorName = PH_STRINGREF_INIT(L"MonitorProcess");
+    static CONST PH_STRINGREF valueGlobalName = PH_STRINGREF_INIT(L"GlobalFlag");
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE keyDirectoryHandle = NULL;
     HANDLE keyFilenameHandle = NULL;

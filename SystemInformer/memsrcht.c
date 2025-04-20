@@ -27,8 +27,8 @@
 #define PH_MEMSEARCH_STATE_SEARCHING 1
 #define PH_MEMSEARCH_STATE_FINISHED  2
 
-static PH_STRINGREF EmptyStringsText = PH_STRINGREF_INIT(L"There are no strings to display.");
-static PH_STRINGREF LoadingStringsText = PH_STRINGREF_INIT(L"Loading strings...");
+static CONST PH_STRINGREF EmptyStringsText = PH_STRINGREF_INIT(L"There are no strings to display.");
+static CONST PH_STRINGREF LoadingStringsText = PH_STRINGREF_INIT(L"Loading strings...");
 
 typedef struct _PH_MEMSTRINGS_SETTINGS
 {

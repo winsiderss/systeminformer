@@ -47,7 +47,7 @@ extern BOOLEAN PhpShouldShowImageCoherency(
     _In_ BOOLEAN CheckThreshold
     );
 
-static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
+static CONST PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
 
 VOID PhpAppendStringWithLineBreaks(
     _Inout_ PPH_STRING_BUILDER StringBuilder,

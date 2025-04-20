@@ -362,7 +362,8 @@ namespace CustomBuildTool
                     return salt;
                 }
 
-                ArgumentException.ThrowIfNullOrWhiteSpace(salt);
+                Program.PrintColorMessage($"[KPH_BUILD_SALT]", ConsoleColor.Red);
+                Environment.Exit(1);
             }
 
             return Salt;

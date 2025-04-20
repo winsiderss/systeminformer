@@ -41,8 +41,8 @@ static PH_FAST_LOCK KsiDebugRawFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugRawFileStream = NULL;
 static CONST PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
 
-static PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
-static PH_CALLBACK_REGISTRATION KsiDebugMessageRegistration = { 0 };
+static CONST PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
+static PH_CALLBACK_REGISTRATION KsiDebugMessageRegistration = { NULL };
 
 static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
 {

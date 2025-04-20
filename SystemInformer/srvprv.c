@@ -464,7 +464,7 @@ VOID PhServiceQueryStage1(
 
         if (!PhEnableProcessQueryStage2)
         {
-            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+            static CONST PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
             PH_IMAGE_VERSION_INFO versionInfo;
 
             PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
@@ -507,7 +507,7 @@ VOID PhServiceQueryStage2(
 
         if (!PhIsNullOrEmptyString(Data->VerifySignerName))
         {
-            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+            static CONST PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
 
             if (PhEqualStringRef(&Data->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
             {

@@ -20,7 +20,7 @@
 #include <devguid.h>
 
 static PH_CALLBACK_REGISTRATION PhpDeviceNotifyRegistration = { 0 };
-static PH_STRINGREF PhpDeviceString = PH_STRINGREF_INIT(L"Device");
+static CONST PH_STRINGREF PhpDeviceString = PH_STRINGREF_INIT(L"Device");
 
 BOOLEAN PhpShouldNotifyForDevice(
     _In_ PPH_DEVICE_ITEM Item,

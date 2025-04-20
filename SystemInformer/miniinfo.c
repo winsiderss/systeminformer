@@ -48,7 +48,7 @@ static HWND PhMipLayoutWindow = NULL;
 static PH_LAYOUT_MANAGER PhMipLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-static PH_STRINGREF DownArrowPrefix = PH_STRINGREF_INIT(L"\u25be ");
+static CONST PH_STRINGREF DownArrowPrefix = PH_STRINGREF_INIT(L"\u25be ");
 
 static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
@@ -1677,7 +1677,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             // Special text for hung windows
             if (node->RepresentativeIsHung)
             {
-                static PH_STRINGREF hungPrefix = PH_STRINGREF_INIT(L"(Not responding) ");
+                static CONST PH_STRINGREF hungPrefix = PH_STRINGREF_INIT(L"(Not responding) ");
 
                 PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&hungPrefix, &getTitleText.Title->sr));
                 getTitleText.TitleColor = RGB(0xff, 0x00, 0x00);
@@ -1685,7 +1685,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
 
             if (node->RepresentativeIsTerminated)
             {
-                static PH_STRINGREF terminatedPrefix = PH_STRINGREF_INIT(L"(Terminated) ");
+                static CONST PH_STRINGREF terminatedPrefix = PH_STRINGREF_INIT(L"(Terminated) ");
 
                 PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&terminatedPrefix, &getTitleText.Title->sr));
                 getTitleText.TitleColor = RGB(0xA9, 0xA9, 0xA9);
