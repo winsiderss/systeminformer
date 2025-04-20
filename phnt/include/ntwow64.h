@@ -9,8 +9,8 @@
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #ifdef __has_include
-#if __has_include (<ntxcapi.h>)
-#include <ntxcapi.h>
+#if __has_include ("ntxcapi.h")
+#include "ntxcapi.h"
 #endif // __has_include
 #endif // __has_include
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
