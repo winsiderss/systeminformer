@@ -464,25 +464,28 @@ VOID PhServiceQueryStage1(
 
         if (!PhEnableProcessQueryStage2)
         {
-            static CONST PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
             PH_IMAGE_VERSION_INFO versionInfo;
+            PPH_STRING nativeFilename;
 
-            PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
-
-            if (PhInitializeImageVersionInfoCached(
-                &versionInfo, // Data->VersionInfo
-                fileName,
-                FALSE,
-                !!PhCsEnableVersionSupport
-                ))
+            if (nativeFilename = PhDosPathNameToNtPathName(&fileName->sr))
             {
-                // Note: This is how msconfig determines default services. (dmex)
-                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                if (PhInitializeImageVersionInfoCached(
+                    &versionInfo, // Data->VersionInfo
+                    nativeFilename,
+                    FALSE,
+                    !!PhCsEnableVersionSupport
+                    ))
                 {
-                    Data->MicrosoftService = TRUE;
+                    // Note: This is how msconfig determines default services. (dmex)
+                    if (versionInfo.CompanyName && PhStartsWithStringRef2(&versionInfo.CompanyName->sr, L"Microsoft", TRUE))
+                    {
+                        Data->MicrosoftService = TRUE;
+                    }
+
+                    PhDeleteImageVersionInfo(&versionInfo);
                 }
 
-                PhDeleteImageVersionInfo(&versionInfo);
+                PhDereferenceObject(nativeFilename);
             }
         }
     }
