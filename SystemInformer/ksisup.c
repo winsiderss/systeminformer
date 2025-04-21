@@ -21,6 +21,8 @@
 #include <phappres.h>
 #include <sistatus.h>
 #include <informer.h>
+#include <phsvccl.h>
+#include <svcsup.h>
 
 #include <ksisup.h>
 
@@ -650,6 +652,105 @@ VOID PhShowKsiMessage(
 }
 
 /**
+ * Create a randomized alphanumeric name with the given prefix.
+ *
+ * Generates an 8-12 character random alpha string and concatenates it to the
+ * provided prefix producing a new referenced `PPH_STRING` returned via `Name`.
+ *
+ * \param[in] Prefix Wide string prefix to prepend.
+ * \param[out] Name Receives referenced `PPH_STRING` containing the new name.
+ */
+VOID KsiCreateRandomizedName(
+    _In_ PCWSTR Prefix,
+    _Out_ PPH_STRING* Name
+    )
+{
+    ULONG length;
+    WCHAR buffer[13];
+
+    length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
+
+    PhGenerateRandomAlphaString(buffer, length);
+
+    *Name = PhConcatStrings2(Prefix, buffer);
+}
+
+/**
+ * Creates and connects to the System Informer service.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS KsiSvcConnectToServer(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName;
+    PPH_STRING fileName;
+    PPH_STRING commandLine;
+    SC_HANDLE serviceHandle;
+    PPH_STRING portName;
+    UNICODE_STRING portNameUs;
+    ULONG attempts;
+
+    if (!(fileName = PhGetApplicationFileNameWin32()))
+        return STATUS_UNSUCCESSFUL;
+
+    KsiCreateRandomizedName(L"SystemInformer_", &serviceName);
+
+    commandLine = PhFormatString(
+        L"\"%s\" -ras \"%s\"",
+        fileName->Buffer,
+        PhGetString(serviceName)
+        );
+
+    status = PhCreateService(
+        &serviceHandle,
+        PhGetString(serviceName),
+        PhGetString(serviceName),
+        SERVICE_ALL_ACCESS,
+        SERVICE_WIN32_OWN_PROCESS,
+        SERVICE_DEMAND_START,
+        SERVICE_ERROR_IGNORE,
+        PhGetString(commandLine),
+        L"LocalSystem",
+        L""
+        );
+
+    PhDereferenceObject(commandLine);
+    PhDereferenceObject(fileName);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhStartService(serviceHandle, 0, NULL);
+    PhDeleteService(serviceHandle);
+
+    portName = PhConcatStrings2(L"\\BaseNamedObjects\\", PhGetString(serviceName));
+    PhStringRefToUnicodeString(&portName->sr, &portNameUs);
+    attempts = 50;
+
+    // Try to connect several times because the server may take
+    // a while to initialize.
+    do
+    {
+        status = PhSvcConnectToServer(&portNameUs, 0);
+
+        if (NT_SUCCESS(status))
+            break;
+
+        PhDelayExecution(100);
+
+    } while (--attempts != 0);
+
+    PhDereferenceObject(portName);
+
+    PhCloseServiceHandle(serviceHandle);
+
+    return status;
+}
+
+/**
  * Restart the current process with optional additional command-line parameters
  * and process mitigation attributes set.
  *
@@ -665,9 +766,11 @@ NTSTATUS PhRestartSelf(
     _In_ PCPH_STRINGREF AdditionalCommandLine
     )
 {
-#ifndef DEBUG
     static ULONG64 mitigationFlags[] =
     {
+#ifdef DEBUG
+        0, 0
+#else
         (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
@@ -679,8 +782,8 @@ NTSTATUS PhRestartSelf(
          // PROCESS_CREATION_MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON |
          // PROCESS_CREATION_MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON |
          PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
-    };
 #endif
+    };
     NTSTATUS status;
     PPROC_THREAD_ATTRIBUTE_LIST attributeList = NULL;
     PH_STRINGREF commandlineSr;
@@ -696,6 +799,18 @@ NTSTATUS PhRestartSelf(
         &commandlineSr,
         AdditionalCommandLine
         );
+
+    status = KsiSvcConnectToServer();
+    if (NT_SUCCESS(status))
+    {
+        status = PhSvcCallCreateProcessForKsi(PhGetString(commandline), mitigationFlags);
+        PhSvcDisconnectFromServer();
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhExitApplication(STATUS_SUCCESS);
+    }
 
 #ifndef DEBUG
     status = PhInitializeProcThreadAttributeList(&attributeList, 1);
@@ -1112,31 +1227,6 @@ NTSTATUS KsiCreateTemporaryDriverFile(
     PhClearReference(&tempFileName);
 
     return status;
-}
-
-/**
- * Create a randomized alphanumeric name with the given prefix.
- *
- * Generates an 8-12 character random alpha string and concatenates it to the
- * provided prefix producing a new referenced `PPH_STRING` returned via `Name`.
- *
- * \param[in] Prefix Wide string prefix to prepend.
- * \param[out] Name Receives referenced `PPH_STRING` containing the new name.
- * \return BOOLEAN TRUE on success, FALSE on failure.
- */
-BOOLEAN KsiCreateRandomizedName(
-    _In_ PCWSTR Prefix,
-    _Out_ PPH_STRING* Name
-    )
-{
-    ULONG length;
-    WCHAR buffer[13];
-
-    length = (PhGenerateRandomNumber64() % 6) + 8; // 8-12 characters
-    PhGenerateRandomAlphaString(buffer, length);
-
-    *Name = PhConcatStrings2(Prefix, buffer);
-    return TRUE;
 }
 
 /**
