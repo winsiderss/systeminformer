@@ -1818,6 +1818,19 @@ typedef struct _KPH_PROCESS_CONTEXT
     ACCESS_MASK ProcessAllowedMask;
     ACCESS_MASK ThreadAllowedMask;
 
+    union
+    {
+        volatile ULONG Flags;
+        struct
+        {
+            ULONG Debugged : 1;
+            ULONG FileObjectWritable : 1;
+            ULONG FileObjectTransaction : 1;
+            ULONG UserWritableReferences : 1;
+            ULONG Reserved : 28;
+        };
+    } StateTracking;
+
     //
     // Only tracked for verified processes.
     //
