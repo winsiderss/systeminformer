@@ -554,7 +554,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     }
 
     processState = KphGetProcessState(process);
-    if ((processState & KPH_PROCESS_STATE_LOW) != KPH_PROCESS_STATE_LOW)
+    if (!KphTestProcessState(processState, KPH_PROCESS_STATE_LOW))
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
@@ -853,7 +853,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     processState = KphGetProcessState(client->Process);
     requiredState = handler->RequiredState(client, msg);
 
-    if ((processState & requiredState) != requiredState)
+    if (!KphTestProcessState(processState, requiredState))
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
@@ -1417,7 +1417,7 @@ NTSTATUS KphpCommsSendMessage(
         if (NT_SUCCESS(status))
         {
             processState = KphGetProcessState(client->Process);
-            if ((processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
+            if (!KphTestProcessState(processState, KPH_PROCESS_STATE_MAXIMUM))
             {
                 KphTracePrint(TRACE_LEVEL_CRITICAL,
                               COMMS,
