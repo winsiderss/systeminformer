@@ -266,8 +266,6 @@ NTSTATUS KphpVerifySessionToken(
 {
     NTSTATUS status;
     PKPH_DYN dyn;
-    KPH_PROCESS_STATE actorState;
-    KPH_PROCESS_STATE targetState;
     PBYTE signature;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -327,11 +325,8 @@ NTSTATUS KphpVerifySessionToken(
         goto Exit;
     }
 
-    actorState = KphGetProcessState(Actor);
-    targetState = KphGetProcessState(Target);
-
-    if (((actorState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM) ||
-        ((targetState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM))
+    if (!KphTestProcessContextState(Actor, KPH_PROCESS_STATE_MAXIMUM) ||
+        !KphTestProcessContextState(Target, KPH_PROCESS_STATE_MAXIMUM))
     {
         status = STATUS_ACCESS_DENIED;
         goto Exit;
