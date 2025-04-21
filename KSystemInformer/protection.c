@@ -596,8 +596,6 @@ KphpShouldPermitCreatorProcess(
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    KPH_PROCESS_STATE processState;
-
     KPH_PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Process->VerifiedProcess);
@@ -615,9 +613,8 @@ KphpShouldPermitCreatorProcess(
         return FALSE;
     }
 
-    processState = KphGetProcessState(Actor->ProcessContext);
-
-    return ((processState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM);
+    return KphTestProcessContextState(Actor->ProcessContext,
+                                      KPH_PROCESS_STATE_MINIMUM);
 }
 
 /**
