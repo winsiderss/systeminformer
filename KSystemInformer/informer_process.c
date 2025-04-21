@@ -94,7 +94,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 {
     PKPH_PROCESS_CONTEXT process;
     PKPH_PROCESS_CONTEXT creatorProcess;
-    KPH_PROCESS_STATE processState;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -153,14 +152,12 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
         goto Exit;
     }
 
-    processState = KphGetProcessState(process);
-    if (((processState & KPH_PROCESS_STATE_HIGH) != KPH_PROCESS_STATE_HIGH))
+    if (!KphTestProcessContextState(process, KPH_PROCESS_STATE_HIGH))
     {
         goto Exit;
     }
 
-    processState = KphGetProcessState(creatorProcess);
-    if ((processState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)
+    if (KphTestProcessContextState(creatorProcess, KPH_PROCESS_STATE_MAXIMUM))
     {
         process->SecurelyCreated = TRUE;
     }
