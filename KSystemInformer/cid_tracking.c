@@ -2317,9 +2317,16 @@ KPH_PROCESS_STATE KphGetProcessState(
         processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
     }
 
-    if (!PsIsProcessBeingDebugged(Process->EProcess))
+    if (!Process->StateTracking.Debugged)
     {
-        processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+        if (!PsIsProcessBeingDebugged(Process->EProcess))
+        {
+            processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+        }
+        else
+        {
+            Process->StateTracking.Debugged = TRUE;
+        }
     }
 
     if (!Process->FileObject)
@@ -2329,14 +2336,28 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_FILE_OBJECT;
 
-    if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+    if (!Process->StateTracking.FileObjectWritable)
     {
-        processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+        if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+        {
+            processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+        }
+        else
+        {
+            Process->StateTracking.FileObjectWritable = TRUE;
+        }
     }
 
-    if (!IoGetTransactionParameterBlock(Process->FileObject))
+    if (!Process->StateTracking.FileObjectTransaction)
     {
-        processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+        if (!IoGetTransactionParameterBlock(Process->FileObject))
+        {
+            processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+        }
+        else
+        {
+            Process->StateTracking.FileObjectTransaction = TRUE;
+        }
     }
 
     if (!Process->FileObject->SectionObjectPointer)
@@ -2346,9 +2367,16 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS;
 
-    if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+    if (!Process->StateTracking.UserWritableReferences)
     {
-        processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+        if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+        {
+            processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+        }
+        else
+        {
+            Process->StateTracking.UserWritableReferences = TRUE;
+        }
     }
 
     return processState;
