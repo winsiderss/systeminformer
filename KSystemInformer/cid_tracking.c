@@ -2180,7 +2180,6 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
     )
 {
     NTSTATUS status;
-    KPH_PROCESS_STATE processState;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -2203,8 +2202,7 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
         }
     }
 
-    processState = KphGetProcessState(Process);
-    if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
+    if (KphTestProcessContextState(Process, KPH_PROCESS_STATE_LOW))
     {
         ACCESS_MASK processAllowedMask;
         ACCESS_MASK threadAllowedMask;
