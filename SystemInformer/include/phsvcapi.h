@@ -38,6 +38,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcSetServiceSecurityApiNumber = 17,
     PhSvcWriteMiniDumpProcessApiNumber = 18, // WOW64 compatible
     PhSvcQueryProcessDebugInformationApiNumber = 19, // WOW64 compatible
+    PhSvcCreateProcessForKsi = 20,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -284,6 +285,15 @@ typedef union _PHSVC_API_PROCESSHEAPINFORMATION
     } o;
 } PHSVC_API_PROCESSHEAPINFORMATION, *PPHSVC_API_PROCESSHEAPINFORMATION;
 
+typedef union _PHSVC_API_CREATEPROCESSFORKSI
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF CommandLine;
+        ULONG64 MitigationFlags[2];
+    } i;
+} PHSVC_API_CREATEPROCESSFORKSI, *PPHSVC_API_CREATEPROCESSFORKSI;
+
 typedef union _PHSVC_API_PAYLOAD
 {
     PHSVC_API_CONNECTINFO ConnectInfo;
@@ -311,6 +321,7 @@ typedef union _PHSVC_API_PAYLOAD
             PHSVC_API_SETSERVICESECURITY SetServiceSecurity;
             PHSVC_API_WRITEMINIDUMPPROCESS WriteMiniDumpProcess;
             PHSVC_API_PROCESSHEAPINFORMATION QueryProcessHeap;
+            PHSVC_API_CREATEPROCESSFORKSI CreateProcessForKsi;
         } u;
     };
 } PHSVC_API_PAYLOAD, *PPHSVC_API_PAYLOAD;

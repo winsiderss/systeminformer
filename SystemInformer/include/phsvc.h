@@ -244,4 +244,9 @@ NTSTATUS PhSvcApiQueryProcessHeapInformation(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     );
 
+NTSTATUS PhSvcApiCreateProcessForKsi(
+    _In_ PPHSVC_CLIENT Client,
+    _Inout_ PPHSVC_API_PAYLOAD Payload
+    );
+
 #endif
