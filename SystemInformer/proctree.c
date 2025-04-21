@@ -3015,7 +3015,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_FILENAME:
                 {
-                    PhMoveReference(&node->FileNameWin32, PhGetFileName(processItem->FileName));
+                    if (processItem->FileName)
+                    {
+                        PhMoveReference(&node->FileNameWin32, PhGetFileName(processItem->FileName));
+                    }
 
                     if (node->FileNameWin32)
                         getCellText->Text = PhGetStringRef(node->FileNameWin32);
