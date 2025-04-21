@@ -2088,6 +2088,26 @@ KPH_PROCESS_STATE KphGetProcessState(
     _In_ PKPH_PROCESS_CONTEXT Process
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+FORCEINLINE
+BOOLEAN KphTestProcessState(
+    _In_ KPH_PROCESS_STATE ProcessState,
+    _In_ KPH_PROCESS_STATE State
+    )
+{
+    return ((ProcessState & State) == State);
+}
+
+_IRQL_requires_max_(APC_LEVEL)
+FORCEINLINE
+BOOLEAN KphTestProcessContextState(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_ KPH_PROCESS_STATE State
+    )
+{
+    return KphTestProcessState(KphGetProcessState(Process), State);
+}
+
 // protection
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
