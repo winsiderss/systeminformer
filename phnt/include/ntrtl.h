@@ -5721,7 +5721,7 @@ RtlExtendHeap(
     );
 
 NTSYSAPI
-ULONG
+SIZE_T
 NTAPI
 RtlCompactHeap(
     _In_ PVOID HeapHandle,
