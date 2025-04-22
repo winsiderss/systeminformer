@@ -691,6 +691,213 @@ VOID KphpObPreOpSend(
 }
 
 /**
+ * \brief Performs process tracking in object manager callbacks.
+ *
+ * \param[in] ProcessObject The process object to track.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPerformProcessTracking(
+    _In_ PEPROCESS ProcessObject
+    )
+{
+    PKPH_PROCESS_CONTEXT process;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    process = KphGetEProcessContext(ProcessObject);
+    if (process)
+    {
+        if (process->CreateNotification || process->NumberOfThreads)
+        {
+            //
+            // Let the process notification routine handle this process.
+            //
+            // N.B. We check CreateNotification and NumberOfThreads because we
+            // may have loaded too late to observe the original create
+            // notification. This avoids unnecessarily entering the logic below.
+            //
+            goto Exit;
+        }
+
+        //
+        // N.B. If a process is created and terminated without ever having a
+        // thread, the registered process notifications will not be called.
+        //
+        // In this case, indicators such as ExitTime, ExitStatus, and
+        // ProcessExiting will not be updated. However, the process exit
+        // synchronization (rundown) will be activated when the process
+        // terminates.
+        //
+        if (NT_SUCCESS(PsAcquireProcessExitSynchronization(ProcessObject)))
+        {
+            PsReleaseProcessExitSynchronization(ProcessObject);
+            goto Exit;
+        }
+
+        KphDereferenceObject(process);
+
+        process = KphUntrackProcessContext(PsGetProcessId(ProcessObject));
+        if (process)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          TRACKING,
+                          "Stopped tracking process %wZ (%lu)",
+                          &process->ImageName,
+                          HandleToULong(process->ProcessId));
+        }
+
+        goto Exit;
+    }
+
+    if (PsGetProcessExitProcessCalled(ProcessObject))
+    {
+        //
+        // Do not begin tracking the process if it has already exited.
+        //
+        goto Exit;
+    }
+
+    process = KphTrackProcessContext(ProcessObject);
+    if (process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Tracking process %wZ (%lu)",
+                      &process->ImageName,
+                      HandleToULong(process->ProcessId));
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Failed to track process %lu",
+                      HandleToULong(PsGetProcessId(ProcessObject)));
+    }
+
+Exit:
+
+    if (process)
+    {
+        KphDereferenceObject(process);
+    }
+}
+
+/**
+ * \brief Performs thread tracking in object manager callbacks.
+ *
+ * \param[in] ThreadObject The thread object to track.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPerformThreadTracking(
+    _In_ PETHREAD ThreadObject
+    )
+{
+    PKPH_THREAD_CONTEXT thread;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    thread = KphGetEThreadContext(ThreadObject);
+    if (thread)
+    {
+        //
+        // Let the thread notification routine handle any exiting threads.
+        //
+        goto Exit;
+    }
+
+    if (PsIsThreadTerminating(ThreadObject))
+    {
+        //
+        // Do not begin tracking the thread if it is terminating.
+        //
+        goto Exit;
+    }
+
+    thread = KphTrackThreadContext(ThreadObject);
+    if (thread)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Tracking thread %lu in process %wZ (%lu)",
+                      HandleToULong(thread->ClientId.UniqueThread),
+                      KphGetThreadImageName(thread),
+                      HandleToULong(thread->ClientId.UniqueProcess));
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Failed to track thread %lu in process %lu",
+                      HandleToULong(PsGetThreadId(ThreadObject)),
+                      HandleToULong(PsGetThreadProcessId(ThreadObject)));
+    }
+
+Exit:
+
+    if (thread)
+    {
+        KphDereferenceObject(thread);
+    }
+}
+
+/**
+ * \brief Performs process and thread tracking in object manager callbacks.
+ *
+ * \param[in] Info Object manager pre-operation callback information.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPerformProcessAndThreadTracking(
+    _In_ POB_PRE_OPERATION_INFORMATION Info
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    //
+    // During the object pre-operation callback, supplement process and thread
+    // tracking that is normally performed in the process and thread
+    // notification routines.
+    //
+    // The process notification routines are called when the initial thread is
+    // inserted into a process. However, a process can exist before those
+    // routines are invoked. If no thread is ever created in the process, it
+    // may exist without triggering any notification callbacks. When a handle is
+    // created for such a process (either during creation or by being opened
+    // from another process), we take this opportunity to perform tracking.
+    //
+    // We also use this point to sanity check that other contexts exist.
+    // If one doesn’t, it may be due to earlier resource constraints.
+    //
+    // N.B. If another driver has registered a process or thread notification
+    // routine before ours, it can cause us to land here before our own routines
+    // are called. Our tracking handles this scenario gracefully. This typically
+    // happens with security products that invoke user-mode code during process
+    // creation, and their user-mode component opens the process.
+    //
+
+    if (Info->KernelHandle)
+    {
+        //
+        // N.B. This prevents our own tracking routines from becoming reentrant.
+        // Our tracking routines always open a kernel handle.
+        //
+        return;
+    }
+
+    KphpObPerformProcessTracking(PsGetCurrentProcess());
+    KphpObPerformThreadTracking(PsGetCurrentThread());
+
+    if (Info->ObjectType == *PsProcessType)
+    {
+        KphpObPerformProcessTracking(Info->Object);
+    }
+    else if (Info->ObjectType == *PsThreadType)
+    {
+        KphpObPerformProcessTracking(PsGetThreadProcess(Info->Object));
+        KphpObPerformThreadTracking(Info->Object);
+    }
+}
+
+/**
  * \brief Object manager pre-operation callback.
  *
  * \param[in] Context Not used.
@@ -712,6 +919,8 @@ OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     KPH_PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
+
+    KphpObPerformProcessAndThreadTracking(Info);
 
     KphApplyObProtections(Info);
 
