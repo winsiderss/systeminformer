@@ -736,7 +736,7 @@ NTSTATUS UpdateCheckThread(
     PH_AUTO_POOL autoPool;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
-    context->ErrorCode = STATUS_SUCCESS;
+    context->UpdateStatus = STATUS_SUCCESS;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -903,7 +903,9 @@ NTSTATUS UpdateDownloadThread(
     }
 
     // Initialize hash algorithm.
-    if (!(hashContext = UpdaterInitializeHash(context->Channel)))
+    status = UpdaterInitializeHash(&hashContext, context->Channel);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     // Start the clock.
@@ -926,7 +928,8 @@ NTSTATUS UpdateDownloadThread(
             goto CleanupExit;
 
         // Update the hash of bytes we downloaded.
-        UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded);
+        if (!NT_SUCCESS(status = UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded)))
+            goto CleanupExit;
 
         // Write the downloaded bytes to disk.
         if (!NT_SUCCESS(status = NtWriteFile(
@@ -994,11 +997,11 @@ NTSTATUS UpdateDownloadThread(
 #endif
     }
 
-    if (UpdaterVerifyHash(hashContext, context->SetupFileHash))
+    if (NT_SUCCESS(status = UpdaterVerifyHash(hashContext, context->SetupFileHash)))
     {
         hashSuccess = TRUE;
 
-        if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
+        if (NT_SUCCESS(status = UpdaterVerifySignature(hashContext, context->SetupFileSignature)))
         {
             signatureSuccess = TRUE;
         }
@@ -1014,7 +1017,7 @@ NTSTATUS UpdateDownloadThread(
     }
 
 CleanupExit:
-    context->ErrorCode = PhNtStatusToDosError(status);
+    context->UpdateStatus = status;
 
     if (httpContext)
         PhHttpDestroy(httpContext);

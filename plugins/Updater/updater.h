@@ -93,7 +93,7 @@ typedef struct _PH_UPDATER_CONTEXT
         };
     };
 
-    ULONG ErrorCode;
+    ULONG UpdateStatus;
     ULONG64 CurrentVersion;
     ULONG64 LatestVersion;
     PPH_STRING SetupFilePath;
@@ -235,9 +235,7 @@ typedef struct _UPDATER_SIGNING
     ULONG PaddingFlags;
     BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_HASH_HANDLE HashHandle;
-    ULONG HashObjectSize;
     ULONG HashSize;
-    PVOID HashObject;
     PVOID Hash;
 } UPDATER_SIGNING, *PUPDATER_SIGNING;
 
@@ -245,35 +243,34 @@ typedef struct _UPDATER_HASH_CONTEXT
 {
     BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_HASH_HANDLE HashHandle;
-    ULONG HashObjectSize;
     ULONG HashSize;
-    PVOID HashObject;
     PVOID Hash;
     UPDATER_SIGNING Sign[MaxUpdaterSigningGeneration];
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
-PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+NTSTATUS UpdaterInitializeHash(
+    _Out_ PUPDATER_HASH_CONTEXT* Context,
     _In_ PH_RELEASE_CHANNEL Channel
     );
 
-BOOLEAN UpdaterUpdateHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterUpdateHash(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
     );
 
-BOOLEAN UpdaterVerifyHash(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifyHash(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING Sha2Hash
     );
 
-BOOLEAN UpdaterVerifySignature(
-    _Inout_ PUPDATER_HASH_CONTEXT Context,
+NTSTATUS UpdaterVerifySignature(
+    _In_ PUPDATER_HASH_CONTEXT Context,
     _In_ PPH_STRING HexSignature
     );
 
 VOID UpdaterDestroyHash(
-    _In_ PUPDATER_HASH_CONTEXT Context
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     );
 
 #endif
