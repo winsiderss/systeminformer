@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <sistatus.rc>
 
-#define VER_FILEVERSION             3,2,1,0
+#define VER_FILEVERSION             3,2,2,0
 #define VER_FILEVERSION_STR         "3.2\0"
 
 #define VER_PRODUCTVERSION          VER_FILEVERSION
