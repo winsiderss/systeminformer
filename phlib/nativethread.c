@@ -2236,12 +2236,30 @@ CleanupExit:
 
 NTSTATUS PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    _In_ ULONG RequiredSize,
+    _Out_writes_bytes_(RequiredSize) PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     )
 {
     NTSTATUS status;
     PS_SYSTEM_DLL_INIT_BLOCK ldrSystemDllInitBlock = { 0 };
     PVOID ldrSystemDllInitBlockAddress;
+    ULONG requiredOsVersion;
+
+    if (RequiredSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
+        return STATUS_INVALID_BUFFER_SIZE;
+
+    // N.B. Verify that the Windows version is new enough so that all of the requested
+    // fields exist and have settled on the offsets from our definitions. (diversenok)
+
+    if (RequiredSize >= RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, ScpCfgCheckFunction))
+        requiredOsVersion = WINDOWS_11_24H2;
+    else if (RequiredSize >= RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[2]))
+        requiredOsVersion = WINDOWS_10_20H1;
+    else
+        requiredOsVersion = WINDOWS_10_RS2;
+
+    if (WindowsVersion < requiredOsVersion)
+        return STATUS_NOT_SUPPORTED;
 
     status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
@@ -2258,16 +2276,17 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
         ProcessHandle,
         ldrSystemDllInitBlockAddress,
         &ldrSystemDllInitBlock,
-        PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1,
+        RequiredSize,
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (RTL_CONTAINS_FIELD(&ldrSystemDllInitBlock, ldrSystemDllInitBlock.Size, MitigationAuditOptionsMap))
+    if (ldrSystemDllInitBlock.Size >= RequiredSize)
     {
-        RtlMoveMemory(SystemDllInitBlock, &ldrSystemDllInitBlock, sizeof(ldrSystemDllInitBlock));
+        ldrSystemDllInitBlock.Size = RequiredSize;
+        RtlMoveMemory(SystemDllInitBlock, &ldrSystemDllInitBlock, RequiredSize);
     }
     else
     {

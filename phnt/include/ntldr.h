@@ -649,7 +649,7 @@ typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 {
     ULONG Size;
-    ULONG_PTR SystemDllWowRelocation;
+    ULONG_PTR SystemDllWowRelocation; // current offset since REDSTONE2
     ULONG_PTR SystemDllNativeRelocation;
     ULONG_PTR Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
     ULONG RngData;
@@ -662,12 +662,12 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
             ULONG Reserved : 31;
         };
     };
-    PS_MITIGATION_OPTIONS_MAP MitigationOptionsMap;
-    ULONG_PTR CfgBitMap;
+    PS_MITIGATION_OPTIONS_MAP MitigationOptionsMap; // current size since 20H1
+    ULONG_PTR CfgBitMap; // current offset since 20H1
     ULONG_PTR CfgBitMapSize;
     ULONG_PTR Wow64CfgBitMap;
     ULONG_PTR Wow64CfgBitMapSize;
-    PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap; // REDSTONE3
+    PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap;
     ULONG_PTR ScpCfgCheckFunction; // since 24H2
     ULONG_PTR ScpCfgCheckESFunction;
     ULONG_PTR ScpCfgDispatchFunction;
@@ -677,18 +677,10 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG_PTR ScpArm64EcCfgCheckESFunction;
 } PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
-// rev
-#if (PHNT_VERSION >= PHNT_WINDOWS_10)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
+// private
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
-
-#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 \
-    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap)
-#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 \
-    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, ScpArm64EcCfgCheckESFunction)
-
-//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 == 240, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 must equal 240");
-//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 == 296, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 must equal 296");
 
 // rev see also MEMORY_IMAGE_EXTENSION_INFORMATION
 typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
