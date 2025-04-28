@@ -749,6 +749,12 @@ PPH_STRING KsiDebugLogFileCommon(
     if (Message->Kernel.File.ImageSectionObject)
         PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", image section"));
 
+    if (Message->Kernel.File.OpenedAsCopySource)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", copy source"));
+
+    if (Message->Kernel.File.OpenedAsCopyDestination)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", copy destination"));
+
     return result;
 }
 
