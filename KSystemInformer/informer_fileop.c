@@ -329,6 +329,18 @@ VOID KphpFltInitMessage(
                       oplockKeyContext,
                       sizeof(OPLOCK_KEY_CONTEXT));
     }
+
+    if (KphDynIoCheckFileObjectOpenedAsCopySource &&
+        KphDynIoCheckFileObjectOpenedAsCopySource(FltObjects->FileObject))
+    {
+        Message->Kernel.File.OpenedAsCopySource = TRUE;
+    }
+
+    if (KphDynIoCheckFileObjectOpenedAsCopyDestination &&
+        KphDynIoCheckFileObjectOpenedAsCopyDestination(FltObjects->FileObject))
+    {
+        Message->Kernel.File.OpenedAsCopyDestination = TRUE;
+    }
 }
 
 /**
@@ -1006,6 +1018,8 @@ VOID KphpFltFillCommonMessage(
     _In_ PFLT_CALLBACK_DATA Data
     )
 {
+    COPY_INFORMATION copyInfo;
+
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
     if (Data->Thread)
@@ -1023,6 +1037,13 @@ VOID KphpFltFillCommonMessage(
                      FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
 
         Message->Kernel.File.ThreadSubProcessTag = KphGetThreadSubProcessTagEx(Data->Thread, cacheOnly);
+    }
+
+    if (KphDynFltGetCopyInformationFromCallbackData &&
+        NT_SUCCESS(KphDynFltGetCopyInformationFromCallbackData(Data, &copyInfo)))
+    {
+        Message->Kernel.File.CopyInformation.SourceFileObject = copyInfo.SourceFileObject;
+        Message->Kernel.File.CopyInformation.SourceFileOffset = copyInfo.SourceFileOffset;
     }
 
     Message->Kernel.File.RequestorMode = (Data->RequestorMode != KernelMode);
