@@ -25,6 +25,9 @@ PSE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK KphSeUnregisterImageVerificationCallb
 PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject = NULL;
 PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo = NULL;
 PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
+PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE KphDynIoCheckFileObjectOpenedAsCopySource = NULL;
+PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION KphDynIoCheckFileObjectOpenedAsCopyDestination = NULL;
+PFLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA KphDynFltGetCopyInformationFromCallbackData = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
@@ -49,6 +52,9 @@ VOID KphDynamicImport(
     KphDynCiValidateFileObject = (PCI_VALIDATE_FILE_OBJECT)KphGetRoutineAddress(L"ci.dll", "CiValidateFileObject");
     KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
     KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
+    KphDynIoCheckFileObjectOpenedAsCopySource = (PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE)KphGetSystemRoutineAddress(L"IoCheckFileObjectOpenedAsCopySource");
+    KphDynIoCheckFileObjectOpenedAsCopyDestination = (PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION)KphGetSystemRoutineAddress(L"IoCheckFileObjectOpenedAsCopyDestination");
+    KphDynFltGetCopyInformationFromCallbackData = (PFLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA)KphGetRoutineAddress(L"fltMgr.sys", "FltGetCopyInformationFromCallbackData");
 }
 
 /**
