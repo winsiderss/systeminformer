@@ -1147,6 +1147,15 @@ typedef union _KPHM_FILE_PARAMETERS
 } KPHM_FILE_PARAMETERS, *PKPHM_FILE_PARAMETERS;
 #pragma warning(pop)
 
+//
+// COPY_INFORMATION
+//
+typedef struct _KPHM_COPY_INFORMATION
+{
+    PVOID SourceFileObject;
+    ULONG64 SourceFileOffset;
+} KPHM_COPY_INFORMATION, *PKPHM_COPY_INFORMATION;
+
 typedef struct _KPHM_FILE
 {
     CLIENT_ID ClientId;
@@ -1186,9 +1195,21 @@ typedef struct _KPHM_FILE
         };
     };
 
-    ULONG Waiters;                       // FILE_OBJECT.Waiters
-    LARGE_INTEGER CurrentByteOffset;     // FILE_OBJECT.CurrentByteOffset
-    OPLOCK_KEY_CONTEXT OplockKeyContext; // IoGetOplockKeyContextEx
+    ULONG Waiters;                         // FILE_OBJECT.Waiters
+    LARGE_INTEGER CurrentByteOffset;       // FILE_OBJECT.CurrentByteOffset
+    OPLOCK_KEY_CONTEXT OplockKeyContext;   // IoGetOplockKeyContextEx
+    KPHM_COPY_INFORMATION CopyInformation; // FltGetCopyInformationFromCallbackData
+
+    union
+    {
+        ULONG64 Information2;
+        struct
+        {
+            ULONG64 OpenedAsCopySource : 1;      // IoCheckFileObjectOpenedAsCopySource
+            ULONG64 OpenedAsCopyDestination : 1; // IoCheckFileObjectOpenedAsCopyDestination
+            ULONG64 Spare2 : 62;
+        };
+    };
 
     PVOID Volume;             // FLT_RELATED_OBJECTS.Volume
     PVOID FileObject;         // FLT_RELATED_OBJECTS.FileObject
