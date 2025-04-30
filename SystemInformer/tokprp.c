@@ -342,7 +342,7 @@ INT CALLBACK PhpTokenSheetProc(
     {
     case PSCB_INITIALIZED:
         {
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     }
@@ -1436,7 +1436,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PhSetDialogFocus(hwndDlg, tokenPageContext->ListViewHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2578,10 +2578,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), !!hasLinkedToken);
 
-            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(GetParent(hwndDlg));  // HACK (GetParent)
         }
         break;
     case WM_COMMAND:
@@ -2851,7 +2848,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhClearReference(&tokenNamedObjectPathString);
             PhClearReference(&tokenSecurityDescriptorString);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -3297,7 +3294,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -3846,7 +3843,7 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -4006,7 +4003,7 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -4548,7 +4545,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 tokenPageContext->CloseObject(tokenHandle, FALSE, tokenPageContext->Context);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -6076,7 +6073,7 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
 
             PhCreateThread2(PhGetAppModelPolicySymbolDownloadThread, hwndDlg);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -556,7 +556,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (PhEnableThemeSupport)
             {
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+                PhInitializeWindowTheme(hwndDlg);
             }
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);

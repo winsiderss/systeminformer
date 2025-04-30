@@ -330,8 +330,7 @@ INT CALLBACK PvpPropSheetProc(
                 MinimumSize.left = 0;
             }
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, TRUE);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     }

@@ -1056,7 +1056,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     );
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

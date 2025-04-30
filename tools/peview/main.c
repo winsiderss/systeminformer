@@ -120,7 +120,7 @@ INT WINAPI wWinMain(
         PhGuiSupportInitialization();
         PhSettingsInitialization();
         PvInitializeSettings();
-        PvInitializeSuperclassControls();
+        PhInitializeSuperclassControls();
         PhShowWarning2(
             NULL,
             L"Warning.",
@@ -138,7 +138,7 @@ INT WINAPI wWinMain(
     PvInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
-    PvInitializeSuperclassControls();
+    PhInitializeSuperclassControls();
     PvpConnectKph();
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))

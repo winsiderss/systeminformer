@@ -176,7 +176,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 &ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -288,7 +288,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

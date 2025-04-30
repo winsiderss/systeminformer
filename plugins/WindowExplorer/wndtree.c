@@ -58,7 +58,7 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowHandleString[0])
     {
-        if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, windowNode->WindowHandleString))
+        if (PhSearchControlMatchPointer(context->SearchMatchHandle, windowNode->WindowHandle))
             return TRUE;
     }
 
@@ -484,7 +484,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             node = (PWE_WINDOW_NODE)getNodeColor->Node;
 
             if (!node->WindowVisible)
-                getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
+                getNodeColor->ForeColor = PhGetIntegerSetting(L"ColorServiceStop");
 
             if (node->WindowMessageOnly)
             {

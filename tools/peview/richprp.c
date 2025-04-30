@@ -441,7 +441,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
 
             PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

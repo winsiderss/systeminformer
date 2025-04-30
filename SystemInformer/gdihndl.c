@@ -386,7 +386,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
 
             PhpRefreshGdiHandles(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

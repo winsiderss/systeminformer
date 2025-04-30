@@ -840,7 +840,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

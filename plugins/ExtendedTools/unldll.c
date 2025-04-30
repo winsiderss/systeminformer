@@ -515,7 +515,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
                 return FALSE;
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

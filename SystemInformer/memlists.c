@@ -624,7 +624,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
             PhLoadWindowPlacementFromSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
             PhRegisterDialog(hwndDlg);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

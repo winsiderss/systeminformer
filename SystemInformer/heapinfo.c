@@ -740,7 +740,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -1550,7 +1550,7 @@ INT_PTR CALLBACK PhProcessLocksDlgProc(
             else
                 PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle);
 
             ShowWindow(GetDlgItem(WindowHandle, IDC_SIZESINBYTES), SW_HIDE);
         }

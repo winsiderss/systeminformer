@@ -19,13 +19,66 @@ typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ ULONG BufferLength
     );
 
-typedef BOOL(WINAPI* _AllowDarkModeForWindow)(
+typedef HRESULT (WINAPI* _GetThemeColor)(
+    _In_ HTHEME hTheme,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
+    _In_ LONG iPropId,
+    _Out_ COLORREF* pColor
+    );
+
+typedef HRESULT (WINAPI *_GetThemeInt)(
+    _In_ HTHEME hTheme,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
+    _In_ LONG iPropId,
+    _Out_ LONG*piVal
+    );
+
+typedef HRESULT (WINAPI* _GetThemePartSize)(
+    _In_ HTHEME hTheme,
+    _In_opt_ HDC hdc,
+    _In_ LONG iPartId,
+    _In_ LONG iStateId,
+    _In_opt_ LPCRECT prc,
+    _In_ enum THEMESIZE eSize,
+    _Out_ SIZE* psz
+    );
+
+typedef BOOLEAN(WINAPI* _AllowDarkModeForWindow)(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
     );
 
-typedef BOOL(WINAPI* _IsDarkModeAllowedForWindow)(
+typedef BOOLEAN(WINAPI* _IsDarkModeAllowedForWindow)(
     _In_ HWND WindowHandle
+    );
+
+typedef BOOLEAN(WINAPI* _ShouldAppsUseDarkMode)(
+    VOID
+    );
+
+typedef PreferredAppMode(WINAPI* _SetPreferredAppMode)(
+    _In_ PreferredAppMode AppMode
+    );
+
+typedef VOID(WINAPI* _FlushMenuThemes)(
+    VOID
+    );
+
+typedef HRESULT (WINAPI* _GetDpiForMonitor)(
+    _In_ HMONITOR hmonitor,
+    _In_ enum MONITOR_DPI_TYPE dpiType,
+    _Out_ PLONG dpiX,
+    _Out_ PLONG dpiY
+    );
+
+typedef LONG (WINAPI* _GetDpiForWindow)(
+    _In_ HWND hwnd
+    );
+
+typedef LONG (WINAPI* _GetDpiForSystem)(
+    VOID
     );
 
 typedef LONG (WINAPI* _GetDpiForSession)(

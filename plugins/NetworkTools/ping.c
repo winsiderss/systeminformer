@@ -432,7 +432,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:

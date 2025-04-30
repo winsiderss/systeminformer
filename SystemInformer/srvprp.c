@@ -457,10 +457,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             context->Ready = TRUE;
 
-            if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
-            else
-                PhInitializeWindowTheme(hwndDlg, FALSE);
+            PhInitializeWindowTheme(GetParent(hwndDlg));  // HACK (GetParent)
         }
         break;
     case WM_DESTROY:

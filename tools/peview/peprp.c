@@ -2089,7 +2089,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+                PhInitializeWindowTheme(hwndDlg);
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
@@ -2257,6 +2257,12 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             SetTextColor((HDC)wParam, RGB(0, 0, 0));
             SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+        }
+        break;
+    case WM_SETTINGCHANGE:
+        if (HANDLE_COLORSCHEMECHANGE_MESSAGE(wParam, lParam, L"EnableThemeSupport", L"EnableThemeUseWindowsTheme"))
+        {
+            PhCreateThread2(PvReInitializeThemeThread, NULL);
         }
         break;
     }

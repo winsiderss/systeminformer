@@ -241,7 +241,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

@@ -20,27 +20,6 @@ VOID RichEditSetText(
     _In_ PWSTR Text
     )
 {
-    if (PhGetIntegerSetting(L"EnableThemeSupport"))
-    {
-        CHARFORMAT cf;
-
-        memset(&cf, 0, sizeof(CHARFORMAT));
-        cf.cbSize = sizeof(CHARFORMAT);
-        cf.dwMask = CFM_COLOR;
-
-        switch (PhGetIntegerSetting(L"GraphColorMode"))
-        {
-        case 0: // New colors
-            cf.crTextColor = RGB(0x0, 0x0, 0x0);
-            break;
-        case 1: // Old colors
-            cf.crTextColor = RGB(0xff, 0xff, 0xff);
-            break;
-        }
-
-        SendMessage(RichEditHandle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
-    }
-
     SetFocus(RichEditHandle);
     SendMessage(RichEditHandle, WM_SETREDRAW, FALSE, 0);
     SendMessage(RichEditHandle, EM_SETSEL, 0, -1); // -2
@@ -917,7 +896,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(hwndDlg);
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);

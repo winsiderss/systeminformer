@@ -24,11 +24,13 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableLegacyPropertiesDialog", L"0");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
-    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeSupport", L"1");
+    PhpAddIntegerSetting(L"EnableThemeUseWindowsTheme", L"1");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
     PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
+    PhpAddIntegerSetting(L"EnableThemeTabBorders", L"0");
     PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
     PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
     PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)
@@ -121,14 +123,30 @@ VOID PvUpdateCachedSettings(
 {
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
+    COLORREF oldPhThemeWindowBackgroundColor = PhThemeWindowBackgroundColor;
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
     PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
     PhThemeWindowHighlightColor = PhGetIntegerSetting(L"ThemeWindowHighlightColor");
     PhThemeWindowHighlight2Color = PhGetIntegerSetting(L"ThemeWindowHighlight2Color");
     PhThemeWindowTextColor = PhGetIntegerSetting(L"ThemeWindowTextColor");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    PhEnableThemeNativeButtons = !!PhGetIntegerSetting(L"EnableThemeNativeButtons");
+    PhEnableThemeTabBorders = !!PhGetIntegerSetting(L"EnableThemeTabBorders");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+    PhEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+
+    PH_THEME_SET_PREFFEREDAPPMODE(L"EnableThemeSupport", L"EnableThemeUseWindowsTheme");
+
+    PhEnableThemeSupport = PH_THEME_GET_GENERAL_SWITCH(L"EnableThemeSupport");
+    PhEnableThemeAcrylicWindowSupport = PhEnableThemeAcrylicWindowSupport && PhEnableThemeSupport && PhIsThemeTransparencyEnabled();
+
+    if (oldPhThemeWindowBackgroundColor != PhThemeWindowBackgroundColor && PhThemeWindowBackgroundBrush)
+    {
+        DeleteBrush(PhThemeWindowBackgroundBrush);
+        PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+    }
 }
 
 VOID PvInitializeSettings(

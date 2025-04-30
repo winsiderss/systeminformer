@@ -215,7 +215,7 @@ INT_PTR CALLBACK PhpEventPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshEventPageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -406,7 +406,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshSemaphorePageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -519,7 +519,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshTimerPageInfo(hwndDlg, pageContext);
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -713,7 +713,7 @@ INT_PTR CALLBACK PhpMappingsPageProc(
 
             PhpEnumerateMappingsEntries(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -2120,7 +2120,7 @@ INT_PTR CALLBACK PhpAfdSocketPageProc(
             PhAddSocketListViewItem(context->ListViewClass, PH_AFD_SOCKET_GROUP_HVSOCKET, PH_AFD_SOCKET_ITEM_HVSOCKET_CONNECTED_SUSPEND, L"Connected suspend");
             PhAddSocketListViewItem(context->ListViewClass, PH_AFD_SOCKET_GROUP_HVSOCKET, PH_AFD_SOCKET_ITEM_HVSOCKET_HIGH_VTL, L"High VTL");
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 

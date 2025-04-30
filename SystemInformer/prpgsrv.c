@@ -88,7 +88,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
             propPageContext->Context = serviceListHandle;
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

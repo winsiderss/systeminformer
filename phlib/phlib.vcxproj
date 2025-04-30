@@ -157,6 +157,7 @@
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="cpysave.c" />
     <ClCompile Include="data.c" />
+    <ClCompile Include="delayhook.c" />
     <ClCompile Include="directdraw.cpp" />
     <ClCompile Include="dspick.c" />
     <ClCompile Include="emenu.c" />

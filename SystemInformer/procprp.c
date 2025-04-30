@@ -162,8 +162,7 @@ INT CALLBACK PhpPropSheetProc(
             PhSetWindowContext(hwndDlg, 0xF, propSheetContext);
             PhSetWindowProcedure(hwndDlg, PhpPropSheetWndProc);
 
-            if (PhEnableThemeSupport) // NOTE: Required for compatibility. (dmex)
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 

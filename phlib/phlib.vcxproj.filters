@@ -439,5 +439,8 @@
     <ClInclude Include="include\trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="delayhook.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

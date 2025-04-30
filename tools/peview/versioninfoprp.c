@@ -358,7 +358,7 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
 
             PvEnumVersionInfo(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg);
         }
         break;
     case WM_DESTROY:

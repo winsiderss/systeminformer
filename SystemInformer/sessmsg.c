@@ -83,7 +83,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_TEXT));
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport); // HACK (dmex)
+            PhInitializeWindowTheme(hwndDlg); // HACK (dmex)
         }
         break;
     case WM_DESTROY:

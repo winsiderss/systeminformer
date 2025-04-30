@@ -778,7 +778,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
                 ShowWindow(context->ListViewHandle, SW_HIDE);
             }
 
-            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle);
         }
         break;
     case WM_DESTROY:
