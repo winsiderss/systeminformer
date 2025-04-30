@@ -3861,20 +3861,6 @@ PhGetProcessMTAUsage(
     );
 
 PHLIBAPI
-BOOLEAN
-NTAPI
-PhIsThreadIdMainSTA(
-    _In_ HANDLE ThreadId
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhIsThreadMainSTA(
-    _In_ HANDLE ThreadHandle
-    );
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetThreadApartmentFlags(

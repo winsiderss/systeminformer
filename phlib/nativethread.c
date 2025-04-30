@@ -811,7 +811,7 @@ NTSTATUS PhGetThreadLastStatusValue(
 }
 
 /**
- * Retrieves statistics about multi-threaded apartment usage in a process.
+ * Retrieves statistics about COM multi-threaded apartment (MTA) usage in a process.
  *
  * \param[in] ProcessHandle A handle to the process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
@@ -846,18 +846,21 @@ NTSTATUS PhGetProcessMTAUsage(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PVOID combase;
-        PMTA_USAGE_GLOBALS (WINAPI* CoGetMTAUsageInfo_I)(VOID);
-
-        if (combase = PhGetLoaderEntryDllBaseZ(L"combase.dll"))
+        if (WindowsVersion >= WINDOWS_8)
         {
-            // combase exports CoGetMTAUsageInfo as ordinal 70 since Windows 8
-            CoGetMTAUsageInfo_I = PhGetDllBaseProcedureAddress(combase, NULL, 70);
+            PVOID combase;
+            PMTA_USAGE_GLOBALS (WINAPI* CoGetMTAUsageInfo_I)(VOID);
 
-            if (CoGetMTAUsageInfo_I)
+            if (combase = PhGetLoaderEntryDllBaseZ(L"combase.dll"))
             {
-                // CoGetMTAUsageInfo returns addresses of several global variables we can read
-                mtaUsageGlobals = CoGetMTAUsageInfo_I();
+                // combase exports CoGetMTAUsageInfo as ordinal 70
+                CoGetMTAUsageInfo_I = PhGetDllBaseProcedureAddress(combase, NULL, 70);
+
+                if (CoGetMTAUsageInfo_I)
+                {
+                    // CoGetMTAUsageInfo returns addresses of several global variables we can read
+                    mtaUsageGlobals = CoGetMTAUsageInfo_I();
+                }
             }
         }
 
@@ -896,84 +899,6 @@ NTSTATUS PhGetProcessMTAUsage(
     }
 
     return STATUS_SUCCESS;
-}
-
-/**
- * Determines if a thread belongs to the main STA by checking if it owns a main STA window.
- *
- * \param[in] ThreadId The identifier of the thread.
- *
- * \return Whether the thread owns a main STA window.
- */
-BOOLEAN PhIsThreadIdMainSTA(
-    _In_ HANDLE ThreadId
-    )
-{
-    static CONST UNICODE_STRING oleMainThreadWndClass = RTL_CONSTANT_STRING(L"OleMainThreadWndClass");
-    static CONST UNICODE_STRING oleMainThreadWndName = RTL_CONSTANT_STRING(L"OleMainThreadWndName");
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HWND (WINAPI* NtUserFindWindowEx_I)(
-        _In_opt_ HWND hwndParent,
-        _In_opt_ HWND hwndChild,
-        _In_ PCUNICODE_STRING ClassName,
-        _In_ PCUNICODE_STRING WindowName,
-        _In_ ULONG Type
-        ) = NULL;
-    static ULONG_PTR(WINAPI* NtUserQueryWindow_I)(
-        _In_ HWND WindowHandle,
-        _In_ WINDOWINFOCLASS WindowInfo
-        ) = NULL;
-    HWND hwnd;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID win32u;
-
-        if (win32u = PhGetLoaderEntryDllBaseZ(L"win32u.dll"))
-        {
-            NtUserFindWindowEx_I = PhGetDllBaseProcedureAddress(win32u, "NtUserFindWindowEx", 0);
-            NtUserQueryWindow_I = PhGetDllBaseProcedureAddress(win32u, "NtUserQueryWindow", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!NtUserFindWindowEx_I || !NtUserQueryWindow_I)
-        return FALSE;
-
-    hwnd = NULL;
-    do
-    {
-        // Find the next main STA window
-        hwnd = NtUserFindWindowEx_I(
-            HWND_MESSAGE,
-            hwnd,
-            &oleMainThreadWndClass,
-            &oleMainThreadWndName,
-            0
-            );
-
-        // Check if it belongs to the specified thread ID
-    } while (hwnd && NtUserQueryWindow_I(hwnd, WindowThread) != (ULONG_PTR)ThreadId);
-
-    return !!hwnd;
-}
-
-/**
- * Determines if a thread belongs to the main STA by checking if it owns a main STA window.
- *
- * \param[in] ThreadHandle A handle to the thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
- *
- * \return Whether the thread owns a main STA window.
- */
-BOOLEAN PhIsThreadMainSTA(
-    _In_ HANDLE ThreadHandle
-    )
-{
-    THREAD_BASIC_INFORMATION basicInfo;
-
-    return NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)) &&
-        PhIsThreadIdMainSTA(basicInfo.ClientId.UniqueThread);
 }
 
 /**
@@ -1097,7 +1022,6 @@ NTSTATUS PhGetThreadApartmentFlags(
 
 /**
  * Determines COM apartment type of a thread, similar to CoGetApartmentType.
- * Recognizes all apartment types, including implicit MTA.
  *
  * \param[in] ThreadHandle A handle to the thread. The handle must have
  * THREAD_QUERY_LIMITED_INFORMATION access.
@@ -1118,8 +1042,9 @@ NTSTATUS PhGetThreadApartment(
 
     //
     // N.B. Most information about thread's apartment comes from OLE TLS data in TEB.
-    // Without it, threads can still implicitly belong to MTA, as long as MTA exists in the
-    // process. To check for MTA existence, we read the process-wide MTA usage counter. (diversenok)
+    // Without it, threads can still implicitly belong to the multi-threaded apartment (MTA),
+    // as long as one exists in the process. To check for MTA existence, we read the
+    // process-wide MTA usage counter. (diversenok)
     //
 
     // Read OLE TLS flags
@@ -1138,10 +1063,38 @@ NTSTATUS PhGetThreadApartment(
 
     if (info.Flags & OLETLS_APARTMENTTHREADED)
     {
-        // There is no flag for telling main and non-main STAs apart, so
-        // we check if the thread owns the main STA window.
+        THREAD_BASIC_INFORMATION basicInfo;
+        BOOLEAN isMainSta = FALSE;
 
-        if (PhIsThreadMainSTA(ThreadHandle))
+        // N.B. There is no flag for telling main and non-main single-threaded apartments (STAs)
+        // apart. Internally, CoGetApartmentType uses a private global variable that stores the
+        // main thread ID, which we cannot access. Instead, we check if the specified thread owns
+        // the main STA window (a message-only window with a known class and name). (diversenok)
+
+        if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        {
+            CLIENT_ID clientId;
+            HWND hwnd = NULL;
+
+            do
+            {
+                // Find the next main STA window
+                hwnd = FindWindowExW(
+                    HWND_MESSAGE,
+                    hwnd,
+                    L"OleMainThreadWndClass",
+                    L"OleMainThreadWndName"
+                    );
+
+                // Check if it belongs to the specified thread ID
+            } while (hwnd && NT_SUCCESS(PhGetWindowClientId(hwnd, &clientId)) &&
+                (clientId.UniqueProcess != basicInfo.ClientId.UniqueProcess ||
+                clientId.UniqueThread != basicInfo.ClientId.UniqueThread));
+
+            isMainSta = !!hwnd;
+        }
+
+        if (isMainSta)
         {
             if (info.Flags & OLETLS_APPLICATION_STA)
                 info.Type = PH_APARTMENT_TYPE_MAIN_APPLICATION_STA;
