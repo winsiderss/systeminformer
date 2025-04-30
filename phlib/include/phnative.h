@@ -3854,10 +3854,48 @@ PhGetThreadLastStatusValue(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetThreadApartmentState(
+PhGetProcessMTAUsage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PULONG MTAInits,
+    _Out_opt_ PULONG MTAIncInits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState
+    _Out_ POLETLSFLAGS ApartmentState,
+    _Out_opt_ PULONG ComInits
+    );
+
+typedef enum _PH_APARTMENT_TYPE
+{
+    PH_APARTMENT_TYPE_INVALID = 0,
+    PH_APARTMENT_TYPE_MAIN_STA,
+    PH_APARTMENT_TYPE_MAIN_APPLICATION_STA,
+    PH_APARTMENT_TYPE_STA,
+    PH_APARTMENT_TYPE_APPLICATION_STA,
+    PH_APARTMENT_TYPE_MTA,
+    PH_APARTMENT_TYPE_IMPLICIT_MTA
+} PH_APARTMENT_TYPE;
+
+typedef struct _PH_APARTMENT_INFO
+{
+    PH_APARTMENT_TYPE Type;
+    BOOLEAN InNeutral;
+    ULONG ComInits;
+    OLETLSFLAGS Flags;
+} PH_APARTMENT_INFO, *PPH_APARTMENT_INFO;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartment(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_APARTMENT_INFO ApartmentInfo
     );
 
 typedef struct _PH_COM_CALLSTATE

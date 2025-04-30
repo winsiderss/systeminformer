@@ -57,7 +57,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ PVOID Context
     );
 
-PPH_STRING PhGetApartmentStateString(
+PPH_STRING PhGetApartmentTypeString(
+    _In_ PPH_APARTMENT_INFO ApartmentInfo
+    );
+
+PPH_STRING PhGetApartmentFlagsString(
     _In_ OLETLSFLAGS ApartmentState
     );
 
@@ -115,7 +119,8 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL, FALSE, L"Last system call", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE, FALSE, L"COM apartment", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTTYPE, FALSE, L"COM apartment", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTFLAGS, FALSE, L"COM flags", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_FIBER, FALSE, L"Fiber", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST, FALSE, L"Priority boost", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
@@ -351,7 +356,8 @@ VOID PhpDestroyThreadNode(
     if (ThreadNode->StateText) PhDereferenceObject(ThreadNode->StateText);
     if (ThreadNode->LastSystemCallText) PhDereferenceObject(ThreadNode->LastSystemCallText);
     if (ThreadNode->LastErrorCodeText) PhDereferenceObject(ThreadNode->LastErrorCodeText);
-    if (ThreadNode->ApartmentStateText) PhDereferenceObject(ThreadNode->ApartmentStateText);
+    if (ThreadNode->ApartmentTypeText) PhDereferenceObject(ThreadNode->ApartmentTypeText);
+    if (ThreadNode->ApartmentFlagsText) PhDereferenceObject(ThreadNode->ApartmentFlagsText);
     if (ThreadNode->StackUsageText) PhDereferenceObject(ThreadNode->StackUsageText);
 
     if (ThreadNode->KernelTimeText) PhDereferenceObject(ThreadNode->KernelTimeText);
@@ -679,7 +685,7 @@ VOID PhpUpdateThreadNodeApartmentState(
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-    OLETLSFLAGS apartmentState = 0;
+    PH_APARTMENT_INFO apartmentInfo;
 
     if (!ThreadNode->ThreadReadVmHandleValid)
     {
@@ -705,20 +711,20 @@ VOID PhpUpdateThreadNodeApartmentState(
 
     if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
     {
-        status = PhGetThreadApartmentState(
+        status = PhGetThreadApartment(
             ThreadNode->ThreadItem->ThreadHandle,
             ThreadNode->ThreadReadVmHandle,
-            &apartmentState
+            &apartmentInfo
             );
     }
 
-    if (NT_SUCCESS(status) && apartmentState)
+    if (NT_SUCCESS(status))
     {
-        ThreadNode->ApartmentState = apartmentState;
+        ThreadNode->ApartmentInfo = apartmentInfo;
     }
     else
     {
-        ThreadNode->ApartmentState = 0;
+        RtlZeroMemory(&ThreadNode->ApartmentInfo, sizeof(PH_APARTMENT_INFO));
     }
 }
 
@@ -1112,12 +1118,27 @@ BEGIN_SORT_FUNCTION(LastStatusCode)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(ApartmentState)
+BEGIN_SORT_FUNCTION(ApartmentType)
 {
     PhpUpdateThreadNodeApartmentState(context, node1);
     PhpUpdateThreadNodeApartmentState(context, node2);
 
-    sortResult = uintcmp(node1->ApartmentState, node2->ApartmentState);
+    sortResult = uintcmp(node1->ApartmentInfo.Type, node2->ApartmentInfo.Type);
+
+    if (sortResult == 0)
+        sortResult = uintcmp(node1->ApartmentInfo.ComInits, node2->ApartmentInfo.ComInits);
+
+    if (sortResult == 0)
+        sortResult = uintcmp(node1->ApartmentInfo.Flags, node2->ApartmentInfo.Flags);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ApartmentFlags)
+{
+    PhpUpdateThreadNodeApartmentState(context, node1);
+    PhpUpdateThreadNodeApartmentState(context, node2);
+
+    sortResult = uintcmp(node1->ApartmentInfo.Flags, node2->ApartmentInfo.Flags);
 }
 END_SORT_FUNCTION
 
@@ -1272,7 +1293,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LastSystemCall),
                     SORT_FUNCTION(LastStatusCode),
                     SORT_FUNCTION(Created), // Timeline
-                    SORT_FUNCTION(ApartmentState),
+                    SORT_FUNCTION(ApartmentType),
+                    SORT_FUNCTION(ApartmentFlags),
                     SORT_FUNCTION(Fiber),
                     SORT_FUNCTION(PriorityBoost),
                     SORT_FUNCTION(CpuUser),
@@ -1909,7 +1931,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     getCellText->Text = PhGetStringRef(node->LastErrorCodeText);
                 }
                 break;
-            case PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE:
+            case PH_THREAD_TREELIST_COLUMN_APARTMENTTYPE:
                 {
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
@@ -1919,25 +1941,56 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     PhpUpdateThreadNodeApartmentState(context, node);
 
-                    if (node->ApartmentState)
+                    if (node->ApartmentInfo.Type)
                     {
-                        PPH_STRING apartmentStateString;
+                        PPH_STRING apartmentTypeString;
 
-                        if (apartmentStateString = PhGetApartmentStateString(node->ApartmentState))
+                        if (apartmentTypeString = PhGetApartmentTypeString(&node->ApartmentInfo))
                         {
-                            PhMoveReference(&node->ApartmentStateText, apartmentStateString);
+                            PhMoveReference(&node->ApartmentTypeText, apartmentTypeString);
                         }
                         else
                         {
-                            PhClearReference(&node->ApartmentStateText);
+                            PhClearReference(&node->ApartmentTypeText);
                         }
                     }
                     else
                     {
-                        PhClearReference(&node->ApartmentStateText);
+                        PhClearReference(&node->ApartmentTypeText);
                     }
 
-                    getCellText->Text = PhGetStringRef(node->ApartmentStateText);
+                    getCellText->Text = PhGetStringRef(node->ApartmentTypeText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_APARTMENTFLAGS:
+                {
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+
+                    PhpUpdateThreadNodeApartmentState(context, node);
+
+                    if (node->ApartmentInfo.Flags)
+                    {
+                        PPH_STRING apartmentStateString;
+
+                        if (apartmentStateString = PhGetApartmentFlagsString(node->ApartmentInfo.Flags))
+                        {
+                            PhMoveReference(&node->ApartmentFlagsText, apartmentStateString);
+                        }
+                        else
+                        {
+                            PhClearReference(&node->ApartmentFlagsText);
+                        }
+                    }
+                    else
+                    {
+                        PhClearReference(&node->ApartmentFlagsText);
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->ApartmentFlagsText);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_FIBER:
@@ -2335,7 +2388,51 @@ VOID PhGetSelectedThreadItems(
     *Threads = PhFinalArrayItems(&array);
 }
 
-PPH_STRING PhGetApartmentStateString(
+PPH_STRING PhGetApartmentTypeString(
+    _In_ PPH_APARTMENT_INFO ApartmentInfo
+    )
+{
+    PH_FORMAT format[5];
+    ULONG count = 0;
+
+    if (ApartmentInfo->InNeutral)
+        PhInitFormatS(&format[count++], L"NTA on ");
+
+    switch (ApartmentInfo->Type)
+    {
+    case PH_APARTMENT_TYPE_STA:
+        PhInitFormatS(&format[count++], L"STA");
+        break;
+    case PH_APARTMENT_TYPE_MAIN_STA:
+        PhInitFormatS(&format[count++], L"Main STA");
+        break;
+    case PH_APARTMENT_TYPE_APPLICATION_STA:
+        PhInitFormatS(&format[count++], L"ASTA");
+        break;
+    case PH_APARTMENT_TYPE_MAIN_APPLICATION_STA:
+        PhInitFormatS(&format[count++], L"Main ASTA");
+        break;
+    case PH_APARTMENT_TYPE_MTA:
+        PhInitFormatS(&format[count++], L"MTA");
+        break;
+    case PH_APARTMENT_TYPE_IMPLICIT_MTA:
+        PhInitFormatS(&format[count++], L"Implicit MTA");
+        break;
+    default:
+        assert(FALSE);
+    }
+
+    if (ApartmentInfo->ComInits > 1)
+    {
+        PhInitFormatS(&format[count++], L" (x");
+        PhInitFormatU(&format[count++], ApartmentInfo->ComInits);
+        PhInitFormatC(&format[count++], L')');
+    }
+
+    return PhFormat(format, count, 10);
+}
+
+PPH_STRING PhGetApartmentFlagsString(
     _In_ OLETLSFLAGS ApartmentState
     )
 {
