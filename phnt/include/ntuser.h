@@ -33,6 +33,21 @@ NtUserBlockInput(
     _In_ BOOL BlockInput
     );
 
+#define FW_BOTH 0
+#define FW_16BIT 1
+#define FW_32BIT 2
+
+NTSYSCALLAPI
+HWND
+NTAPI
+NtUserFindWindowEx(
+    _In_opt_ HWND hwndParent,
+    _In_opt_ HWND hwndChild,
+    _In_ PCUNICODE_STRING ClassName,
+    _In_ PCUNICODE_STRING WindowName,
+    _In_ ULONG Type // FW_*
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

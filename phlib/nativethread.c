@@ -811,32 +811,204 @@ NTSTATUS PhGetThreadLastStatusValue(
 }
 
 /**
- * Retrieves the COM apartment of a thread.
+ * Retrieves statistics about multi-threaded apartment usage in a process.
  *
- * \param ThreadHandle A handle to the thread.
- * \param ProcessHandle A handle to the process.
- * \param ApartmentState The COM apartment of the thread.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] MTAInits The total number of MTA references in the process.
+ * \param[out] MTAIncInits The number of MTA references from CoIncrementMTAUsage.
  *
  * \return Successful or errant status.
  */
-NTSTATUS PhGetThreadApartmentState(
+NTSTATUS PhGetProcessMTAUsage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PULONG MTAInits,
+    _Out_opt_ PULONG MTAIncInits
+    )
+{
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PMTA_USAGE_GLOBALS mtaUsageGlobals = NULL;
+
+    if (!MTAInits && !MTAIncInits)
+        return STATUS_INVALID_PARAMETER;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
+
+    if (isWow64)
+        return STATUS_NOT_SUPPORTED;
+#endif
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID combase;
+        PMTA_USAGE_GLOBALS (WINAPI* CoGetMTAUsageInfo_I)(VOID);
+
+        if (combase = PhGetLoaderEntryDllBaseZ(L"combase.dll"))
+        {
+            // combase exports CoGetMTAUsageInfo as ordinal 70 since Windows 8
+            CoGetMTAUsageInfo_I = PhGetDllBaseProcedureAddress(combase, NULL, 70);
+
+            if (CoGetMTAUsageInfo_I)
+            {
+                // CoGetMTAUsageInfo returns addresses of several global variables we can read
+                mtaUsageGlobals = CoGetMTAUsageInfo_I();
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!mtaUsageGlobals)
+        return STATUS_UNSUCCESSFUL;
+
+    if (MTAInits)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            mtaUsageGlobals->MTAInits,
+            MTAInits,
+            sizeof(ULONG),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    if (MTAIncInits)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            mtaUsageGlobals->MTAIncInits,
+            MTAIncInits,
+            sizeof(ULONG),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Determines if a thread belongs to the main STA by checking if it owns a main STA window.
+ *
+ * \param[in] ThreadId The identifier of the thread.
+ *
+ * \return Whether the thread owns a main STA window.
+ */
+BOOLEAN PhIsThreadIdMainSTA(
+    _In_ HANDLE ThreadId
+    )
+{
+    static CONST UNICODE_STRING oleMainThreadWndClass = RTL_CONSTANT_STRING(L"OleMainThreadWndClass");
+    static CONST UNICODE_STRING oleMainThreadWndName = RTL_CONSTANT_STRING(L"OleMainThreadWndName");
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HWND (WINAPI* NtUserFindWindowEx_I)(
+        _In_opt_ HWND hwndParent,
+        _In_opt_ HWND hwndChild,
+        _In_ PCUNICODE_STRING ClassName,
+        _In_ PCUNICODE_STRING WindowName,
+        _In_ ULONG Type
+        ) = NULL;
+    static ULONG_PTR(WINAPI* NtUserQueryWindow_I)(
+        _In_ HWND WindowHandle,
+        _In_ WINDOWINFOCLASS WindowInfo
+        ) = NULL;
+    HWND hwnd;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID win32u;
+
+        if (win32u = PhGetLoaderEntryDllBaseZ(L"win32u.dll"))
+        {
+            NtUserFindWindowEx_I = PhGetDllBaseProcedureAddress(win32u, "NtUserFindWindowEx", 0);
+            NtUserQueryWindow_I = PhGetDllBaseProcedureAddress(win32u, "NtUserQueryWindow", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!NtUserFindWindowEx_I || !NtUserQueryWindow_I)
+        return FALSE;
+
+    hwnd = NULL;
+    do
+    {
+        // Find the next main STA window
+        hwnd = NtUserFindWindowEx_I(
+            HWND_MESSAGE,
+            hwnd,
+            &oleMainThreadWndClass,
+            &oleMainThreadWndName,
+            0
+            );
+
+        // Check if it belongs to the specified thread ID
+    } while (hwnd && NtUserQueryWindow_I(hwnd, WindowThread) != (ULONG_PTR)ThreadId);
+
+    return !!hwnd;
+}
+
+/**
+ * Determines if a thread belongs to the main STA by checking if it owns a main STA window.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION access.
+ *
+ * \return Whether the thread owns a main STA window.
+ */
+BOOLEAN PhIsThreadMainSTA(
+    _In_ HANDLE ThreadHandle
+    )
+{
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    return NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)) &&
+        PhIsThreadIdMainSTA(basicInfo.ClientId.UniqueThread);
+}
+
+/**
+ * Retrieves COM apartment flags and init count of a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] ApartmentFlags The COM apartment flags of the thread.
+ * \param[out] ComInits The number of times the thread initialized COM.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState
+    _Out_ POLETLSFLAGS ApartmentFlags,
+    _Out_opt_ PULONG ComInits
     )
 {
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
+    PVOID apartmentStateOffset;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
-    __typeof__(RTL_FIELD_TYPE(TEB, ReservedForOle)) oletlsBaseAddress = NULL;
+    PVOID oletlsBaseAddress = NULL;
 
     if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
         return status;
 
 #ifdef _WIN64
-    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
 
     if (isWow64)
     {
@@ -868,36 +1040,144 @@ NTSTATUS PhGetThreadApartmentState(
         oletlsBaseAddress = (PVOID)oletlsDataAddress;
     }
 
-    if (NT_SUCCESS(status) && oletlsBaseAddress)
-    {
-        PVOID apartmentStateOffset;
+    if (!NT_SUCCESS(status))
+        return status;
 
-        // Note: Teb->ReservedForOle is the SOleTlsData structure
-        // and ApartmentState is the dwFlags field. (dmex)
+    if (!oletlsBaseAddress)
+    {
+        // Return a special error to indicate that we successfully determined
+        // that the thread has no associated COM state. (diversenok)
+        return NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED);
+    }
+
+#ifdef _WIN64
+    if (isWow64)
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
+    else
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+#else
+    apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+#endif
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        apartmentStateOffset,
+        ApartmentFlags,
+        sizeof(OLETLSFLAGS),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (ComInits)
+    {
+        PVOID comInitsOffset;
 
 #ifdef _WIN64
         if (isWow64)
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, Flags));
+            comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData32, ComInits));
         else
-            apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+            comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, Flags));
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #endif
 
         status = NtReadVirtualMemory(
             ProcessHandle,
-            apartmentStateOffset,
-            ApartmentState,
+            comInitsOffset,
+            ComInits,
             sizeof(ULONG),
             NULL
             );
     }
-    else
-    {
-        status = STATUS_UNSUCCESSFUL;
-    }
 
     return status;
+}
+
+/**
+ * Determines COM apartment type of a thread, similar to CoGetApartmentType.
+ * Recognizes all apartment types, including implicit MTA.
+ *
+ * \param[in] ThreadHandle A handle to the thread. The handle must have
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] ApartmentInfo The COM apartment information of the thread.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadApartment(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_APARTMENT_INFO ApartmentInfo
+    )
+{
+    NTSTATUS status;
+    PH_APARTMENT_INFO info = { 0 };
+
+    //
+    // N.B. Most information about thread's apartment comes from OLE TLS data in TEB.
+    // Without it, threads can still implicitly belong to MTA, as long as MTA exists in the
+    // process. To check for MTA existence, we read the process-wide MTA usage counter. (diversenok)
+    //
+
+    // Read OLE TLS flags
+    status = PhGetThreadApartmentFlags(ThreadHandle, ProcessHandle, &info.Flags, &info.ComInits);
+
+    if (status == NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED))
+    {
+        // For our purposes, no OLE TLS data is equivalent to empty flags
+        info.Flags = 0;
+        info.ComInits = 0;
+        status = STATUS_SUCCESS;
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (info.Flags & OLETLS_APARTMENTTHREADED)
+    {
+        // There is no flag for telling main and non-main STAs apart, so
+        // we check if the thread owns the main STA window.
+
+        if (PhIsThreadMainSTA(ThreadHandle))
+        {
+            if (info.Flags & OLETLS_APPLICATION_STA)
+                info.Type = PH_APARTMENT_TYPE_MAIN_APPLICATION_STA;
+            else
+                info.Type = PH_APARTMENT_TYPE_MAIN_STA;
+        }
+        else
+        {
+            if (info.Flags & OLETLS_APPLICATION_STA)
+                info.Type = PH_APARTMENT_TYPE_APPLICATION_STA;
+            else
+                info.Type = PH_APARTMENT_TYPE_STA;
+        }
+    }
+    else if (info.Flags & (OLETLS_MULTITHREADED | OLETLS_DISPATCHTHREAD))
+    {
+        info.Type = PH_APARTMENT_TYPE_MTA;
+    }
+    else
+    {
+        // A single MTA init is enough to put all threads without an explicit apartment into implicit MTA
+
+        if (!NT_SUCCESS(status = PhGetProcessMTAUsage(ProcessHandle, &info.ComInits, NULL)))
+            return status;
+
+        if (info.ComInits > 0)
+            info.Type = PH_APARTMENT_TYPE_IMPLICIT_MTA;
+        else
+            return NTSTATUS_FROM_WIN32(CO_E_NOTINITIALIZED);
+    }
+
+    // NTA overlays other apartment types
+    info.InNeutral = !!(info.Flags & OLETLS_INNEUTRALAPT);
+
+    *ApartmentInfo = info;
+    return STATUS_SUCCESS;
 }
 
 // rev from advapi32!WctGetCOMInfo (dmex)
