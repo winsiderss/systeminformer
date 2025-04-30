@@ -1238,6 +1238,45 @@ PhGetDaclSecurityDescriptorNotNull(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhAddAccessAllowedAce(
+    _In_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
+    )
+{
+    ULONG_PTR size;
+    ULONG_PTR offset;
+    ULONG length;
+
+    if (AceRevision != Acl->AclRevision)
+        return STATUS_REVISION_MISMATCH;
+    if (!PhValidAcl(Acl) || !NT_SUCCESS(PhFirstFreeAce(Acl, &offset)))
+        return STATUS_INVALID_ACL;
+    if (!PhValidSid(Sid))
+        return STATUS_INVALID_SID;
+
+    length = PhLengthSid(Sid);
+    size = FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + length;
+
+    if (PTR_ADD_OFFSET(offset, size) > PTR_ADD_OFFSET(Acl, Acl->AclSize))
+        return STATUS_ALLOTTED_SPACE_EXCEEDED;
+
+    const PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE)offset;
+    const PACE_HEADER header = &ace->Header;
+    header->AceType = ACCESS_ALLOWED_ACE_TYPE;
+    header->AceFlags = 0;
+    header->AceSize = (USHORT)size;
+    ace->Mask = AccessMask;
+    memmove(&ace->SidStart, Sid, length);
+    Acl->AceCount++;
+
+    return STATUS_SUCCESS;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhSetDaclSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ BOOLEAN DaclPresent,

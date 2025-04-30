@@ -1656,11 +1656,11 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
 
         securityDescriptor = PhAllocateZero(allocationLength);
-        status = RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
+        status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
@@ -1740,12 +1740,12 @@ NTSTATUS PhGetSeObjectSecurityPowerGuid(
         {
             if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
             {
-                RtlSetOwnerSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
+                PhSetOwnerSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
             }
 
             if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
             {
-                RtlSetGroupSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
+                PhSetGroupSecurityDescriptor(securityDescriptor, PhSeAdministratorsSid(), TRUE);
             }
 
             *SecurityDescriptor = PhAllocateCopy(

@@ -7788,9 +7788,9 @@ HANDLE PhGetNamespaceHandle(
 
         PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
+        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
         PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
