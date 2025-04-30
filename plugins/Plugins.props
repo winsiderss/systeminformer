@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <!-- General -->
     <PropertyGroup Label="Globals">
         <OutDir>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\plugins\</OutDir>
         <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-        <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
-        <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
-        <GenerateManifest>false</GenerateManifest>
         <!-- Debugging -->
         <LocalDebuggerCommand>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\SystemInformer.exe</LocalDebuggerCommand>
         <LocalDebuggerWorkingDirectory>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
@@ -23,12 +20,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -44,12 +38,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -65,12 +56,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\arm64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -86,12 +74,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -107,12 +92,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -128,12 +110,9 @@
         <Link>
             <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\arm64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <AdditionalOptions>/NATVIS:$(SolutionDir)..\SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
-            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
         <PostBuildEvent>
             <Command>"$(SolutionDir)..\build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>

@@ -260,18 +260,18 @@ VOID ShowUpdateFailedDialog(
     }
     else
     {
-        if (Context->ErrorCode)
+        if (Context->UpdateStatus)
         {
             PPH_STRING errorMessage;
 
-            if (errorMessage = PhHttpGetErrorMessage(Context->ErrorCode))
+            if (errorMessage = PhHttpGetErrorMessage(Context->UpdateStatus))
             {
-                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->UpdateStatus, errorMessage->Buffer)->Buffer;
                 PhDereferenceObject(errorMessage);
             }
-            else if (errorMessage = PhGetStatusMessage(0, Context->ErrorCode))
+            else if (errorMessage = PhGetStatusMessage(Context->UpdateStatus, 0))
             {
-                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->UpdateStatus, errorMessage->Buffer)->Buffer;
                 PhDereferenceObject(errorMessage);
             }
             else

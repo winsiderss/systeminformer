@@ -1327,8 +1327,8 @@ NTSTATUS PhpEnumNtdllHandles(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF ntdllPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    static PH_STRINGREF ntfsPath = PH_STRINGREF_INIT(L"\\ntfs");
+    static CONST PH_STRINGREF ntdllPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
+    static CONST PH_STRINGREF ntfsPath = PH_STRINGREF_INIT(L"\\ntfs");
     NTSTATUS status;
     HANDLE fileHandle;
 

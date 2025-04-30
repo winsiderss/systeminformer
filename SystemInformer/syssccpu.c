@@ -955,7 +955,7 @@ BOOLEAN NTAPI PhSipCpuGraphCallback(
                     {
                         FLOAT cpuKernel;
                         FLOAT cpuUser;
-                        PPH_STRINGREF cpuType;
+                        PCPH_STRINGREF cpuType;
                         PH_FORMAT format[20];
                         ULONG count = 0;
 
@@ -1420,7 +1420,7 @@ PPH_STRING PhSipGetCpuBrandString(
     VOID
     )
 {
-    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
+    static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
     PPH_STRING brand = NULL;
     ULONG brandLength;
     CHAR brandString[49];
@@ -1447,7 +1447,7 @@ PPH_STRING PhSipGetCpuBrandString(
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
         brand = PhConvertUtf8ToUtf16Ex((PCSTR)cpubrand, brandLength);
 #else
-        static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
+        static CONST PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
         HANDLE keyHandle;
 
         if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
@@ -1905,7 +1905,7 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
     return TRUE;
 }
 
-PPH_STRINGREF PhGetHybridProcessorType(
+PCPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     )
 {
@@ -1932,12 +1932,12 @@ PPH_STRINGREF PhGetHybridProcessorType(
     {
     case CPUID_HYBRID_CORETYPE_ECORE:
         {
-            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
+            static CONST PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
             return &hybridECoreTypeSr;
         }
     case CPUID_HYBRID_CORETYPE_PCORE:
         {
-            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
+            static CONST PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
             return &hybridPCoreTypeSr;
         }
     }
@@ -1986,7 +1986,7 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
     return TRUE;
 }
 
-PPH_STRINGREF PhGetHybridProcessorType(
+PCPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     )
 {
@@ -2013,12 +2013,12 @@ PPH_STRINGREF PhGetHybridProcessorType(
     {
     case ARM_CORETYPE_LITTLE:
         {
-            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
+            static CONST PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"E-Core");
             return &hybridECoreTypeSr;
         }
     case ARM_CORETYPE_BIG:
         {
-            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
+            static CONST PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"P-Core");
             return &hybridPCoreTypeSr;
         }
     }

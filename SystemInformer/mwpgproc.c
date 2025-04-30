@@ -345,7 +345,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     {
         if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
         {
-            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+            static CONST PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
 
             if (PhEqualStringRef(&processNode->ProcessItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
                 return FALSE;
@@ -355,7 +355,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     {
         if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.CompanyName))
         {
-            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+            static CONST PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
 
             if (PhStartsWithStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
                 return FALSE;

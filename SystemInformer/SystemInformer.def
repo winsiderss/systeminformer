@@ -121,6 +121,7 @@ EXPORTS
     PhLookupMemoryItemList
     PhProcessImageListInitialization
     PhPropPageDlgProcHeader
+    PhQueryKphCounters
     PhQueryMemoryItemList
     PhReferenceDeviceItem
     PhReferenceDeviceItem2

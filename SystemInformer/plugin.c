@@ -268,7 +268,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF extension = PH_STRINGREF_INIT(L".dll");
+    static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".dll");
     NTSTATUS status;
     PPH_STRING fileName;
     PPH_STRING pluginsDirectory;

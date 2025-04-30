@@ -24,7 +24,7 @@ namespace CustomBuildTool
 
         public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
-            if (string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(OutFileName) || string.IsNullOrEmpty(Secret) || string.IsNullOrEmpty(Salt))
+            if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
             {
                 Program.PrintColorMessage($"Unable to encrypt file: Invalid arguments.", ConsoleColor.Yellow);
                 return false;
@@ -50,7 +50,7 @@ namespace CustomBuildTool
 
         public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
         {
-            if (string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(OutFileName) || string.IsNullOrEmpty(Secret) || string.IsNullOrEmpty(Salt))
+            if (string.IsNullOrWhiteSpace(FileName) || string.IsNullOrWhiteSpace(OutFileName) || string.IsNullOrWhiteSpace(Secret) || string.IsNullOrWhiteSpace(Salt))
             {
                 Program.PrintColorMessage($"Unable to decrypt file: Invalid arguments.", ConsoleColor.Yellow);
                 return false;
@@ -356,7 +356,16 @@ namespace CustomBuildTool
         private static string GetSalt(string Salt)
         {
             if (string.IsNullOrWhiteSpace(Salt))
-                return "e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0=";
+            {
+                if (Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt))
+                {
+                    return salt;
+                }
+
+                Program.PrintColorMessage($"[KPH_BUILD_SALT]", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+
             return Salt;
         }
 

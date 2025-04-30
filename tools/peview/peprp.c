@@ -671,8 +671,8 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     _Out_opt_ PPH_STRING *SignerName
     )
 {
-    static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
-    static PH_STRINGREF windowsAppsPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\WindowsApps\\");
+    static CONST PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
+    static CONST PH_STRINGREF windowsAppsPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\WindowsApps\\");
     NTSTATUS status;
     HANDLE fileHandle;
     VERIFY_RESULT result;

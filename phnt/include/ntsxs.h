@@ -178,7 +178,7 @@ typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_ENTRY
 typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE
 {
     ULONG BucketTableEntryCount;
-    ULONG BucketTableOffset; // to ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET, from section header
+    ULONG BucketTableOffset; // to ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET[], from section header
 } ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE, *PACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE;
 
 typedef struct _ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET
@@ -397,8 +397,8 @@ typedef struct _ACTIVATION_CONTEXT_DATA_CLR_SURROGATE
     GUID    SurrogateIdent;
     ULONG   VersionOffset;
     ULONG   VersionLength;
-    ULONG   TypeNameOffset;
-    ULONG   TypeNameLength; // to WCHAR[], from this struct base
+    ULONG   TypeNameOffset; // to WCHAR[], from this struct base
+    ULONG   TypeNameLength;
 } ACTIVATION_CONTEXT_DATA_CLR_SURROGATE, *PACTIVATION_CONTEXT_DATA_CLR_SURROGATE;
 
 #define ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS_FORMAT_LONGHORN 1

@@ -61,8 +61,8 @@ namespace CustomBuildTool
 
         private static List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
         {
-            List<HeaderFile> result = new List<HeaderFile>();
-            List<HeaderFile> done = new List<HeaderFile>();
+            var result = new List<HeaderFile>();
+            var done = new HashSet<HeaderFile>();
 
             foreach (HeaderFile h in headerFiles)
                 OrderHeaderFiles(result, done, h);
@@ -70,12 +70,10 @@ namespace CustomBuildTool
             return result;
         }
 
-        private static void OrderHeaderFiles(List<HeaderFile> result, List<HeaderFile> done, HeaderFile headerFile)
+        private static void OrderHeaderFiles(List<HeaderFile> result, HashSet<HeaderFile> done, HeaderFile headerFile)
         {
-            if (done.Contains(headerFile))
+            if (!done.Add(headerFile))
                 return;
-
-            done.Add(headerFile);
 
             foreach (HeaderFile h in headerFile.Dependencies)
                 OrderHeaderFiles(result, done, h);
@@ -85,8 +83,8 @@ namespace CustomBuildTool
 
         private static List<string> ProcessHeaderLines(List<string> lines)
         {
-            List<string> result = new List<string>();
-            List<string> modes = new List<string>();
+            var result = new List<string>();
+            var modes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bool blankLine = false;
 
             foreach (string line in lines)
@@ -95,15 +93,15 @@ namespace CustomBuildTool
 
                 if (text.StartsWith("// begin_", StringComparison.OrdinalIgnoreCase))
                 {
-                    modes.Add(text.Remove(0, "// begin_".Length));
+                    modes.Add(text.Substring("// begin_".Length));
                 }
                 else if (text.StartsWith("// end_", StringComparison.OrdinalIgnoreCase))
                 {
-                    modes.Remove(text.Remove(0, "// end_".Length));
+                    modes.Remove(text.Substring("// end_".Length));
                 }
                 else
                 {
-                    bool blockMode = Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
+                    bool blockMode = Modes.Any(mode => modes.Contains(mode));
                     bool lineMode = Modes.Any(mode =>
                     {
                         int indexOfMarker = text.LastIndexOf($"// {mode}", StringComparison.OrdinalIgnoreCase);
@@ -115,7 +113,7 @@ namespace CustomBuildTool
 
                     if (blockMode || lineMode)
                     {
-                        if (blankLine && result.Count != 0)
+                        if (blankLine && result.Count > 0)
                             result.Add(string.Empty);
 
                         result.Add(line);
@@ -146,8 +144,8 @@ namespace CustomBuildTool
 
             foreach (HeaderFile h in headerFiles.Values)
             {
-                List<KeyValuePair<string, HeaderFile>> partitions = new List<KeyValuePair<string, HeaderFile>>();
-                List<string> dependencies = new List<string>();
+                var partitions = new List<KeyValuePair<string, HeaderFile>>();
+                var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (string line in h.Lines)
                 {
@@ -155,7 +153,7 @@ namespace CustomBuildTool
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
-                        string dependencyName = trimmed.AsSpan().Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
+                        var dependencyName = trimmed.Substring("#include <".Length, trimmed.Length - "#include <".Length - 1);
 
                         if (headerFiles.TryGetValue(dependencyName, out HeaderFile dependency))
                         {
@@ -174,7 +172,7 @@ namespace CustomBuildTool
                 }
 
                 h.Lines = partitions.Where(p => p.Value == null).Select(p => p.Key).ToList();
-                h.Dependencies = dependencies.Select(dependencyName => headerFiles[dependencyName]).Distinct().ToList();
+                h.Dependencies = dependencies.Select(dependencyName => headerFiles[dependencyName]).ToList();
             }
 
             // Generate the ordering.
@@ -234,18 +232,21 @@ namespace CustomBuildTool
                 string headerFileName = Path.Join([BaseDirectory, OutputFile]);
                 string headerUpdateText = sw.ToString();
 
-                //if (File.Exists(headerFileName))
-                //{
-                //    string headerCurrentText = Utils.ReadAllText(headerFileName);
-                //
-                //    if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
-                //    {
-                //        Utils.WriteAllText(headerFileName, headerUpdateText);
-                //    }
-                //}
+                if (File.Exists(headerFileName))
+                {
+                    string headerCurrentText = Utils.ReadAllText(headerFileName);
 
-                Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
-                Utils.WriteAllText(headerFileName, headerUpdateText);
+                    if (!string.Equals(headerUpdateText, headerCurrentText, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
+                        Utils.WriteAllText(headerFileName, headerUpdateText);
+                    }
+                }
+                else
+                {
+                    Program.PrintColorMessage($"HeaderGen -> {headerFileName}", ConsoleColor.Cyan);
+                    Utils.WriteAllText(headerFileName, headerUpdateText);
+                }
             }
         }
     }

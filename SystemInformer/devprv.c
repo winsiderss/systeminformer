@@ -121,7 +121,7 @@ DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 
 #include <ntddstor.h>
 #pragma pop_macro("DEFINE_GUID")
 
-static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
+static CONST PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 static ULONG RootInstanceIdHash = 2387464428; // PhHashStringRefEx(TRUE, PH_STRING_HASH_X65599);
 PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
 PPH_OBJECT_TYPE PhDeviceItemType = NULL;
@@ -3037,12 +3037,12 @@ VOID NTAPI PhpDevPropFillBoolean(
     {
         if (Property->Boolean)
         {
-            static PH_STRINGREF string = PH_STRINGREF_INIT(L"true");
+            static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"true");
             Property->AsString = PhCreateString2(&string);
         }
         else
         {
-            static PH_STRINGREF string = PH_STRINGREF_INIT(L"false");
+            static CONST PH_STRINGREF string = PH_STRINGREF_INIT(L"false");
             Property->AsString = PhCreateString2(&string);
         }
     }

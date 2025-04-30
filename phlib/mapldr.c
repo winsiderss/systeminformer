@@ -1708,20 +1708,20 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
                 if (OriginalAddress)
                     *OriginalAddress = (PVOID)importThunk->u1.Function;
 
-                if (NT_SUCCESS(status = NtProtectVirtualMemory(
+                if (NT_SUCCESS(status = PhProtectVirtualMemory(
                     NtCurrentProcess(),
-                    &importThunkAddress,
-                    &importThunkSize,
+                    importThunkAddress,
+                    importThunkSize,
                     PAGE_READWRITE,
                     &importThunkProtect
                     )))
                 {
                     importThunk->u1.Function = (ULONG_PTR)FunctionAddress;
 
-                    NtProtectVirtualMemory(
+                    PhProtectVirtualMemory(
                         NtCurrentProcess(),
-                        &importThunkAddress,
-                        &importThunkSize,
+                        importThunkAddress,
+                        importThunkSize,
                         importThunkProtect,
                         &importThunkProtect
                         );
@@ -2045,10 +2045,10 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtProtectVirtualMemory(
+    status = PhProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
+        importDirectorySectionAddress,
+        importDirectorySectionSize,
         PAGE_READWRITE,
         &importDirectoryProtect
         );
@@ -2126,10 +2126,10 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
     TpReleasePool(loaderThreadpool);
 #endif
 
-    status = NtProtectVirtualMemory(
+    status = PhProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
+        importDirectorySectionAddress,
+        importDirectorySectionSize,
         importDirectoryProtect,
         &importDirectoryProtect
         );
@@ -2188,10 +2188,10 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtProtectVirtualMemory(
+    status = PhProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
+        importDirectorySectionAddress,
+        importDirectorySectionSize,
         PAGE_READWRITE,
         &importDirectoryProtect
         );
@@ -2279,10 +2279,10 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtProtectVirtualMemory(
+    status = PhProtectVirtualMemory(
         NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
+        importDirectorySectionAddress,
+        importDirectorySectionSize,
         importDirectoryProtect,
         &importDirectoryProtect
         );
@@ -2380,10 +2380,10 @@ NTSTATUS PhLoaderEntryRelocateImage(
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
-        status = NtProtectVirtualMemory(
+        status = PhProtectVirtualMemory(
             NtCurrentProcess(),
-            &sectionHeaderAddress,
-            &sectionHeaderSize,
+            sectionHeaderAddress,
+            sectionHeaderSize,
             PAGE_READWRITE,
             &sectionProtectionJunk
             );
@@ -2450,10 +2450,10 @@ NTSTATUS PhLoaderEntryRelocateImage(
         if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_WRITE) && FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_EXECUTE))
             sectionProtection = PAGE_EXECUTE_READWRITE;
 
-        status = NtProtectVirtualMemory(
+        status = PhProtectVirtualMemory(
             NtCurrentProcess(),
-            &sectionHeaderAddress,
-            &sectionHeaderSize,
+            sectionHeaderAddress,
+            sectionHeaderSize,
             sectionProtection,
             &sectionProtectionJunk
             );
@@ -2725,6 +2725,8 @@ NTSTATUS PhLoadPluginImage(
         &imageBaseAddress
         );
 #else
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+
     status = PhLoaderEntryLoadDll(
         FileName,
         &imageBaseAddress
@@ -2732,7 +2734,12 @@ NTSTATUS PhLoadPluginImage(
 #endif
 
     if (!NT_SUCCESS(status))
+    {
+#if !defined(PH_NATIVE_PLUGIN_IMAGE_LOAD)
+        RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+#endif
         return status;
+    }
 
     status = PhGetLoaderEntryImageNtHeaders(
         imageBaseAddress,
@@ -2791,6 +2798,10 @@ CleanupExit:
 #endif
     }
 
+#if !defined(PH_NATIVE_PLUGIN_IMAGE_LOAD)
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+#endif
+
     return status;
 }
 
@@ -2806,7 +2817,9 @@ NTSTATUS PhGetFileBinaryTypeWin32(
     UNICODE_STRING fileName;
     IO_STATUS_BLOCK ioStatusBlock;
     OBJECT_ATTRIBUTES objectAttributes;
-    SECTION_IMAGE_INFORMATION section = { 0 };
+    SECTION_IMAGE_INFORMATION section;
+
+    RtlZeroMemory(&section, sizeof(SECTION_IMAGE_INFORMATION));
 
     status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,

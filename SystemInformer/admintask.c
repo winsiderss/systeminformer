@@ -25,9 +25,9 @@ HRESULT PhCreateAdminTask(
     _In_ PPH_STRINGREF FileName
     )
 {
-    static PH_STRINGREF taskTimeLimit = PH_STRINGREF_INIT(L"PT0S");
+    static CONST PH_STRINGREF taskTimeLimit = PH_STRINGREF_INIT(L"PT0S");
 #if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
-    static PH_STRINGREF taskArguments = PH_STRINGREF_INIT(L"$(Arg0)");
+    static CONST PH_STRINGREF taskArguments = PH_STRINGREF_INIT(L"$(Arg0)");
 #endif
     HRESULT status;
     BSTR taskNameString = NULL;

@@ -591,8 +591,6 @@ VOID PhpUpdateThreadNodeLastSystemCall(
     _In_ PPH_THREAD_NODE ThreadNode
     )
 {
-    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
-
     if (!ThreadNode->ThreadContextHandleValid)
     {
         if (!ThreadNode->ThreadContextHandle)
@@ -612,17 +610,22 @@ VOID PhpUpdateThreadNodeLastSystemCall(
         ThreadNode->ThreadContextHandleValid = TRUE;
     }
 
-    ThreadNode->LastSystemCallStatus = STATUS_SUCCESS;
-    memset(&ThreadNode->LastSystemCall, 0, sizeof(THREAD_LAST_SYSCALL_INFORMATION));
+    RtlZeroMemory(&ThreadNode->LastSystemCall, sizeof(THREAD_LAST_SYSCALL_INFORMATION));
 
     if (ThreadNode->ThreadContextHandle)
     {
-        ThreadNode->LastSystemCallStatus = PhGetThreadLastSystemCall(ThreadNode->ThreadContextHandle, &lastSystemCall);
+        GUID containerId;
 
-        if (NT_SUCCESS(ThreadNode->LastSystemCallStatus))
-        {
-            ThreadNode->LastSystemCall = lastSystemCall;
-        }
+        PhGetThreadContainerId(ThreadNode->ThreadContextHandle, &containerId);
+
+        ThreadNode->LastSystemCallStatus = PhGetThreadLastSystemCall(
+            ThreadNode->ThreadContextHandle,
+            &ThreadNode->LastSystemCall
+            );
+    }
+    else
+    {
+        ThreadNode->LastSystemCallStatus = STATUS_SUCCESS;
     }
 }
 

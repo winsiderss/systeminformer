@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     dmex
+ *
+ */
+
 namespace CustomBuildTool
 {
     // https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/get-certificate/get-certificate?tabs=HTTP

@@ -217,8 +217,8 @@ namespace CustomBuildTool
 
                     SetFileTime(
                         DestinationFile,
-                        sourceFile.CreationTimeUtc.ToFileTimeUtc(),
-                        sourceFile.LastWriteTimeUtc.ToFileTimeUtc()
+                        sourceFile.CreationTimeUtc,
+                        sourceFile.LastWriteTimeUtc
                         );
                     updated = true;
                 }
@@ -231,8 +231,8 @@ namespace CustomBuildTool
 
                 SetFileTime(
                     DestinationFile,
-                    sourceFile.CreationTimeUtc.ToFileTimeUtc(),
-                    sourceFile.LastWriteTimeUtc.ToFileTimeUtc()
+                    sourceFile.CreationTimeUtc,
+                    sourceFile.LastWriteTimeUtc
                     );
                 updated = true;
             }
@@ -473,8 +473,8 @@ namespace CustomBuildTool
 
         public static void SetFileTime(
             string FileName,
-            long CreationDateTime,
-            long LastWriteDateTime
+            DateTime CreationDateTime,
+            DateTime LastWriteDateTime
             )
         {
             FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
@@ -491,8 +491,8 @@ namespace CustomBuildTool
                 if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
                     throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
-                basicInfo.CreationTime = CreationDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime;
-                basicInfo.LastWriteTime = LastWriteDateTime == 0 ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime;
+                basicInfo.CreationTime = CreationDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : CreationDateTime.ToFileTimeUtc();
+                basicInfo.LastWriteTime = LastWriteDateTime == DateTime.MinValue ? DateTime.UtcNow.ToFileTimeUtc() : LastWriteDateTime.ToFileTimeUtc();
 
                 PInvoke.SetFileInformationByHandle(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO));
             }
@@ -500,14 +500,14 @@ namespace CustomBuildTool
 
         public static void GetFileTime(
             string FileName,
-            out long CreationTime,
-            out long LastWriteDateTime
+            out DateTime CreationTime,
+            out DateTime LastWriteDateTime
             )
         {
             FILE_BASIC_INFO basicInfo = new FILE_BASIC_INFO();
 
-            CreationTime = 0;
-            LastWriteDateTime = 0;
+            CreationTime = DateTime.MinValue;
+            LastWriteDateTime = DateTime.MinValue;
 
             if (!File.Exists(FileName))
                 return;
@@ -517,8 +517,8 @@ namespace CustomBuildTool
                 if (!PInvoke.GetFileInformationByHandleEx(fs.SafeFileHandle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, (uint)sizeof(FILE_BASIC_INFO)))
                     throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 
-                CreationTime = basicInfo.CreationTime;
-                LastWriteDateTime = basicInfo.LastWriteTime;
+                CreationTime = DateTime.FromFileTimeUtc(basicInfo.CreationTime);
+                LastWriteDateTime = DateTime.FromFileTimeUtc(basicInfo.LastWriteTime);
             }
         }
     }

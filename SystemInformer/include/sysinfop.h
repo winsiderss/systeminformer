@@ -350,7 +350,7 @@ NTSTATUS PhSipQueryCpuSetInformation(
     _Out_ PVOID* Buffer
     );
 
-PPH_STRINGREF PhGetHybridProcessorType(
+PCPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     );
 

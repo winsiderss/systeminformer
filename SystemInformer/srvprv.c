@@ -194,6 +194,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
     return serviceItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpServiceItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -211,6 +212,7 @@ VOID PhpServiceItemDeleteProcedure(
     //PhDeleteImageVersionInfo(&serviceItem->VersionInfo);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -222,6 +224,7 @@ BOOLEAN PhpServiceHashtableEqualFunction(
     return PhEqualStringRef(&serviceItem1->Key, &serviceItem2->Key, TRUE);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -459,28 +462,33 @@ VOID PhServiceQueryStage1(
     {
         if (!FlagOn(serviceItem->Type, SERVICE_DRIVER)) // Skip icons for kernel drivers (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, 0, NULL, PhSystemDpi);
+            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, SYSTEM_IDLE_PROCESS_ID, NULL, PhSystemDpi);
         }
 
         if (!PhEnableProcessQueryStage2)
         {
-            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
             PH_IMAGE_VERSION_INFO versionInfo;
+            PPH_STRING nativeFilename;
 
-            if (PhInitializeImageVersionInfoCached(
-                &versionInfo, // Data->VersionInfo
-                fileName,
-                FALSE,
-                !!PhCsEnableVersionSupport
-                ))
+            if (nativeFilename = PhDosPathNameToNtPathName(&fileName->sr))
             {
-                // Note: This is how msconfig determines default services. (dmex)
-                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                if (PhInitializeImageVersionInfoCached(
+                    &versionInfo, // Data->VersionInfo
+                    nativeFilename,
+                    FALSE,
+                    !!PhCsEnableVersionSupport
+                    ))
                 {
-                    Data->MicrosoftService = TRUE;
+                    // Note: This is how msconfig determines default services. (dmex)
+                    if (versionInfo.CompanyName && PhStartsWithStringRef2(&versionInfo.CompanyName->sr, L"Microsoft", TRUE))
+                    {
+                        Data->MicrosoftService = TRUE;
+                    }
+
+                    PhDeleteImageVersionInfo(&versionInfo);
                 }
 
-                PhDeleteImageVersionInfo(&versionInfo);
+                PhDereferenceObject(nativeFilename);
             }
         }
     }
@@ -505,7 +513,7 @@ VOID PhServiceQueryStage2(
 
         if (!PhIsNullOrEmptyString(Data->VerifySignerName))
         {
-            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+            static CONST PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
 
             if (PhEqualStringRef(&Data->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
             {
@@ -515,6 +523,7 @@ VOID PhServiceQueryStage2(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpServiceQueryStage1Worker(
     _In_ PVOID Parameter
     )
@@ -528,6 +537,7 @@ NTSTATUS PhpServiceQueryStage1Worker(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpServiceQueryStage2Worker(
     _In_ PVOID Parameter
     )
@@ -738,12 +748,13 @@ VOID PhServiceProviderUpdate(
     static PPHP_SERVICE_NAME_ENTRY nameEntries = NULL;
     static ULONG nameEntriesCount;
     static ULONG nameEntriesAllocated = 0;
+    NTSTATUS status;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
 
-    PhTrace("Service provider run count: %lu", runCount);
+    PhTraceFuncEnter("Service provider run count: %lu", runCount);
 
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)
@@ -769,8 +780,11 @@ VOID PhServiceProviderUpdate(
 
 UpdateStart:
 
-    if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServices)))
+    if (!NT_SUCCESS(status = PhEnumServices(&services, &numberOfServices)))
+    {
+        PhTraceFuncExit("Failed to enumerate services: %lu %!STATUS!", runCount, status);
         return;
+    }
 
     // Build a hash set containing the service names.
 
@@ -1082,6 +1096,9 @@ UpdateStart:
 
 UpdateEnd:
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), UlongToPtr(runCount));
+
+    PhTraceFuncExit("Service provider run count: %lu", runCount);
+
     runCount++;
 }
 

@@ -148,6 +148,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     return threadProvider;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpThreadProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

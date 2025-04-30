@@ -13,8 +13,8 @@ namespace CustomBuildTool
 {
     public static class GithubReleases
     {
-        private static readonly string BaseUrl = string.Empty;
-        private static readonly string BaseToken = string.Empty;
+        private static readonly string BaseUrl;
+        private static readonly string BaseToken;
 
         static GithubReleases()
         {
@@ -87,8 +87,8 @@ namespace CustomBuildTool
 
             try
             {
-                HttpResponseMessage responseMessage = null;
-                GithubReleasesResponse githubResponseMessage = null;
+                HttpResponseMessage responseMessage;
+                GithubReleasesResponse githubResponseMessage;
 
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/releases/tags/{Version}"))
                 {

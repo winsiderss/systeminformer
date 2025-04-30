@@ -2168,8 +2168,8 @@ PPH_STRING PhpQueryRunFileParentDirectory(
     // the below environment variables when not elevated. (dmex)
     if (!Elevated)
     {
-        static PH_STRINGREF homeDriveNameSr = PH_STRINGREF_INIT(L"HOMEDRIVE");
-        static PH_STRINGREF homePathNameSr = PH_STRINGREF_INIT(L"HOMEPATH");
+        static CONST PH_STRINGREF homeDriveNameSr = PH_STRINGREF_INIT(L"HOMEDRIVE");
+        static CONST PH_STRINGREF homePathNameSr = PH_STRINGREF_INIT(L"HOMEPATH");
         PPH_STRING parentDirectoryString = NULL;
         PPH_STRING homeDriveNameString = NULL;
         PPH_STRING homePathNameString = NULL;
@@ -2294,8 +2294,8 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (fileName)
     {
-        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-        static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
 
         // Escape the filename.
         PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));

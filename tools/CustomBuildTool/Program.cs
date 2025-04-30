@@ -133,22 +133,35 @@ namespace CustomBuildTool
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi;
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
-                    return;
+                    Environment.Exit(1);
 
                 Build.ShowBuildStats();
+            }
+            else if (ProgramArgs.ContainsKey("-reflow"))
+            {
+                Build.ExportDefinitions(true);
+            }
+            else if (ProgramArgs.ContainsKey("-reflowvalid"))
+            {
+                if (!Build.BuildValidateExportDefinitions(BuildFlags.Release))
+                    Environment.Exit(1);
+            }
+            else if (ProgramArgs.ContainsKey("-reflowrevert"))
+            {
+                Build.ExportDefinitionsRevert();
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
                 Build.SetupBuildEnvironment(false);
 
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                    return;
+                    Environment.Exit(1);
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
-                    return;
+                    Environment.Exit(1);
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(true))
+                if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
@@ -158,16 +171,15 @@ namespace CustomBuildTool
                 }
 
                 Build.ShowBuildStats();
-                Build.CopyTextFiles(false);
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
                 Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug))
-                    return;
+                    Environment.Exit(1);
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug))
-                    return;
+                    Environment.Exit(1);
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Debug))
                     Environment.Exit(1);
@@ -182,21 +194,10 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                try
-                {
-                    //Build.ExportDefinitions(true);
-
-                    if (!Build.BuildSolution("SystemInformer.sln", flags))
-                        return;
-                    //if (!Build.BuildValidateExportDefinitions(flags))
-                    //    return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                        return;
-                }
-                finally
-                {
-                    //Build.ExportDefinitionsRevert();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                    Environment.Exit(1);
 
                 Build.CopyWow64Files(flags); // required after plugin build (dmex)
             }
@@ -208,7 +209,7 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(true))
+                if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
@@ -242,58 +243,35 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                try
-                {
-                    //Build.ExportDefinitions(true);
-
-                    if (!Build.BuildSolution("SystemInformer.sln", flags))
-                        return;
-                    //if (!Build.BuildValidateExportDefinitions(flags))
-                    //    return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                        return;
-                }
-                finally
-                {
-                    //Build.ExportDefinitionsRevert();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                    Environment.Exit(1);
 
                 if (!Build.CopyDebugEngineFiles(flags))
                     Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) // required after plugin build (dmex)
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(true))
+                if (!Build.CopyTextFiles(flags))
                     Environment.Exit(1);
 
                 Build.BuildStorePackage(flags);
                 Build.BuildPdbZip(true);
-                Build.CopyTextFiles(false);
             }
             else
             {
                 Build.SetupBuildEnvironment(true);
 
-                try
-                {
-                    //Build.ExportDefinitions(true);
-
-                    if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
-                        return;                    
-                    //if (!Build.BuildValidateExportDefinitions(BuildFlags.Release))
-                    //    return;
-                    if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
-                        return;
-                }
-                finally
-                {
-                    //Build.ExportDefinitionsRevert();
-                }
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release))
+                    Environment.Exit(1);
+                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                    Environment.Exit(1);
 
                 if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
                     Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.Release))
                     Environment.Exit(1);
-                if (!Build.CopyTextFiles(true))
+                if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
@@ -309,7 +287,243 @@ namespace CustomBuildTool
                 //Build.BuildSrcZip();
                 Build.BuildChecksumsFile();
                 Build.ShowBuildStats();
-                Build.CopyTextFiles(false);
+            }
+        }
+
+        private static bool HandleSingleArgumentCommands()
+        {
+            if (ProgramArgs.ContainsKey("-write-tools-id"))
+            {
+                WriteToolsId();
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-cleanup"))
+            {
+                Build.CleanupBuildEnvironment();
+                Build.ShowBuildStats();
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-encrypt") && !Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                Environment.Exit(1);
+
+            if (ProgramArgs.ContainsKey("-decrypt") && !Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                Environment.Exit(1);
+
+            if (ProgramArgs.TryGetValue("-dyndata", out string ArgDynData) && !Build.BuildDynamicData(ArgDynData))
+                Environment.Exit(1);
+
+            if (ProgramArgs.ContainsKey("-phapppub_gen") && !Build.BuildPublicHeaderFiles())
+                Environment.Exit(1);
+
+            if (ProgramArgs.TryGetValue("-azsign", out string Path) && !EntraKeyVault.SignFiles(Path))
+                Environment.Exit(1);
+
+            if (ProgramArgs.TryGetValue("-kphsign", out string SignArg) && !Verify.CreateSigFile("kph", SignArg, Build.BuildCanary))
+                Environment.Exit(1);
+
+            return false;
+        }
+
+        private static bool HandleBuildCommands()
+        {
+            if (ProgramArgs.ContainsKey("-sdk"))
+            {
+                BuildFlags flags = BuildFlags.None;
+                Build.SetupBuildEnvironment(false);
+
+                if (ProgramArgs.ContainsKey("-verbose"))
+                    flags |= BuildFlags.BuildVerbose;
+
+                if (!SetBuildFlags(ref flags))
+                    Environment.Exit(1);
+
+                ExecuteBuildSteps(flags, Build.CopyResourceFiles, Build.BuildSdk, Build.CopyKernelDriver, Build.CopyWow64Files);
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-cleansdk"))
+            {
+                BuildFlags flags = BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit | BuildFlags.BuildVerbose | BuildFlags.BuildApi;
+
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                    return true;
+
+                Build.ShowBuildStats();
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-bin"))
+            {
+                Build.SetupBuildEnvironment(false);
+
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release) ||
+                    !Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release) ||
+                    !Build.CopyDebugEngineFiles(BuildFlags.Release) ||
+                    !Build.CopyTextFiles(BuildFlags.Release))
+                    Environment.Exit(1);
+
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildBinZip(channel))
+                        Environment.Exit(1);
+                }
+
+                Build.ShowBuildStats();
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-debug"))
+            {
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Debug) ||
+                    !Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Debug) ||
+                    !Build.CopyDebugEngineFiles(BuildFlags.Debug))
+                    Environment.Exit(1);
+
+                Build.ShowBuildStats();
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-pipeline-build"))
+            {
+                BuildPipeline(BuildFlags.Release);
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-pipeline-package"))
+            {
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.ResignFiles() ||
+                    !Build.CopyDebugEngineFiles(BuildFlags.Release) ||
+                    !Build.CopyTextFiles(BuildFlags.Release))
+                    Environment.Exit(1);
+
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildBinZip(channel) || !Build.BuildSetupExe(channel))
+                        Environment.Exit(1);
+                }
+
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-pipeline-deploy"))
+            {
+                Build.SetupBuildEnvironment(true);
+
+                if (!Build.BuildPdbZip(false) || !Build.BuildUpdateServerConfig())
+                    Environment.Exit(1);
+
+                return true;
+            }
+
+            if (ProgramArgs.ContainsKey("-msix-build"))
+            {
+                BuildPipeline(BuildFlags.Release | BuildFlags.BuildMsix);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void HandleDefaultBuild()
+        {
+            Build.SetupBuildEnvironment(true);
+
+            try
+            {
+                Build.ExportDefinitions(true);
+
+                if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release) ||
+                    !Build.BuildValidateExportDefinitions(BuildFlags.Release) ||
+                    !Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
+                    return;
+            }
+            finally
+            {
+                Build.ExportDefinitionsRevert();
+            }
+
+            ExecuteBuildSteps(BuildFlags.Release, Build.CopyDebugEngineFiles, Build.CopyWow64Files, Build.CopyTextFiles);
+
+            foreach (var (channel, _) in BuildConfig.Build_Channels)
+            {
+                if (!Build.BuildBinZip(channel) || !Build.BuildSetupExe(channel))
+                    Environment.Exit(1);
+            }
+
+            Build.BuildPdbZip(false);
+            Build.BuildChecksumsFile();
+            Build.ShowBuildStats();
+        }
+
+        private static void BuildPipeline(BuildFlags flags)
+        {
+            Build.WriteTimeStampFile();
+            Build.SetupBuildEnvironment(true);
+            Build.CopySourceLink(true);
+
+            try
+            {
+                Build.ExportDefinitions(true);
+
+                if (!Build.BuildSolution("SystemInformer.sln", flags) ||
+                    !Build.BuildValidateExportDefinitions(flags) ||
+                    !Build.BuildSolution("plugins\\Plugins.sln", flags))
+                    return;
+            }
+            finally
+            {
+                Build.ExportDefinitionsRevert();
+            }
+
+            ExecuteBuildSteps(flags, Build.CopyWow64Files, Build.CopyDebugEngineFiles, Build.CopyTextFiles);
+
+            Build.BuildStorePackage(flags);
+            Build.BuildPdbZip(true);
+        }
+
+        private static bool SetBuildFlags(ref BuildFlags flags)
+        {
+            if (ProgramArgs.ContainsKey("-Debug"))
+            {
+                flags |= BuildFlags.BuildDebug;
+                return SetArchitectureFlags(ref flags);
+            }
+
+            if (ProgramArgs.ContainsKey("-release"))
+            {
+                flags |= BuildFlags.BuildRelease;
+                return SetArchitectureFlags(ref flags);
+            }
+
+            return false;
+        }
+
+        private static bool SetArchitectureFlags(ref BuildFlags flags)
+        {
+            if (ProgramArgs.ContainsKey("-Win32"))
+                flags |= BuildFlags.Build32bit;
+            else if (ProgramArgs.ContainsKey("-x64"))
+                flags |= BuildFlags.Build64bit;
+            else if (ProgramArgs.ContainsKey("-arm64"))
+                flags |= BuildFlags.BuildArm64bit;
+            else
+                return false;
+
+            return true;
+        }
+
+        private static void ExecuteBuildSteps(BuildFlags flags, params Func<BuildFlags, bool>[] steps)
+        {
+            foreach (var step in steps)
+            {
+                if (!step(flags))
+                    Environment.Exit(1);
             }
         }
 
@@ -347,7 +561,7 @@ namespace CustomBuildTool
 
             if (File.Exists("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt"))
             {
-                previousId = File.ReadAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt");
+                previousId = Utils.ReadAllText("tools\\CustomBuildTool\\bin\\Release\\ToolsId.txt");
             }
 
             if (string.IsNullOrWhiteSpace(previousId) || !previousId.Equals(currentId, StringComparison.OrdinalIgnoreCase))
@@ -403,9 +617,7 @@ namespace CustomBuildTool
                 }
 
                 sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-
-                byte[] hash = sha256.Hash;
-                return hash == null ? string.Empty : Convert.ToHexString(hash);
+                return sha256.Hash == null ? string.Empty : Convert.ToHexString(sha256.Hash);
             }
         }
     }

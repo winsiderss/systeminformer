@@ -2243,14 +2243,6 @@ IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RT_MANIFEST
-//
-
-IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
-
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

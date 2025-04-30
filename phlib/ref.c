@@ -389,7 +389,7 @@ PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
 
-    assert(PhObjectTypeCount < PH_OBJECT_TYPE_TABLE_SIZE);
+    assert(InterlockedExchange(&PhObjectTypeCount, PhObjectTypeCount) < PH_OBJECT_TYPE_TABLE_SIZE);
 
     PhObjectTypeTable[objectType->TypeIndex] = objectType;
 

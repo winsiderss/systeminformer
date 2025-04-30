@@ -54,11 +54,13 @@ namespace CustomBuildTool
 
         public static readonly ImmutableArray<string> Build_Phnt_Headers =
         [
+            "ntafd.h",
             "ntbcd.h",
             "ntdbg.h",
             "ntexapi.h",
             "ntgdi.h",
             "ntimage.h",
+            "ntintsafe.h",
             "ntioapi.h",
             "ntkeapi.h",
             "ntldr.h",
@@ -76,6 +78,8 @@ namespace CustomBuildTool
             "ntrtl.h",
             "ntsam.h",
             "ntseapi.h",
+            "ntsmss.h",
+            "ntstrsafe.h",
             "ntsxs.h",
             "nttmapi.h",
             "nttp.h",
@@ -89,6 +93,7 @@ namespace CustomBuildTool
             "phnt_windows.h",
             "smbios.h",
             "subprocesstag.h",
+            "usermgr.h",
             "winsta.h"
         ];
 
@@ -151,7 +156,7 @@ namespace CustomBuildTool
         ];
     }
 
-    public readonly struct BuildFile
+    public class BuildFile
     {
         public readonly string FileName;
         public readonly bool UploadCanary;

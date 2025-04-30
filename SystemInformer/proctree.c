@@ -235,7 +235,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_GRANTEDACCESS, FALSE, L"Granted access (symbolic)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_TLSBITMAPDELTA, FALSE, L"Thread local storage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_REFERENCEDELTA, FALSE, L"References", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_REFERENCEDELTA, FALSE, L"References", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_LXSSPID, FALSE, L"PID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -631,6 +631,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->AppIdText);
 
     PhClearReference(&ProcessNode->TooltipText);
+    PhClearReference(&ProcessNode->FileNameWin32);
 
     PhClearReference(&ProcessNode->IoTotalRateText);
     PhClearReference(&ProcessNode->PrivateBytesText);
@@ -2993,22 +2994,42 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_USERNAME:
-                getCellText->Text = PhGetStringRef(processItem->UserName);
+                {
+                    getCellText->Text = PhGetStringRef(processItem->UserName);
+                }
                 break;
             case PHPRTLC_DESCRIPTION:
-                getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileDescription);
+                {
+                    getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileDescription);
+                }
                 break;
             case PHPRTLC_COMPANYNAME:
-                getCellText->Text = PhGetStringRef(processItem->VersionInfo.CompanyName);
+                {
+                    getCellText->Text = PhGetStringRef(processItem->VersionInfo.CompanyName);
+                }
                 break;
             case PHPRTLC_VERSION:
-                getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
+                {
+                    getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileVersion);
+                }
                 break;
             case PHPRTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(processItem->FileName);
+                {
+                    if (processItem->FileName)
+                    {
+                        PhMoveReference(&node->FileNameWin32, PhGetFileName(processItem->FileName));
+                    }
+
+                    if (node->FileNameWin32)
+                        getCellText->Text = PhGetStringRef(node->FileNameWin32);
+                    else
+                        getCellText->Text = PhGetStringRef(processItem->FileName);
+                }
                 break;
             case PHPRTLC_COMMANDLINE:
-                getCellText->Text = PhGetStringRef(processItem->CommandLine);
+                {
+                    getCellText->Text = PhGetStringRef(processItem->CommandLine);
+                }
                 break;
             case PHPRTLC_PEAKPRIVATEBYTES:
                 {

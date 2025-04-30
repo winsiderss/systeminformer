@@ -2312,6 +2312,7 @@ VOID PhProcessProviderUpdate(
     // Since this is the only function that is allowed to modify the process hashtable, locking is
     // not needed for shared accesses. However, exclusive accesses need locking.
 
+    NTSTATUS status;
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG bucketIndex;
@@ -2326,7 +2327,7 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    PhTrace("Process provider run count: %lu", runCount);
+    PhTraceFuncEnter("Process provider run count: %lu", runCount);
 
     if (runCount % 512 == 0) // yes, a very long time
     {
@@ -2372,8 +2373,11 @@ VOID PhProcessProviderUpdate(
     PhTotalHandles = 0;
     PhTotalCpuQueueLength = 0;
 
-    if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+    {
+        PhTraceFuncExit("Failed to enumerate processes: %lu %!STATUS!", runCount, status);
         return;
+    }
 
     // Notes on cycle-based CPU usage:
     //
@@ -3087,7 +3091,6 @@ VOID PhProcessProviderUpdate(
             // Job
             if (processItem->QueryHandle)
             {
-                NTSTATUS status;
                 BOOLEAN isInSignificantJob = FALSE;
                 BOOLEAN isInJob = FALSE;
 
@@ -3362,6 +3365,9 @@ VOID PhProcessProviderUpdate(
     }
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
+
+    PhTraceFuncExit("Process provider run count: %lu", runCount);
+
     runCount++;
 }
 

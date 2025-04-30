@@ -566,6 +566,14 @@ NTSTATUS PhSetThreadGroupAffinity(
     return status;
 }
 
+/**
+ * The PhGetThreadLastSystemCall function returns the last system call of a thread.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param LastSystemCall The last system call of the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetThreadLastSystemCall(
     _In_ HANDLE ThreadHandle,
     _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
@@ -593,6 +601,15 @@ NTSTATUS PhGetThreadLastSystemCall(
     }
 }
 
+// rev from Advapi32!ImpersonateAnonymousToken (dmex)
+/**
+ * The PhCreateImpersonationToken function creates an anonymous logon token.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param TokenHandle A handle to the token.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhCreateImpersonationToken(
     _In_ HANDLE ThreadHandle,
     _Out_ PHANDLE TokenHandle
@@ -636,6 +653,15 @@ NTSTATUS PhCreateImpersonationToken(
     return status;
 }
 
+// rev from Advapi32!ImpersonateLoggedOnUser (dmex)
+/**
+ * The PhImpersonateToken function enables the specified thread to impersonate the security context of a token.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param TokenHandle A handle to the token.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
@@ -710,6 +736,14 @@ NTSTATUS PhImpersonateToken(
     return status;
 }
 
+// rev from Advapi32!RevertToSelf (dmex)
+/**
+ * The PhRevertImpersonationToken function terminates the impersonation of a security context.
+ *
+ * \param ThreadHandle A handle to the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhRevertImpersonationToken(
     _In_ HANDLE ThreadHandle
     )
@@ -724,6 +758,15 @@ NTSTATUS PhRevertImpersonationToken(
         );
 }
 
+/**
+ * Retrieves the last error status of a thread.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessHandle A handle to the process.
+ * \param LastStatusValue The last status of the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
@@ -767,6 +810,15 @@ NTSTATUS PhGetThreadLastStatusValue(
     return status;
 }
 
+/**
+ * Retrieves the COM apartment of a thread.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessHandle A handle to the process.
+ * \param ApartmentState The COM apartment of the thread.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetThreadApartmentState(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,

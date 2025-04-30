@@ -2139,6 +2139,13 @@ PhEnumProcessModules32Ex(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsRtlModuleBase(
+    _In_ PVOID DllBase
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetProcessModuleLoadCount32(

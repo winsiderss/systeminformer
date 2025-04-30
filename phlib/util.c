@@ -2102,7 +2102,7 @@ PPH_STRING PhFormatUInt64Prefix(
     _In_ BOOLEAN GroupDigits
     )
 {
-    static PH_STRINGREF PhpPrefixUnitNamesCounted[7] =
+    static CONST PH_STRINGREF PhpPrefixUnitNamesCounted[7] =
     {
         PH_STRINGREF_INIT(L""),
         PH_STRINGREF_INIT(L"k"),
@@ -3942,8 +3942,8 @@ PPH_STRING PhGetKnownLocation(
     {
     case PH_FOLDERID_LocalAppData:
         {
-            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"LOCALAPPDATA");
-            static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
+            static CONST PH_STRINGREF variableName = PH_STRINGREF_INIT(L"LOCALAPPDATA");
+            static CONST PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
             NTSTATUS status;
             PH_STRINGREF variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
@@ -4001,8 +4001,8 @@ PPH_STRING PhGetKnownLocation(
         break;
     case PH_FOLDERID_RoamingAppData:
         {
-            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"APPDATA");
-            static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
+            static CONST PH_STRINGREF variableName = PH_STRINGREF_INIT(L"APPDATA");
+            static CONST PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
             NTSTATUS status;
             PH_STRINGREF variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
@@ -4079,7 +4079,7 @@ PPH_STRING PhGetKnownLocation(
     //    break;
     case PH_FOLDERID_ProgramData:
         {
-            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"PROGRAMDATA");
+            static CONST PH_STRINGREF variableName = PH_STRINGREF_INIT(L"PROGRAMDATA");
             NTSTATUS status;
             PH_STRINGREF variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
@@ -4255,9 +4255,9 @@ PPH_STRING PhGetTemporaryDirectory(
     _In_opt_ PCPH_STRINGREF AppendPath
     )
 {
-    static PH_STRINGREF variableNameTmp = PH_STRINGREF_INIT(L"TMP");
-    static PH_STRINGREF variableNameTemp = PH_STRINGREF_INIT(L"TEMP");
-    static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
+    static CONST PH_STRINGREF variableNameTmp = PH_STRINGREF_INIT(L"TMP");
+    static CONST PH_STRINGREF variableNameTemp = PH_STRINGREF_INIT(L"TEMP");
+    static CONST PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
     NTSTATUS status;
     PH_STRINGREF variableValue;
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
@@ -4267,7 +4267,7 @@ PPH_STRING PhGetTemporaryDirectory(
         PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
         )
     {
-        static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
+        static CONST PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
         PH_STRINGREF systemRoot;
         PPH_STRING systemPath;
 
@@ -4677,8 +4677,8 @@ NTSTATUS PhCreateProcessWin32Ex(
 
         // Escape the commandline (or uncomment CommandLineToArgvW to clear the filename when it contains \\program files\\) (dmex)
         {
-            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-            static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+            static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
             PPH_STRING escaped;
 
             escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
@@ -5467,9 +5467,7 @@ BOOLEAN PhShellExecuteWin32(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *ShellExecuteExW_I)(
-        _Inout_ SHELLEXECUTEINFOW *pExecInfo
-        ) = NULL;
+    static __typeof__(&ShellExecuteExW) ShellExecuteExW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5502,8 +5500,10 @@ VOID PhShellExecute(
     _In_opt_ PCWSTR Parameters
     )
 {
-    SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+    SHELLEXECUTEINFO info;
 
+    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
+    info.cbSize = sizeof(SHELLEXECUTEINFO);
     info.lpFile = FileName;
     info.lpParameters = Parameters;
     info.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
@@ -5685,10 +5685,7 @@ BOOLEAN PhShellNotifyIcon(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *Shell_NotifyIconW_I)(
-        _In_ ULONG dwMessage,
-        _In_ PNOTIFYICONDATAW Data
-        ) = NULL;
+    static __typeof__(&Shell_NotifyIconW) Shell_NotifyIconW_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5716,12 +5713,7 @@ HRESULT PhShellGetKnownFolderPath(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *SHGetKnownFolderPath_I)(
-        _In_ REFKNOWNFOLDERID rfid,
-        _In_ ULONG dwFlags, // KNOWN_FOLDER_FLAG
-        _In_opt_ HANDLE hToken,
-        _Outptr_ PWSTR* ppszPath // CoTaskMemFree
-        ) = NULL;
+    static __typeof__(&SHGetKnownFolderPath) SHGetKnownFolderPath_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -5750,13 +5742,7 @@ HRESULT PhShellGetKnownFolderItem(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *SHGetKnownFolderItem_I)(
-        _In_ REFKNOWNFOLDERID rfid,
-        _In_ ULONG flags, // KNOWN_FOLDER_FLAG
-        _In_opt_ HANDLE hToken,
-        _In_ REFIID riid,
-        _Outptr_ void** ppv
-        ) = NULL;
+    static __typeof__(&SHGetKnownFolderItem) SHGetKnownFolderItem_I = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -7244,7 +7230,7 @@ PPH_STRING PhEscapeCommandLinePart(
     _In_ PCPH_STRINGREF String
     )
 {
-    static PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
+    static CONST PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
     PH_STRING_BUILDER stringBuilder;
     ULONG numberOfBackslashes;
     ULONG length;
@@ -7307,7 +7293,7 @@ BOOLEAN PhParseCommandLineFuzzy(
     _Out_opt_ PPH_STRING *FullFileName
     )
 {
-    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
+    static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
     PH_STRINGREF commandLine;
     PH_STRINGREF temp;
     PH_STRINGREF currentPart;
@@ -7516,8 +7502,8 @@ PPH_STRING PhCommandLineQuoteSpaces(
     _In_ PCPH_STRINGREF CommandLine
     )
 {
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-    static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+    static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+    static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
     PH_STRINGREF commandLineFileName;
     PH_STRINGREF commandLineArguments;
     PPH_STRING fileNameEscaped;
@@ -7633,7 +7619,7 @@ PPH_STRING PhCreateCacheFile(
     _In_ BOOLEAN NativeFileName
     )
 {
-    static PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
+    static CONST PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
     PH_STRINGREF randomAlphaStringRef;
@@ -7753,7 +7739,7 @@ VOID PhClearCacheDirectory(
     _In_ BOOLEAN PortableDirectory
     )
 {
-    static PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
+    static CONST PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
     PPH_STRING cacheDirectory;
 
     if (PortableDirectory)

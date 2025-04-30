@@ -62,7 +62,7 @@ PhMappedImageProbe(
     _In_ SIZE_T Length
     )
 {
-    PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->ViewSize, 1);
+    PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->ViewSize, __alignof(UCHAR));
 }
 
 PHLIBAPI

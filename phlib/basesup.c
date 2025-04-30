@@ -164,6 +164,7 @@ BOOLEAN PhBaseInitialization(
     return TRUE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpBaseThreadStart(
     _In_ PVOID Parameter
     )

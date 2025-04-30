@@ -380,6 +380,17 @@ PhFreeVirtualMemory(
     _In_ ULONG FreeType
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhProtectVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG NewProtection,
+    _Out_opt_ PULONG OldProtection
+    );
+
 FORCEINLINE
 PVOID
 PhAllocateCopy(
@@ -1453,7 +1464,7 @@ PhCreateString2(
 /**
  * Creates a string object from a null-terminated string.
  *
- * \param Buffer A null-terminated Unicode string.
+ * \param String A null-terminated Unicode string.
  */
 FORCEINLINE
 PPH_STRING
@@ -1474,7 +1485,7 @@ PhCreateStringZ(
 /**
  * Creates a string object from a null-terminated string up to a maximum length.
  *
- * \param Buffer A null-terminated Unicode string.
+ * \param String A null-terminated Unicode string.
  * \param MaximumLength The maximum length, in bytes, of the string.
  */
 FORCEINLINE

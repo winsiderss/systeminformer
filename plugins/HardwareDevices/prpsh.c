@@ -278,7 +278,6 @@ LRESULT CALLBACK PvControlButtonWndProc(
         {
             PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         }
         break;
     }

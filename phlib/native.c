@@ -3688,7 +3688,6 @@ NTSTATUS PhUnloadDriver(
 
     if ((level == KphLevelMax) && BaseAddress)
     {
-        extern BOOLEAN PhIsRtlModuleBase(_In_ PVOID DllBase);
         if (!PhIsRtlModuleBase(BaseAddress))
         {
             if (NT_SUCCESS(PhOpenDriverByBaseAddress(
@@ -4038,8 +4037,10 @@ NTSTATUS PhGetProcessActivityModerationState(
     )
 {
     NTSTATUS status;
-    SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration = { NULL };
+    SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS activityModeration;
     PKEY_VALUE_PARTIAL_INFORMATION keyValueInfo;
+
+    RtlZeroMemory(&activityModeration, sizeof(SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS));
 
     status = NtQuerySystemInformation(
         SystemActivityModerationUserSettings,
@@ -4175,7 +4176,6 @@ NTSTATUS PhSetProcessGroupAffinity(
  *
  * \param ProcessHandle The handle to the target process.
  * \param PowerThrottlingState The control and state masks indicating the current power throttling of the process.
- * \param StateMask The state mask specifying the power throttling states to set.
  * \return The NTSTATUS code indicating the success or failure of the operation.
  */
 NTSTATUS PhGetProcessPowerThrottlingState(
@@ -4184,23 +4184,17 @@ NTSTATUS PhGetProcessPowerThrottlingState(
     )
 {
     NTSTATUS status;
-    POWER_THROTTLING_PROCESS_STATE processPowerThrottlingState;
 
-    memset(&processPowerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
-    processPowerThrottlingState.Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
+    memset(PowerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
+    PowerThrottlingState->Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessPowerThrottlingState,
-        &processPowerThrottlingState,
+        PowerThrottlingState,
         sizeof(POWER_THROTTLING_PROCESS_STATE),
         NULL
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *PowerThrottlingState = processPowerThrottlingState;
-    }
 
     return status;
 }
@@ -5760,7 +5754,7 @@ NTSTATUS PhEnumDirectoryFileEx(
 
         while (TRUE)
         {
-            PFILE_DIRECTORY_NEXT_INFORMATION information = PTR_ADD_OFFSET(buffer, i);
+            CONST PFILE_DIRECTORY_NEXT_INFORMATION information = PTR_ADD_OFFSET(buffer, i);
 
             if (!Callback(FileHandle, information, Context))
             {
@@ -6992,7 +6986,7 @@ PPH_STRING PhDosPathNameToNtPathName(
 
         if (prefix.Length != 0)
         {
-            static PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
+            static CONST PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
 
             // \\SystemRoot\\Name -> \\Device\\HardDiskVolumeX\\Windows\\Name
             newName = PhCreateStringEx(NULL, prefix.Length + Name->Length + systemRoot.Length - sizeof(L"SystemRoot"));
@@ -7501,7 +7495,7 @@ NTSTATUS PhLoadAppKey(
     if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
         goto CleanupExit;
 #else
-    static PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
+    static CONST PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
     PPH_STRING guidString;
 
     if (!(guidString = PhFormatGuid(&guid)))

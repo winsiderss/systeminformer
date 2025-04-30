@@ -363,13 +363,16 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!FlagOn(ServiceNode->ValidMask, PHSN_DESCRIPTION))
     {
+        NTSTATUS status;
         HANDLE keyHandle;
 
-        if (NT_SUCCESS(PhOpenServiceKey(
+        status = PhOpenServiceKey(
             &keyHandle,
             KEY_QUERY_VALUE,
             &ServiceNode->ServiceItem->Name->sr
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             PPH_STRING descriptionString;
             PPH_STRING serviceDescriptionString;
@@ -385,6 +388,10 @@ static VOID PhpUpdateServiceNodeDescription(
             }
 
             NtClose(keyHandle);
+        }
+        else
+        {
+            PhMoveReference(&ServiceNode->Description, PhGetStatusMessage(status, 0));
         }
 
         SetFlag(ServiceNode->ValidMask, PHSN_DESCRIPTION);
@@ -422,6 +429,10 @@ static VOID PhpUpdateServiceNodeKey(
             }
 
             NtClose(keyHandle);
+        }
+        else
+        {
+            RtlZeroMemory(&ServiceNode->KeyLastWriteTime, sizeof(ServiceNode->KeyLastWriteTime));
         }
 
         SetFlag(ServiceNode->ValidMask, PHSN_KEY);

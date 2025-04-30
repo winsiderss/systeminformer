@@ -197,8 +197,8 @@ HRESULT PvGetClrMetaDataInterface(
     _Out_ IMetaDataDispenser** ClrMetaDataInterface
     )
 {
-    static PH_STRINGREF dotNetCorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
-    static PH_STRINGREF dotNetCoreName = PH_STRINGREF_INIT(L"\\coreclr.dll");
+    static CONST PH_STRINGREF dotNetCorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static CONST PH_STRINGREF dotNetCoreName = PH_STRINGREF_INIT(L"\\coreclr.dll");
     HRESULT (WINAPI* MetaDataGetDispenser_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv) = nullptr;
     HRESULT status = E_FAIL;
     PVOID clrCoreBaseAddress = nullptr;
