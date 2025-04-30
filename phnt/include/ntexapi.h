@@ -1742,6 +1742,16 @@ NtSetTimerResolution(
 // Performance Counters
 //
 
+/**
+ * The NtQueryPerformanceCounter routine retrieves the current value of the performance counter,
+ * which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
+ *
+ * @param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in 100-nanosecond units.
+ * @param PerformanceFrequency A pointer to a variable that receives the current performance-frequency value, in 100-nanosecond units.
+ * @return NTSTATUS Successful or errant status.
+ * @remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
