@@ -2263,7 +2263,9 @@ NtQueryFullAttributesFile(
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
+//
 // NtNotifyChangeDirectoryFile information
+//
 
 #define FILE_NOTIFY_CHANGE_FILE_NAME    0x00000001   // winnt
 #define FILE_NOTIFY_CHANGE_DIR_NAME     0x00000002   // winnt
