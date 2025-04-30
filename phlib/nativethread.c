@@ -1005,7 +1005,7 @@ NTSTATUS PhGetThreadApartmentFlags(
         else
             comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #else
-        apartmentStateOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
+        comInitsOffset = PTR_ADD_OFFSET(oletlsBaseAddress, UFIELD_OFFSET(SOleTlsData, ComInits));
 #endif
 
         status = NtReadVirtualMemory(
