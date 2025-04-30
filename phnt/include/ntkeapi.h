@@ -67,10 +67,10 @@ typedef enum _KWAIT_REASON
     WrUserRequest,           // Waiting due to a user request.
     WrEventPair,             // Waiting for an event pair.                  // NtCreateEventPair
     WrQueue,                 // Waiting for a queue.                        // NtRemoveIoCompletion
-    WrLpcReceive,            // Waiting for an LPC receive.
-    WrLpcReply,              // Waiting for an LPC reply.
+    WrLpcReceive,            // Waiting for an LPC receive.                 // NtReplyWaitReceivePort
+    WrLpcReply,              // Waiting for an LPC reply.                   // NtRequestWaitReplyPort
     WrVirtualMemory,         // Waiting for virtual memory.
-    WrPageOut,               // Waiting for a page to be written out.
+    WrPageOut,               // Waiting for a page to be written out.       // NtFlushVirtualMemory
     WrRendezvous,            // Waiting for a rendezvous.
     WrKeyedEvent,            // Waiting for a keyed event.                  // NtCreateKeyedEvent
     WrTerminated,            // Waiting for thread termination.
