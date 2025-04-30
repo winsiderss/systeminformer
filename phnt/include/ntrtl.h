@@ -5840,7 +5840,7 @@ RtlWalkHeap(
 #define HeapEnableTerminationOnCorruption 0x1 // q; s: NULL
 #define HeapExtendedInformation 0x2 // q; s: HEAP_EXTENDED_INFORMATION
 #define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION
-#define HeapTaggingInformation 0x4
+#define HeapTaggingInformation 0x4 // q: RTLP_HEAP_TAGGING_INFO
 #define HeapStackDatabase 0x5 // q: RTL_HEAP_STACK_QUERY; s: RTL_HEAP_STACK_CONTROL
 #define HeapMemoryLimit 0x6 // since 19H2
 #define HeapTag 0x7 // since 20H1
@@ -5857,15 +5857,17 @@ typedef enum _HEAP_COMPATIBILITY_MODE
 typedef struct _RTLP_TAG_INFO
 {
     GUID Id;
-    ULONG_PTR CurrentAllocatedBytes;
+    SIZE_T CurrentAllocatedBytes;
 } RTLP_TAG_INFO, *PRTLP_TAG_INFO;
+
+#define RTLP_HEAP_TAGGING_INFO_VERSION 0x1
 
 typedef struct _RTLP_HEAP_TAGGING_INFO
 {
     USHORT Version;
-    USHORT Flags;
-    PVOID ProcessHandle;
-    ULONG_PTR EntriesCount;
+    USHORT Flags; // 1: Multiple Tags, 2: Single Tag + Hash
+    HANDLE ProcessHandle;
+    SIZE_T EntriesCount;
     RTLP_TAG_INFO Entries[1];
 } RTLP_HEAP_TAGGING_INFO, *PRTLP_HEAP_TAGGING_INFO;
 
@@ -5919,7 +5921,7 @@ typedef struct _SEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION
 {
     SIZE_T SegmentReserveSize;
     SIZE_T SegmentCommitSize;
-    ULONG_PTR SegmentCount;
+    SIZE_T SegmentCount;
     SIZE_T AllocatedSize;
     SIZE_T LargeAllocReserveSize;
     SIZE_T LargeAllocCommitSize;
