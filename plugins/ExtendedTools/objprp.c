@@ -1995,20 +1995,20 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                         break;
                     case IDC_SECURITY:
                         {
-                            PET_HANDLE_OPEN_CONTEXT context;
+                            PET_HANDLE_OPEN_CONTEXT handleContext;
 
-                            context = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
-                            context->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
-                            context->ProcessId = listviewItems[0]->ProcessId;
-                            EtUpdateHandleItem(context->ProcessId, context->HandleItem);
+                            handleContext = PhAllocateZero(sizeof(ET_HANDLE_OPEN_CONTEXT));
+                            handleContext->HandleItem = PhReferenceObject(listviewItems[0]->HandleItem);
+                            handleContext->ProcessId = listviewItems[0]->ProcessId;
+                            EtUpdateHandleItem(handleContext->ProcessId, handleContext->HandleItem);
 
                             PhEditSecurity(
                                 !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : hwndDlg,
-                                PhGetString(context->HandleItem->ObjectName),
-                                PhGetString(context->HandleItem->TypeName),
+                                PhGetString(handleContext->HandleItem->ObjectName),
+                                PhGetString(handleContext->HandleItem->TypeName),
                                 EtpProcessHandleOpenCallback,
                                 EtpProcessHandleCloseCallback,
-                                context
+                                handleContext
                                 );
                         }
                         break;
