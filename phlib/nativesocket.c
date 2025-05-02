@@ -13,6 +13,7 @@
 #include <hndlinfo.h>
 #include <ws2ipdef.h>
 #include <ws2bth.h>
+#include <afunix.h>
 #include <hvsocketcontrol.h>
 #include <secedit.h>
 
@@ -442,6 +443,7 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 {
     switch (AddressFamily)
     {
+    case AF_UNIX:
     case AF_INET:
     case AF_INET6:
     case AF_BTH:
@@ -543,7 +545,18 @@ NTSTATUS PhAfdFormatAddress(
     WCHAR buffer[70];
     ULONG characters = RTL_NUMBER_OF(buffer);
 
-    if (Address->ss_family == AF_INET)
+    if (Address->ss_family == AF_UNIX)
+    {
+        PSOCKADDR_UN address = (PSOCKADDR_UN)Address;
+
+        *AddressString = PhConvertUtf8ToUtf16Ex(address->sun_path, strnlen(address->sun_path, UNIX_PATH_MAX));
+
+        if (!(*AddressString))
+            return STATUS_SOME_NOT_MAPPED;
+
+        status = STATUS_SUCCESS;
+    }
+    else if (Address->ss_family == AF_INET)
     {
         PSOCKADDR_IN address = (PSOCKADDR_IN)Address;
 
@@ -1026,6 +1039,8 @@ PCWSTR PhpAfdGetAddressFamilyString(
     {
     case AF_UNSPEC:
         return L"Unspecified";
+    case AF_UNIX:
+        return L"Unix";
     case AF_INET:
         return L"Internet";
     case AF_INET6:
@@ -1074,6 +1089,8 @@ PCWSTR PhpAfdGetProtocolString(
 {
     switch (AddressFamily)
     {
+    case AF_UNIX:
+        return L"UNIX";
     case AF_INET:
     case AF_INET6:
         switch (Protocol)
@@ -1157,6 +1174,8 @@ PCWSTR PhpAfdGetProtocolSummary(
 {
     switch (AddressFamily)
     {
+    case AF_UNIX:
+        return L"UNIX";
     case AF_INET:
         switch (Protocol)
         {
