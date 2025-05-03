@@ -1238,6 +1238,45 @@ PhGetDaclSecurityDescriptorNotNull(
 FORCEINLINE
 NTSTATUS
 NTAPI
+PhAddAccessAllowedAce(
+    _In_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ACCESS_MASK AccessMask,
+    _In_ PSID Sid
+    )
+{
+    ULONG_PTR size;
+    ULONG_PTR offset;
+    ULONG length;
+
+    if (AceRevision != Acl->AclRevision)
+        return STATUS_REVISION_MISMATCH;
+    if (!PhValidAcl(Acl) || !NT_SUCCESS(PhFirstFreeAce(Acl, &offset)))
+        return STATUS_INVALID_ACL;
+    if (!PhValidSid(Sid))
+        return STATUS_INVALID_SID;
+
+    length = PhLengthSid(Sid);
+    size = FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + length;
+
+    if (PTR_ADD_OFFSET(offset, size) > PTR_ADD_OFFSET(Acl, Acl->AclSize))
+        return STATUS_ALLOTTED_SPACE_EXCEEDED;
+
+    const PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE)offset;
+    const PACE_HEADER header = &ace->Header;
+    header->AceType = ACCESS_ALLOWED_ACE_TYPE;
+    header->AceFlags = 0;
+    header->AceSize = (USHORT)size;
+    ace->Mask = AccessMask;
+    memmove(&ace->SidStart, Sid, length);
+    Acl->AceCount++;
+
+    return STATUS_SUCCESS;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
 PhSetDaclSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ BOOLEAN DaclPresent,
@@ -3855,10 +3894,48 @@ PhGetThreadLastStatusValue(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetThreadApartmentState(
+PhGetProcessMTAUsage(
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PULONG MTAInits,
+    _Out_opt_ PULONG MTAIncInits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartmentFlags(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _Out_ POLETLSFLAGS ApartmentState
+    _Out_ POLETLSFLAGS ApartmentState,
+    _Out_opt_ PULONG ComInits
+    );
+
+typedef enum _PH_APARTMENT_TYPE
+{
+    PH_APARTMENT_TYPE_INVALID = 0,
+    PH_APARTMENT_TYPE_MAIN_STA,
+    PH_APARTMENT_TYPE_MAIN_APPLICATION_STA,
+    PH_APARTMENT_TYPE_STA,
+    PH_APARTMENT_TYPE_APPLICATION_STA,
+    PH_APARTMENT_TYPE_MTA,
+    PH_APARTMENT_TYPE_IMPLICIT_MTA
+} PH_APARTMENT_TYPE;
+
+typedef struct _PH_APARTMENT_INFO
+{
+    PH_APARTMENT_TYPE Type;
+    BOOLEAN InNeutral;
+    ULONG ComInits;
+    OLETLSFLAGS Flags;
+} PH_APARTMENT_INFO, *PPH_APARTMENT_INFO;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartment(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_APARTMENT_INFO ApartmentInfo
     );
 
 typedef struct _PH_COM_CALLSTATE

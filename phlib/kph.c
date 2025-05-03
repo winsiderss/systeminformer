@@ -346,9 +346,9 @@ VOID KphSetServiceSecurity(
 
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION,
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, (PSID)&PhSeServiceSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION,
         SERVICE_QUERY_CONFIG |
         SERVICE_QUERY_STATUS |
         SERVICE_START |

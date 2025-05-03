@@ -48,14 +48,14 @@ NTSTATUS PhSvcApiPortInitialization(
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid((PSID)&PhSeEveryoneSid);
 
-    securityDescriptor = PhAllocate(sdAllocationLength);
+    securityDescriptor = PhAllocateZero(sdAllocationLength);
     dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
-    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, PORT_ALL_ACCESS, administratorsSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, PORT_CONNECT, (PSID)&PhSeEveryoneSid);
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, PORT_ALL_ACCESS, administratorsSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, PORT_CONNECT, (PSID)&PhSeEveryoneSid);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -121,7 +121,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
 
     portHandle = PhSvcApiPortHandle;
     messageSize = PhIsExecutingInWow64() ? sizeof(PHSVC_API_MSG64) : sizeof(PHSVC_API_MSG);
-    receiveMessage = PhAllocate(messageSize);
+    receiveMessage = PhAllocatePageZero(messageSize);
     replyMessage = NULL;
 
     while (TRUE)
@@ -194,7 +194,7 @@ BOOLEAN PhSvcHandleVerify(
     if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
         FileName,
-        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
@@ -251,9 +251,10 @@ VOID PhSvcHandleConnectionRequest(
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
-        if (!remoteFileName || !PhSvcHandleVerify(&remoteFileName->sr))
+        if (PhIsNullOrEmptyString(remoteFileName) || !PhSvcHandleVerify(&remoteFileName->sr))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
         }
 #endif // PH_BUILD_API
     }
@@ -277,7 +278,7 @@ VOID PhSvcHandleConnectionRequest(
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
-        if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, FALSE))
+        if (PhIsNullOrEmptyString(referenceFileName) || PhIsNullOrEmptyString(remoteFileName) || !PhEqualString(referenceFileName, remoteFileName, FALSE))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
@@ -289,9 +290,10 @@ VOID PhSvcHandleConnectionRequest(
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
-        if (!remoteFileName || !PhSvcHandleVerify(&remoteFileName->sr))
+        if (PhIsNullOrEmptyString(remoteFileName) || !PhSvcHandleVerify(&remoteFileName->sr))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
         }
 #endif // PH_BUILD_API
     }
@@ -308,6 +310,7 @@ VOID PhSvcHandleConnectionRequest(
     {
         message64->p.ConnectInfo.ServerProcessId = HandleToUlong(NtCurrentProcessId());
 
+        memset(&clientView64, 0, sizeof(REMOTE_PORT_VIEW64));
         clientView64.Length = sizeof(REMOTE_PORT_VIEW64);
         clientView64.ViewSize = 0;
         clientView64.ViewBase = 0;
@@ -317,6 +320,7 @@ VOID PhSvcHandleConnectionRequest(
     {
         message->p.ConnectInfo.ServerProcessId = HandleToUlong(NtCurrentProcessId());
 
+        memset(&clientView, 0, sizeof(REMOTE_PORT_VIEW));
         clientView.Length = sizeof(REMOTE_PORT_VIEW);
         clientView.ViewSize = 0;
         clientView.ViewBase = NULL;

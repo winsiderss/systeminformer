@@ -192,11 +192,11 @@ VOID PvDestroyHashHandle(
     _In_ PPV_HASH_CONTEXT Context
     )
 {
-    if (Context->HashAlgHandle)
-        BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
-
     if (Context->HashHandle)
         BCryptDestroyHash(Context->HashHandle);
+
+    if (Context->HashAlgHandle)
+        BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
 
     if (Context->KeyHandle)
         BCryptDestroyKey(Context->KeyHandle);

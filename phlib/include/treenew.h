@@ -13,9 +13,7 @@
 #ifndef _PH_TREENEW_H
 #define _PH_TREENEW_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define PH_TREENEW_CLASSNAME L"PhTreeNew"
 
@@ -225,7 +223,7 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewNodeExpanding, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_NODE_EVENT Parameter2
     TreeNewNodeSelecting, // PPH_TREENEW_NODE Parameter1
 
-    TreeNewSortChanged,
+    TreeNewSortChanged, // PH_TREENEW_SORT_CHANGED_EVENT Parameter1
     TreeNewSelectionChanged,
 
     TreeNewKeyDown, // PPH_TREENEW_KEY_EVENT Parameter1
@@ -345,6 +343,7 @@ typedef struct _PH_TREENEW_MOUSE_EVENT
 typedef struct _PH_TREENEW_KEY_EVENT
 {
     BOOLEAN Handled;
+    BOOLEAN Spare[3];
     ULONG VirtualKey;
     ULONG Data;
 } PH_TREENEW_KEY_EVENT, *PPH_TREENEW_KEY_EVENT;
@@ -358,6 +357,7 @@ typedef struct _PH_TREENEW_SORT_CHANGED_EVENT
 typedef struct _PH_TREENEW_NODE_EVENT
 {
     BOOLEAN Handled;
+    BOOLEAN Spare[3];
     ULONG Flags;
     PVOID Reserved1;
     PVOID Reserved2;
@@ -759,8 +759,6 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
     return !!TreeNew_AddColumn(hwnd, &column);
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

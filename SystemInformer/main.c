@@ -1013,12 +1013,12 @@ BOOLEAN PhInitializeComPolicy(
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
     PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     PhCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
-    RtlSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
-    RtlSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
+    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
 
     if (!SUCCEEDED(CoInitializeSecurity(
         securityDescriptor,

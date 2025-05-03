@@ -68,9 +68,7 @@ VOID EtEnumerateNamedPipeDirectory(
         PPH_STRING pipeName = pipeList->Items[i];
         WCHAR value[PH_PTR_STR_LEN_1];
         HANDLE pipeHandle;
-        INT lvItemIndex;
-
-        NTSTATUS status;
+        LONG lvItemIndex;
         UNICODE_STRING fileName;
         OBJECT_ATTRIBUTES objectAttributes;
         IO_STATUS_BLOCK ioStatusBlock;
@@ -228,7 +226,7 @@ VOID EtAddNamedPipeHandleToListView(
     CLIENT_ID clientId;
     FILE_PIPE_INFORMATION pipeInfo;
     FILE_PIPE_LOCAL_INFORMATION pipeLocalInfo;
-    INT lvItemIndex;
+    LONG lvItemIndex;
     WCHAR handle[PH_PTR_STR_LEN_1];
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;

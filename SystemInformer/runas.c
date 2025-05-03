@@ -1509,7 +1509,7 @@ NTSTATUS PhRunAsUpdateDesktop(
 
             if (NT_SUCCESS(status))
             {
-                status = RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
+                status = PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
             }
 
             if (NT_SUCCESS(status))
@@ -1599,7 +1599,7 @@ NTSTATUS PhRunAsUpdateWindowStation(
 
             if (NT_SUCCESS(status))
             {
-                status = RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
+                status = PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE);
             }
 
             if (NT_SUCCESS(status))
@@ -1672,7 +1672,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, allAppPackagesSid);
     }
 
-    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     if (wsHandle = OpenWindowStation(
         L"WinSta0",

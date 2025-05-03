@@ -4134,7 +4134,10 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
             PhSetWindowContext(WindowHandle, MAXCHAR, context);
             PhSetWindowProcedure(WindowHandle, PhpUiServiceProgressDialogWndProc);
 
-            if (PhGetIntegerSetting(L"EnableWarnings"))
+            if (
+                PhGetIntegerSetting(L"EnableWarnings") &&
+                context->ActionCommand != PhSvcControlServiceStart
+                )
             {
                 PhShowServiceProgressDialogConfirmMessage(context);
             }
