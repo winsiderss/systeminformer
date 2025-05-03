@@ -1108,7 +1108,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     status = PhGetProcessSystemDllInitBlock(
         ProcessHandle,
-        RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap),
         &ldrInitBlock
         );
 

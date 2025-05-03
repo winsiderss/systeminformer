@@ -3860,8 +3860,7 @@ NTSTATUS
 NTAPI
 PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG RequiredSize,
-    _Out_writes_bytes_(RequiredSize) _Post_readable_byte_size_(RequiredSize) PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     );
 
 PHLIBAPI

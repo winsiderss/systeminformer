@@ -70,7 +70,6 @@ VOID PhShowProcessMitigationPolicyDialog(
     {
         PhGetProcessSystemDllInitBlock(
             processHandle,
-            RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap),
             &context.SystemDllInitBlock
             );
 

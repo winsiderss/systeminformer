@@ -37,7 +37,6 @@ PH_DECLARE_IMPORT(NtCopyFileChunk);
 PH_DECLARE_IMPORT(NtCompareObjects);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
-PH_DECLARE_IMPORT(LdrControlFlowGuardEnforcedWithExportSuppression);
 PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);

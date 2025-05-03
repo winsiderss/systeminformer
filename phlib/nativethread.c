@@ -2467,31 +2467,44 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Retrieves a copy of the system DLL init block for the process.
+ *
+ * \param[in] ProcessHandle A handle to the process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
+ * \param[out] Destination A buffer for a version-independent copy of LdrSystemDllInitBlock.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetProcessSystemDllInitBlock(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG RequiredSize,
-    _Out_writes_bytes_(RequiredSize) _Post_readable_byte_size_(RequiredSize) PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     )
 {
     NTSTATUS status;
-    PS_SYSTEM_DLL_INIT_BLOCK ldrSystemDllInitBlock = { 0 };
+    PS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock = { 0 };
     PVOID ldrSystemDllInitBlockAddress;
-    ULONG requiredOsVersion;
+    ULONG expectedSize;
 
-    if (RequiredSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
-        return STATUS_INVALID_BUFFER_SIZE;
+    // N.B. Aside from having three revisions, PS_SYSTEM_DLL_INIT_BLOCK
+    // has different fields available on different OS versions. Determine
+    // the maximum number of bytes we can read. (diversenok)
 
-    // N.B. Verify that the Windows version is new enough so that all of the requested
-    // fields exist and have settled on the offsets from our definitions. (diversenok)
-
-    if (RequiredSize >= RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, ScpCfgCheckFunction))
-        requiredOsVersion = WINDOWS_11_24H2;
-    else if (RequiredSize >= RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[2]))
-        requiredOsVersion = WINDOWS_10_20H1;
+    if (WindowsVersion >= WINDOWS_11_24H2)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_20H1)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V3, MitigationAuditOptionsMap);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_RS3)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2);
+    else if (WindowsVersion >= PHNT_WINDOWS_10_RS2)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V2, Wow64CfgBitMapSize);
+    else if (WindowsVersion >= PHNT_WINDOWS_10)
+        expectedSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1);
+    else if (WindowsVersion >= PHNT_WINDOWS_8_1)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V1, CfgBitMapSize);
+    else if (WindowsVersion >= PHNT_WINDOWS_8)
+        expectedSize = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V1, MitigationOptions);
     else
-        requiredOsVersion = WINDOWS_10_RS2;
-
-    if (WindowsVersion < requiredOsVersion)
         return STATUS_NOT_SUPPORTED;
 
     status = PhGetProcedureAddressRemoteZ(
@@ -2508,25 +2521,19 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     status = NtReadVirtualMemory(
         ProcessHandle,
         ldrSystemDllInitBlockAddress,
-        &ldrSystemDllInitBlock,
-        RequiredSize,
+        &systemDllInitBlock,
+        expectedSize,
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (ldrSystemDllInitBlock.Size >= RequiredSize)
-    {
-        ldrSystemDllInitBlock.Size = RequiredSize;
-        RtlMoveMemory(SystemDllInitBlock, &ldrSystemDllInitBlock, RequiredSize);
-    }
-    else
-    {
-        status = STATUS_INFO_LENGTH_MISMATCH;
-    }
+    if (systemDllInitBlock.Size > expectedSize)
+        systemDllInitBlock.Size = expectedSize;
 
-    return status;
+    PhCaptureSystemDllInitBlock(&systemDllInitBlock, SystemDllInitBlock);
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhGetProcessCodePage(
