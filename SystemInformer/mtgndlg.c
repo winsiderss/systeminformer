@@ -68,10 +68,12 @@ VOID PhShowProcessMitigationPolicyDialog(
 
     if (NT_SUCCESS(status))
     {
-        PhGetProcessSystemDllInitBlock(
-            processHandle,
-            &context.SystemDllInitBlock
-            );
+        PS_SYSTEM_DLL_INIT_BLOCK dllInitBlock;
+
+        if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(processHandle, &dllInitBlock)))
+        {
+            context.SystemDllInitBlock = dllInitBlock;
+        }
 
         if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
         {
