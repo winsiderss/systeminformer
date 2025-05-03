@@ -1464,58 +1464,52 @@ PPH_STRING PhAfdFormatSocketBestName(
     _In_ HANDLE SocketHandle
     )
 {
-    SOCK_SHARED_INFO sharedInfo;
-    PPH_STRING string;
-    PPH_STRING addressString = NULL;
-    PPH_STRING remoteAddressString = NULL;
-    BOOLEAN sharedInfoAvailable;
-    BOOLEAN addressAvailable;
+    PPH_STRING string = NULL;
     PH_FORMAT format[9];
     ULONG count = 0;
+    SOCK_SHARED_INFO sharedInfo;
+    PPH_STRING addressString = NULL;
+    PPH_STRING remoteAddressString = NULL;
 
-    // Query socket information
-    sharedInfoAvailable = NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &sharedInfo));
-    addressAvailable = NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, FALSE, &addressString, PH_AFD_ADDRESS_SIMPLIFY));
+    PhInitFormatS(&format[count++], L"AFD socket:");
 
-    if (!sharedInfoAvailable && !addressAvailable)
-        return NULL;
-
-    PhInitFormatS(&format[count++], L"AFD socket: ");
-
-    if (sharedInfoAvailable)
+    if (NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &sharedInfo)))
     {
         PCWSTR detail;
 
         // State
         if (detail = PhpAfdGetSocketStateString(sharedInfo.State))
         {
-            PhInitFormatS(&format[count++], detail);
             PhInitFormatC(&format[count++], L' ');
+            PhInitFormatS(&format[count++], detail);
         }
 
         // Protocol
         if (detail = PhpAfdGetProtocolSummary(sharedInfo.AddressFamily, sharedInfo.Protocol))
         {
-            PhInitFormatS(&format[count++], detail);
             PhInitFormatC(&format[count++], L' ');
+            PhInitFormatS(&format[count++], detail);
         }
     }
 
-    if (addressAvailable)
+    // Local address
+    if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, FALSE, &addressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
+        !PhIsNullOrEmptyString(addressString))
     {
-        // Local address
-        PhInitFormatS(&format[count++], L"on ");
+        PhInitFormatS(&format[count++], L" on ");
         PhInitFormatSR(&format[count++], addressString->sr);
-
-        // Remote address
-        if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, PH_AFD_ADDRESS_SIMPLIFY)))
-        {
-            PhInitFormatS(&format[count++], L" to ");
-            PhInitFormatSR(&format[count++], remoteAddressString->sr);
-        }
     }
 
-    string = PhFormat(format, count, 10);
+    // Remote address
+    if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
+        !PhIsNullOrEmptyString(remoteAddressString))
+    {
+        PhInitFormatS(&format[count++], L" to ");
+        PhInitFormatSR(&format[count++], remoteAddressString->sr);
+    }
+
+    if (count > 1)
+        string = PhFormat(format, count, 10);
 
     PhClearReference(&addressString);
     PhClearReference(&remoteAddressString);
