@@ -93,7 +93,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER
 
 typedef struct _ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY
 {
-    ULONG Flags;
+    ULONG Flags; // ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY_*
     ULONG PseudoKey;
     ULONG AssemblyNameOffset; // to WCHAR[], from ACTIVATION_CONTEXT_DATA base
     ULONG AssemblyNameLength;
@@ -304,7 +304,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION
 typedef struct _ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION
 {
     ULONG Size;
-    ULONG Flags;
+    ULONG Flags; // ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_*
     ULONG ThreadingModel; // ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_*
     GUID ReferenceClsid;
     GUID ConfiguredClsid;
@@ -316,11 +316,11 @@ typedef struct _ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION
     ULONG ProgIdOffset; // to WCHAR[], from this struct base
     ULONG ShimDataLength;
     ULONG ShimDataOffset; // to ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM, from this struct base
-    ULONG MiscStatusDefault;
-    ULONG MiscStatusContent;
-    ULONG MiscStatusThumbnail;
-    ULONG MiscStatusIcon;
-    ULONG MiscStatusDocPrint;
+    ULONG MiscStatusDefault; // OLEMISC_*
+    ULONG MiscStatusContent; // OLEMISC_*
+    ULONG MiscStatusThumbnail; // OLEMISC_*
+    ULONG MiscStatusIcon; // OLEMISC_*
+    ULONG MiscStatusDocPrint; // OLEMISC_*
 } ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION, *PACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION;
 
 #define ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_OTHER 1
