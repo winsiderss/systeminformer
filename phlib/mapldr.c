@@ -1545,6 +1545,19 @@ VOID PhLoaderEntryGrantSuppressedCall(
     static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
+    if (!PhHashtableType)
+    {
+        //
+        // N.B. Can land here from CRT initialization via GetProcAddress_Stub
+        // before the object types are initialized. Rather than initializing
+        // basesup outside of the normal path, if we don't have the hash table
+        // object just try to grant the suppressed call access without caching
+        // it. (jxy-s)
+        //
+        PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), ExportAddress);
+        return;
+    }
+
     if (!PhLoaderEntryCacheInitialized)
     {
         PhLoaderEntryCacheInitialized = TRUE;
