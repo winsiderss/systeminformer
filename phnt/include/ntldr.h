@@ -1453,7 +1453,7 @@ LdrSetImplicitPathOptions(
 /**
  * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
  *
- * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
+ * @return TRUE if Control Flow Guard is enforced, FALSE otherwise.
  */
 NTSYSAPI
 ULONG
