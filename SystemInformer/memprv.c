@@ -1110,16 +1110,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     if (NT_SUCCESS(status))
     {
-        PVOID cfgBitmapAddress = NULL;
-        PVOID cfgBitmapWow64Address = NULL;
-
-        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap))
-        {
-            cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
-            cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
-        }
-
-        if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, CfgBitMap) &&
+            ldrInitBlock.CfgBitMap && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, (PVOID)ldrInitBlock.CfgBitMap)))
         {
             listEntry = &cfgBitmapMemoryItem->ListEntry;
             memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
@@ -1137,7 +1129,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         }
 
         // Note: Wow64 processes on 64bit also have CfgBitmap regions.
-        if (isWow64 && cfgBitmapWow64Address && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapWow64Address)))
+        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap) &&
+            isWow64 && ldrInitBlock.Wow64CfgBitMap && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, (PVOID)ldrInitBlock.Wow64CfgBitMap)))
         {
             listEntry = &cfgBitmapMemoryItem->ListEntry;
             memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);

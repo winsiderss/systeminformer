@@ -633,25 +633,71 @@ LdrGetFailureData(
     );
 #endif
 
-// private
-typedef struct _PS_MITIGATION_OPTIONS_MAP
+// WIN8 to REDSTONE
+typedef struct _PS_MITIGATION_OPTIONS_MAP_V1
 {
-    ULONG_PTR Map[3]; // 2 < 20H1
-} PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
+    ULONG64 Map[1];
+} PS_MITIGATION_OPTIONS_MAP_V1, *PPS_MITIGATION_OPTIONS_MAP_V1;
 
-// private
-typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP
+// private // REDSTONE2 to 19H2
+typedef struct _PS_MITIGATION_OPTIONS_MAP_V2
 {
-    ULONG_PTR Map[3]; // 2 < 20H1
-} PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
+    ULONG64 Map[2];
+} PS_MITIGATION_OPTIONS_MAP_V2, *PPS_MITIGATION_OPTIONS_MAP_V2;
 
-// private
-typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
+// private // since 20H1
+typedef struct _PS_MITIGATION_OPTIONS_MAP_V3
+{
+    ULONG64 Map[3];
+} PS_MITIGATION_OPTIONS_MAP_V3, *PPS_MITIGATION_OPTIONS_MAP_V3;
+
+typedef PS_MITIGATION_OPTIONS_MAP_V3
+    PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
+
+// private // REDSTONE3 to 19H2
+typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP_V2
+{
+    ULONG64 Map[2];
+} PS_MITIGATION_AUDIT_OPTIONS_MAP_V2, *PPS_MITIGATION_AUDIT_OPTIONS_MAP_V2;
+
+// private // since 20H1
+typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP_V3
+{
+    ULONG64 Map[3];
+} PS_MITIGATION_AUDIT_OPTIONS_MAP_V3, *PPS_MITIGATION_AUDIT_OPTIONS_MAP_V3,
+    PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
+
+// private // WIN8 to REDSTONE
+typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V1
 {
     ULONG Size;
-    ULONG_PTR SystemDllWowRelocation;
-    ULONG_PTR SystemDllNativeRelocation;
-    ULONG_PTR Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
+    ULONG SystemDllWowRelocation;
+    ULONG64 SystemDllNativeRelocation;
+    ULONG Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
+    ULONG RngData;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG CfgOverride : 1; // since REDSTONE
+            ULONG Reserved : 31;
+        };
+    };
+    ULONG64 MitigationOptions;
+    ULONG64 CfgBitMap; // since WINBLUE
+    ULONG64 CfgBitMapSize;
+    ULONG64 Wow64CfgBitMap; // since THRESHOLD
+    ULONG64 Wow64CfgBitMapSize;
+} PS_SYSTEM_DLL_INIT_BLOCK_V1, *PPS_SYSTEM_DLL_INIT_BLOCK_V1;
+
+// RS2 - 19H2
+typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V2
+{
+    ULONG Size;
+    ULONG64 SystemDllWowRelocation;
+    ULONG64 SystemDllNativeRelocation;
+    ULONG64 Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
     ULONG RngData;
     union
     {
@@ -662,33 +708,51 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
             ULONG Reserved : 31;
         };
     };
-    PS_MITIGATION_OPTIONS_MAP MitigationOptionsMap;
-    ULONG_PTR CfgBitMap;
-    ULONG_PTR CfgBitMapSize;
-    ULONG_PTR Wow64CfgBitMap;
-    ULONG_PTR Wow64CfgBitMapSize;
-    PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap; // REDSTONE3
-    ULONG_PTR ScpCfgCheckFunction; // since 24H2
-    ULONG_PTR ScpCfgCheckESFunction;
-    ULONG_PTR ScpCfgDispatchFunction;
-    ULONG_PTR ScpCfgDispatchESFunction;
-    ULONG_PTR ScpArm64EcCallCheck;
-    ULONG_PTR ScpArm64EcCfgCheckFunction;
-    ULONG_PTR ScpArm64EcCfgCheckESFunction;
-} PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
+    PS_MITIGATION_OPTIONS_MAP_V2 MitigationOptionsMap;
+    ULONG64 CfgBitMap;
+    ULONG64 CfgBitMapSize;
+    ULONG64 Wow64CfgBitMap;
+    ULONG64 Wow64CfgBitMapSize;
+    PS_MITIGATION_AUDIT_OPTIONS_MAP_V2 MitigationAuditOptionsMap; // since REDSTONE3
+} PS_SYSTEM_DLL_INIT_BLOCK_V2, *PPS_SYSTEM_DLL_INIT_BLOCK_V2;
 
-// rev
-#if (PHNT_VERSION >= PHNT_WINDOWS_10)
+// private // since 20H1
+typedef struct _PS_SYSTEM_DLL_INIT_BLOCK_V3
+{
+    ULONG Size;
+    ULONG64 SystemDllWowRelocation; // effectively since WIN8
+    ULONG64 SystemDllNativeRelocation;
+    ULONG64 Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
+    ULONG RngData;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG CfgOverride : 1; // effectively since REDSTONE
+            ULONG Reserved : 31;
+        };
+    };
+    PS_MITIGATION_OPTIONS_MAP_V3 MitigationOptionsMap;
+    ULONG64 CfgBitMap; // effectively since WINBLUE
+    ULONG64 CfgBitMapSize;
+    ULONG64 Wow64CfgBitMap; // effectively since THRESHOLD
+    ULONG64 Wow64CfgBitMapSize;
+    PS_MITIGATION_AUDIT_OPTIONS_MAP_V3 MitigationAuditOptionsMap; // effectively since REDSTONE3
+    ULONG64 ScpCfgCheckFunction; // since 24H2
+    ULONG64 ScpCfgCheckESFunction;
+    ULONG64 ScpCfgDispatchFunction;
+    ULONG64 ScpCfgDispatchESFunction;
+    ULONG64 ScpArm64EcCallCheck;
+    ULONG64 ScpArm64EcCfgCheckFunction;
+    ULONG64 ScpArm64EcCfgCheckESFunction;
+} PS_SYSTEM_DLL_INIT_BLOCK_V3, *PPS_SYSTEM_DLL_INIT_BLOCK_V3,
+    PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
+
+#if (PHNT_VERSION >= PHNT_WINDOWS_8)
+// private
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
-
-#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 \
-    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap)
-#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 \
-    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, ScpArm64EcCfgCheckESFunction)
-
-//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 == 240, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 must equal 240");
-//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 == 296, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 must equal 296");
 
 // rev see also MEMORY_IMAGE_EXTENSION_INFORMATION
 typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
@@ -1384,56 +1448,19 @@ LdrSetImplicitPathOptions(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_10)
-#ifdef PHNT_INLINE_TYPEDEFS
-/**
- * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
- *
- * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
- */
-FORCEINLINE
-BOOLEAN
-NTAPI
-LdrControlFlowGuardEnforced(
-    VOID
-    )
-{
-    return LdrSystemDllInitBlock.CfgBitMap && (LdrSystemDllInitBlock.Flags & 1) == 0;
-}
-#else
-// rev
+#if (PHNT_VERSION >= PHNT_WINDOWS_10RS3)
+// private
 /**
  * The LdrControlFlowGuardEnforced function checks if Control Flow Guard is enforced.
  *
  * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
  */
 NTSYSAPI
-BOOLEAN
+ULONG
 NTAPI
 LdrControlFlowGuardEnforced(
     VOID
     );
-#endif
-#endif
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_10)
-/**
- * The LdrControlFlowGuardEnforcedWithExportSuppression function checks if Control Flow Guard is
- * enforced with export suppression.
- *
- * @return BOOLEAN TRUE if Control Flow Guard is enforced, FALSE otherwise.
- */
-FORCEINLINE
-BOOLEAN
-NTAPI
-LdrControlFlowGuardEnforcedWithExportSuppression(
-    VOID
-    )
-{
-    return LdrSystemDllInitBlock.CfgBitMap
-        && (LdrSystemDllInitBlock.Flags & 1) == 0
-        && (LdrSystemDllInitBlock.MitigationOptionsMap.Map[0] & 3) == 3; // PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_EXPORT_SUPPRESSION
-}
 #endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_19H1)

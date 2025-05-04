@@ -12320,6 +12320,7 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     )
 {
     NTSTATUS status;
+    PS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock;
     MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
     CFG_CALL_TARGET_INFO cfgCallTargetInfo;
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
@@ -12327,11 +12328,12 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
 
     if (!NtSetInformationVirtualMemory_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-    if (!LdrSystemDllInitBlock_Import())
-        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (!NT_SUCCESS(status = PhGetSystemDllInitBlock(&systemDllInitBlock)))
+        return status;
 
     // Check if CFG is disabled. PhGetProcessIsCFGuardEnabled(NtCurrentProcess());
-    if (!(LdrSystemDllInitBlock_Import()->CfgBitMap && LdrSystemDllInitBlock_Import()->CfgBitMapSize))
+    if (!(systemDllInitBlock.CfgBitMap && systemDllInitBlock.CfgBitMapSize))
         return STATUS_SUCCESS;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
@@ -12370,6 +12372,7 @@ NTSTATUS PhDisableXfgOnTarget(
     )
 {
     NTSTATUS status;
+    PS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock;
     MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
     CFG_CALL_TARGET_INFO cfgCallTargetInfo;
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
@@ -12377,11 +12380,12 @@ NTSTATUS PhDisableXfgOnTarget(
 
     if (!NtSetInformationVirtualMemory_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-    if (!LdrSystemDllInitBlock_Import())
-        return STATUS_PROCEDURE_NOT_FOUND;
+
+    if (!NT_SUCCESS(status = PhGetSystemDllInitBlock(&systemDllInitBlock)))
+        return status;
 
     // Check if CFG is disabled. PhGetProcessIsCFGuardEnabled(NtCurrentProcess());
-    if (!(LdrSystemDllInitBlock_Import()->CfgBitMap && LdrSystemDllInitBlock_Import()->CfgBitMapSize))
+    if (!(systemDllInitBlock.CfgBitMap && systemDllInitBlock.CfgBitMapSize))
         return STATUS_SUCCESS;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));

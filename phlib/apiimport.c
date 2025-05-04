@@ -170,7 +170,6 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtCopyFileChunk);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
 
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
-PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", LdrControlFlowGuardEnforcedWithExportSuppression);
 PH_DEFINE_IMPORT(L"ntdll.dll", LdrSystemDllInitBlock);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);

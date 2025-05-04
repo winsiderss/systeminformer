@@ -205,6 +205,21 @@ PhGetLoaderEntryDllBaseZ(
 }
 
 PHLIBAPI
+VOID
+NTAPI
+PhCaptureSystemDllInitBlock(
+    _In_ PVOID Source,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK Destination
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemDllInitBlock(
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetDllBaseProcedureAddress(
