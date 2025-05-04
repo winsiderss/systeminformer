@@ -12320,7 +12320,6 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
     )
 {
     NTSTATUS status;
-    PS_SYSTEM_DLL_INIT_BLOCK systemDllInitBlock;
     MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
     CFG_CALL_TARGET_INFO cfgCallTargetInfo;
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
@@ -12328,13 +12327,6 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
 
     if (!NtSetInformationVirtualMemory_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
-
-    if (!NT_SUCCESS(status = PhGetSystemDllInitBlock(&systemDllInitBlock)))
-        return status;
-
-    // Check if CFG is disabled. PhGetProcessIsCFGuardEnabled(NtCurrentProcess());
-    if (!(systemDllInitBlock.CfgBitMap && systemDllInitBlock.CfgBitMapSize))
-        return STATUS_SUCCESS;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
     cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
@@ -12468,7 +12460,7 @@ NTSTATUS PhSystemCompressionStoreTrimRequest(
 
     if (!NT_SUCCESS(status))
         return status;
-    
+
     memset(&trimRequestInfo, 0, sizeof(SM_SYSTEM_STORE_TRIM_REQUEST));
     trimRequestInfo.Version = SYSTEM_STORE_TRIM_INFORMATION_VERSION_V1;
     trimRequestInfo.PagesToTrim = BYTES_TO_PAGES(compressionInfo.WorkingSetSize);
