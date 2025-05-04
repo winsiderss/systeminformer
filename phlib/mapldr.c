@@ -1244,11 +1244,25 @@ PVOID PhGetDllBaseProcedureAddress(
     _In_opt_ USHORT ProcedureNumber
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN exportSuppressionEnabled = FALSE;
     PVOID exportAddress;
     PIMAGE_NT_HEADERS imageNtHeader;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
     PROCESS_MITIGATION_POLICY_INFORMATION mitigation;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if ((WindowsVersion >= WINDOWS_10_RS2) &&
+            NT_SUCCESS(PhGetProcessMitigationPolicyInformation(NtCurrentProcess(), ProcessControlFlowGuardPolicy, &mitigation)) &&
+            mitigation.ControlFlowGuardPolicy.EnableExportSuppression)
+        {
+            exportSuppressionEnabled = TRUE;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(DllBase, &imageNtHeader)))
         return NULL;
@@ -1271,9 +1285,7 @@ PVOID PhGetDllBaseProcedureAddress(
         ProcedureNumber
         );
 
-    if ((WindowsVersion >= WINDOWS_10_RS2) &&
-        NT_SUCCESS(PhGetProcessMitigationPolicyInformation(NtCurrentProcess(), ProcessControlFlowGuardPolicy, &mitigation)) &&
-        mitigation.ControlFlowGuardPolicy.EnableExportSuppression)
+    if (exportSuppressionEnabled)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY configDirectory;
 
