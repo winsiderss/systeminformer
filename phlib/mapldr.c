@@ -1064,7 +1064,8 @@ VOID PhCaptureSystemDllInitBlock(
     )
 {
     ULONG sourceSize;
-    PS_SYSTEM_DLL_INIT_BLOCK copy = { 0 };
+
+    RtlZeroMemory(Destination, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
 
     if (WindowsVersion >= WINDOWS_10_20H1)
     {
@@ -1076,8 +1077,8 @@ VOID PhCaptureSystemDllInitBlock(
             sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3);
 
         // No adjustments necessary for the latest layout
-        RtlCopyMemory(&copy, source, sourceSize);
-        copy.Size = sourceSize;
+        RtlCopyMemory(Destination, source, sourceSize);
+        Destination->Size = sourceSize;
     }
     else if (WindowsVersion >= WINDOWS_10_RS2)
     {
@@ -1092,53 +1093,53 @@ VOID PhCaptureSystemDllInitBlock(
         if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
         {
             RtlCopyMemory(
-                &copy,
+                Destination,
                 source,
                 RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V2, Flags)
                 );
 
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
         }
 
         // Mitigation options include 2 out of 3 values
         if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptionsMap))
         {
-            copy.MitigationOptionsMap.Map[0] = source->MitigationOptionsMap.Map[0];
-            copy.MitigationOptionsMap.Map[1] = source->MitigationOptionsMap.Map[1];
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[1]);
+            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptionsMap.Map[0];
+            Destination->MitigationOptionsMap.Map[1] = source->MitigationOptionsMap.Map[1];
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[1]);
         }
 
         // The subsequent fields are shifted
         if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
         {
-            copy.CfgBitMap = source->CfgBitMap;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
+            Destination->CfgBitMap = source->CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
         {
-            copy.CfgBitMapSize = source->CfgBitMapSize;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
+            Destination->CfgBitMapSize = source->CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
         {
-            copy.Wow64CfgBitMap = source->Wow64CfgBitMap;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
+            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
         {
-            copy.Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
+            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
         }
 
         // Mitigation audit options include 2 out of 3 values
         if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationAuditOptionsMap))
         {
-            copy.MitigationAuditOptionsMap.Map[0] = source->MitigationAuditOptionsMap.Map[0];
-            copy.MitigationAuditOptionsMap.Map[1] = source->MitigationAuditOptionsMap.Map[1];
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap.Map[1]);
+            Destination->MitigationAuditOptionsMap.Map[0] = source->MitigationAuditOptionsMap.Map[0];
+            Destination->MitigationAuditOptionsMap.Map[1] = source->MitigationAuditOptionsMap.Map[1];
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap.Map[1]);
         }
     }
     else
@@ -1153,72 +1154,70 @@ VOID PhCaptureSystemDllInitBlock(
         // All fields are shifted
         if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllWowRelocation))
         {
-            copy.SystemDllWowRelocation = source->SystemDllWowRelocation;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllWowRelocation);
+            Destination->SystemDllWowRelocation = source->SystemDllWowRelocation;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllWowRelocation);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllNativeRelocation))
         {
-            copy.SystemDllNativeRelocation = source->SystemDllNativeRelocation;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllNativeRelocation);
+            Destination->SystemDllNativeRelocation = source->SystemDllNativeRelocation;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllNativeRelocation);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64SharedInformation))
         {
             RtlCopyMemory(
-                &copy.Wow64SharedInformation,
+                &Destination->Wow64SharedInformation,
                 &source->Wow64SharedInformation,
                 RTL_FIELD_SIZE(PS_SYSTEM_DLL_INIT_BLOCK_V1, Wow64SharedInformation)
                 );
 
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64SharedInformation);
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64SharedInformation);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, RngData))
         {
-            copy.RngData = source->RngData;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, RngData);
+            Destination->RngData = source->RngData;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, RngData);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
         {
-            copy.Flags = source->Flags;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
+            Destination->Flags = source->Flags;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
         }
 
         // Mitigation options include 1 out of 3 values
         if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptions))
         {
-            copy.MitigationOptionsMap.Map[0] = source->MitigationOptions;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[0]);
+            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptions;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[0]);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
         {
-            copy.CfgBitMap = source->CfgBitMap;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
+            Destination->CfgBitMap = source->CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
         {
-            copy.CfgBitMapSize = source->CfgBitMapSize;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
+            Destination->CfgBitMapSize = source->CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
         {
-            copy.Wow64CfgBitMap = source->Wow64CfgBitMap;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
+            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
         }
 
         if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
         {
-            copy.Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
-            copy.Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
+            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
         }
     }
-
-    *Destination = copy;
 }
 
 /**
