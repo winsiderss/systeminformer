@@ -437,6 +437,24 @@ PhAllocateZeroSafe(
     return NULL;
 }
 
+FORCEINLINE
+PVOID
+PhReAllocateZeroSafe(
+    _In_opt_ PVOID Memory,
+    _In_ SIZE_T Size
+    )
+{
+    PVOID buffer;
+
+    if (buffer = PhReAllocateSafe(Memory, Size))
+    {
+        memset(buffer, 0, Size);
+        return buffer;
+    }
+
+    return NULL;
+}
+
 //
 // Singly linked list
 //
