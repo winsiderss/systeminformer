@@ -205,7 +205,7 @@ PhGetLoaderEntryDllBaseZ(
 }
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhCaptureSystemDllInitBlock(
     _In_ PVOID Source,
