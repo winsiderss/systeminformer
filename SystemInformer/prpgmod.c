@@ -28,6 +28,7 @@
 
 static CONST PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -40,6 +41,7 @@ static VOID NTAPI ModuleAddedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -50,6 +52,7 @@ static VOID NTAPI ModuleModifiedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModuleRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -60,6 +63,7 @@ static VOID NTAPI ModuleRemovedHandler(
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModulesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -70,6 +74,7 @@ static VOID NTAPI ModulesUpdatedHandler(
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ModulesUpdateAutomaticallyHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
