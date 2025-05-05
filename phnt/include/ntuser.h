@@ -1187,8 +1187,8 @@ BOOL
 NTAPI
 NtUserShutdownBlockReasonQuery(
     _In_ HWND WindowHandle,
-    _Out_ LPWSTR pwszBuff,
-    _Inout_ PULONG pcchBuff
+    _Out_ PWSTR Buffer,
+    _Inout_ PULONG BufferCount
     );
 
 NTSYSCALLAPI
