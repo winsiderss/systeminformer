@@ -234,6 +234,56 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (!Context->SearchMatchHandle)
         return TRUE;
 
+    // module node
+
+    if (!PhIsNullOrEmptyString(moduleNode->FileNameWin32))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->FileNameWin32->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->SizeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->SizeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->TimeStampText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->TimeStampText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->LoadTimeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->LoadTimeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->FileModifiedTimeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->FileModifiedTimeText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->ImageCoherencyText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->ImageCoherencyText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->ServiceText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->ServiceText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleNode->EnclaveSizeText))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleNode->EnclaveSizeText->sr))
+            return TRUE;
+    }
+
     // (dmex) TODO: Add search support for the following fields:
     //ULONG Flags;
     //ULONG Type;
