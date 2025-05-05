@@ -1058,7 +1058,7 @@ PVOID PhGetLoaderEntryDllBase(
  * \param[in] Source A buffer returned or copied from LdrSystemDllInitBlock.
  * \param[out] Destination A buffer for storing a version-independent copy of the structure.
  */
-VOID PhCaptureSystemDllInitBlock(
+NTSTATUS PhCaptureSystemDllInitBlock(
     _In_ PVOID Source,
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK Destination
     )
@@ -1079,6 +1079,8 @@ VOID PhCaptureSystemDllInitBlock(
         // No adjustments necessary for the latest layout
         RtlCopyMemory(Destination, source, sourceSize);
         Destination->Size = sourceSize;
+
+        return STATUS_SUCCESS;
     }
     else if (WindowsVersion >= WINDOWS_10_RS2)
     {
@@ -1141,8 +1143,10 @@ VOID PhCaptureSystemDllInitBlock(
             Destination->MitigationAuditOptionsMap.Map[1] = source->MitigationAuditOptionsMap.Map[1];
             Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap.Map[1]);
         }
+
+        return STATUS_SUCCESS;
     }
-    else
+    else if (WindowsVersion >= PHNT_WINDOWS_8)
     {
         PPS_SYSTEM_DLL_INIT_BLOCK_V1 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V1)Source;
 
@@ -1217,13 +1221,17 @@ VOID PhCaptureSystemDllInitBlock(
             Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
             Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
         }
+
+        return STATUS_SUCCESS;
     }
+
+    return STATUS_NOT_SUPPORTED;
 }
 
 /**
  * Retrieves a copy of the system DLL init block of the current process.
  *
- * \param[out] Destination A buffer for storing a version-independent copy of LdrSystemDllInitBlock.
+ * \param[out] SystemDllInitBlock A buffer for storing a version-independent copy of LdrSystemDllInitBlock.
  *
  * \return Successful or errant status.
  */
@@ -1231,11 +1239,17 @@ NTSTATUS PhGetSystemDllInitBlock(
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
     )
 {
+    PVOID systemDllInitBlock;
+
     if (!LdrSystemDllInitBlock_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    PhCaptureSystemDllInitBlock(LdrSystemDllInitBlock_Import(), SystemDllInitBlock);
-    return STATUS_SUCCESS;
+    systemDllInitBlock = LdrSystemDllInitBlock_Import();
+
+    if (!systemDllInitBlock)
+        return STATUS_NOT_SUPPORTED;
+
+    return PhCaptureSystemDllInitBlock(systemDllInitBlock, SystemDllInitBlock);
 }
 
 PVOID PhGetDllBaseProcedureAddress(

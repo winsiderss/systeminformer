@@ -96,6 +96,7 @@ PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
     return (PPHSVC_THREAD_CONTEXT)PhTlsGetValue(PhSvcApiThreadContextTlsIndex);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSvcApiRequestThreadStart(
     _In_ PVOID Parameter
     )

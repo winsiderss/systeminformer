@@ -69,7 +69,7 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
     PPH_SETTING setting2 = (PPH_SETTING)Entry2;
 
-    return PhEqualStringRef(&setting1->Name, &setting2->Name, FALSE);
+    return PhEqualStringRef(&setting1->Name, &setting2->Name, TRUE);
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
@@ -78,7 +78,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_XXH32);
+    return PhHashStringRefEx(&setting->Name, TRUE, PH_STRING_HASH_XXH32);
 }
 
 PPH_STRING PhSettingToString(

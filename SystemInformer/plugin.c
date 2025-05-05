@@ -478,7 +478,7 @@ VOID PhLoadPlugins(
 
         if (pluginsDirectoryHandle)
         {
-            static UNICODE_STRING pluginsSearchPattern = RTL_CONSTANT_STRING(L"*.dll");
+            static CONST PH_STRINGREF pluginsSearchPattern = PH_STRINGREF_INIT(L"*.dll");
 
             if (!NT_SUCCESS(PhEnumDirectoryFileEx(
                 pluginsDirectoryHandle,

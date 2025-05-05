@@ -2638,7 +2638,7 @@ NTSTATUS
 NTAPI
 PhEnumDirectoryFile(
     _In_ HANDLE FileHandle,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );
@@ -2650,7 +2650,7 @@ PhEnumDirectoryFileEx(
     _In_ HANDLE FileHandle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ BOOLEAN ReturnSingleEntry,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );

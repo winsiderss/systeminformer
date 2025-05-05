@@ -2472,7 +2472,7 @@ CleanupExit:
  *
  * \param[in] ProcessHandle A handle to the process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ access.
- * \param[out] Destination A buffer for a version-independent copy of LdrSystemDllInitBlock.
+ * \param[out] SystemDllInitBlock A buffer for a version-independent copy of LdrSystemDllInitBlock.
  *
  * \return Successful or errant status.
  */
@@ -2532,8 +2532,12 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     if (systemDllInitBlock.Size > expectedSize)
         systemDllInitBlock.Size = expectedSize;
 
-    PhCaptureSystemDllInitBlock(&systemDllInitBlock, SystemDllInitBlock);
-    return STATUS_SUCCESS;
+    status = PhCaptureSystemDllInitBlock(
+        &systemDllInitBlock,
+        SystemDllInitBlock
+        );
+
+    return status;
 }
 
 NTSTATUS PhGetProcessCodePage(

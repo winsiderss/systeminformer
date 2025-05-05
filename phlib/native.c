@@ -5265,7 +5265,7 @@ static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     objectName.Length = Information->FileNameLength;
     objectName.Buffer = Information->FileName;
 
-    if (PhHashStringRefEx(&objectName, FALSE, PH_STRING_HASH_XXH32) == context->NameHash)
+    if (PhHashStringRefEx(&objectName, FALSE, PH_STRING_HASH_X65599) == context->NameHash)
     {
         context->Found = TRUE;
         return FALSE;
@@ -5415,12 +5415,11 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             objectNameStringRef.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameStringRef.Buffer = formatBuffer;
-            PhStringRefToUnicodeString(&objectNameStringRef, &objectName);
-            context.NameHash = PhHashStringRefEx(&objectNameStringRef, FALSE, PH_STRING_HASH_XXH32);
+            context.NameHash = PhHashStringRefEx(&objectNameStringRef, FALSE, PH_STRING_HASH_X65599);
             context.Found = FALSE;
 
             status = PhEnumDirectoryNamedPipe(
-                &objectName,
+                &objectNameStringRef,
                 PhpDotNetCorePipeHashCallback,
                 &context
                 );
@@ -5663,7 +5662,7 @@ NTSTATUS PhEnumDirectoryObjects(
 
 NTSTATUS PhEnumDirectoryFile(
     _In_ HANDLE FileHandle,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     )
@@ -5682,7 +5681,7 @@ NTSTATUS PhEnumDirectoryFileEx(
     _In_ HANDLE FileHandle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _In_ BOOLEAN ReturnSingleEntry,
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     )
@@ -5690,10 +5689,14 @@ NTSTATUS PhEnumDirectoryFileEx(
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
     BOOLEAN firstTime = TRUE;
+    UNICODE_STRING searchPattern;
     PVOID buffer;
     ULONG bufferSize = 0x400;
     ULONG i;
     BOOLEAN cont;
+
+    if (!PhStringRefToUnicodeString(SearchPattern, &searchPattern))
+        return STATUS_NAME_TOO_LONG;
 
     buffer = PhAllocate(bufferSize);
 
@@ -5712,7 +5715,7 @@ NTSTATUS PhEnumDirectoryFileEx(
                 bufferSize,
                 FileInformationClass,
                 ReturnSingleEntry,
-                SearchPattern,
+                &searchPattern,
                 firstTime
                 );
 

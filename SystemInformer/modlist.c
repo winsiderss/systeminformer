@@ -554,7 +554,7 @@ VOID PhTickModuleNodes(
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveBaseAddress, (ULONG_PTR)moduleItem2->EnclaveBaseAddress); \
     if (sortResult == 0) \
-        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, TRUE); \
+        sortResult = PhCompareStringWithNullSortOrder(moduleItem1->FileName, moduleItem2->FileName, context->TreeNewSortOrder, FALSE); \
     \
     return PhModifySort(sortResult, context->TreeNewSortOrder); \
 }
@@ -571,7 +571,7 @@ LONG PhpModuleTreeNewPostSortFunction(
     if (Result == 0)
         Result = uintptrcmp((ULONG_PTR)((PPH_MODULE_NODE)Node1)->ModuleItem->EnclaveBaseAddress, (ULONG_PTR)((PPH_MODULE_NODE)Node2)->ModuleItem->EnclaveBaseAddress);
     if (Result == 0)
-        Result = PhCompareStringWithNull(((PPH_MODULE_NODE)Node1)->ModuleItem->FileName, ((PPH_MODULE_NODE)Node2)->ModuleItem->FileName, TRUE);
+        Result = PhCompareStringWithNullSortOrder(((PPH_MODULE_NODE)Node1)->ModuleItem->FileName, ((PPH_MODULE_NODE)Node2)->ModuleItem->FileName, SortOrder, FALSE);
 
     return PhModifySort(Result, SortOrder);
 }
