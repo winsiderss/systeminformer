@@ -1368,20 +1368,23 @@ typedef union _PROCESS_READWRITEVM_LOGGING_INFORMATION
     };
 } PROCESS_READWRITEVM_LOGGING_INFORMATION, *PPROCESS_READWRITEVM_LOGGING_INFORMATION;
 
+/**
+ * The PROCESS_UPTIME_INFORMATION structure contains information about the uptime of a process and diagnostic information.
+ */
 typedef struct _PROCESS_UPTIME_INFORMATION
 {
-    ULONGLONG QueryInterruptTime;
-    ULONGLONG QueryUnbiasedTime;
-    ULONGLONG EndInterruptTime;
-    ULONGLONG TimeSinceCreation;
-    ULONGLONG Uptime;
-    ULONGLONG SuspendedTime;
+    ULONGLONG QueryInterruptTime;      // The interrupt time when the query was made.
+    ULONGLONG QueryUnbiasedTime;       // The unbiased time when the query was made.
+    ULONGLONG EndInterruptTime;        // The interrupt time when the process ended.
+    ULONGLONG TimeSinceCreation;       // The total time elapsed since the process was created.
+    ULONGLONG Uptime;                  // The total uptime of the process.
+    ULONGLONG SuspendedTime;           // The total time the process was in a suspended state.
     struct
     {
-        ULONG HangCount : 4;
-        ULONG GhostCount : 4;
-        ULONG Crashed : 1;
-        ULONG Terminated : 1;
+        ULONG HangCount : 4;           // The number of times the process was detected as hanging.
+        ULONG GhostCount : 4;          // The number of times the process was detected as a ghost process.
+        ULONG Crashed : 1;             // Indicates whether the process has crashed (1 if true, 0 otherwise).
+        ULONG Terminated : 1;          // Indicates whether the process has been terminated (1 if true, 0 otherwise). 
     };
 } PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
