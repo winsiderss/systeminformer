@@ -1647,7 +1647,7 @@ RtlWakeAddressSingleNoFence(
 
 _At_(AnsiString->Buffer, _Post_equal_to_(Buffer))
 _At_(AnsiString->Length, _Post_equal_to_(0))
-_At_(AnsiString->MaximumLength, _Post_equal_to_(BufferSize))
+_At_(AnsiString->MaximumLength, _Post_equal_to_(MaximumLength))
 FORCEINLINE
 VOID
 NTAPI
@@ -1846,9 +1846,9 @@ RtlIsNullOrEmptyUnicodeString(
     return !String || String->Length == 0;
 }
 
-_At_(UnicodeString->Buffer, _Post_equal_to_(Buffer))
-_At_(UnicodeString->Length, _Post_equal_to_(0))
-_At_(UnicodeString->MaximumLength, _Post_equal_to_(BufferSize))
+_At_(DestinationString->Buffer, _Post_equal_to_(Buffer))
+_At_(DestinationString->Length, _Post_equal_to_(0))
+_At_(DestinationString->MaximumLength, _Post_equal_to_(MaximumLength))
 FORCEINLINE
 VOID
 NTAPI
