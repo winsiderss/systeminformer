@@ -415,7 +415,7 @@ NTSTATUS
 NTAPI
 LdrRelocateImage(
     _In_ PVOID NewBase,
-    _In_opt_ PSTR LoaderName,
+    _In_opt_ PCSTR LoaderName,
     _In_ NTSTATUS Success,
     _In_ NTSTATUS Conflict,
     _In_ NTSTATUS Invalid
@@ -427,7 +427,7 @@ NTAPI
 LdrRelocateImageWithBias(
     _In_ PVOID NewBase,
     _In_opt_ LONGLONG Bias,
-    _In_opt_ PSTR LoaderName,
+    _In_opt_ PCSTR LoaderName,
     _In_ NTSTATUS Success,
     _In_ NTSTATUS Conflict,
     _In_ NTSTATUS Invalid
@@ -468,7 +468,7 @@ LdrVerifyMappedImageMatchesChecksum(
 typedef _Function_class_(LDR_IMPORT_MODULE_CALLBACK)
 VOID NTAPI LDR_IMPORT_MODULE_CALLBACK(
     _In_ PVOID Parameter,
-    _In_ PSTR ModuleName
+    _In_ PCSTR ModuleName
     );
 typedef LDR_IMPORT_MODULE_CALLBACK* PLDR_IMPORT_MODULE_CALLBACK;
 
