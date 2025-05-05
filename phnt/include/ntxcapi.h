@@ -124,7 +124,7 @@ RtlAssert(
     _In_ PVOID VoidFailedAssertion,
     _In_ PVOID VoidFileName,
     _In_ ULONG LineNumber,
-    _In_opt_ PSTR MutableMessage
+    _In_opt_ PCSTR MutableMessage
     );
 
 #define RTL_ASSERT(exp) \
