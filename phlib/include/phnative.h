@@ -76,9 +76,9 @@ typedef struct _PH_TOKEN_ATTRIBUTES
     {
         ULONG Elevated : 1;
         ULONG ElevationType : 2;
-        ULONG ReservedBits : 29;
+        ULONG SpareBits : 29;
     };
-    ULONG Reserved;
+    ULONG Spare;
     PSID TokenSid;
 } PH_TOKEN_ATTRIBUTES, *PPH_TOKEN_ATTRIBUTES;
 
@@ -2090,7 +2090,7 @@ PhEnumProcessModulesLimited(
     _In_opt_ PVOID Context
     );
 
-typedef  _Function_class_(PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)
+typedef _Function_class_(PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK)
 NTSTATUS NTAPI PH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK(
     _In_ PVOID ImageBase,
     _In_ SIZE_T ImageSize,
@@ -2412,10 +2412,12 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_PROCESS)(
+typedef _Function_class_(PH_ENUM_NEXT_PROCESS)
+NTSTATUS NTAPI PH_ENUM_NEXT_PROCESS(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_PROCESS* PPH_ENUM_NEXT_PROCESS;
 
 PHLIBAPI
 NTSTATUS
@@ -2427,10 +2429,12 @@ PhEnumNextProcess(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_THREAD)(
+typedef _Function_class_(PH_ENUM_NEXT_THREAD)
+NTSTATUS NTAPI PH_ENUM_NEXT_THREAD(
     _In_ HANDLE ThreadHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_THREAD* PPH_ENUM_NEXT_THREAD;
 
 PHLIBAPI
 NTSTATUS
@@ -2607,8 +2611,8 @@ PhOpenDirectoryObject(
  *
  * \return TRUE to continue the enumeration, FALSE to stop.
  */
-typedef BOOLEAN _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-NTAPI PH_ENUM_DIRECTORY_OBJECTS(
+typedef _Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+BOOLEAN NTAPI PH_ENUM_DIRECTORY_OBJECTS(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
