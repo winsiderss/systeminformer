@@ -1890,7 +1890,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 SamPerformGenericOperation(
-    _In_opt_ PWSTR ServerName,
+    _In_opt_ PCWSTR ServerName,
     _In_ SAM_GENERIC_OPERATION_TYPE OperationType,
     _In_ PSAM_GENERIC_OPERATION_INPUT OperationIn,
     _Out_ PSAM_GENERIC_OPERATION_OUTPUT *OperationOut
