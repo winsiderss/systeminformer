@@ -3597,7 +3597,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumDirectoryNamedPipe(
-    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_opt_ PCPH_STRINGREF SearchPattern,
     _In_ PPH_ENUM_DIRECTORY_FILE Callback,
     _In_opt_ PVOID Context
     );
