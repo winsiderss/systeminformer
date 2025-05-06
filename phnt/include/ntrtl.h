@@ -2106,6 +2106,26 @@ RtlFindCharInUnicodeString(
     _Out_ PUSHORT NonInclusivePrefixLength
     );
 
+typedef struct _RTL_UNICODE_STRING_BUFFER RTL_UNICODE_STRING_BUFFER, *PRTL_UNICODE_STRING_BUFFER;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlMultiAppendUnicodeStringBuffer(
+    _Inout_ PRTL_UNICODE_STRING_BUFFER Buffer,
+    _In_ ULONG BufferCount,
+    _In_ PCUNICODE_STRING Source 
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAppendPathElement(
+    _In_ ULONG Flags,
+    _Inout_ PRTL_UNICODE_STRING_BUFFER Buffer,
+    _In_ PCUNICODE_STRING Source 
+    );
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4564,24 +4584,24 @@ RtlCrc64(
 
 // RTL_SYSTEM_GLOBAL_DATA_ID
 #define GlobalDataIdUnknown 0
-#define GlobalDataIdRngSeedVersion 1
-#define GlobalDataIdInterruptTime 2
-#define GlobalDataIdTimeZoneBias 3
-#define GlobalDataIdImageNumberLow 4
-#define GlobalDataIdImageNumberHigh 5
-#define GlobalDataIdTimeZoneId 6
-#define GlobalDataIdNtMajorVersion 7
-#define GlobalDataIdNtMinorVersion 8
-#define GlobalDataIdSystemExpirationDate 9
-#define GlobalDataIdKdDebuggerEnabled 10
-#define GlobalDataIdCyclesPerYield 11
-#define GlobalDataIdSafeBootMode 12
-#define GlobalDataIdLastSystemRITEventTickCount 13
-#define GlobalDataIdConsoleSharedDataFlags 14
-#define GlobalDataIdNtSystemRootDrive 15
-#define GlobalDataIdQpcBypassEnabled 16
-#define GlobalDataIdQpcData 17
-#define GlobalDataIdQpcBias 18
+#define GlobalDataIdRngSeedVersion 1                // KUSER_SHARED_DATA->RngSeedVersion
+#define GlobalDataIdInterruptTime 2                 // KUSER_SHARED_DATA->InterruptTime
+#define GlobalDataIdTimeZoneBias 3                  // KUSER_SHARED_DATA->TimeZoneBias
+#define GlobalDataIdImageNumberLow 4                // KUSER_SHARED_DATA->ImageNumberLow
+#define GlobalDataIdImageNumberHigh 5               // KUSER_SHARED_DATA->ImageNumberHigh
+#define GlobalDataIdTimeZoneId 6                    // KUSER_SHARED_DATA->TimeZoneId
+#define GlobalDataIdNtMajorVersion 7                // KUSER_SHARED_DATA->NtMajorVersion
+#define GlobalDataIdNtMinorVersion 8                // KUSER_SHARED_DATA->NtMinorVersion
+#define GlobalDataIdSystemExpirationDate 9          // KUSER_SHARED_DATA->SystemExpirationDate
+#define GlobalDataIdKdDebuggerEnabled 10            // KUSER_SHARED_DATA->KdDebuggerEnabled
+#define GlobalDataIdCyclesPerYield 11               // KUSER_SHARED_DATA->CyclesPerYield
+#define GlobalDataIdSafeBootMode 12                 // KUSER_SHARED_DATA->SafeBootMode
+#define GlobalDataIdLastSystemRITEventTickCount 13  // KUSER_SHARED_DATA->LastSystemRITEventTickCount
+#define GlobalDataIdConsoleSharedDataFlags 14       // KUSER_SHARED_DATA->ConsoleSharedDataFlags
+#define GlobalDataIdNtSystemRootDrive 15            // KUSER_SHARED_DATA->NtSystemRoot // RtlGetNtSystemRoot 
+#define GlobalDataIdQpcBypassEnabled 16             // KUSER_SHARED_DATA->QpcBypassEnabled
+#define GlobalDataIdQpcData 17                      // KUSER_SHARED_DATA->QpcData
+#define GlobalDataIdQpcBias 18                      // KUSER_SHARED_DATA->QpcBias
 
 #if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 typedef ULONG RTL_SYSTEM_GLOBAL_DATA_ID;
@@ -5433,16 +5453,12 @@ typedef struct _RTL_SEGMENT_HEAP_PARAMETERS
 // Heap parameters.
 //
 
-typedef
-_Function_class_(RTL_HEAP_COMMIT_ROUTINE)
-NTSTATUS
-NTAPI
-RTL_HEAP_COMMIT_ROUTINE(
+typedef _Function_class_(RTL_HEAP_COMMIT_ROUTINE)
+NTSTATUS NTAPI RTL_HEAP_COMMIT_ROUTINE(
     _In_ PVOID Base,
     _Inout_ PVOID* CommitAddress,
     _Inout_ PSIZE_T CommitSize
     );
-
 typedef RTL_HEAP_COMMIT_ROUTINE* PRTL_HEAP_COMMIT_ROUTINE;
 
 typedef struct _RTL_HEAP_PARAMETERS
@@ -5512,7 +5528,7 @@ _Success_(return != 0)
 _Must_inspect_result_
 _Ret_maybenull_
 NTSYSAPI
-PVOID
+HANDLE
 NTAPI
 RtlCreateHeap(
     _In_ ULONG Flags,
@@ -5538,7 +5554,7 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlDestroyHeap(
-    _In_ _Post_invalid_ PVOID HeapHandle
+    _In_ _Post_invalid_ HANDLE HeapHandle
     );
 
 /**
@@ -5562,7 +5578,7 @@ DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlAllocateHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_opt_ ULONG Flags,
     _In_ SIZE_T Size
     );
@@ -5573,7 +5589,7 @@ NTSYSAPI
 LOGICAL
 NTAPI
 RtlFreeHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_opt_ ULONG Flags,
     _Frees_ptr_opt_ _Post_invalid_ PVOID BaseAddress
     );
@@ -5583,7 +5599,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlFreeHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_opt_ ULONG Flags,
     _Frees_ptr_opt_ PVOID BaseAddress
     );
@@ -5593,7 +5609,7 @@ NTSYSAPI
 SIZE_T
 NTAPI
 RtlSizeHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ PCVOID BaseAddress
     );
@@ -5602,7 +5618,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlZeroHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags
     );
 
@@ -5610,7 +5626,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlProtectHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ BOOLEAN MakeReadOnly
     );
 
@@ -5620,14 +5636,14 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlLockHeap(
-    _In_ PVOID HeapHandle
+    _In_ HANDLE HeapHandle
     );
 
 NTSYSAPI
 BOOLEAN
 NTAPI
 RtlUnlockHeap(
-    _In_ PVOID HeapHandle
+    _In_ HANDLE HeapHandle
     );
 
 _Success_(return != 0)
@@ -5642,7 +5658,7 @@ DECLSPEC_RESTRICT
 PVOID
 NTAPI
 RtlReAllocateHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _Frees_ptr_opt_ PVOID BaseAddress,
     _In_ SIZE_T Size
@@ -5652,7 +5668,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlGetUserInfoHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ PVOID BaseAddress,
     _Out_opt_ PVOID *UserValue,
@@ -5663,7 +5679,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlSetUserValueHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ PVOID BaseAddress,
     _In_ PVOID UserValue
@@ -5673,7 +5689,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlSetUserFlagsHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ PVOID BaseAddress,
     _In_ ULONG UserFlagsReset,
@@ -5693,7 +5709,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlCreateTagHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_opt_ PCWSTR TagPrefix,
     _In_ PCWSTR TagNames
@@ -5703,7 +5719,7 @@ NTSYSAPI
 PWSTR
 NTAPI
 RtlQueryTagHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ USHORT TagIndex,
     _In_ BOOLEAN ResetCounters,
@@ -5714,7 +5730,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlExtendHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ PVOID Base,
     _In_ SIZE_T Size
@@ -5724,7 +5740,7 @@ NTSYSAPI
 SIZE_T
 NTAPI
 RtlCompactHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags
     );
 
@@ -5732,7 +5748,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidateHeap(
-    _In_opt_ PVOID HeapHandle,
+    _In_opt_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_opt_ PVOID BaseAddress
     );
@@ -5754,7 +5770,7 @@ RtlGetProcessHeaps(
 
 typedef _Function_class_(RTL_ENUM_HEAPS_ROUTINE)
 NTSTATUS NTAPI RTL_ENUM_HEAPS_ROUTINE(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ PVOID Parameter
     );
 typedef RTL_ENUM_HEAPS_ROUTINE *PRTL_ENUM_HEAPS_ROUTINE;
@@ -5796,7 +5812,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUsageHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _Inout_ PRTL_HEAP_USAGE Usage
     );
@@ -5831,7 +5847,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWalkHeap(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _Inout_ PRTL_HEAP_WALK_ENTRY Entry
     );
 
@@ -5986,7 +6002,7 @@ typedef RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE* PRTL_HEAP_EXTENDED_ENUMERATION_RO
 typedef struct _HEAP_EXTENDED_INFORMATION
 {
     HANDLE ProcessHandle;
-    PVOID HeapHandle;
+    HANDLE HeapHandle;
     ULONG Level;
     PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE CallbackRoutine;
     PVOID CallbackContext;
@@ -6064,7 +6080,7 @@ typedef struct _RTL_HEAP_STACK_CONTROL
 // rev
 typedef _Function_class_(RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE)
 NTSTATUS NTAPI RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE(
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Action,
     _In_ ULONG StackFramesToCapture,
     _In_ PVOID *StackTrace
@@ -6075,7 +6091,7 @@ typedef RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE* PRTL_HEAP_DEBUGGING_INTERCEPTOR_
 typedef _Function_class_(RTL_HEAP_LEAK_ENUMERATION_ROUTINE)
 NTSTATUS NTAPI RTL_HEAP_LEAK_ENUMERATION_ROUTINE(
     _In_ LONG Reserved,
-    _In_ PVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T BlockSize,
     _In_ ULONG StackTraceDepth,
@@ -6099,7 +6115,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryHeapInformation(
-    _In_opt_ PVOID HeapHandle,
+    _In_opt_ HANDLE HeapHandle,
     _In_ HEAP_INFORMATION_CLASS HeapInformationClass,
     _Out_opt_ PVOID HeapInformation,
     _In_opt_ SIZE_T HeapInformationLength,
@@ -6110,7 +6126,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetHeapInformation(
-    _In_opt_ PCVOID HeapHandle,
+    _In_opt_ HANDLE HeapHandle,
     _In_ HEAP_INFORMATION_CLASS HeapInformationClass,
     _In_opt_ PCVOID HeapInformation,
     _In_opt_ SIZE_T HeapInformationLength
@@ -6120,7 +6136,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleAllocateHeap(
-    _In_ PCVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ SIZE_T Size,
     _In_ ULONG Count,
@@ -6131,7 +6147,7 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlMultipleFreeHeap(
-    _In_ PCVOID HeapHandle,
+    _In_ HANDLE HeapHandle,
     _In_ ULONG Flags,
     _In_ ULONG Count,
     _In_ PVOID *Array
@@ -9174,6 +9190,7 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 // Version
 //
 
+// rev
 typedef struct _RTL_OSVERSIONINFO
 {
     ULONG OSVersionInfoSize;
@@ -9184,6 +9201,7 @@ typedef struct _RTL_OSVERSIONINFO
     WCHAR CSDVersion[128];
 } RTL_OSVERSIONINFO, *PRTL_OSVERSIONINFO;
 
+// rev
 typedef struct _RTL_OSVERSIONINFOEX
 {
     ULONG OSVersionInfoSize;
