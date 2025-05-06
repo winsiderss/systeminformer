@@ -4530,7 +4530,35 @@ CleanupExit:
     return bitmapHandle;
 }
 
-BOOLEAN PhSetWindowCompositionAttribute(
+NTSTATUS PhGetWindowCompositionAttribute(
+    _In_ HWND WindowHandle,
+    _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* GetWindowCompositionAttribute_I)(
+        _In_ HWND WindowHandle,
+        _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetWindowCompositionAttribute_I = PhGetDllProcedureAddress(L"user32.dll", "GetWindowCompositionAttribute", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (GetWindowCompositionAttribute_I)
+    {
+        if (GetWindowCompositionAttribute_I(WindowHandle, AttributeData))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+NTSTATUS PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
     )
@@ -4549,13 +4577,16 @@ BOOLEAN PhSetWindowCompositionAttribute(
 
     if (SetWindowCompositionAttribute_I)
     {
-        return !!SetWindowCompositionAttribute_I(WindowHandle, AttributeData);
+        if (SetWindowCompositionAttribute_I(WindowHandle, AttributeData))
+        {
+            return STATUS_SUCCESS;
+        }
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
-BOOLEAN PhSetWindowAcrylicCompositionColor(
+NTSTATUS PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
     _In_ ULONG GradientColor
     )

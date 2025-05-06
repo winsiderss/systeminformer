@@ -2213,7 +2213,15 @@ typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA
 } WINDOWCOMPOSITIONATTRIBUTEDATA, *PWINDOWCOMPOSITIONATTRIBUTEDATA;
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
+NTAPI
+PhGetWindowCompositionAttribute(
+    _In_ HWND WindowHandle,
+    _Inout_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    );
+
+PHLIBAPI
+NTSTATUS
 NTAPI
 PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
@@ -2280,7 +2288,7 @@ typedef struct _ACCENT_POLICY
 } ACCENT_POLICY;
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
