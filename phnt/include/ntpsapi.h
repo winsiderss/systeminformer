@@ -782,9 +782,12 @@ typedef struct _PROCESS_SESSION_INFORMATION
  */
 typedef struct _PROCESS_HANDLE_TRACING_ENABLE
 {
-    ULONG Flags; // Flags that control handle tracing.
+    ULONG Flags;        // Flags that control handle tracing.
 } PROCESS_HANDLE_TRACING_ENABLE, *PPROCESS_HANDLE_TRACING_ENABLE;
 
+/**
+ * The PROCESS_HANDLE_TRACING_MAX_SLOTS macro specifies the maximum number of slots.
+ */
 #define PROCESS_HANDLE_TRACING_MAX_SLOTS 0x20000
 
 /**
@@ -796,20 +799,24 @@ typedef struct _PROCESS_HANDLE_TRACING_ENABLE_EX
     ULONG TotalSlots;   // Total number of handle tracing slots.
 } PROCESS_HANDLE_TRACING_ENABLE_EX, *PPROCESS_HANDLE_TRACING_ENABLE_EX;
 
-#define PROCESS_HANDLE_TRACING_MAX_STACKS 16
-
 #define PROCESS_HANDLE_TRACE_TYPE_OPEN 1
 #define PROCESS_HANDLE_TRACE_TYPE_CLOSE 2
 #define PROCESS_HANDLE_TRACE_TYPE_BADREF 3
 
+/**
+ * The PROCESS_HANDLE_TRACING_ENTRY structure contains information about the handle operation associated with the event.
+ */
 typedef struct _PROCESS_HANDLE_TRACING_ENTRY
 {
-    HANDLE Handle;
-    CLIENT_ID ClientId;
-    ULONG Type;
-    PVOID Stacks[PROCESS_HANDLE_TRACING_MAX_STACKS];
+    HANDLE Handle;          // The handle associated with the event.
+    CLIENT_ID ClientId;     // The process and thread associated with the event.
+    ULONG Type;             // The type of handle operation associated with the event.
+    PVOID Stacks[16];
 } PROCESS_HANDLE_TRACING_ENTRY, *PPROCESS_HANDLE_TRACING_ENTRY;
 
+/**
+ * The PROCESS_HANDLE_TRACING_QUERY structure is used to query all handle events or a specific handle event for a process.
+ */
 typedef struct _PROCESS_HANDLE_TRACING_QUERY
 {
     _In_opt_ HANDLE Handle;
@@ -884,6 +891,7 @@ typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION_EX
     ULONG Reserved2;     // Reserved for future use.
     PROCESS_STACK_ALLOCATION_INFORMATION AllocInfo; // The stack allocation information.
 } PROCESS_STACK_ALLOCATION_INFORMATION_EX, *PPROCESS_STACK_ALLOCATION_INFORMATION_EX;
+
 /**
  * The PROCESS_AFFINITY_UPDATE_MODE union is used to specify the affinity update mode for a process.
  */
@@ -1086,6 +1094,9 @@ typedef struct _PROCESS_KEEPALIVE_COUNT_INFORMATION
     ULONG NoWakeCount;
 } PROCESS_KEEPALIVE_COUNT_INFORMATION, *PPROCESS_KEEPALIVE_COUNT_INFORMATION;
 
+/**
+ * The PROCESS_REVOKE_FILE_HANDLES_INFORMATION structure revokes handles to the specified device from a process. 
+ */
 typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 {
     UNICODE_STRING TargetDevicePath;
@@ -1977,6 +1988,7 @@ NtTerminateProcess(
  *
  * @param ProcessHandle A handle to the process to be suspended.
  * @return NTSTATUS Successful or errant status.
+ * @remarks Use NtCreateProcessStateChange instead.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1990,6 +2002,7 @@ NtSuspendProcess(
  *
  * @param ProcessHandle A handle to the process to be resumed.
  * @return NTSTATUS Successful or errant status.
+ * @remarks Use NtCreateProcessStateChange instead.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -2080,7 +2093,6 @@ NtSetInformationProcess(
 
 #define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves a handle to the next process in the system.
  *
@@ -2126,7 +2138,6 @@ NtGetNextThread(
     _In_ ULONG Flags,
     _Out_ PHANDLE NewThreadHandle
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #endif // PHNT_MODE != PHNT_MODE_KERNEL
 
@@ -2158,7 +2169,7 @@ NtCreateProcessStateChange(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
-    _In_opt_ _Reserved_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 
 /**
@@ -2181,7 +2192,7 @@ NtChangeProcessState(
     _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
     _In_opt_ _Reserved_ PVOID ExtendedInformation,
     _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
-    _In_opt_ _Reserved_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
@@ -2204,7 +2215,7 @@ NtCreateThreadStateChange(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ThreadHandle,
-    _In_opt_ ULONG64 Reserved
+    _In_opt_ _Reserved_ ULONG Reserved
     );
 
 typedef enum _THREAD_STATE_CHANGE_TYPE
@@ -2334,7 +2345,6 @@ NtResumeThread(
     _Out_opt_ PULONG PreviousSuspendCount
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Retrieves the number of the current processor.
  *
@@ -2346,7 +2356,6 @@ NTAPI
 NtGetCurrentProcessorNumber(
     VOID
     );
-#endif // PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
@@ -3385,7 +3394,7 @@ NtCreateThreadEx(
 #define JobObjectFreezeInformation 18 // JOBOBJECT_FREEZE_INFORMATION
 #define JobObjectExtendedAccountingInformation 19 // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
 #define JobObjectWakeInformation 20 // JOBOBJECT_WAKE_INFORMATION
-#define JobObjectBackgroundInformation 21
+#define JobObjectBackgroundInformation 21 // s: BOOLEAN
 #define JobObjectSchedulingRankBiasInformation 22
 #define JobObjectTimerVirtualizationInformation 23
 #define JobObjectCycleTimeNotification 24
