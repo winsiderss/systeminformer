@@ -187,8 +187,8 @@ NtSuppressDebugMessage(
     // Note: The Visual Studio debugger on Windows 7/8 attempts to load symbols
     // for non-executable resources. The kernelbase BasepLoadLibraryAsDataFileInternal
     // function temporarily suppresses symbols while loading resources (both release and debug)
-    // as a QOL optimization but we only suppress debug messages for debug builds. This issue
-    // was fixed on Windows 10 with SEC_IMAGE_NO_EXECUTE and suppression is not required (dmex)
+    // as a QOL optimization but we only suppress debug messages for debug builds. This issue was fixed
+    // by Microsoft on Windows 10 and above with SEC_IMAGE_NO_EXECUTE and suppression is not required (dmex)
 
     if (WindowsVersion < WINDOWS_10)
     {
@@ -414,7 +414,7 @@ PVOID PhGetProcedureAddress(
 
     return procedureAddress;
 #else
-    return PhGetDllBaseProcedureAddress(DllHandle, ProcedureName, (USHORT)ProcedureNumber);
+    return PhGetDllBaseProcedureAddress(DllHandle, ProcedureName, ProcedureNumber);
 #endif
 }
 
@@ -1052,206 +1052,6 @@ PVOID PhGetLoaderEntryDllBase(
     return baseAddress;
 }
 
-/**
- * Converts a system DLL init block from the current OS version layout to the latest layout.
- *
- * \param[in] Source A buffer returned or copied from LdrSystemDllInitBlock.
- * \param[out] Destination A buffer for storing a version-independent copy of the structure.
- */
-NTSTATUS PhCaptureSystemDllInitBlock(
-    _In_ PVOID Source,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK Destination
-    )
-{
-    ULONG sourceSize;
-
-    RtlZeroMemory(Destination, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
-
-    if (WindowsVersion >= WINDOWS_10_20H1)
-    {
-        PPS_SYSTEM_DLL_INIT_BLOCK_V3 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V3)Source;
-
-        sourceSize = source->Size;
-
-        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3))
-            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3);
-
-        // No adjustments necessary for the latest layout
-        RtlCopyMemory(Destination, source, sourceSize);
-        Destination->Size = sourceSize;
-
-        return STATUS_SUCCESS;
-    }
-    else if (WindowsVersion >= WINDOWS_10_RS2)
-    {
-        PPS_SYSTEM_DLL_INIT_BLOCK_V2 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V2)Source;
-
-        sourceSize = source->Size;
-
-        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2))
-            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2);
-
-        // Everything up to and including Flags uses the same layout
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
-        {
-            RtlCopyMemory(
-                Destination,
-                source,
-                RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V2, Flags)
-                );
-
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
-        }
-
-        // Mitigation options include 2 out of 3 values
-        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptionsMap))
-        {
-            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptionsMap.Map[0];
-            Destination->MitigationOptionsMap.Map[1] = source->MitigationOptionsMap.Map[1];
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[1]);
-        }
-
-        // The subsequent fields are shifted
-        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
-        {
-            Destination->CfgBitMap = source->CfgBitMap;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
-        {
-            Destination->CfgBitMapSize = source->CfgBitMapSize;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
-        {
-            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
-        {
-            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
-        }
-
-        // Mitigation audit options include 2 out of 3 values
-        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationAuditOptionsMap))
-        {
-            Destination->MitigationAuditOptionsMap.Map[0] = source->MitigationAuditOptionsMap.Map[0];
-            Destination->MitigationAuditOptionsMap.Map[1] = source->MitigationAuditOptionsMap.Map[1];
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap.Map[1]);
-        }
-
-        return STATUS_SUCCESS;
-    }
-    else if (WindowsVersion >= PHNT_WINDOWS_8)
-    {
-        PPS_SYSTEM_DLL_INIT_BLOCK_V1 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V1)Source;
-
-        sourceSize = source->Size;
-
-        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1))
-            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1);
-
-        // All fields are shifted
-        if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllWowRelocation))
-        {
-            Destination->SystemDllWowRelocation = source->SystemDllWowRelocation;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllWowRelocation);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllNativeRelocation))
-        {
-            Destination->SystemDllNativeRelocation = source->SystemDllNativeRelocation;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllNativeRelocation);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64SharedInformation))
-        {
-            RtlCopyMemory(
-                &Destination->Wow64SharedInformation,
-                &source->Wow64SharedInformation,
-                RTL_FIELD_SIZE(PS_SYSTEM_DLL_INIT_BLOCK_V1, Wow64SharedInformation)
-                );
-
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64SharedInformation);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, RngData))
-        {
-            Destination->RngData = source->RngData;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, RngData);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
-        {
-            Destination->Flags = source->Flags;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
-        }
-
-        // Mitigation options include 1 out of 3 values
-        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptions))
-        {
-            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptions;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[0]);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
-        {
-            Destination->CfgBitMap = source->CfgBitMap;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
-        {
-            Destination->CfgBitMapSize = source->CfgBitMapSize;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
-        {
-            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
-        }
-
-        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
-        {
-            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
-            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
-        }
-
-        return STATUS_SUCCESS;
-    }
-
-    return STATUS_NOT_SUPPORTED;
-}
-
-/**
- * Retrieves a copy of the system DLL init block of the current process.
- *
- * \param[out] SystemDllInitBlock A buffer for storing a version-independent copy of LdrSystemDllInitBlock.
- *
- * \return Successful or errant status.
- */
-NTSTATUS PhGetSystemDllInitBlock(
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
-    )
-{
-    PVOID systemDllInitBlock;
-
-    if (!LdrSystemDllInitBlock_Import())
-        return STATUS_PROCEDURE_NOT_FOUND;
-
-    systemDllInitBlock = LdrSystemDllInitBlock_Import();
-
-    if (!systemDllInitBlock)
-        return STATUS_NOT_SUPPORTED;
-
-    return PhCaptureSystemDllInitBlock(systemDllInitBlock, SystemDllInitBlock);
-}
-
 PVOID PhGetDllBaseProcedureAddress(
     _In_ PVOID DllBase,
     _In_opt_ PCSTR ProcedureName,
@@ -1568,25 +1368,10 @@ VOID PhLoaderEntryGrantSuppressedCall(
     _In_ PVOID ExportAddress
     )
 {
-    static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
     static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
 
-    if (!PhHashtableType)
+    if (!PhLoaderEntryCacheHashtable)
     {
-        //
-        // N.B. Can land here from CRT initialization via GetProcAddress_Stub
-        // before the object types are initialized. Rather than initializing
-        // basesup outside of the normal path, if we don't have the hash table
-        // object just try to grant the suppressed call access without caching
-        // it. (jxy-s)
-        //
-        PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), ExportAddress);
-        return;
-    }
-
-    if (!PhLoaderEntryCacheInitialized)
-    {
-        PhLoaderEntryCacheInitialized = TRUE;
         PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
     }
 
@@ -3173,4 +2958,204 @@ CleanupExit:
     }
 
     return status;
+}
+
+/**
+ * Converts a system DLL init block from the current OS version layout to the latest layout.
+ *
+ * \param[in] Source A buffer returned or copied from LdrSystemDllInitBlock.
+ * \param[out] Destination A buffer for storing a version-independent copy of the structure.
+ */
+NTSTATUS PhCaptureSystemDllInitBlock(
+    _In_ PVOID Source,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK Destination
+    )
+{
+    ULONG sourceSize;
+
+    RtlZeroMemory(Destination, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
+
+    if (WindowsVersion >= WINDOWS_10_20H1)
+    {
+        PPS_SYSTEM_DLL_INIT_BLOCK_V3 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V3)Source;
+
+        sourceSize = source->Size;
+
+        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3))
+            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V3);
+
+        // No adjustments necessary for the latest layout
+        RtlCopyMemory(Destination, source, sourceSize);
+        Destination->Size = sourceSize;
+
+        return STATUS_SUCCESS;
+    }
+    else if (WindowsVersion >= WINDOWS_10_RS2)
+    {
+        PPS_SYSTEM_DLL_INIT_BLOCK_V2 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V2)Source;
+
+        sourceSize = source->Size;
+
+        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2))
+            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V2);
+
+        // Everything up to and including Flags uses the same layout
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
+        {
+            RtlCopyMemory(
+                Destination,
+                source,
+                RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK_V2, Flags)
+                );
+
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
+        }
+
+        // Mitigation options include 2 out of 3 values
+        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptionsMap))
+        {
+            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptionsMap.Map[0];
+            Destination->MitigationOptionsMap.Map[1] = source->MitigationOptionsMap.Map[1];
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[1]);
+        }
+
+        // The subsequent fields are shifted
+        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
+        {
+            Destination->CfgBitMap = source->CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
+        {
+            Destination->CfgBitMapSize = source->CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
+        {
+            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
+        {
+            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
+        }
+
+        // Mitigation audit options include 2 out of 3 values
+        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationAuditOptionsMap))
+        {
+            Destination->MitigationAuditOptionsMap.Map[0] = source->MitigationAuditOptionsMap.Map[0];
+            Destination->MitigationAuditOptionsMap.Map[1] = source->MitigationAuditOptionsMap.Map[1];
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap.Map[1]);
+        }
+
+        return STATUS_SUCCESS;
+    }
+    else if (WindowsVersion >= PHNT_WINDOWS_8)
+    {
+        PPS_SYSTEM_DLL_INIT_BLOCK_V1 source = (PPS_SYSTEM_DLL_INIT_BLOCK_V1)Source;
+
+        sourceSize = source->Size;
+
+        if (sourceSize > sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1))
+            sourceSize = sizeof(PS_SYSTEM_DLL_INIT_BLOCK_V1);
+
+        // All fields are shifted
+        if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllWowRelocation))
+        {
+            Destination->SystemDllWowRelocation = source->SystemDllWowRelocation;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllWowRelocation);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, SystemDllNativeRelocation))
+        {
+            Destination->SystemDllNativeRelocation = source->SystemDllNativeRelocation;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, SystemDllNativeRelocation);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64SharedInformation))
+        {
+            RtlCopyMemory(
+                &Destination->Wow64SharedInformation,
+                &source->Wow64SharedInformation,
+                RTL_FIELD_SIZE(PS_SYSTEM_DLL_INIT_BLOCK_V1, Wow64SharedInformation)
+                );
+
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64SharedInformation);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, RngData))
+        {
+            Destination->RngData = source->RngData;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, RngData);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Flags))
+        {
+            Destination->Flags = source->Flags;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Flags);
+        }
+
+        // Mitigation options include 1 out of 3 values
+        if (RTL_CONTAINS_FIELD(source, sourceSize, MitigationOptions))
+        {
+            Destination->MitigationOptionsMap.Map[0] = source->MitigationOptions;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationOptionsMap.Map[0]);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMap))
+        {
+            Destination->CfgBitMap = source->CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMap);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, CfgBitMapSize))
+        {
+            Destination->CfgBitMapSize = source->CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, CfgBitMapSize);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMap))
+        {
+            Destination->Wow64CfgBitMap = source->Wow64CfgBitMap;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap);
+        }
+
+        if (RTL_CONTAINS_FIELD(source, sourceSize, Wow64CfgBitMapSize))
+        {
+            Destination->Wow64CfgBitMapSize = source->Wow64CfgBitMapSize;
+            Destination->Size = RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMapSize);
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Retrieves a copy of the system DLL init block of the current process.
+ *
+ * \param[out] SystemDllInitBlock A buffer for storing a version-independent copy of LdrSystemDllInitBlock.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetSystemDllInitBlock(
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK SystemDllInitBlock
+    )
+{
+    PVOID systemDllInitBlock;
+
+    if (!LdrSystemDllInitBlock_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    systemDllInitBlock = LdrSystemDllInitBlock_Import();
+
+    if (!systemDllInitBlock)
+        return STATUS_NOT_SUPPORTED;
+
+    return PhCaptureSystemDllInitBlock(systemDllInitBlock, SystemDllInitBlock);
 }
