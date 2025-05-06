@@ -9174,18 +9174,95 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 // Version
 //
 
+typedef struct _RTL_OSVERSIONINFO
+{
+    ULONG OSVersionInfoSize;
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+    ULONG BuildNumber;
+    ULONG PlatformId;
+    WCHAR CSDVersion[128];
+} RTL_OSVERSIONINFO, *PRTL_OSVERSIONINFO;
+
+typedef struct _RTL_OSVERSIONINFOEX
+{
+    ULONG OSVersionInfoSize;
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+    ULONG BuildNumber;
+    ULONG PlatformId;
+    WCHAR CSDVersion[128];
+    USHORT ServicePackMajor;
+    USHORT ServicePackMinor;
+    USHORT SuiteMask;
+    UCHAR ProductType;
+    UCHAR Reserved;
+} RTL_OSVERSIONINFOEX, *PRTL_OSVERSIONINFOEX;
+
+// rev
+typedef struct _RTL_OSVERSIONINFOEX2
+{
+    ULONG OSVersionInfoSize;
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+    ULONG BuildNumber;
+    ULONG PlatformId;
+    WCHAR CSDVersion[128];
+    USHORT ServicePackMajor;
+    USHORT ServicePackMinor;
+    USHORT SuiteMask;
+    UCHAR ProductType;
+    UCHAR Reserved;
+    ULONG SuiteMaskEx;
+    ULONG Reserved2;
+} RTL_OSVERSIONINFOEX2, *PRTL_OSVERSIONINFOEX2;
+
+// rev
+typedef struct _RTL_OSVERSIONINFOEX3
+{
+    ULONG OSVersionInfoSize;
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+    ULONG BuildNumber;
+    union
+    {
+        ULONG PlatformId;
+        ULONG QfeNumber;
+    };
+    union
+    {
+        WCHAR CSDVersion[128];
+        WCHAR LayerAttrib[128];
+    };
+    USHORT ServicePackMajor;
+    USHORT ServicePackMinor;
+    USHORT SuiteMask;
+    UCHAR ProductType;
+    UCHAR Reserved;
+    ULONG SuiteMaskEx;
+    ULONG Reserved2;
+    union
+    {
+        USHORT RawInput16;
+        USHORT LayerNumber : 12;
+        USHORT AttribSelector : 4;
+    } Input;
+    USHORT LayerCount;
+    ULONG LayerFlags;
+} RTL_OSVERSIONINFOEX3, *PRTL_OSVERSIONINFOEX3;
+
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetVersion(
-    _Out_ PRTL_OSVERSIONINFOEXW VersionInformation // PRTL_OSVERSIONINFOW
+    _Out_ PVOID VersionInformation
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlVerifyVersionInfo(
-    _In_ PRTL_OSVERSIONINFOEXW VersionInformation, // PRTL_OSVERSIONINFOW
+    _In_ PVOID VersionInformation,
     _In_ ULONG TypeMask,
     _In_ ULONGLONG ConditionMask
     );
@@ -9905,7 +9982,9 @@ RtlGetFrame(
     );
 
 #define RTL_WALK_USER_MODE_STACK 0x00000001
-#define RTL_WALK_VALID_FLAGS 0x00000001
+#define RTL_WALK_KERNEL_STACK 0x00000002
+#define RTL_WALK_USER_KERNEL_STACK 0x00000003
+#define RTL_WALK_VALID_FLAGS 0x00000006
 #define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 0x00000008
 
 // private
@@ -9919,6 +9998,7 @@ RtlWalkFrameChain(
     );
 
 // rev
+DECLSPEC_DEPRECATED
 NTSYSAPI
 VOID
 NTAPI
@@ -9996,10 +10076,6 @@ RtlQueryElevationFlags(
     _Out_ PRTL_ELEVATION_FLAGS Flags
     );
 
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -10007,10 +10083,6 @@ NTAPI
 RtlRegisterThreadWithCsrss(
     VOID
     );
-
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // private
 NTSYSAPI
@@ -10020,10 +10092,6 @@ RtlLockCurrentThread(
     VOID
     );
 
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -10032,10 +10100,6 @@ RtlUnlockCurrentThread(
     VOID
     );
 
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -10043,10 +10107,6 @@ NTAPI
 RtlLockModuleSection(
     _In_ PVOID Address
     );
-
-#endif // PHNT_VERSION >= PHNT_WINDOWS_VISTA
-
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 
 // private
 NTSYSAPI
@@ -10063,28 +10123,39 @@ RtlUnlockModuleSection(
 #define RTL_UNLOAD_EVENT_TRACE_NUMBER 64
 
 // private
+/**
+ * The RTL_UNLOAD_EVENT_TRACE structure contains the unloaded module event information.
+ *
+ * @sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlgetunloadeventtrace
+ */
 typedef struct _RTL_UNLOAD_EVENT_TRACE
 {
-    PVOID BaseAddress;
-    SIZE_T SizeOfImage;
-    ULONG Sequence;
-    ULONG TimeDateStamp;
-    ULONG CheckSum;
-    WCHAR ImageName[32];
+    PVOID BaseAddress;   // Base address of dll
+    SIZE_T SizeOfImage;  // Size of image
+    ULONG Sequence;      // Sequence number for this event
+    ULONG TimeDateStamp; // Time and date of image
+    ULONG CheckSum;      // Image checksum
+    WCHAR ImageName[32]; // Image name
     ULONG Version[2];
 } RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
 
 typedef struct _RTL_UNLOAD_EVENT_TRACE32
 {
-    ULONG BaseAddress;
-    ULONG SizeOfImage;
-    ULONG Sequence;
-    ULONG TimeDateStamp;
-    ULONG CheckSum;
-    WCHAR ImageName[32];
+    ULONG BaseAddress;   // Base address of dll
+    ULONG SizeOfImage;   // Size of image
+    ULONG Sequence;      // Sequence number for this event
+    ULONG TimeDateStamp; // Time and date of image
+    ULONG CheckSum;      // Image checksum
+    WCHAR ImageName[32]; // Image name
     ULONG Version[2];
 } RTL_UNLOAD_EVENT_TRACE32, *PRTL_UNLOAD_EVENT_TRACE32;
 
+/**
+ * Enables the dump code to get the unloaded module information from Ntdll.dll for storage in the minidump.
+ *
+ * @return A pointer to an array of unload events.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlgetunloadeventtrace
+ */
 NTSYSAPI
 PRTL_UNLOAD_EVENT_TRACE
 NTAPI
@@ -10093,6 +10164,15 @@ RtlGetUnloadEventTrace(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
+/**
+ * Retrieves the size and location of the dynamically unloaded module list for the current process.
+ *
+ * @param ElementSize A pointer to a variable that contains the size of an element in the list.
+ * @param ElementCount A pointer to a variable that contains the number of elements in the list.
+ * @param EventTrace A pointer to an array of RTL_UNLOAD_EVENT_TRACE structures.
+ * @return A pointer to an array of unload events.
+ * @sa https://learn.microsoft.com/en-us/windows/win32/devnotes/rtlgetunloadeventtraceex
+ */
 NTSYSAPI
 PRTL_UNLOAD_EVENT_TRACE
 NTAPI
@@ -10156,7 +10236,6 @@ RtlRestoreContext(
     _In_opt_ struct _EXCEPTION_RECORD* ExceptionRecord
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
-
 
 NTSYSAPI
 VOID
@@ -10501,7 +10580,7 @@ RtlSetImageMitigationPolicy(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 //
-// session
+// Session
 //
 
 // rev
