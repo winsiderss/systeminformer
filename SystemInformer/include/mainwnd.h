@@ -100,7 +100,7 @@ PhPluginInvokeWindowCallback(
 #define SystemInformer_ShowMemoryResults(ShowMemoryResults) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MEMORY_RESULTS, 0, (PVOID)(ULONG_PTR)(ShowMemoryResults))
 #define SystemInformer_SelectTabPage(Index) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, (PVOID)(ULONG_PTR)(Index), 0)
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SELECT_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Index))
 #define SystemInformer_GetCallbackLayoutPadding() \
     ((PPH_CALLBACK)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_CALLBACK_LAYOUT_PADDING, 0, 0))
 #define SystemInformer_InvalidateLayoutPadding() \
