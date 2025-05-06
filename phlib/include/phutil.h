@@ -920,6 +920,34 @@ PhGetFileVersionInfoKey(
     _Out_opt_ PVOID* Buffer
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetFileVersionVarFileInfoValue(
+    _In_ PVOID VersionInfo,
+    _In_ PCPH_STRINGREF KeyName,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    );
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhGetFileVersionVarFileInfoValueZ(
+    _In_ PVOID VersionInfo,
+    _In_ PCWSTR KeyName,
+    _Out_opt_ PVOID* Buffer,
+    _Out_opt_ PULONG BufferLength
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, KeyName);
+
+    return PhGetFileVersionVarFileInfoValue(VersionInfo, &string, Buffer, BufferLength);
+}
+
 PHLIBAPI
 VS_FIXEDFILEINFO*
 NTAPI
