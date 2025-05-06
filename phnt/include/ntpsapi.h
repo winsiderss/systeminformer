@@ -1017,22 +1017,22 @@ typedef struct _PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
 #if defined(_PHLIB_)
 // enum PROCESS_MITIGATION_POLICY
 #define PROCESS_MITIGATION_POLICY ULONG
-#define ProcessDEPPolicy 0
-#define ProcessASLRPolicy 1
-#define ProcessDynamicCodePolicy 2
-#define ProcessStrictHandleCheckPolicy 3
-#define ProcessSystemCallDisablePolicy 4
-#define ProcessMitigationOptionsMask 5
-#define ProcessExtensionPointDisablePolicy 6
+#define ProcessDEPPolicy 0                      // The data execution prevention (DEP) policy of the process.
+#define ProcessASLRPolicy 1                     // The Address Space Layout Randomization (ASLR) policy of the process.
+#define ProcessDynamicCodePolicy 2              // Disables the ability to generate dynamic code or modify existing executable code.
+#define ProcessStrictHandleCheckPolicy 3        // Enables the ability to generate a fatal error if the process manipulates an invalid handle.
+#define ProcessSystemCallDisablePolicy 4        // Disables the ability of the process to use NTUser/GDI functions at the lowest layer.
+#define ProcessMitigationOptionsMask 5          // Returns the mask of valid bits for all the mitigation options on the system.
+#define ProcessExtensionPointDisablePolicy 6    // Disables the ability of the process to load legacy extension point DLLs.
 #define ProcessControlFlowGuardPolicy 7
-#define ProcessSignaturePolicy 8
-#define ProcessFontDisablePolicy 9
-#define ProcessImageLoadPolicy 10
+#define ProcessSignaturePolicy 8                // Disables the ability of the process to load images not signed by Microsoft, the Windows Store and the Windows Hardware Quality Labs (WHQL).
+#define ProcessFontDisablePolicy 9              // Disables the ability of the process to load non-system fonts.
+#define ProcessImageLoadPolicy 10               // Disables the ability of the process to load images from some locations, such a remote devices or files that have the low mandatory label.
 #define ProcessSystemCallFilterPolicy 11
 #define ProcessPayloadRestrictionPolicy 12
-#define ProcessChildProcessPolicy 13
+#define ProcessChildProcessPolicy 13            // Disables the ability to create child processes.
 #define ProcessSideChannelIsolationPolicy 14
-#define ProcessUserShadowStackPolicy 15
+#define ProcessUserShadowStackPolicy 15         // since 20H1
 #define ProcessRedirectionTrustPolicy 16
 #define ProcessUserPointerAuthPolicy 17
 #define ProcessSEHOPPolicy 18
@@ -1040,6 +1040,11 @@ typedef struct _PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
 #define MaxProcessMitigationPolicy 20
 #endif // _PHLIB_
 
+/**
+ * The PROCESS_MITIGATION_POLICY_INFORMATION structure represents the different process mitigation policies.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-process_mitigation_policy
+ */
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
     PROCESS_MITIGATION_POLICY Policy;
@@ -1066,9 +1071,12 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
 // private
+typedef struct _DYNAMIC_FUNCTION_TABLE DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
+
+// private
 typedef struct _PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION
 {
-    struct _DYNAMIC_FUNCTION_TABLE* DynamicFunctionTable;
+    PDYNAMIC_FUNCTION_TABLE DynamicFunctionTable;
     BOOLEAN Remove;
 } PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION, *PPROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION;
 
@@ -1345,11 +1353,16 @@ typedef struct _MANAGE_WRITES_TO_EXECUTABLE_MEMORY
 #define POWER_THROTTLING_THREAD_EXECUTION_SPEED 0x1
 #define POWER_THROTTLING_THREAD_VALID_FLAGS (POWER_THROTTLING_THREAD_EXECUTION_SPEED)
 
+/**
+ * The POWER_THROTTLING_THREAD_STATE structure contains the throttling policies of a thread subject to power management.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_power_throttling_thread_state
+ */
 typedef struct _POWER_THROTTLING_THREAD_STATE
 {
-    ULONG Version;
-    ULONG ControlMask;
-    ULONG StateMask;
+    ULONG Version;          // The version of this structure. Set to THREAD_POWER_THROTTLING_CURRENT_VERSION.
+    ULONG ControlMask;      // Flags that enable the caller to take control of the power throttling mechanism.
+    ULONG StateMask;        // Flags that manage the power throttling mechanism on/off state.
 } POWER_THROTTLING_THREAD_STATE, *PPOWER_THROTTLING_THREAD_STATE;
 
 #define PROCESS_READWRITEVM_LOGGING_ENABLE_READVM 1
@@ -1465,6 +1478,11 @@ typedef struct _PROCESS_SYSCALL_PROVIDER_INFORMATION
 //    PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE Ranges;
 //} PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION, *PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION;
 
+/**
+ * The PROCESS_MEMBERSHIP_INFORMATION structure contains the Silo identifier of the process.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-process_membership_information
+ */
 typedef struct _PROCESS_MEMBERSHIP_INFORMATION
 {
     ULONG ServerSiloId;
@@ -1512,12 +1530,15 @@ NtQueryPortInformationProcess(
 // Thread information structures
 //
 
+/**
+ * The THREAD_BASIC_INFORMATION structure contains basic information about the thread.
+ */
 typedef struct _THREAD_BASIC_INFORMATION
 {
-    NTSTATUS ExitStatus;
-    PTEB TebBaseAddress;
-    CLIENT_ID ClientId;
-    KAFFINITY AffinityMask;
+    NTSTATUS ExitStatus;        // The exit status of the thread or STATUS_PENDING when the thread has not terminated. (GetExitCodeThread)
+    PTEB TebBaseAddress;        // The base address of the memory region containing the TEB structure. (NtCurrentTeb)
+    CLIENT_ID ClientId;         // The process and thread identifier of the thread.
+    KAFFINITY AffinityMask;     // The affinity mask of the thread. (deprecated) (SetThreadAffinityMask)
     KPRIORITY Priority;
     KPRIORITY BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
@@ -1923,6 +1944,7 @@ NtCreateProcessEx(
  * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the attributes of the new process.
  * @param ClientId Optional. A pointer to a CLIENT_ID structure that specifies the client ID of the process to be opened.
  * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -1940,6 +1962,7 @@ NtOpenProcess(
  * @param ProcessHandle Optional. A handle to the process to be terminated. If this parameter is NULL, the calling process is terminated.
  * @param ExitStatus The exit status to be used by the process and the process's termination status.
  * @return NTSTATUS Successful or errant status.
+ * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess
  */
 NTSYSCALLAPI
 NTSTATUS
