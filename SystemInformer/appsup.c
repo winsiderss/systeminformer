@@ -1279,8 +1279,8 @@ VOID PhWritePhTextHeader(
 
     PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.MajorVersion, PhOsVersion.MinorVersion);
 
-    if (PhOsVersion.szCSDVersion[0] != UNICODE_NULL)
-        PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
+    if (PhOsVersion.CSDVersion[0] != UNICODE_NULL)
+        PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.CSDVersion);
 
 #ifdef _WIN64
     PhWriteStringAsUtf8FileStream2(FileStream, L" (64-bit)");
