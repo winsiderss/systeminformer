@@ -51,20 +51,45 @@ static FARPROC NTAPI GetProcAddress_Stub(
     )
 {
     NTSTATUS status;
-    PVOID baseAddress;
+    PVOID procedureAddress;
 
     if (IS_INTRESOURCE(Name))
-        baseAddress = PhGetProcedureAddress(Module, nullptr, PtrToUshort(Name));
+    {
+        status = LdrGetProcedureAddress(
+            Module,
+            nullptr,
+            PtrToUshort(Name),
+            &procedureAddress
+            );
+    }
     else
-        baseAddress = PhGetProcedureAddress(Module, Name, 0);
+    {
+        ANSI_STRING procedureName;
 
-    if (baseAddress)
-        status = STATUS_SUCCESS;
-    else
-        status = STATUS_PROCEDURE_NOT_FOUND;
+        RtlInitAnsiString(&procedureName, Name);
+        status = LdrGetProcedureAddress(
+            Module,
+            &procedureName,
+            0,
+            &procedureAddress
+            );
+    }
 
     PhSetLastError(PhNtStatusToDosError(status));
-    return reinterpret_cast<FARPROC>(baseAddress);
+
+    return reinterpret_cast<FARPROC>(procedureAddress);
+
+    //PVOID baseAddress;
+    //if (IS_INTRESOURCE(Name))
+    //    baseAddress = PhGetProcedureAddress(Module, nullptr, PtrToUshort(Name));
+    //else
+    //    baseAddress = PhGetProcedureAddress(Module, Name, 0);
+    //if (baseAddress)
+    //    status = STATUS_SUCCESS;
+    //else
+    //    status = STATUS_PROCEDURE_NOT_FOUND;
+    //PhSetLastError(PhNtStatusToDosError(status));
+    //return reinterpret_cast<FARPROC>(baseAddress);
 }
 
 static BOOL NTAPI FlushFileBuffers_Stub(
