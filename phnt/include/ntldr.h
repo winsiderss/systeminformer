@@ -1062,6 +1062,19 @@ typedef struct _LDR_ENUM_RESOURCE_ENTRY
 #define NAME_FROM_RESOURCE_ENTRY(RootDirectory, Entry) \
     ((Entry)->NameIsString ? (ULONG_PTR)((ULONG_PTR)(RootDirectory) + (ULONG_PTR)((Entry)->NameOffset)) : (Entry)->Id)
 
+FORCEINLINE
+ULONG_PTR
+NTAPI
+LdrNameOrIdFromResourceEntry(
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ PIMAGE_RESOURCE_DIRECTORY_ENTRY Entry)
+{
+    if (Entry->NameIsString)
+        return (ULONG_PTR)((ULONG_PTR)ResourceDirectory + (ULONG_PTR)Entry->NameOffset);
+    else
+        return (ULONG_PTR)Entry->Id;
+}
+
 NTSYSAPI
 NTSTATUS
 NTAPI
