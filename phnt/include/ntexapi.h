@@ -2095,19 +2095,22 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
+/**
+ * The SYSTEM_BASIC_INFORMATION structure contains basic information about the current system.
+ */
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
-    ULONG Reserved;
-    ULONG TimerResolution;
-    ULONG PageSize;
-    ULONG NumberOfPhysicalPages;
-    ULONG LowestPhysicalPageNumber;
-    ULONG HighestPhysicalPageNumber;
-    ULONG AllocationGranularity;
-    ULONG_PTR MinimumUserModeAddress;
-    ULONG_PTR MaximumUserModeAddress;
-    KAFFINITY ActiveProcessorsAffinityMask; // deprecated
-    UCHAR NumberOfProcessors; // deprecated
+    ULONG Reserved;                         // Reserved
+    ULONG TimerResolution;                  // The resolution of the timer, in milliseconds. // NtQueryTimerResolution
+    ULONG PageSize;                         // The page size and the granularity of page protection and commitment.
+    ULONG NumberOfPhysicalPages;            // The number of physical pages in the system. // KUSER_SHARED_DATA->NumberOfPhysicalPages
+    ULONG LowestPhysicalPageNumber;         // The lowest memory page accessible to applications and dynamic-link libraries (DLLs).
+    ULONG HighestPhysicalPageNumber;        // The highest memory page accessible to applications and dynamic-link libraries (DLLs).
+    ULONG AllocationGranularity;            // The granularity for the starting address at which virtual memory can be allocated.
+    ULONG_PTR MinimumUserModeAddress;       // A pointer to the lowest memory address accessible to applications and dynamic-link libraries (DLLs).
+    ULONG_PTR MaximumUserModeAddress;       // A pointer to the highest memory address accessible to applications and dynamic-link libraries (DLLs).
+    KAFFINITY ActiveProcessorsAffinityMask; // A mask representing the set of processors configured in the current processor group. // deprecated 
+    UCHAR NumberOfProcessors;               // The number of logical processors in the current processor group. // deprecated
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 // SYSTEM_PROCESSOR_INFORMATION // ProcessorFeatureBits (see also SYSTEM_PROCESSOR_FEATURES_INFORMATION)
@@ -2239,13 +2242,13 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
  */
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
 {
-    LARGE_INTEGER BootTime;
-    LARGE_INTEGER CurrentTime;
-    LARGE_INTEGER TimeZoneBias;
-    ULONG TimeZoneId;
-    ULONG Reserved;
-    ULONGLONG BootTimeBias;
-    ULONGLONG SleepTimeBias;
+    LARGE_INTEGER BootTime;         // Number of 100-nanosecond intervals since the system was started.
+    LARGE_INTEGER CurrentTime;      // The current system date and time.
+    LARGE_INTEGER TimeZoneBias;     // Number of 100-nanosecond intervals between local time and Coordinated Universal Time (UTC).
+    ULONG TimeZoneId;               // The current system time zone identifier.
+    ULONG Reserved;                 // Reserved
+    ULONGLONG BootTimeBias;         // Number of 100-nanosecond intervals between the boot time and Coordinated Universal Time (UTC).
+    ULONGLONG SleepTimeBias;        // Number of 100-nanosecond intervals between the sleep time and Coordinated Universal Time (UTC).
 } SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
 
 /**
@@ -2256,45 +2259,48 @@ typedef struct _SYSTEM_THREAD_INFORMATION
 {
     LARGE_INTEGER KernelTime;       // Number of 100-nanosecond intervals spent executing kernel code.
     LARGE_INTEGER UserTime;         // Number of 100-nanosecond intervals spent executing user code.
-    LARGE_INTEGER CreateTime;       // System time when the thread was created.
-    ULONG WaitTime;                 // Time spent in ready queue or waiting (depending on the thread state).
-    PVOID StartAddress;             // Start address of the thread.
-    CLIENT_ID ClientId;             // ID of the thread and the process owning the thread.
-    KPRIORITY Priority;             // Dynamic thread priority.
-    KPRIORITY BasePriority;         // Base thread priority.
-    ULONG ContextSwitches;          // Total context switches.
-    KTHREAD_STATE ThreadState;      // Current thread state.
-    KWAIT_REASON WaitReason;        // The reason the thread is waiting.
+    LARGE_INTEGER CreateTime;       // The date and time when the thread was created.
+    ULONG WaitTime;                 // The current time spent in ready queue or waiting (depending on the thread state).
+    PVOID StartAddress;             // The initial start address of the thread.
+    CLIENT_ID ClientId;             // The identifier of the thread and the process owning the thread.
+    KPRIORITY Priority;             // The current dynamic thread priority.
+    KPRIORITY BasePriority;         // The starting priority of the thread.
+    ULONG ContextSwitches;          // The total number of context switches performed.
+    KTHREAD_STATE ThreadState;      // The current state of the thread.
+    KWAIT_REASON WaitReason;        // The current reason the thread is waiting.
 } SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
 
+/**
+ * The SYSTEM_PROCESS_INFORMATION structure contains information about a process running on a system.
+ */
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
     ULONG NumberOfThreads;                  // The NumberOfThreads member contains the number of threads in the process.
-    ULONGLONG WorkingSetPrivateSize;        // since VISTA
-    ULONG HardFaultCount;                   // since WIN7
+    ULONGLONG WorkingSetPrivateSize;        // The total private memory that a process currently has allocated and is physically resident in memory. // since VISTA
+    ULONG HardFaultCount;                   // The total number of hard faults for data from disk rather than from in-memory pages. // since WIN7
     ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
     ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
     LARGE_INTEGER CreateTime;               // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
-    LARGE_INTEGER UserTime;
-    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;                 // Number of 100-nanosecond intervals the process has executed in user mode.
+    LARGE_INTEGER KernelTime;               // Number of 100-nanosecond intervals the process has executed in kernel mode.
     UNICODE_STRING ImageName;               // The file name of the executable image.
-    KPRIORITY BasePriority;
-    HANDLE UniqueProcessId;
-    HANDLE InheritedFromUniqueProcessId;
-    ULONG HandleCount;
-    ULONG SessionId;
+    KPRIORITY BasePriority;                 // The starting priority of the process.
+    HANDLE UniqueProcessId;                 // The identifier of the process.
+    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    ULONG HandleCount;                      // The current number of open handles used by the process.
+    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running. 
     ULONG_PTR UniqueProcessKey;             // since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
     SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
-    ULONG PageFaultCount;                   // The member of page faults for data that is not currently in memory. 
+    ULONG PageFaultCount;                   // The total number of page faults for data that is not currently in memory. The value wraps around to zero on average 24 hours.
     SIZE_T PeakWorkingSetSize;              // The peak size, in kilobytes, of the working set of the process.
     SIZE_T WorkingSetSize;                  // The number of pages visible to the process in physical memory. These pages are resident and available for use without triggering a page fault.
     SIZE_T QuotaPeakPagedPoolUsage;         // The peak quota charged to the process for pool usage, in bytes.
     SIZE_T QuotaPagedPoolUsage;             // The quota charged to the process for paged pool usage, in bytes.
     SIZE_T QuotaPeakNonPagedPoolUsage;      // The peak quota charged to the process for nonpaged pool usage, in bytes.
     SIZE_T QuotaNonPagedPoolUsage;          // The current quota charged to the process for nonpaged pool usage.
-    SIZE_T PagefileUsage;                   // The PagefileUsage member contains the number of bytes of page file storage in use by the process.
+    SIZE_T PagefileUsage;                   // The total number of bytes of page file storage in use by the process.
     SIZE_T PeakPagefileUsage;               // The maximum number of bytes of page-file storage used by the process.
     SIZE_T PrivatePageCount;                // The number of memory pages allocated for the use by the process.
     LARGE_INTEGER ReadOperationCount;       // The total number of read operations performed.
@@ -2338,41 +2344,41 @@ typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
 
 typedef struct _SYSTEM_EXTENDED_PROCESS_INFORMATION
 {
-    ULONG NextEntryOffset;
-    ULONG NumberOfThreads;
-    ULONGLONG WorkingSetPrivateSize; // since VISTA
-    ULONG HardFaultCount; // since WIN7
-    ULONG NumberOfThreadsHighWatermark;
-    ULONGLONG CycleTime;
-    ULONGLONG CreateTime;
-    ULONGLONG UserTime;
-    ULONGLONG KernelTime;
-    UNICODE_STRING ImageName;
-    KPRIORITY BasePriority;
-    HANDLE UniqueProcessId;
-    HANDLE InheritedFromUniqueProcessId;
-    ULONG HandleCount;
-    ULONG SessionId;
-    HANDLE UniqueProcessKey; // since VISTA
-    SIZE_T PeakVirtualSize;
-    SIZE_T VirtualSize;
-    ULONG PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PeakPagefileUsage;
-    SIZE_T PrivatePageCount;
-    ULONGLONG ReadOperationCount;
-    ULONGLONG WriteOperationCount;
-    ULONGLONG OtherOperationCount;
-    ULONGLONG ReadTransferCount;
-    ULONGLONG WriteTransferCount;
-    ULONGLONG OtherTransferCount;
-    SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1];
+    ULONG NextEntryOffset;                  // The address of the previous item plus the value in the NextEntryOffset member. For the last item in the array, NextEntryOffset is 0.
+    ULONG NumberOfThreads;                  // The NumberOfThreads member contains the number of threads in the process.
+    ULONGLONG WorkingSetPrivateSize;        // The total private memory that a process currently has allocated and is physically resident in memory. // since VISTA
+    ULONG HardFaultCount;                   // The total number of hard faults for data from disk rather than from in-memory pages. // since WIN7
+    ULONG NumberOfThreadsHighWatermark;     // The peak number of threads that were running at any given point in time, indicative of potential performance bottlenecks related to thread management.
+    ULONGLONG CycleTime;                    // The sum of the cycle time of all threads in the process.
+    ULONGLONG CreateTime;                   // Number of 100-nanosecond intervals since the creation time of the process. Not updated during system timezone changes.
+    ULONGLONG UserTime;                     // Number of 100-nanosecond intervals the process has executed in user mode.
+    ULONGLONG KernelTime;                   // Number of 100-nanosecond intervals the process has executed in kernel mode.
+    UNICODE_STRING ImageName;               // The file name of the executable image.
+    KPRIORITY BasePriority;                 // The starting priority of the process.
+    HANDLE UniqueProcessId;                 // The identifier of the process.
+    HANDLE InheritedFromUniqueProcessId;    // The identifier of the process that created this process. Not updated and incorrectly refers to processes with recycled identifiers. 
+    ULONG HandleCount;                      // The current number of open handles used by the process.
+    ULONG SessionId;                        // The identifier of the Remote Desktop Services session under which the specified process is running. 
+    HANDLE UniqueProcessKey;                // since VISTA (requires SystemExtendedProcessInformation)
+    SIZE_T PeakVirtualSize;                 // The peak size, in bytes, of the virtual memory used by the process.
+    SIZE_T VirtualSize;                     // The current size, in bytes, of virtual memory used by the process.
+    ULONG PageFaultCount;                   // The total number of page faults for data that is not currently in memory. The value wraps around to zero on average 24 hours.
+    SIZE_T PeakWorkingSetSize;              // The peak size, in kilobytes, of the working set of the process.
+    SIZE_T WorkingSetSize;                  // The number of pages visible to the process in physical memory. These pages are resident and available for use without triggering a page fault.
+    SIZE_T QuotaPeakPagedPoolUsage;         // The peak quota charged to the process for pool usage, in bytes.
+    SIZE_T QuotaPagedPoolUsage;             // The quota charged to the process for paged pool usage, in bytes.
+    SIZE_T QuotaPeakNonPagedPoolUsage;      // The peak quota charged to the process for nonpaged pool usage, in bytes.
+    SIZE_T QuotaNonPagedPoolUsage;          // The current quota charged to the process for nonpaged pool usage.
+    SIZE_T PagefileUsage;                   // The total number of bytes of page file storage in use by the process.
+    SIZE_T PeakPagefileUsage;               // The maximum number of bytes of page-file storage used by the process.
+    SIZE_T PrivatePageCount;                // The number of memory pages allocated for the use by the process.
+    ULONGLONG ReadOperationCount;           // The total number of read operations performed.
+    ULONGLONG WriteOperationCount;          // The total number of write operations performed.
+    ULONGLONG OtherOperationCount;          // The total number of I/O operations performed other than read and write operations.
+    ULONGLONG ReadTransferCount;            // The total number of bytes read during a read operation.
+    ULONGLONG WriteTransferCount;           // The total number of bytes written during a write operation.
+    ULONGLONG OtherTransferCount;           // The total number of bytes transferred during operations other than read and write operations.
+    SYSTEM_THREAD_INFORMATION Threads[1];   // This type is not defined in the structure but was added for convenience.
     // SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
 } SYSTEM_EXTENDED_PROCESS_INFORMATION, *PSYSTEM_EXTENDED_PROCESS_INFORMATION;
 
@@ -5663,6 +5669,8 @@ NtQuerySystemInformation(
  * The NtQuerySystemInformationEx routine queries information about the system.
  *
  * @param SystemInformationClass The type of information to be retrieved.
+ * @param InputBuffer Pointer to a caller-allocated input buffer that contains class-specific information.
+ * @param InputBufferLength The size of the buffer pointed to by InputBuffer.
  * @param SystemInformation A pointer to a buffer that receives the requested information.
  * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
  * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
@@ -5688,7 +5696,6 @@ NtQuerySystemInformationEx(
  * @param SystemInformationClass The type of information to be set.
  * @param SystemInformation A pointer to a buffer that receives the requested information.
  * @param SystemInformationLength The size of the buffer pointed to by SystemInformation.
- * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -5771,14 +5778,14 @@ typedef struct _SYSDBG_CONTROL_SPACE
     ULONG Processor;
 } SYSDBG_CONTROL_SPACE, *PSYSDBG_CONTROL_SPACE;
 
-enum _INTERFACE_TYPE;
+typedef enum _INTERFACE_TYPE INTERFACE_TYPE;
 
 typedef struct _SYSDBG_IO_SPACE
 {
     ULONG64 Address;
     PVOID Buffer;
     ULONG Request;
-    enum _INTERFACE_TYPE InterfaceType;
+    INTERFACE_TYPE InterfaceType;
     ULONG BusNumber;
     ULONG AddressSpace;
 } SYSDBG_IO_SPACE, *PSYSDBG_IO_SPACE;
@@ -5789,14 +5796,14 @@ typedef struct _SYSDBG_MSR
     ULONG64 Data;
 } SYSDBG_MSR, *PSYSDBG_MSR;
 
-enum _BUS_DATA_TYPE;
+typedef enum _BUS_DATA_TYPE BUS_DATA_TYPE;
 
 typedef struct _SYSDBG_BUS_DATA
 {
     ULONG Address;
     PVOID Buffer;
     ULONG Request;
-    enum _BUS_DATA_TYPE BusDataType;
+    BUS_DATA_TYPE BusDataType;
     ULONG BusNumber;
     ULONG SlotNumber;
 } SYSDBG_BUS_DATA, *PSYSDBG_BUS_DATA;
