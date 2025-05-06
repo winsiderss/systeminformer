@@ -5865,9 +5865,9 @@ RtlWalkHeap(
 
 typedef enum _HEAP_COMPATIBILITY_MODE
 {
-    HEAP_COMPATIBILITY_STANDARD = 0UL,
-    HEAP_COMPATIBILITY_LAL = 1UL,
-    HEAP_COMPATIBILITY_LFH = 2UL,
+    HEAP_COMPATIBILITY_MODE_STANDARD = 0UL,
+    HEAP_COMPATIBILITY_MODE_LAL = 1UL, // Lookaside list heap (LAL) compatibility mode.
+    HEAP_COMPATIBILITY_MODE_LFH = 2UL, // Low-fragmentation heap (LFH) compatibility mode.
 } HEAP_COMPATIBILITY_MODE;
 
 typedef struct _RTLP_TAG_INFO
