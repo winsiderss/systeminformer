@@ -1256,21 +1256,69 @@ typedef struct _TEB
     //
     PSOleTlsData ReservedForOle;
 
+    //
+    // Indicates whether the thread is waiting on the loader lock.
+    //
     ULONG WaitingOnLoaderLock;
+
+    //
+    // The saved priority state for the thread.
+    //
     PVOID SavedPriorityState;
+
+    //
+    // Reserved.
+    //
     ULONG_PTR ReservedForCodeCoverage;
+
+    //
+    // Reserved.
+    //
     PVOID ThreadPoolData;
+
+    //
+    // Pointer to the TLS (Thread Local Storage) expansion slots for the thread.
+    //
     PVOID *TlsExpansionSlots;
+
 #ifdef _WIN64
     PVOID ChpeV2CpuAreaInfo; // CHPEV2_CPUAREA_INFO // previously DeallocationBStore
     PVOID Unused; // previously BStoreLimit
 #endif
+
+    //
+    // The generation of the MUI (Multilingual User Interface) data.
+    //
     ULONG MuiGeneration;
+
+    //
+    // Indicates whether the thread is impersonating another security context.
+    //
     ULONG IsImpersonating;
+
+    //
+    // Pointer to the NLS (National Language Support) cache.
+    //
     PVOID NlsCache;
+
+    //
+    // Pointer to the AppCompat/Shim Engine data.
+    //
     PVOID pShimData;
+
+    //
+    // Reserved.
+    //
     ULONG HeapData;
+
+    //
+    // Handle to the current transaction associated with the thread.
+    //
     HANDLE CurrentTransactionHandle;
+
+    //
+    // Pointer to the active frame for the thread.
+    //
     PTEB_ACTIVE_FRAME ActiveFrame;
 
     //
@@ -1321,12 +1369,40 @@ typedef struct _TEB
     PVOID ReservedForWdf;
     ULONGLONG ReservedForCrt;
     GUID EffectiveContainerId;
+
+    //
+    // Reserved for Kernel32!Sleep (SpinWait).
+    //
     ULONGLONG LastSleepCounter; // Win11
+
+    //
+    // Reserved for Kernel32!Sleep (SpinWait).
+    //
     ULONG SpinCallCount;
+
+    //
+    // Extended feature disable mask (AVX).
+    //
     ULONGLONG ExtendedFeatureDisableMask;
+
+    //
+    // Reserved.
+    //
     PVOID SchedulerSharedDataSlot; // 24H2
+
+    //
+    // Reserved.
+    //
     PVOID HeapWalkContext;
+
+    //
+    // The primary processor group affinity of the thread.
+    //
     GROUP_AFFINITY PrimaryGroupAffinity;
+
+    //
+    // Read-copy-update (RCU) synchronization context.
+    //
     ULONG Rcu[2];
 } TEB, *PTEB;
 
