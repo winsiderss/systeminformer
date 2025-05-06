@@ -125,6 +125,12 @@ NTSTATUS PhSvcApiRequestThreadStart(
     receiveMessage = PhAllocatePageZero(messageSize);
     replyMessage = NULL;
 
+    if (!receiveMessage)
+    {
+        PhDeleteAutoPool(&autoPool);
+        return STATUS_NO_MEMORY;
+    }
+
     while (TRUE)
     {
         status = NtReplyWaitReceivePort(

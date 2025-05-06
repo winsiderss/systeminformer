@@ -4717,6 +4717,7 @@ ULONG CALLBACK PhpCmNotifyCallback(
     return ERROR_SUCCESS;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ServiceProviderUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -734,7 +734,7 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     SID_NAME_USE sidUse;
     LONG ItemIndex;
 
-    ItemIndex= PhFindListViewItemByParam(
+    ItemIndex = PhFindListViewItemByParam(
         context->ListViewHandle,
         INT_ERROR,
         context->LvItem
@@ -970,10 +970,10 @@ BOOLEAN PhpUpdateTokenPrivileges(
         PPH_STRING privilegeName;
         PPH_STRING privilegeDisplayName;
 
-        if (PhLookupPrivilegeName(
+        if (NT_SUCCESS(PhLookupPrivilegeName(
             &privileges->Privileges[i].Luid,
             &privilegeName
-            ))
+            )))
         {
             PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
             LONG itemIndex;
@@ -1553,7 +1553,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             PPH_STRING privilegeName = NULL;
                             ULONG newAttributes = listViewItems[i]->TokenPrivilege->Attributes;
 
-                            if (PhLookupPrivilegeName(&listViewItems[i]->TokenPrivilege->Luid, &privilegeName))
+                            if (NT_SUCCESS(PhLookupPrivilegeName(&listViewItems[i]->TokenPrivilege->Luid, &privilegeName)))
                             {
                                 PH_AUTO(privilegeName);
                             }

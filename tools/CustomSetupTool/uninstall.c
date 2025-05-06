@@ -38,8 +38,8 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     // Remove the previous installation.
     if (!NT_SUCCESS(PhDeleteDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
-        static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
-        static PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
+        static CONST PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
+        static CONST PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
         PPH_STRING ksiFile;
         PPH_STRING ksiOldFile;
 

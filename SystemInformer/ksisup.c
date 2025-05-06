@@ -74,6 +74,78 @@ PPH_STRING KsiGetKernelFileName(
     return NULL;
 }
 
+PCWSTR KsiGetWindowsVersionString(
+    VOID
+    )
+{
+    switch (WindowsVersion)
+    {
+    case WINDOWS_7:
+        return L"Windows 7";
+    case WINDOWS_8:
+        return L"Windows 8";
+    case WINDOWS_8_1:
+        return L"Windows 8.1";
+    case WINDOWS_10:
+        return L"Windows 10 RTM";
+    case WINDOWS_10_TH2:
+        return L"Windows 10 TH2";
+    case WINDOWS_10_RS1:
+        return L"Windows 10 RS1";
+    case WINDOWS_10_RS2:
+        return L"Windows 10 RS2";
+    case WINDOWS_10_RS3:
+        return L"Windows 10 RS3";
+    case WINDOWS_10_RS4:
+        return L"Windows 10 RS4";
+    case WINDOWS_10_RS5:
+        return L"Windows 10 RS5";
+    case WINDOWS_10_19H1:
+        return L"Windows 10 19H1";
+    case WINDOWS_10_19H2:
+        return L"Windows 10 19H2";
+    case WINDOWS_10_20H1:
+        return L"Windows 10 20H1";
+    case WINDOWS_10_20H2:
+        return L"Windows 10 20H2";
+    case WINDOWS_10_21H1:
+        return L"Windows 10 21H1";
+    case WINDOWS_10_21H2:
+        return L"Windows 10 21H2";
+    case WINDOWS_10_22H2:
+        return L"Windows 10 22H2";
+    case WINDOWS_11:
+        return L"Windows 11";
+    case WINDOWS_11_22H2:
+        return L"Windows 11 22H2";
+    case WINDOWS_11_23H2:
+        return L"Windows 11 23H2";
+    case WINDOWS_11_24H2:
+        return L"Windows 11 24H2";
+    case WINDOWS_NEW:
+        return L"Windows Insider Preview";
+    }
+
+    static_assert(WINDOWS_MAX == WINDOWS_11_24H2, "KsiGetWindowsVersionString must include all versions");
+
+    return L"Windows";
+}
+
+PPH_STRING KsiGetWindowsBuildString(
+    VOID
+    )
+{
+    PH_FORMAT format[5];
+
+    PhInitFormatU(&format[0], PhOsVersion.MajorVersion);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], PhOsVersion.MinorVersion);
+    PhInitFormatC(&format[3], L'.');
+    PhInitFormatU(&format[4], PhOsVersion.BuildNumber);
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 PPH_STRING KsiGetKernelVersionString(
     VOID
     )
@@ -243,6 +315,7 @@ PPH_STRING PhpGetKsiMessage(
     _In_ va_list ArgPtr
     )
 {
+    PPH_STRING buildString;
     PPH_STRING versionString;
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
@@ -251,12 +324,12 @@ PPH_STRING PhpGetKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
+    buildString = KsiGetWindowsBuildString();
     versionString = PhGetApplicationVersionString(FALSE);
     kernelVersion = KsiGetKernelVersionString();
     errorMessage = NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
-
     PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
     PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
 
@@ -293,8 +366,8 @@ PPH_STRING PhpGetKsiMessage(
     PhAppendFormatStringBuilder(
         &stringBuilder,
         L"%ls %ls\r\n",
-        WindowsVersionName,
-        WindowsVersionString
+        KsiGetWindowsVersionString(),
+        PhGetString(buildString)
         );
 
     PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
@@ -326,7 +399,8 @@ PPH_STRING PhpGetKsiMessage(
 
     PhClearReference(&errorMessage);
     PhClearReference(&kernelVersion);
-    PhDereferenceObject(versionString);
+    PhClearReference(&versionString);
+    PhClearReference(&buildString);
 
     return messageString;
 }
@@ -1193,6 +1267,7 @@ CleanupExit:
 #endif
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS KsiInitializeCallbackThread(
     _In_opt_ PVOID CallbackContext
     )

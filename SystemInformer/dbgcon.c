@@ -598,6 +598,7 @@ VOID FASTCALL PhfReleaseCriticalSection(
     RtlLeaveCriticalSection(CriticalSection);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpDebugConsoleThreadStart(
     _In_ PVOID Parameter
     )
@@ -611,7 +612,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhLoadSymbolProviderOptions(DebugConsoleSymbolProvider);
 
     {
-        static PH_STRINGREF variableNameSr = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+        static CONST PH_STRINGREF variableNameSr = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
         PPH_STRING variableValue;
         PPH_STRING newSearchPath;
 

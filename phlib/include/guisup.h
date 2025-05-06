@@ -2310,7 +2310,7 @@ PhLoadDividerCursor(
     );
 
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhIsInteractiveUserSession(
     VOID

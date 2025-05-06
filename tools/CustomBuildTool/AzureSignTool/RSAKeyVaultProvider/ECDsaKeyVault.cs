@@ -157,7 +157,6 @@ namespace CustomBuildTool
         public new void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         /// <inheritdoc/>
@@ -174,6 +173,7 @@ namespace CustomBuildTool
 
             disposed = true;
             base.Dispose(disposing);
+            GC.SuppressFinalize(this);
         }
     }
 }

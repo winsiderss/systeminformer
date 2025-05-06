@@ -233,6 +233,7 @@ BOOLEAN PhpIsVerboseBestObjectName(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpShowHandlePropertiesThread(
     _In_ PVOID Parameter
     )

@@ -2425,6 +2425,7 @@ NTSTATUS PhpRunFileProgram(
     return status;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS RunAsCreateProcessThread(
     _In_ PVOID Parameter
     )

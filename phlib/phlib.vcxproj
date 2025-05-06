@@ -189,6 +189,8 @@
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
+    <ClCompile Include="nativefile.c" />
+    <ClCompile Include="nativeprocess.c" />
     <ClCompile Include="nativesocket.c" />
     <ClCompile Include="nativeflt.c" />
     <ClCompile Include="nativepipe.c" />

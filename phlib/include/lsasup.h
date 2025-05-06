@@ -33,27 +33,24 @@ PhGetLookupPolicyHandle(
     VOID
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLookupPrivilegeName(
     _In_ PLUID PrivilegeValue,
     _Out_ PPH_STRING *PrivilegeName
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLookupPrivilegeDisplayName(
     _In_ PPH_STRINGREF PrivilegeName,
     _Out_ PPH_STRING *PrivilegeDisplayName
     );
 
-_Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhLookupPrivilegeValue(
     _In_ PPH_STRINGREF PrivilegeName,

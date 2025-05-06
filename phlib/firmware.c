@@ -385,7 +385,6 @@ NTSTATUS PhpEnumSMBIOS(
     PSMBIOS_HEADER next;
 
     memset(&context, 0, sizeof(context));
-
     context.Data = Data;
     context.End = PTR_ADD_OFFSET(Data->SMBIOSTableData, Data->Length);
 
@@ -424,7 +423,8 @@ NTSTATUS PhEnumSMBIOS(
 
     length = (ULONG)ReadAcquire((volatile LONG*)&cachedLength);
 
-    info = PhAllocateZero(length);
+    if (!(info = PhAllocatePageZero(length)))
+        return STATUS_NO_MEMORY;
 
     info->ProviderSignature = 'RSMB';
     info->TableID = 0;
@@ -437,10 +437,13 @@ NTSTATUS PhEnumSMBIOS(
         length,
         &length
         );
+
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFree(info);
-        info = PhAllocateZero(length);
+        PhFreePage(info);
+
+        if (!(info = PhAllocatePageZero(length)))
+            return STATUS_NO_MEMORY;
 
         info->ProviderSignature = 'RSMB';
         info->TableID = 0;
@@ -453,8 +456,11 @@ NTSTATUS PhEnumSMBIOS(
             length,
             &length
             );
+
         if (NT_SUCCESS(status))
+        {
             WriteRelease((volatile LONG*)&cachedLength, (LONG)length);
+        }
     }
 
     if (NT_SUCCESS(status))
@@ -466,7 +472,7 @@ NTSTATUS PhEnumSMBIOS(
             );
     }
 
-    PhFree(info);
+    PhFreePage(info);
 
     return status;
 }

@@ -714,6 +714,7 @@ static VOID PhpRefreshJobStatisticsInfo(
         NtClose(jobHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

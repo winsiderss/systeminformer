@@ -94,7 +94,6 @@ PVOID PhAllocateForMemorySearch(
     _In_ SIZE_T Size
     )
 {
-    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     PVOID memory;
 
     PhAcquireQueuedLockExclusive(&PhMemorySearchHeapLock);
@@ -114,10 +113,11 @@ PVOID PhAllocateForMemorySearch(
 
     if (PhMemorySearchHeap)
     {
+        const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
         RtlSetHeapInformation(
             PhMemorySearchHeap,
             HeapCompatibilityInformation,
-            &heapCompatibility,
+            &defaultHeapCompatibilityMode,
             sizeof(ULONG)
             );
 
@@ -500,6 +500,7 @@ static VOID NTAPI PhpMemoryStringResultCallback(
         PhAddItemList(context->Results, Result);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpMemoryStringThreadStart(
     _In_ PVOID Parameter
     )

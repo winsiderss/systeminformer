@@ -19,11 +19,9 @@ extern "C" {
 
 EXTERN_C PVOID PhInstanceHandle;
 EXTERN_C PCWSTR PhApplicationName;
-EXTERN_C PVOID PhHeapHandle;
-EXTERN_C RTL_OSVERSIONINFOEXW PhOsVersion;
+EXTERN_C HANDLE PhHeapHandle;
+EXTERN_C RTL_OSVERSIONINFOEX PhOsVersion;
 EXTERN_C ULONG WindowsVersion;
-EXTERN_C PCWSTR WindowsVersionString;
-EXTERN_C PCWSTR WindowsVersionName;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
@@ -50,6 +48,7 @@ EXTERN_C PCWSTR WindowsVersionName;
 #define WINDOWS_11_22H2 115 // September, 2022  // Build 22621
 #define WINDOWS_11_23H2 116 // October, 2023    // Build 22631
 #define WINDOWS_11_24H2 117 // October, 2024    // Build 26100
+#define WINDOWS_MAX WINDOWS_11_24H2
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG

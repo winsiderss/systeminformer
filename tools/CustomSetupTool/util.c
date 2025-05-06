@@ -27,16 +27,16 @@
 #error PH_RELEASE_CHANNEL_ID undefined
 #endif
 
-PH_STRINGREF UninstallKeyNames[] =
+CONST PH_STRINGREF UninstallKeyNames[] =
 {
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Preview"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Canary"),
     PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer-Developer"),
 };
-PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
-PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
-PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+CONST PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
+CONST PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 
 VOID SetupDeleteUninstallKey(
     VOID
@@ -134,8 +134,8 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        static PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
-        static PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
+        static CONST PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
+        static CONST PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
         SYSTEM_INFO info;
 
         GetNativeSystemInfo(&info);
@@ -433,7 +433,7 @@ BOOLEAN NTAPI SetupDeleteAutoRunKeyCallback(
 {
     if (Information->Type == REG_SZ)
     {
-        static PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
         PH_STRINGREF value;
 
         value.Length = Information->DataLength;
@@ -968,6 +968,7 @@ PPH_STRING GetApplicationInstallPath(
     return installPath;
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF Name,

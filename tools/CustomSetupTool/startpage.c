@@ -47,6 +47,7 @@ VOID SetupShowBrowseDialog(
     }
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,

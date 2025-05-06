@@ -3755,6 +3755,7 @@ VOID PhUiNavigateServiceErrorDialogPageFromThread(
     PostMessage(Context->WindowHandle, WM_PHSVC_ERROR, 0, 0);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpUiServicePendingStartCallback(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -4154,6 +4155,7 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
     return S_OK;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhShowServiceProgressDialogThread(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )

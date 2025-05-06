@@ -331,6 +331,7 @@ PhGetProcessDeviceMap(
 /** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {
+    PhpoNone,
     PhpoCurrentDirectory,
     PhpoDllPath,
     PhpoImagePathName,
@@ -3784,6 +3785,18 @@ PhQueryProcessLockInformation(
     _In_ HANDLE ProcessId,
     _Out_ PULONG NumberOfLocks,
     _Out_ PRTL_PROCESS_LOCK_INFORMATION* Locks
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryVolumeInformationFile(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
 PHLIBAPI

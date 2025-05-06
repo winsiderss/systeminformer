@@ -287,6 +287,7 @@ VOID PhpMemoryItemDeleteProcedure(
     }
 }
 
+_Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 static LONG NTAPI PhpMemoryItemCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2

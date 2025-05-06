@@ -404,41 +404,36 @@ namespace CustomBuildTool
 
         public static bool BuildValidateExportDefinitions(BuildFlags Flags)
         {
-            string[] Build_Wow64_Files =
-            [
-                "SystemInformer.exe",
-            ];
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Validating exports...", ConsoleColor.Cyan);
 
-            foreach (string file in Build_Wow64_Files)
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                if (Flags.HasFlag(BuildFlags.Build64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
-                            return false;
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Debug32\\{file}"))
-                            return false;
-                    }
+                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
+                        return false;
                 }
 
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
-                            return false;
-                    }
+                    if (!Utils.ValidateImageExports($"bin\\Debug32\\SystemInformer.exe"))
+                        return false;
+                }
+            }
 
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (!Utils.ValidateImageExports($"bin\\Release32\\{file}"))
-                            return false;
-                    }
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
+                        return false;
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (!Utils.ValidateImageExports($"bin\\Release32\\SystemInformer.exe"))
+                        return false;
                 }
             }
 
@@ -481,10 +476,10 @@ namespace CustomBuildTool
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
             string[] Build_Driver_Files =
-            {
+            [
                 "SystemInformer.sys",
-                "ksi.dll",
-            };
+                "ksi.dll"
+            ];
 
             try
             {
@@ -613,7 +608,7 @@ namespace CustomBuildTool
             // Copy the resource header and prefix types with PHAPP
             {
                 Win32.GetFileTime("SystemInformer\\resource.h", out var sourceCreationTime, out var sourceWriteTime);
-                Win32.GetFileTime("sdk\\include\\phappresource.h", out var destCreationTime, out var destWriteTime);
+                Win32.GetFileTime("sdk\\include\\phappresource.h", out _, out var destWriteTime);
 
                 if (sourceCreationTime != sourceWriteTime || sourceWriteTime != destWriteTime)
                 {
@@ -919,20 +914,16 @@ namespace CustomBuildTool
 
         private static bool MsbuildCommand(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
-            int errorcode;
-            string errorstring;
-            string buildCommandLine;
-
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Platform, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-            buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
+            string buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
             if (Build.BuildRedirectOutput)
             {
-                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring);
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out string errorstring);
 
                 if (errorcode != 0)
                 {
@@ -942,7 +933,7 @@ namespace CustomBuildTool
             }
             else
             {
-                errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out errorstring, false);
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out _, false);
 
                 if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
                 {
@@ -1175,7 +1166,7 @@ namespace CustomBuildTool
             //if (!GithubReleases.DeleteRelease(Build.BuildLongVersion))
             //    return null;
 
-            GithubRelease mirror = null;
+            GithubRelease mirror;
 
             try
             {

@@ -4648,7 +4648,7 @@ HCURSOR PhLoadDividerCursor(
     return dividerCursorHandle;
 }
 
-BOOLEAN PhIsInteractiveUserSession(
+NTSTATUS PhIsInteractiveUserSession(
     VOID
     )
 {
@@ -4665,10 +4665,12 @@ BOOLEAN PhIsInteractiveUserSession(
         ))
     {
         if (BooleanFlagOn(flags.dwFlags, WSF_VISIBLE))
-            return TRUE;
+            return STATUS_SUCCESS;
+
+        return STATUS_NOT_GUI_PROCESS;
     }
 
-    return FALSE;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 PPH_STRING PhGetCurrentWindowStationName(

@@ -430,13 +430,7 @@ namespace CustomBuildTool
                 &sourceFile
                 ))
             {
-                NativeMethods.LARGE_INTEGER fileSize;
-
-                fileSize.QuadPart = 0;
-                fileSize.LowPart = sourceFile.nFileSizeLow;
-                fileSize.HighPart = sourceFile.nFileSizeHigh;
-
-                return fileSize.QuadPart;
+                return (ulong)sourceFile.nFileSizeHigh << 32 | (ulong)sourceFile.nFileSizeLow;
             }
 
             return 0;

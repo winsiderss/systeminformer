@@ -1511,6 +1511,7 @@ INT_PTR CALLBACK PhpMemoryStringsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -1537,11 +1538,6 @@ NTSTATUS NTAPI PhpShowMemoryStringDialogThreadStart(
     {
         if (result == INT_ERROR)
             break;
-
-        if (message.message == WM_KEYDOWN)
-        {
-            CallWindowProc(PhpMemoryStringsDlgProc, windowHandle, message.message, message.wParam, message.lParam);
-        }
 
         if (!IsDialogMessage(windowHandle, &message))
         {

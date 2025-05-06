@@ -337,42 +337,6 @@ namespace CustomBuildTool
             return list;
         }
 
-        public static string GetWindowsSdkIncludePath()
-        {
-            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
-            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\Include"]));
-
-            if (Directory.Exists(kitsPath))
-            {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
-
-                foreach (string path in windowsKitsDirectory)
-                {
-                    string name = Path.GetFileName(path);
-
-                    if (Version.TryParse(name, out var version))
-                    {
-                        versionList.Add(new KeyValuePair<Version, string>(version, path));
-                    }
-                }
-
-                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
-
-                if (versionList.Count > 0)
-                {
-                    var result = versionList[versionList.Count - 1];
-
-                    if (!string.IsNullOrWhiteSpace(result.Value))
-                    {
-                        return result.Value;
-                    }
-                }
-            }
-
-            return null;
-        }
-
         public static string GetWindowsSdkPath()
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
@@ -745,13 +709,13 @@ namespace CustomBuildTool
 
             try
             {
-                if (!PInvoke.MapAndLoad(FileName, null, out LOADED_IMAGE LoadedImage, false, true))
+                if (!PInvoke.MapAndLoad(FileName, null, out loadedMappedImage, false, true))
                     return false;
 
                 try
                 {
                     exportDirectory = (IMAGE_EXPORT_DIRECTORY*)PInvoke.ImageDirectoryEntryToData(
-                        LoadedImage.MappedAddress, false,
+                        loadedMappedImage.MappedAddress, false,
                         IMAGE_DIRECTORY_ENTRY.IMAGE_DIRECTORY_ENTRY_EXPORT, out uint DirectorySize
                         );
 
@@ -762,11 +726,11 @@ namespace CustomBuildTool
 
                         Program.PrintColorMessage("Exported functions missing from module export definition file: ", ConsoleColor.Yellow);
 
-                        uint* exportNameTable = (uint*)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportDirectory->AddressOfNames, null);
+                        uint* exportNameTable = (uint*)PInvoke.ImageRvaToVa(loadedMappedImage.FileHeader, loadedMappedImage.MappedAddress, exportDirectory->AddressOfNames, null);
 
                         for (uint i = 0; i < exportDirectory->NumberOfNames; i++)
                         {
-                            var exportName = Marshal.PtrToStringUTF8((nint)PInvoke.ImageRvaToVa(LoadedImage.FileHeader, LoadedImage.MappedAddress, exportNameTable[i], null));
+                            var exportName = Marshal.PtrToStringUTF8((nint)PInvoke.ImageRvaToVa(loadedMappedImage.FileHeader, loadedMappedImage.MappedAddress, exportNameTable[i], null));
 
                             Program.PrintColorMessage($"{i}: {exportName}", ConsoleColor.Yellow);
                         }
@@ -838,7 +802,7 @@ namespace CustomBuildTool
         [JsonPropertyName("upload_url")] public string UploadUrl { get; init; }
         [JsonPropertyName("html_url")] public string HtmlUrl { get; init; }
         [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; init; }
-        [JsonIgnore] public string ReleaseId { get { return this.ID.ToString(); } }
+        [JsonIgnore] public string ReleaseId => this.ID.ToString();
 
         public override string ToString()
         {
@@ -855,13 +819,7 @@ namespace CustomBuildTool
         [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; init; }
 
         [JsonIgnore]
-        public bool Uploaded
-        {
-            get
-            {
-                return !string.IsNullOrWhiteSpace(this.State) && string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);
-            }
-        }
+        public bool Uploaded => string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);
 
         public override string ToString()
         {
@@ -1170,7 +1128,6 @@ namespace CustomBuildTool
     {
 
     }
-    
 
     public static class Extextensions
     {

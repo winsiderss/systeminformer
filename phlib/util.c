@@ -97,7 +97,7 @@ VOID PhAdjustRectangleToWorkingArea(
     )
 {
     HMONITOR monitor;
-    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    MONITORINFO monitorInfo;
 
     if (WindowHandle)
     {
@@ -110,6 +110,9 @@ VOID PhAdjustRectangleToWorkingArea(
         PhRectangleToRect(&rect, Rectangle);
         monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
     }
+
+    RtlZeroMemory(&monitorInfo, sizeof(MONITORINFO));
+    monitorInfo.cbSize = sizeof(MONITORINFO);
 
     if (GetMonitorInfo(monitor, &monitorInfo))
     {
@@ -153,7 +156,10 @@ VOID PhCenterWindow(
     }
     else
     {
-        MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+        MONITORINFO monitorInfo;
+
+        RtlZeroMemory(&monitorInfo, sizeof(MONITORINFO));
+        monitorInfo.cbSize = sizeof(MONITORINFO);
 
         if (GetMonitorInfo(
             MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST),
@@ -773,7 +779,7 @@ LONG PhShowMessage2(
     ULONG result;
     va_list argptr;
     PPH_STRING message;
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    TASKDIALOGCONFIG config;
     ULONG buttonsFlags;
 
     va_start(argptr, Format);
@@ -791,6 +797,8 @@ LONG PhShowMessage2(
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
 
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = buttonsFlags;
     config.hwndParent = WindowHandle;
@@ -829,7 +837,7 @@ BOOLEAN PhpShowMessageOneTime(
 {
     ULONG result;
     PPH_STRING message;
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    TASKDIALOGCONFIG config;
     BOOLEAN checked = FALSE;
     ULONG buttonsFlags;
 
@@ -852,6 +860,8 @@ BOOLEAN PhpShowMessageOneTime(
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
 
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = buttonsFlags;
     config.hwndParent = WindowHandle;
@@ -1627,7 +1637,7 @@ PPH_STRING PhEscapeStringForMenuPrefix(
     SIZE_T i;
     SIZE_T length;
     PWCHAR runStart;
-    SIZE_T runCount;
+    SIZE_T runCount = 0;
 
     length = String->Length / sizeof(WCHAR);
     runStart = NULL;
@@ -2324,7 +2334,7 @@ NTSTATUS PhFormatGuidToBuffer(
     {
         if (WindowsVersion >= WINDOWS_10)
         {
-            RtlStringFromGUIDEx_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlStringFromGUIDEx", 0);
+            RtlStringFromGUIDEx_I = PhGetDllProcedureAddress(RtlNtdllName, "RtlStringFromGUIDEx", 0);
         }
 
         PhEndInitOnce(&initOnce);
@@ -2584,11 +2594,10 @@ ULONG PhGetFileVersionInfoLangCodePage(
     _In_ PVOID VersionInfo
     )
 {
-    static CONST PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
     PLANGANDCODEPAGE codePage;
     ULONG codePageLength;
 
-    if (PhGetFileVersionVarFileInfoValue(VersionInfo, &translationName, &codePage, &codePageLength))
+    if (PhGetFileVersionVarFileInfoValueZ(VersionInfo, L"Translation", &codePage, &codePageLength))
     {
         //for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
         return ((ULONG)codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
@@ -2623,8 +2632,7 @@ PPH_STRING PhGetFileVersionInfoString(
     {
         PPH_STRING string;
 
-        // Check if the string has a valid length.
-        if (length <= sizeof(UNICODE_NULL))
+        if (!(length & 1) || length <= sizeof(UNICODE_NULL)) // validate the string length
             return NULL;
 
         string = PhCreateStringEx(buffer, length * sizeof(WCHAR));
@@ -3577,6 +3585,9 @@ PPH_STRING PhGetWindowsDirectoryWin32(
     return PhCreateString2(&systemRoot);
 }
 
+/**
+ * Retrieves the native file name of the current process image.
+ */
 PPH_STRING PhGetApplicationFileName(
     VOID
     )
@@ -3610,6 +3621,7 @@ PPH_STRING PhGetApplicationFileName(
         }
     }
 
+    // Update the cached file name with atomic semantics (dmex)
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
         fileName,
@@ -3638,7 +3650,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
         return PhReferenceObject(fileName);
     }
 
-    if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+    if (fileName = PhGetDllFileName(NtCurrentImageBase(), NULL))
     {
         if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &string, NULL)))
         {
@@ -5318,7 +5330,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
 
-            newDacl = PhAllocate(newDaclLength);
+            newDacl = PhAllocateZero(newDaclLength);
             PhCreateAcl(newDacl, newDaclLength, ACL_REVISION);
 
             // Add the existing DACL entries.
@@ -5332,14 +5344,17 @@ NTSTATUS PhFilterTokenForLimitedUser(
             }
 
             // Allow access for the current user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, GENERIC_ALL, currentUser.User.Sid);
+
+            PhAddAccessAllowedAce(newDacl, ACL_REVISION, GENERIC_ALL, currentUser.User.Sid);
 
             // Set the security descriptor of the new token.
 
             PhCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 
             if (NT_SUCCESS(PhSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
+            {
                 PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
+            }
 
             // Set the default DACL.
 
@@ -5408,7 +5423,8 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
         securityDescriptorLength
         )
     {
-        //assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
+        assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
+
         securityDescriptor = PhAllocateCopy(
             securityDescriptorBuffer,
             securityDescriptorLength
@@ -7764,6 +7780,7 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
+#ifdef DEBUG
         UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
         PSID administratorsSid = PhSeAdministratorsSid();
         UNICODE_STRING objectName;
@@ -7804,7 +7821,6 @@ HANDLE PhGetNamespaceHandle(
 
         NtCreateDirectoryObject(&directoryHandle, MAXIMUM_ALLOWED, &objectAttributes);
 
-#ifdef DEBUG
         assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
         assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif

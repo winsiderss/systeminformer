@@ -83,7 +83,7 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 
     entry->Process.ParentProcessId = ParentProcessId;
 
-    if (ParentName)
+    if (!PhIsNullOrEmptyString(ParentName))
     {
         PhReferenceObject(ParentName);
         entry->Process.ParentName = ParentName;

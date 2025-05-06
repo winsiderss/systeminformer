@@ -835,6 +835,7 @@ typedef struct _SEARCH_HANDLE_CONTEXT
     HANDLE ProcessHandle;
 } SEARCH_HANDLE_CONTEXT, *PSEARCH_HANDLE_CONTEXT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI SearchHandleFunction(
     _In_ PVOID Parameter
     )

@@ -354,7 +354,8 @@ VOID PhpRemoveNetworkItem(
     PhDereferenceObject(NetworkItem);
 }
 
-BOOLEAN PhpResolveCacheHashtableEqualFunction(
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI PhpResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -365,6 +366,7 @@ BOOLEAN PhpResolveCacheHashtableEqualFunction(
     return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
@@ -692,6 +694,7 @@ VOID PhFlushNetworkItemResolveCache(
     PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpNetworkItemQueryWorker(
     _In_ PVOID Parameter
     )

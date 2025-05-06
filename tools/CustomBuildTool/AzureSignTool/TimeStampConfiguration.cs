@@ -14,7 +14,7 @@ namespace CustomBuildTool
     /// <summary>
     /// Contains configuration for timestamping authenticode signatures.
     /// </summary>
-    public struct TimeStampConfiguration
+    public readonly struct TimeStampConfiguration
     {
         /// <summary>
         /// The URL to the timestamp authority.

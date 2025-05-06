@@ -324,6 +324,7 @@ VOID PhShowNetworkContextMenu(
     PhFree(networkItems);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -335,6 +336,7 @@ VOID NTAPI PhMwpNetworkItemAddedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -345,6 +347,7 @@ VOID NTAPI PhMwpNetworkItemModifiedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -355,6 +358,7 @@ VOID NTAPI PhMwpNetworkItemRemovedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

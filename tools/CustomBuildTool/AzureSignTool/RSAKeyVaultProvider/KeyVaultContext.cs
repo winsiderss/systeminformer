@@ -101,7 +101,7 @@ namespace CustomBuildTool
             return sigResult.Signature;
         }
 
-        internal EncryptionAlgorithm EncryptionPaddingToJwsAlgId(RSAEncryptionPadding padding)
+        internal static EncryptionAlgorithm EncryptionPaddingToJwsAlgId(RSAEncryptionPadding padding)
         {
             return padding.Mode switch
             {

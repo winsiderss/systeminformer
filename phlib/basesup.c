@@ -255,7 +255,7 @@ NTSTATUS PhCreateUserThread(
     OBJECT_ATTRIBUTES objectAttributes;
     UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[1])] = { 0 };
     PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
-    CLIENT_ID clientId = { 0 };
+    CLIENT_ID clientId = { NULL, NULL };
 
     InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, ThreadSecurityDescriptor);
     attributeList->TotalLength = sizeof(buffer);

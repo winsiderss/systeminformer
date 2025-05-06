@@ -191,7 +191,7 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
-INT CALLBACK PhpPropSheetSrvProc(
+LONG CALLBACK PhpPropSheetSrvProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
@@ -210,6 +210,7 @@ INT CALLBACK PhpPropSheetSrvProc(
     return 0;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpShowServicePropertiesThread(
     _In_ PVOID Context
     )

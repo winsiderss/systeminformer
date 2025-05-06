@@ -47,7 +47,7 @@ typedef struct _PH_MODULE_ITEM
         };
     };
 
-    enum _VERIFY_RESULT VerifyResult;
+    ULONG VerifyResult;
     PPH_STRING VerifySignerName;
 
     USHORT ImageMachine;

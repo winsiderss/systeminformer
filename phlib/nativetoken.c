@@ -1010,11 +1010,13 @@ BOOLEAN PhSetTokenPrivilege(
 
         PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
 
-        if (!PhLookupPrivilegeValue(
+        if (!NT_SUCCESS(status = PhLookupPrivilegeValue(
             &privilegeName,
             &privileges.Privileges[0].Luid
-            ))
+            )))
+        {
             return FALSE;
+        }
     }
     else
     {
@@ -1086,13 +1088,15 @@ NTSTATUS PhAdjustPrivilege(
 
         PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
 
-        if (!PhLookupPrivilegeValue(
+        status = PhLookupPrivilegeValue(
             &privilegeName,
             &privileges.Privileges[0].Luid
-            ))
+            );
+
+        if (!NT_SUCCESS(status))
         {
             NtClose(tokenHandle);
-            return STATUS_UNSUCCESSFUL;
+            return status;
         }
     }
     else

@@ -86,23 +86,23 @@ namespace CustomBuildTool
 
         private static ClassType ClassFromString(string input)
         {
-            switch (input)
+            return input switch
             {
-                case "ntoskrnl.exe": return ClassType.Ntoskrnl;
-                case "ntkrla57.exe": return ClassType.Ntkrla57;
-                case "lxcore.sys": return ClassType.Lxcore;
-                default: throw new Exception($"invalid file name {input}");
-            }
+                "ntoskrnl.exe" => ClassType.Ntoskrnl,
+                "ntkrla57.exe" => ClassType.Ntkrla57,
+                "lxcore.sys" => ClassType.Lxcore,
+                _ => throw new Exception($"invalid file name {input}")
+            };
         }
 
         private static UInt16 MachineFromString(string input)
         {
-            switch (input)
+            return input switch
             {
-                case "amd64": return 0x8664;
-                case "arm64": return 0xAA64;
-                default: throw new Exception($"invalid machine {input}");
-            }
+                "amd64" => 0x8664,
+                "arm64" => 0xAA64,
+                _ => throw new Exception($"invalid machine {input}")
+            };
         }
 
         private static readonly string DynConfigC =

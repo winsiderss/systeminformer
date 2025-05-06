@@ -298,13 +298,13 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
 }
 
 INT_PTR CALLBACK PhSipContainerDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {

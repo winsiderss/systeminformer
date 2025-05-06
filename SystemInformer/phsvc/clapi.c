@@ -22,7 +22,6 @@ NTSTATUS PhSvcConnectToServer(
     _In_opt_ SIZE_T PortSectionSize
     )
 {
-    static ULONG heapCompatibility = HEAP_COMPATIBILITY_LFH;
     NTSTATUS status;
     HANDLE sectionHandle;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -100,7 +99,9 @@ NTSTATUS PhSvcConnectToServer(
 
     PhSvcClServerProcessId = UlongToHandle(connectInfo.ServerProcessId);
 
+    //
     // Create the port heap.
+    //
 
     PhSvcClPortHeap = RtlCreateHeap(
         HEAP_CLASS_1,
@@ -117,10 +118,15 @@ NTSTATUS PhSvcConnectToServer(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    //
+    // Enable the low-fragmentation heap (LFH).
+    //
+
+    const ULONG defaultHeapCompatibilityMode = HEAP_COMPATIBILITY_MODE_LFH;
     RtlSetHeapInformation(
         PhSvcClPortHeap,
         HeapCompatibilityInformation,
-        &heapCompatibility,
+        &defaultHeapCompatibilityMode,
         sizeof(ULONG)
         );
 
