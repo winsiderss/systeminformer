@@ -95,7 +95,6 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PVOID CallbackContext;
 
     PH_STRINGREF SearchboxText;
-    SIZE_T SearchboxTextBufferLength;
     WCHAR SearchboxTextBuffer[0x100];
 
     ULONG64 SearchPointer;
@@ -555,33 +554,32 @@ VOID PhpSearchUpdateRegex(
         );
 }
 
-BOOLEAN PhGetSearchTextBuffer(
+BOOLEAN PhGetSearchTextToBuffer(
     _In_ HWND WindowHandle,
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
-    _Out_ PPH_STRINGREF Text
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_ PSIZE_T ReturnLength
     )
 {
-    Context->SearchboxTextBufferLength = CallWindowProc(
+    SIZE_T returnLength;
+
+    returnLength = CallWindowProc(
         Context->DefaultWindowProc,
         WindowHandle,
         WM_GETTEXT,
-        RTL_NUMBER_OF(Context->SearchboxTextBuffer),
-        (LPARAM)Context->SearchboxTextBuffer
+        BufferLength,
+        (LPARAM)Buffer
         );
 
-    Text->Buffer = Context->SearchboxTextBuffer;
-    Text->Length = Context->SearchboxTextBufferLength * sizeof(WCHAR);
-    return TRUE;
-}
+    if (returnLength != 0)
+    {
+        *ReturnLength = returnLength;
+        return TRUE;
+    }
 
-BOOLEAN PhGetSearchTextCurrentBuffer(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SEARCHCONTROL_CONTEXT Context,
-    _Out_ PPH_STRINGREF Text
-    )
-{
-    Text->Buffer = Context->SearchboxTextBuffer;
-    Text->Length = Context->SearchboxTextBufferLength * sizeof(WCHAR);
+    memset(Buffer, UNICODE_NULL, sizeof(UNICODE_NULL));
+    *ReturnLength = 0;
     return TRUE;
 }
 
@@ -593,21 +591,29 @@ BOOLEAN PhpSearchUpdateText(
 {
     ULONG_PTR matchHandle;
     PH_STRINGREF newSearchboxText;
+    SIZE_T searchboxTextBufferLength;
+    WCHAR searchboxTextBuffer[0x100];
 
     //if (PhGetWindowTextLength(WindowHandle) == 0)
     //{
     //    return FALSE;
     //}
 
-    PhGetSearchTextBuffer(WindowHandle, Context, &newSearchboxText);
+    if (!PhGetSearchTextToBuffer(WindowHandle, Context, searchboxTextBuffer, RTL_NUMBER_OF(searchboxTextBuffer), &searchboxTextBufferLength))
+        return FALSE;
+
+    newSearchboxText.Buffer = searchboxTextBuffer;
+    newSearchboxText.Length = searchboxTextBufferLength * sizeof(WCHAR);
 
     Context->SearchButton.Active = (newSearchboxText.Length > 0);
 
     if (!Force && PhEqualStringRef(&newSearchboxText, &Context->SearchboxText, FALSE))
         return FALSE;
 
-    Context->SearchboxText.Buffer = newSearchboxText.Buffer;
-    Context->SearchboxText.Length = newSearchboxText.Length;
+    if (memcpy_s(Context->SearchboxTextBuffer, sizeof(Context->SearchboxTextBuffer), newSearchboxText.Buffer, newSearchboxText.Length))
+        return FALSE;
+    Context->SearchboxText.Buffer = Context->SearchboxTextBuffer;
+    Context->SearchboxText.Length = searchboxTextBufferLength * sizeof(WCHAR);
 
     Context->UseSearchPointer = PhStringToUInt64(&newSearchboxText, 0, &Context->SearchPointer);
 
@@ -914,7 +920,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(context->CaseSetting, context->CaseButton.Active);
-                PhpSearchUpdateText(WindowHandle, context, TRUE);
+                PhpSearchUpdateText(WindowHandle, context, FALSE);
             }
 
             if (GetCapture() == WindowHandle)
@@ -1034,8 +1040,14 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_UNDO:
     case WM_KEYUP:
     case WM_SETTEXT:
-        PhpSearchUpdateText(WindowHandle, context, FALSE);
-        RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        {
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+            PhpSearchUpdateText(WindowHandle, context, FALSE);
+            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+            return result;
+        }
         break;
     case WM_KILLFOCUS:
         RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
