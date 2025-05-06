@@ -791,19 +791,13 @@ typedef struct _PEB
     // Extended feature disable mask (AVX). // since WIN11
     //
     ULONGLONG ExtendedFeatureDisableMask;
-} PEB, * PPEB;
+} PEB, *PPEB;
 
 #ifdef _WIN64
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0, "FIELD_OFFSET(PEB, SessionId) is incorrect");
-//static_assert(sizeof(PEB) == 0x7B0, "Size of PEB is incorrect"); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x7B8, "Size of PEB is incorrect"); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x7C8, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
 static_assert(sizeof(PEB) == 0x7d0, "Size of PEB is incorrect"); // WIN11
 #else
 static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4, "FIELD_OFFSET(PEB, SessionId) is incorrect");
-//static_assert(sizeof(PEB) == 0x468, "Size of PEB is incorrect"); // REDSTONE3
-//static_assert(sizeof(PEB) == 0x470, "Size of PEB is incorrect"); // REDSTONE4
-//static_assert(sizeof(PEB) == 0x480, "Size of PEB is incorrect"); // REDSTONE5 // 19H1
 static_assert(sizeof(PEB) == 0x488, "Size of PEB is incorrect"); // WIN11
 #endif
 
