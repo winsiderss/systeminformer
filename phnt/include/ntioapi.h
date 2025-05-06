@@ -854,7 +854,7 @@ typedef struct _FILE_IO_COMPLETION_NOTIFICATION_INFORMATION
 typedef struct _FILE_PROCESS_IDS_USING_FILE_INFORMATION
 {
     ULONG NumberOfProcessIdsInList;
-    _Field_size_(NumberOfProcessIdsInList) ULONG_PTR ProcessIdList[1];
+    _Field_size_(NumberOfProcessIdsInList) HANDLE ProcessIdList[1];
 } FILE_PROCESS_IDS_USING_FILE_INFORMATION, *PFILE_PROCESS_IDS_USING_FILE_INFORMATION;
 
 /**
