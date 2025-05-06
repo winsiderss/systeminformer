@@ -1277,7 +1277,7 @@ VOID PhWritePhTextHeader(
         PhDereferenceObject(version);
     }
 
-    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+    PhWriteStringFormatAsUtf8FileStream(FileStream, L"\r\nWindows NT %lu.%lu", PhOsVersion.MajorVersion, PhOsVersion.MinorVersion);
 
     if (PhOsVersion.szCSDVersion[0] != UNICODE_NULL)
         PhWriteStringFormatAsUtf8FileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
