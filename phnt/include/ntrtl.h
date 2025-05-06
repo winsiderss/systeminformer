@@ -11855,6 +11855,8 @@ RtlPublishWnfStateData(
 
 typedef struct WNF_USER_SUBSCRIPTION *PWNF_USER_SUBSCRIPTION;
 
+#define WNF_CREATE_SERIALIZATION_GROUP_FLAG 0x00000001L
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -11866,7 +11868,7 @@ RtlSubscribeWnfStateChangeNotification(
     _In_opt_ PVOID CallbackContext,
     _In_opt_ PCWNF_TYPE_ID TypeId,
     _In_opt_ ULONG SerializationGroup,
-    _Reserved_ ULONG Flags
+    _In_ ULONG Flags
     );
 
 NTSYSAPI
