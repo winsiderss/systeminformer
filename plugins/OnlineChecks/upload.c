@@ -35,23 +35,30 @@ VOID RaiseUploadError(
     if (!Context->DialogHandle)
         return;
 
-    if (message = PhHttpGetErrorMessage(ErrorCode))
+    if (ErrorCode == PhNtStatusToDosError(STATUS_PCP_TICKET_MISSING))
     {
-        PhMoveReference(&Context->ErrorString, PhFormatString(
-            L"[%lu] %s",
-            ErrorCode,
-            PhGetString(message)
-            ));
-
-        PhDereferenceObject(message);
+        PhMoveReference(&Context->ErrorString, PhCreateString(Error));
     }
     else
     {
-        PhMoveReference(&Context->ErrorString, PhFormatString(
-            L"[%lu] %s",
-            ErrorCode,
-            Error
-            ));
+        if (message = PhHttpGetErrorMessage(ErrorCode))
+        {
+            PhMoveReference(&Context->ErrorString, PhFormatString(
+                L"[%lu] %s",
+                ErrorCode,
+                PhGetString(message)
+                ));
+
+            PhDereferenceObject(message);
+        }
+        else
+        {
+            PhMoveReference(&Context->ErrorString, PhFormatString(
+                L"[%lu] %s",
+                ErrorCode,
+                Error
+                ));
+        }
     }
 
     PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
@@ -995,6 +1002,12 @@ NTSTATUS UploadCheckThreadStart(
             PSTR quote = NULL;
             PVOID rootJsonObject;
 
+            if (PhIsNullOrEmptyString(context->HybridPat))
+            {
+                RaiseUploadError(context, L"You need to configure HybridAnalysis from the Options window > OnlineChecks page.", PhNtStatusToDosError(STATUS_PCP_TICKET_MISSING));
+                goto CleanupExit;
+            }
+
             // Create the default upload URL.
             context->FileUpload = PhFormatString(
                 L"https://%s%s",
@@ -1055,6 +1068,12 @@ NTSTATUS UploadCheckThreadStart(
             PSTR quote = NULL;
             PVOID rootJsonObject;
 
+            if (PhIsNullOrEmptyString(context->TotalPat))
+            {
+                RaiseUploadError(context, L"You need to configure VirusTotal from the Options window > OnlineChecks page.", PhNtStatusToDosError(STATUS_PCP_TICKET_MISSING));
+                goto CleanupExit;
+            }
+
             if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, &tempHashString)))
             {
                 RaiseUploadError(context, L"Unable to hash the file", PhNtStatusToDosError(status));
@@ -1075,13 +1094,23 @@ NTSTATUS UploadCheckThreadStart(
 
             if (NT_SUCCESS(status = PhCreateJsonParserEx(&rootJsonObject, subRequestBuffer, FALSE)))
             {
-                PVOID dataObject = PhGetJsonObject(rootJsonObject, "data");
-                PVOID attributesObject = PhGetJsonObject(dataObject, "attributes");
-                PVOID statsObject = PhGetJsonObject(attributesObject, "last_analysis_stats");
+                PVOID dataObject;
+                PVOID attributesObject;
+                PVOID statsObject;
 
-                context->Detected = PhFormatUInt64(PhGetJsonValueAsUInt64(statsObject, "malicious"), FALSE);
-                context->FirstAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "first_submission_date"));
-                context->LastAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "last_submission_date"));
+                if (dataObject = PhGetJsonObject(rootJsonObject, "data"))
+                {
+                    if (attributesObject = PhGetJsonObject(dataObject, "attributes"))
+                    {
+                        if (statsObject = PhGetJsonObject(attributesObject, "last_analysis_stats"))
+                        {
+                            context->Detected = PhFormatUInt64(PhGetJsonValueAsUInt64(statsObject, "malicious"), FALSE);
+                        }
+
+                        context->FirstAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "first_submission_date"));
+                        context->LastAnalysisDate = VirusTotalDateToTime((ULONG)PhGetJsonValueAsUInt64(attributesObject, "last_submission_date"));
+                    }
+                }
 
                 //if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
                 //{
