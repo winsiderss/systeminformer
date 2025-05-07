@@ -350,7 +350,14 @@ namespace CustomBuildTool
 
         private static string GetPath(string FileName)
         {
-            return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
+            if (Win32.GetEnvironmentVariable("KPH_BUILD_DRM", out string value))
+            {
+                return Path.Join([value, "\\", FileName]);
+            }
+
+            Program.PrintColorMessage($"[KPH_BUILD_DRM]", ConsoleColor.Red);
+            Environment.Exit(1);
+            return null;
         }
 
         private static string GetSalt(string Salt)
