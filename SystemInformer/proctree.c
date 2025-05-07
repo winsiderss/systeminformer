@@ -774,13 +774,23 @@ VOID PhTickProcessNodes(
     {
         // The first column doesn't need to be invalidated because the process name never changes, and
         // icon changes are handled by the modified event. This small optimization can save more than
-        // 10 million cycles per update (on my machine).
+        // 10 million cycles per update (on my machine). (wj32)
         TreeNew_GetViewParts(ProcessTreeListHandle, &viewParts);
         rect.left = viewParts.NormalLeft;
         rect.top = viewParts.HeaderHeight;
         rect.right = viewParts.ClientRect.right - viewParts.VScrollWidth;
         rect.bottom = viewParts.ClientRect.bottom;
-        InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
+
+        // Excluding the first column causes some visual tearing of the client area while scrolling the window
+        // because the region is excluded from the initial repainting, then included and painted a half second later
+        // by scrolling the window. Don't exclude the region during scrolling events, simply invalidate the entire window.
+        // This prevents multiple paint events accumulating in the update region, if the treelist repaints
+        // the client area then our InvalidateRect is a noop and we avoid the visual tearing. (dmex)
+
+        if (viewParts.ScrollTickCount > 2000)
+            InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
+        else
+            InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
     }
 }
 
