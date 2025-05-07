@@ -84,11 +84,7 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING SetupInstallPath;
     PPH_STRING SetupServiceName;
 
-    PVOID ZipBuffer;
-    ULONG ZipBufferLength;
-
     NTSTATUS LastStatus;
-    NTSTATUS ErrorCode;
 
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
@@ -238,7 +234,7 @@ PPH_STRING GetApplicationInstallPath(
     VOID
     );
 
-BOOLEAN SetupShutdownApplication(
+NTSTATUS SetupShutdownApplication(
     _In_ PPH_SETUP_CONTEXT Context
     );
 

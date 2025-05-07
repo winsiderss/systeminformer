@@ -112,6 +112,7 @@ VOID ShowErrorPageDialog(
     )
 {
     TASKDIALOGCONFIG config;
+    PPH_STRING string;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -119,12 +120,13 @@ VOID ShowErrorPageDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszWindowTitle = PhApplicationName;
-    if (Context->LastStatus)
-        config.pszMainInstruction = PhGetStatusMessage(Context->LastStatus, 0)->Buffer;
-    else
-        config.pszMainInstruction = L"Setup failed with an error.";
-    config.pszContent = L"Select Close to exit setup.";
+    config.pszMainInstruction = L"Setup failed with an error.";
     config.cxWidth = 200;
+
+    if (string = PhGetStatusMessage(Context->LastStatus, 0))
+        config.pszContent = PhaFormatString(L"%s\r\n\r\nSelect Close to exit setup.", PhGetString(string))->Buffer;
+    else
+        config.pszContent = L"Select Close to exit setup.";
 
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }

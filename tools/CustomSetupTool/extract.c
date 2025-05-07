@@ -167,34 +167,35 @@ BOOLEAN CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    mz_bool status = MZ_FALSE;
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG resourceLength;
+    PVOID resourceBuffer = NULL;
     ULONG64 totalLength = 0;
     ULONG64 currentLength = 0;
     mz_zip_archive zipFileArchive = { 0 };
     PPH_STRING extractPath = NULL;
     USHORT nativeArchitecture;
 
-    nativeArchitecture = SetupGetCurrentArchitecture();
+    status = PhLoadResource(NtCurrentImageBase(), MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer);
 
-#ifdef PH_BUILD_API
-    ULONG resourceLength;
-    PVOID resourceBuffer = NULL;
-
-    if (!NT_SUCCESS(PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer)))
-        return FALSE;
+    if (!NT_SUCCESS(status))
+    {
+        Context->LastStatus = status;
+        goto CleanupExit;
+    }
 
     if (!(status = mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0)))
     {
-        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
+        Context->LastStatus = STATUS_INVALID_BUFFER_SIZE;
         goto CleanupExit;
     }
-#else
-    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipBuffer, Context->ZipBufferLength, 0)))
-    {
-        Context->LastStatus = STATUS_OBJECT_PATH_NOT_FOUND;
-        goto CleanupExit;
-    }
-#endif
+    //if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipBuffer, Context->ZipBufferLength, 0)))
+    //{
+    //    Context->LastStatus = STATUS_OBJECT_PATH_NOT_FOUND;
+    //    goto CleanupExit;
+    //}
+
+    nativeArchitecture = SetupGetCurrentArchitecture();
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zipFileArchive); i++)
     {

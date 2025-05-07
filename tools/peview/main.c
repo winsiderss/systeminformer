@@ -68,52 +68,6 @@ INT WINAPI wWinMain(
     if (!PvInitializeExceptionPolicy())
         return 1;
 
-    // Create a mutant for the installer.
-    {
-        HANDLE mutantHandle;
-        OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectName;
-        PH_STRINGREF objectNameSr;
-        SIZE_T returnLength;
-        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
-        PH_FORMAT format[2];
-
-        PhInitFormatS(&format[0], L"SiViewerMutant_");
-        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
-
-        if (!PhFormatToBuffer(
-            format,
-            RTL_NUMBER_OF(format),
-            formatBuffer,
-            sizeof(formatBuffer),
-            &returnLength
-            ))
-        {
-            return FALSE;
-        }
-
-        objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-        objectNameSr.Buffer = formatBuffer;
-
-        if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
-            return FALSE;
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &objectName,
-            OBJ_CASE_INSENSITIVE,
-            PhGetNamespaceHandle(),
-            NULL
-            );
-
-        NtCreateMutant(
-            &mutantHandle,
-            MUTANT_QUERY_STATE,
-            &objectAttributes,
-            TRUE
-            );
-    }
-
 #ifndef DEBUG
     if (PhIsExecutingInWow64())
     {

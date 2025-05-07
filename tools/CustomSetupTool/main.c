@@ -316,7 +316,6 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     _Out_ PPH_STRING* ServiceName
     )
 {
-    BOOLEAN status = FALSE;
     PPH_STRING directory = NULL;
     PPH_STRING serviceName = NULL;
     PSTR string;
@@ -492,40 +491,6 @@ VOID SetupParseCommandLine(
     }
 }
 
-VOID SetupInitializeMutant(
-    VOID
-    )
-{
-    HANDLE mutantHandle;
-    PPH_STRING objectName;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectNameUs;
-    PH_FORMAT format[2];
-
-    PhInitFormatS(&format[0], L"SiSetupMutant_");
-    PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
-
-    objectName = PhFormat(format, 2, 16);
-    PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
-
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectNameUs,
-        OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
-        NULL
-        );
-
-    NtCreateMutant(
-        &mutantHandle,
-        MUTANT_QUERY_STATE,
-        &objectAttributes,
-        TRUE
-        );
-
-    PhDereferenceObject(objectName);
-}
-
 INT WINAPI wWinMain(
     _In_ HINSTANCE Instance,
     _In_opt_ HINSTANCE PrevInstance,
@@ -540,8 +505,6 @@ INT WINAPI wWinMain(
 
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
-
-    SetupInitializeMutant();
 
     context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
 

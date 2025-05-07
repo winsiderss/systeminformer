@@ -27,8 +27,11 @@ NTSTATUS CALLBACK SetupProgressThread(
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
 
     // Stop the application.
-    if (!SetupShutdownApplication(Context))
+    if (!NT_SUCCESS(status = SetupShutdownApplication(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Stop the kernel driver.
     if (!SetupUninstallDriver(Context))

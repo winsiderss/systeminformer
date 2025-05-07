@@ -967,156 +967,245 @@ PPH_STRING GetApplicationInstallPath(
 
     return installPath;
 }
+//
+//_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+//static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+//    _In_ HANDLE RootDirectory,
+//    _In_ PPH_STRINGREF Name,
+//    _In_ PPH_STRINGREF TypeName,
+//    _In_opt_ PVOID Context
+//    )
+//{
+//    HANDLE objectHandle;
+//    BOOLEAN setupMutant = FALSE;
+//    UNICODE_STRING objectNameUs;
+//    OBJECT_ATTRIBUTES objectAttributes;
+//    MUTANT_OWNER_INFORMATION objectInfo;
+//
+//    if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
+//        !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
+//        !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
+//    {
+//        return TRUE;
+//    }
+//
+//    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+//        return TRUE;
+//
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        &objectNameUs,
+//        OBJ_CASE_INSENSITIVE,
+//        RootDirectory,
+//        NULL
+//        );
+//
+//    if (!NT_SUCCESS(NtOpenMutant(
+//        &objectHandle,
+//        MUTANT_QUERY_STATE,
+//        &objectAttributes
+//        )))
+//    {
+//        return TRUE;
+//    }
+//
+//    if (NT_SUCCESS(PhGetMutantOwnerInformation(
+//        objectHandle,
+//        &objectInfo
+//        )))
+//    {
+//        HWND hwnd;
+//        HANDLE processHandle = NULL;
+//        PROCESS_BASIC_INFORMATION processInfo;
+//
+//        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+//            goto CleanupExit;
+//
+//        // Do not terminate the setup process if it's the parent of this process. This scenario
+//        // happens when the setup process restarts itself for elevation. The parent process will
+//        // return the same exit code as this setup process instance, terminating breaks that.
+//        if (setupMutant &&
+//            NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &processInfo)) &&
+//            processInfo.InheritedFromUniqueProcessId == objectInfo.ClientId.UniqueProcess)
+//            goto CleanupExit;
+//
+//        PhOpenProcessClientId(
+//            &processHandle,
+//            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
+//            &objectInfo.ClientId
+//            );
+//
+//        hwnd = PhGetProcessMainWindowEx(
+//            objectInfo.ClientId.UniqueProcess,
+//            processHandle,
+//            FALSE
+//            );
+//
+//        if (hwnd)
+//        {
+//            SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+//        }
+//
+//        if (processHandle)
+//        {
+//            NTSTATUS status;
+//
+//            status = NtTerminateProcess(processHandle, 1);
+//
+//            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+//            {
+//                NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
+//            }
+//
+//            PhWaitForSingleObject(processHandle, 30 * 1000);
+//        }
+//
+//    CleanupExit:
+//        if (processHandle) NtClose(processHandle);
+//    }
+//
+//    NtClose(objectHandle);
+//
+//    return TRUE;
+//}
 
-_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
-    _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF TypeName,
-    _In_opt_ PVOID Context
+    _In_ PVOID Information,
+    _In_ PVOID Context
     )
 {
-    HANDLE objectHandle;
-    BOOLEAN setupMutant = FALSE;
-    UNICODE_STRING objectNameUs;
-    OBJECT_ATTRIBUTES objectAttributes;
-    MUTANT_OWNER_INFORMATION objectInfo;
+    PFILE_DIRECTORY_INFORMATION information = (PFILE_DIRECTORY_INFORMATION)Information;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
+    NTSTATUS status;
+    PH_STRINGREF baseName;
+    HANDLE fileHandle;
 
-    if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
-        !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
-        !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
-    {
-        return TRUE;
-    }
+    baseName.Buffer = information->FileName;
+    baseName.Length = information->FileNameLength;
 
-    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
         return TRUE;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectNameUs,
-        OBJ_CASE_INSENSITIVE,
+    status = PhOpenFile(
+        &fileHandle,
+        &baseName,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         RootDirectory,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
         );
 
-    if (!NT_SUCCESS(NtOpenMutant(
-        &objectHandle,
-        MUTANT_QUERY_STATE,
-        &objectAttributes
-        )))
+    if (NT_SUCCESS(status))
     {
-        return TRUE;
-    }
+        PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
 
-    if (NT_SUCCESS(PhGetMutantOwnerInformation(
-        objectHandle,
-        &objectInfo
-        )))
-    {
-        HWND hwnd;
-        HANDLE processHandle = NULL;
-        PROCESS_BASIC_INFORMATION processInfo;
-
-        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
-            goto CleanupExit;
-
-        // Do not terminate the setup process if it's the parent of this process. This scenario
-        // happens when the setup process restarts itself for elevation. The parent process will
-        // return the same exit code as this setup process instance, terminating breaks that.
-        if (setupMutant &&
-            NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &processInfo)) &&
-            processInfo.InheritedFromUniqueProcessId == objectInfo.ClientId.UniqueProcess)
-            goto CleanupExit;
-
-        PhOpenProcessClientId(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
-            &objectInfo.ClientId
+        status = PhGetProcessIdsUsingFile(
+            fileHandle,
+            &processIds
             );
 
-        hwnd = PhGetProcessMainWindowEx(
-            objectInfo.ClientId.UniqueProcess,
-            processHandle,
-            FALSE
-            );
-
-        if (hwnd)
+        if (NT_SUCCESS(status))
         {
-            SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
-        }
-
-        if (processHandle)
-        {
-            NTSTATUS status;
-
-            status = NtTerminateProcess(processHandle, 1);
-
-            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+            for (ULONG i = 0; i < processIds->NumberOfProcessIdsInList; i++)
             {
-                NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
+                HANDLE processId = processIds->ProcessIdList[i];
+                PPH_STRING fileName;
+
+                if (processId == NtCurrentProcessId())
+                    continue;
+
+                status = PhGetProcessImageFileNameByProcessId(
+                    processId,
+                    &fileName
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_STRING baseDirectory;
+
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
+
+                    if (baseDirectory = PhGetBaseDirectory(fileName))
+                    {
+                        if (PhStartsWithString(context->SetupInstallPath, baseDirectory, TRUE))
+                        {
+                            HANDLE processHandle;
+
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
+                                processId
+                                )))
+                            {
+                                HWND windowHandle;
+
+                                if (windowHandle = PhGetProcessMainWindowEx(
+                                    processId,
+                                    processHandle,
+                                    FALSE
+                                    ))
+                                {
+                                    SendMessageTimeout(windowHandle, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+                                }
+
+                                status = NtTerminateProcess(processHandle, 1);
+
+                                if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                                {
+                                    NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
+                                }
+
+                                PhWaitForSingleObject(processHandle, 30 * 1000);
+                                NtClose(processHandle);
+                            }
+                        }
+
+                        PhDereferenceObject(baseDirectory);
+                    }
+
+                    PhDereferenceObject(fileName);
+                }
             }
 
-            PhWaitForSingleObject(processHandle, 30 * 1000);
+            PhFree(processIds);
         }
 
-    CleanupExit:
-        if (processHandle) NtClose(processHandle);
     }
-
-    NtClose(objectHandle);
 
     return TRUE;
 }
 
-BOOLEAN SetupShutdownApplication(
+NTSTATUS SetupShutdownApplication(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
-    return TRUE;
-}
-
-NTSTATUS QueryProcessesUsingVolumeOrFile(
-    _In_ HANDLE VolumeOrFileHandle,
-    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
-    )
-{
-    static ULONG initialBufferSize = 0x4000;
     NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-    IO_STATUS_BLOCK isb;
+    HANDLE directoryHandle;
 
-    bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    status = PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(Context->SetupInstallPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
 
-    while ((status = NtQueryInformationFile(
-        VolumeOrFileHandle,
-        &isb,
-        buffer,
-        bufferSize,
-        FileProcessIdsUsingFileInformation
-        )) == STATUS_INFO_LENGTH_MISMATCH)
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        bufferSize *= 2;
+        status = PhEnumDirectoryFile(
+            directoryHandle,
+            NULL,
+            SetupCheckDirectoryCallback,
+            Context
+            );
 
-        // Fail if we're resizing the buffer to something very large.
-        if (bufferSize > SIZE_MAX)
-            return STATUS_INSUFFICIENT_RESOURCES;
-
-        buffer = PhAllocate(bufferSize);
+        NtClose(directoryHandle);
     }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
-    *Information = (PFILE_PROCESS_IDS_USING_FILE_INFORMATION)buffer;
 
     return status;
 }
