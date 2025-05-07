@@ -859,8 +859,15 @@ NTSTATUS PhEnumDirectoryFileEx(
     ULONG i;
     BOOLEAN cont;
 
-    if (!PhStringRefToUnicodeString(SearchPattern, &searchPattern))
-        return STATUS_NAME_TOO_LONG;
+    if (SearchPattern)
+    {
+        if (!PhStringRefToUnicodeString(SearchPattern, &searchPattern))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&searchPattern, NULL, 0);
+    }
 
     buffer = PhAllocate(bufferSize);
 
