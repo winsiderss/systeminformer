@@ -559,6 +559,8 @@ VOID PhActivatePreviousInstance(
 
                 PhFree(processIds);
             }
+
+            NtClose(fileHandle);
         }
 
         PhDereferenceObject(applicationFileName);
