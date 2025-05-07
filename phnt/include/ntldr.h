@@ -18,7 +18,7 @@ typedef _Function_class_(DLL_INIT_ROUTINE)
 BOOLEAN NTAPI DLL_INIT_ROUTINE(
     _In_ PVOID DllHandle,
     _In_ ULONG Reason,
-    _In_opt_ PCONTEXT Context
+    _In_opt_ PVOID Context // PCONTEXT
     );
 typedef DLL_INIT_ROUTINE* PDLL_INIT_ROUTINE;
 
