@@ -40,7 +40,7 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_release.cmd
-  build_driver:
+  build-driver:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_zdriver.cmd prefast
-  build_driver-release:
+  build-driver-release:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
