@@ -102,30 +102,13 @@ VOID PhZombieProcessesCleanupList(
     _In_ PPH_LIST UpdateList
     )
 {
-    if (ProcessesList)
-    {
-        for (ULONG i = 0; i < ProcessesList->Count; i++)
-        {
-            PPH_ZOMBIE_PROCESS_ENTRY entry = ProcessesList->Items[i];
-
-            if (entry->FileName)
-                PhDereferenceObject(entry->FileName);
-
-            PhFree(entry);
-        }
-
-        PhDereferenceObject(ProcessesList);
-    }
-
     if (UpdateList)
     {
         for (ULONG i = 0; i < UpdateList->Count; i++)
         {
             PPH_ZOMBIE_PROCESS_ENTRY entry = UpdateList->Items[i];
 
-            if (entry->FileName)
-                PhDereferenceObject(entry->FileName);
-
+            PhClearReference(&entry->FileName);
             PhFree(entry);
         }
 
@@ -236,7 +219,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
             PhSaveWindowPlacementToSetting(L"ZombieProcessesWindowPosition", L"ZombieProcessesWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"ZombieProcessesListViewColumns", PhZombieProcessesListViewHandle);
 
-            PhZombieProcessesCleanupList(NULL);
+            PhZombieProcessesCleanupList(ProcessesList);
 
             PhZombieProcessesWindowHandle = NULL;
         }
@@ -809,7 +792,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileName);
+                PhDereferenceObject(fileName);
             }
 
             NtClose(processHandle);
@@ -831,7 +814,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
-                PhDereferenceObject(entry.FileName);
+                PhDereferenceObject(fileName);
             }
         }
 
@@ -906,7 +889,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             if (context && !context->Callback(&entry, context->Context))
                 cont = FALSE;
 
-            PhDereferenceObject(entry.FileName);
+            PhDereferenceObject(fileName);
         }
 
         NtClose(processHandle);
@@ -1002,7 +985,7 @@ NTSTATUS NTAPI PhpEnumNextProcessHandles(
                     if (!context->Callback(&entry, context->Context))
                         goto CleanupExit;
 
-                    PhDereferenceObject(entry.FileName);
+                    PhDereferenceObject(fileName);
                 }
                 else
                 {
@@ -1126,7 +1109,7 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                             if (!Callback(&process, Context))
                                 break;
 
-                            PhDereferenceObject(process.FileName);
+                            PhDereferenceObject(fileName);
                         }
                         else
                         {
@@ -1158,7 +1141,7 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
                     if (!Callback(&process, Context))
                         break;
 
-                    PhDereferenceObject(process.FileName);
+                    PhDereferenceObject(fileName);
                 }
                 else
                 {
@@ -1265,7 +1248,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                     if (!Callback(&process, Context))
                                         break;
 
-                                    PhDereferenceObject(process.FileName);
+                                    PhDereferenceObject(fileName);
                                 }
                                 else
                                 {
@@ -1402,7 +1385,7 @@ NTSTATUS PhpEnumNtdllHandles(
                                 if (!Callback(&process, Context))
                                     break;
 
-                                PhDereferenceObject(process.FileName);
+                                PhDereferenceObject(fileName);
                             }
                             else
                             {
@@ -1434,7 +1417,7 @@ NTSTATUS PhpEnumNtdllHandles(
                         if (!Callback(&process, Context))
                             break;
 
-                        PhDereferenceObject(process.FileName);
+                        PhDereferenceObject(fileName);
                     }
                     else
                     {
