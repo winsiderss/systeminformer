@@ -32,8 +32,10 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     if (!SetupUninstallDriver(Context))
         goto CleanupExit;
 
-    // Upgrade the legacy settings file.
+    // Upgrade the settings file.
     SetupUpgradeSettingsFile();
+    // Convert the settings file.
+    SetupConvertSettingsFile();
 
     // Remove the previous installation.
     //if (Context->SetupResetSettings)

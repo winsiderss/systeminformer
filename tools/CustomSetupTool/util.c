@@ -711,6 +711,144 @@ VOID SetupUpgradeSettingsFile(
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
 
+static VOID SetupStripSubstring(
+    _In_ PSTR String,
+    _In_ PCSTR SubString
+    )
+{
+    SIZE_T length = PhCountBytesZ(SubString);
+
+    if (length == 0)
+        return;
+
+    PSTR offset = strstr(String, SubString);
+
+    while (offset)
+    {
+        memmove(offset, offset + length, (PhCountBytesZ(offset + length) + 1) * sizeof(CHAR));
+        offset = strstr(String, SubString);
+    }
+}
+
+NTSTATUS SetupConvertSettingsFile(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING convertFilePath;
+    PPH_STRING settingsFilePath;
+    HANDLE fileHandle;
+    PPH_BYTES fileContent;
+    PVOID topNode = NULL;
+    PVOID currentNode;
+    PVOID object = NULL;
+    PPH_STRING settingName;
+    PPH_STRING settingValue;
+
+    convertFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.json");
+
+    if (PhIsNullOrEmptyString(convertFilePath))
+        return STATUS_SUCCESS;
+
+    settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+
+    if (PhIsNullOrEmptyString(settingsFilePath))
+        return STATUS_SUCCESS;
+
+    status = PhCreateFile(
+        &fileHandle,
+        &settingsFilePath->sr,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileText(
+        &fileContent,
+        fileHandle,
+        FALSE
+        );
+
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    {
+        CHAR buffer[0x100];
+        strcat(buffer, "Proc");
+        strcat(buffer, "essH");
+        strcat(buffer, "acke");
+        strcat(buffer, "r.");
+
+        SetupStripSubstring(fileContent->Buffer, buffer);
+    }
+
+    topNode = PhLoadXmlObjectFromString(fileContent->Buffer);
+    PhDereferenceObject(fileContent);
+
+    if (!topNode)
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    if (!(object = PhCreateJsonObject()))
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    if (!(currentNode = PhGetXmlNodeFirstChild(topNode)))
+    {
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
+    while (currentNode)
+    {
+        if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
+        {
+            if (settingValue = PhGetXmlNodeOpaqueText(currentNode))
+            {
+                PPH_BYTES stringName;
+                PPH_BYTES stringValue;
+
+                stringName = PhConvertStringToUtf8(settingName);
+                stringValue = PhConvertStringToUtf8(settingValue);
+
+                PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
+            }
+        }
+
+        currentNode = PhGetXmlNodeNextChild(currentNode);
+    }
+
+    status = PhSaveJsonObjectToFile(
+        &convertFilePath->sr,
+        object,
+        PH_JSON_TO_STRING_PLAIN | PH_JSON_TO_STRING_PRETTY
+        );
+
+CleanupExit:
+    if (object)
+    {
+        PhFreeJsonObject(object);
+    }
+
+    if (topNode)
+    {
+        PhFreeXmlObject(topNode);
+    }
+
+    return status;
+}
+
 NTSTATUS ExtractResourceToFile(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,

@@ -203,6 +203,9 @@ NTSTATUS SetupExecuteApplication(
 VOID SetupUpgradeSettingsFile(
     VOID
     );
+NTSTATUS SetupConvertSettingsFile(
+    VOID
+    );
 
 typedef struct _SETUP_EXTRACT_FILE
 {
