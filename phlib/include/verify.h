@@ -65,7 +65,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 

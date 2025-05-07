@@ -1243,7 +1243,7 @@ static VOID DnCleanupDacAuxiliaryProvider(
 }
 
 static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1283,8 +1283,8 @@ PVOID DnLoadMscordaccore(
     )
 {
     // \dotnet\shared\Microsoft.NETCore.App\ is the same path used by the CLR for DAC detection. (dmex)
-    static PH_STRINGREF mscordaccorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
-    static PH_STRINGREF mscordaccoreName = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
+    static CONST PH_STRINGREF mscordaccorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static CONST PH_STRINGREF mscordaccoreName = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
     DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
     PVOID mscordacBaseAddress = NULL;
     HANDLE directoryHandle;

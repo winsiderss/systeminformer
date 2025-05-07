@@ -19,7 +19,7 @@ static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
-static PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires System Informer to be restarted with administrative privileges.");
+static CONST PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires System Informer to be restarted with administrative privileges.");
 static PPH_STRING DiskTreeErrorText = NULL;
 
 static PPH_HASHTABLE DiskNodeHashtable = NULL; // hashtable of all nodes
@@ -1192,6 +1192,7 @@ VOID EtShowDiskContextMenu(
     PhFree(diskItems);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1203,6 +1204,7 @@ VOID NTAPI EtpDiskItemAddedHandler(
     PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderAddedEvent, Parameter, EtRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1211,6 +1213,7 @@ VOID NTAPI EtpDiskItemModifiedHandler(
     PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderModifiedEvent, Parameter, EtRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1219,6 +1222,7 @@ VOID NTAPI EtpDiskItemRemovedHandler(
     PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderRemovedEvent, Parameter, EtRunCount);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1270,6 +1274,7 @@ VOID NTAPI EtpOnDiskItemsUpdated(
         TreeNew_SetRedraw(DiskTreeNewHandle, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtpSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

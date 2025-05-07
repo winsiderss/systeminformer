@@ -30,6 +30,7 @@ PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -38,6 +39,7 @@ VOID NTAPI LoadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -46,6 +48,7 @@ VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -61,6 +64,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TreeNewMessageCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -69,6 +73,7 @@ VOID NTAPI TreeNewMessageCallback(
     DispatchTreeNewMessage(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSvcRequestCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -77,6 +82,7 @@ VOID NTAPI PhSvcRequestCallback(
     DispatchPhSvcRequest(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -85,6 +91,7 @@ VOID NTAPI ThreadTreeNewInitializingCallback(
     ThreadTreeNewInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadTreeNewUninitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -93,6 +100,7 @@ VOID NTAPI ThreadTreeNewUninitializingCallback(
     ThreadTreeNewUninitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -131,6 +139,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -139,6 +148,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -147,6 +157,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ModuleMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -155,6 +166,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -163,6 +175,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadStackControlCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

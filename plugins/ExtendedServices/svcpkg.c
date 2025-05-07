@@ -20,10 +20,10 @@ typedef struct _PACKAGE_SERVICE_CONTEXT
 } PACKAGE_SERVICE_CONTEXT, *PPACKAGE_SERVICE_CONTEXT;
 
 PPH_STRING EspGetServiceAppUserModelId(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PCPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     PPH_STRING serviceAppUserModelId = NULL;
     PPH_STRING serviceKeyName;
     HANDLE keyHandle;
@@ -48,10 +48,10 @@ PPH_STRING EspGetServiceAppUserModelId(
 }
 
 PPH_STRING EspGetServicePackageFullName(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PCPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     PPH_STRING servicePackageName = NULL;
     PPH_STRING serviceKeyName;
     HANDLE keyHandle;
@@ -91,10 +91,10 @@ typedef enum _PH_SERVICE_DIRECTORY_TYPE
 
 // rev from sechost.dll!GetServiceDirectory (dmex)
 PPH_STRING PhGetServiceDirectory(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PCPH_STRINGREF ServiceName
     )
 {
-    static PH_STRINGREF serviceStateName = PH_STRINGREF_INIT(L"\\ServiceState\\");
+    static CONST PH_STRINGREF serviceStateName = PH_STRINGREF_INIT(L"\\ServiceState\\");
     PPH_STRING serviceDirectory;
     PH_STRINGREF systemRoot;
 
@@ -106,13 +106,13 @@ PPH_STRING PhGetServiceDirectory(
 
 // rev from sechost.dll!GetSharedServiceDirectory (dmex)
 PPH_STRING PhGetServiceSharedDirectory(
-    _In_ PPH_STRINGREF ServiceName,
+    _In_ PCPH_STRINGREF ServiceName,
     _In_ PH_SERVICE_DIRECTORY_TYPE DirectoryType
     )
 {
-    static PH_STRINGREF serviceStateName = PH_STRINGREF_INIT(L"\\ServiceState\\");
-    static PH_STRINGREF serviceSharedName = PH_STRINGREF_INIT(L"\\SharedData");
-    static PH_STRINGREF serviceDataName = PH_STRINGREF_INIT(L"\\Data");
+    static CONST PH_STRINGREF serviceStateName = PH_STRINGREF_INIT(L"\\ServiceState\\");
+    static CONST PH_STRINGREF serviceSharedName = PH_STRINGREF_INIT(L"\\SharedData");
+    static CONST PH_STRINGREF serviceDataName = PH_STRINGREF_INIT(L"\\Data");
     PPH_STRING serviceDirectory;
     PH_STRINGREF systemRoot;
 
@@ -184,13 +184,13 @@ PPH_STRING PhGetServiceSharedDirectory(
 
 // rev from sechost.dll!GetServiceRegistryStateKey / sechost.dll!GetSharedServiceRegistryStateKey / IoOpenDriverRegistryKey (dmex)
 PPH_STRING PhGetServiceSharedRegistryKey(
-    _In_ PPH_STRINGREF ServiceName,
+    _In_ PCPH_STRINGREF ServiceName,
     _In_ PH_SERVICE_DIRECTORY_TYPE DirectoryType
     )
 {
-    static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"HKLM\\System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF serviceSharedName = PH_STRINGREF_INIT(L"\\SharedState");
-    static PH_STRINGREF serviceDataName = PH_STRINGREF_INIT(L"\\State");
+    static CONST PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"HKLM\\System\\CurrentControlSet\\Services\\");
+    static CONST PH_STRINGREF serviceSharedName = PH_STRINGREF_INIT(L"\\SharedState");
+    static CONST PH_STRINGREF serviceDataName = PH_STRINGREF_INIT(L"\\State");
     PPH_STRING serviceStateKey;
 
     serviceStateKey = PhConcatStringRef2(&servicesBaseName, ServiceName);

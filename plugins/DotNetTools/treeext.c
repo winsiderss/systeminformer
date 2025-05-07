@@ -114,6 +114,7 @@ VOID DispatchTreeNewMessage(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ThreadAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -130,6 +131,7 @@ static VOID ThreadAddedHandler(
     dnThread->ThreadItem = threadItem;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID ThreadRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -73,6 +73,7 @@ PH_EVENT WepWindowsInitializedEvent = PH_EVENT_INIT;
 PH_STRINGREF WepEmptyWindowsText = PH_STRINGREF_INIT(L"There are no windows to display.");
 #define WE_WM_FINDWINDOW (WM_APP + 502)
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS WepShowWindowsDialogThread(
     _In_ PVOID Parameter
     )
@@ -665,7 +666,7 @@ static VOID WepSetWindowToDpiForTesting(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static BOOL (WINAPI *NtUserForceWindowToDpiForTest_I)(
         _In_ HWND hwnd,
-        _Out_ UINT32 dpi
+        _In_ UINT32 dpi
         );
 
     if (PhBeginInitOnce(&initOnce))

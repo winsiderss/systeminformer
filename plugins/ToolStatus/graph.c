@@ -410,7 +410,7 @@ PPH_TOOLBAR_GRAPH ToolbarGraphFindById(
 }
 
 PPH_TOOLBAR_GRAPH ToolbarGraphFindByName(
-    _In_ PPH_STRINGREF PluginName,
+    _In_ PCPH_STRINGREF PluginName,
     _In_ ULONG GraphId
     )
 {

@@ -937,7 +937,7 @@ PPH_LIST GraphicsQueryDeviceNodeList(
 
 NTSTATUS GraphicsQueryAdapterPropertyString(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ PPH_STRINGREF PropertyName,
+    _In_ PCPH_STRINGREF PropertyName,
     _Out_ PPH_STRING* String
     )
 {

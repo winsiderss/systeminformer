@@ -22,6 +22,7 @@ VOID NTAPI EtpEtwEventCallback(
     _In_ PEVENT_RECORD EventRecord
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpEtwMonitorThreadStart(
     _In_ PVOID Parameter
     );
@@ -38,6 +39,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
     _In_ PEVENT_RECORD EventRecord
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpRundownEtwMonitorThreadStart(
     _In_ PVOID Parameter
     );
@@ -642,6 +644,7 @@ VOID NTAPI EtpEtwEventCallback(
     //}
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpEtwMonitorThreadStart(
     _In_ PVOID Parameter
     )
@@ -826,6 +829,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpRundownEtwMonitorThreadStart(
     _In_ PVOID Parameter
     )

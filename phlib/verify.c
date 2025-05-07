@@ -1020,7 +1020,7 @@ VERIFY_RESULT PhVerifyFile(
 }
 
 BOOLEAN PhVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {

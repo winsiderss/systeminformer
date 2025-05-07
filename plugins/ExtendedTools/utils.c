@@ -269,7 +269,7 @@ NTSTATUS EtQueryAdapterInformation(
 // HardwareDevices!GraphicsQueryAdapterPropertyString
 NTSTATUS EtpQueryAdapterPropertyString(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ PPH_STRINGREF PropertyName,
+    _In_ PCPH_STRINGREF PropertyName,
     _Out_ PPH_STRING* String
     )
 {
@@ -327,7 +327,7 @@ CleanupExit:
 
 NTSTATUS EtpQueryAdapterProperty(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ PPH_STRINGREF PropertyName,
+    _In_ PCPH_STRINGREF PropertyName,
     _Out_ D3DDDI_QUERYREGISTRY_INFO** PropertyInfo
     )
 {

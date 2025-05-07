@@ -264,7 +264,7 @@ INT_PTR CALLBACK OptionsDlgProc(
 // filter.c
 
 BOOLEAN WordMatchStringRef(
-    _In_ PPH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     );
 
 BOOLEAN ProcessTreeFilterCallback(
@@ -338,7 +338,7 @@ PPH_TOOLBAR_GRAPH ToolbarGraphFindById(
     );
 
 PPH_TOOLBAR_GRAPH ToolbarGraphFindByName(
-    _In_ PPH_STRINGREF PluginName,
+    _In_ PCPH_STRINGREF PluginName,
     _In_ ULONG GraphId
     );
 

@@ -284,7 +284,7 @@ PPH_STRING UpdateVersionString(
 }
 
 NTSTATUS UpdatePlatformSupportInformation(
-    _In_ PPH_STRINGREF FileName,
+    _In_ PCPH_STRINGREF FileName,
     _Out_ PUSHORT ImageMachine,
     _Out_ PULONG TimeDateStamp,
     _Out_ PULONG SizeOfImage,
@@ -359,7 +359,7 @@ PPH_STRING UpdatePlatformSupportString(
     VOID
     )
 {
-    static PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
+    static CONST PH_STRINGREF platformHeader = PH_STRINGREF_INIT(L"SystemInformer-PlatformSupport: ");
     static UPDATER_PLATFORM_SUPPORT_ENTRY platformFiles[] =
     {
         { KPH_DYN_CLASS_NTOSKRNL, PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe") },
@@ -370,7 +370,6 @@ PPH_STRING UpdatePlatformSupportString(
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 30);
-
     PhAppendStringBuilder(&stringBuilder, &platformHeader);
     PhAppendStringBuilder2(&stringBuilder, L"{\"version\":1,");
     PhAppendStringBuilder2(&stringBuilder, L"\"files\":[");
@@ -842,7 +841,7 @@ NTSTATUS UpdateDownloadThread(
 
     if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(downloadHostPath), httpPort)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0))))
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(downloadUrlPath), PH_HTTP_FLAG_SECURE)))
         goto CleanupExit;
 
     PhHttpSetFeature(httpContext, PH_HTTP_FEATURE_KEEP_ALIVE, FALSE);
