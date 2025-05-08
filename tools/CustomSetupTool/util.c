@@ -755,9 +755,9 @@ NTSTATUS SetupConvertSettingsFile(
     if (PhIsNullOrEmptyString(settingsFilePath))
         return STATUS_SUCCESS;
 
-    status = PhCreateFile(
+    status = PhCreateFileWin32(
         &fileHandle,
-        &settingsFilePath->sr,
+        PhGetString(settingsFilePath),
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -780,11 +780,11 @@ NTSTATUS SetupConvertSettingsFile(
         goto CleanupExit;
 
     {
-        CHAR buffer[0x100];
-        strcat(buffer, "Proc");
-        strcat(buffer, "essH");
-        strcat(buffer, "acke");
-        strcat(buffer, "r.");
+        CHAR buffer[0x100] = { 0 };
+        strcat_s(buffer, sizeof(buffer), "Proc");
+        strcat_s(buffer, sizeof(buffer), "essH");
+        strcat_s(buffer, sizeof(buffer), "acke");
+        strcat_s(buffer, sizeof(buffer), "r.");
 
         SetupStripSubstring(fileContent->Buffer, buffer);
     }
