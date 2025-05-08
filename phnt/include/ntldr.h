@@ -1350,7 +1350,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrSetMUICacheType(
-    ULONG Flags
+    _In_ ULONG Flags
     );
 #endif
 
