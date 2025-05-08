@@ -1,21 +1,21 @@
 @echo off
 @setlocal enableextensions
+@setlocal enabledelayedexpansion
 @cd /d "%~dp0\..\"
 
+set localerror=1
+
 if "%1"=="" (
-   echo:
    echo Usage: build_dyndata.cmd [BUILD_OUTPUT_PATH]
-   echo:
-   pause
    goto end
 )
 
 if exist "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" (
-   echo:
-   start /B /W "" "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-dyndata" "%1"
-   echo:
+   "tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe" "-dyndata" "%1"
+   set localerror=!errorlevel!
 ) else (
    echo CustomBuildTool.exe not found in tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE% folder.
 )
 
 :end
+exit /B %localerror%
