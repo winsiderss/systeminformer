@@ -903,7 +903,7 @@ NTSTATUS
 NTAPI
 LdrGetFileNameFromLoadAsDataTable(
     _In_ PVOID Module,
-    _Out_ PVOID *FilePath
+    _Out_ PWSTR* FilePath
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
