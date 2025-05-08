@@ -25,7 +25,7 @@ typedef DLL_INIT_ROUTINE* PDLL_INIT_ROUTINE;
 // private
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
-    struct _LDR_SERVICE_TAG_RECORD *Next;
+    struct _LDR_SERVICE_TAG_RECORD* Next;
     ULONG ServiceTag;
 } LDR_SERVICE_TAG_RECORD, *PLDR_SERVICE_TAG_RECORD;
 
@@ -151,11 +151,11 @@ typedef struct _LDRP_LOAD_CONTEXT
     ULONG LoadFlags;
     LDR_DLL_LOAD_REASON LoadReason;
     PNTSTATUS LoadStatus;
-    struct _LDR_DATA_TABLE_ENTRY *ParentModule;
-    struct _LDR_DATA_TABLE_ENTRY *Module;
+    struct _LDR_DATA_TABLE_ENTRY* ParentModule;
+    struct _LDR_DATA_TABLE_ENTRY* Module;
     LIST_ENTRY WorkLink;
-    struct _LDR_DATA_TABLE_ENTRY *PendingModule;
-    struct _LDR_DATA_TABLE_ENTRY **ImportArray;
+    struct _LDR_DATA_TABLE_ENTRY* PendingModule;
+    struct _LDR_DATA_TABLE_ENTRY** ImportArray;
     ULONG ImportCount;
     ULONG UnmappedChildCount;
     PVOID IATBase;
@@ -165,7 +165,7 @@ typedef struct _LDRP_LOAD_CONTEXT
     PIMAGE_IMPORT_DESCRIPTOR ImportDescriptors;
     ULONG IATProtection;
     PVOID GuardCheckICall;
-    PVOID *GuardCheckICallFptr;
+    PVOID* GuardCheckICallFptr;
 } LDRP_LOAD_CONTEXT, *PLDRP_LOAD_CONTEXT;
 
 // private
@@ -309,7 +309,7 @@ LdrLoadDll(
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PCUNICODE_STRING DllName,
-    _Out_ PVOID *DllHandle
+    _Out_ PVOID* DllHandle
     );
 
 // private
@@ -328,7 +328,7 @@ LdrGetDllHandle(
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PCUNICODE_STRING DllName,
-    _Out_ PVOID *DllHandle
+    _Out_ PVOID* DllHandle
     );
 
 // private
@@ -344,7 +344,7 @@ LdrGetDllHandleEx(
     _In_opt_ PCWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PCUNICODE_STRING DllName,
-    _Out_ PVOID *DllHandle
+    _Out_ PVOID* DllHandle
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
@@ -355,7 +355,7 @@ NTSTATUS
 NTAPI
 LdrGetDllHandleByMapping(
     _In_ PVOID MappedBase,
-    _Out_ PVOID *DllHandle
+    _Out_ PVOID* DllHandle
     );
 
 // private
@@ -365,7 +365,7 @@ NTAPI
 LdrGetDllHandleByName(
     _In_opt_ PCUNICODE_STRING BaseDllName,
     _In_opt_ PCUNICODE_STRING FullDllName,
-    _Out_ PVOID *DllHandle
+    _Out_ PVOID* DllHandle
     );
 
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_7)
@@ -388,8 +388,8 @@ NTAPI
 LdrGetDllPath(
     _In_  PCWSTR RootDllName,
     _In_  ULONG  DllSearchOptions, // LOAD_LIBRARY_SEARCH_*
-    _Out_ PWSTR *DllPath,
-    _Out_ PWSTR *PackageDirectories
+    _Out_ PWSTR* DllPath,
+    _Out_ PWSTR* PackageDirectories
     );
 
 // private
@@ -430,7 +430,7 @@ LdrGetProcedureAddress(
     _In_ PVOID DllHandle,
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress
+    _Out_ PVOID* ProcedureAddress
     );
 
 // rev
@@ -446,7 +446,7 @@ LdrGetProcedureAddressEx(
     _In_ PVOID DllHandle,
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
+    _Out_ PVOID* ProcedureAddress,
     _In_ ULONG Flags // LDR_GET_PROCEDURE_ADDRESS_*
     );
 
@@ -471,7 +471,7 @@ LdrGetProcedureAddressForCaller(
     _In_ PVOID DllHandle,
     _In_opt_ PCANSI_STRING ProcedureName,
     _In_opt_ ULONG ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
+    _Out_ PVOID* ProcedureAddress,
     _In_ ULONG Flags, // LDR_GET_PROCEDURE_ADDRESS_*
     _In_ PVOID CallerAddress
     );
@@ -493,7 +493,7 @@ NTAPI
 LdrLockLoaderLock(
     _In_ ULONG Flags, // LDR_LOCK_LOADER_LOCK_FLAG_*
     _Out_opt_ PULONG Disposition,
-    _Out_ PVOID *Cookie
+    _Out_ PVOID* Cookie
     );
 
 // private
@@ -668,7 +668,7 @@ LdrRegisterDllNotification(
     _In_ ULONG Flags,
     _In_ PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction,
     _In_opt_ PVOID Context,
-    _Out_ PVOID *Cookie
+    _Out_ PVOID* Cookie
     );
 
 /**
@@ -892,7 +892,7 @@ NTSTATUS
 NTAPI
 LdrRemoveLoadAsDataTable(
     _In_ PVOID InitModule,
-    _Out_ PVOID *BaseModule,
+    _Out_ PVOID* BaseModule,
     _Out_opt_ PSIZE_T Size,
     _In_ ULONG Flags
     );
@@ -937,7 +937,7 @@ NTAPI
 LdrAccessResource(
     _In_ PVOID DllHandle,
     _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
-    _Out_opt_ PVOID *Address,
+    _Out_opt_ PVOID* Address,
     _Out_opt_ PULONG Size
     );
 
@@ -993,7 +993,7 @@ LdrFindResource_U(
     _In_ PVOID DllHandle,
     _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
-    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY* ResourceDataEntry
     );
 
 // private
@@ -1012,7 +1012,7 @@ LdrFindResourceEx_U(
     _In_ PVOID DllHandle,
     _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
-    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY* ResourceDataEntry
     );
 
 // private
@@ -1023,7 +1023,7 @@ LdrFindResourceDirectory_U(
     _In_ PVOID DllHandle,
     _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
-    _Out_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory
+    _Out_ PIMAGE_RESOURCE_DIRECTORY* ResourceDirectory
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
@@ -1051,7 +1051,7 @@ LdrResFindResource(
     _In_ PCWSTR ResourceType,
     _In_ PCWSTR ResourceName,
     _In_ PCWSTR Language,
-    _Out_opt_ PVOID *Resource,
+    _Out_opt_ PVOID* Resource,
     _Out_opt_ PULONG Size,
     _Out_writes_bytes_opt_(*FoundLanguageLength) PWCHAR FoundLanguage, // WCHAR buffer[6]
     _Out_opt_ PULONG FoundLanguageLength,
@@ -1078,7 +1078,7 @@ LdrResFindResourceDirectory(
     _In_ PVOID Module,
     _In_ PCWSTR ResourceType,
     _In_ PCWSTR ResourceName,
-    _Out_opt_ PIMAGE_RESOURCE_DIRECTORY *ResourceDirectory,
+    _Out_opt_ PIMAGE_RESOURCE_DIRECTORY* ResourceDirectory,
     _Out_writes_bytes_opt_(*FoundLanguageLength) PWCHAR FoundLanguage, // WCHAR buffer[6]
     _Out_opt_ PULONG FoundLanguageLength,
     _In_ ULONG Flags
@@ -1098,8 +1098,8 @@ LdrpResGetResourceDirectory(
     _In_ PVOID ModuleBase,
     _In_ SIZE_T MappingSize,
     _In_ ULONG Flags, // LDR_GET_RESOURCE_DIRECTORY_*
-    _Out_ PIMAGE_RESOURCE_DIRECTORY *TopResourceDirectory,
-    _Out_ PIMAGE_NT_HEADERS *NtHeaders
+    _Out_ PIMAGE_RESOURCE_DIRECTORY* TopResourceDirectory,
+    _Out_ PIMAGE_NT_HEADERS* NtHeaders
     );
 #endif
 
@@ -1126,7 +1126,7 @@ LdrResSearchResource(
     _In_reads_(InitResIdCount) PULONG_PTR InitResIds, // PLDR_RESOURCE_ID
     _In_ ULONG InitResIdCount,
     _In_ ULONG Flags,
-    _Out_opt_ PVOID *Resource,
+    _Out_opt_ PVOID* Resource,
     _Out_opt_ PSIZE_T Size,
     _Out_writes_bytes_opt_(*FoundLanguageLength) PWCHAR FoundLanguage, // WCHAR buffer[6]
     _Out_opt_ PULONG FoundLanguageLength
@@ -1190,7 +1190,7 @@ NTAPI
 LdrResGetRCConfig(
     _In_ PVOID ModuleBase,
     _In_opt_ SIZE_T InitMappingSize,
-    _Out_opt_ PRC_CONFIG *RcConfig,
+    _Out_opt_ PRC_CONFIG* RcConfig,
     _In_ ULONG Flags, // LDR_GET_RC_CONFIG_*
     _In_ BOOLEAN IsCaching // LdrLoadAlternateResourceModule
     );
@@ -1284,7 +1284,7 @@ NTSTATUS
 NTAPI
 LdrFindEntryForAddress(
     _In_ PVOID Address,
-    _Out_ PLDR_DATA_TABLE_ENTRY *TableEntry
+    _Out_ PLDR_DATA_TABLE_ENTRY* TableEntry
     );
 
 // private
@@ -1302,7 +1302,7 @@ NTSTATUS
 NTAPI
 LdrLoadAlternateResourceModule(
     _In_ PVOID Module,
-    _Out_ PVOID *ReturnAlternateModule,
+    _Out_ PVOID* ReturnAlternateModule,
     _Out_opt_ PSIZE_T AlternateViewSize,
     _In_ ULONG Flags
     );
@@ -1315,7 +1315,7 @@ NTAPI
 LdrLoadAlternateResourceModuleEx(
     _In_ PVOID Module,
     _In_ LANGID LangId,
-    _Out_ PVOID *ReturnAlternateModule,
+    _Out_ PVOID* ReturnAlternateModule,
     _Out_opt_ PSIZE_T AlternateViewSize,
     _In_ ULONG Flags
     );
@@ -1638,7 +1638,7 @@ NTSTATUS
 NTAPI
 LdrAddDllDirectory(
     _In_ PCUNICODE_STRING NewDirectory,
-    _Out_ PRTLP_DLL_DIRECTORY *Cookie
+    _Out_ PRTLP_DLL_DIRECTORY* Cookie
     );
 
 // private
@@ -1769,7 +1769,7 @@ NTSTATUS
 NTAPI
 LdrCreateEnclave(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID *BaseAddress,
+    _Inout_ PVOID* BaseAddress,
     _In_ ULONG Reserved,
     _In_ SIZE_T Size,
     _In_ SIZE_T InitialCommitment,
@@ -1834,7 +1834,7 @@ NTAPI
 LdrCallEnclave(
     _In_ PENCLAVE_ROUTINE Routine,
     _In_ ULONG Flags, // ENCLAVE_CALL_FLAG_*
-    _Inout_ PVOID *RoutineParamReturn
+    _Inout_ PVOID* RoutineParamReturn
     );
 
 // rev from LoadEnclaveImage
@@ -1889,7 +1889,7 @@ typedef _Function_class_(LDR_MANIFEST_PROBER_ROUTINE)
 NTSTATUS NTAPI LDR_MANIFEST_PROBER_ROUTINE(
     _In_ PVOID DllHandle,
     _In_ PCWSTR FullDllName,
-    _Out_ PACTIVATION_CONTEXT *ActCtx
+    _Out_ PACTIVATION_CONTEXT* ActCtx
 );
 typedef LDR_MANIFEST_PROBER_ROUTINE* PLDR_MANIFEST_PROBER_ROUTINE;
 
@@ -1898,7 +1898,7 @@ typedef _Function_class_(LDR_CREATE_ACT_CTX_LANGUAGE)
 NTSTATUS NTAPI LDR_CREATE_ACT_CTX_LANGUAGE(
     _In_ PACTIVATION_CONTEXT ActCtxIn,
     _In_ LANGID LangId,
-    _Out_ PACTIVATION_CONTEXT *ActCtxOut
+    _Out_ PACTIVATION_CONTEXT* ActCtxOut
     );
 typedef LDR_CREATE_ACT_CTX_LANGUAGE* PLDR_CREATE_ACT_CTX_LANGUAGE;
 
