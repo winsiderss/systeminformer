@@ -750,14 +750,24 @@ NTSTATUS SetupConvertSettingsFile(
     if (PhIsNullOrEmptyString(convertFilePath))
         return STATUS_SUCCESS;
 
+    PhMoveReference(&convertFilePath, PhDosPathNameToNtPathName(&convertFilePath->sr));
+
+    if (PhIsNullOrEmptyString(convertFilePath))
+        return STATUS_SUCCESS;
+
     settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
 
     if (PhIsNullOrEmptyString(settingsFilePath))
         return STATUS_SUCCESS;
 
-    status = PhCreateFileWin32(
+    PhMoveReference(&settingsFilePath, PhDosPathNameToNtPathName(&settingsFilePath->sr));
+
+    if (PhIsNullOrEmptyString(settingsFilePath))
+        return STATUS_SUCCESS;
+
+    status = PhCreateFile(
         &fileHandle,
-        PhGetString(settingsFilePath),
+        &settingsFilePath->sr,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
