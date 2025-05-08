@@ -350,30 +350,24 @@ namespace CustomBuildTool
 
         private static string GetPath(string FileName)
         {
-            if (Win32.GetEnvironmentVariable("KPH_BUILD_DRM", out string value))
+            if (Win32.GetEnvironmentVariable("BUILD_DRM", out string value))
             {
                 return Path.Join([value, "\\", FileName]);
             }
 
-            Program.PrintColorMessage($"[KPH_BUILD_DRM]", ConsoleColor.Red);
-            Environment.Exit(1);
-            return null;
+            // N.B. Local developers are instructed to put keys in this path.
+            return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
         }
 
-        private static string GetSalt(string Salt)
+        private static string GetSalt(string KeyNameOrSalt)
         {
-            if (string.IsNullOrWhiteSpace(Salt))
+            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyNameOrSalt].Value, out string salt))
             {
-                if (Win32.GetEnvironmentVariable("KPH_BUILD_SALT", out string salt))
-                {
-                    return salt;
-                }
-
-                Program.PrintColorMessage($"[KPH_BUILD_SALT]", ConsoleColor.Red);
-                Environment.Exit(1);
+                return salt;
             }
 
-            return Salt;
+            // Assume this is the salt itself...
+            return KeyNameOrSalt;
         }
 
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
@@ -381,7 +375,7 @@ namespace CustomBuildTool
             if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret))
             {
                 byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                KeyMaterial = Decrypt(bytes, secret, GetSalt(null));
+                KeyMaterial = Decrypt(bytes, secret, GetSalt(KeyName));
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))
