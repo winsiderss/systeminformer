@@ -163,7 +163,7 @@ VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupUninstallDriver(
+NTSTATUS SetupUninstallDriver(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -189,7 +189,7 @@ VOID SetupDeleteShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupCreateUninstallFile(
+NTSTATUS SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
 VOID SetupDeleteUninstallFile(
@@ -285,7 +285,7 @@ BOOLEAN UpdateDownloadUpdateData(
 
 // extract.c
 
-BOOLEAN CALLBACK SetupExtractBuild(
+NTSTATUS CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
