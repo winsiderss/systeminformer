@@ -176,7 +176,7 @@ VOID SetupDeleteAppdataDirectory(
     }
 }
 
-BOOLEAN SetupCreateUninstallFile(
+NTSTATUS SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
@@ -185,16 +185,13 @@ BOOLEAN SetupCreateUninstallFile(
     PPH_STRING uninstallFilePath;
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
-    {
-        Context->LastStatus = status;
-        return FALSE;
-    }
+        return status;
 
     // Check if the current image is running from the installation folder.
 
     if (PhStartsWithStringRef2(&currentFilePath->sr, PhGetString(Context->SetupInstallPath), TRUE))
     {
-        return TRUE;
+        return STATUS_SUCCESS;
     }
 
     // Move the outdated setup.exe into the trash (temp) folder.
@@ -207,8 +204,7 @@ BOOLEAN SetupCreateUninstallFile(
 
         if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE)))
         {
-            Context->LastStatus = status;
-            return FALSE;
+            return status;
         }
     }
 
@@ -218,11 +214,10 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
-        Context->LastStatus = status;
-        return FALSE;
+        return status;
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VOID SetupDeleteUninstallFile(
@@ -249,11 +244,11 @@ VOID SetupDeleteUninstallFile(
     PhDereferenceObject(uninstallFilePath);
 }
 
-BOOLEAN SetupUninstallDriver(
+NTSTATUS SetupUninstallDriver(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    BOOLEAN success = TRUE;
+    NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE serviceHandle;
 
     if (NT_SUCCESS(PhOpenService(
@@ -283,18 +278,12 @@ BOOLEAN SetupUninstallDriver(
         PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName)
         )))
     {
-        NTSTATUS status;
-
-        if (!NT_SUCCESS(status = PhDeleteService(serviceHandle)))
-        {
-            success = FALSE;
-            Context->LastStatus = status;
-        }
+        status = PhDeleteService(serviceHandle);
 
         PhCloseServiceHandle(serviceHandle);
     }
 
-    return success;
+    return status;
 }
 
 VOID SetupCreateWindowsOptions(
@@ -1321,6 +1310,7 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
             PhFree(processIds);
         }
 
+        NtClose(fileHandle);
     }
 
     return TRUE;

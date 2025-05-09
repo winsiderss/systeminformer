@@ -106,7 +106,7 @@ VOID PhInitializeRuntimeInformation(
     VOID
     )
 {
-#ifdef _X86_
+#if defined _M_IX86
     // Enable SSE2 CRT support.
     _set_SSE2_enable(1);
 #endif
@@ -336,8 +336,7 @@ BOOLEAN PhInitializeProcessorInformation(
         PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
         PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
         PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
-        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = PhAllocate(sizeof(KAFFINITY));
-        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks[0] = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+        PhSystemProcessorInformation.ActiveProcessorsAffinityMasks = &PhSystemBasicInformation.ActiveProcessorsAffinityMask;
     }
     else
     {

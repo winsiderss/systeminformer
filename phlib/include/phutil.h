@@ -1882,7 +1882,7 @@ ULONG
 NTAPI
 PhCrc32(
     _In_ ULONG Crc,
-    _In_reads_(Length) PCHAR Buffer,
+    _In_reads_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length
     );
 
