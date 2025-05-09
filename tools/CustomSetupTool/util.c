@@ -1321,6 +1321,7 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
             PhFree(processIds);
         }
 
+        NtClose(fileHandle);
     }
 
     return TRUE;
