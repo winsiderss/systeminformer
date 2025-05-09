@@ -11,6 +11,10 @@
 
 #include "setup.h"
 
+#if defined(_DEBUG) && !defined(PH_RELEASE_CHANNEL_ID)
+#define PH_RELEASE_CHANNEL_ID 2
+#endif
+
 #ifdef PH_RELEASE_CHANNEL_ID
 #if PH_RELEASE_CHANNEL_ID == 0
 #define SETUP_APP_PARAMETERS L"-channel release"
