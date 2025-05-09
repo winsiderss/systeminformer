@@ -8610,65 +8610,421 @@ NTSTATUS PhDelayExecution(
     }
 }
 
-// rev from lucasg https://lucasg.github.io/2017/10/15/Api-set-resolution/ (dmex)
-PPH_STRING PhApiSetResolveToHost(
-    _In_ PCPH_STRINGREF ApiSetName
+FORCEINLINE ULONG PhpApiSetHashString(
+    _In_reads_bytes_(StringLength) PWCH String,
+    _In_ SIZE_T StringLength,
+    _In_ ULONG HashFactor
     )
 {
-    PAPI_SET_NAMESPACE apisetMap;
-    PAPI_SET_NAMESPACE_ENTRY apisetMapEntry;
+    ULONG hash = 0;
 
-    if (ApiSetName->Length >= 8)
+    for (ULONG i = 0; i < StringLength / sizeof(WCHAR); i++)
+        hash = hash * HashFactor + ((USHORT)(String[i] - L'A') <= L'Z' - L'A' ? String[i] + L'a' - L'A' : String[i]);
+
+    return hash;
+}
+
+/**
+ * Resolves an API Set name to a host DLL name.
+ *
+ * \param[in] Schema The API Set definition, such as PEB->ApiSetMap.
+ * \param[in] ApiSetName The name of the API Set, with or without a .dll extension.
+ * \param[in] ParentName An optional name of the parent (importing) module.
+ * \param[out] HostBinary The resolved name of the DLL.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhApiSetResolveToHost(
+    _In_ PAPI_SET_NAMESPACE Schema,
+    _In_ PCPH_STRINGREF ApiSetName,
+    _In_opt_ PCPH_STRINGREF ParentName,
+    _Out_ PPH_STRINGREF HostBinary
+    )
+{
+    ULONG_PTR parentNameStart;
+
+    if (ApiSetName->Length >= 4 * sizeof(WCHAR))
     {
+        // Extract and downcase the first 4 characters
         ULONGLONG apisetNameBufferPrefix = ((PULONGLONG)ApiSetName->Buffer)[0] & 0xFFFFFFDFFFDFFFDF;
 
+        // Verify the API Set prefixes
         if (apisetNameBufferPrefix != 0x2D004900500041ULL && // L"api-"
             apisetNameBufferPrefix != 0x2D005400580045ULL) // L"ext-"
-        {
-            return NULL;
-        }
+            return STATUS_INVALID_PARAMETER;
     }
     else
     {
-        return NULL;
+        return STATUS_INVALID_PARAMETER;
     }
 
-    apisetMap = NtCurrentPeb()->ApiSetMap;
-    apisetMapEntry = PTR_ADD_OFFSET(apisetMap->EntryOffset, apisetMap);
-
-    if (apisetMap->Version != 6)
-        return NULL;
-
-    for (ULONG i = 0; i < apisetMap->Count; i++)
+    if (ParentName)
     {
-        PAPI_SET_VALUE_ENTRY apisetMapValue = PTR_ADD_OFFSET(apisetMap, apisetMapEntry->ValueOffset);
-        PH_STRINGREF nameStringRef;
+        // We are only interested in the file component
+        parentNameStart = PhFindLastCharInStringRef(ParentName, OBJ_NAME_PATH_SEPARATOR, FALSE) + 1;
+    }
 
-        nameStringRef.Length = apisetMapEntry->HashedLength; // NameLength
-        nameStringRef.Buffer = PTR_ADD_OFFSET(apisetMap, apisetMapEntry->NameOffset);
-
-        if (PhStartsWithStringRef(ApiSetName, &nameStringRef, TRUE))
+    switch (Schema->Version)
+    {
+    case API_SET_SCHEMA_VERSION_V6:
         {
-            for (ULONG ii = 0; ii < apisetMapEntry->ValueCount; ii++)
+            PAPI_SET_NAMESPACE_ENTRY namespaceEntries = PTR_ADD_OFFSET(Schema, Schema->EntryOffset);
+            PAPI_SET_NAMESPACE_ENTRY namespaceEntry;
+            PAPI_SET_HASH_ENTRY hashEntries = PTR_ADD_OFFSET(Schema, Schema->HashOffset);
+            PAPI_SET_HASH_ENTRY hashEntry;
+            PAPI_SET_VALUE_ENTRY valueEntry;
+            ULONG hash;
+            SIZE_T hashedLength;
+            LONG minIndex;
+            LONG maxIndex;
+            LONG midIndex;
+            LONG comparison;
+
+            if (!Schema->Count)
+                return STATUS_NOT_FOUND;
+
+            if (Schema->Count > MAXINT32)
+                return STATUS_INTEGER_OVERFLOW;
+
+            // The hash covers the length up to but not including the last hyphen
+            for (hashedLength = ApiSetName->Length; hashedLength >= sizeof(WCHAR); hashedLength -= sizeof(WCHAR))
             {
-                if (apisetMapValue->ValueLength)
+                if (ApiSetName->Buffer[hashedLength / sizeof(WCHAR) - 1] == L'-')
                 {
-                    PH_STRINGREF valueStringRef;
+                    hashedLength -= sizeof(WCHAR);
+                    break;
+                }
+            }
 
-                    valueStringRef.Length = apisetMapValue->ValueLength;
-                    valueStringRef.Buffer = PTR_ADD_OFFSET(apisetMap, apisetMapValue->ValueOffset);
+            minIndex = 0;
+            maxIndex = Schema->Count - 1;
+            hash = PhpApiSetHashString(ApiSetName->Buffer, hashedLength, Schema->HashFactor);
 
-                    return PhCreateString2(&valueStringRef);
+            do
+            {
+                // Perform a binary search for the API Set name hash
+                midIndex = (maxIndex + minIndex) / 2;
+                hashEntry = &hashEntries[midIndex];
+
+                if (hash < hashEntry->Hash)
+                    maxIndex = midIndex - 1;
+                else if (hash > hashEntry->Hash)
+                    minIndex = midIndex + 1;
+                else
+                {
+                    namespaceEntry = &namespaceEntries[hashEntry->Index];
+
+                    // Verify the API Set name matches, in addition to its hash
+                    comparison = RtlCompareUnicodeStrings(
+                        ApiSetName->Buffer,
+                        hashedLength / sizeof(WCHAR),
+                        PTR_ADD_OFFSET(Schema, namespaceEntry->NameOffset),
+                        namespaceEntry->HashedLength / sizeof(WCHAR),
+                        TRUE
+                        );
+
+                    if (comparison < 0)
+                        maxIndex = midIndex - 1;
+                    else if (comparison > 0)
+                        minIndex = midIndex + 1;
+                    else
+                        break;
                 }
 
-                apisetMapValue++;
+                if (minIndex > maxIndex)
+                    return STATUS_NOT_FOUND;
+
+            } while (TRUE);
+
+            valueEntry = PTR_ADD_OFFSET(Schema, namespaceEntry->ValueOffset);
+
+            // Try module-specific search
+            if (ParentName && namespaceEntry->ValueCount > 1)
+            {
+                if (namespaceEntry->ValueCount > MAXINT32)
+                    return STATUS_INTEGER_OVERFLOW;
+
+                minIndex = 0;
+                maxIndex = namespaceEntry->ValueCount - 1;
+
+                do
+                {
+                    // Perform binary search for the parent name
+                    midIndex = (maxIndex + minIndex) / 2;
+
+                    comparison = RtlCompareUnicodeStrings(
+                        ParentName->Buffer + parentNameStart,
+                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        PTR_ADD_OFFSET(Schema, valueEntry[midIndex].NameOffset),
+                        valueEntry[midIndex].NameLength / sizeof(WCHAR),
+                        TRUE
+                        );
+
+                    if (comparison < 0)
+                        maxIndex = midIndex - 1;
+                    else if (comparison > 0)
+                        minIndex = midIndex + 1;
+                    else
+                    {
+                        if (!valueEntry[midIndex].ValueLength)
+                            return STATUS_APISET_NOT_HOSTED;
+
+                        // Return the parent-specific result
+                        HostBinary->Buffer = PTR_ADD_OFFSET(Schema, valueEntry[midIndex].ValueOffset);
+                        HostBinary->Length = valueEntry[midIndex].ValueLength;
+                        return STATUS_SUCCESS;
+                    }
+
+                    // No match; fall back to the default value
+                    if (minIndex > maxIndex)
+                        break;
+
+                } while (TRUE);
             }
+
+            // Use the default value
+            if (namespaceEntry->ValueCount)
+            {
+                if (!valueEntry[0].ValueLength)
+                    return STATUS_APISET_NOT_HOSTED;
+
+                HostBinary->Buffer = PTR_ADD_OFFSET(Schema, valueEntry[0].ValueOffset);
+                HostBinary->Length = valueEntry[0].ValueLength;
+                return STATUS_SUCCESS;
+            }
+
+            return STATUS_NOT_FOUND;
         }
+        break;
+    case API_SET_SCHEMA_VERSION_V4:
+        {
+            PAPI_SET_NAMESPACE_ARRAY_V4 schema = (PAPI_SET_NAMESPACE_ARRAY_V4)Schema;
+            PAPI_SET_VALUE_ARRAY_V4 valueArray;
+            PH_STRINGREF apiSetNameShort;
+            LONG comparison;
+            LONG minIndex;
+            LONG maxIndex;
+            LONG midIndex;
 
-        apisetMapEntry++;
+            if (!schema->Count)
+                return STATUS_NOT_FOUND;
+
+            if (schema->Count > MAXINT32)
+                return STATUS_INTEGER_OVERFLOW;
+
+            // Skip the "api-" and "ext-" prefixes
+            apiSetNameShort.Buffer = ApiSetName->Buffer + 4;
+            apiSetNameShort.Length = ApiSetName->Length - 4 * sizeof(WCHAR);
+
+            // Ignore file extension (when present)
+            if (apiSetNameShort.Length >= 4 * sizeof(WCHAR) &&
+                apiSetNameShort.Buffer[apiSetNameShort.Length / sizeof(WCHAR) - 4] == L'.')
+                apiSetNameShort.Length -= 4 * sizeof(WCHAR);
+
+            minIndex = 0;
+            maxIndex = schema->Count - 1;
+
+            do
+            {
+                // Perform a binary search for the API Set name
+                midIndex = (maxIndex + minIndex) / 2;
+
+                comparison = RtlCompareUnicodeStrings(
+                    apiSetNameShort.Buffer,
+                    apiSetNameShort.Length / sizeof(WCHAR),
+                    PTR_ADD_OFFSET(schema, schema->Array[midIndex].NameOffset),
+                    schema->Array[midIndex].NameLength / sizeof(WCHAR),
+                    TRUE
+                    );
+
+                if (comparison < 0)
+                    maxIndex = midIndex - 1;
+                else if (comparison > 0)
+                    minIndex = midIndex + 1;
+                else
+                    break;
+
+                if (minIndex > maxIndex)
+                    return STATUS_NOT_FOUND;
+
+            } while (TRUE);
+
+            valueArray = PTR_ADD_OFFSET(schema, schema->Array[midIndex].DataOffset);
+
+            // Try module-specific search
+            if (ParentName && valueArray->Count > 1)
+            {
+                if (valueArray->Count > MAXINT32)
+                    return STATUS_INTEGER_OVERFLOW;
+
+                minIndex = 0;
+                maxIndex = valueArray->Count - 1;
+
+                do
+                {
+                    // Perform binary search for the parent name
+                    midIndex = (maxIndex + minIndex) / 2;
+
+                    comparison = RtlCompareUnicodeStrings(
+                        ParentName->Buffer + parentNameStart,
+                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].NameOffset),
+                        valueArray->Array[midIndex].NameLength / sizeof(WCHAR),
+                        TRUE
+                        );
+
+                    if (comparison < 0)
+                        maxIndex = midIndex - 1;
+                    else if (comparison > 0)
+                        minIndex = midIndex + 1;
+                    else
+                    {
+                        if (!valueArray->Array[midIndex].ValueLength)
+                            return STATUS_APISET_NOT_HOSTED;
+
+                        // Return the parent-specific result
+                        HostBinary->Buffer = PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].ValueOffset);
+                        HostBinary->Length = valueArray->Array[midIndex].ValueLength;
+                        return STATUS_SUCCESS;
+                    }
+
+                    // No match; fall back to the default value
+                    if (minIndex > maxIndex)
+                        break;
+
+                } while (TRUE);
+            }
+
+            // Use the default value
+            if (valueArray->Count)
+            {
+                if (!valueArray->Array[0].ValueLength)
+                    return STATUS_APISET_NOT_HOSTED;
+
+                HostBinary->Buffer = PTR_ADD_OFFSET(schema, valueArray->Array[0].ValueOffset);
+                HostBinary->Length = valueArray->Array[0].ValueLength;
+                return STATUS_SUCCESS;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+        break;
+    case API_SET_SCHEMA_VERSION_V2:
+        {
+            PAPI_SET_NAMESPACE_ARRAY_V2 schema = (PAPI_SET_NAMESPACE_ARRAY_V2)Schema;
+            PAPI_SET_VALUE_ARRAY_V2 valueArray;
+            PH_STRINGREF apiSetNameShort;
+            LONG comparison;
+            LONG minIndex;
+            LONG maxIndex;
+            LONG midIndex;
+
+            if (!schema->Count)
+                return STATUS_NOT_FOUND;
+
+            if (schema->Count > MAXINT32)
+                return STATUS_INTEGER_OVERFLOW;
+
+            // Skip the "api-" and "ext-" prefixes
+            apiSetNameShort.Buffer = ApiSetName->Buffer + 4;
+            apiSetNameShort.Length = ApiSetName->Length - 4 * sizeof(WCHAR);
+
+            // Ignore file extension (when present)
+            if (apiSetNameShort.Length >= 4 * sizeof(WCHAR) &&
+                apiSetNameShort.Buffer[apiSetNameShort.Length / sizeof(WCHAR) - 4] == L'.')
+                apiSetNameShort.Length -= 4 * sizeof(WCHAR);
+
+            minIndex = 0;
+            maxIndex = schema->Count - 1;
+
+            do
+            {
+                // Perform a binary search for the API Set name
+                midIndex = (maxIndex + minIndex) / 2;
+
+                comparison = RtlCompareUnicodeStrings(
+                    apiSetNameShort.Buffer,
+                    apiSetNameShort.Length / sizeof(WCHAR),
+                    PTR_ADD_OFFSET(schema, schema->Array[midIndex].NameOffset),
+                    schema->Array[midIndex].NameLength / sizeof(WCHAR),
+                    TRUE
+                    );
+
+                if (comparison < 0)
+                    maxIndex = midIndex - 1;
+                else if (comparison > 0)
+                    minIndex = midIndex + 1;
+                else
+                    break;
+
+                if (minIndex > maxIndex)
+                    return STATUS_NOT_FOUND;
+
+            } while (TRUE);
+
+            valueArray = PTR_ADD_OFFSET(schema, schema->Array[midIndex].DataOffset);
+
+            // Try module-specific search
+            if (ParentName && valueArray->Count > 1)
+            {
+                if (valueArray->Count > MAXINT32)
+                    return STATUS_INTEGER_OVERFLOW;
+
+                minIndex = 0;
+                maxIndex = valueArray->Count - 1;
+
+                do
+                {
+                    // Perform binary search for the parent name
+                    midIndex = (maxIndex + minIndex) / 2;
+
+                    comparison = RtlCompareUnicodeStrings(
+                        ParentName->Buffer + parentNameStart,
+                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].NameOffset),
+                        valueArray->Array[midIndex].NameLength / sizeof(WCHAR),
+                        TRUE
+                        );
+
+                    if (comparison < 0)
+                        maxIndex = midIndex - 1;
+                    else if (comparison > 0)
+                        minIndex = midIndex + 1;
+                    else
+                    {
+                        if (!valueArray->Array[midIndex].ValueLength)
+                            return STATUS_APISET_NOT_HOSTED;
+
+                        // Return the parent-specific result
+                        HostBinary->Buffer = PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].ValueOffset);
+                        HostBinary->Length = valueArray->Array[midIndex].ValueLength;
+                        return STATUS_SUCCESS;
+                    }
+
+                    // No match; fall back to the default value
+                    if (minIndex > maxIndex)
+                        break;
+
+                } while (TRUE);
+            }
+
+            // Use the default value
+            if (valueArray->Count)
+            {
+                if (!valueArray->Array[0].ValueLength)
+                    return STATUS_APISET_NOT_HOSTED;
+
+                HostBinary->Buffer = PTR_ADD_OFFSET(schema, valueArray->Array[0].ValueOffset);
+                HostBinary->Length = valueArray->Array[0].ValueLength;
+                return STATUS_SUCCESS;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+        break;
+    default:
+        return STATUS_UNKNOWN_REVISION;
     }
-
-    return NULL;
 }
 
 HRESULT PhCreateProcessAsInteractiveUser(
