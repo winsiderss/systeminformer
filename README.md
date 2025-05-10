@@ -1,6 +1,7 @@
 [![Build status](https://img.shields.io/github/actions/workflow/status/winsiderss/systeminformer/msbuild.yml?branch=master&style=for-the-badge)](https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml)
 [![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
+[![Github mirror stats](https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=si-builds)
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly)
 
@@ -10,7 +11,7 @@
 
 A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware. Brought to you by Winsider Seminars & Solutions, Inc.
 
-[Project Website](https://systeminformer.sourceforge.io/) - [Project Downloads](https://systeminformer.sourceforge.io/downloads.php)
+[Project Website](https://systeminformer.com/) - [Project Downloads](https://systeminformer.com/downloads.php)
 
 ## System requirements
 
