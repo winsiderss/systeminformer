@@ -24,14 +24,11 @@ namespace CustomBuildTool
 
         public static readonly ImmutableArray<BuildFile> Build_Release_Files =
         [
+            new BuildFile("\\systeminformer-build-bin.zip", true),
             new BuildFile("\\systeminformer-build-release-setup.exe", true),
-            new BuildFile("\\systeminformer-build-release-bin.zip", true),
             //new BuildFile("\\systeminformer-build-preview-setup.exe", true),
-            //new BuildFile("\\systeminformer-build-preview-bin.zip", true),
             new BuildFile("\\systeminformer-build-canary-setup.exe", true),
-            new BuildFile("\\systeminformer-build-canary-bin.zip", true),
             //new BuildFile("\\systeminformer-build-developer-setup.exe", true),
-            //new BuildFile("\\systeminformer-build-developer-bin.zip", true),
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
             new BuildFile("\\systeminformer-build-pdb.zip", false),

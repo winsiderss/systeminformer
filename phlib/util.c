@@ -6762,7 +6762,7 @@ CleanupExit:
  */
 ULONG PhCrc32(
     _In_ ULONG Crc,
-    _In_reads_(Length) PCHAR Buffer,
+    _In_reads_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length
     )
 {
@@ -6789,11 +6789,12 @@ ULONG PhCrc32C(
     _In_ SIZE_T Length
     )
 {
-#ifndef _ARM64_
-#ifdef _M_X64
+#ifdef WIN64
     SIZE_T u64_blocks = Length / sizeof(ULONG64);
-#endif
     SIZE_T u64_remaining = Length % sizeof(ULONG64);
+#else
+    SIZE_T u64_remaining = Length;
+#endif
     SIZE_T u32_blocks = u64_remaining / sizeof(ULONG);
     SIZE_T u32_remaining = u64_remaining % sizeof(ULONG);
     SIZE_T u16_blocks = u32_remaining / sizeof(USHORT);
@@ -6801,32 +6802,49 @@ ULONG PhCrc32C(
 
     Crc ^= 0xffffffff;
 
-    while (u8_blocks--)
+#ifdef WIN64
+    while (u64_blocks--)
     {
-        Crc = _mm_crc32_u8(Crc, (*(PUCHAR)Buffer)++);
+#if defined(_M_ARM64)
+        Crc = __crc32d(Crc, *(PULONG64)Buffer);
+#else
+        Crc = (ULONG)_mm_crc32_u64(Crc, *(PULONG64)Buffer);
+#endif
+        Buffer = (PULONG64)Buffer + 1;
+    }
+#endif
+
+    while (u32_blocks--)
+    {
+#if defined(_M_ARM64)
+        Crc = __crc32w(Crc, *(PULONG)Buffer);
+#else
+        Crc = _mm_crc32_u32(Crc, *(PULONG)Buffer);
+#endif
+        Buffer = (PULONG)Buffer + 1;
     }
 
     while (u16_blocks--)
     {
-        Crc = _mm_crc32_u16(Crc, (*(PUSHORT)Buffer)++);
-    }
-
-    while (u32_blocks--)
-    {
-        Crc = _mm_crc32_u32(Crc, (*(PULONG)Buffer)++);
-    }
-
-#ifdef _M_X64
-    while (u64_blocks--)
-    {
-        Crc = (ULONG)_mm_crc32_u64(Crc, (*(PULONG64)Buffer)++);
-    }
+#if defined(_M_ARM64)
+        Crc = __crc32h(Crc, *(PUSHORT)Buffer);
+#else
+        Crc = _mm_crc32_u16(Crc, *(PUSHORT)Buffer);
 #endif
+        Buffer = (PUSHORT)Buffer + 1;
+    }
+
+    while (u8_blocks--)
+    {
+#if defined(_M_ARM64)
+        Crc = __crc32b(Crc, *(PUCHAR)Buffer);
+#else
+        Crc = _mm_crc32_u8(Crc, *(PUCHAR)Buffer);
+#endif
+        Buffer = (PUCHAR)Buffer + 1;
+    }
 
     return Crc ^ 0xffffffff;
-#else
-    PhRaiseStatus(STATUS_NOT_SUPPORTED);
-#endif
 }
 
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(MD5_CTX));

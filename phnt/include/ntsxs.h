@@ -280,7 +280,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION
     ULONG Size;
     ULONG Flags;
     ULONG VersionSpecificClassNameLength;
-    ULONG VersionSpecificClassNameOffset; // to WHCAR[], from this struct base
+    ULONG VersionSpecificClassNameOffset; // to WCHAR[], from this struct base
     ULONG DllNameLength;
     ULONG DllNameOffset; // to WCHAR[], from section header
 } ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION, *PACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION;
@@ -316,11 +316,11 @@ typedef struct _ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION
     ULONG ProgIdOffset; // to WCHAR[], from this struct base
     ULONG ShimDataLength;
     ULONG ShimDataOffset; // to ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM, from this struct base
-    ULONG MiscStatusDefault; // OLEMISC_*
-    ULONG MiscStatusContent; // OLEMISC_*
-    ULONG MiscStatusThumbnail; // OLEMISC_*
-    ULONG MiscStatusIcon; // OLEMISC_*
-    ULONG MiscStatusDocPrint; // OLEMISC_*
+    ULONG MiscStatusDefault; // OLEMISC_* oleidl.h
+    ULONG MiscStatusContent; // OLEMISC_* oleidl.h
+    ULONG MiscStatusThumbnail; // OLEMISC_* oleidl.h
+    ULONG MiscStatusIcon; // OLEMISC_* oleidl.h
+    ULONG MiscStatusDocPrint; // OLEMISC_* oleidl.h
 } ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION, *PACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION;
 
 #define ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_OTHER 1
@@ -395,7 +395,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_CLR_SURROGATE
     ULONG   Size;
     ULONG   Flags;
     GUID    SurrogateIdent;
-    ULONG   VersionOffset;
+    ULONG   VersionOffset; // to WCHAR[], from this struct base
     ULONG   VersionLength;
     ULONG   TypeNameOffset; // to WCHAR[], from this struct base
     ULONG   TypeNameLength;

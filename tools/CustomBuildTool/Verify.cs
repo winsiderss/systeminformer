@@ -361,7 +361,8 @@ namespace CustomBuildTool
 
         private static string GetSalt(string KeyNameOrSalt)
         {
-            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyNameOrSalt].Value, out string salt))
+            if (KeyName_Vars.TryGetValue(KeyNameOrSalt, out var vars) &&
+                Win32.GetEnvironmentVariable(vars.Value, out string salt))
             {
                 return salt;
             }

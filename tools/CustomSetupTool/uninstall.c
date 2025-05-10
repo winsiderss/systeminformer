@@ -15,13 +15,21 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
+
     // Stop the application.
-    if (!SetupShutdownApplication(Context))
+    if (!NT_SUCCESS(status = SetupShutdownApplication(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Stop the kernel driver.
-    if (!SetupUninstallDriver(Context))
+    if (!NT_SUCCESS(status = SetupUninstallDriver(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Remove autorun.
     SetupDeleteWindowsOptions(Context);

@@ -34,8 +34,11 @@ NTSTATUS CALLBACK SetupProgressThread(
     }
 
     // Stop the kernel driver.
-    if (!SetupUninstallDriver(Context))
+    if (!NT_SUCCESS(status = SetupUninstallDriver(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Upgrade the settings file.
     SetupUpgradeSettingsFile();
@@ -47,8 +50,11 @@ NTSTATUS CALLBACK SetupProgressThread(
     //    PhDeleteDirectory(Context->SetupInstallPath);
 
     // Create the uninstaller.
-    if (!SetupCreateUninstallFile(Context))
+    if (!NT_SUCCESS(status = SetupCreateUninstallFile(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey(Context);
@@ -65,8 +71,11 @@ NTSTATUS CALLBACK SetupProgressThread(
 #endif
 
     // Extract the updated files.
-    if (!SetupExtractBuild(Context))
+    if (!NT_SUCCESS(status = SetupExtractBuild(Context)))
+    {
+        Context->LastStatus = status;
         goto CleanupExit;
+    }
 
     PostMessage(Context->DialogHandle, SETUP_SHOWFINAL, 0, 0);
     return STATUS_SUCCESS;

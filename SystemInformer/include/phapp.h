@@ -75,7 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
     PPH_STRING SysInfo;
-    ULONG UpdateChannel;
+    PH_RELEASE_CHANNEL UpdateChannel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;

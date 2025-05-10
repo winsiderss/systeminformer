@@ -89,7 +89,7 @@ BOOLEAN PhInitializeTimerPolicy(
 BOOLEAN PhPluginsEnabled = FALSE;
 BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
-PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
+PH_STARTUP_PARAMETERS PhStartupParameters = { .UpdateChannel = PhInvalidChannel };
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
@@ -1202,7 +1202,7 @@ VOID PhpInitializeSettings(
         PhSetIntegerSetting(L"SampleCount", sampleCount);
     }
 
-    if (PhStartupParameters.UpdateChannel)
+    if (PhStartupParameters.UpdateChannel != PhInvalidChannel)
     {
         PhSetIntegerSetting(L"ReleaseChannel", PhStartupParameters.UpdateChannel);
     }
