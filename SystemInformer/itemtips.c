@@ -416,9 +416,11 @@ PPH_STRING PhGetProcessTooltipText(
         {
             PhAppendFormatStringBuilder(
                 &notes,
-                L"    Image is probably packed (%lu imports over %lu modules).\n",
+                L"    Image is probably packed (%lu %ls over %lu %ls).\n",
                 Process->ImportFunctions,
-                Process->ImportModules
+                Process->ImportFunctions == 1 ? L"import" : L"imports",
+                Process->ImportModules,
+                Process->ImportModules == 1 ? L"module" : L"modules"
                 );
         }
 
@@ -426,7 +428,7 @@ PPH_STRING PhGetProcessTooltipText(
         {
             PhAppendFormatStringBuilder(
                 &notes,
-                L"    Low Image Coherency: %.2f%%\n",
+                L"    Low image coherency: %.2f%%\n",
                 (Process->ImageCoherency * 100.0f)
                 );
         }
