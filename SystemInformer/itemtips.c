@@ -414,12 +414,17 @@ PPH_STRING PhGetProcessTooltipText(
 
         if (Process->IsPacked)
         {
+            const wchar_t* importWord = Process->ImportFunctions == 1 ? L"import" : L"imports";
+            const wchar_t* moduleWord = Process->ImportModules == 1 ? L"module" : L"modules";
+
             PhAppendFormatStringBuilder(
                 &notes,
-                L"    Image is probably packed (%lu imports over %lu modules).\n",
+                L"    Image is probably packed (%lu %s over %lu %s).\n",
                 Process->ImportFunctions,
-                Process->ImportModules
-                );
+                importWord,
+                Process->ImportModules,
+                moduleWord
+            );
         }
 
         if (PhEnableImageCoherencySupport && PhpShouldShowImageCoherency(Process, TRUE))
