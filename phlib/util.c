@@ -8659,7 +8659,7 @@ NTSTATUS PhApiSetResolveToHost(
     _Out_ PPH_STRINGREF HostBinary
     )
 {
-    ULONG_PTR parentNameStart;
+    PH_STRINGREF parentNameFilePart;
 
     if (ApiSetName->Length >= 4 * sizeof(WCHAR))
     {
@@ -8678,8 +8678,12 @@ NTSTATUS PhApiSetResolveToHost(
 
     if (ParentName)
     {
-        // We are only interested in the file component
-        parentNameStart = PhFindLastCharInStringRef(ParentName, OBJ_NAME_PATH_SEPARATOR, FALSE) + 1;
+        // If given a path, we are only interested in the file component
+        if (!PhGetBasePath(ParentName, NULL, &parentNameFilePart))
+        {
+            parentNameFilePart.Buffer = ParentName->Buffer;
+            parentNameFilePart.Length = ParentName->Length;
+        }
     }
 
     switch (Schema->Version)
@@ -8691,8 +8695,9 @@ NTSTATUS PhApiSetResolveToHost(
             PAPI_SET_HASH_ENTRY hashEntries = PTR_ADD_OFFSET(Schema, Schema->HashOffset);
             PAPI_SET_HASH_ENTRY hashEntry;
             PAPI_SET_VALUE_ENTRY valueEntry;
+            PH_STRINGREF apiSetNameHashedPart;
+            ULONG_PTR hyphenIndex;
             ULONG hash;
-            SIZE_T hashedLength;
             LONG minIndex;
             LONG maxIndex;
             LONG midIndex;
@@ -8705,18 +8710,22 @@ NTSTATUS PhApiSetResolveToHost(
                 return STATUS_INTEGER_OVERFLOW;
 
             // The hash covers the length up to but not including the last hyphen
-            for (hashedLength = ApiSetName->Length; hashedLength >= sizeof(WCHAR); hashedLength -= sizeof(WCHAR))
-            {
-                if (ApiSetName->Buffer[hashedLength / sizeof(WCHAR) - 1] == L'-')
-                {
-                    hashedLength -= sizeof(WCHAR);
-                    break;
-                }
-            }
+            hyphenIndex = PhFindLastCharInStringRef(ApiSetName, L'-', FALSE);
+
+            // There must be a hyphen if it passed the prefix check
+            assert(hyphenIndex != SIZE_MAX);
+
+            apiSetNameHashedPart.Buffer = ApiSetName->Buffer;
+            apiSetNameHashedPart.Length = hyphenIndex * sizeof(WCHAR);
 
             minIndex = 0;
             maxIndex = Schema->Count - 1;
-            hash = PhpApiSetHashString(ApiSetName->Buffer, hashedLength, Schema->HashFactor);
+
+            hash = PhpApiSetHashString(
+                apiSetNameHashedPart.Buffer,
+                apiSetNameHashedPart.Length,
+                Schema->HashFactor
+                );
 
             do
             {
@@ -8734,8 +8743,8 @@ NTSTATUS PhApiSetResolveToHost(
 
                     // Verify the API Set name matches, in addition to its hash
                     comparison = RtlCompareUnicodeStrings(
-                        ApiSetName->Buffer,
-                        hashedLength / sizeof(WCHAR),
+                        apiSetNameHashedPart.Buffer,
+                        apiSetNameHashedPart.Length / sizeof(WCHAR),
                         PTR_ADD_OFFSET(Schema, namespaceEntry->NameOffset),
                         namespaceEntry->HashedLength / sizeof(WCHAR),
                         TRUE
@@ -8771,8 +8780,8 @@ NTSTATUS PhApiSetResolveToHost(
                     midIndex = (maxIndex + minIndex) / 2;
 
                     comparison = RtlCompareUnicodeStrings(
-                        ParentName->Buffer + parentNameStart,
-                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        parentNameFilePart.Buffer,
+                        parentNameFilePart.Length / sizeof(WCHAR),
                         PTR_ADD_OFFSET(Schema, valueEntry[midIndex].NameOffset),
                         valueEntry[midIndex].NameLength / sizeof(WCHAR),
                         TRUE
@@ -8830,6 +8839,9 @@ NTSTATUS PhApiSetResolveToHost(
             if (schema->Count > MAXINT32)
                 return STATUS_INTEGER_OVERFLOW;
 
+            // Should be covered by the prefix check
+            assert(ApiSetName->Length >= 4 * sizeof(WCHAR));
+
             // Skip the "api-" and "ext-" prefixes
             apiSetNameShort.Buffer = ApiSetName->Buffer + 4;
             apiSetNameShort.Length = ApiSetName->Length - 4 * sizeof(WCHAR);
@@ -8884,8 +8896,8 @@ NTSTATUS PhApiSetResolveToHost(
                     midIndex = (maxIndex + minIndex) / 2;
 
                     comparison = RtlCompareUnicodeStrings(
-                        ParentName->Buffer + parentNameStart,
-                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        parentNameFilePart.Buffer,
+                        parentNameFilePart.Length / sizeof(WCHAR),
                         PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].NameOffset),
                         valueArray->Array[midIndex].NameLength / sizeof(WCHAR),
                         TRUE
@@ -8943,6 +8955,9 @@ NTSTATUS PhApiSetResolveToHost(
             if (schema->Count > MAXINT32)
                 return STATUS_INTEGER_OVERFLOW;
 
+            // Should be covered by the prefix check
+            assert(ApiSetName->Length >= 4 * sizeof(WCHAR));
+
             // Skip the "api-" and "ext-" prefixes
             apiSetNameShort.Buffer = ApiSetName->Buffer + 4;
             apiSetNameShort.Length = ApiSetName->Length - 4 * sizeof(WCHAR);
@@ -8997,8 +9012,8 @@ NTSTATUS PhApiSetResolveToHost(
                     midIndex = (maxIndex + minIndex) / 2;
 
                     comparison = RtlCompareUnicodeStrings(
-                        ParentName->Buffer + parentNameStart,
-                        ParentName->Length / sizeof(WCHAR) - parentNameStart,
+                        parentNameFilePart.Buffer,
+                        parentNameFilePart.Length / sizeof(WCHAR),
                         PTR_ADD_OFFSET(schema, valueArray->Array[midIndex].NameOffset),
                         valueArray->Array[midIndex].NameLength / sizeof(WCHAR),
                         TRUE
