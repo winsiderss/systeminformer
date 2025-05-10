@@ -7,7 +7,7 @@
 #ifndef _NTPEBTEB_H
 #define _NTPEBTEB_H
 
-#include <ntsxs.h>
+#include "ntsxs.h"
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
