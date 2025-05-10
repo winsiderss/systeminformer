@@ -682,18 +682,18 @@ NTSTATUS PhLoadResource(
     )
 {
     NTSTATUS status;
-    LDR_RESOURCE_INFO resourceInfo;
+    LDR_EXTERNAL_DLL_PATH resourceIdPath[3];
     PIMAGE_RESOURCE_DATA_ENTRY resourceData = NULL;
     PVOID resourceBuffer = NULL;
     ULONG resourceLength;
 
-    resourceInfo.Type = (ULONG_PTR)Type;
-    resourceInfo.Name = (ULONG_PTR)Name;
-    resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
+    resourceIdPath[LDR_RESOURCE_PATH_TYPE] = (ULONG_PTR)Type;
+    resourceIdPath[LDR_RESOURCE_PATH_NAME] = (ULONG_PTR)Name;
+    resourceIdPath[LDR_RESOURCE_PATH_LANGUAGE] = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
 
     __try
     {
-        status = LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData);
+        status = LdrFindResource_U(DllBase, resourceIdPath, RTL_NUMBER_OF(resourceIdPath), &resourceData);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1188,7 +1188,7 @@ NTSTATUS PhGetLoaderEntryImageNtHeaders(
 NTSTATUS PhGetLoaderEntryImageEntryPoint(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _Out_ PLDR_INIT_ROUTINE *ImageEntryPoint
+    _Out_ PDLL_INIT_ROUTINE *ImageEntryPoint
     )
 {
     if (ImageNtHeader->OptionalHeader.AddressOfEntryPoint == 0)
@@ -2642,7 +2642,7 @@ NTSTATUS PhLoaderEntryUnloadDll(
 {
     NTSTATUS status;
     PIMAGE_NT_HEADERS imageNtHeaders;
-    PLDR_INIT_ROUTINE imageEntryRoutine;
+    PDLL_INIT_ROUTINE imageEntryRoutine;
 
     status = PhGetLoaderEntryImageNtHeaders(
         BaseAddress,
@@ -2718,7 +2718,7 @@ NTSTATUS PhLoadPluginImage(
     NTSTATUS status;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
-    PLDR_INIT_ROUTINE imageEntryRoutine;
+    PDLL_INIT_ROUTINE imageEntryRoutine;
 
 #if defined(PH_NATIVE_PLUGIN_IMAGE_LOAD)
     UNICODE_STRING imageFileName;
