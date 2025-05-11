@@ -682,18 +682,18 @@ NTSTATUS PhLoadResource(
     )
 {
     NTSTATUS status;
-    LDR_RESOURCE_ID resourceId;
+    LDR_RESOURCE_INFO resourceInfo;
     PIMAGE_RESOURCE_DATA_ENTRY resourceData = NULL;
     PVOID resourceBuffer = NULL;
     ULONG resourceLength;
 
-    resourceId.Type = Type;
-    resourceId.Name = Name;
-    resourceId.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
+    resourceInfo.Type = Type;
+    resourceInfo.Name = Name;
+    resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
 
     __try
     {
-        status = LdrFindResource_U(DllBase, resourceId.ResourceIdPath, LDR_RESOURCE_ID_LENGTH_THROUGH_LANGUAGE, &resourceData);
+        status = LdrFindResource_U(DllBase, resourceInfo.ResourceIdPath, LDR_RESOURCE_INFO_LENGTH_THROUGH_LANGUAGE, &resourceData);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
