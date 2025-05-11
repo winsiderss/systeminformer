@@ -941,14 +941,39 @@ LdrAccessResource(
     _Out_opt_ PULONG Size
     );
 
-// private
-typedef ULONG_PTR LDR_EXTERNAL_DLL_PATH;
+// N.B. Internally, resource-searching functions like LdrFindResource_U
+// use an unnamed array of ULONG_PTR values to identify a resource,
+// where elements form a path and have different meaning at each index.
+// We introduce a union to help interpreting them. (diversenok)
 
-// rev from LdrpMUIEtwOutput // indexes for ResourceIdPath[]
-#define LDR_RESOURCE_PATH_TYPE 0 // RT_*
-#define LDR_RESOURCE_PATH_NAME 1 // PCWSTR or MAKEINTRESOURCE
-#define LDR_RESOURCE_PATH_LANGUAGE 2 // PCWSTR or LANGID
-#define LDR_RESOURCE_PATH_ITEM 3 // e.g. MessageId
+// rev // LdrpMUIEtwOutput
+typedef enum _LDR_RESOURCE_ID_INDEX
+{
+    LdrResourceIdType = 0,
+    LdrResourceIdName = 1,
+    LdrResourceIdLanguage = 2,
+    LdrResourceIdItem = 3,
+    LdrResourceIdCount = 4
+} LDR_RESOURCE_ID_INDEX;
+
+// rev // The number of elements required when using a given field, for ResourceIdPathLength
+#define LDR_RESOURCE_ID_LENGTH_THROUGH_TYPE (LdrResourceIdType + 1)
+#define LDR_RESOURCE_ID_LENGTH_THROUGH_NAME (LdrResourceIdName + 1)
+#define LDR_RESOURCE_ID_LENGTH_THROUGH_LANGUAGE (LdrResourceIdLanguage + 1)
+#define LDR_RESOURCE_ID_LENGTH_THROUGH_ITEM (LdrResourceIdItem + 1)
+
+// rev // A union for unpacking the ResourceIdPath array
+typedef union _LDR_RESOURCE_ID
+{
+    ULONG_PTR ResourceIdPath[LdrResourceIdCount];
+    struct
+    {
+        PCWSTR Type; // RT_*
+        PCWSTR Name; // string or MAKEINTRESOURCE
+        PCWSTR Language; // string or LANGID
+        ULONG_PTR Item; // e.g., MessageId
+    };
+} LDR_RESOURCE_ID, *PLDR_RESOURCE_ID;
 
 // private
 /**
@@ -966,7 +991,7 @@ NTSTATUS
 NTAPI
 LdrFindResource_U(
     _In_ PVOID DllHandle,
-    _In_reads_(ResourceIdPathLength) LDR_EXTERNAL_DLL_PATH ResourceIdPath[],
+    _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY* ResourceDataEntry
     );
@@ -985,7 +1010,7 @@ NTAPI
 LdrFindResourceEx_U(
     _In_ ULONG Flags, // LDR_FIND_RESOURCE_*
     _In_ PVOID DllHandle,
-    _In_reads_(ResourceIdPathLength) LDR_EXTERNAL_DLL_PATH ResourceIdPath[],
+    _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY* ResourceDataEntry
     );
@@ -996,7 +1021,7 @@ NTSTATUS
 NTAPI
 LdrFindResourceDirectory_U(
     _In_ PVOID DllHandle,
-    _In_reads_(ResourceIdPathLength) LDR_EXTERNAL_DLL_PATH ResourceIdPath[],
+    _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
     _Out_ PIMAGE_RESOURCE_DIRECTORY* ResourceDirectory
     );
@@ -1098,7 +1123,7 @@ NTSTATUS
 NTAPI
 LdrResSearchResource(
     _In_ PVOID File,
-    _In_reads_(InitResIdCount) LDR_EXTERNAL_DLL_PATH InitResIds[],
+    _In_reads_(InitResIdCount) PULONG_PTR InitResIds, // PLDR_RESOURCE_ID
     _In_ ULONG InitResIdCount,
     _In_ ULONG Flags,
     _Out_opt_ PVOID* Resource,
@@ -1247,7 +1272,7 @@ NTSTATUS
 NTAPI
 LdrEnumResources(
     _In_ PVOID DllHandle,
-    _In_reads_(ResourceIdPathLength) LDR_EXTERNAL_DLL_PATH ResourceIdPath[],
+    _In_reads_(ResourceIdPathLength) PULONG_PTR ResourceIdPath, // PLDR_RESOURCE_ID
     _In_ ULONG ResourceIdPathLength,
     _Inout_ PULONG NumberOfResources,
     _Out_writes_to_opt_(*NumberOfResources, *NumberOfResources) PLDR_ENUM_RESOURCE_ENTRY Resources
