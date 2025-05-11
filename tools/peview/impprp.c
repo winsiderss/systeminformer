@@ -288,6 +288,7 @@ VOID PvpProcessImports(
                 {
                     PPV_IMPORT_NODE importNode;
                     PPH_STRING importDllName;
+                    PH_STRINGREF hostDllName;
 
                     importNode = PhAllocateZero(sizeof(PV_IMPORT_NODE));
                     importNode->UniqueId = ++(*Count);
@@ -301,14 +302,21 @@ VOID PvpProcessImports(
 
                     if (importNode->DllString = PhConvertUtf8ToUtf16(importDll.Name))
                     {
-                        if (importDllName = PhApiSetResolveToHost(&importNode->DllString->sr))
+                        if (NT_SUCCESS(PhApiSetResolveToHost(
+                            NtCurrentPeb()->ApiSetMap,
+                            &importNode->DllString->sr,
+                            &PvFileName->sr,
+                            &hostDllName
+                            )))
                         {
-                            PhMoveReference(&importNode->DllString, PhFormatString(
-                                L"%s (%s)",
-                                PhGetString(importNode->DllString),
-                                PhGetString(importDllName))
-                                );
-                            PhDereferenceObject(importDllName);
+                            PH_FORMAT format[4];
+
+                            PhInitFormatSR(&format[0], importNode->DllString->sr);
+                            PhInitFormatS(&format[1], L" (");
+                            PhInitFormatSR(&format[2], hostDllName);
+                            PhInitFormatC(&format[3], L')');
+
+                            PhMoveReference(&importNode->DllString, PhFormat(format, RTL_NUMBER_OF(format), 10));
                         }
                     }
 
@@ -336,12 +344,16 @@ VOID PvpProcessImports(
 
                         if (importDllName = PhConvertUtf8ToUtf16(importDll.Name))
                         {
-                            PPH_STRING apisetFileName;
                             PPH_STRING importFileName;
 
-                            if (apisetFileName = PhApiSetResolveToHost(&importDllName->sr))
+                            if (NT_SUCCESS(PhApiSetResolveToHost(
+                                NtCurrentPeb()->ApiSetMap,
+                                &importDllName->sr,
+                                &PvFileName->sr,
+                                &hostDllName
+                                )))
                             {
-                                PhMoveReference(&importDllName, apisetFileName);
+                                PhMoveReference(&importDllName, PhCreateString2(&hostDllName));
                             }
 
                             // TODO: Add DLL directory to PhSearchFilePath for locating non-system images. (dmex)
