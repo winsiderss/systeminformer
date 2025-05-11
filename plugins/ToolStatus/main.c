@@ -85,6 +85,7 @@ ULONG_PTR GetSearchMatchHandle(
     return SearchMatchHandle;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -106,6 +107,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     TaskbarUpdateEvents();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -343,6 +345,7 @@ VOID ShowCustomizeMenu(
     PhDestroyEMenu(menu);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -387,6 +390,7 @@ VOID NTAPI TabPageUpdatedCallback(
     //    SetFocus(SearchboxHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LayoutPaddingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1661,6 +1665,7 @@ DefaultWndProc:
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1692,6 +1697,7 @@ VOID NTAPI MainWindowShowingCallback(
         SetFocus(SearchboxHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1746,6 +1752,7 @@ VOID UpdateCachedSettings(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1773,6 +1780,7 @@ VOID NTAPI LoadCallback(
     ToolbarGraphsInitialize();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI SettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1781,6 +1789,7 @@ VOID NTAPI SettingsUpdatedCallback(
     UpdateCachedSettings();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1894,6 +1903,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

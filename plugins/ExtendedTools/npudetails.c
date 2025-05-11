@@ -339,6 +339,7 @@ VOID EtpNpuDetailsEnumAdapters(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID EtpNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -522,6 +523,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtNpuDetailsDialogThreadStart(
     _In_ PVOID Parameter
     )

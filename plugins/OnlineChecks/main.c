@@ -31,6 +31,7 @@ PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 BOOLEAN VirusTotalScanningEnabled = FALSE;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -42,6 +43,7 @@ VOID ProcessesUpdatedCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -50,6 +52,7 @@ VOID NTAPI LoadCallback(
     NOTHING;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -66,6 +69,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -132,6 +136,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -187,6 +192,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     return sendToMenu;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -210,6 +216,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ModuleMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -232,6 +239,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ServiceMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -259,6 +267,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessHighlightingColorCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -337,6 +346,7 @@ LONG NTAPI VirusTotalServiceNodeSortFunction(
     return PhCompareStringWithNullSortOrder(extension1->VirusTotalResult, extension2->VirusTotalResult, SortOrder, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -355,6 +365,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_PROCESS, NULL, VirusTotalProcessNodeSortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ModuleTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -373,6 +384,7 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ServiceTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -391,6 +403,7 @@ VOID NTAPI ServiceTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalServiceNodeSortFunction);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TreeNewMessageCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

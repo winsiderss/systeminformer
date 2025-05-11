@@ -337,6 +337,7 @@ VOID EtpGpuDetailsEnumAdapters(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID EtpGpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -526,6 +527,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtGpuDetailsDialogThreadStart(
     _In_ PVOID Parameter
     )

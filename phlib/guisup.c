@@ -3476,49 +3476,50 @@ NTSTATUS PhExtractIconEx(
         return FALSE;
     }
 
-    if (NativeFileName)
-    {
-        status = PhLoadMappedImageEx(
-            &fileName,
-            NULL,
-            &mappedImage
-            );
-    }
-    else
-    {
-        status = PhLoadMappedImage(
-            PhGetStringRefZ(&fileName),
-            NULL,
-            &mappedImage
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhClearReference(&resourceFileName);
-        return FALSE;
-    }
-
-    status = PhGetMappedImageDataDirectory(
-        &mappedImage,
-        IMAGE_DIRECTORY_ENTRY_RESOURCE,
-        &dataDirectory
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    resourceDirectory = PhMappedImageRvaToVa(
-        &mappedImage,
-        dataDirectory->VirtualAddress,
-        NULL
-        );
-
-    if (!resourceDirectory)
-        goto CleanupExit;
-
     __try
     {
+        if (NativeFileName)
+        {
+            status = PhLoadMappedImageEx(
+                &fileName,
+                NULL,
+                &mappedImage
+                );
+        }
+        else
+        {
+            status = PhLoadMappedImage(
+                PhGetStringRefZ(&fileName),
+                NULL,
+                &mappedImage
+                );
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhClearReference(&resourceFileName);
+            return FALSE;
+        }
+
+        status = PhGetMappedImageDataDirectory(
+            &mappedImage,
+            IMAGE_DIRECTORY_ENTRY_RESOURCE,
+            &dataDirectory
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        resourceDirectory = PhMappedImageRvaToVa(
+            &mappedImage,
+            dataDirectory->VirtualAddress,
+            NULL
+            );
+
+        if (!resourceDirectory)
+            goto CleanupExit;
+
+
         status = PhLoadIconFromResourceDirectory(
             &mappedImage,
             resourceDirectory,

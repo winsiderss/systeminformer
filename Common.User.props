@@ -153,7 +153,7 @@
   <!-- Debug|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /jumptablerdata %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
           <Optimization>Disabled</Optimization>
@@ -242,7 +242,7 @@
   <!-- Release|x64 Builds -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       <ClCompile>
-          <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg /jumptablerdata /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
           <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
           <Optimization>MaxSpeed</Optimization>

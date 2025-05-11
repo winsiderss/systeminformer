@@ -71,7 +71,7 @@ ULONG GetNumberOfDbObjects(
     return ObjectDb->Count;
 }
 
-_Acquires_exclusive_lock_(ObjectDbLock)
+_Use_decl_annotations_
 VOID LockDb(
     VOID
     )
@@ -79,7 +79,7 @@ VOID LockDb(
     PhAcquireQueuedLockExclusive(&ObjectDbLock);
 }
 
-_Releases_exclusive_lock_(ObjectDbLock)
+_Use_decl_annotations_
 VOID UnlockDb(
     VOID
     )
@@ -89,7 +89,7 @@ VOID UnlockDb(
 
 PDB_OBJECT FindDbObject(
     _In_ ULONG Tag,
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     DB_OBJECT lookupObject;
@@ -113,7 +113,7 @@ PDB_OBJECT FindDbObject(
 
 PDB_OBJECT CreateDbObject(
     _In_ ULONG Tag,
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_opt_ PPH_STRING Comment
     )
 {
@@ -375,7 +375,7 @@ PPH_BYTES FormatValueToUtf8(
 }
 
 PPH_BYTES StringRefToUtf8(
-    _In_ PPH_STRINGREF Value
+    _In_ PCPH_STRINGREF Value
     )
 {
     return PhConvertUtf16ToUtf8Ex(Value->Buffer, Value->Length);
@@ -500,7 +500,7 @@ VOID EnumDb(
 
 _Success_(return)
 BOOLEAN FindIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _Out_opt_ PULONG CpuPriorityClass,
     _Out_opt_ PULONG IoPriorityClass,
     _Out_opt_ PULONG PagePriorityClass
@@ -570,7 +570,7 @@ BOOLEAN FindIfeoObject(
 }
 
 NTSTATUS CreateIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG CpuPriorityClass,
     _In_ ULONG IoPriorityClass,
     _In_ ULONG PagePriorityClass
@@ -663,7 +663,7 @@ NTSTATUS CreateIfeoObject(
 }
 
 NTSTATUS DeleteIfeoObject(
-    _In_ PPH_STRINGREF Name,
+    _In_ PCPH_STRINGREF Name,
     _In_ ULONG CpuPriorityClass,
     _In_ ULONG IoPriorityClass,
     _In_ ULONG PagePriorityClass

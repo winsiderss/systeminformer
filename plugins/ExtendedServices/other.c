@@ -233,7 +233,7 @@ NTSTATUS EspLoadOtherInfo(
 }
 
 PPH_STRING EspGetServiceSidString(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PCPH_STRINGREF ServiceName
     )
 {
     BYTE serviceSidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };

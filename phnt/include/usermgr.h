@@ -26,7 +26,9 @@ typedef struct _CRED_PROV_CREDENTIAL
 
 #define USERMGRAPI DECLSPEC_IMPORT
 
+//
 // Contexts
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
@@ -76,7 +78,9 @@ UMgrQueryUserContextFromName(
 
 #endif
 
+//
 // Tokens
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
@@ -172,7 +176,9 @@ UMgrGetSessionActiveShellUserToken(
 
 #endif
 
+//
 // Single-session SKU
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
@@ -197,7 +203,9 @@ UMgrOpenProcessHandleForAccess(
 
 #endif
 
+//
 // Credentials
+//
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 

@@ -859,8 +859,15 @@ NTSTATUS PhEnumDirectoryFileEx(
     ULONG i;
     BOOLEAN cont;
 
-    if (!PhStringRefToUnicodeString(SearchPattern, &searchPattern))
-        return STATUS_NAME_TOO_LONG;
+    if (SearchPattern)
+    {
+        if (!PhStringRefToUnicodeString(SearchPattern, &searchPattern))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&searchPattern, NULL, 0);
+    }
 
     buffer = PhAllocate(bufferSize);
 
@@ -1992,7 +1999,40 @@ NTSTATUS PhGetProcessIdsUsingFile(
         );
 }
 
-NTSTATUS QueryProcessesUsingVolumeOrFile(
+NTSTATUS PhGetProcessIdsUsingFileByName(
+    _In_ PCPH_STRINGREF FileName,
+    _In_opt_ HANDLE RootDirectory,
+    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *ProcessIdsUsingFile
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhOpenFile(
+        &fileHandle,
+        FileName,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        RootDirectory,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhpQueryFileVariableSize(
+            fileHandle,
+            FileProcessIdsUsingFileInformation,
+            ProcessIdsUsingFile
+            );
+
+        NtClose(fileHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessesUsingVolumeOrFile(
     _In_ HANDLE VolumeOrFileHandle,
     _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
     )

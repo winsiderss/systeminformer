@@ -29,6 +29,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpModuleServicesDialogThreadStart(
     _In_ PVOID Parameter
     )

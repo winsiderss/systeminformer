@@ -2374,7 +2374,9 @@ PPH_BYTES PhFormatBytes(
     ...
     );
 
+//
 // Unicode
+//
 
 #define PH_UNICODE_BYTE_ORDER_MARK 0xfeff
 #define PH_UNICODE_MAX_CODE_POINT 0x10ffff
@@ -2442,8 +2444,8 @@ PhWriteUnicodeDecoder(
     _In_ ULONG CodeUnit
     );
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhDecodeUnicodeDecoder(
@@ -2451,8 +2453,8 @@ PhDecodeUnicodeDecoder(
     _Out_ PULONG CodePoint
     );
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhEncodeUnicode(
@@ -2462,7 +2464,9 @@ PhEncodeUnicode(
     _Out_ PULONG NumberOfCodeUnits
     );
 
+//
 // 8-bit to UTF-16
+//
 
 PHLIBAPI
 VOID
@@ -2483,6 +2487,7 @@ PhZeroExtendToUtf16Ex(
 
 FORCEINLINE
 PPH_STRING
+NTAPI
 PhZeroExtendToUtf16(
     _In_ PCSTR Input
     )
@@ -2490,7 +2495,9 @@ PhZeroExtendToUtf16(
     return PhZeroExtendToUtf16Ex(Input, strlen(Input));
 }
 
+//
 // UTF-16 to ASCII
+//
 
 PHLIBAPI
 PPH_BYTES

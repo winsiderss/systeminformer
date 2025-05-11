@@ -41,17 +41,114 @@ typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 #define KACF_ALLOWMAXIMIZEDWINDOWGAMMA 0x01000000
 #define KACF_DONOTADDTOCACHE 0x80000000
 
-// PEB->ApiSetMap
-typedef struct _API_SET_NAMESPACE
+// private
+#define API_SET_SECTION_NAME ".apiset"
+
+// private
+#define API_SET_SCHEMA_VERSION_V2 0x00000002 // WIN7, WIN8
+#define API_SET_SCHEMA_VERSION_V4 0x00000004 // WINBLUE
+#define API_SET_SCHEMA_VERSION_V6 0x00000006 // since THRESHOLD
+#define API_SET_SCHEMA_VERSION API_SET_SCHEMA_VERSION_V6
+
+// private
+#define API_SET_SCHEMA_FLAGS_SEALED 0x00000001
+#define API_SET_SCHEMA_FLAGS_HOST_EXTENSION 0x00000002
+
+// private
+#define API_SET_SCHEMA_ENTRY_FLAGS_SEALED 0x00000001
+#define API_SET_SCHEMA_ENTRY_FLAGS_EXTENSION 0x00000002
+
+// private
+typedef struct _API_SET_VALUE_ENTRY_V2
 {
-    ULONG Version;
-    ULONG Size;
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG ValueOffset; // to WCHAR[ValueLength / sizeof(WCHAR)], from schema base
+    ULONG ValueLength;
+} API_SET_VALUE_ENTRY_V2, *PAPI_SET_VALUE_ENTRY_V2;
+
+// private
+typedef struct _API_SET_VALUE_ARRAY_V2
+{
+    ULONG Count;
+    _Field_size_full_(Count) API_SET_VALUE_ENTRY_V2 Array[ANYSIZE_ARRAY];
+} API_SET_VALUE_ARRAY_V2, *PAPI_SET_VALUE_ARRAY_V2;
+
+// private
+typedef struct _API_SET_NAMESPACE_ENTRY_V2
+{
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG DataOffset; // to API_SET_VALUE_ARRAY_V2, from schema base
+} API_SET_NAMESPACE_ENTRY_V2, *PAPI_SET_NAMESPACE_ENTRY_V2;
+
+// private // PEB->ApiSetMap on WIN7, WIN8
+typedef struct _API_SET_NAMESPACE_ARRAY_V2
+{
+    ULONG Version; // API_SET_SCHEMA_VERSION_V2
+    ULONG Count;
+    _Field_size_full_(Count) API_SET_NAMESPACE_ENTRY_V2 Array[ANYSIZE_ARRAY];
+} API_SET_NAMESPACE_ARRAY_V2, *PAPI_SET_NAMESPACE_ARRAY_V2;
+
+// private
+typedef struct _API_SET_VALUE_ENTRY_V4
+{
+    ULONG Flags;
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG ValueOffset; // to WCHAR[ValueLength / sizeof(WCHAR)], from schema base
+    ULONG ValueLength;
+} API_SET_VALUE_ENTRY_V4, *PAPI_SET_VALUE_ENTRY_V4;
+
+// private
+typedef struct _API_SET_VALUE_ARRAY_V4
+{
     ULONG Flags;
     ULONG Count;
-    ULONG EntryOffset;
-    ULONG HashOffset;
-    ULONG HashFactor;
-} API_SET_NAMESPACE, *PAPI_SET_NAMESPACE;
+    _Field_size_full_(Count) API_SET_VALUE_ENTRY_V4 Array[ANYSIZE_ARRAY];
+} API_SET_VALUE_ARRAY_V4, *PAPI_SET_VALUE_ARRAY_V4;
+
+// private
+typedef struct _API_SET_NAMESPACE_ENTRY_V4
+{
+    ULONG Flags; // API_SET_SCHEMA_ENTRY_FLAGS_*
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG AliasOffset; // to WCHAR[AliasLength / sizeof(WCHAR)], from schema base
+    ULONG AliasLength;
+    ULONG DataOffset; // to API_SET_VALUE_ARRAY_V4, from schema base
+} API_SET_NAMESPACE_ENTRY_V4, *PAPI_SET_NAMESPACE_ENTRY_V4;
+
+// private // PEB->ApiSetMap on WINBLUE
+typedef struct _API_SET_NAMESPACE_ARRAY_V4
+{
+    ULONG Version; // API_SET_SCHEMA_VERSION_V4
+    ULONG Size;
+    ULONG Flags; // API_SET_SCHEMA_FLAGS_*
+    ULONG Count;
+    _Field_size_full_(Count) API_SET_NAMESPACE_ENTRY_V4 Array[ANYSIZE_ARRAY];
+} API_SET_NAMESPACE_ARRAY_V4, *PAPI_SET_NAMESPACE_ARRAY_V4;
+
+// private
+typedef struct _API_SET_VALUE_ENTRY
+{
+    ULONG Flags;
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG ValueOffset; // to WCHAR[ValueLength / sizeof(WCHAR)], from schema base
+    ULONG ValueLength;
+} API_SET_VALUE_ENTRY, *PAPI_SET_VALUE_ENTRY;
+
+// private
+typedef struct _API_SET_NAMESPACE_ENTRY
+{
+    ULONG Flags; // API_SET_SCHEMA_ENTRY_FLAGS_*
+    ULONG NameOffset; // to WCHAR[NameLength / sizeof(WCHAR)], from schema base
+    ULONG NameLength;
+    ULONG HashedLength;
+    ULONG ValueOffset; // to API_SET_VALUE_ENTRY[ValueCount], from schema base
+    ULONG ValueCount;
+} API_SET_NAMESPACE_ENTRY, *PAPI_SET_NAMESPACE_ENTRY;
 
 // private
 typedef struct _API_SET_HASH_ENTRY
@@ -60,26 +157,17 @@ typedef struct _API_SET_HASH_ENTRY
     ULONG Index;
 } API_SET_HASH_ENTRY, *PAPI_SET_HASH_ENTRY;
 
-// private
-typedef struct _API_SET_NAMESPACE_ENTRY
+// private // PEB->ApiSetMap since THRESHOLD
+typedef struct _API_SET_NAMESPACE
 {
-    ULONG Flags;
-    ULONG NameOffset;
-    ULONG NameLength;
-    ULONG HashedLength;
-    ULONG ValueOffset;
-    ULONG ValueCount;
-} API_SET_NAMESPACE_ENTRY, *PAPI_SET_NAMESPACE_ENTRY;
-
-// private
-typedef struct _API_SET_VALUE_ENTRY
-{
-    ULONG Flags;
-    ULONG NameOffset;
-    ULONG NameLength;
-    ULONG ValueOffset;
-    ULONG ValueLength;
-} API_SET_VALUE_ENTRY, *PAPI_SET_VALUE_ENTRY;
+    ULONG Version; // API_SET_SCHEMA_VERSION_V6
+    ULONG Size;
+    ULONG Flags; // API_SET_SCHEMA_FLAGS_*
+    ULONG Count;
+    ULONG EntryOffset; // to API_SET_NAMESPACE_ENTRY[Count], from this struct base
+    ULONG HashOffset; // to API_SET_HASH_ENTRY[Count], from this struct base
+    ULONG HashFactor;
+} API_SET_NAMESPACE, *PAPI_SET_NAMESPACE;
 
 // PEB->TelemetryCoverageHeader
 typedef struct _TELEMETRY_COVERAGE_HEADER

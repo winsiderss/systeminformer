@@ -163,12 +163,8 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
-
-                foreach (var (channel, _) in BuildConfig.Build_Channels)
-                {
-                    if (!Build.BuildBinZip(channel))
-                        Environment.Exit(1);
-                }
+                if (!Build.BuildBinZip())
+                    Environment.Exit(1);
 
                 Build.ShowBuildStats();
             }
@@ -211,11 +207,11 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
+                if (!Build.BuildBinZip())
+                    Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
-                    if (!Build.BuildBinZip(channel))
-                        Environment.Exit(1);
                     if (!Build.BuildSetupExe(channel))
                         Environment.Exit(1);
                 }
@@ -273,11 +269,11 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(BuildFlags.Release))
                     Environment.Exit(1);
+                if (!Build.BuildBinZip())
+                    Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
-                    if (!Build.BuildBinZip(channel))
-                        Environment.Exit(1);
                     if (!Build.BuildSetupExe(channel))
                         Environment.Exit(1);
                 }
@@ -361,14 +357,9 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("SystemInformer.sln", BuildFlags.Release) ||
                     !Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release) ||
                     !Build.CopyDebugEngineFiles(BuildFlags.Release) ||
-                    !Build.CopyTextFiles(BuildFlags.Release))
+                    !Build.CopyTextFiles(BuildFlags.Release) ||
+                    !Build.BuildBinZip())
                     Environment.Exit(1);
-
-                foreach (var (channel, _) in BuildConfig.Build_Channels)
-                {
-                    if (!Build.BuildBinZip(channel))
-                        Environment.Exit(1);
-                }
 
                 Build.ShowBuildStats();
                 return true;
@@ -399,12 +390,13 @@ namespace CustomBuildTool
 
                 if (!Build.ResignFiles() ||
                     !Build.CopyDebugEngineFiles(BuildFlags.Release) ||
-                    !Build.CopyTextFiles(BuildFlags.Release))
+                    !Build.CopyTextFiles(BuildFlags.Release) ||
+                    !Build.BuildBinZip())
                     Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
-                    if (!Build.BuildBinZip(channel) || !Build.BuildSetupExe(channel))
+                    if (!Build.BuildSetupExe(channel))
                         Environment.Exit(1);
                 }
 
@@ -450,9 +442,12 @@ namespace CustomBuildTool
 
             ExecuteBuildSteps(BuildFlags.Release, Build.CopyDebugEngineFiles, Build.CopyWow64Files, Build.CopyTextFiles);
 
+            if (!!Build.BuildBinZip())
+                Environment.Exit(1);
+
             foreach (var (channel, _) in BuildConfig.Build_Channels)
             {
-                if (!Build.BuildBinZip(channel) || !Build.BuildSetupExe(channel))
+                if (!Build.BuildSetupExe(channel))
                     Environment.Exit(1);
             }
 

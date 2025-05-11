@@ -1518,6 +1518,7 @@ static ULONG ProcessDotNetTrace(
     return result;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UpdateDotNetTraceInfoThreadStart(
     _In_ PVOID Parameter
     )

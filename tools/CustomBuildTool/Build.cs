@@ -199,7 +199,7 @@ namespace CustomBuildTool
 
         public static string BuildVersionBuild
         {
-            get 
+            get
             {
                 // Extract the last two digits of the year. For example, if the year is 2023, (Year % 100) will result in 23.
                 var first = (TimeStart.Year % 100).ToString();
@@ -689,87 +689,25 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static void CreateSettingsFile(string Channel, string Path)
-        {
-            StringBuilder stringBuilder = new StringBuilder(0x100);
-
-            stringBuilder.AppendLine("<settings>");
-
-            if (string.Equals(Channel, "release", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">0</setting>"); // PhReleaseChannel
-            }
-            else if (string.Equals(Channel, "preview", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">1</setting>"); // PhPreviewChannel
-            }
-            else if (string.Equals(Channel, "canary", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">2</setting>"); // PhCanaryChannel
-            }
-            else if (string.Equals(Channel, "developer", StringComparison.OrdinalIgnoreCase))
-            {
-                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">3</setting>"); // PhDeveloperChannel
-            }
-            else
-            {
-                throw new Exception($"Invalid channel: {Channel}");
-            }
-
-            stringBuilder.AppendLine("</settings>");
-
-            if (Directory.Exists(Path))
-            {
-                Win32.CreateEmptyFile($"{Path}\\SystemInformer.exe.settings.xml");
-                Utils.WriteAllText($"{Path}\\SystemInformer.exe.settings.xml", stringBuilder.ToString());
-            }
-        }
-
-        public static bool BuildBinZip(string Channel)
+        public static bool BuildBinZip()
         {
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage($"Building build-{Channel}-bin.zip... ", ConsoleColor.Cyan, false);
-
-            try
-            {
-                CreateSettingsFile(Channel, "bin\\Release32");
-                CreateSettingsFile(Channel, "bin\\Release64");
-                CreateSettingsFile(Channel, "bin\\ReleaseARM64");
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-                return false;
-            }
-
-            //try
-            //{
-            //    if (Directory.Exists("bin\\Release32"))
-            //        Win32.CreateEmptyFile("bin\\Release32\\usernotesdb.xml");
-            //    if (Directory.Exists("bin\\Release64"))
-            //        Win32.CreateEmptyFile("bin\\Release64\\usernotesdb.xml");
-            //    if (Directory.Exists("bin\\ReleaseARM64"))
-            //        Win32.CreateEmptyFile("bin\\ReleaseARM64\\usernotesdb.xml");
-            //}
-            //catch (Exception ex)
-            //{
-            //    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-            //}
+            Program.PrintColorMessage($"Building build-bin.zip... ", ConsoleColor.Cyan, false);
 
             try
             {
                 Utils.CreateOutputDirectory();
 
                 Win32.DeleteFile(
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
+                    $"{BuildOutputFolder}\\systeminformer-build-bin.zip"
                     );
 
                 Zip.CreateCompressedFolder(
                     "bin",
-                    $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
+                    $"{BuildOutputFolder}\\systeminformer-build-bin.zip"
                     );
 
-                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-bin.zip").ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -979,58 +917,45 @@ namespace CustomBuildTool
 
         private struct BuildDeployInfo
         {
-            public string BinFilename;
-            public string BinHash;
-            public string BinSig;
-            public ulong BinFileLength;
-
-            public string SetupFilename;
-            public string SetupHash;
-            public string SetupSig;
-            public ulong SetupFileLength;
+            public string Filename;
+            public string Hash;
+            public string Sig;
+            public ulong FileLength;
         }
 
         private static bool GetBuildDeployInfo(string Channel, out BuildDeployInfo Info)
         {
-            Info = new BuildDeployInfo
-            {
-                BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip",
-                SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
-            };
+            string channelKey;
+            Info = new BuildDeployInfo();
 
-            if (!Verify.CreateSigString(Channel, Info.BinFilename, out Info.BinSig))
+            if (string.IsNullOrEmpty(Channel))
             {
-                Program.PrintColorMessage("failed to create bin signature string", ConsoleColor.Red);
+                // N.B. HACK we only produce a "release" (default setting) build for the binary (portable).
+                // Sign it using the "release" key. (jxy-s)
+                channelKey = "release";
+                Info.Filename = $"{BuildOutputFolder}\\systeminformer-build-bin.zip";
+            }
+            else
+            {
+                channelKey = Channel;
+                Info.Filename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe";
+            }
+
+            if (!Verify.CreateSigString(channelKey, Info.Filename, out Info.Sig))
+            {
+                Program.PrintColorMessage("failed to create signature string", ConsoleColor.Red);
                 return false;
             }
 
-            if (!Verify.CreateSigString(Channel, Info.SetupFilename, out Info.SetupSig))
+            if (File.Exists(Info.Filename))
             {
-                Program.PrintColorMessage("failed to create setup signature string", ConsoleColor.Red);
-                return false;
+                Info.FileLength = Win32.GetFileSize(Info.Filename);
+                Info.Hash = Verify.HashFile(Info.Filename);
             }
 
-            if (File.Exists(Info.BinFilename))
+            if (string.IsNullOrWhiteSpace(Info.Hash))
             {
-                Info.BinFileLength = Win32.GetFileSize(Info.BinFilename);
-                Info.BinHash = Verify.HashFile(Info.BinFilename);
-            }
-
-            if (File.Exists(Info.SetupFilename))
-            {
-                Info.SetupFileLength = Win32.GetFileSize(Info.SetupFilename);
-                Info.SetupHash = Verify.HashFile(Info.SetupFilename);
-            }
-
-            if (string.IsNullOrWhiteSpace(Info.BinHash))
-            {
-                Program.PrintColorMessage("build-bin hash not found.", ConsoleColor.Red);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(Info.SetupHash))
-            {
-                Program.PrintColorMessage("build-setup hash not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("hash not found", ConsoleColor.Red);
                 return false;
             }
 
@@ -1049,16 +974,6 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("BUILD_BUILDID not found.", ConsoleColor.Red);
                 return false;
             }
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
-            {
-                Program.PrintColorMessage("BUILD_SF_API not found.", ConsoleColor.Red);
-                return false;
-            }
-            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
-            {
-                Program.PrintColorMessage("BUILD_SF_KEY not found.", ConsoleColor.Red);
-                return false;
-            }
             if (!Win32.GetEnvironmentVariable("BUILD_CF_API", out string buildPostCfUrl))
             {
                 Program.PrintColorMessage("BUILD_CF_API not found.", ConsoleColor.Red);
@@ -1070,6 +985,8 @@ namespace CustomBuildTool
                 return false;
             }
 
+            if (!GetBuildDeployInfo(null, out BuildDeployInfo bin))
+                return false;
             if (!GetBuildDeployInfo("release", out BuildDeployInfo release))
                 return false;
             //if (!GetBuildDeployInfo("preview", out BuildDeployInfo preview))
@@ -1087,40 +1004,24 @@ namespace CustomBuildTool
 
             if (!BuildUploadServerConfig(
                 buildBuildId,
-                buildPostSfUrl,
-                buildPostSfApiKey,
-                BuildUploadInfo.Item1,
-                BuildUploadInfo.Item2,
-                BuildUploadInfo.Item3,
-                BuildUploadInfo.Item4,
-                release,
-                canary
-                ))
-            {
-                Program.PrintColorMessage("BuildUploadServerConfig-SF failed.", ConsoleColor.Red);
-                return false;
-            }
-
-            if (!BuildUploadServerConfig(
-                buildBuildId,
                 buildPostCfUrl,
                 buildPostCfApiKey,
-                BuildUploadInfo.Item1,
-                BuildUploadInfo.Item2,
-                BuildUploadInfo.Item3,
-                BuildUploadInfo.Item4,
+                BuildUploadInfo.Item1, // bin link
+                bin,
+                BuildUploadInfo.Item2, // canary setup link
                 release,
+                BuildUploadInfo.Item3, // release setup link
                 canary
                 ))
             {
-                Program.PrintColorMessage("BuildUploadServerConfig-CF failed.", ConsoleColor.Red);
+                Program.PrintColorMessage("BuildUploadServerConfig failed.", ConsoleColor.Red);
                 return false;
             }
 
             return true;
         }
 
-        private static bool BuildUpdateGithubServer(out Tuple<string, string, string, string> BuildUploadInfo)
+        private static bool BuildUpdateGithubServer(out Tuple<string, string, string> BuildUploadInfo)
         {
             BuildUploadInfo = null;
 
@@ -1137,24 +1038,21 @@ namespace CustomBuildTool
                 return false;
             }
 
-            string canaryBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-bin.zip");
+            string binLink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-bin.zip");
             string canarySetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-canary-setup.exe");
-            string releaseBinlink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-bin.zip");
             string releaseSetuplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildLongVersion}-release-setup.exe");
 
-            if (string.IsNullOrWhiteSpace(canaryBinlink) ||
+            if (string.IsNullOrWhiteSpace(binLink) ||
                 string.IsNullOrWhiteSpace(canarySetuplink) ||
-                string.IsNullOrWhiteSpace(releaseBinlink) ||
                 string.IsNullOrWhiteSpace(releaseSetuplink))
             {
                 Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
                 return false;
             }
 
-            BuildUploadInfo = new Tuple<string, string, string, string>(
-                canaryBinlink,
+            BuildUploadInfo = new Tuple<string, string, string>(
+                binLink,
                 canarySetuplink,
-                releaseBinlink,
                 releaseSetuplink
                 );
 
@@ -1246,11 +1144,11 @@ namespace CustomBuildTool
             string BuildBuildId,
             string BuildPostUrl,
             string BuildPostKey,
-            string CanaryBinLink,
+            string BinLink,
+            BuildDeployInfo Bin,
             string CanarySetupLink,
-            string ReleaseBinLink,
-            string ReleaseSetupLink,
             BuildDeployInfo Release,
+            string ReleaseSetupLink,
             BuildDeployInfo Canary
             )
         {
@@ -1262,9 +1160,8 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(BuildBuildId) ||
                 string.IsNullOrWhiteSpace(BuildPostUrl) ||
                 string.IsNullOrWhiteSpace(BuildPostKey) ||
-                string.IsNullOrWhiteSpace(CanaryBinLink) ||
+                string.IsNullOrWhiteSpace(BinLink) ||
                 string.IsNullOrWhiteSpace(CanarySetupLink) ||
-                string.IsNullOrWhiteSpace(ReleaseBinLink) ||
                 string.IsNullOrWhiteSpace(ReleaseSetupLink))
             {
                 Program.PrintColorMessage("BuildUpdateServerConfig invalid args.", ConsoleColor.Red);
@@ -1280,22 +1177,18 @@ namespace CustomBuildTool
                     BuildVersion = Build.BuildLongVersion,
                     BuildCommit = Build.BuildCommitHash,
                     BuildId = BuildBuildId,
-                    BinUrl = CanaryBinLink,
-                    BinLength = Canary.BinFileLength.ToString(),
-                    BinHash = Canary.BinHash,
-                    BinSig = Canary.BinSig,
-                    SetupUrl = CanarySetupLink,
-                    SetupLength = Canary.SetupFileLength.ToString(),
-                    SetupHash = Canary.SetupHash,
-                    SetupSig = Canary.SetupSig,
-                    ReleaseBinUrl = ReleaseBinLink,
-                    ReleaseBinLength = Release.BinFileLength.ToString(),
-                    ReleaseBinHash = Release.BinHash,
-                    ReleaseBinSig = Release.BinSig,
+                    BinUrl = BinLink,
+                    BinLength = Bin.FileLength.ToString(),
+                    BinHash = Bin.Hash,
+                    BinSig = Bin.Sig,
+                    CanarySetupUrl = CanarySetupLink,
+                    CanarySetupLength = Canary.FileLength.ToString(),
+                    CanarySetupHash = Canary.Hash,
+                    CanarySetupSig = Canary.Sig,
                     ReleaseSetupUrl = ReleaseSetupLink,
-                    ReleaseSetupLength = Release.SetupFileLength.ToString(),
-                    ReleaseSetupHash = Release.SetupHash,
-                    ReleaseSetupSig = Release.SetupSig,
+                    ReleaseSetupLength = Release.FileLength.ToString(),
+                    ReleaseSetupHash = Release.Hash,
+                    ReleaseSetupSig = Release.Sig,
                 };
 
                 byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);

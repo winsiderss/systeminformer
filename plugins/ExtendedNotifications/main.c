@@ -287,6 +287,7 @@ PPH_STRING SaveFilterList(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -315,6 +316,7 @@ VOID NTAPI LoadCallback(
     FileLogInitialization();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

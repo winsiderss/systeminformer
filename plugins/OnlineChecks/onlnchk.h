@@ -143,18 +143,22 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadFileThreadStart(
     _In_ PVOID Parameter
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadCheckThreadStart(
     _In_ PVOID Parameter
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadRecheckThreadStart(
     _In_ PVOID Parameter
     );
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS ViewReportThreadStart(
     _In_ PVOID Parameter
     );

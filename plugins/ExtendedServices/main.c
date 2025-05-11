@@ -21,6 +21,7 @@ PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -96,6 +97,7 @@ static int __cdecl ServiceForServicesMenuCompare(
     return PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -252,6 +254,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ServicePropertiesInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -401,6 +404,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID MiListSectionMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

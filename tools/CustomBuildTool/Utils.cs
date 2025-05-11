@@ -763,15 +763,10 @@ namespace CustomBuildTool
         [JsonPropertyName("bin_hash")] public string BinHash { get; init; }
         [JsonPropertyName("bin_sig")] public string BinSig { get; init; }
 
-        [JsonPropertyName("setup_url")] public string SetupUrl { get; init; }
-        [JsonPropertyName("setup_length")] public string SetupLength { get; init; }
-        [JsonPropertyName("setup_hash")] public string SetupHash { get; init; }
-        [JsonPropertyName("setup_sig")] public string SetupSig { get; init; }
-
-        [JsonPropertyName("release_bin_url")] public string ReleaseBinUrl { get; init; }
-        [JsonPropertyName("release_bin_length")] public string ReleaseBinLength { get; init; }
-        [JsonPropertyName("release_bin_hash")] public string ReleaseBinHash { get; init; }
-        [JsonPropertyName("release_bin_sig")] public string ReleaseBinSig { get; init; }
+        [JsonPropertyName("canary_setup_url")] public string CanarySetupUrl { get; init; }
+        [JsonPropertyName("canary_setup_length")] public string CanarySetupLength { get; init; }
+        [JsonPropertyName("canary_setup_hash")] public string CanarySetupHash { get; init; }
+        [JsonPropertyName("canary_setup_sig")] public string CanarySetupSig { get; init; }
 
         [JsonPropertyName("release_setup_url")] public string ReleaseSetupUrl { get; init; }
         [JsonPropertyName("release_setup_length")] public string ReleaseSetupLength { get; init; }

@@ -110,7 +110,7 @@ static SUBTYPE_ENTRY SubTypeEntries[] =
     { SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT, &SubTypeUnknownGuid, L"Network endpoint: Unknown" }
 };
 
-static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
+static CONST PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
 
 PES_TRIGGER_DATA EspCreateTriggerData(
     _In_opt_ PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM DataItem
@@ -333,6 +333,7 @@ VOID EsDestroyServiceTriggerContext(
     PhFree(Context);
 }
 
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -422,7 +423,7 @@ NTSTATUS EspEnumerateEtwPublishers(
 
 _Success_(return)
 BOOLEAN EspLookupEtwPublisherGuid(
-    _In_ PPH_STRINGREF PublisherName,
+    _In_ PCPH_STRINGREF PublisherName,
     _Out_ PGUID Guid
     )
 {

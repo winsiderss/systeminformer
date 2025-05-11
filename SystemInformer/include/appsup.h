@@ -266,6 +266,7 @@ typedef enum _PH_RELEASE_CHANNEL
     PhPreviewChannel = 1, // unused, reserved
     PhCanaryChannel = 2,
     PhDeveloperChannel = 3,
+    PhInvalidChannel = ULONG_MAX,
 } PH_RELEASE_CHANNEL, *PPH_RELEASE_CHANNEL;
 
 PHAPPAPI

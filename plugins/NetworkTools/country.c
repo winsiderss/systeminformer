@@ -397,7 +397,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
     )
 {
     MMDB_lookup_result_s mmdb_result;
-    INT mmdb_error = 0;
+    LONG mmdb_error = 0;
 
     if (!GeoDbInitialized)
     {
@@ -512,7 +512,7 @@ INT LookupCountryIcon(
     if (!GeoImageList || !Name)
         return INT_ERROR;
 
-    for (UINT i = 0; i < RTL_NUMBER_OF(GeoCountryResourceTable); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(GeoCountryResourceTable); i++)
     {
         if (Name == GeoCountryResourceTable[i].GeoNameID)
         {

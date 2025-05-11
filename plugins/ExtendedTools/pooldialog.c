@@ -82,6 +82,7 @@ VOID EtUpdatePoolTagTable(
     PhFree(poolTagTable);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 BOOLEAN EtPoolTagTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -114,6 +115,7 @@ BOOLEAN EtPoolTagTreeFilterCallback(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

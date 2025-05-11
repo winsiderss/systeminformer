@@ -1882,7 +1882,7 @@ ULONG
 NTAPI
 PhCrc32(
     _In_ ULONG Crc,
-    _In_reads_(Length) PCHAR Buffer,
+    _In_reads_(Length) PUCHAR Buffer,
     _In_ SIZE_T Length
     );
 
@@ -2233,10 +2233,13 @@ PhGetNanosecondsStopwatch(
 }
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhApiSetResolveToHost(
-    _In_ PCPH_STRINGREF ApiSetName
+    _In_ PAPI_SET_NAMESPACE Schema,
+    _In_ PCPH_STRINGREF ApiSetName,
+    _In_opt_ PCPH_STRINGREF ParentName,
+    _Out_ PPH_STRINGREF HostBinary
     );
 
 PHLIBAPI

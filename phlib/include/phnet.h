@@ -299,7 +299,7 @@ NTSTATUS
 NTAPI
 PhHttpBeginRequest(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PCWSTR RequestMethod,
+    _In_opt_ PCWSTR RequestMethod,
     _In_ PCWSTR RequestPath,
     _In_ ULONG Flags
     );

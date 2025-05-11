@@ -14,7 +14,7 @@
 #include <verify.h>
 
 BOOLEAN WordMatchStringRef(
-    _In_ PPH_STRINGREF Text
+    _In_ PCPH_STRINGREF Text
     )
 {
     return PhSearchControlMatch(SearchMatchHandle, Text);

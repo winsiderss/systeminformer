@@ -163,38 +163,35 @@ USHORT SetupGetCurrentArchitecture(
     return info.wProcessorArchitecture;
 }
 
-BOOLEAN CALLBACK SetupExtractBuild(
+NTSTATUS CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    mz_bool status = MZ_FALSE;
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG resourceLength;
+    PVOID resourceBuffer = NULL;
     ULONG64 totalLength = 0;
     ULONG64 currentLength = 0;
     mz_zip_archive zipFileArchive = { 0 };
     PPH_STRING extractPath = NULL;
     USHORT nativeArchitecture;
 
+    status = PhLoadResource(NtCurrentImageBase(), MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0))
+    {
+        return STATUS_INVALID_BUFFER_SIZE;
+    }
+    //if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipBuffer, Context->ZipBufferLength, 0)))
+    //{
+    //    Context->LastStatus = STATUS_OBJECT_PATH_NOT_FOUND;
+    //    goto CleanupExit;
+    //}
+
     nativeArchitecture = SetupGetCurrentArchitecture();
-
-#ifdef PH_BUILD_API
-    ULONG resourceLength;
-    PVOID resourceBuffer = NULL;
-
-    if (!NT_SUCCESS(PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer)))
-        return FALSE;
-
-    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0)))
-    {
-        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
-        goto CleanupExit;
-    }
-#else
-    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipBuffer, Context->ZipBufferLength, 0)))
-    {
-        Context->LastStatus = STATUS_OBJECT_PATH_NOT_FOUND;
-        goto CleanupExit;
-    }
-#endif
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zipFileArchive); i++)
     {
@@ -283,13 +280,13 @@ BOOLEAN CALLBACK SetupExtractBuild(
 
         if (!(buffer = mz_zip_reader_extract_to_heap(&zipFileArchive, zipFileStat.m_file_index, &zipFileBufferLength, 0)))
         {
-            Context->LastStatus = STATUS_NO_MEMORY;
+            status = STATUS_NO_MEMORY;
             goto CleanupExit;
         }
 
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, zipFileBufferLength)) != zipFileStat.m_crc32)
         {
-            Context->LastStatus = STATUS_CRC_ERROR;
+            status = STATUS_CRC_ERROR;
             goto CleanupExit;
         }
 
@@ -301,7 +298,6 @@ BOOLEAN CALLBACK SetupExtractBuild(
 
         if (!NT_SUCCESS(status = PhCreateDirectoryFullPathWin32(&extractPath->sr)))
         {
-            Context->LastStatus = status;
             goto CleanupExit;
         }
 
@@ -353,7 +349,7 @@ BOOLEAN CALLBACK SetupExtractBuild(
 
             if (updateKsiAttempt)
             {
-                Context->LastStatus = STATUS_DEVICE_BUSY;
+                status = STATUS_DEVICE_BUSY;
                 goto CleanupExit;
             }
         }
@@ -400,13 +396,6 @@ BOOLEAN CALLBACK SetupExtractBuild(
         mz_free(buffer);
     }
 
-    mz_zip_reader_end(&zipFileArchive);
-
-    if (extractPath)
-        PhDereferenceObject(extractPath);
-
-    return TRUE;
-
 CleanupExit:
 
     mz_zip_reader_end(&zipFileArchive);
@@ -414,5 +403,5 @@ CleanupExit:
     if (extractPath)
         PhDereferenceObject(extractPath);
 
-    return FALSE;
+    return status;
 }
