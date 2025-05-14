@@ -68,7 +68,7 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildArguments()
         {
-            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("BUILD_BUILDID"))
+            if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS") || Win32.HasEnvironmentVariable("TF_BUILD"))
             {
                 Build.BuildIntegration = true;
             }
@@ -125,6 +125,7 @@ namespace CustomBuildTool
 
             return true;
         }
+
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
             if (string.IsNullOrWhiteSpace(Build.BuildCommitBranch) && !string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
@@ -859,7 +860,7 @@ namespace CustomBuildTool
 
             string buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            if (Build.BuildRedirectOutput)
+            if (Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
                 int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, Flags, out string errorstring);
 
