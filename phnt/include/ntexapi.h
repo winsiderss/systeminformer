@@ -2238,7 +2238,7 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
 /**
- * The SYSTEM_PERFORMANCE_INFORMATION structure contains information about the system uptime.
+ * The SYSTEM_TIMEOFDAY_INFORMATION structure contains information about the system uptime.
  */
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
 {
