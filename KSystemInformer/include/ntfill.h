@@ -902,6 +902,201 @@ RtlFindExportedRoutineByName(
     );
 #endif
 
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+volatile void*
+RtlCopyFromUser(
+    _Out_writes_bytes_all_(Length) volatile void* Destination,
+    _In_reads_bytes_(Length) volatile const void* Source,
+    _In_ size_t Length
+    )
+{
+    if (Length)
+    {
+        ProbeForRead((PVOID)Source, Length, 1);
+        return RtlCopyVolatileMemory(Destination, Source, Length);
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+volatile void*
+RtlCopyToUser(
+    _Out_writes_bytes_all_(Length) volatile void* Destination,
+    _In_reads_bytes_(Length) volatile const void* Source,
+    _In_ size_t Length
+    )
+{
+    if (Length)
+    {
+#pragma prefast(suppress: 6001)
+        ProbeForRead((PVOID)Destination, Length, 1);
+        return RtlCopyVolatileMemory(Destination, Source, Length);
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+volatile void*
+RtlCopyToUserFromUser(
+    _Out_writes_bytes_all_(Length) volatile void* Destination,
+    _In_reads_bytes_(Length) volatile const void* Source,
+    _In_ size_t Length
+    )
+{
+    ProbeForRead((PVOID)Source, Length, 1);
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, Length, 1);
+    return RtlCopyVolatileMemory(Destination, Source, Length);
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+volatile void*
+RtlMoveToUserFromUser(
+    _Out_writes_bytes_all_(Length) volatile void* Destination,
+    _In_reads_bytes_(Length) volatile const void* Source,
+    _In_ size_t Length
+    )
+{
+    ProbeForRead((PVOID)Source, Length, 1);
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, Length, 1);
+    return RtlMoveVolatileMemory(Destination, Source, Length);
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+void
+RtlWriteUCharToUser(
+    _Out_ volatile UCHAR* Destination,
+    _In_ UCHAR Value
+    )
+{
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, sizeof(UCHAR), 1);
+    *Destination = Value;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+void
+RtlWriteUShortToUser(
+    _Out_ volatile USHORT* Destination,
+    _In_ USHORT Value
+    )
+{
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, sizeof(USHORT), 1);
+    *Destination = Value;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+void
+RtlWriteULongToUser(
+    _Out_ volatile ULONG* Destination,
+    _In_ ULONG Value
+    )
+{
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, sizeof(ULONG), 1);
+    *Destination = Value;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+void
+RtlWriteULong64ToUser(
+    _Out_ volatile ULONG64* Destination,
+    _In_ ULONG64 Value
+    )
+{
+#pragma prefast(suppress: 6001)
+    ProbeForRead((PVOID)Destination, sizeof(ULONG64), 1);
+    *Destination = Value;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+UCHAR
+RtlReadUCharFromUser(
+    _In_ volatile UCHAR* Source
+    )
+{
+    ProbeForRead((PVOID)Source, sizeof(UCHAR), 1);
+    return *Source;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+USHORT
+RtlReadUShortFromUser(
+    _In_ volatile USHORT* Source
+    )
+{
+    ProbeForRead((PVOID)Source, sizeof(USHORT), 1);
+    return *Source;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+ULONG
+RtlReadULongFromUser(
+    _In_ volatile ULONG* Source
+    )
+{
+    ProbeForRead((PVOID)Source, sizeof(ULONG), 1);
+    return *Source;
+}
+
+FORCEINLINE
+_Maybe_raises_SEH_exception_
+_IRQL_requires_max_(APC_LEVEL)
+ULONG64
+RtlReadULong64FromUser(
+    _In_ volatile ULONG64* Source
+    )
+{
+    ProbeForRead((PVOID)Source, sizeof(ULONG64), 1);
+    return *Source;
+}
+
+#ifdef _WIN64
+#define RtlWritePointerToUser(destination, value) RtlWriteULong64ToUser((volatile ULONG64*)destination, (ULONG64)value)
+#define RtlReadPointerFromUser(source) (PVOID)RtlReadULong64FromUser((volatile ULONG64*)source)
+#define RtlWriteHandleToUser(destination, value) RtlWriteULong64ToUser((volatile ULONG64*)destination, (ULONG64)value)
+#define RtlReadHandleFromUser(source) (HANDLE)RtlReadULong64FromUser((volatile ULONG64*)source)
+#define RtlWriteULongPtrToUser(destination, value) RtlWriteULong64ToUser((volatile ULONG64*)destination, (ULONG64)value)
+#define RtlReadULongPtrFromUser(source) (ULONG_PTR)RtlReadULong64FromUser((volatile ULONG64*)source)
+#define RtlWriteSizeTToUser(destination, value) RtlWriteULong64ToUser((volatile ULONG64*)destination, (ULONG64)value)
+#define RtlReadSizeTFromUser(source) (SIZE_T)RtlReadULong64FromUser((volatile ULONG64*)source)
+#else
+#define RtlWritePointerToUser(destination, value) RtlWriteULongToUser((volatile ULONG*)destination, (ULONG)value)
+#define RtlReadPointerFromUser(source) (PVOID)RtlReadULongFromUser((volatile ULONG*)source)
+#define RtlWriteHandleToUser(destination, value) RtlWriteULongToUser((volatile ULONG*)destination, (ULONG)value)
+#define RtlReadHandleFromUser(source) (HANDLE)RtlReadULongFromUser((volatile ULONG*)source)
+#define RtlWriteULongPtrToUser(destination, value) RtlWriteULongToUser((volatile ULONG*)destination, (ULONG)value)
+#define RtlReadULongPtrFromUser(source) (ULONG_PTR)RtlReadULongFromUser((volatile ULONG*)source)
+#define RtlWriteSizeTToUser(destination, value) RtlWriteULongToUser((volatile ULONG*)destination, (ULONG)value)
+#define RtlReadSizeTFromUser(source) (SIZE_T)RtlReadULongFromUser((volatile ULONG*)source)
+#endif
+
 // MM
 
 #define SEC_DRIVER_IMAGE 0x00100000
