@@ -2114,7 +2114,7 @@ NTAPI
 RtlMultiAppendUnicodeStringBuffer(
     _Inout_ PRTL_UNICODE_STRING_BUFFER Buffer,
     _In_ ULONG BufferCount,
-    _In_ PCUNICODE_STRING Source 
+    _In_ PCUNICODE_STRING Source
     );
 
 NTSYSAPI
@@ -2123,7 +2123,7 @@ NTAPI
 RtlAppendPathElement(
     _In_ ULONG Flags,
     _Inout_ PRTL_UNICODE_STRING_BUFFER Buffer,
-    _In_ PCUNICODE_STRING Source 
+    _In_ PCUNICODE_STRING Source
     );
 
 NTSYSAPI
