@@ -4181,6 +4181,7 @@ NTSTATUS PhShowServiceProgressDialogThread(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 static VOID PhServiceProgressContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

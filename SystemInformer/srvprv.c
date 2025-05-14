@@ -83,16 +83,19 @@ typedef struct _PH_SERVICE_QUERY_S2_DATA
     BOOLEAN MicrosoftService;
 } PH_SERVICE_QUERY_S2_DATA, *PPH_SERVICE_QUERY_S2_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpServiceItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpServiceHashtableHashFunction(
     _In_ PVOID Entry
     );

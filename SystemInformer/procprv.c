@@ -120,6 +120,7 @@ typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
     PPH_STRING FullName;
 } PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -440,6 +441,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     return processItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -3817,6 +3819,7 @@ HIMAGELIST PhProcessLargeImageList = NULL;
 HIMAGELIST PhProcessSmallImageList = NULL;
 PPH_OBJECT_TYPE PhImageListItemType = NULL;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpImageListItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

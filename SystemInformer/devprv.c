@@ -4051,6 +4051,7 @@ PPH_DEVICE_ITEM PhReferenceDeviceItem2(
     return deviceItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpDeviceInfoDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -4065,6 +4066,7 @@ VOID PhpDeviceInfoDeleteProcedure(
     }
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpDeviceItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -4108,6 +4110,7 @@ VOID PhpDeviceItemDeleteProcedure(
     PhClearReference(&item->DeviceInfo);
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpDeviceTreeDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -4138,6 +4141,7 @@ VOID PhpDeviceTreeDeleteProcedure(
     PhClearReference(&tree->DeviceInfo);
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpDeviceNotifyDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

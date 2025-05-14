@@ -640,6 +640,7 @@ VOID PhThreadProviderInitialUpdate(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpThreadProviderCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

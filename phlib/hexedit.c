@@ -32,7 +32,7 @@ BOOLEAN PhHexEditInitialization(
     c.lpfnWndProc = PhpHexEditWndProc;
     c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
-    if (!RegisterClassEx(&c))
+    if (RegisterClassEx(&c) == INVALID_ATOM)
         return FALSE;
 
     return TRUE;

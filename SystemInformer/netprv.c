@@ -53,25 +53,30 @@ typedef struct _PHP_RESOLVE_CACHE_ITEM
     PPH_STRING HostString;
 } PHP_RESOLVE_CACHE_ITEM, *PPHP_RESOLVE_CACHE_ITEM;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpNetworkHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpNetworkHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     );
@@ -141,6 +146,7 @@ PPH_NETWORK_ITEM PhCreateNetworkItem(
     return networkItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -170,6 +176,7 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->ProcessItem);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpNetworkHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -185,6 +192,7 @@ BOOLEAN PhpNetworkHashtableEqualFunction(
         networkItem1->ProcessId == networkItem2->ProcessId;
 }
 
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpNetworkHashtableHashFunction(
     _In_ PVOID Entry
     )

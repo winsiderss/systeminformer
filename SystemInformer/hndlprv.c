@@ -27,11 +27,13 @@ typedef struct _PHP_CREATE_HANDLE_ITEM_CONTEXT
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle;
 } PHP_CREATE_HANDLE_ITEM_CONTEXT, *PPHP_CREATE_HANDLE_ITEM_CONTEXT;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpHandleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpHandleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -93,6 +95,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     return handleProvider;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpHandleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -156,6 +159,7 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
     return handleItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpHandleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

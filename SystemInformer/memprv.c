@@ -18,6 +18,7 @@
 #define MAX_HEAPS 1000
 #define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -269,6 +270,7 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
     return memoryItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

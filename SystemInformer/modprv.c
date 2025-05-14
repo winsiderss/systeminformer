@@ -41,11 +41,13 @@ typedef struct _PH_MODULE_QUERY_DATA
     FLOAT ImageCoherency;
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpModuleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpModuleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -213,6 +215,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     return moduleProvider;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleProviderDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -280,6 +283,7 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     return moduleItem;
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

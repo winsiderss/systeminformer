@@ -482,6 +482,7 @@ VOID PhpProcessMemorySave(
     PhFreeFileDialog(fileDialog);
 }
 
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpMemoryContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
