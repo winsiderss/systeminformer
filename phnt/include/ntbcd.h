@@ -135,9 +135,9 @@ typedef BCD_MESSAGE_CALLBACK* PBCD_MESSAGE_CALLBACK;
 /**
  * Sets the logging level and callback routine for BCD messages.
  *
- * @param BcdLoggingLevel The logging level to set.
- * @param BcdMessageCallbackRoutine The callback routine for BCD messages.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdLoggingLevel The logging level to set.
+ * \param BcdMessageCallbackRoutine The callback routine for BCD messages.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -160,8 +160,8 @@ BcdInitializeBcdSyncMutant(
 /**
  * Retrieves the file name for the BCD.
  *
- * @param BcdSystemStorePath The pointer to receive the system store path.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdSystemStorePath The pointer to receive the system store path.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -173,8 +173,8 @@ BcdGetSystemStorePath(
 /**
  * Sets the device for the system BCD store.
  *
- * @param SystemPartition The system partition to set.
- * @return NTSTATUS Successful or errant status.
+ * \param SystemPartition The system partition to set.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -186,8 +186,8 @@ BcdSetSystemStoreDevice(
 /**
  * Opens the BCD system store.
  *
- * @param BcdStoreHandle The handle to receive the system store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to receive the system store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -199,9 +199,9 @@ BcdOpenSystemStore(
 /**
  * Opens a BCD store from a file.
  *
- * @param BcdFilePath The file path of the BCD store.
- * @param BcdStoreHandle The handle to receive the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path of the BCD store.
+ * \param BcdStoreHandle The handle to receive the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -214,9 +214,9 @@ BcdOpenStoreFromFile(
 /**
  * Creates a BCD store.
  *
- * @param BcdFilePath The file path to create the BCD store.
- * @param BcdStoreHandle The handle to receive the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path to create the BCD store.
+ * \param BcdStoreHandle The handle to receive the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -229,8 +229,8 @@ BcdCreateStore(
 /**
  * Exports the BCD store to a file.
  *
- * @param BcdFilePath The file path to export the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path to export the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -243,10 +243,10 @@ BcdExportStore(
 /**
  * Exports the BCD store to a file with additional flags.
  *
- * @param BcdStoreHandle The handle to the BCD store.
- * @param Flags The flags for exporting the store.
- * @param BcdFilePath The file path to export the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to the BCD store.
+ * \param Flags The flags for exporting the store.
+ * \param BcdFilePath The file path to export the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -261,8 +261,8 @@ BcdExportStoreEx(
 /**
  * Imports a BCD store from a file.
  *
- * @param BcdFilePath The file path to import the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path to import the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -280,9 +280,9 @@ typedef enum _BCD_IMPORT_FLAGS
 /**
  * Imports a BCD store from a file with additional flags.
  *
- * @param BcdFilePath The file path to import the BCD store.
- * @param BcdImportFlags The flags for importing the store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path to import the BCD store.
+ * \param BcdImportFlags The flags for importing the store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -295,9 +295,9 @@ BcdImportStoreWithFlags(
 /**
  * Deletes object references in the BCD store.
  *
- * @param BcdStoreHandle The handle to the BCD store.
- * @param Identifier The identifier of the object to delete references for.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to the BCD store.
+ * \param Identifier The identifier of the object to delete references for.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -310,7 +310,7 @@ BcdDeleteObjectReferences(
 /**
  * Deletes the system store for BCD.
  *
- * @return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -329,10 +329,10 @@ typedef enum _BCD_OPEN_FLAGS
 /**
  * Opens a BCD store with additional flags.
  *
- * @param BcdFilePath The file path of the BCD store.
- * @param BcdOpenFlags The flags for opening the store.
- * @param BcdStoreHandle The handle to receive the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdFilePath The file path of the BCD store.
+ * \param BcdOpenFlags The flags for opening the store.
+ * \param BcdStoreHandle The handle to receive the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -346,8 +346,8 @@ BcdOpenStore(
 /**
  * Closes a BCD store.
  *
- * @param BcdStoreHandle The handle to the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -359,8 +359,8 @@ BcdCloseStore(
 /**
  * Flushes a BCD store.
  *
- * @param BcdStoreHandle The handle to the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -372,8 +372,8 @@ BcdFlushStore(
 /**
  * Forcibly unloads a BCD store.
  *
- * @param BcdStoreHandle The handle to the BCD store.
- * @return NTSTATUS Successful or errant status.
+ * \param BcdStoreHandle The handle to the BCD store.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
 NTSTATUS
@@ -1564,86 +1564,86 @@ typedef enum _BcdTemplateElementTypes
 } BcdTemplateElementTypes;
 
 /**
- * @brief Specifies the no-execute page protection policies.
+ * Specifies the no-execute page protection policies.
  */
 typedef enum _BcdOSLoader_NxPolicy
 {
     /**
-     * @brief The no-execute page protection is off by default.
+     * The no-execute page protection is off by default.
      */
     NxPolicyOptIn = 0,
     /**
-     * @brief The no-execute page protection is on by default.
+     * The no-execute page protection is on by default.
      */
     NxPolicyOptOut = 1,
     /**
-     * @brief The no-execute page protection is always off.
+     * The no-execute page protection is always off.
      */
     NxPolicyAlwaysOff = 2,
     /**
-     * @brief The no-execute page protection is always on.
+     * The no-execute page protection is always on.
      */
     NxPolicyAlwaysOn = 3
 } BcdOSLoader_NxPolicy;
 
 /**
- * @brief Specifies the Physical Address Extension (PAE) policies.
+ * Specifies the Physical Address Extension (PAE) policies.
  */
 typedef enum _BcdOSLoader_PAEPolicy
 {
     /**
-     * @brief Enable PAE if hot-pluggable memory is defined above 4GB.
+     * Enable PAE if hot-pluggable memory is defined above 4GB.
      */
     PaePolicyDefault = 0,
     /**
-     * @brief PAE is enabled.
+     * PAE is enabled.
      */
     PaePolicyForceEnable = 1,
     /**
-     * @brief PAE is disabled.
+     * PAE is disabled.
      */
     PaePolicyForceDisable = 2
 } BcdOSLoader_PAEPolicy;
 
 /**
- * @brief Specifies the boot status policies.
+ * Specifies the boot status policies.
  */
 typedef enum _BcdOSLoader_BootStatusPolicy
 {
     /**
-     * @brief Display all boot failures.
+     * Display all boot failures.
      */
     BootStatusPolicyDisplayAllFailures = 0,
     /**
-     * @brief Ignore all boot failures.
+     * Ignore all boot failures.
      */
     BootStatusPolicyIgnoreAllFailures = 1,
     /**
-     * @brief Ignore all shutdown failures.
+     * Ignore all shutdown failures.
      */
     BootStatusPolicyIgnoreShutdownFailures = 2,
     /**
-     * @brief Ignore all boot failures.
+     * Ignore all boot failures.
      */
     BootStatusPolicyIgnoreBootFailures = 3,
     /**
-     * @brief Ignore checkpoint failures.
+     * Ignore checkpoint failures.
      */
     BootStatusPolicyIgnoreCheckpointFailures = 4,
     /**
-     * @brief Display shutdown failures.
+     * Display shutdown failures.
      */
     BootStatusPolicyDisplayShutdownFailures = 5,
     /**
-     * @brief Display boot failures.
+     * Display boot failures.
      */
     BootStatusPolicyDisplayBootFailures = 6,
     /**
-     * @brief Display checkpoint failures.
+     * Display checkpoint failures.
      */
     BootStatusPolicyDisplayCheckpointFailures = 7,
     /**
-     * @brief Always display startup failures.
+     * Always display startup failures.
      */
     BootStatusPolicyAlwaysDisplayStartupFailures = 8
 } BcdOSLoaderBootStatusPolicy;
