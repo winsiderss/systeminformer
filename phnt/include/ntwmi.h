@@ -5340,7 +5340,7 @@ typedef struct _PERFINFO_IO_TIMER
 #define TLG_KERNEL_PSPROV_KEYWORD_UTC       0x00000002
 
 //
-// Logger configuration and running statistics. This structure is used
+// Logger configuration and statistics.
 //
 
 typedef struct _WMI_LOGGER_INFORMATION
@@ -5353,66 +5353,86 @@ typedef struct _WMI_LOGGER_INFORMATION
     ULONG LogFileMode;                  // sequential, circular
     ULONG FlushTimer;                   // buffer flush timer, in seconds
     ULONG EnableFlags;                  // trace enable flags
+
     union
     {
-        LONG  AgeLimit;                 // aging decay time, in minutes
+        LONG AgeLimit;                  // aging decay time, in minutes
         LONG FlushThreshold;            // Number of buffers to fill before flushing
     } DUMMYUNIONNAME;
-    ULONG Wow;                          // TRUE if the logger started under WOW64
+
     union
     {
-        HANDLE  LogFileHandle;          // handle to logfile
-        ULONG64 LogFileHandle64;
+        struct
+        {
+            ULONG Wow : 1;              // TRUE if the logger started under WOW64
+            ULONG QpcDeltaTracking : 1;
+            ULONG LargeMdlPages : 1;
+            ULONG ExcludeKernelStack : 1;
+        };
+        ULONG64 V2Options;
     } DUMMYUNIONNAME2;
+
+    union
+    {
+        HANDLE  LogFileHandle;          // Handle to logfile
+        ULONG64 LogFileHandle64;
+    } DUMMYUNIONNAME3;
+
     union
     {
         ULONG NumberOfBuffers;          // no of buffers in use
         ULONG InstanceCount;            // Number of Provider Instances
-    } DUMMYUNIONNAME3;
+    } DUMMYUNIONNAME4;
+
     union
     {
         ULONG FreeBuffers;              // no of buffers free
         ULONG InstanceId;               // Current Provider's Id for UmLogger
-    } DUMMYUNIONNAME4;
+    } DUMMYUNIONNAME5;
+
     union
     {
         ULONG EventsLost;               // event records lost
         ULONG NumberOfProcessors;       // Passed on to UmLogger
-    } DUMMYUNIONNAME5;
+    } DUMMYUNIONNAME6;
+
     ULONG BuffersWritten;               // no of buffers written to file
+
     union
     {
         ULONG LogBuffersLost;           // no of logfile write failures
         ULONG Flags;                    // internal flags
-    } DUMMYUNIONNAME6;
+    } DUMMYUNIONNAME7;
 
     ULONG RealTimeBuffersLost;          // no of rt delivery failures
+
     union
     {
         HANDLE  LoggerThreadId;         // thread id of Logger
         ULONG64 LoggerThreadId64;       // thread is of Logger
-    } DUMMYUNIONNAME7;
+    } DUMMYUNIONNAME8;
+
     union
     {
         UNICODE_STRING LogFileName;     // used only in WIN64
         UNICODE_STRING64 LogFileName64; // Logfile name: only in WIN32
-    } DUMMYUNIONNAME8;
+    } DUMMYUNIONNAME9;
 
-    // mandatory data provided by caller
     union
     {
         UNICODE_STRING LoggerName;      // Logger instance name in WIN64
         UNICODE_STRING64 LoggerName64;  // Logger Instance name in WIN32
-    } DUMMYUNIONNAME9;
+    };
 
     ULONG RealTimeConsumerCount;        // Number of rt consumers
-    ULONG SpareUlong;
+
+    ULONG SequenceNumber;
 
     union
     {
         PVOID   LoggerExtension;
         ULONG64 LoggerExtension64;
-    } DUMMYUNIONNAME10;
+    };
 } WMI_LOGGER_INFORMATION, *PWMI_LOGGER_INFORMATION;
 
 #define ETW_SYSTEM_EVENT_VERSION_MASK        0x000000FF
