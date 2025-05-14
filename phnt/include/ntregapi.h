@@ -7,16 +7,17 @@
 #ifndef _NTREGAPI_H
 #define _NTREGAPI_H
 
-// Boot condition flags (NtInitializeRegistry)
-
-#define REG_INIT_BOOT_SM 0x0000
-#define REG_INIT_BOOT_SETUP 0x0001
-#define REG_INIT_BOOT_ACCEPTED_BASE 0x0002
-#define REG_INIT_BOOT_ACCEPTED_MAX REG_INIT_BOOT_ACCEPTED_BASE + 999
+//
+// Registry
+//
 
 #define REG_MAX_KEY_VALUE_NAME_LENGTH 32767
 #define REG_MAX_KEY_NAME_LENGTH 512
 
+/**
+ * The KEY_INFORMATION_CLASS structure represents the type of information to supply about a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_information_class
+ */
 typedef enum _KEY_INFORMATION_CLASS
 {
     KeyBasicInformation, // KEY_BASIC_INFORMATION
@@ -32,26 +33,38 @@ typedef enum _KEY_INFORMATION_CLASS
     MaxKeyInfoClass
 } KEY_INFORMATION_CLASS;
 
+/**
+ * The KEY_BASIC_INFORMATION structure defines a subset of the full information that is available for a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_basic_information
+ */
 typedef struct _KEY_BASIC_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime;
-    ULONG TitleIndex;
-    ULONG NameLength;
-    _Field_size_bytes_(NameLength) WCHAR Name[1];
+    LARGE_INTEGER LastWriteTime;                    // Number of 100-nanosecond intervals since this key or any of its values changed.
+    ULONG TitleIndex;                               // Reserved // A legacy field originally intended for use with localization such as an index of a resource table.
+    ULONG NameLength;                               // The size, in bytes, of the key name string in the Name array.
+    _Field_size_bytes_(NameLength) WCHAR Name[1];   // The name of the registry key. This string is not null-terminated.
 } KEY_BASIC_INFORMATION, *PKEY_BASIC_INFORMATION;
 
+/**
+ * The KEY_NODE_INFORMATION structure defines the basic information available for a registry (sub)key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_node_information
+ */
 typedef struct _KEY_NODE_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime;
-    ULONG TitleIndex;
-    ULONG ClassOffset;
-    ULONG ClassLength;
-    ULONG NameLength;
-    _Field_size_bytes_(NameLength) WCHAR Name[1];
+    LARGE_INTEGER LastWriteTime;                    // Number of 100-nanosecond intervals since this key or any of its values changed.
+    ULONG TitleIndex;                               // Reserved // A legacy field originally intended for use with localization such as an index of a resource table.
+    ULONG ClassOffset;                              // The byte offset from the start of this structure to the class name string. This string is not null-terminated.
+    ULONG ClassLength;                              // The size, in bytes, in the class name string.
+    ULONG NameLength;                               // The size, in bytes, of the key name string contained in the Name array.
+    _Field_size_bytes_(NameLength) WCHAR Name[1];   // The name of the registry key. This string is not null-terminated.
     // ...
     // WCHAR Class[1];
 } KEY_NODE_INFORMATION, *PKEY_NODE_INFORMATION;
 
+/**
+ * The KEY_FULL_INFORMATION structure defines information available for a registry key, including subkeys, names and value entries.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_full_information
+ */
 typedef struct _KEY_FULL_INFORMATION
 {
     LARGE_INTEGER LastWriteTime;
@@ -67,12 +80,20 @@ typedef struct _KEY_FULL_INFORMATION
     WCHAR Class[1];
 } KEY_FULL_INFORMATION, *PKEY_FULL_INFORMATION;
 
+/**
+ * The KEY_NAME_INFORMATION structure holds the name and name length of the key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_key_name_information
+ */
 typedef struct _KEY_NAME_INFORMATION
 {
-    ULONG NameLength;
-    _Field_size_bytes_(NameLength) WCHAR Name[1];
+    ULONG NameLength;                               // The size, in bytes, of the key name string in the Name array.
+    _Field_size_bytes_(NameLength) WCHAR Name[1];   // The name of the registry key. This string is not null-terminated.
 } KEY_NAME_INFORMATION, *PKEY_NAME_INFORMATION;
 
+/**
+ * The KEY_CACHED_INFORMATION structure holds the cached information available for a registry key or subkey.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_key_cached_information
+ */
 typedef struct _KEY_CACHED_INFORMATION
 {
     LARGE_INTEGER LastWriteTime;
@@ -86,16 +107,69 @@ typedef struct _KEY_CACHED_INFORMATION
     _Field_size_bytes_(NameLength) WCHAR Name[1];
 } KEY_CACHED_INFORMATION, *PKEY_CACHED_INFORMATION;
 
+//
+// REG_FLAG_*
+//
+
 // rev
+/**
+ * \def REG_FLAG_VOLATILE
+ * \brief The registry key is volatile.
+ *
+ * When this flag is set, the key is not preserved when the system is rebooted.
+ * Volatile keys exist only in memory and are lost when the system shuts down.
+ */
 #define REG_FLAG_VOLATILE 0x0001
+// rev
+/**
+ * \def REG_FLAG_LINK
+ * \brief The registry key is a symbolic link.
+ *
+ * When this flag is set, the key acts as a symbolic link to another registry key.
+ * This allows redirection of registry operations to a different key location.
+ */
 #define REG_FLAG_LINK 0x0002
 
+//
+// REG_KEY_*
+//
+
+// rev
+#define REG_KEY_RESERVED_FLAG 0x0001
 // msdn
+/**
+ * \def REG_KEY_DONT_VIRTUALIZE
+ * \brief The REG_KEY_DONT_VIRTUALIZE flag disables write registry virtualization. 
+ *
+ * If this flag is set and a create key or set value operation fails because the caller
+ * does not have sufficient access right to the parent key, the registry fails the operation.
+ * If this flag is clear, the registry attempts to write the key or value in the virtual store.
+ * The caller must have the KEY_READ right on the parent key.
+ */
 #define REG_KEY_DONT_VIRTUALIZE 0x0002
+/**
+ * \def REG_KEY_DONT_SILENT_FAIL
+ * \brief The REG_KEY_DONT_SILENT_FAIL flag disables open registry virtualization.
+ *
+ * If this flag is set and an open operation fails on a key that has virtualization enabled,
+ * the registry does not attempt to reopen the key. If this flag is clear, the registry attempts
+ * to reopen the key with MAXIMUM_ALLOWED access instead of the requested access.
+ */
 #define REG_KEY_DONT_SILENT_FAIL 0x0004
+/**
+ * \def REG_KEY_RECURSE_FLAG
+ * \brief If REG_KEY_RECURSE_FLAG is set, registry virtualization flags are propagated from the parent key.
+ *
+ * If this flag is clear, registry virtualization flags are not propagated.
+ * Changing this flag affects only new descendent keys created after the flag is changed.
+ * It does not set or clear these flags for existing descendent keys.
+ */
 #define REG_KEY_RECURSE_FLAG 0x0008
 
 // private
+/**
+ * The KEY_FLAGS_INFORMATION structure contains various flags about a registry key or subkey.
+ */
 typedef struct _KEY_FLAGS_INFORMATION
 {
     ULONG Wow64Flags;
@@ -167,6 +241,10 @@ typedef struct _KEY_LAYER_INFORMATION
     ULONG Reserved : 28;
 } KEY_LAYER_INFORMATION, *PKEY_LAYER_INFORMATION;
 
+/**
+ * The KEY_SET_INFORMATION_CLASS enumeration type represents the type of information to set for a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_set_information_class
+ */
 typedef enum _KEY_SET_INFORMATION_CLASS
 {
     KeyWriteTimeInformation, // KEY_WRITE_TIME_INFORMATION
@@ -180,14 +258,12 @@ typedef enum _KEY_SET_INFORMATION_CLASS
 } KEY_SET_INFORMATION_CLASS;
 
 /**
- * Structure representing the last write time of a registry key.
- *
- * The values include:
- * - LastWriteTime: Contains the timestamp of the last write operation performed on a registry key.
+ * The KEY_WRITE_TIME_INFORMATION structure is used by the system to set the last write time for a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_write_time_information
  */
 typedef struct _KEY_WRITE_TIME_INFORMATION
 {
-    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER LastWriteTime; // Number of 100-nanosecond intervals since this key or any of its values changed.
 } KEY_WRITE_TIME_INFORMATION, *PKEY_WRITE_TIME_INFORMATION;
 
 /**
@@ -261,17 +337,25 @@ typedef struct _KEY_SET_VIRTUALIZATION_INFORMATION
     ULONG Reserved : 29;
 } KEY_SET_VIRTUALIZATION_INFORMATION, *PKEY_SET_VIRTUALIZATION_INFORMATION;
 
+/**
+ * The KEY_VALUE_INFORMATION_CLASS enumeration type specifies the type of information to supply about the value of a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_key_value_information_class
+ */
 typedef enum _KEY_VALUE_INFORMATION_CLASS
 {
     KeyValueBasicInformation, // KEY_VALUE_BASIC_INFORMATION
     KeyValueFullInformation, // KEY_VALUE_FULL_INFORMATION
     KeyValuePartialInformation, // KEY_VALUE_PARTIAL_INFORMATION
-    KeyValueFullInformationAlign64,
+    KeyValueFullInformationAlign64, // KEY_VALUE_FULL_INFORMATION_ALIGN64
     KeyValuePartialInformationAlign64,  // KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
     KeyValueLayerInformation, // KEY_VALUE_LAYER_INFORMATION
     MaxKeyValueInfoClass
 } KEY_VALUE_INFORMATION_CLASS;
 
+/**
+ * The KEY_VALUE_BASIC_INFORMATION structure defines a subset of the full information available for a value entry of a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_basic_information
+ */
 typedef struct _KEY_VALUE_BASIC_INFORMATION
 {
     ULONG TitleIndex;
@@ -280,6 +364,10 @@ typedef struct _KEY_VALUE_BASIC_INFORMATION
     _Field_size_bytes_(NameLength) WCHAR Name[1];
 } KEY_VALUE_BASIC_INFORMATION, *PKEY_VALUE_BASIC_INFORMATION;
 
+/**
+ * The KEY_VALUE_FULL_INFORMATION structure defines information available for a value entry of a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_full_information
+ */
 typedef struct _KEY_VALUE_FULL_INFORMATION
 {
     ULONG TitleIndex;
@@ -292,6 +380,25 @@ typedef struct _KEY_VALUE_FULL_INFORMATION
     // UCHAR Data[1];
 } KEY_VALUE_FULL_INFORMATION, *PKEY_VALUE_FULL_INFORMATION;
 
+/**
+ * The KEY_VALUE_FULL_INFORMATION_ALIGN64 structure defines information available for a value entry of a registry key.
+ */
+typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_FULL_INFORMATION_ALIGN64
+{
+    ULONG TitleIndex;
+    ULONG Type;
+    ULONG DataOffset;
+    ULONG DataLength;
+    ULONG NameLength;
+    _Field_size_bytes_(NameLength) WCHAR Name[1];
+    // ...
+    // UCHAR Data[1];
+} KEY_VALUE_FULL_INFORMATION_ALIGN64, *PKEY_VALUE_FULL_INFORMATION_ALIGN64;
+
+/**
+ * The KEY_VALUE_PARTIAL_INFORMATION structure defines a subset of the value information available for a value entry of a registry key.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_key_value_partial_information
+ */
 typedef struct _KEY_VALUE_PARTIAL_INFORMATION
 {
     ULONG TitleIndex;
@@ -300,7 +407,10 @@ typedef struct _KEY_VALUE_PARTIAL_INFORMATION
     _Field_size_bytes_(DataLength) UCHAR Data[1];
 } KEY_VALUE_PARTIAL_INFORMATION, *PKEY_VALUE_PARTIAL_INFORMATION;
 
-typedef struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
+/**
+ * The KEY_VALUE_PARTIAL_INFORMATION_ALIGN64 structure defines a subset of the value information available for a value entry of a registry key.
+ */
+typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
 {
     ULONG Type;
     ULONG DataLength;
@@ -308,6 +418,9 @@ typedef struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
 } KEY_VALUE_PARTIAL_INFORMATION_ALIGN64, *PKEY_VALUE_PARTIAL_INFORMATION_ALIGN64;
 
 // private
+/**
+ * The KEY_VALUE_LAYER_INFORMATION structure defines the flags for a value entry of a registry key.
+ */
 typedef struct _KEY_VALUE_LAYER_INFORMATION
 {
     ULONG IsTombstone : 1;
@@ -368,18 +481,6 @@ typedef struct _REG_NOTIFY_INFORMATION
     ULONG KeyLength;
     _Field_size_bytes_(KeyLength) WCHAR Key[1];
 } REG_NOTIFY_INFORMATION, *PREG_NOTIFY_INFORMATION;
-
-typedef struct _KEY_PID_ARRAY
-{
-    HANDLE ProcessId;
-    UNICODE_STRING KeyName;
-} KEY_PID_ARRAY, *PKEY_PID_ARRAY;
-
-typedef struct _KEY_OPEN_SUBKEYS_INFORMATION
-{
-    ULONG Count;
-    KEY_PID_ARRAY KeyArray[1];
-} KEY_OPEN_SUBKEYS_INFORMATION, *PKEY_OPEN_SUBKEYS_INFORMATION;
 
 //
 // Virtualization // since REDSTONE
@@ -587,14 +688,14 @@ typedef struct _VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST
 /**
  * Creates a new registry key routine or opens an existing one.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param[in] TitleIndex Reserved.
- * @param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
- * @param[in] CreateOptions The options to use when creating the key.
- * @param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * @return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param[in] TitleIndex Reserved.
+ * \param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
+ * \param[in] CreateOptions The options to use when creating the key.
+ * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -609,19 +710,18 @@ NtCreateKey(
     _Out_opt_ PULONG Disposition
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Creates a new registry key or opens an existing one, and it associates the key with a transaction.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param[in] TitleIndex Reserved.
- * @param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
- * @param[in] CreateOptions The options to use when creating the key.
- * @param[in] TransactionHandle A handle to the transaction.
- * @param[out, optional] Disposition A pointer to a variable that receives the disposition value.
- * @return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param[in] TitleIndex Reserved.
+ * \param[in, optional] Class A pointer to a UNICODE_STRING structure that specifies the class of the key.
+ * \param[in] CreateOptions The options to use when creating the key.
+ * \param[in] TransactionHandle A handle to the transaction.
+ * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -636,16 +736,15 @@ NtCreateKeyTransacted(
     _In_ HANDLE TransactionHandle,
     _Out_opt_ PULONG Disposition
     );
-#endif
 
 /**
  * Opens an existing registry key.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @return NTSTATUS Successful or errant status.
- * @remarks NtOpenKey ignores the security information in the ObjectAttributes structure.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks NtOpenKey ignores the security information in the ObjectAttributes structure.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -656,15 +755,14 @@ NtOpenKey(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Opens an existing registry key and associates the key with a transaction.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param[in] TransactionHandle A handle to the transaction.
- * @return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param[in] TransactionHandle A handle to the transaction.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -675,17 +773,16 @@ NtOpenKeyTransacted(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE TransactionHandle
     );
-#endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_7)
 /**
  * Opens an existing registry key with extended options.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param[in] OpenOptions The options to use when opening the key.
- * @return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param[in] OpenOptions The options to use when opening the key.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -700,12 +797,12 @@ NtOpenKeyEx(
 /**
  * Opens an existing registry key in a transaction with extended options.
  *
- * @param[out] KeyHandle A pointer to a handle that receives the key handle.
- * @param[in] DesiredAccess The access mask that specifies the desired access rights.
- * @param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
- * @param[in] OpenOptions The options to use when opening the key.
- * @param[in] TransactionHandle A handle to the transaction.
- * @return NTSTATUS Successful or errant status.
+ * \param[out] KeyHandle A pointer to a handle that receives the key handle.
+ * \param[in] DesiredAccess The access mask that specifies the desired access rights.
+ * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * \param[in] OpenOptions The options to use when opening the key.
+ * \param[in] TransactionHandle A handle to the transaction.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -722,8 +819,8 @@ NtOpenKeyTransactedEx(
 /**
  * Deletes a registry key.
  *
- * @param[in] KeyHandle A handle to the key to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -735,9 +832,9 @@ NtDeleteKey(
 /**
  * Renames a registry key.
  *
- * @param[in] KeyHandle A handle to the key to be renamed.
- * @param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key to be renamed.
+ * \param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -750,9 +847,9 @@ NtRenameKey(
 /**
  * Deletes a value from a registry key.
  *
- * @param[in] KeyHandle A handle to the key that contains the value to be deleted.
- * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key that contains the value to be deleted.
+ * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -765,12 +862,12 @@ NtDeleteValueKey(
 /**
  * Queries information about a registry key.
  *
- * @param[in] KeyHandle A handle to the key to be queried.
- * @param[in] KeyInformationClass The type of information to be queried.
- * @param[out] KeyInformation A pointer to a buffer that receives the key information.
- * @param[in] Length The size of the buffer.
- * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key to be queried.
+ * \param[in] KeyInformationClass The type of information to be queried.
+ * \param[out] KeyInformation A pointer to a buffer that receives the key information.
+ * \param[in] Length The size of the buffer.
+ * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -786,11 +883,11 @@ NtQueryKey(
 /**
  * Sets information for a registry key.
  *
- * @param[in] KeyHandle A handle to the key to be modified.
- * @param[in] KeySetInformationClass The type of information to be set.
- * @param[in] KeySetInformation A pointer to a buffer that contains the key information.
- * @param[in] KeySetInformationLength The size of the buffer.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key to be modified.
+ * \param[in] KeySetInformationClass The type of information to be set.
+ * \param[in] KeySetInformation A pointer to a buffer that contains the key information.
+ * \param[in] KeySetInformationLength The size of the buffer.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -805,13 +902,13 @@ NtSetInformationKey(
 /**
  * Queries the value of a registry key.
  *
- * @param[in] KeyHandle A handle to the key to be queried.
- * @param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be queried.
- * @param[in] KeyValueInformationClass The type of information to be queried.
- * @param[out] KeyValueInformation A pointer to a buffer that receives the value information.
- * @param[in] Length The size of the buffer.
- * @param[out] ResultLength A pointer to a variable that receives the size of the data returned.
- * @return NTSTATUS Successful or errant status.
+ * \param[in] KeyHandle A handle to the key to be queried.
+ * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be queried.
+ * \param[in] KeyValueInformationClass The type of information to be queried.
+ * \param[out] KeyValueInformation A pointer to a buffer that receives the value information.
+ * \param[in] Length The size of the buffer.
+ * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
 NTSTATUS
@@ -990,7 +1087,6 @@ NtLoadKey2(
     _In_ ULONG Flags
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
 /**
  * Loads a registry key from a file with extended options.
  *
@@ -1017,7 +1113,6 @@ NtLoadKeyEx(
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
-#endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev by tyranid
@@ -1145,7 +1240,6 @@ NtUnloadKey(
     _In_ POBJECT_ATTRIBUTES TargetKey
     );
 
-#if PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003
 /**
  * Unloads a registry key with additional flags.
  *
@@ -1161,7 +1255,6 @@ NtUnloadKey2(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ ULONG Flags
     );
-#endif
 
 /**
  * Unloads a registry key and optionally signals an event.
@@ -1259,7 +1352,18 @@ NtQueryOpenSubKeys(
     _Out_ PULONG HandleCount
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_SERVER_2003)
+typedef struct _KEY_PID_ARRAY
+{
+    HANDLE ProcessId;
+    UNICODE_STRING KeyName;
+} KEY_PID_ARRAY, *PKEY_PID_ARRAY;
+
+typedef struct _KEY_OPEN_SUBKEYS_INFORMATION
+{
+    ULONG Count;
+    KEY_PID_ARRAY KeyArray[1];
+} KEY_OPEN_SUBKEYS_INFORMATION, *PKEY_OPEN_SUBKEYS_INFORMATION;
+
 /**
  * Queries the open subkeys of a registry key with additional information.
  *
@@ -1279,7 +1383,15 @@ NtQueryOpenSubKeysEx(
     _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
     _Out_ PULONG RequiredSize
     );
-#endif
+
+//
+// Boot condition flags (NtInitializeRegistry)
+//
+
+#define REG_INIT_BOOT_SM 0x0000
+#define REG_INIT_BOOT_SETUP 0x0001
+#define REG_INIT_BOOT_ACCEPTED_BASE 0x0002
+#define REG_INIT_BOOT_ACCEPTED_MAX (REG_INIT_BOOT_ACCEPTED_BASE + 999)
 
 /**
  * Initializes the registry.
@@ -1322,7 +1434,6 @@ NtLockProductActivationKeys(
     _Out_opt_ ULONG *pSafeMode
     );
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Freezes the registry and prevents changes from being flushed to disk.
  *
@@ -1335,9 +1446,7 @@ NTAPI
 NtFreezeRegistry(
     _In_ ULONG TimeOutInSeconds
     );
-#endif
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_VISTA)
 /**
  * Thaws the registry and enables flushing changes to disk.
  *
@@ -1349,7 +1458,6 @@ NTAPI
 NtThawRegistry(
     VOID
     );
-#endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 /**
