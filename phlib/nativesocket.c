@@ -9,7 +9,9 @@
  *
  */
 
+#include <ph.h>
 #include <phafd.h>
+#include <phnet.h>
 #include <hndlinfo.h>
 #include <ws2ipdef.h>
 #include <ws2bth.h>
@@ -17,29 +19,30 @@
 #include <hvsocketcontrol.h>
 #include <secedit.h>
 
- /**
-   * \brief Determines if an object name represents an AFD socket handle.
-   *
-   * \param[in] ObjectName A native object name.
-   *
-   * \return Whether the name matches an AFD socket name format.
-   */
+#include <mstcpip.h>
+
+/**
+ * Determines if an object name represents an AFD socket handle.
+ *
+ * \param[in] ObjectName A native object name.
+ * \return Whether the name matches an AFD socket name format.
+ */
 BOOLEAN PhAfdIsSocketObjectName(
     _In_opt_ PPH_STRING ObjectName
     )
 {
-    static const PH_STRINGREF afdDeviceName = PH_STRINGREF_INIT(AFD_DEVICE_NAME);
+    static CONST PH_STRINGREF deviceName = PH_STRINGREF_INIT(AFD_DEVICE_NAME);
 
-    if (ObjectName && PhStartsWithStringRef(&ObjectName->sr, &afdDeviceName, TRUE))
+    if (ObjectName && PhStartsWithStringRef(&ObjectName->sr, &deviceName, TRUE))
     {
         // N.B. Check explicitly for "\\Device\\Afd" or "\\Device\\Afd\\" to avoid "\\Device\\AfdABC"
 
-        if (ObjectName->sr.Length == afdDeviceName.Length)
+        if (ObjectName->Length == deviceName.Length)
             return TRUE;
 
-        assert(ObjectName->sr.Length > afdDeviceName.Length);
+        assert(ObjectName->Length > deviceName.Length);
 
-        if (ObjectName->sr.Buffer[afdDeviceName.Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR)
+        if (ObjectName->Buffer[deviceName.Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR)
             return TRUE;
     }
 
@@ -47,12 +50,11 @@ BOOLEAN PhAfdIsSocketObjectName(
 }
 
 /**
-  * \brief Determines if a file handle is an AFD socket handle.
-  *
-  * \param[in] Handle A file handle.
-  *
-  * \return A successful status if the handle is an AFD socket or an errant status otherwise.
-  */
+ * Determines if a file handle is an AFD socket handle.
+ *
+ * \param[in] Handle A file handle.
+ * \return A successful status if the handle is an AFD socket or an errant status otherwise.
+ */
 NTSTATUS PhAfdIsSocketHandle(
     _In_ HANDLE Handle
     )
@@ -90,20 +92,19 @@ NTSTATUS PhAfdIsSocketHandle(
     return PhEqualStringRef(&volumeName, &deviceName, TRUE) ? STATUS_SUCCESS : STATUS_NOT_SAME_DEVICE;
 }
 
- /**
-  * \brief Issues an IOCTL on an AFD handle and waits for its completion.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] IoControlCode I/O control code
-  * \param[in] InBuffer Input buffer.
-  * \param[in] InBufferSize Input buffer size.
-  * \param[out] OutputBuffer Output Buffer.
-  * \param[in] OutputBufferSize Output buffer size.
-  * \param[out] BytesReturned Optionally set to the number of bytes returned.
-  * \param[in,out] Overlapped Optional overlapped structure.
-  *
-  * \return Successful or errant status.
-  */
+/**
+ * Issues an IOCTL on an AFD handle and waits for its completion.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] IoControlCode I/O control code
+ * \param[in] InBuffer Input buffer.
+ * \param[in] InBufferSize Input buffer size.
+ * \param[out] OutputBuffer Output Buffer.
+ * \param[in] OutputBufferSize Output buffer size.
+ * \param[out] BytesReturned Optionally set to the number of bytes returned.
+ * \param[in,out] Overlapped Optional overlapped structure.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdDeviceIoControl(
     _In_ HANDLE SocketHandle,
     _In_ ULONG IoControlCode,
@@ -185,20 +186,20 @@ NTSTATUS PhAfdDeviceIoControl(
 }
 
 /**
-  * \brief Retrieves shared information for an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[out] SharedInfo A buffer with the shared socket information.
-  *
-  * \return Successful or errant status.
-  */
+ * Retrieves shared information for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[out] SharedInfo A buffer with the shared socket information.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQuerySharedInfo(
     _In_ HANDLE SocketHandle,
     _Out_ PSOCK_SHARED_INFO SharedInfo
     )
 {
     NTSTATUS status;
-    ULONG returnedSize;
+    ULONG returnLength;
 
     status = PhAfdDeviceIoControl(
         SocketHandle,
@@ -207,7 +208,7 @@ NTSTATUS PhAfdQuerySharedInfo(
         0,
         SharedInfo,
         sizeof(SOCK_SHARED_INFO),
-        &returnedSize,
+        &returnLength,
         NULL
         );
 
@@ -218,18 +219,17 @@ NTSTATUS PhAfdQuerySharedInfo(
         return status;
 
     // Shared information is provided by the Win32 level; do a sanity check on the returned size
-    return returnedSize < sizeof(SOCK_SHARED_INFO) ? STATUS_NOT_FOUND : status;
+    return returnLength < sizeof(SOCK_SHARED_INFO) ? STATUS_NOT_FOUND : status;
 }
 
 /**
-  * \brief Retrieves simple information for an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] InformationType The type of information to query, such as AFD_CONNECT_TIME or AFD_GROUP_ID_AND_TYPE.
-  * \param[out] Information Output buffer.
-  *
-  * \return Successful or errant status.
-  */
+ * Retrieves simple information for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] InformationType The type of information to query, such as AFD_CONNECT_TIME or AFD_GROUP_ID_AND_TYPE.
+ * \param[out] Information Output buffer.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQuerySimpleInfo(
     _In_ HANDLE SocketHandle,
     _In_ ULONG InformationType,
@@ -251,15 +251,14 @@ NTSTATUS PhAfdQuerySimpleInfo(
 }
 
 /**
-  * \brief Retrieves socket option for an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] Level A level for the option, such as SOL_SOCKET or IPPROTO_IP.
-  * \param[in] OptionName An option identifier within the level, such as SO_REUSEADDR or IP_TTL.
-  * \param[out] OptionValue A buffer that receives the option value.
-  *
-  * \return Successful or errant status.
-  */
+ * Retrieves socket option for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Level A level for the option, such as SOL_SOCKET or IPPROTO_IP.
+ * \param[in] OptionName An option identifier within the level, such as SO_REUSEADDR or IP_TTL.
+ * \param[out] OptionValue A buffer that receives the option value.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQueryOption(
     _In_ HANDLE SocketHandle,
     _In_ ULONG Level,
@@ -287,30 +286,28 @@ NTSTATUS PhAfdQueryOption(
 }
 
 /**
-  * \brief Retrieves the latest supported TCP_INFO for an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[out] TcpInfo A buffer that receives the TCP information.
-  * \param[out] TcpInfoVersion The version of the returned structure.
-  *
-  * \return Successful or errant status.
-  */
+ * Retrieves the latest supported TCP_INFO for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[out] TcpInfo A buffer that receives the TCP information.
+ * \param[out] TcpInfoVersion The version of the returned structure.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQueryTcpInfo(
     _In_ HANDLE SocketHandle,
     _Out_ PTCP_INFO_v2 TcpInfo,
     _Out_ PULONG TcpInfoVersion
     )
 {
-    NTSTATUS status;
-    AFD_TL_IO_CONTROL_INFO controlInfo = { 0 };
-    LONG version;
-
-    static const ULONG tcpInfoSize[] =
+    static CONST ULONG tcpInfoSize[] =
     {
         sizeof(TCP_INFO_v0),
         sizeof(TCP_INFO_v1),
         sizeof(TCP_INFO_v2)
     };
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    AFD_TL_IO_CONTROL_INFO controlInfo = { 0 };
+    LONG version;
 
     controlInfo.Type = TlSocketIoControlType;
     controlInfo.EndpointIoctl = TRUE;
@@ -344,14 +341,13 @@ NTSTATUS PhAfdQueryTcpInfo(
 }
 
 /**
-  * \brief Opens an address or a connection handle to the underlying device for a TDI socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] QueryMode A type of the query, either AFD_QUERY_ADDRESS_HANDLE or AFD_QUERY_CONNECTION_HANDLE.
-  * \param[out] TdiHandle A pointer to a variable that receives a TDI device handle, NULL (when no handle is available), or INVALID_HANDLE_VALUE (for non-TDI sockets).
-  *
-  * \return Successful or errant status.
-  */
+ * Opens an address or a connection handle to the underlying device for a TDI socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] QueryMode A type of the query, either AFD_QUERY_ADDRESS_HANDLE or AFD_QUERY_CONNECTION_HANDLE.
+ * \param[out] TdiHandle A pointer to a variable that receives a TDI device handle, NULL (when no handle is available), or INVALID_HANDLE_VALUE (for non-TDI sockets).
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQueryTdiHandle(
     _In_ HANDLE SocketHandle,
     _In_ ULONG QueryMode,
@@ -387,14 +383,13 @@ NTSTATUS PhAfdQueryTdiHandle(
 }
 
 /**
-  * \brief Formats a TDI device name for a socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] QueryMode A type of the query, either AFD_QUERY_ADDRESS_HANDLE or AFD_QUERY_CONNECTION_HANDLE.
-  * \param[out] TdiDeviceName A pointer to a variable that receives a device name string.
-  *
-  * \return Successful or errant status.
-  */
+ * Formats a TDI device name for a socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] QueryMode A type of the query, either AFD_QUERY_ADDRESS_HANDLE or AFD_QUERY_CONNECTION_HANDLE.
+ * \param[out] TdiDeviceName A pointer to a variable that receives a device name string.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQueryFormatTdiDeviceName(
     _In_ HANDLE SocketHandle,
     _In_ ULONG QueryMode,
@@ -431,12 +426,11 @@ NTSTATUS PhAfdQueryFormatTdiDeviceName(
 }
 
 /**
-  * \brief Determines if we know how to handle a specific address family.
-  *
-  * \param[in] AddressFamily A socket address family value.
-  *
-  * \return Whether the address family is supported.
-  */
+ * Determines if we know how to handle a specific address family.
+ *
+ * \param[in] AddressFamily A socket address family value.
+ * \return Whether the address family is supported.
+ */
 BOOLEAN PhpAfdIsSupportedAddressFamily(
     _In_ LONG AddressFamily
     )
@@ -455,14 +449,13 @@ BOOLEAN PhpAfdIsSupportedAddressFamily(
 }
 
 /**
-  * \brief Retrieves an address associated with an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] Remote Whether the function should return a remote or a local address.
-  * \param[out] Address Output buffer.
-  *
-  * \return Successful or errant status.
-  */
+ * Retrieves an address associated with an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Remote Whether the function should return a remote or a local address.
+ * \param[out] Address Output buffer.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdQueryAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
@@ -527,14 +520,13 @@ NTSTATUS PhAfdQueryAddress(
 }
 
 /**
-  * \brief Formats a socket address as a strings.
-  *
-  * \param[in] Address The address buffer.
-  * \param[out] AddressString The string representation of the address.
-  * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
-  *
-  * \return Successful or errant status.
-  */
+ * Formats a socket address as a strings.
+ *
+ * \param[in] Address The address buffer.
+ * \param[out] AddressString The string representation of the address.
+ * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhAfdFormatAddress(
     _In_ PSOCKADDR_STORAGE Address,
     _Out_ PPH_STRING *AddressString,
@@ -683,15 +675,14 @@ NTSTATUS PhAfdFormatAddress(
 }
 
 /**
-  * \brief Queries an address associated with an AFD socket and prints it into a string.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  * \param[in] Remote Whether the function should return a remote or a local address.
-  * \param[out] AddressString The string representation of the address.
-  * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
-  *
-  * \return Successful or errant status.
-  */
+ * Queries an address associated with an AFD socket and prints it into a string.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \param[in] Remote Whether the function should return a remote or a local address.
+ * \param[out] AddressString The string representation of the address.
+ * \param[in] Flags A bit mask of PH_AFD_ADDRESS_* flags that control address formatting.
+ * Successful or errant status.
+ */
 NTSTATUS PhAfdQueryFormatAddress(
     _In_ HANDLE SocketHandle,
     _In_ BOOLEAN Remote,
@@ -711,12 +702,11 @@ NTSTATUS PhAfdQueryFormatAddress(
 }
 
 /**
-  * \brief Looks up a human-readable name of a known socket state.
-  *
-  * \param[in] SocketState The socket state value.
-  *
-  * \return A string with the state name or NULL when the state value is not recognized.
-  */
+ * Looks up a human-readable name of a known socket state.
+ *
+ * \param[in] SocketState The socket state value.
+ * \return A string with the state name or NULL when the state value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetSocketStateString(
     _In_ SOCKET_STATE SocketState
@@ -742,12 +732,11 @@ PCWSTR PhpAfdGetSocketStateString(
 }
 
 /**
-  * \brief Formats a socket state as a string.
-  *
-  * \param[in] SocketState The socket state value.
-  *
-  * \return A human-readable name of the socket state.
-  */
+ * Formats a socket state as a string.
+ *
+ * \param[in] SocketState The socket state value.
+ * \return A human-readable name of the socket state.
+ */
 PPH_STRING PhAfdFormatSocketState(
     _In_ SOCKET_STATE SocketState
     )
@@ -761,12 +750,11 @@ PPH_STRING PhAfdFormatSocketState(
 }
 
 /**
-  * \brief Looks up a human-readable name of a known socket type.
-  *
-  * \param[in] SocketType The socket type value.
-  *
-  * \return A string with the socket type name or NULL when the value is not recognized.
-  */
+ * Looks up a human-readable name of a known socket type.
+ *
+ * \param[in] SocketType The socket type value.
+ * \return A string with the socket type name or NULL when the value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetSocketTypeString(
     _In_ LONG SocketType
@@ -790,12 +778,11 @@ PCWSTR PhpAfdGetSocketTypeString(
 }
 
 /**
-  * \brief Formats a socket type as a string.
-  *
-  * \param[in] SocketType The socket type value.
-  *
-  * \return A human-readable name for the socket type.
-  */
+ * Formats a socket type as a string.
+ *
+ * \param[in] SocketType The socket type value.
+ * \return A human-readable name for the socket type.
+ */
 PPH_STRING PhAfdFormatSocketType(
     _In_ LONG SocketType
     )
@@ -809,12 +796,11 @@ PPH_STRING PhAfdFormatSocketType(
 }
 
 /**
-  * \brief Formats a human-readable name for a set of protocol provider flags.
-  *
-  * \param[in] ProviderFlags The provider flags value.
-  *
-  * \return A string with the flag names.
-  */
+ * Formats a human-readable name for a set of protocol provider flags.
+ *
+ * \param[in] ProviderFlags The provider flags value.
+ * \return A string with the flag names.
+ */
 PPH_STRING PhAfdFormatProviderFlags(
     _In_ ULONG ProviderFlags
     )
@@ -828,7 +814,6 @@ PPH_STRING PhAfdFormatProviderFlags(
         PH_AFD_PROVIDER_FLAG(PFL_HIDDEN, L"Hidden"),
         PH_AFD_PROVIDER_FLAG(PFL_MATCHES_PROTOCOL_ZERO, L"Matches protocol zero"),
         PH_AFD_PROVIDER_FLAG(PFL_NETWORKDIRECT_PROVIDER, L"Network direct"),
-
     };
 
     PPH_STRING string;
@@ -855,12 +840,11 @@ PPH_STRING PhAfdFormatProviderFlags(
 }
 
 /**
-  * \brief Formats a human-readable name for a set of service flags.
-  *
-  * \param[in] ServiceFlags The service flags value.
-  *
-  * \return A string with the flag names.
-  */
+ * Formats a human-readable name for a set of service flags.
+ *
+ * \param[in] ServiceFlags The service flags value.
+ * \return A string with the flag names.
+ */
 PPH_STRING PhAfdFormatServiceFlags(
     _In_ ULONG ServiceFlags
     )
@@ -915,12 +899,11 @@ PPH_STRING PhAfdFormatServiceFlags(
 }
 
 /**
-  * \brief Formats a human-readable name for a set of socket creation flags.
-  *
-  * \param[in] CreationFlags The creation flags value.
-  *
-  * \return A string with the flag names.
-  */
+ * Formats a human-readable name for a set of socket creation flags.
+ *
+ * \param[in] CreationFlags The creation flags value.
+ * \return A string with the flag names.
+ */
 PPH_STRING PhAfdFormatCreationFlags(
     _In_ ULONG CreationFlags
     )
@@ -963,12 +946,11 @@ PPH_STRING PhAfdFormatCreationFlags(
 }
 
 /**
-  * \brief Formats a human-readable name for a set of AFD socket flags.
-  *
-  * \param[in] SharedInfo The shared socket information buffer.
-  *
-  * \return A string with the flag names.
-  */
+ * Formats a human-readable name for a set of AFD socket flags.
+ *
+ * \param[in] SharedInfo The shared socket information buffer.
+ * \return A string with the flag names.
+ */
 PPH_STRING PhAfdFormatSharedInfoFlags(
     _In_ PSOCK_SHARED_INFO SharedInfo
     )
@@ -1024,12 +1006,11 @@ PPH_STRING PhAfdFormatSharedInfoFlags(
 }
 
 /**
-  * \brief Looks up a name of a known address family.
-  *
-  * \param[in] AddressFamily The address family value.
-  *
-  * \return A string with the address family name or NULL when it is not recognized.
-  */
+ * Looks up a name of a known address family.
+ *
+ * \param[in] AddressFamily The address family value.
+ * \return A string with the address family name or NULL when it is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetAddressFamilyString(
     _In_ LONG AddressFamily
@@ -1055,12 +1036,11 @@ PCWSTR PhpAfdGetAddressFamilyString(
 }
 
 /**
-  * \brief Formats an address family as a string.
-  *
-  * \param[in] AddressFamily The address family value.
-  *
-  * \return A string with the address family name.
-  */
+ * Formats an address family as a string.
+ *
+ * \param[in] AddressFamily The address family value.
+ * \return A string with the address family name.
+ */
 PPH_STRING PhAfdFormatAddressFamily(
     _In_ LONG AddressFamily
     )
@@ -1074,13 +1054,12 @@ PPH_STRING PhAfdFormatAddressFamily(
 }
 
 /**
-  * \brief Looks up a name for a known protocol.
-  *
-  * \param[in] AddressFamily The address family of the protocol.
-  * \param[in] Protocol The protocol value.
-  *
-  * \return A string with the protocol name or NULL when it is not recognized.
-  */
+ * Looks up a name for a known protocol.
+ *
+ * \param[in] AddressFamily The address family of the protocol.
+ * \param[in] Protocol The protocol value.
+ * \return A string with the protocol name or NULL when it is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetProtocolString(
     _In_ LONG AddressFamily,
@@ -1138,13 +1117,12 @@ PCWSTR PhpAfdGetProtocolString(
 }
 
 /**
-  * \brief Formats a protocol name as a string.
-  *
-  * \param[in] AddressFamily The address family of the protocol.
-  * \param[in] Protocol The protocol value.
-  *
-  * \return A string with a human-readable protocol name.
-  */
+ * Formats a protocol name as a string.
+ *
+ * \param[in] AddressFamily The address family of the protocol.
+ * \param[in] Protocol The protocol value.
+ * \return A string with a human-readable protocol name.
+ */
 PPH_STRING PhAfdFormatProtocol(
     _In_ LONG AddressFamily,
     _In_ LONG Protocol
@@ -1159,13 +1137,12 @@ PPH_STRING PhAfdFormatProtocol(
 }
 
 /**
-  * \brief Looks up a short human-readable identifier for a known protocol.
-  *
-  * \param[in] AddressFamily The address family of the protocol.
-  * \param[in] Protocol The protocol value.
-  *
-  * \return A string with the protocol name or NULL when it is not recognized.
-  */
+ * Looks up a short human-readable identifier for a known protocol.
+ *
+ * \param[in] AddressFamily The address family of the protocol.
+ * \param[in] Protocol The protocol value.
+ * \return A string with the protocol name or NULL when it is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetProtocolSummary(
     _In_ LONG AddressFamily,
@@ -1220,12 +1197,11 @@ PCWSTR PhpAfdGetProtocolSummary(
 }
 
 /**
-  * \brief Looks up a human-readable name of a group type.
-  *
-  * \param[in] GroupType The socket group type value.
-  *
-  * \return A string with the group type name or NULL when the value is not recognized.
-  */
+ * Looks up a human-readable name of a group type.
+ *
+ * \param[in] GroupType The socket group type value.
+ * \return A string with the group type name or NULL when the value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetGroupTypeString(
     _In_ AFD_GROUP_TYPE GroupType
@@ -1245,12 +1221,11 @@ PCWSTR PhpAfdGetGroupTypeString(
 }
 
 /**
-  * \brief Formats a group type name as a string.
-  *
-  * \param[in] GroupType The socket group type value.
-  *
-  * \return A string with a human-readable group type name.
-  */
+ * Formats a group type name as a string.
+ *
+ * \param[in] GroupType The socket group type value.
+ * \return A string with a human-readable group type name.
+ */
 PPH_STRING PhAfdFormatGroupType(
     _In_ AFD_GROUP_TYPE GroupType
     )
@@ -1264,12 +1239,11 @@ PPH_STRING PhAfdFormatGroupType(
 }
 
 /**
-  * \brief Looks up a human-readable name for an IPv6 protection level.
-  *
-  * \param[in] ProtectionLevel The protection level value.
-  *
-  * \return A string with the protection level name or NULL when the value is not recognized.
-  */
+ * Looks up a human-readable name for an IPv6 protection level.
+ *
+ * \param[in] ProtectionLevel The protection level value.
+ * \return A string with the protection level name or NULL when the value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetProtectionLevelString(
     _In_ ULONG ProtectionLevel
@@ -1291,31 +1265,31 @@ PCWSTR PhpAfdGetProtectionLevelString(
 }
 
 /**
-  * \brief Formats an IPv6 protection level name as a string.
-  *
-  * \param[in] ProtectionLevel The protection level value.
-  *
-  * \return A string with a human-readable protection level name.
-  */
+ * Formats an IPv6 protection level name as a string.
+ *
+ * \param[in] ProtectionLevel The protection level value.
+ * \return A string with a human-readable protection level name.
+ */
 PPH_STRING PhAfdFormatProtectionLevel(
     _In_ ULONG ProtectionLevel
     )
 {
-    PCWSTR knownName = PhpAfdGetProtectionLevelString(ProtectionLevel);
+    PCWSTR knownName;
 
-    if (knownName)
+    if (knownName = PhpAfdGetProtectionLevelString(ProtectionLevel))
+    {
         return PhCreateString(knownName);
-    else
-        return PhFormatString(L"Unrecognized value (%d)", ProtectionLevel);
+    }
+
+    return PhFormatString(L"Unrecognized value (%d)", ProtectionLevel);
 }
 
 /**
-  * \brief Looks up a human-readable name for MTU discovery mode.
-  *
-  * \param[in] MtuDiscover The MTU discovery value.
-  *
-  * \return A string with the MTU discovery mode name or NULL when the value is not recognized.
-  */
+ * Looks up a human-readable name for MTU discovery mode.
+ *
+ * \param[in] MtuDiscover The MTU discovery value.
+ * \return A string with the MTU discovery mode name or NULL when the value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetMtuDiscoveryString(
     _In_ ULONG MtuDiscover
@@ -1337,31 +1311,31 @@ PCWSTR PhpAfdGetMtuDiscoveryString(
 }
 
 /**
-  * \brief Formats an MTU discovery mode as a string.
-  *
-  * \param[in] MtuDiscover The MTU discovery value.
-  *
-  * \return A string with a human-readable MTU discovery mode name.
-  */
+ * Formats an MTU discovery mode as a string.
+ *
+ * \param[in] MtuDiscover The MTU discovery value.
+ * \return A string with a human-readable MTU discovery mode name.
+ */
 PPH_STRING PhAfdFormatMtuDiscoveryMode(
     _In_ ULONG MtuDiscover
     )
 {
-    PCWSTR knownName = PhpAfdGetMtuDiscoveryString(MtuDiscover);
+    PCWSTR knownName;
 
-    if (knownName)
+    if (knownName = PhpAfdGetMtuDiscoveryString(MtuDiscover))
+    {
         return PhCreateString(knownName);
-    else
-        return PhFormatString(L"Unrecognized value (%d)", MtuDiscover);
+    }
+
+    return PhFormatString(L"Unrecognized value (%d)", MtuDiscover);
 }
 
 /**
-  * \brief Looks up a human-readable name for a TCP state.
-  *
-  * \param[in] TcpState The TCP state value.
-  *
-  * \return A string with the TCP state name or NULL when the value is not recognized.
-  */
+ * Looks up a human-readable name for a TCP state.
+ *
+ * \param[in] TcpState The TCP state value.
+ * \return A string with the TCP state name or NULL when the value is not recognized.
+ */
 _Maybenull_
 PCWSTR PhpAfdGetTcpStateString(
     _In_ TCPSTATE TcpState
@@ -1397,44 +1371,63 @@ PCWSTR PhpAfdGetTcpStateString(
 }
 
 /**
-  * \brief Formats a TCP state as a string.
-  *
-  * \param[in] TcpState The TCP state value.
-  *
-  * \return A string with a human-readable TCP state name.
-  */
+ * Formats a TCP state as a string.
+ *
+ * \param[in] TcpState The TCP state value.
+ * \return A string with a human-readable TCP state name.
+ */
 PPH_STRING PhAfdFormatTcpState(
     _In_ TCPSTATE TcpState
     )
 {
-    PCWSTR knownName = PhpAfdGetTcpStateString(TcpState);
+    PCWSTR knownName;
 
-    if (knownName)
+    if (knownName = PhpAfdGetTcpStateString(TcpState))
+    {
         return PhCreateString(knownName);
-    else
-        return PhFormatString(L"Unrecognized state (%d)", TcpState);
+    }
+
+    return PhFormatString(L"Unrecognized state (%d)", TcpState);
 }
 
 /**
-  * \brief Formats an interface identifier as a string.
-  *
-  * \param[in] Interface The interface identifier.
-  *
-  * \return A human-readable string with the interface IP address or scope ID.
-  */
+ * Formats an interface identifier as a string.
+ *
+ * \param[in] Interface The interface identifier.
+ * \return A human-readable string with the interface IP address or scope ID.
+ */
 PPH_STRING PhAfdFormatInterfaceOption(
     _In_ ULONG Interface
     )
 {
     if (Interface & 0x000000FF)
     {
+        NTSTATUS status;
         IN_ADDR interfaceIp;
-        WCHAR buffer[16];
+        ULONG addressStringLength = INET6_ADDRSTRLEN;
+        WCHAR addressString[INET6_ADDRSTRLEN];
 
         // Values with a non-zero first octet identify an interface by IP address
         interfaceIp.S_un.S_addr = Interface;
-        RtlIpv4AddressToStringW(&interfaceIp, buffer);
-        return PhCreateString(buffer);
+
+        status = PhIpv4AddressToString(
+            &interfaceIp,
+            0,
+            addressString,
+            &addressStringLength
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = addressString;
+            string.Length = (addressStringLength - 1) * sizeof(WCHAR);
+
+            return PhCreateString2(&string);
+        }
+
+        return PhFormatString(L"Error: %lu", status);
     }
     else if (Interface)
     {
@@ -1453,12 +1446,11 @@ PPH_STRING PhAfdFormatInterfaceOption(
 }
 
 /**
-  * \brief Formats a human-readable name for an AFD socket.
-  *
-  * \param[in] SocketHandle An AFD socket handle.
-  *
-  * \return The best handle name representation available on success, or NULL on error.
-  */
+ * Formats a human-readable name for an AFD socket.
+ *
+ * \param[in] SocketHandle An AFD socket handle.
+ * \return The best handle name representation available on success, or NULL on error.
+ */
 _Maybenull_
 PPH_STRING PhAfdFormatSocketBestName(
     _In_ HANDLE SocketHandle

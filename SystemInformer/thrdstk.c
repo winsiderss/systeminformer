@@ -1594,6 +1594,7 @@ LRESULT CALLBACK PhpThreadStackTaskDialogSubclassProc(
     return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpSymbolProviderEventCallbackHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -2300,6 +2300,7 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
 }
 #endif
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     )

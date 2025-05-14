@@ -2477,6 +2477,7 @@ VOID PhSipSaveWindowState(
         PhSetIntegerSetting(L"SysInfoWindowState", SW_MAXIMIZE);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2485,6 +2486,7 @@ VOID NTAPI PhSipSysInfoUpdateHandler(
     PostMessage(PhSipWindow, SI_MSG_SYSINFO_UPDATE, 0, 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

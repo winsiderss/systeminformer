@@ -688,6 +688,7 @@ static BOOLEAN NTAPI PhpEnumModulesCallback(
     return TRUE;
 }
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     )

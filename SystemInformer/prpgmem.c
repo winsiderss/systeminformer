@@ -27,6 +27,7 @@
 static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpRefreshProcessMemoryThread(
     _In_ PVOID Context
     )

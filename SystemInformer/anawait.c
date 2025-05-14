@@ -695,6 +695,7 @@ static BOOLEAN PhpGetThreadLastSystemCallNumber(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpWfsoThreadStart(
     _In_ PVOID Parameter
     )
@@ -710,6 +711,7 @@ static NTSTATUS PhpWfsoThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpWfmoThreadStart(
     _In_ PVOID Parameter
     )
@@ -725,6 +727,7 @@ static NTSTATUS PhpWfmoThreadStart(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpRfThreadStart(
     _In_ PVOID Parameter
     )

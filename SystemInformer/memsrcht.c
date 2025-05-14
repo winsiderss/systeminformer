@@ -285,6 +285,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     return !!treeContext->StopSearch;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpMemorySearchStringsThread(
     _In_ PPH_MEMSTRINGS_CONTEXT Context
     )

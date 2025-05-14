@@ -454,6 +454,7 @@ static PH_BARRIER RwStartBarrier;
 static LONG RwReadersActive;
 static LONG RwWritersActive;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpRwLockTestThreadStart(
     _In_ PVOID Parameter
     )

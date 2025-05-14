@@ -1031,6 +1031,7 @@ VOID PhShowProcessContextMenu(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1044,6 +1045,7 @@ VOID NTAPI PhMwpProcessAddedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1054,6 +1056,7 @@ VOID NTAPI PhMwpProcessModifiedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -1066,6 +1069,7 @@ VOID NTAPI PhMwpProcessRemovedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

@@ -63,8 +63,9 @@ namespace PH
         @details PhActivateToastRuntime must be called prior to this else the function returns
          R_NOTIMPL.
 
-        @tparam T - Interface to retrieve.
-        @tparam t_SizeDest - Length of the constant string to use.
+        @tparam I - Interface to retrieve.
+        @tparam t_SizeDestName - Length of the name string to use.
+        @tparam t_SizeDestClass - Length of the class string to use.
 
         @param[in] ActivatableClassId - Activatable class ID to look up the interface from.
         @param[out] Interface - On success, set to a referenced interface of type T.

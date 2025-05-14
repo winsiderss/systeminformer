@@ -13,14 +13,19 @@
 #ifndef _PH_GUISUPPVIEW_H
 #define _PH_GUISUPPVIEW_H
 
+//
 // Listview2 (Undocumented)
+//
 
 #ifndef LVM_QUERYINTERFACE
 #define LVM_QUERYINTERFACE (LVM_FIRST + 189) // IListView, IListView2, IOleWindow, IVisualProperties, IPropertyControlSite, IListViewFooter
 #endif
 
+// {E5B16AF2-3990-4681-A609-1F060CD14269}
 DEFINE_GUID(IID_IListView, 0xE5B16AF2, 0x3990, 0x4681, 0xA6, 0x09, 0x1F, 0x06, 0x0C, 0xD1, 0x42, 0x69);
+// {E6DFF6FD-BCD5-4162-9C65-A3B18C616FDB}
 DEFINE_GUID(IID_IDrawPropertyControl, 0xE6DFF6FD, 0xBCD5, 0x4162, 0x9C, 0x65, 0xA3, 0xB1, 0x8C, 0x61, 0x6F, 0xDB);
+// {1572DD51-443C-44B0-ACE4-38A005FC697E}
 DEFINE_GUID(IID_IDrawPropertyControlWin10, 0x1572DD51, 0x443C, 0x44B0, 0xAC, 0xE4, 0x38, 0xA0, 0x05, 0xFC, 0x69, 0x7E);
 // {F0034DA8-8A22-4151-8F16-2EBA76565BCC}
 DEFINE_GUID(IID_IListViewFooter, 0xF0034DA8, 0x8A22, 0x4151, 0x8F, 0x16, 0x2E, 0xBA, 0x76, 0x56, 0x5B, 0xCC);
@@ -37,10 +42,15 @@ DEFINE_GUID(IID_IPropertyValue, 0x7AF7F355, 0x1066, 0x4E17, 0xB1, 0xF2, 0x19, 0x
 // {11A66240-5489-42C2-AEBF-286FC831524C}
 DEFINE_GUID(IID_ISubItemCallback, 0x11A66240, 0x5489, 0x42C2, 0xAE, 0xBF, 0x28, 0x6F, 0xC8, 0x31, 0x52, 0x4C);
 
+// CLSID_CAsyncSubItemControlsView: {A1DCCC29-7C70-4821-97AE-67F04105EC91}
 DEFINE_GUID(CLSID_CAsyncSubItemControlsView, 0xa1dccc29, 0x7c70, 0x4821, 0x97, 0xae, 0x67, 0xf0, 0x41, 0x5, 0xec, 0x91);
+// CLSID_CFooterAreaView: {EBE684BF-3301-4A6D-83CE-E4D6851BE881}
 DEFINE_GUID(CLSID_CFooterAreaView, 0xebe684bf, 0x3301, 0x4a6d, 0x83, 0xce, 0xe4, 0xd6, 0x85, 0x1b, 0xe8, 0x81);
+// CLSID_CGroupedVirtualModeView: {A08A0F2D-0647-4443-9450-C460F4791046}
 DEFINE_GUID(CLSID_CGroupedVirtualModeView, 0xa08a0f2d, 0x647, 0x4443, 0x94, 0x50, 0xc4, 0x60, 0xf4, 0x79, 0x10, 0x46);
+// CLSID_CGroupSubsetView: {64A11699-104A-482A-9D85-CCFEA2EE3C94}
 DEFINE_GUID(CLSID_CGroupSubsetView, 0x64a11699, 0x104a, 0x482a, 0x9d, 0x85, 0xcc, 0xfe, 0xa2, 0xee, 0x3c, 0x94);
+// CLSID_CSubItemControlsView: {13E88673-D30C-46BA-8F2E-97C5CD024E73}
 DEFINE_GUID(CLSID_CSubItemControlsView, 0x13e88673, 0xd30c, 0x46ba, 0x8f, 0x2e, 0x97, 0xc5, 0xcd, 0x2, 0x4e, 0x73);
 
 // {1E8F0D70-7399-41BF-8598-7949A2DEC898}
@@ -77,13 +87,19 @@ DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    //
     // IOwnerDataCallback
+    //
+
     //STDMETHOD(OnDataAvailable)(THIS_ LPARAM lParam, ULONG dwItemCount) PURE;
     //STDMETHOD(OnDataUnavailable)(THIS_ LPARAM lParam) PURE;
     //STDMETHOD(OnDataChanged)(THIS_ LPARAM lParam, ULONG dwItemCount) PURE;
     //STDMETHOD(OnDataReset)(THIS_ LPARAM lParam) PURE;
+
     STDMETHOD(GetItemPosition)(THIS_ LONG itemIndex, LPPOINT pPosition) PURE;
     STDMETHOD(SetItemPosition)(THIS_ LONG itemIndex, POINT position) PURE;
+
     /// \brief <em>Will be called to retrieve an item's zero-based control-wide index</em>
     ///
     /// This method is called by the listview control to retrieve an item's zero-based control-wide index.
@@ -97,6 +113,7 @@ DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
     ///
     /// \return An \c HRESULT error code.
     STDMETHOD(GetItemInGroup)(THIS_ LONG groupIndex, LONG groupWideItemIndex, PLONG pTotalItemIndex) PURE;
+
     /// \brief <em>Will be called to retrieve the group containing a specific occurrence of an item</em>
     ///
     /// This method is called by the listview control to retrieve the listview group in which the specified
@@ -108,6 +125,7 @@ DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
     ///
     /// \return An \c HRESULT error code.
     STDMETHOD(GetItemGroup)(THIS_ LONG itemIndex, LONG occurenceIndex, PLONG pGroupIndex) PURE;
+
     /// \brief <em>Will be called to determine how often an item occurs in the listview control</em>
     ///
     /// This method is called by the listview control to determine how often the specified item occurs in the
@@ -118,6 +136,7 @@ DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
     ///
     /// \return An \c HRESULT error code.
     STDMETHOD(GetItemGroupCount)(THIS_ LONG itemIndex, PLONG pOccurenceCount) PURE;
+
     /// \brief <em>Will be called to prepare the client app that the data for a certain range of items will be required very soon</em>
     ///
     /// This method is similar to the \c LVN_ODCACHEHINT notification. It tells the client application that
@@ -140,7 +159,11 @@ DECLARE_INTERFACE_(ISubItemCallback, IUnknown)
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    //
     // ISubItemCallback
+    //
+
     STDMETHOD(GetSubItemTitle)(THIS_ LONG subItemIndex, PWSTR pBuffer, LONG bufferSize) PURE;
     STDMETHOD(GetSubItemControl)(THIS_ LONG itemIndex, LONG subItemIndex, REFIID requiredInterface, PPVOID ppObject) PURE;
     STDMETHOD(BeginSubItemEdit)(THIS_ LONG itemIndex, LONG subItemIndex, LONG mode, REFIID requiredInterface, PPVOID ppObject) PURE;
@@ -158,7 +181,10 @@ DECLARE_INTERFACE_(IDrawPropertyControl, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
+    //
     // IPropertyControlBase
+    //
+
     STDMETHOD(Initialize)(IUnknown*, ULONG) PURE; // 2/calendar, 3/textbox
     STDMETHOD(GetSize)(enum PROPCTL_RECT_TYPE, HDC, SIZE const*, SIZE*) PURE;
     STDMETHOD(SetWindowTheme)(PCWSTR, PCWSTR) PURE;
@@ -173,7 +199,10 @@ DECLARE_INTERFACE_(IDrawPropertyControl, IUnknown)
     STDMETHOD(SetFormatFlags)(LONG) PURE;
     STDMETHOD(GetFormatFlags)(LONG*) PURE;
 
+    //
     // IDrawPropertyControl
+    //
+
     STDMETHOD(GetDrawFlags)(PLONG Flags) PURE;
     STDMETHOD(WindowlessDraw)(HDC hDC, RECT pDrawingRectangle, LONG a) PURE;
     STDMETHOD(HasVisibleContent)(VOID) PURE;
@@ -187,13 +216,25 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
 {
     BEGIN_INTERFACE
 
+    //
+    // IUnknown
+    //
+
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    //
     // IOleWindow
+    //
+
     STDMETHOD(GetWindow)(THIS_ __RPC__in IOleWindow* window, __RPC__deref_out_opt HWND* WindowHandle) PURE;
     STDMETHOD(ContextSensitiveHelp)(THIS_ __RPC__in IOleWindow* window, _In_ BOOL fEnterMode) PURE;
+
+    //
     // IListView
+    //
+
     STDMETHOD(GetImageList)(THIS_ LONG imageList, HIMAGELIST* pHImageList) PURE;
     STDMETHOD(SetImageList)(THIS_ LONG imageList, HIMAGELIST hNewImageList, HIMAGELIST* pHOldImageList) PURE;
     STDMETHOD(GetBackgroundColor)(THIS_ COLORREF* pColor) PURE;
@@ -344,6 +385,8 @@ DECLARE_INTERFACE_(IListView, IUnknown) // real name is IListView2
 
     END_INTERFACE
 };
+
+#undef INTERFACE
 
 #define IListViewQueryInterface(This,riid,ppvObject) \
     ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))

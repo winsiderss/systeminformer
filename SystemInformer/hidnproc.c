@@ -123,6 +123,7 @@ VOID PhZombieProcessesCleanupList(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
  NTSTATUS PhZombieProcessesThread(
     _In_ PVOID Context
     )

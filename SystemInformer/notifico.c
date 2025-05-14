@@ -1249,6 +1249,7 @@ VOID PhNfTrayIconFlushWorkQueueData(
 }
 #endif
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     )
@@ -1313,6 +1314,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

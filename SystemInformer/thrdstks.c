@@ -1575,6 +1575,7 @@ VOID PhpInitializeThreadStacksTree(
     PhpThreadStacksLoadSettingsTreeList(Context);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpThreadStacksSymbolProviderEventCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context

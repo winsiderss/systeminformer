@@ -28,6 +28,7 @@
 
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -40,6 +41,7 @@ static VOID NTAPI ThreadAddedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderAddedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -50,6 +52,7 @@ static VOID NTAPI ThreadModifiedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -60,6 +63,7 @@ static VOID NTAPI ThreadRemovedHandler(
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -70,6 +74,7 @@ static VOID NTAPI ThreadsUpdatedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

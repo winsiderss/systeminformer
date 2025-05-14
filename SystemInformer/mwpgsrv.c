@@ -407,6 +407,7 @@ VOID PhServiceListInsertContextMenu(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -418,6 +419,7 @@ VOID NTAPI PhMwpServiceAddedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -431,6 +433,7 @@ VOID NTAPI PhMwpServiceModifiedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderModifiedEvent, copy, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -441,6 +444,7 @@ VOID NTAPI PhMwpServiceRemovedHandler(
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

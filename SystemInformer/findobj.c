@@ -1711,6 +1711,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpFindObjectsDialogThreadStart(
     _In_ PVOID Parameter
     )

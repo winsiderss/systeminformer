@@ -410,21 +410,25 @@ VOID PhMwpInitializeProcessMenu(
     _In_ ULONG NumberOfProcesses
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -475,21 +479,25 @@ VOID PhMwpInitializeServiceMenu(
     _In_ ULONG NumberOfServices
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServiceRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -531,21 +539,25 @@ VOID PhMwpInitializeNetworkMenu(
     _In_ ULONG NumberOfNetworkItems
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

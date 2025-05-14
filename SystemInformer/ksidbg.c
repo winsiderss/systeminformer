@@ -1526,6 +1526,7 @@ VOID NTAPI KsiDebugLogMessageCallback(
     InterlockedAddRelease64(&KsiBytesReceived, Informer->Message->Header.Size);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI KsiDebugMonitorRoutine(
     _In_ PVOID Parameter
     )

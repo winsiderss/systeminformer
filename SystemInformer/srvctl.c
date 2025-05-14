@@ -88,6 +88,7 @@ HWND PhCreateServiceListControl(
     return windowHandle;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ServiceModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

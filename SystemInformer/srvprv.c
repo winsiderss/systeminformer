@@ -739,6 +739,7 @@ VOID PhUpdateServiceItemConfig(
     PhCloseServiceHandle(serviceHandle);
 }
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     )
@@ -1179,6 +1180,7 @@ VOID PhDestroyServiceNotifyContext(
     PhFree(NotifyContext);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhServiceNonPollThreadStart(
     _In_ PVOID Parameter
     )

@@ -825,6 +825,7 @@ VOID PhDoPropPageLayout(
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpProcessPropertiesThreadStart(
     _In_ PVOID Parameter
     )

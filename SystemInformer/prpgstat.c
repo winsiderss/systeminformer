@@ -660,6 +660,7 @@ VOID PhpUpdateProcessStatistics(
     PhRedrawListViewItems(Context->ListViewHandle);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI PhpStatisticsUpdateHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

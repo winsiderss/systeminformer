@@ -916,6 +916,7 @@ VOID PhFlushNetworkQueryData(
     }
 }
 
+_Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
     )

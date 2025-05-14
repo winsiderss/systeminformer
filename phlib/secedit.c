@@ -105,6 +105,7 @@ static VOID PhEditSecurityAdvanced(
     PhSecurityInformation_Release(Context);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhEditSecurityAdvancedThread(
     _In_ PVOID Context
     )

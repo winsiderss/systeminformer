@@ -1708,6 +1708,7 @@ static VOID PhpAdvancedPageSave(
     SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpElevateAdvancedThreadStart(
     _In_ PVOID Parameter
     )

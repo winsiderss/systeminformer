@@ -31,6 +31,7 @@
 
 static CONST PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleAddedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -43,6 +44,7 @@ static VOID NTAPI HandleAddedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleModifiedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -53,6 +55,7 @@ static VOID NTAPI HandleModifiedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandleRemovedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -63,6 +66,7 @@ static VOID NTAPI HandleRemovedHandler(
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandlesUpdatedHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -73,6 +77,7 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 static VOID NTAPI HandlesUpdateAutomaticallyHandler(
     _In_ PVOID Parameter,
     _In_ PVOID Context

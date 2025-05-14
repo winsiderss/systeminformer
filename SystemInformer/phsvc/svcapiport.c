@@ -14,6 +14,7 @@
 #include <phsvc.h>
 #include <verify.h>
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhSvcApiRequestThreadStart(
     _In_ PVOID Parameter
     );

@@ -247,11 +247,13 @@ VOID PhSipSaveWindowState(
     VOID
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
