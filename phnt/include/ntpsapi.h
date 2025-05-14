@@ -1227,12 +1227,12 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 {
     ULONG HeaderSize;                       // The size of the structure, in bytes.
     ULONG ProcessId;                        // The ID of the process.
-    ULONGLONG ProcessStartKey;              // The start key of the process.
-    ULONGLONG CreateTime;                   // The creation time of the process.
-    ULONGLONG CreateInterruptTime;          // The interrupt time at creation.
-    ULONGLONG CreateUnbiasedInterruptTime;  // The unbiased interrupt time at creation.
-    ULONGLONG ProcessSequenceNumber;        // The monotonic sequence number of the process.
-    ULONGLONG SessionCreateTime;            // The session creation time.
+    ULONG64 ProcessStartKey;                // The start key of the process.
+    ULONG64 CreateTime;                     // The creation time of the process.
+    ULONG64 CreateInterruptTime;            // The interrupt time at creation.
+    ULONG64 CreateUnbiasedInterruptTime;    // The unbiased interrupt time at creation.
+    ULONG64 ProcessSequenceNumber;          // The monotonic sequence number of the process.
+    ULONG64 SessionCreateTime;              // The session creation time.
     ULONG SessionId;                        // The ID of the session.
     ULONG BootId;                           // The boot ID.
     ULONG ImageChecksum;                    // The checksum of the process image.
@@ -1269,11 +1269,11 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
  */
 typedef struct _PROCESS_JOB_MEMORY_INFO
 {
-    ULONGLONG SharedCommitUsage;        // The current shared commit usage, in bytes.
-    ULONGLONG PrivateCommitUsage;       // The current private commit usage, in bytes.
-    ULONGLONG PeakPrivateCommitUsage;   // The peak private commit usage, in bytes.
-    ULONGLONG PrivateCommitLimit;       // The private commit limit, in bytes.
-    ULONGLONG TotalCommitLimit;         // The total commit limit, in bytes.
+    ULONG64 SharedCommitUsage;        // The current shared commit usage, in bytes.
+    ULONG64 PrivateCommitUsage;       // The current private commit usage, in bytes.
+    ULONG64 PeakPrivateCommitUsage;   // The peak private commit usage, in bytes.
+    ULONG64 PrivateCommitLimit;       // The private commit limit, in bytes.
+    ULONG64 TotalCommitLimit;         // The total commit limit, in bytes.
 } PROCESS_JOB_MEMORY_INFO, *PPROCESS_JOB_MEMORY_INFO;
 
 /**
@@ -1337,7 +1337,7 @@ typedef enum _PS_WAKE_REASON
 
 typedef struct _PROCESS_WAKE_INFORMATION
 {
-    ULONGLONG NotificationChannel;
+    ULONG64 NotificationChannel;
     ULONG WakeCounters[PsMaxWakeReasons];
     JOBOBJECT_WAKE_FILTER WakeFilter;
 } PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
@@ -1571,8 +1571,8 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
  */
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
-    ULONGLONG AccumulatedCycles;        // The total number of cycles accumulated by the thread.
-    ULONGLONG CurrentCycleCount;        // The current cycle count of the thread.
+    ULONG64 AccumulatedCycles;        // The total number of cycles accumulated by the thread.
+    ULONG64 CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
 // RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
@@ -2034,7 +2034,7 @@ NtResumeProcess(
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
 EXTERN_C CONST IMAGE_DOS_HEADER __ImageBase;
-#define NtCurrentImageBase() ((PIMAGE_DOS_HEADER)&__ImageBase)
+#define NtCurrentImageBase() ((PVOID)((PIMAGE_DOS_HEADER)&__ImageBase))
 
 #define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
 #define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
