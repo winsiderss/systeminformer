@@ -4,6 +4,7 @@
 [![Github stats (builds)](https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=blue)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=si-builds)
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=blue&label=)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=blue&label=)](https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly)
+[![Discord](https://img.shields.io/badge/Discord-Join-blue?style=for-the-badge&logo=discord)](https://discord.com/invite/k2MQd2DzC2)
 
 <img align="left" src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png" width="128" height="128" style="max-width: 100%;padding-right: 20px;">
 
