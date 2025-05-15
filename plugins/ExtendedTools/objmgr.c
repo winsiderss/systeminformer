@@ -259,7 +259,7 @@ PPH_STRING EtGetSelectedTreeViewPath(
             break;
 
         if (treePath)
-            treePath = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &treePath->sr));
+            treePath = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &treePath->sr));
         else
             treePath = PH_AUTO(PhCreateString2(&directory->sr));
 
@@ -268,7 +268,7 @@ PPH_STRING EtGetSelectedTreeViewPath(
 
     if (!PhIsNullOrEmptyString(treePath))
     {
-        return PhConcatStringRef2(&PhNtPathSeperatorString, &treePath->sr);
+        return PhConcatStringRef2(&PhNtPathSeparatorString, &treePath->sr);
     }
 
     return PhCreateString2(&EtObjectManagerRootDirectoryObject);
@@ -285,7 +285,7 @@ PPH_STRING EtGetObjectFullPath(
 
     PhInitFormatSR(&format[0], BaseDirectory->sr);
     if (needSeparator)
-        PhInitFormatSR(&format[1], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[1], PhNtPathSeparatorString);
     PhInitFormatSR(&format[1 + needSeparator], ObjectName->sr);
     return PhFormat(format, 2 + needSeparator, 0);
 }
@@ -301,7 +301,7 @@ PPH_STRING EtGetObjectFullPath2(
 
     PhInitFormatS(&format[0], BaseDirectory->Buffer);
     if (needSeparator)
-        PhInitFormatSR(&format[1], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[1], PhNtPathSeparatorString);
     PhInitFormatS(&format[1 + needSeparator], ObjectName->Buffer);
     return PhFormat(format, 2 + needSeparator, 0);
 }
