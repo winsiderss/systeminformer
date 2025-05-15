@@ -535,7 +535,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
         }
 
         if (!NT_SUCCESS(status))
-            return HRESULT_FROM_NT(status);
+        {
+            // Note: The ACUI doesn't support HRESULT_FROM_NT (dmex)
+            return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
+        }
     }
 
     sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
@@ -579,7 +582,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
             );
     }
 
-    return HRESULT_FROM_NT(status);
+    // Note: The ACUI doesn't support HRESULT_FROM_NT (dmex)
+    return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
@@ -1258,7 +1262,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
         );
 
     if (!NT_SUCCESS(status))
-        return HRESULT_FROM_NT(status);
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 
     if (!(accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK))))
         return HRESULT_FROM_WIN32(ERROR_OUTOFMEMORY);
