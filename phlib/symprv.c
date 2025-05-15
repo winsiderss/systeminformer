@@ -2329,7 +2329,7 @@ CheckFinalARM64VirtualFrame:
             // issues with possible solutions. These need more time to investigate:
             //
             // - ARM64EC (Inline frame) seem to be missing. Probably needs special handling or the
-            //   "virtural frames" are messing up the existing inline frame resolution. For context
+            //   "virtual frames" are messing up the existing inline frame resolution. For context
             //   dbgeng.dll appears to have "virtual frames" as we do here, but we likely need some
             //   additional handling for inline frames.
             // - .NET under ARM64 emulation seems to eventually walk into strange frames, x64 is

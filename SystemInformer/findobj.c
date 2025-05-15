@@ -1735,7 +1735,7 @@ NTSTATUS PhpFindObjectsDialogThreadStart(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(PhFindObjectsWindowHandle, &message))

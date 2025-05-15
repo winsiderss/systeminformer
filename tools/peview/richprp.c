@@ -286,17 +286,17 @@ PWSTR PvpGetProductIdComponent(
         return L"Link-time Code Generation (MSIL) (19.0)";
 
     case prodidUtc1500_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (15.0)";
+        return L"Profile Guided Optimization (Input) (C11) (15.0)";
     case prodidUtc1610_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (16.1)";
+        return L"Profile Guided Optimization (Input) (C11) (16.1)";
     case prodidUtc1700_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (17.0)";
+        return L"Profile Guided Optimization (Input) (C11) (17.0)";
     case prodidUtc1800_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (18.0)";
+        return L"Profile Guided Optimization (Input) (C11) (18.0)";
     case prodidUtc1810_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (18.1)";
+        return L"Profile Guided Optimization (Input) (C11) (18.1)";
     case prodidUtc1900_POGO_I_C:
-        return L"Profile Guided Optimization (Imput) (C11) (19.0)";
+        return L"Profile Guided Optimization (Input) (C11) (19.0)";
 
     case prodidUtc1400_POGO_O_C:
     case prodidUtc1500_POGO_O_C:
@@ -314,7 +314,7 @@ PWSTR PvpGetProductIdComponent(
     case prodidUtc1800_POGO_I_CPP:
     case prodidUtc1810_POGO_I_CPP:
     case prodidUtc1900_POGO_I_CPP:
-        return L"Profile Guided Optimization (Imput) (CPP)";
+        return L"Profile Guided Optimization (Input) (CPP)";
 
     case prodidUtc1400_POGO_O_CPP:
     case prodidUtc1500_POGO_O_CPP:

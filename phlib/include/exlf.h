@@ -395,7 +395,7 @@ typedef struct _ELF_IMAGE_SYMBOL_ENTRY // Elf_Sym
     unsigned long long st_size;
 } ELF_IMAGE_SYMBOL_ENTRY, *PELF_IMAGE_SYMBOL_ENTRY;
 
-// ELF version entires
+// ELF version entries
 
 typedef struct _ELF_VERSION_TABLE // Elf_Versym
 {

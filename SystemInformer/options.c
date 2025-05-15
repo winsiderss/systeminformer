@@ -1072,7 +1072,7 @@ VOID PhpSetDefaultTaskManager(
 //    PhMoveReference(&directory, PhGetBaseDirectory(directory));
 //    PhMoveReference(&fileName, PhGetApplicationFileNameWin32());
 //    PhMoveReference(&fileName, PhGetBaseName(fileName));
-//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr);
 //
 //    if (NT_SUCCESS(PhOpenKey(
 //        &keyHandle,
@@ -1124,7 +1124,7 @@ VOID PhpSetDefaultTaskManager(
 //    PhMoveReference(&directory, PhGetBaseDirectory(directory));
 //    fileName = PhGetApplicationFileNameWin32();
 //    PhMoveReference(&fileName, PhGetBaseName(fileName));
-//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr);
 //
 //    //if (Enabled)
 //    //{
@@ -1286,7 +1286,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             directory = PH_AUTO(PhGetBaseDirectory(directory));
             fileName = PH_AUTO(PhGetApplicationFileNameWin32());
             fileName = PH_AUTO(PhGetBaseName(fileName));
-            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr));
 
             status = PhCreateKey(
                 &keyHandle,
@@ -1342,7 +1342,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             directory = PH_AUTO(PhGetBaseDirectory(directory));
             fileName = PH_AUTO(PhGetApplicationFileNameWin32());
             fileName = PH_AUTO(PhGetBaseName(fileName));
-            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeparatorString, &fileName->sr));
 
             status = PhOpenKey(
                 &keyHandle,

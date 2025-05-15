@@ -97,7 +97,7 @@ static VOID CstpFailWith(
     va_start(args, Format);
     vfwprintf(stderr, Format, args);
     va_end(args);
-    exit(1);
+    _exit(EXIT_FAILURE);
 }
 
 #define CstFailWith(Format, ...) CstpFailWith(Format L"\n", __VA_ARGS__)
@@ -112,7 +112,7 @@ static VOID CstpFailWithStatus(
     va_start(args, Format);
     vfwprintf(stderr, Format, args);
     va_end(args);
-    exit(1);
+    _exit(EXIT_FAILURE);
 }
 
 #define CstFailWithStatus(Status, Format, ...)                                 \

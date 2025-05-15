@@ -851,7 +851,7 @@ VOID WhoisParseAddressString(
     }
     else
     {
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &Context->RemoteEndpoint.Address.In6Addr,
             0,
             0,

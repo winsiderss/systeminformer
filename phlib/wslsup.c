@@ -625,7 +625,7 @@ BOOLEAN PhCreateProcessLxss(
     {
         PhMoveReference(&lxssCommandLine, PhConcatStringRef3(
             &systemDirectory->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &lxssCommandLine->sr
             ));
         PhDereferenceObject(systemDirectory);

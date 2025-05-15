@@ -259,7 +259,7 @@ VOID TracertQueueHostLookup(
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
+        if (NT_SUCCESS(PhIpv6AddressToString(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
             if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
@@ -1103,7 +1103,7 @@ VOID ShowTracertWindow(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &NetworkItem->RemoteEndpoint.Address.In6Addr,
             0,
             0,
@@ -1154,7 +1154,7 @@ VOID ShowTracertWindowFromAddress(
     {
         ULONG remoteAddressStringLength = RTL_NUMBER_OF(context->RemoteAddressString);
 
-        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+        if (NT_SUCCESS(PhIpv6AddressToString(
             &RemoteEndpoint.Address.In6Addr,
             0,
             0,

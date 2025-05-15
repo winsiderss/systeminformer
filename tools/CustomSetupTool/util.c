@@ -156,9 +156,9 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (!PhIsNullOrEmptyString(setupInstallPath))
     {
-        if (!PhEndsWithStringRef(&setupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
+        if (!PhEndsWithStringRef(&setupInstallPath->sr, &PhNtPathSeparatorString, TRUE))
         {
-            PhSwapReference(&setupInstallPath, PhConcatStringRef2(&setupInstallPath->sr, &PhNtPathSeperatorString));
+            PhSwapReference(&setupInstallPath, PhConcatStringRef2(&setupInstallPath->sr, &PhNtPathSeparatorString));
         }
     }
 

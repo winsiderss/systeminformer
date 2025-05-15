@@ -1675,7 +1675,7 @@ NTSTATUS EtDuplicateHandleFromProcessEx(
     );
 
 PPH_STRING EtGetWindowStationType(
-    _In_ PPH_STRINGREF StationName
+    _In_ PCPH_STRINGREF StationName
     );
 
 NTSTATUS EtObjectManagerGetHandleInfoEx(
@@ -1690,7 +1690,7 @@ NTSTATUS EtObjectManagerGetHandleInfoEx(
 #include <winsta.h>
 
 ULONG EtSessionIdFromObjectName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     );
 
 PCWSTR EtMapSessionConnectState(

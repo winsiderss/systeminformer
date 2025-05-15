@@ -1163,7 +1163,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //                        if (NT_SUCCESS(PhGetProcessHeapCounters(ProcessHandle, processHeaps[i], FALSE, &counters)))
 //                        {
 //                            dprintf(
-//                                "NT-%lu - 0x%I64x - commited: %lu - allocated: %lu - count: %lu\n",
+//                                "NT-%lu - 0x%I64x - committed: %lu - allocated: %lu - count: %lu\n",
 //                                i + 1,
 //                                processHeaps[i],
 //                                counters->TotalMemoryCommitted,

@@ -1788,7 +1788,6 @@ NTSTATUS PhEnumProcessModulesLimited(
         &limitedParameters
         );
 
-
     PhDereferenceObject(baseAddressHashtable);
 
     return status;

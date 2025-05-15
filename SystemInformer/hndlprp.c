@@ -343,7 +343,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
         pages[propSheetHeader.nPages++] = PhCreateAfdSocketPage(
             context.ProcessId,
             context.HandleItem->Handle
-        );
+            );
     }
 
     // Security page
@@ -1998,7 +1998,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyIListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle, context->ListViewClass);
 

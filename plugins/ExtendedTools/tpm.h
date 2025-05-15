@@ -591,7 +591,7 @@ typedef union _TPMU_CAPABILITIES
 } TPMU_CAPABILITIES, *PTPMU_CAPABILITIES;
 
 //
-// TPM2.0 Payload for each capablity returned by TPM2_CC_GetCapabilities
+// TPM2.0 Payload for each capability returned by TPM2_CC_GetCapabilities
 //
 typedef struct _TPMS_CAPABILITY_DATA
 {

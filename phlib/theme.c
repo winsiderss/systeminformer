@@ -1405,10 +1405,10 @@ BOOLEAN PhThemeWindowMeasureItem(
 //    // of a checkbox and use that size.
 //    if (htheme)
 //    {
-//        SIZE siz;
-//        PhGetThemePartSize(htheme, hdcScreen, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &siz);
-//        cx = siz.cx;
-//        cy = siz.cy;
+//        SIZE size;
+//        PhGetThemePartSize(htheme, hdcScreen, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &size);
+//        cx = size.cx;
+//        cy = size.cy;
 //    }
 //
 //    // Create a 32bpp bitmap that holds the desired number of frames.

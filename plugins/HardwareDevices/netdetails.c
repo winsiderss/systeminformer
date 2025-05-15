@@ -185,7 +185,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv6SockAddr = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                if (NT_SUCCESS(PhIpv6AddressToString(
                     &ipv6SockAddr->sin6_addr,
                     ipv6SockAddr->sin6_scope_id,
                     0,
@@ -233,7 +233,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv6SockAddr = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                if (NT_SUCCESS(PhIpv6AddressToString(
                     &ipv6SockAddr->sin6_addr,
                     ipv6SockAddr->sin6_scope_id,
                     0,
@@ -274,7 +274,7 @@ VOID NetAdapterEnumerateAddresses(
 
                 ipv6SockAddr = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                if (NT_SUCCESS(PhIpv6AddressToString(
                     &ipv6SockAddr->sin6_addr,
                     ipv6SockAddr->sin6_scope_id,
                     0,

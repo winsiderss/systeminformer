@@ -44,8 +44,8 @@ PPH_OBJECT_TYPE EtObjectEntryType = NULL;
 static PPH_STRING ObjectSignaledString = NULL;
 static PPH_STRING ObjectNotificationString = NULL;
 static PPH_STRING ObjectSignaledNotificationString = NULL;
-static PPH_STRING ObjectSyncronizationString = NULL;
-static PPH_STRING ObjectSignaledSyncronizationString = NULL;
+static PPH_STRING ObjectSynchronizationString = NULL;
+static PPH_STRING ObjectSignaledSynchronizationString = NULL;
 static PPH_STRING ObjectAbandonedString = NULL;
 
 // Columns
@@ -815,8 +815,8 @@ NTSTATUS EtpTargetResolverThreadStart(
     if (status != STATUS_ABANDONED && !ReadAcquire8(&threadContext->Break))
     {
         // Reapply sort and filter after done resolving and ensure selected item is visible
-        PPH_STRING curentFilter = PhGetWindowText(context->SearchBoxHandle);
-        if (!PhIsNullOrEmptyString(curentFilter))
+        PPH_STRING currentfilter = PhGetWindowText(context->SearchBoxHandle);
+        if (!PhIsNullOrEmptyString(currentfilter))
         {
             EtpObjectManagerSearchControlCallback((ULONG_PTR)PhGetWindowContext(context->SearchBoxHandle, SHRT_MAX), context);  // HACK
         }
@@ -832,8 +832,8 @@ NTSTATUS EtpTargetResolverThreadStart(
                     ListView_EnsureVisible(context->ListViewHandle, index, TRUE);
             }
         }
-        if (curentFilter)
-            PhDereferenceObject(curentFilter);
+        if (currentfilter)
+            PhDereferenceObject(currentfilter);
 
         WritePointerRelease(&context->BreakResolverThread, NULL);
     }
@@ -1180,7 +1180,7 @@ NTSTATUS EtpTargetResolverWorkThreadStart(
                             entry->Target = PhReferenceObject(basicInfo.EventState > 0 ? ObjectSignaledNotificationString : ObjectNotificationString);
                             break;
                         case SynchronizationEvent:
-                            entry->Target = PhReferenceObject(basicInfo.EventState > 0 ? ObjectSignaledSyncronizationString : ObjectSyncronizationString);
+                            entry->Target = PhReferenceObject(basicInfo.EventState > 0 ? ObjectSignaledSynchronizationString : ObjectSynchronizationString);
                             break;
                         default:
                             if (basicInfo.EventState > 0) entry->Target = PhReferenceObject(ObjectSignaledString);
@@ -2867,8 +2867,8 @@ INT_PTR CALLBACK WinObjDlgProc(
             ObjectSignaledString = PhCreateString(L"Signaled");
             ObjectNotificationString = PhCreateString(L"Notification");
             ObjectSignaledNotificationString = PhCreateString(L"Signaled, Notification");
-            ObjectSyncronizationString = PhCreateString(L"Syncronization");
-            ObjectSignaledSyncronizationString = PhCreateString(L"Signaled, Syncronization");
+            ObjectSynchronizationString = PhCreateString(L"Synchronization");
+            ObjectSignaledSynchronizationString = PhCreateString(L"Signaled, Synchronization");
             ObjectAbandonedString = PhCreateString(L"Abandoned");
             PhEndInitOnce(&initOnce);
         }

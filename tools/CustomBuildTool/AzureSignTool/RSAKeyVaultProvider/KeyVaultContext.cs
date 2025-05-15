@@ -75,7 +75,7 @@ namespace CustomBuildTool
         public X509Certificate2 Certificate { get; }
 
         /// <summary>
-        /// Identifyer of current key
+        /// Identifier of current key
         /// </summary>
         public Uri KeyIdentifier { get; }
 

@@ -70,6 +70,7 @@ BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
 BOOLEAN EtEnableAvxSupport = FALSE;
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -87,6 +88,7 @@ VOID NTAPI LoadCallback(
     EtFramesMonitorInitialization();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -102,6 +104,7 @@ VOID NTAPI UnloadCallback(
     EtFramesMonitorUninitialization();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -121,6 +124,7 @@ VOID NTAPI ShowOptionsCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -204,6 +208,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TreeNewMessageCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -217,6 +222,7 @@ VOID NTAPI TreeNewMessageCallback(
         EtNetworkTreeNewMessage(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhSvcRequestCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -228,6 +234,7 @@ VOID NTAPI PhSvcRequestCallback(
     DispatchPhSvcRequest(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -273,6 +280,7 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -286,6 +294,7 @@ VOID NTAPI MainWindowShowingCallback(
     EtFramesMonitorStart();
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -297,6 +306,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -311,6 +321,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI HandlePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -320,6 +331,7 @@ VOID NTAPI HandlePropertiesInitializingCallback(
         EtHandlePropertiesInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI HandlePropertiesWindowInitializedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -329,6 +341,7 @@ VOID NTAPI HandlePropertiesWindowInitializedCallback(
         EtHandlePropertiesWindowInitialized(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI HandlePropertiesWindowUninitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -338,6 +351,7 @@ VOID NTAPI HandlePropertiesWindowUninitializingCallback(
         EtHandlePropertiesWindowUninitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -386,6 +400,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -428,6 +443,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
         PhSetDisabledEMenuItem(menuItem);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ModuleMenuInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -472,6 +488,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -483,6 +500,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     EtProcessTreeNewInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetworkTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -494,6 +512,7 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     EtNetworkTreeNewInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI SystemInformationInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -507,6 +526,7 @@ VOID NTAPI SystemInformationInitializingCallback(
         EtEtwSystemInformationInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MiniInformationInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -520,6 +540,7 @@ VOID NTAPI MiniInformationInitializingCallback(
         EtEtwMiniInformationInitializing(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI TrayIconsInitializingCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -529,6 +550,7 @@ VOID NTAPI TrayIconsInitializingCallback(
     EtRegisterNotifyIcons(Parameter);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -565,6 +587,7 @@ VOID NTAPI ProcessItemsUpdatedCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -592,6 +615,7 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     }
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessStatsEventCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1095,6 +1119,7 @@ VOID EtLoadSettings(
     EtNpuFahrenheitEnabled = EtGpuFahrenheitEnabled;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI SettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

@@ -294,7 +294,7 @@ PPH_STRING PhpGetCurrentDesktopInfo(
 
     if (winstationName && desktopName)
     {
-        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeperatorString, &desktopName->sr);
+        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeparatorString, &desktopName->sr);
     }
 
     if (PhIsNullOrEmptyString(desktopInfo))

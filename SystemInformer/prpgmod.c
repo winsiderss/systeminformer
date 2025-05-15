@@ -531,7 +531,7 @@ PPH_LIST PhpGetProcessModuleTreeListLines(
     ULONG i;
     ULONG j;
 
-    // Use a local auto-pool to make memory mangement a bit less painful.
+    // Use a local auto-pool to make memory management a bit less painful.
     PhInitializeAutoPool(&autoPool);
 
     rows = NumberOfNodes + 1;

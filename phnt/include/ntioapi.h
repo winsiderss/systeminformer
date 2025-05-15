@@ -341,8 +341,8 @@ typedef enum _FILE_INFORMATION_CLASS
 /**
  * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
  * @li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
- * @li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
- * @li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
+ * @li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations performed on the file handle.
+ * @li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations performed on the file handle.
  * @remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
  * @sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_basic_information
  */

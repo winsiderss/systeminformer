@@ -1253,7 +1253,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ARCHITECTURE:
                 {
                     // We read the remote process memory for ImageMachine when possible. For
-                    // ARM64X/CHPE the OS will fix up the image haeder in the process, this
+                    // ARM64X/CHPE the OS will fix up the image header in the process, this
                     // should generally reflect the module machine correctly (unless we can't
                     // read the remote process address space).
                     switch (node->ModuleItem->ImageMachine)

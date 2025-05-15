@@ -94,9 +94,9 @@ NTSTATUS PhHvSocketOpenSystemControl(
             return STATUS_NO_MEMORY;
 
         PhInitFormatUCS(&format[0], &HvSocketSystemDevicePath);
-        PhInitFormatSR(&format[1], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[1], PhNtPathSeparatorString);
         PhInitFormatUCS(&format[2], &HvSocketAddressInfoName);
-        PhInitFormatSR(&format[3], PhNtPathSeperatorString);
+        PhInitFormatSR(&format[3], PhNtPathSeparatorString);
         PhInitFormatSR(&format[4], gidString->sr);
 
         if (!PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), &returnLength))

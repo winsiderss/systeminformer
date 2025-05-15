@@ -1376,10 +1376,10 @@ NTSTATUS PhHttpSetSecurity(
     return PhGetLastWinHttpErrorAsNtStatus();
 }
 
-NTSTATUS PhHttpSetProtocal(
+NTSTATUS PhHttpSetProtocol(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ BOOLEAN Session,
-    _In_ ULONG Protocal,
+    _In_ ULONG Protocol,
     _In_ ULONG Timeout
     )
 {
@@ -1387,24 +1387,24 @@ NTSTATUS PhHttpSetProtocal(
 
     if (Session)
     {
-        status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocal);
+        status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocol);
 
         if (!NT_SUCCESS(status))
             return status;
 
-        if (FlagOn(Protocal, PH_HTTP_PROTOCOL_FLAG_HTTP3))
+        if (FlagOn(Protocol, PH_HTTP_PROTOCOL_FLAG_HTTP3))
         {
             status = PhHttpSetOption(HttpContext->SessionHandle, WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT, Timeout);
         }
     }
     else
     {
-        status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocal);
+        status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL, Protocol);
 
         if (!NT_SUCCESS(status))
             return status;
         
-        if (FlagOn(Protocal, PH_HTTP_PROTOCOL_FLAG_HTTP3))
+        if (FlagOn(Protocol, PH_HTTP_PROTOCOL_FLAG_HTTP3))
         {
             status = PhHttpSetOption(HttpContext->RequestHandle, WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT, Timeout);
         }

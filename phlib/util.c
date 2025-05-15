@@ -7673,13 +7673,13 @@ PPH_STRING PhCreateCacheFile(
 
     cacheFilePath = PhConcatStringRef3(
         &cacheDirectory->sr,
-        &PhNtPathSeperatorString,
+        &PhNtPathSeparatorString,
         &randomAlphaStringRef
         );
 
     PhMoveReference(&cacheFilePath, PhConcatStringRef3(
         &cacheFilePath->sr,
-        &PhNtPathSeperatorString,
+        &PhNtPathSeparatorString,
         &FileName->sr
         ));
 

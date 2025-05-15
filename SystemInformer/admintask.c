@@ -64,7 +64,7 @@ HRESULT PhCreateAdminTask(
 
     taskNameString = PhStringRefToBSTR(TaskName);
     taskFileNameString = PhStringRefToBSTR(FileName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
     taskTimeLimitString = PhStringRefToBSTR(&taskTimeLimit);
 #if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
     taskArgumentsString = PhStringRefToBSTR(&taskArguments);
@@ -296,7 +296,7 @@ HRESULT PhDeleteAdminTask(
         goto CleanupExit;
 
     taskNameString = PhStringRefToBSTR(TaskName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
 
     status = ITaskService_Connect(
         taskService,
@@ -363,7 +363,7 @@ HRESULT PhRunAsAdminTask(
         goto CleanupExit;
 
     taskNameString = PhStringRefToBSTR(TaskName);
-    taskFolderString = PhStringRefToBSTR(&PhNtPathSeperatorString);
+    taskFolderString = PhStringRefToBSTR(&PhNtPathSeparatorString);
 
     status = ITaskService_Connect(
         taskService,

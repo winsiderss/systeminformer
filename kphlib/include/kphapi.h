@@ -310,7 +310,7 @@ typedef struct _KPH_ETWREG_BASIC_INFORMATION
     ULONG_PTR SessionId;
 } KPH_ETWREG_BASIC_INFORMATION, *PKPH_ETWREG_BASIC_INFORMATION;
 
-// ALPC ojbect information
+// ALPC object information
 
 typedef enum _KPH_ALPC_INFORMATION_CLASS
 {

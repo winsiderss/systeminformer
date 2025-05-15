@@ -492,7 +492,7 @@ typedef struct _BCD_OBJECT_DESCRIPTION
 
 typedef struct _BCD_OBJECT
 {
-    GUID Identifer;
+    GUID Identifier;
     PBCD_OBJECT_DESCRIPTION Description;
 } BCD_OBJECT, *PBCD_OBJECT;
 

@@ -350,7 +350,7 @@ VOID PhLookupSids(
                 {
                     translatedNames[i] = PhConcatStringRef3(
                         &domainName->sr,
-                        &PhNtPathSeperatorString,
+                        &PhNtPathSeparatorString,
                         &userName->sr
                         );
                 }

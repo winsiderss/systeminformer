@@ -584,10 +584,10 @@ PhHttpSetSecurity(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhHttpSetProtocal(
+PhHttpSetProtocol(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ BOOLEAN Session,
-    _In_ ULONG Protocal,
+    _In_ ULONG Protocol,
     _In_ ULONG Timeout
     );
 

@@ -636,7 +636,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
         if (!NT_SUCCESS(PhBcdOpenObject(
             StoreHandle,
-            &object[i].Identifer,
+            &object[i].Identifier,
             &objectHandle
             )))
         {
@@ -652,7 +652,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
             PPH_BCD_OBJECT_LIST entry;
 
             entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
-            memcpy(&entry->ObjectGuid, &object[i].Identifer, sizeof(GUID));
+            memcpy(&entry->ObjectGuid, &object[i].Identifier, sizeof(GUID));
             entry->ObjectName = objectDescription;
 
             PhAddItemList(ObjectList, entry);

@@ -837,7 +837,7 @@ NTSTATUS UpdateDownloadThread(
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
 
-    PhHttpSetProtocal(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000);
+    PhHttpSetProtocol(httpContext, TRUE, PH_HTTP_PROTOCOL_FLAG_HTTP2, 5000);
 
     if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(downloadHostPath), httpPort)))
         goto CleanupExit;

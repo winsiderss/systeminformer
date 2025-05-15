@@ -34,6 +34,7 @@ static HANDLE EtGpuNodesThreadHandle = NULL;
 static HWND EtGpuNodesWindowHandle = NULL;
 static PH_EVENT EtGpuNodesInitializedEvent = PH_EVENT_INIT;
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpGpuNodesDialogThreadStart(
     _In_ PVOID Parameter
     )
@@ -164,7 +165,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
             // Note: This dialog must be centered after all other graphs and controls have been added.
-            if (PhGetIntegerPairSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION).X != 0)
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GPU_NODES_WINDOW_POSITION, SETTING_NAME_GPU_NODES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, (HWND)lParam);

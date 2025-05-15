@@ -580,7 +580,7 @@ BOOLEAN PhUiRestartComputer(
 
             messageText = PhaFormatString(
                 L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
-                L"preforms a hard",
+                L"performs a hard",
                 L"restart");
 
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
@@ -830,7 +830,7 @@ BOOLEAN PhUiShutdownComputer(
 
             messageText = PhaFormatString(
                 L"This option %s %s in an disorderly manner and may cause corrupted files or instability in the system.",
-                L"preforms a hard",
+                L"performs a hard",
                 L"shut down");
 
             // Ignore the EnableWarnings preference and always show the warning prompt. (dmex)
@@ -2041,8 +2041,7 @@ BOOLEAN PhUiSuspendTreeProcess(
     )
 {
     NTSTATUS status;
-    BOOLEAN success = TRUE;
-    BOOLEAN result = FALSE;
+    BOOLEAN result;
     PVOID processes;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
@@ -2069,10 +2068,10 @@ BOOLEAN PhUiSuspendTreeProcess(
         return FALSE;
     }
 
-    PhpUiSuspendTreeProcess(WindowHandle, Process, processes, &success);
+    PhpUiSuspendTreeProcess(WindowHandle, Process, processes, &result);
     PhFree(processes);
 
-    return success;
+    return result;
 }
 
 BOOLEAN PhUiResumeProcesses(
@@ -2239,8 +2238,7 @@ BOOLEAN PhUiResumeTreeProcess(
     )
 {
     NTSTATUS status;
-    BOOLEAN success = TRUE;
-    BOOLEAN result = FALSE;
+    BOOLEAN result;
     PVOID processes;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
@@ -2248,7 +2246,7 @@ BOOLEAN PhUiResumeTreeProcess(
         result = PhShowConfirmMessage(
             WindowHandle,
             L"resume",
-            PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
+            PhConcatStringRefZ(&Process->ProcessName->sr, L" and its descendants")->Buffer,
             L"Resuming a process tree will cause the process and its descendants to be resumed.",
             FALSE
             );
@@ -2267,10 +2265,10 @@ BOOLEAN PhUiResumeTreeProcess(
         return FALSE;
     }
 
-    PhpUiResumeTreeProcess(WindowHandle, Process, processes, &success);
+    PhpUiResumeTreeProcess(WindowHandle, Process, processes, &result);
     PhFree(processes);
 
-    return success;
+    return result;
 }
 
 BOOLEAN PhUiFreezeTreeProcess(
@@ -2724,7 +2722,7 @@ BOOLEAN PhUiDebugProcess(
     static CONST PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
 #endif
     NTSTATUS status;
-    BOOLEAN cont = FALSE;
+    BOOLEAN result;
     PPH_STRING debuggerCommand = NULL;
     PH_STRING_BUILDER commandLineBuilder;
     HANDLE keyHandle;
@@ -2734,7 +2732,7 @@ BOOLEAN PhUiDebugProcess(
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
-        cont = PhShowConfirmMessage(
+        result = PhShowConfirmMessage(
             WindowHandle,
             L"debug",
             Process->ProcessName->Buffer,
@@ -2744,10 +2742,10 @@ BOOLEAN PhUiDebugProcess(
     }
     else
     {
-        cont = TRUE;
+        result = TRUE;
     }
 
-    if (!cont)
+    if (!result)
         return FALSE;
 
     status = PhOpenKey(
@@ -2764,13 +2762,15 @@ BOOLEAN PhUiDebugProcess(
 
     if (NT_SUCCESS(status))
     {
-        if (debugger = PH_AUTO(PhQueryRegistryStringZ(keyHandle, L"Debugger")))
+        if (debugger = PhQueryRegistryStringZ(keyHandle, L"Debugger"))
         {
             if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
                 PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
             {
                 debuggerCommand = PhCreateString2(&commandPart);
             }
+
+            PhDereferenceObject(debugger);
         }
 
         NtClose(keyHandle);
@@ -2790,7 +2790,7 @@ BOOLEAN PhUiDebugProcess(
 
     status = PhCreateProcessWin32(
         NULL,
-        commandLineBuilder.String->Buffer,
+        PhGetString(PhFinalStringBuilderString(&commandLineBuilder)),
         NULL,
         NULL,
         0,

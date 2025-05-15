@@ -1854,6 +1854,6 @@ VOID AddPerfPageToPropContext(
 {
     PhAddProcessPropPage(
         PropContext->PropContext,
-        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
+        PhCreateProcessPropPageContextEx(NtCurrentImageBase(), MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
         );
 }

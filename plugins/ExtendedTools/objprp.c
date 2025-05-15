@@ -86,7 +86,7 @@ PPH_STRING EtGetAccessString(
     );
 
 PPH_STRING EtGetAccessString2(
-    _In_ PPH_STRINGREF TypeName,
+    _In_ PCPH_STRINGREF TypeName,
     _In_ ACCESS_MASK Access
     );
 
@@ -823,7 +823,7 @@ VOID EtHandlePropertiesWindowInitialized(
 #define T_WINSTA_NETWORK_SERVICE L"-0x0-3e4$"
 
 PPH_STRING EtGetWindowStationType(
-    _In_ PPH_STRINGREF StationName
+    _In_ PCPH_STRINGREF StationName
     )
 {
     if (PhEqualStringRef2(StationName, T_WINSTA_INTERACTIVE, TRUE))
@@ -850,7 +850,7 @@ PPH_STRING EtGetWindowStationType(
 }
 
 ULONG EtSessionIdFromObjectName(
-    _In_ PPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name
     )
 {
     static PH_STRINGREF session = PH_STRINGREF_INIT(L"Session");
@@ -1069,7 +1069,7 @@ PPH_STRING EtGetAccessString(
 }
 
 PPH_STRING EtGetAccessString2(
-    _In_ PPH_STRINGREF TypeName,
+    _In_ PCPH_STRINGREF TypeName,
     _In_ ACCESS_MASK Access
     )
 {

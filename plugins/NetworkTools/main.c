@@ -69,7 +69,7 @@ VOID NTAPI ShowOptionsCallback(
 
 _Success_(return)
 static BOOLEAN ParseNetworkAddress(
-    _In_ PWSTR AddressString,
+    _In_ PCWSTR AddressString,
     _Out_ PPH_IP_ENDPOINT RemoteEndpoint
     )
 {
@@ -650,7 +650,7 @@ VOID UpdateNetworkNode(
                 PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, ULONG_MAX));
 
             if (!NetworkExtensionEnabled && !Extension->BytesIn && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statisitics are disabled"));
+                PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statistics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_BYTES_OUT:
@@ -659,7 +659,7 @@ VOID UpdateNetworkNode(
                 PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, ULONG_MAX));
 
             if (!NetworkExtensionEnabled && !Extension->BytesOut && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statisitics are disabled"));
+                PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statistics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_PACKETLOSS:
@@ -668,7 +668,7 @@ VOID UpdateNetworkNode(
                 PhMoveReference(&Extension->LossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
 
             if (!NetworkExtensionEnabled && !Extension->LossText && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->LossText, PhCreateString(L"Extended TCP statisitics are disabled"));
+                PhMoveReference(&Extension->LossText, PhCreateString(L"Extended TCP statistics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_JITTER:
@@ -677,7 +677,7 @@ VOID UpdateNetworkNode(
                 PhMoveReference(&Extension->JitterText, PhFormatUInt64(Extension->VarianceRtt, TRUE));
 
             if (!NetworkExtensionEnabled && !Extension->JitterText && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->JitterText, PhCreateString(L"Extended TCP statisitics are disabled"));
+                PhMoveReference(&Extension->JitterText, PhCreateString(L"Extended TCP statistics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_LATENCY:
@@ -686,7 +686,7 @@ VOID UpdateNetworkNode(
                 PhMoveReference(&Extension->LatencyText, PhFormatUInt64(Extension->SampleRtt, TRUE));
 
             if (!NetworkExtensionEnabled && !Extension->LatencyText && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->LatencyText, PhCreateString(L"Extended TCP statisitics are disabled"));
+                PhMoveReference(&Extension->LatencyText, PhCreateString(L"Extended TCP statistics are disabled"));
         }
         break;
     }
@@ -831,6 +831,7 @@ BOOLEAN NetworkToolsGeoIpFlushCache(
     return FALSE;
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID ProcessesUpdatedCallback(
     _In_ PVOID Parameter,
     _In_opt_ PVOID Context

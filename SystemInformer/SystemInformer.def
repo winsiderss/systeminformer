@@ -1178,7 +1178,7 @@ EXPORTS
     PhHttpSetCredentials
     PhHttpSetFeature
     PhHttpSetSecurity
-    PhHttpSetProtocal
+    PhHttpSetProtocol
     PhHttpWriteData
     PhIpv4AddressToString
     PhIpv6AddressToString

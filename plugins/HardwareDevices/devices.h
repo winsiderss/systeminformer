@@ -1047,7 +1047,7 @@ typedef struct _SMART_ATTRIBUTES
     UINT RawValue;
 
     // Pre-fail/Advisory bit
-    // This bit is applicable only when the value of this attribute is less than or equal to its threshhold.
+    // This bit is applicable only when the value of this attribute is less than or equal to its threshold.
     // 0 : Advisory: The device has exceeded its intended design life period.
     // 1 : Pre-failure notification : Failure is predicted within 24 hours.
     BOOLEAN Advisory;

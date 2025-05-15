@@ -5187,7 +5187,7 @@ NTSTATUS PhCreateDirectory(
         {
             directoryName = PhConcatStringRef3(
                 &directoryPath->sr,
-                &PhNtPathSeperatorString,
+                &PhNtPathSeparatorString,
                 &directoryPart
                 );
 
@@ -5258,7 +5258,7 @@ NTSTATUS PhCreateDirectoryWin32(
             }
             else
             {
-                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &directoryPart);
+                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeparatorString, &directoryPart);
 
                 // Check if the directory already exists. (dmex)
 
