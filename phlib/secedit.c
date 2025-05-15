@@ -255,7 +255,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->RefCount = 1;
 
     info->WindowHandle = WindowHandle;
-    info->ObjectNameString = ObjectName ? PhCreateString(ObjectName) : PhReferenceEmptyString();
+    info->ObjectNameString = ObjectName ? PhCreateString(ObjectName) : NULL;
     info->ObjectTypeString = PhCreateString(ObjectType);
     info->ObjectType = PhSecurityObjectType(info->ObjectTypeString);
     info->OpenObject = OpenObject;
@@ -293,6 +293,12 @@ ISecurityInformation *PhSecurityInformation_Create(
             memcpy(&info->GenericMapping, &genericMapping, sizeof(genericMapping));
             info->HaveGenericMapping = TRUE;
         }
+    }
+
+    if (PhIsNullOrEmptyString(info->ObjectNameString))
+    {
+        // Note: The ACUI dialog doesn't allow empty strings for the object name. (dmex)  
+        PhMoveReference(&info->ObjectNameString, PhCreateString(L"Unknown"));
     }
 
     return (ISecurityInformation *)info;
