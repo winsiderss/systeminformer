@@ -4689,11 +4689,11 @@ NTSTATUS PhCreateProcessWin32Ex(
 
         // Escape the commandline (or uncomment CommandLineToArgvW to clear the filename when it contains \\program files\\) (dmex)
         {
-            static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
             static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
             PPH_STRING escaped;
 
-            escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
+            escaped = PhConcatStringRef3(&separator, &commandLineFileName, &separator);
 
             if (commandLineArguments.Length)
             {
@@ -7536,7 +7536,7 @@ PPH_STRING PhCommandLineQuoteSpaces(
     _In_ PCPH_STRINGREF CommandLine
     )
 {
-    static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+    static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
     static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
     PH_STRINGREF commandLineFileName;
     PH_STRINGREF commandLineArguments;
@@ -7546,13 +7546,13 @@ PPH_STRING PhCommandLineQuoteSpaces(
     if (!PhParseCommandLineFuzzy(CommandLine, &commandLineFileName, &commandLineArguments, NULL))
         return NULL;
 
-    fileNameEscaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
+    fileNameEscaped = PhConcatStringRef3(&separator, &commandLineFileName, &separator);
 
     if (commandLineArguments.Length)
     {
-        argumentsEscaped = PhConcatStringRef3(&seperator, &commandLineArguments, &seperator);
+        argumentsEscaped = PhConcatStringRef3(&separator, &commandLineArguments, &separator);
         PhMoveReference(&argumentsEscaped, PhConcatStringRef3(&fileNameEscaped->sr, &space, &argumentsEscaped->sr));
-        PhMoveReference(&fileNameEscaped, PhConcatStringRef3(&seperator, &argumentsEscaped->sr, &seperator));
+        PhMoveReference(&fileNameEscaped, PhConcatStringRef3(&separator, &argumentsEscaped->sr, &separator));
     }
 
     return fileNameEscaped;

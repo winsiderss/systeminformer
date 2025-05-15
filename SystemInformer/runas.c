@@ -2294,16 +2294,16 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (fileName)
     {
-        static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\"");
         static CONST PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
 
         // Escape the filename.
-        PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+        PhMoveReference(&fileName, PhConcatStringRef3(&separator, &fileName->sr, &separator));
 
         if (fileArgs)
         {
             // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&separator, &fileArgs->sr, &separator));
 
             // Create the escaped execute string.
             executeString = PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr);

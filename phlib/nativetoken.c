@@ -820,7 +820,7 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
     )
 {
     static CONST PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    static CONST PH_STRINGREF seperator = PH_STRINGREF_INIT(L"!");
+    static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"!");
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING applicationUserModelId = NULL;
 
@@ -838,7 +838,7 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
 
             applicationUserModelId = PhConcatStringRef3(
                 &packageFamilyName->sr,
-                &seperator,
+                &separator,
                 &relativeIdName->sr
                 );
 

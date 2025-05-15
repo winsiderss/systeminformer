@@ -2104,7 +2104,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumProcessModulesRundown(
-    _In_opt_ ULONG ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
@@ -4564,7 +4564,7 @@ typedef struct _FILTER_MESSAGE_HEADER
     //  OUT
     //
     //  Unique Id for this message.  This will be set when the kernel message
-    //  satifies this FilterGetMessage or FilterInstanceGetMessage request.
+    //  satisfies this FilterGetMessage or FilterInstanceGetMessage request.
     //  If replying to this message, this is the MessageId that should be used.
     //
 

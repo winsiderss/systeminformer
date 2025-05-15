@@ -24,7 +24,7 @@
 */
 typedef struct _PH_IMAGE_COHERENCY_CONTEXT
 {
-    PH_IMAGE_COHERENCY_SCAN_TYPE Type;        /**< Type of scan to preform */
+    PH_IMAGE_COHERENCY_SCAN_TYPE Type;        /**< Type of scan to perform */
 
     SIZE_T CoherentBytes;                     /**< Updated during inspection, coherent bytes */
     SIZE_T TotalBytes;                        /**< Updated during inspection, total bytes analyzed */

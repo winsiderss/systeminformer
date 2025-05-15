@@ -40,9 +40,9 @@ VOID SetupShowBrowseDialog(
 
     if (!PhIsNullOrEmptyString(Context->SetupInstallPath))
     {
-        if (!PhEndsWithStringRef(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
+        if (!PhEndsWithStringRef(&Context->SetupInstallPath->sr, &PhNtPathSeparatorString, TRUE))
         {
-            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRef2(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString));
+            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRef2(&Context->SetupInstallPath->sr, &PhNtPathSeparatorString));
         }
     }
 }

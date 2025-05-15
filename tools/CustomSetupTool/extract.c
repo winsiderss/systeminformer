@@ -292,7 +292,7 @@ NTSTATUS CALLBACK SetupExtractBuild(
 
         extractPath = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &fileName->sr
             );
 

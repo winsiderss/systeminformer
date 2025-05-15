@@ -181,7 +181,7 @@ typedef struct _WINSTATIONCREATE
 typedef struct _WINSTACONFIGWIRE
 {
     WCHAR Comment[61]; // The WinStation descriptive comment.
-    CHAR OEMId[4]; // Value identifying the OEM implementor of the TermService Listener to which this session (WinStation) belongs. This can be any value defined by the implementer (OEM) of the listener.
+    CHAR OEMId[4]; // Value identifying the OEM implementer of the TermService Listener to which this session (WinStation) belongs. This can be any value defined by the implementer (OEM) of the listener.
     VARDATA_WIRE UserConfig; // VARDATA_WIRE structure defining the size and offset of the variable-length user configuration data succeeding it.
     VARDATA_WIRE NewFields; // VARDATA_WIRE structure defining the size and offset of the variable-length new data succeeding it. This field is not used and is a placeholder for any new data, if and when added.
 } WINSTACONFIGWIRE, *PWINSTACONFIGWIRE;

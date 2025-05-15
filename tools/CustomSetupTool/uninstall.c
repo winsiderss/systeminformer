@@ -53,13 +53,13 @@ NTSTATUS CALLBACK SetupUninstallBuild(
 
         ksiFile = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &ksiFileName
             );
 
         ksiOldFile = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
-            &PhNtPathSeperatorString,
+            &PhNtPathSeparatorString,
             &ksiOldFileName
             );
 

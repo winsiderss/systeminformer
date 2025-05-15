@@ -14,7 +14,7 @@
 
 //
 // This library is intended to be an extension of core OS functionality which
-// enables drivers to preform operations within the system that would otherwise
+// enables drivers to perform operations within the system that would otherwise
 // be dangerous or impossible.
 //
 
