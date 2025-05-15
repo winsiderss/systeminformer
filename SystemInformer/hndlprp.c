@@ -359,7 +359,7 @@ NTSTATUS PhpShowHandlePropertiesThread(
             objectName,
             PhGetStringOrEmpty(handleContext->HandleItem->TypeName),
             PhpDuplicateHandleFromProcess,
-            NULL,
+            PhpDuplicateHandleCloseProcess,
             &context
             );
     }
