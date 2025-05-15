@@ -4287,11 +4287,11 @@ PPH_STRING PhGetTemporaryDirectory(
 
         if (AppendPath)
         {
-            systemPath = PhConcatStringRef4(&systemRoot, &PhNtPathSeperatorString, &systemTemp, AppendPath);
+            systemPath = PhConcatStringRef4(&systemRoot, &PhNtPathSeparatorString, &systemTemp, AppendPath);
         }
         else
         {
-            systemPath = PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
+            systemPath = PhConcatStringRef3(&systemRoot, &PhNtPathSeparatorString, &systemTemp);
         }
 
         if (PhDoesDirectoryExistWin32(PhGetString(systemPath))) // Required for Windows 7/8 (dmex)
@@ -7630,7 +7630,7 @@ CleanupExit:
 //    {
 //        cachefileName = PhConcatStringRef3(
 //            &tempFileName->sr,
-//            &PhNtPathSeperatorString,
+//            &PhNtPathSeparatorString,
 //            &FileName->sr
 //            );
 //
