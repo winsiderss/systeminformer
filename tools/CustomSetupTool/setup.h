@@ -153,6 +153,10 @@ VOID ShowUpdateErrorPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
+LONG SetupShowMessagePromptForLegacyVersion(
+    VOID
+    );
+
 // util.c
 
 PPH_STRING SetupFindInstallDirectory(
@@ -234,6 +238,10 @@ BOOLEAN CheckApplicationInstallPathLegacy(
     );
 
 PPH_STRING GetApplicationInstallPath(
+    VOID
+    );
+
+BOOLEAN SetupLegacySetupInstalled(
     VOID
     );
 

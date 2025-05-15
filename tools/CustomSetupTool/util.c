@@ -1107,107 +1107,32 @@ PPH_STRING GetApplicationInstallPath(
 
     return installPath;
 }
-//
-//_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
-//static BOOLEAN NTAPI PhpPreviousInstancesCallback(
-//    _In_ HANDLE RootDirectory,
-//    _In_ PPH_STRINGREF Name,
-//    _In_ PPH_STRINGREF TypeName,
-//    _In_opt_ PVOID Context
-//    )
-//{
-//    HANDLE objectHandle;
-//    BOOLEAN setupMutant = FALSE;
-//    UNICODE_STRING objectNameUs;
-//    OBJECT_ATTRIBUTES objectAttributes;
-//    MUTANT_OWNER_INFORMATION objectInfo;
-//
-//    if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
-//        !(setupMutant = PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE)) &&
-//        !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
-//    {
-//        return TRUE;
-//    }
-//
-//    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
-//        return TRUE;
-//
-//    InitializeObjectAttributes(
-//        &objectAttributes,
-//        &objectNameUs,
-//        OBJ_CASE_INSENSITIVE,
-//        RootDirectory,
-//        NULL
-//        );
-//
-//    if (!NT_SUCCESS(NtOpenMutant(
-//        &objectHandle,
-//        MUTANT_QUERY_STATE,
-//        &objectAttributes
-//        )))
-//    {
-//        return TRUE;
-//    }
-//
-//    if (NT_SUCCESS(PhGetMutantOwnerInformation(
-//        objectHandle,
-//        &objectInfo
-//        )))
-//    {
-//        HWND hwnd;
-//        HANDLE processHandle = NULL;
-//        PROCESS_BASIC_INFORMATION processInfo;
-//
-//        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
-//            goto CleanupExit;
-//
-//        // Do not terminate the setup process if it's the parent of this process. This scenario
-//        // happens when the setup process restarts itself for elevation. The parent process will
-//        // return the same exit code as this setup process instance, terminating breaks that.
-//        if (setupMutant &&
-//            NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &processInfo)) &&
-//            processInfo.InheritedFromUniqueProcessId == objectInfo.ClientId.UniqueProcess)
-//            goto CleanupExit;
-//
-//        PhOpenProcessClientId(
-//            &processHandle,
-//            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
-//            &objectInfo.ClientId
-//            );
-//
-//        hwnd = PhGetProcessMainWindowEx(
-//            objectInfo.ClientId.UniqueProcess,
-//            processHandle,
-//            FALSE
-//            );
-//
-//        if (hwnd)
-//        {
-//            SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
-//        }
-//
-//        if (processHandle)
-//        {
-//            NTSTATUS status;
-//
-//            status = NtTerminateProcess(processHandle, 1);
-//
-//            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
-//            {
-//                NtTerminateProcess(processHandle, DBG_TERMINATE_PROCESS);
-//            }
-//
-//            PhWaitForSingleObject(processHandle, 30 * 1000);
-//        }
-//
-//    CleanupExit:
-//        if (processHandle) NtClose(processHandle);
-//    }
-//
-//    NtClose(objectHandle);
-//
-//    return TRUE;
-//}
+
+BOOLEAN SetupLegacySetupInstalled(
+    VOID
+    )
+{
+    HANDLE keyHandle = NULL;
+    PPH_STRING keyName;
+
+    keyName = PhConcatStrings(7, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\", L"Process", L"_", L"Hacker", L"2", L"_", L"is1");
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        PhDereferenceObject(keyName);
+        return TRUE;
+    }
+
+    PhDereferenceObject(keyName);
+    return FALSE;
+}
 
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN CALLBACK SetupCheckDirectoryCallback(

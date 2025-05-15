@@ -160,6 +160,11 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
                 if (PhGetOwnTokenAttributes().Elevated)
                 {
+                    if (!context->SetupIsLegacyUpdate && SetupLegacySetupInstalled())
+                    {
+                        SetupShowMessagePromptForLegacyVersion();
+                    }
+
                     ShowConfigPageDialog(context);
                     return S_FALSE;
                 }

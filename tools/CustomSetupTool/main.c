@@ -134,9 +134,9 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
             SendMessage(context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)context->IconSmallHandle);
             SendMessage(context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)context->IconLargeHandle);
 
-            context->TaskDialogWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            context->TaskDialogWndProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)SetupTaskDialogSubclassProc);
+            PhSetWindowProcedure(hwndDlg, SetupTaskDialogSubclassProc);
 
             switch (context->SetupMode)
             {
@@ -158,11 +158,11 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     return S_OK;
 }
 
-INT SetupShowMessagePromptForLegacyVersion(
+LONG SetupShowMessagePromptForLegacyVersion(
     VOID
     )
 {
-    INT result;
+    LONG result;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
@@ -198,7 +198,7 @@ INT SetupShowMessagePromptForLegacyVersion(
     }
     else
     {
-        return -1;
+        return INT_MAX;
     }
 }
 
@@ -410,9 +410,9 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
                 PhSwapReference(&context->SetupInstallPath, directory);
                 PhSwapReference(&context->SetupServiceName, serviceName);
 
-                if (!PhEndsWithStringRef(&context->SetupInstallPath->sr, &PhNtPathSeperatorString, FALSE))
+                if (!PhEndsWithStringRef(&context->SetupInstallPath->sr, &PhNtPathSeparatorString, FALSE))
                 {
-                    PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeperatorString));
+                    PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeparatorString));
                 }
 
                 // Check the path for the legacy directory name.
@@ -502,8 +502,7 @@ INT WINAPI wWinMain(
 
     if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup", Instance)))
         return EXIT_FAILURE;
-
-    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+    if (!HR_SUCCESS(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
 
     context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
