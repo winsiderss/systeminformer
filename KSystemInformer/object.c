@@ -335,6 +335,7 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     POBJECT_HEADER objectHeader;
     POBJECT_TYPE objectType;
     PKPH_PROCESS_HANDLE entryInBuffer;
+    KPH_MEMORY_REGION region;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -378,12 +379,13 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     // potential overflow (if the process has an extremely large number of
     // handles, the buffer pointer may wrap).
     //
-    if ((ULONG_PTR)entryInBuffer >= (ULONG_PTR)context->Buffer &&
-        (ULONG_PTR)entryInBuffer + sizeof(KPH_PROCESS_HANDLE) <= (ULONG_PTR)context->BufferLimit)
+    region.Start = entryInBuffer;
+    region.End = Add2Ptr(entryInBuffer, sizeof(KPH_PROCESS_HANDLE));
+    if (KphIsValidMemoryRegion(&region, context->Buffer, context->BufferLimit))
     {
         context->Status = KphCopyToMode(entryInBuffer,
                                         &handleInfo,
-                                        sizeof(handleInfo),
+                                        sizeof(KPH_PROCESS_HANDLE),
                                         context->AccessMode);
         if (!NT_SUCCESS(context->Status))
         {
@@ -1003,10 +1005,10 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(OBJECT_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(basicInfo);
+                returnLength = sizeof(OBJECT_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -1014,18 +1016,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryObject(Handle,
                                    ObjectBasicInformation,
                                    &basicInfo,
-                                   sizeof(basicInfo),
+                                   sizeof(OBJECT_BASIC_INFORMATION),
                                    NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &basicInfo,
-                                       sizeof(basicInfo),
+                                       sizeof(OBJECT_BASIC_INFORMATION),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(basicInfo);
+                    returnLength = sizeof(OBJECT_BASIC_INFORMATION);
                 }
             }
 
@@ -1163,10 +1165,10 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(handleFlagInfo)))
+                (ObjectInformationLength < sizeof(OBJECT_HANDLE_FLAG_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(handleFlagInfo);
+                returnLength = sizeof(OBJECT_HANDLE_FLAG_INFORMATION);
                 goto Exit;
             }
 
@@ -1174,18 +1176,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryObject(Handle,
                                    ObjectHandleFlagInformation,
                                    &handleFlagInfo,
-                                   sizeof(handleFlagInfo),
+                                   sizeof(OBJECT_HANDLE_FLAG_INFORMATION),
                                    NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &handleFlagInfo,
-                                       sizeof(handleFlagInfo),
+                                       sizeof(OBJECT_HANDLE_FLAG_INFORMATION),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(handleFlagInfo);
+                    returnLength = sizeof(OBJECT_HANDLE_FLAG_INFORMATION);
                 }
             }
 
@@ -1196,10 +1198,10 @@ NTSTATUS KphQueryInformationObject(
             PROCESS_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(PROCESS_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(basicInfo);
+                returnLength = sizeof(PROCESS_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -1207,18 +1209,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryInformationProcess(Handle,
                                                ProcessBasicInformation,
                                                &basicInfo,
-                                               sizeof(basicInfo),
+                                               sizeof(PROCESS_BASIC_INFORMATION),
                                                NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &basicInfo,
-                                       sizeof(basicInfo),
+                                       sizeof(PROCESS_BASIC_INFORMATION),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(basicInfo);
+                    returnLength = sizeof(PROCESS_BASIC_INFORMATION);
                 }
             }
 
@@ -1229,10 +1231,10 @@ NTSTATUS KphQueryInformationObject(
             THREAD_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(THREAD_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(basicInfo);
+                returnLength = sizeof(THREAD_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -1240,18 +1242,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryInformationThread(Handle,
                                               ThreadBasicInformation,
                                               &basicInfo,
-                                              sizeof(basicInfo),
+                                              sizeof(THREAD_BASIC_INFORMATION),
                                               NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &basicInfo,
-                                       sizeof(basicInfo),
+                                       sizeof(THREAD_BASIC_INFORMATION),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(basicInfo);
+                    returnLength = sizeof(THREAD_BASIC_INFORMATION);
                 }
             }
 
@@ -1275,10 +1277,10 @@ NTSTATUS KphQueryInformationObject(
             }
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(KPH_ETWREG_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(basicInfo);
+                returnLength = sizeof(KPH_ETWREG_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -1340,11 +1342,11 @@ NTSTATUS KphQueryInformationObject(
 
             status = KphCopyToMode(ObjectInformation,
                                    &basicInfo,
-                                   sizeof(basicInfo),
+                                   sizeof(KPH_ETWREG_BASIC_INFORMATION),
                                    AccessMode);
             if (NT_SUCCESS(status))
             {
-                returnLength = sizeof(basicInfo);
+                returnLength = sizeof(KPH_ETWREG_BASIC_INFORMATION);
             }
 
             break;
@@ -1359,10 +1361,10 @@ NTSTATUS KphQueryInformationObject(
             KIRQL irql;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(fileInfo)))
+                (ObjectInformationLength < sizeof(KPH_FILE_OBJECT_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(fileInfo);
+                returnLength = sizeof(KPH_FILE_OBJECT_INFORMATION);
                 goto Exit;
             }
 
@@ -1389,7 +1391,7 @@ NTSTATUS KphQueryInformationObject(
             attachedDevice = IoGetAttachedDevice(fileObject->DeviceObject);
             relatedDevice = IoGetRelatedDeviceObject(fileObject);
 
-            RtlZeroMemory(&fileInfo, sizeof(fileInfo));
+            RtlZeroMemory(&fileInfo, sizeof(KPH_FILE_OBJECT_INFORMATION));
 
             fileInfo.LockOperation = fileObject->LockOperation;
             fileInfo.DeletePending = fileObject->DeletePending;
@@ -1494,11 +1496,11 @@ NTSTATUS KphQueryInformationObject(
 
             status = KphCopyToMode(ObjectInformation,
                                    &fileInfo,
-                                   sizeof(fileInfo),
+                                   sizeof(KPH_FILE_OBJECT_INFORMATION),
                                    AccessMode);
             if (NT_SUCCESS(status))
             {
-                returnLength = sizeof(fileInfo);
+                returnLength = sizeof(KPH_FILE_OBJECT_INFORMATION);
             }
 
             break;
@@ -1568,10 +1570,10 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(times)))
+                (ObjectInformationLength < sizeof(KERNEL_USER_TIMES)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(times);
+                returnLength = sizeof(KERNEL_USER_TIMES);
                 goto Exit;
             }
 
@@ -1579,18 +1581,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryInformationProcess(Handle,
                                                ProcessTimes,
                                                &times,
-                                               sizeof(times),
+                                               sizeof(KERNEL_USER_TIMES),
                                                NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &times,
-                                       sizeof(times),
+                                       sizeof(KERNEL_USER_TIMES),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(times);
+                    returnLength = sizeof(KERNEL_USER_TIMES);
                 }
             }
 
@@ -1601,10 +1603,10 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(times)))
+                (ObjectInformationLength < sizeof(KERNEL_USER_TIMES)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(times);
+                returnLength = sizeof(KERNEL_USER_TIMES);
                 goto Exit;
             }
 
@@ -1612,18 +1614,18 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryInformationThread(Handle,
                                               ThreadTimes,
                                               &times,
-                                              sizeof(times),
+                                              sizeof(KERNEL_USER_TIMES),
                                               NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
                 status = KphCopyToMode(ObjectInformation,
                                        &times,
-                                       sizeof(times),
+                                       sizeof(KERNEL_USER_TIMES),
                                        AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(times);
+                    returnLength = sizeof(KERNEL_USER_TIMES);
                 }
             }
 
@@ -1721,11 +1723,10 @@ NTSTATUS KphQueryInformationObject(
         {
             ULONG threadIsTerminated;
 
-            if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(threadIsTerminated)))
+            if (!ObjectInformation || (ObjectInformationLength < sizeof(ULONG)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(threadIsTerminated);
+                returnLength = sizeof(ULONG);
                 goto Exit;
             }
 
@@ -1733,7 +1734,7 @@ NTSTATUS KphQueryInformationObject(
             status = ZwQueryInformationThread(Handle,
                                               ThreadIsTerminated,
                                               &threadIsTerminated,
-                                              sizeof(threadIsTerminated),
+                                              sizeof(ULONG),
                                               NULL);
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
@@ -1743,7 +1744,7 @@ NTSTATUS KphQueryInformationObject(
                                              AccessMode);
                 if (NT_SUCCESS(status))
                 {
-                    returnLength = sizeof(threadIsTerminated);
+                    returnLength = sizeof(ULONG);
                 }
             }
 
@@ -1987,6 +1988,8 @@ NTSTATUS KphQueryInformationObject(
             }
 
             attributesInfo = ObjectInformation;
+
+            C_ASSERT(sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION) == sizeof(UCHAR));
 
             status = KphWriteUCharToMode(&attributesInfo->Flags,
                                          OBJECT_TO_OBJECT_HEADER(object)->Flags,
