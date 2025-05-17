@@ -691,7 +691,7 @@ NTSTATUS KphQueryInformationProcess(
             status = KphQueryInformationProcessContext(process,
                                                        KphProcessContextWSLProcessId,
                                                        &processId,
-                                                       sizeof(processId),
+                                                       sizeof(ULONG),
                                                        NULL);
             if (!NT_SUCCESS(status))
             {
@@ -1069,14 +1069,14 @@ NTSTATUS KphSetInformationProcess(
         {
             QUOTA_LIMITS_EX quotaLimits;
 
-            RtlZeroMemory(&quotaLimits, sizeof(quotaLimits));
+            RtlZeroMemory(&quotaLimits, sizeof(QUOTA_LIMITS_EX));
             quotaLimits.MinimumWorkingSetSize = SIZE_T_MAX;
             quotaLimits.MaximumWorkingSetSize = SIZE_T_MAX;
 
             status = ZwSetInformationProcess(processHandle,
                                              ProcessQuotaLimits,
                                              &quotaLimits,
-                                             sizeof(quotaLimits));
+                                             sizeof(QUOTA_LIMITS_EX));
             //
             // Bypass generic call to exit immediately.
             //

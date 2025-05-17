@@ -2112,7 +2112,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     status = ZwQueryInformationProcess(processHandle,
                                        ProcessMitigationPolicy,
                                        &policyInfo,
-                                       sizeof(policyInfo),
+                                       sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
                                        NULL);
     if (!NT_SUCCESS(status))
     {

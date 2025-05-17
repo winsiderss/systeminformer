@@ -685,10 +685,11 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
+            if (!AlpcInformation ||
+                (AlpcInformationLength < sizeof(KPH_ALPC_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(info);
+                returnLength = sizeof(KPH_ALPC_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -704,11 +705,11 @@ NTSTATUS KphAlpcQueryInformation(
 
             status = KphCopyToMode(AlpcInformation,
                                    &info,
-                                   sizeof(info),
+                                   sizeof(KPH_ALPC_BASIC_INFORMATION),
                                    AccessMode);
             if (NT_SUCCESS(status))
             {
-                returnLength = sizeof(info);
+                returnLength = sizeof(KPH_ALPC_BASIC_INFORMATION);
             }
 
             break;
@@ -724,10 +725,11 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
+            if (!AlpcInformation ||
+                (AlpcInformationLength < sizeof(KPH_ALPC_COMMUNICATION_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(info);
+                returnLength = sizeof(KPH_ALPC_COMMUNICATION_INFORMATION);
                 goto Exit;
             }
 
@@ -743,11 +745,11 @@ NTSTATUS KphAlpcQueryInformation(
 
             status = KphCopyToMode(AlpcInformation,
                                    &info,
-                                   sizeof(info),
+                                   sizeof(KPH_ALPC_COMMUNICATION_INFORMATION),
                                    AccessMode);
             if (NT_SUCCESS(status))
             {
-                returnLength = sizeof(info);
+                returnLength = sizeof(KPH_ALPC_COMMUNICATION_INFORMATION);
             }
 
             break;
