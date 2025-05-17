@@ -630,12 +630,12 @@ NTSTATUS KphInitializeStackBackTrace(
                         &typeInfo,
                         &KphpStackBackTraceType);
 
-    RtlZeroMemory(&info, sizeof(info));
+    RtlZeroMemory(&info, sizeof(SYSTEM_SINGLE_MODULE_INFORMATION));
 
     info.TargetModuleAddress = (PVOID)KphInitializeStackBackTrace;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
-                                      sizeof(info),
+                                      sizeof(SYSTEM_SINGLE_MODULE_INFORMATION),
                                       NULL);
     if (!NT_SUCCESS(status))
     {
@@ -650,12 +650,12 @@ NTSTATUS KphInitializeStackBackTrace(
     KphpSelfImageBase = info.ExInfo.BaseInfo.ImageBase;
     KphpSelfImageEnd = Add2Ptr(KphpSelfImageBase, info.ExInfo.BaseInfo.ImageSize);
 
-    RtlZeroMemory(&info, sizeof(info));
+    RtlZeroMemory(&info, sizeof(SYSTEM_SINGLE_MODULE_INFORMATION));
 
     info.TargetModuleAddress = (PVOID)KsiInitializeApc;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
-                                      sizeof(info),
+                                      sizeof(SYSTEM_SINGLE_MODULE_INFORMATION),
                                       NULL);
     if (!NT_SUCCESS(status))
     {
