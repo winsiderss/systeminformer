@@ -619,6 +619,7 @@ NTSTATUS KphQueryVirtualMemory(
                 (MemoryInformationLength < sizeof(HANDLE)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(HANDLE);
                 goto Exit;
             }
 
@@ -760,6 +761,7 @@ NTSTATUS KphQueryVirtualMemory(
                 (MemoryInformationLength) < sizeof(KPH_MEMORY_DATA_SECTION))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
                 goto Exit;
             }
 
@@ -783,7 +785,7 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            RtlZeroMemory(&tls, sizeof(tls));
+            RtlZeroMemory(&tls, sizeof(KPH_VM_TLS_CREATE_DATA_SECTION));
 
             tls.AccessMode = AccessMode;
 
@@ -861,6 +863,7 @@ NTSTATUS KphQueryVirtualMemory(
                 (MemoryInformationLength) < sizeof(KPH_MEMORY_MAPPED_INFORMATION))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_MEMORY_MAPPED_INFORMATION);
                 goto Exit;
             }
 
@@ -871,7 +874,7 @@ NTSTATUS KphQueryVirtualMemory(
                 goto Exit;
             }
 
-            RtlZeroMemory(&tls, sizeof(tls));
+            RtlZeroMemory(&tls, sizeof(KPH_MEMORY_MAPPED_INFORMATION));
 
             thread->VmTlsMappedInformation = &tls;
 

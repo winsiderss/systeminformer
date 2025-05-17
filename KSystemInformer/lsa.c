@@ -108,7 +108,7 @@ NTSTATUS KphpGetLsassProcessId(
                                      portHandle,
                                      KphAlpcCommunicationInformation,
                                      &info,
-                                     sizeof(info),
+                                     sizeof(KPH_ALPC_COMMUNICATION_INFORMATION),
                                      NULL,
                                      KernelMode);
     if (!NT_SUCCESS(status))
