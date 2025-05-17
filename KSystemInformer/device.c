@@ -55,10 +55,10 @@ NTSTATUS KphOpenDevice(
         __try
         {
             ProbeOutputType(DeviceHandle, HANDLE);
-            ProbeInputType(ObjectAttributes, OBJECT_ATTRIBUTES);
-            RtlCopyVolatileMemory(&capturedAttributes,
-                                  ObjectAttributes,
-                                  sizeof(OBJECT_ATTRIBUTES));
+
+            RtlCopyFromUser(&capturedAttributes,
+                            ObjectAttributes,
+                            sizeof(OBJECT_ATTRIBUTES));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -153,22 +153,7 @@ NTSTATUS KphOpenDevice(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *DeviceHandle = deviceHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(deviceHandle, UserMode);
-        }
-    }
-    else
-    {
-        *DeviceHandle = deviceHandle;
-    }
+    status = KphWriteHandleToMode(DeviceHandle, deviceHandle, AccessMode);
 
 Exit:
 
@@ -263,22 +248,7 @@ NTSTATUS KphOpenDeviceDriver(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *DriverHandle = driverHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(driverHandle, UserMode);
-        }
-    }
-    else
-    {
-        *DriverHandle = driverHandle;
-    }
+    status = KphWriteHandleToMode(DriverHandle, driverHandle, AccessMode);
 
 Exit:
 
@@ -369,22 +339,9 @@ NTSTATUS KphOpenDeviceBaseDevice(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *BaseDeviceHandle = baseDeviceHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(baseDeviceHandle, UserMode);
-        }
-    }
-    else
-    {
-        *BaseDeviceHandle = baseDeviceHandle;
-    }
+    status = KphWriteHandleToMode(BaseDeviceHandle,
+                                  baseDeviceHandle,
+                                  AccessMode);
 
 Exit:
 

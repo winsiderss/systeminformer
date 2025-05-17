@@ -1147,7 +1147,7 @@ NTSTATUS PhpGetBestObjectName(
 
         if (PhIsNullOrEmptyString(bestObjectName) && (KsiLevel() >= KphLevelMed))
         {
-            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+            HANDLE fileObjectDriver;
             PPH_STRING driverName;
 
             status = KphQueryInformationObject(
@@ -1155,13 +1155,13 @@ NTSTATUS PhpGetBestObjectName(
                 Handle,
                 KphObjectFileObjectDriver,
                 &fileObjectDriver,
-                sizeof(KPH_FILE_OBJECT_DRIVER),
+                sizeof(HANDLE),
                 NULL
                 );
 
-            if (NT_SUCCESS(status) && fileObjectDriver.DriverHandle)
+            if (NT_SUCCESS(status) && fileObjectDriver)
             {
-                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver, &driverName)))
                 {
                     static CONST PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Unnamed file: ");
 
@@ -1169,7 +1169,7 @@ NTSTATUS PhpGetBestObjectName(
                     PhDereferenceObject(driverName);
                 }
 
-                PhQueryCloseHandle(fileObjectDriver.DriverHandle);
+                PhQueryCloseHandle(fileObjectDriver);
             }
         }
     }

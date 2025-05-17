@@ -250,19 +250,19 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 
 #define ProbeOutputType(pointer, type)                                         \
 _Pragma("warning(suppress : 6001 4116)")                                       \
-ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
+ProbeForRead(pointer, sizeof(type), 1)
 
 #define ProbeInputType(pointer, type)                                          \
 _Pragma("warning(suppress : 6001 4116)")                                       \
-ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
+ProbeForRead(pointer, sizeof(type), 1)
 
 #define ProbeOutputBytes(pointer, size)                                        \
 _Pragma("warning(suppress : 6001 4116)")                                       \
-ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
+ProbeForRead(pointer, size, 1)
 
 #define ProbeInputBytes(pointer, size)                                         \
 _Pragma("warning(suppress : 6001 4116)")                                       \
-ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
+ProbeForRead(pointer, size, 1)
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
@@ -1428,6 +1428,51 @@ NTSTATUS KphCaptureUnicodeString(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphReleaseUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphCopyToMode(
+    _Out_writes_bytes_all_(Length) PVOID Destination,
+    _In_reads_bytes_(Length) PVOID Source,
+    _In_ SIZE_T Length,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteUCharToMode(
+    _Out_ PUCHAR Destination,
+    _In_ UCHAR Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteULongToMode(
+    _Out_ PULONG Destination,
+    _In_ ULONG Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteULong64ToMode(
+    _Out_ PULONG64 Destination,
+    _In_ ULONG64 Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteHandleToMode(
+    _Out_ PHANDLE Destination,
+    _In_ _Post_ptr_invalid_ HANDLE Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphCopyUnicodeStringToMode(
+    _Out_writes_bytes_opt_(Length) PVOID Destination,
+    _In_ SIZE_T Length,
+    _In_opt_ PCUNICODE_STRING String,
+    _Out_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // lsa
