@@ -109,7 +109,7 @@ NTSTATUS KphQueryInformationFile(
 
     process = NULL;
     buffer = NULL;
-    RtlZeroMemory(&ioStatusBlock, sizeof(ioStatusBlock));
+    RtlZeroMemory(&ioStatusBlock, sizeof(IO_STATUS_BLOCK));
 
     if (!FileInformation || !IoStatusBlock)
     {
@@ -244,7 +244,7 @@ NTSTATUS KphQueryVolumeInformationFile(
 
     process = NULL;
     buffer = NULL;
-    RtlZeroMemory(&ioStatusBlock, sizeof(ioStatusBlock));
+    RtlZeroMemory(&ioStatusBlock, sizeof(IO_STATUS_BLOCK));
 
     if (!FsInformation || !IoStatusBlock)
     {
