@@ -700,8 +700,8 @@ NTSTATUS KphCreateRingBuffer(
     {
         __try
         {
-            User->Consumer = userConsumerBase;
-            User->Producer = userProducerBase;
+            RtlWritePointerToUser(&User->Consumer, userConsumerBase);
+            RtlWritePointerToUser(&User->Producer, userProducerBase);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

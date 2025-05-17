@@ -430,10 +430,9 @@ NTSTATUS KphpCommsInitializeRingBuffer(
 
     __try
     {
-        ProbeInputType(Connection, KPH_RING_BUFFER_CONNECT);
-        RtlCopyVolatileMemory(&connection,
-                              Connection,
-                              sizeof(KPH_RING_BUFFER_CONNECT));
+        RtlCopyFromUser(&connection,
+                        Connection,
+                        sizeof(KPH_RING_BUFFER_CONNECT));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -786,8 +785,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeInputBytes(InputBuffer, KPH_MESSAGE_MIN_SIZE);
-        RtlCopyVolatileMemory(msg, InputBuffer, KPH_MESSAGE_MIN_SIZE);
+        RtlCopyFromUser(msg, InputBuffer, KPH_MESSAGE_MIN_SIZE);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -810,11 +808,9 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     {
         __try
         {
-            ProbeInputBytes(Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
+            RtlCopyFromUser(msg->_Dyn.Buffer,
+                            Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
                             (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
-            RtlCopyVolatileMemory(&msg->_Dyn.Buffer[0],
-                                  Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
-                                  (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -891,8 +887,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeOutputBytes(InputBuffer, msg->Header.Size);
-        RtlCopyMemory(InputBuffer, msg, msg->Header.Size);
+        RtlCopyToUser(InputBuffer, msg, msg->Header.Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {

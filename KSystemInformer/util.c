@@ -317,7 +317,7 @@ PVOID KphGetCurrentThreadSubProcessTag(
 
     __try
     {
-        subProcessTag = teb->SubProcessTag;
+        subProcessTag = RtlReadPointerFromUser(&teb->SubProcessTag);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -394,7 +394,7 @@ PVOID KphGetThreadSubProcessTagEx(
 
     __try
     {
-        subProcessTag = teb->SubProcessTag;
+        subProcessTag = RtlReadPointerFromUser(&teb->SubProcessTag);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2397,10 +2397,7 @@ NTSTATUS KphCaptureUnicodeString(
 
     __try
     {
-        ProbeInputType(UnicodeString, UNICODE_STRING);
-        RtlCopyVolatileMemory(&inputString,
-                              UnicodeString,
-                              sizeof(UNICODE_STRING));
+        RtlCopyFromUser(&inputString, UnicodeString, sizeof(UNICODE_STRING));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2422,10 +2419,9 @@ NTSTATUS KphCaptureUnicodeString(
 
     __try
     {
-        ProbeInputBytes(inputString.Buffer, inputString.Length);
-        RtlCopyVolatileMemory(outputString->Buffer,
-                              inputString.Buffer,
-                              inputString.Length);
+        RtlCopyFromUser(outputString->Buffer,
+                        inputString.Buffer,
+                        inputString.Length);
         outputString->Length = inputString.Length;
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -2462,4 +2458,299 @@ VOID KphReleaseUnicodeString(
     KPH_PAGED_CODE_PASSIVE();
 
     KphFree(CaputredUnicodeString, KPH_TAG_CAPTURED_UNICODE_STRING);
+}
+
+/**
+ * \brief Copies memory to the specified mode.
+ *
+ * \param[out] Destination Address to copy memory to.
+ * \param[in] Source Address to copy memory from.
+ * \param[in] Length The length of the memory to copy, in bytes.
+ * \param[in] AccessMode The access mode to use for the copy.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphCopyToMode(
+    _Out_writes_bytes_all_(Length) PVOID Destination,
+    _In_reads_bytes_(Length) PVOID Source,
+    _In_ SIZE_T Length,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlCopyToUser(Destination, Source, Length);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        RtlCopyMemory(Destination, Source, Length);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Writes an unsigned 8-bit to the specified mode.
+ *
+ * \param[out] Destination Address to write the unsigned 8-bit to.
+ * \param[in] Source The unsigned 8-bit to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteUCharToMode(
+    _Out_ PUCHAR Destination,
+    _In_ UCHAR Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlWriteUCharToUser(Destination, Source);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        *Destination = Source;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Writes an unsigned 32-bit to the specified mode.
+ *
+ * \param[out] Destination Address to write the unsigned 32-bit to.
+ * \param[in] Source The unsigned 32-bit to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteULongToMode(
+    _Out_ PULONG Destination,
+    _In_ ULONG Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlWriteULongToUser(Destination, Source);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        *Destination = Source;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Writes an unsigned 64-bit to the specified mode.
+ *
+ * \param[out] Destination Address to write the unsigned 64-bit to.
+ * \param[in] Source The unsigned 64-bit to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteULong64ToMode(
+    _Out_ PULONG64 Destination,
+    _In_ ULONG64 Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlWriteULong64ToUser(Destination, Source);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        *Destination = Source;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+
+/**
+ * \brief Writes a handle to the specified mode.
+ *
+ * \param[out] Destination Address to write the handle to.
+ * \param[in] Source The handle to write.
+ * \param[in] AccessMode The access mode to use for the write.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphWriteHandleToMode(
+    _Out_ PHANDLE Destination,
+    _In_ _Post_ptr_invalid_ HANDLE Source,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    KPH_PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlWriteHandleToUser(Destination, Source);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            ObCloseHandle(Source, AccessMode);
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        *Destination = Source;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Copies a Unicode string to the specified mode.
+ *
+ * \details The Unicode string is constructed at the destination address and the
+ * string content immediately follows the string structure.
+ *
+ * \param[out] Destination Optional address to copy the Unicode string to.
+ * \param[in] Length The length of the destination buffer, in bytes.
+ * \param[in] String Optional Unicode string to copy.
+ * \param[out] ReturnLength Number of bytes copied to the destination buffer,
+ * including the string structure and following content.
+ * \param[in] AccessMode The access mode to use for the copy.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphCopyUnicodeStringToMode(
+    _Out_writes_bytes_opt_(Length) PVOID Destination,
+    _In_ SIZE_T Length,
+    _In_opt_ PCUNICODE_STRING String,
+    _Out_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    PUNICODE_STRING destination;
+    USHORT maximumLength;
+
+    KPH_PAGED_CODE();
+
+    if (!String)
+    {
+        *ReturnLength = sizeof(UNICODE_STRING);
+
+        if (!Destination || (Length < sizeof(UNICODE_STRING)))
+        {
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        destination = Destination;
+
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                ProbeOutputType(Destination, UNICODE_STRING);
+                RtlZeroVolatileMemory(destination, sizeof(UNICODE_STRING));
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+        }
+        else
+        {
+            RtlZeroMemory(destination, sizeof(UNICODE_STRING));
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    *ReturnLength = (sizeof(UNICODE_STRING) + String->Length);
+
+    if (!Destination || (Length < (sizeof(UNICODE_STRING) + String->Length)))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    destination = Destination;
+    maximumLength = (USHORT)(Length - sizeof(UNICODE_STRING));
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            RtlWriteUShortToUser(&destination->Length, String->Length);
+            RtlWriteUShortToUser(&destination->MaximumLength, maximumLength);
+            RtlWritePointerToUser(&destination->Buffer,
+                                  Add2Ptr(destination, sizeof(UNICODE_STRING)));
+
+            RtlCopyToUser(destination->Buffer, String->Buffer, String->Length);
+
+            if ((String->Length + sizeof(UNICODE_NULL)) <= maximumLength)
+            {
+                PWCHAR end;
+
+                end = &destination->Buffer[String->Length / sizeof(WCHAR)];
+
+                RtlWriteUShortToUser(end, UNICODE_NULL);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        destination->Length = 0;
+        destination->MaximumLength = maximumLength;
+        destination->Buffer = Add2Ptr(destination, sizeof(UNICODE_STRING));
+        RtlCopyUnicodeString(destination, String);
+    }
+
+    return STATUS_SUCCESS;
 }

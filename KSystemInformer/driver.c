@@ -128,7 +128,7 @@ NTSTATUS KphQueryInformationDriver(
             // Basic information such as flags, driver base and driver size.
             //
 
-            PKPH_DRIVER_BASIC_INFORMATION basicInfo;
+            KPH_DRIVER_BASIC_INFORMATION basicInfo;
 
             if (!DriverInformation ||
                 (DriverInformationLength < sizeof(KPH_DRIVER_BASIC_INFORMATION)))
@@ -137,20 +137,19 @@ NTSTATUS KphQueryInformationDriver(
                 goto Exit;
             }
 
-            basicInfo = (PKPH_DRIVER_BASIC_INFORMATION)DriverInformation;
+            RtlZeroMemory(&basicInfo, sizeof(KPH_DRIVER_BASIC_INFORMATION));
 
-            __try
+            basicInfo.Flags = driverObject->Flags;
+            basicInfo.DriverStart = driverObject->DriverStart;
+            basicInfo.DriverSize = driverObject->DriverSize;
+
+            status = KphCopyToMode(DriverInformation,
+                                   &basicInfo,
+                                   sizeof(KPH_DRIVER_BASIC_INFORMATION),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                basicInfo->Flags = driverObject->Flags;
-                basicInfo->DriverStart = driverObject->DriverStart;
-                basicInfo->DriverSize = driverObject->DriverSize;
                 returnLength = sizeof(KPH_DRIVER_BASIC_INFORMATION);
-                status = STATUS_SUCCESS;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
             }
 
             break;
@@ -161,98 +160,36 @@ NTSTATUS KphQueryInformationDriver(
             // The name of the driver - e.g. \Driver\Null.
             //
 
-            if (!DriverInformation ||
-                (DriverInformationLength <
-                 (sizeof(UNICODE_STRING) + driverObject->DriverName.Length)))
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverName.Length);
-                goto Exit;
-            }
-
-            __try
-            {
-                PUNICODE_STRING string;
-
-                string = (PUNICODE_STRING)DriverInformation;
-                string->Length = 0;
-                string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
-                string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
-                RtlCopyUnicodeString(string, &driverObject->DriverName);
-
-                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverName.Length);
-                status = STATUS_SUCCESS;
-                goto Exit;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
+            status = KphCopyUnicodeStringToMode(DriverInformation,
+                                                DriverInformationLength,
+                                                &driverObject->DriverName,
+                                                &returnLength,
+                                                AccessMode);
 
             break;
         }
         case KphDriverServiceKeyNameInformation:
         {
+            PCUNICODE_STRING serviceKeyName;
+
             //
             // The name of the driver's service key - e.g. \REGISTRY\...
             //
 
-            if (!driverObject->DriverExtension)
+            if (driverObject->DriverExtension)
             {
-                if (!DriverInformation ||
-                    (DriverInformationLength < sizeof(UNICODE_STRING)))
-                {
-                    status = STATUS_BUFFER_TOO_SMALL;
-                    returnLength = sizeof(UNICODE_STRING);
-                    goto Exit;
-                }
-
-                __try
-                {
-                    //
-                    // Zero the information buffer.
-                    //
-                    RtlZeroMemory(DriverInformation, sizeof(UNICODE_STRING));
-                    returnLength = sizeof(UNICODE_STRING);
-                    status = STATUS_SUCCESS;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                    goto Exit;
-                }
-
-                goto Exit;
+                serviceKeyName = &driverObject->DriverExtension->ServiceKeyName;
+            }
+            else
+            {
+                serviceKeyName = NULL;
             }
 
-            if (!DriverInformation ||
-                (DriverInformationLength <
-                 (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length)))
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length);
-                goto Exit;
-            }
-
-            __try
-            {
-                PUNICODE_STRING string;
-
-                string = (PUNICODE_STRING)DriverInformation;
-                string->Length = 0;
-                string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
-                string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
-                RtlCopyUnicodeString(string, &driverObject->DriverExtension->ServiceKeyName);
-
-                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length);
-                status = STATUS_SUCCESS;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
+            status = KphCopyUnicodeStringToMode(DriverInformation,
+                                                DriverInformationLength,
+                                                serviceKeyName,
+                                                &returnLength,
+                                                AccessMode);
 
             break;
         }
@@ -280,31 +217,11 @@ NTSTATUS KphQueryInformationDriver(
                 goto Exit;
             }
 
-            returnLength = sizeof(UNICODE_STRING);
-            returnLength += fullDriverPath.Length;
-
-            if (!DriverInformation || (DriverInformationLength < returnLength))
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-            }
-            else
-            {
-                __try
-                {
-                    PUNICODE_STRING string;
-
-                    string = (PUNICODE_STRING)DriverInformation;
-                    string->Length = 0;
-                    string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
-                    string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
-                    RtlCopyUnicodeString(string, &fullDriverPath);
-                    status = STATUS_SUCCESS;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
+            status = KphCopyUnicodeStringToMode(DriverInformation,
+                                                DriverInformationLength,
+                                                &fullDriverPath,
+                                                &returnLength,
+                                                AccessMode);
 
             KphFreePool(fullDriverPath.Buffer);
             break;
@@ -326,21 +243,7 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     return status;

@@ -150,7 +150,6 @@ NTSTATUS KphQueryInformationFile(
     if (process == PsInitialSystemProcess)
     {
         FileHandle = MakeKernelHandle(FileHandle);
-        AccessMode = KernelMode;
     }
     else
     {
@@ -183,24 +182,16 @@ NTSTATUS KphQueryInformationFile(
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlCopyMemory(FileInformation, buffer, FileInformationLength);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-        }
+        status = KphCopyToMode(FileInformation,
+                               buffer,
+                               FileInformationLength,
+                               AccessMode);
     }
 
-    __try
-    {
-        RtlCopyMemory(IoStatusBlock, &ioStatusBlock, sizeof(ioStatusBlock));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        NOTHING;
-    }
+    KphCopyToMode(IoStatusBlock,
+                  &ioStatusBlock,
+                  sizeof(IO_STATUS_BLOCK),
+                  AccessMode);
 
 Exit:
 
@@ -294,7 +285,6 @@ NTSTATUS KphQueryVolumeInformationFile(
     if (process == PsInitialSystemProcess)
     {
         FileHandle = MakeKernelHandle(FileHandle);
-        AccessMode = KernelMode;
     }
     else
     {
@@ -327,24 +317,16 @@ NTSTATUS KphQueryVolumeInformationFile(
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
-        __try
-        {
-            RtlCopyMemory(FsInformation, buffer, FsInformationLength);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-        }
+        status = KphCopyToMode(FsInformation,
+                               buffer,
+                               FsInformationLength,
+                               AccessMode);
     }
 
-    __try
-    {
-        RtlCopyMemory(IoStatusBlock, &ioStatusBlock, sizeof(ioStatusBlock));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        NOTHING;
-    }
+    KphCopyToMode(IoStatusBlock,
+                  &ioStatusBlock,
+                  sizeof(IO_STATUS_BLOCK),
+                  AccessMode);
 
 Exit:
 

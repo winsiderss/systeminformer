@@ -17,6 +17,7 @@
 typedef struct _KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT
 {
     PKPH_DYN Dyn;
+    KPROCESSOR_MODE AccessMode;
     PVOID Buffer;
     PVOID BufferLimit;
     PVOID CurrentEntry;
@@ -380,26 +381,17 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     if ((ULONG_PTR)entryInBuffer >= (ULONG_PTR)context->Buffer &&
         (ULONG_PTR)entryInBuffer + sizeof(KPH_PROCESS_HANDLE) <= (ULONG_PTR)context->BufferLimit)
     {
-        __try
+        context->Status = KphCopyToMode(entryInBuffer,
+                                        &handleInfo,
+                                        sizeof(handleInfo),
+                                        context->AccessMode);
+        if (!NT_SUCCESS(context->Status))
         {
-            *entryInBuffer = handleInfo;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            //
-            // Report an error.
-            //
-            if (context->Status == STATUS_SUCCESS)
-            {
-                context->Status = GetExceptionCode();
-            }
+            return TRUE;
         }
     }
     else
     {
-        //
-        // Report that the buffer is too small.
-        //
         if (context->Status == STATUS_SUCCESS)
         {
             context->Status = STATUS_BUFFER_TOO_SMALL;
@@ -489,6 +481,7 @@ NTSTATUS KphEnumerateProcessHandles(
     }
 
     context.Dyn = dyn;
+    context.AccessMode = AccessMode;
     context.Buffer = Buffer;
     context.BufferLimit = Add2Ptr(Buffer, BufferLength);
     context.CurrentEntry = ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->Handles;
@@ -510,21 +503,16 @@ NTSTATUS KphEnumerateProcessHandles(
 
     if (BufferLength >= UFIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
     {
-        if (AccessMode != KernelMode)
+        PKPH_PROCESS_HANDLE_INFORMATION info;
+
+        info = Buffer;
+
+        status = KphWriteULongToMode(&info->HandleCount,
+                                     context.Count,
+                                     AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            __try
-            {
-                ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.Count;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-        }
-        else
-        {
-            ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.Count;
+            goto Exit;
         }
     }
 
@@ -541,21 +529,12 @@ NTSTATUS KphEnumerateProcessHandles(
             goto Exit;
         }
 
-        if (AccessMode != KernelMode)
+        status = KphWriteULongToMode(ReturnLength,
+                                     (ULONG)returnLength,
+                                     AccessMode);
+        if (!NT_SUCCESS(status))
         {
-            __try
-            {
-                *ReturnLength = (ULONG)returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-        }
-        else
-        {
-            *ReturnLength = (ULONG)returnLength;
+            goto Exit;
         }
     }
 
@@ -1040,16 +1019,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &basicInfo,
+                                       sizeof(basicInfo),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &basicInfo,
-                                  sizeof(basicInfo));
                     returnLength = sizeof(basicInfo);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1113,16 +1089,10 @@ NTSTATUS KphQueryInformationObject(
                                     nameInfo,
                                     ObjectInformation);
 
-                __try
-                {
-                    RtlCopyMemory(ObjectInformation,
-                                  nameInfo,
-                                  returnLength);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
+                status = KphCopyToMode(ObjectInformation,
+                                       nameInfo,
+                                       returnLength,
+                                       AccessMode);
             }
 
             break;
@@ -1180,16 +1150,10 @@ NTSTATUS KphQueryInformationObject(
                                     typeInfo,
                                     ObjectInformation);
 
-                __try
-                {
-                    RtlCopyMemory(ObjectInformation,
-                                  typeInfo,
-                                  returnLength);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
+                status = KphCopyToMode(ObjectInformation,
+                                       typeInfo,
+                                       returnLength,
+                                       AccessMode);
             }
 
             break;
@@ -1215,16 +1179,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &handleFlagInfo,
+                                       sizeof(handleFlagInfo),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &handleFlagInfo,
-                                  sizeof(handleFlagInfo));
                     returnLength = sizeof(handleFlagInfo);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1251,16 +1212,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &basicInfo,
+                                       sizeof(basicInfo),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &basicInfo,
-                                  sizeof(basicInfo));
                     returnLength = sizeof(basicInfo);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1287,16 +1245,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &basicInfo,
+                                       sizeof(basicInfo),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &basicInfo,
-                                  sizeof(basicInfo));
                     returnLength = sizeof(basicInfo);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1383,17 +1338,13 @@ NTSTATUS KphQueryInformationObject(
             //
             basicInfo.SessionId = 0;
 
-            __try
+            status = KphCopyToMode(ObjectInformation,
+                                   &basicInfo,
+                                   sizeof(basicInfo),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                RtlCopyMemory(ObjectInformation,
-                              &basicInfo,
-                              sizeof(basicInfo));
                 returnLength = sizeof(basicInfo);
-                status = STATUS_SUCCESS;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
             }
 
             break;
@@ -1541,14 +1492,13 @@ NTSTATUS KphQueryInformationObject(
 
             IoReleaseVpbSpinLock(irql);
 
-            __try
+            status = KphCopyToMode(ObjectInformation,
+                                   &fileInfo,
+                                   sizeof(fileInfo),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                RtlCopyMemory(ObjectInformation, &fileInfo, sizeof(fileInfo));
                 returnLength = sizeof(fileInfo);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
             }
 
             break;
@@ -1559,10 +1509,10 @@ NTSTATUS KphQueryInformationObject(
             HANDLE driverHandle;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength < sizeof(KPH_FILE_OBJECT_DRIVER)))
+                (ObjectInformationLength < sizeof(HANDLE)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(KPH_FILE_OBJECT_DRIVER);
+                returnLength = sizeof(HANDLE);
                 goto Exit;
             }
 
@@ -1602,15 +1552,12 @@ NTSTATUS KphQueryInformationObject(
                                            &driverHandle);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphWriteHandleToMode(ObjectInformation,
+                                              driverHandle,
+                                              AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    ((PKPH_FILE_OBJECT_DRIVER)ObjectInformation)->DriverHandle = driverHandle;
-                    returnLength = sizeof(KPH_FILE_OBJECT_DRIVER);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    ObCloseHandle(driverHandle, AccessMode);
-                    status = GetExceptionCode();
+                    returnLength = sizeof(HANDLE);
                 }
             }
 
@@ -1637,14 +1584,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &times,
+                                       sizeof(times),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation, &times, sizeof(times));
                     returnLength = sizeof(times);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1671,14 +1617,13 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphCopyToMode(ObjectInformation,
+                                       &times,
+                                       sizeof(times),
+                                       AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation, &times, sizeof(times));
                     returnLength = sizeof(times);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1713,38 +1658,11 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            returnLength = sizeof(UNICODE_STRING);
-            returnLength += processContext->ImageFileName->Length;
-
-            if (ObjectInformationLength < returnLength)
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-                goto Exit;
-            }
-
-            if (!ObjectInformation)
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-                goto Exit;
-            }
-
-            __try
-            {
-                PUNICODE_STRING outputString;
-
-                outputString = ObjectInformation;
-                outputString->Length = processContext->ImageFileName->Length;
-                outputString->MaximumLength = processContext->ImageFileName->Length;
-                outputString->Buffer = Add2Ptr(ObjectInformation,
-                                               sizeof(UNICODE_STRING));
-                RtlCopyMemory(outputString->Buffer,
-                              processContext->ImageFileName->Buffer,
-                              processContext->ImageFileName->Length);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
+            status = KphCopyUnicodeStringToMode(ObjectInformation,
+                                                ObjectInformationLength,
+                                                processContext->ImageFileName,
+                                                &returnLength,
+                                                AccessMode);
 
             break;
         }
@@ -1791,14 +1709,10 @@ NTSTATUS KphQueryInformationObject(
                                     nameInfo,
                                     ObjectInformation);
 
-                __try
-                {
-                    RtlCopyMemory(ObjectInformation, nameInfo, returnLength);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
+                status = KphCopyToMode(ObjectInformation,
+                                       nameInfo,
+                                       returnLength,
+                                       AccessMode);
             }
 
             break;
@@ -1824,14 +1738,12 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (NT_SUCCESS(status))
             {
-                __try
+                status = KphWriteULongToMode(ObjectInformation,
+                                             threadIsTerminated,
+                                             AccessMode);
+                if (NT_SUCCESS(status))
                 {
-                    *(PULONG)ObjectInformation = threadIsTerminated;
                     returnLength = sizeof(threadIsTerminated);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
                 }
             }
 
@@ -1873,14 +1785,10 @@ NTSTATUS KphQueryInformationObject(
                 KeUnstackDetachProcess(&apcState);
                 if (NT_SUCCESS(status))
                 {
-                    __try
-                    {
-                        RtlCopyMemory(ObjectInformation, buffer, returnLength);
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
+                    status = KphCopyToMode(ObjectInformation,
+                                           buffer,
+                                           returnLength,
+                                           AccessMode);
                 }
             }
             else
@@ -1927,14 +1835,13 @@ NTSTATUS KphQueryInformationObject(
                         goto Exit;
                     }
 
-                    __try
+                    status = KphCopyToMode(ObjectInformation,
+                                           buffer,
+                                           length,
+                                           AccessMode);
+                    if (NT_SUCCESS(status))
                     {
-                        RtlCopyMemory(ObjectInformation, buffer, length);
                         returnLength = (ULONG)length;
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
                     }
                 }
             }
@@ -2040,22 +1947,18 @@ NTSTATUS KphQueryInformationObject(
                                     sectionFileName,
                                     ObjectInformation);
 
-                __try
-                {
-                    RtlCopyMemory(ObjectInformation,
-                                  sectionFileName,
-                                  returnLength);
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
+                status = KphCopyToMode(ObjectInformation,
+                                       sectionFileName,
+                                       returnLength,
+                                       AccessMode);
             }
 
             break;
         }
         case KphObjectAttributesInformation:
         {
+            PKPH_OBJECT_ATTRIBUTES_INFORMATION attributesInfo;
+
             if (!ObjectInformation ||
                 (ObjectInformationLength < sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION)))
             {
@@ -2083,17 +1986,14 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            __try
-            {
-                PKPH_OBJECT_ATTRIBUTES_INFORMATION attributesInfo;
+            attributesInfo = ObjectInformation;
 
-                attributesInfo = ObjectInformation;
-                attributesInfo->Flags = OBJECT_TO_OBJECT_HEADER(object)->Flags;
-                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            status = KphWriteUCharToMode(&attributesInfo->Flags,
+                                         OBJECT_TO_OBJECT_HEADER(object)->Flags,
+                                         AccessMode);
+            if (NT_SUCCESS(status))
             {
-                status = GetExceptionCode();
+                returnLength = sizeof(KPH_OBJECT_ATTRIBUTES_INFORMATION);
             }
 
             break;
@@ -2134,21 +2034,7 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     return status;
@@ -2213,10 +2099,9 @@ NTSTATUS KphSetInformationObject(
 
         __try
         {
-            ProbeInputBytes(ObjectInformation, ObjectInformationLength);
-            RtlCopyVolatileMemory(objectInformation,
-                                  ObjectInformation,
-                                  ObjectInformationLength);
+            RtlCopyFromUser(objectInformation,
+                            ObjectInformation,
+                            ObjectInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -2354,22 +2239,7 @@ NTSTATUS KphOpenNamedObject(
         goto Exit;
     }
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            *ObjectHandle = objectHandle;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            ObCloseHandle(objectHandle, UserMode);
-        }
-    }
-    else
-    {
-        *ObjectHandle = objectHandle;
-    }
+    status = KphWriteHandleToMode(ObjectHandle, objectHandle, AccessMode);
 
 Exit:
 
@@ -2489,22 +2359,7 @@ NTSTATUS KphDuplicateObject(
                                KernelMode);
     if (NT_SUCCESS(status))
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *TargetHandle = targetHandle;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                ObCloseHandle(targetHandle, UserMode);
-            }
-        }
-        else
-        {
-            *TargetHandle = targetHandle;
-        }
+        status = KphWriteHandleToMode(TargetHandle, targetHandle, AccessMode);
     }
 
 Exit:

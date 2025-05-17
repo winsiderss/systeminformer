@@ -200,7 +200,7 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectThreadBasicInformation,          // q: THREAD_BASIC_INFORMATION
     KphObjectEtwRegBasicInformation,          // q: ETWREG_BASIC_INFORMATION
     KphObjectFileObjectInformation,           // q: KPH_FILE_OBJECT_INFORMATION
-    KphObjectFileObjectDriver,                // q: KPH_FILE_OBJECT_DRIVER
+    KphObjectFileObjectDriver,                // q: HANDLE
     KphObjectProcessTimes,                    // q: KERNEL_USER_TIMES
     KphObjectThreadTimes,                     // q: KERNEL_USER_TIMES
     KphObjectProcessImageFileName,            // q: UNICODE_STRING
@@ -258,11 +258,6 @@ typedef struct _KPH_FILE_OBJECT_INFORMATION
     KPH_DEVICE_INFO AttachedDevice;
     KPH_DEVICE_INFO RelatedDevice;
 } KPH_FILE_OBJECT_INFORMATION, *PKPH_FILE_OBJECT_INFORMATION;
-
-typedef struct _KPH_FILE_OBJECT_DRIVER
-{
-    HANDLE DriverHandle;
-} KPH_FILE_OBJECT_DRIVER, *PKPH_FILE_OBJECT_DRIVER;
 
 typedef struct _KPH_OBJECT_ATTRIBUTES_INFORMATION
 {
