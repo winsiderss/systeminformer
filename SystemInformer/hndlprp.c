@@ -1086,7 +1086,7 @@ VOID PhpUpdateHandleGeneral(
             FILE_POSITION_INFORMATION filePositionInfo;
             FILE_IO_PRIORITY_HINT_INFORMATION_EX priorityInfo;
             IO_STATUS_BLOCK isb;
-            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
+            HANDLE fileObjectDriver;
 
             if (NT_SUCCESS(KphQueryVolumeInformationFile(
                 processHandle,
@@ -1266,25 +1266,25 @@ VOID PhpUpdateHandleGeneral(
                 Context->HandleItem->Handle,
                 KphObjectFileObjectDriver,
                 &fileObjectDriver,
-                sizeof(fileObjectDriver),
+                sizeof(HANDLE),
                 NULL
                 )))
             {
                 PPH_STRING driverName;
 
-                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver, &driverName)))
                 {
                     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVER, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
-                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &driverName)))
+                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver, &driverName)))
                 {
                     PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE, 1, PhGetString(driverName));
                     PhDereferenceObject(driverName);
                 }
 
-                NtClose(fileObjectDriver.DriverHandle);
+                NtClose(fileObjectDriver);
             }
 
             NtClose(processHandle);
