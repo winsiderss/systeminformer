@@ -431,7 +431,7 @@ NTSTATUS KphVerifyFileObject(
     KPH_PAGED_CODE_PASSIVE();
 
     localFileName = NULL;
-    RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+    RtlZeroMemory(&signatureFileName, sizeof(UNICODE_STRING));
     signatureFileHandle = NULL;
     signature = NULL;
 
@@ -474,7 +474,7 @@ NTSTATUS KphVerifyFileObject(
                       "RtlDuplicateUnicodeString failed: %!STATUS!",
                       status);
 
-        RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+        RtlZeroMemory(&signatureFileName, sizeof(UNICODE_STRING));
         goto Exit;
     }
 
@@ -589,7 +589,7 @@ NTSTATUS KphVerifyFileObject(
 
     status = KphQueryHashInformationFileObject(FileObject,
                                                &hashInfo,
-                                               sizeof(hashInfo));
+                                               sizeof(KPH_HASH_INFORMATION));
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

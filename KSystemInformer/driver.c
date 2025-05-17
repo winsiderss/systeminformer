@@ -134,6 +134,7 @@ NTSTATUS KphQueryInformationDriver(
                 (DriverInformationLength < sizeof(KPH_DRIVER_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(KPH_DRIVER_BASIC_INFORMATION);
                 goto Exit;
             }
 
@@ -209,7 +210,7 @@ NTSTATUS KphQueryInformationDriver(
                 goto Exit;
             }
 
-            RtlZeroMemory(&fullDriverPath, sizeof(fullDriverPath));
+            RtlZeroMemory(&fullDriverPath, sizeof(UNICODE_STRING));
 
             status = IoQueryFullDriverPath(driverObject, &fullDriverPath);
             if (!NT_SUCCESS(status))
