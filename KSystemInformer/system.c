@@ -55,6 +55,12 @@ NTSTATUS KphSystemControl(
             OBJECT_ATTRIBUTES objectAttributes;
             QUOTA_LIMITS_EX quotaLimits;
 
+#ifdef _WIN64
+            C_ASSERT(sizeof(SYSTEM_STORE_INFORMATION) == 24);
+            C_ASSERT(SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION_V1 == 3);
+            C_ASSERT(SYSTEM_STORE_COMPRESSION_INFORMATION_SIZE_V1 == 40);
+#endif
+
             RtlZeroMemory(&compressionInfo, sizeof(SM_STORE_COMPRESSION_INFORMATION_REQUEST));
             compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION_V1;
 
@@ -66,7 +72,7 @@ NTSTATUS KphSystemControl(
 
             status = ZwQuerySystemInformation(SystemStoreInformation,
                                               &storeInfo,
-                                              sizeof(storeInfo),
+                                              sizeof(SYSTEM_STORE_INFORMATION),
                                               NULL);
             if (!NT_SUCCESS(status))
             {
@@ -112,14 +118,14 @@ NTSTATUS KphSystemControl(
                 goto Exit;
             }
 
-            RtlZeroMemory(&quotaLimits, sizeof(quotaLimits));
+            RtlZeroMemory(&quotaLimits, sizeof(QUOTA_LIMITS_EX));
             quotaLimits.MinimumWorkingSetSize = SIZE_T_MAX;
             quotaLimits.MaximumWorkingSetSize = SIZE_T_MAX;
 
             status = ZwSetInformationProcess(processHandle,
                                              ProcessQuotaLimits,
                                              &quotaLimits,
-                                             sizeof(quotaLimits));
+                                             sizeof(QUOTA_LIMITS_EX));
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
