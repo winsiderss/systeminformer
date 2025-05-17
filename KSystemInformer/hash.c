@@ -1047,7 +1047,7 @@ VOID KphpInitializeEaCacheContext(
     }
 
     oplockInput.StructureVersion = REQUEST_OPLOCK_CURRENT_VERSION;
-    oplockInput.StructureLength = sizeof(oplockInput);
+    oplockInput.StructureLength = sizeof(REQUEST_OPLOCK_INPUT_BUFFER);
     oplockInput.Flags = REQUEST_OPLOCK_INPUT_FLAG_REQUEST;
     oplockInput.RequestedOplockLevel = (OPLOCK_LEVEL_CACHE_READ |
                                         OPLOCK_LEVEL_CACHE_HANDLE);
@@ -1061,7 +1061,7 @@ VOID KphpInitializeEaCacheContext(
                              &Context->EaCache.IoStatusBlock,
                              FSCTL_REQUEST_OPLOCK,
                              &oplockInput,
-                             sizeof(oplockInput),
+                             sizeof(REQUEST_OPLOCK_INPUT_BUFFER),
                              &Context->EaCache.OplockOutput,
                              sizeof(Context->EaCache.OplockOutput));
     if (status != STATUS_PENDING)
@@ -1086,7 +1086,7 @@ VOID KphpInitializeEaCacheContext(
                                       NULL,
                                       0,
                                       &usnValue,
-                                      sizeof(usnValue),
+                                      sizeof(ULONG64),
                                       &returnLength);
     if (!NT_SUCCESS(status))
     {

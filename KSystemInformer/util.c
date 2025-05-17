@@ -1126,7 +1126,7 @@ NTSTATUS KphMapViewInSystem(
         status = ZwQueryInformationFile(FileHandle,
                                         &ioStatusBlock,
                                         &fileInfo,
-                                        sizeof(fileInfo),
+                                        sizeof(FILE_STANDARD_INFORMATION),
                                         FileStandardInformation);
         if (!NT_SUCCESS(status))
         {
@@ -1414,12 +1414,12 @@ NTSTATUS KphpGetKernelFileName(
 
     RtlZeroMemory(FileName, sizeof(UNICODE_STRING));
 
-    RtlZeroMemory(&info, sizeof(info));
+    RtlZeroMemory(&info, sizeof(SYSTEM_SINGLE_MODULE_INFORMATION));
 
     info.TargetModuleAddress = (PVOID)ObCloseHandle;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
-                                      sizeof(info),
+                                      sizeof(SYSTEM_SINGLE_MODULE_INFORMATION),
                                       NULL);
     if (!NT_SUCCESS(status))
     {
@@ -1823,6 +1823,11 @@ NTSTATUS KphpSetCfgCallTargetInformation(
 
     KPH_PAGED_CODE_PASSIVE();
 
+#ifdef _WIN64
+    C_ASSERT(sizeof(CFG_CALL_TARGET_INFO) == 16);
+    C_ASSERT(sizeof(CFG_CALL_TARGET_LIST_INFORMATION) == 40);
+#endif
+
     memoryRange.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     memoryRange.NumberOfBytes = PAGE_SIZE;
 
@@ -1831,7 +1836,7 @@ NTSTATUS KphpSetCfgCallTargetInformation(
 
     numberOfEntriesProcessed = 0;
 
-    RtlZeroMemory(&targetListInfo, sizeof(targetListInfo));
+    RtlZeroMemory(&targetListInfo, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
     targetListInfo.NumberOfEntries = 1;
     targetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
     targetListInfo.CallTargetInfo = &targetInfo;
@@ -1841,7 +1846,7 @@ NTSTATUS KphpSetCfgCallTargetInformation(
                                          1,
                                          &memoryRange,
                                          &targetListInfo,
-                                         sizeof(targetListInfo));
+                                         sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
 }
 
 /**
@@ -2233,8 +2238,8 @@ NTSTATUS KphGetSigningLevel(
         return STATUS_NOINTERFACE;
     }
 
-    RtlZeroMemory(&policyInfo, sizeof(policyInfo));
-    RtlZeroMemory(&timeStampPolicyInfo, sizeof(timeStampPolicyInfo));
+    RtlZeroMemory(&policyInfo, sizeof(MINCRYPT_POLICY_INFO));
+    RtlZeroMemory(&timeStampPolicyInfo, sizeof(MINCRYPT_POLICY_INFO));
     thumbprintSize = sizeof(thumbprint);
     thumbprintAlgorithm = 0;
 
@@ -2263,8 +2268,8 @@ NTSTATUS KphGetSigningLevel(
     }
     else
     {
-        RtlZeroMemory(&issuer, sizeof(issuer));
-        RtlZeroMemory(&subject, sizeof(subject));
+        RtlZeroMemory(&issuer, sizeof(ANSI_STRING));
+        RtlZeroMemory(&subject, sizeof(ANSI_STRING));
     }
 
     if (!NT_SUCCESS(status) ||

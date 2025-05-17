@@ -862,6 +862,9 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
 
     NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
+#ifdef _WIN64
+    C_ASSERT(FIELD_OFFSET(TEB, SubProcessTag) == 0x1720);
+#endif
 
     teb = PsGetCurrentThreadTeb();
     if (teb)
@@ -2112,7 +2115,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     status = ZwQueryInformationProcess(processHandle,
                                        ProcessMitigationPolicy,
                                        &policyInfo,
-                                       sizeof(policyInfo),
+                                       sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
                                        NULL);
     if (!NT_SUCCESS(status))
     {

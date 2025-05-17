@@ -810,7 +810,7 @@ NTSTATUS KphQueryInformationThread(
             status = KphQueryInformationThreadContext(thread,
                                                       KphThreadContextWSLThreadId,
                                                       &threadId,
-                                                      sizeof(threadId),
+                                                      sizeof(ULONG),
                                                       NULL);
             if (!NT_SUCCESS(status))
             {
