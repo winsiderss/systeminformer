@@ -702,15 +702,13 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            __try
+            status = KphCopyToMode(AlpcInformation,
+                                   &info,
+                                   sizeof(info),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                RtlCopyMemory(AlpcInformation, &info, sizeof(info));
                 returnLength = sizeof(info);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
             }
 
             break;
@@ -743,15 +741,13 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            __try
+            status = KphCopyToMode(AlpcInformation,
+                                   &info,
+                                   sizeof(info),
+                                   AccessMode);
+            if (NT_SUCCESS(status))
             {
-                RtlCopyMemory(AlpcInformation, &info, sizeof(info));
                 returnLength = sizeof(info);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
             }
 
             break;
@@ -814,15 +810,10 @@ NTSTATUS KphAlpcQueryInformation(
                                 buffer,
                                 AlpcInformation);
 
-            __try
-            {
-                RtlCopyMemory(AlpcInformation, info, returnLength);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
+            status = KphCopyToMode(AlpcInformation,
+                                   info,
+                                   returnLength,
+                                   AccessMode);
 
             break;
         }
@@ -857,23 +848,8 @@ Exit:
 
     if (ReturnLength)
     {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *ReturnLength = returnLength;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                NOTHING;
-            }
-        }
-        else
-        {
-            *ReturnLength = returnLength;
-        }
+        KphWriteULongToMode(ReturnLength, returnLength, AccessMode);
     }
 
     return status;
 }
-
