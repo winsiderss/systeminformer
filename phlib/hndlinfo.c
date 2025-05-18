@@ -1997,7 +1997,8 @@ NTSTATUS PhGetHandleInformationEx(
             PhEqualString2(typeName, L"Process", TRUE) ||
             PhEqualString2(typeName, L"Thread", TRUE) ||
             PhEqualString2(typeName, L"Token", TRUE) ||
-            PhEqualString2(typeName, L"ALPC Port", TRUE)
+            PhEqualString2(typeName, L"ALPC Port", TRUE) ||
+            PhEqualString2(typeName, L"Section", TRUE)
             )
         {
             // PhpGetBestObjectName can provide us with a name.
