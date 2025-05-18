@@ -268,13 +268,13 @@ VOID PhSvcHandleConnectionRequest(
     }
     else
     {
+        clientId = message->h.ClientId;
+
 #if defined(DEBUG) || defined(PH_BUILD_API)
         PPH_STRING remoteFileName;
 #endif
 #if defined(DEBUG)
         PPH_STRING referenceFileName;
-
-        clientId = message->h.ClientId;
 
         // Make sure that the remote process is System Informer and not some other program.
 
