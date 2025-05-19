@@ -838,6 +838,22 @@ NTSTATUS KphQueryInformationProcess(
 
             break;
         }
+        case KphProcessImageFileName:
+        {
+            if (!process->ImageFileName)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+
+            status = KphCopyUnicodeStringToMode(ProcessInformation,
+                                                ProcessInformationLength,
+                                                process->ImageFileName,
+                                                &returnLength,
+                                                AccessMode);
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
