@@ -13,11 +13,9 @@
     <a href="https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml">
         <img src="https://img.shields.io/github/actions/workflow/status/winsiderss/systeminformer/msbuild.yml?branch=master&style=for-the-badge"/>
     </a>
-    &nbsp;
     <a href="https://github.com/winsiderss/systeminformer/graphs/contributors">
         <img src="https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue"/>
     </a>
-    &nbsp;
     <a href="https://opensource.org/licenses/MIT">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue"/>
     </a>
@@ -26,11 +24,9 @@
     <a href="https://systeminformer.com/downloads">
         <img src="https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=blue"/>
     </a>
-    &nbsp;
     <a href="https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer">
         <img src="https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=blue&label="/>
     </a>
-    &nbsp;
     <a href="https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly">
         <img src="https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=blue&label="/>
     </a>
