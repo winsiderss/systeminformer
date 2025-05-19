@@ -1,18 +1,41 @@
-[![Build status](https://img.shields.io/github/actions/workflow/status/winsiderss/systeminformer/msbuild.yml?branch=master&style=for-the-badge)](https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml)
-[![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
-[![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
-[![Github stats (builds)](https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=blue)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=si-builds)
-[![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=blue&label=)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer)
-[![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=blue&label=)](https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly)
-[![Discord](https://img.shields.io/badge/Discord-Join-blue?style=for-the-badge&logo=discord)](https://discord.com/invite/k2MQd2DzC2)
-
-<img align="left" src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png" width="128" height="128" style="max-width: 100%;padding-right: 20px;">
-
-## System Informer
-
-A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware. Brought to you by Winsider Seminars & Solutions, Inc.
-
-[Project Website](https://systeminformer.com/) - [Project Downloads](https://systeminformer.com/downloads.php)
+<p align="center">
+    <a href="https://systeminformer.com">
+        <img src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png"/>
+    </a>
+    <h1 align="center">System Informer</h1>
+    <h4 align="center">A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.</h4>
+    <h6 align="center">Brought to you by Winsider Seminars & Solutions, Inc.</h6>
+</p>
+<p align="center">
+    <a href="https://systeminformer.com">Website</a> - <a href="https://systeminformer.com/downloads">Downloads</a>
+</p>
+<p align="center">
+    <a href="https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/winsiderss/systeminformer/msbuild.yml?branch=master&style=for-the-badge"/>
+    </a>
+    <a href="https://github.com/winsiderss/systeminformer/graphs/contributors">
+        <img src="https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue"/>
+    </a>
+    <a href="https://opensource.org/licenses/MIT">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue"/>
+    </a>
+</p>
+<p align="center">
+    <a href="https://systeminformer.com/downloads">
+        <img src="https://img.shields.io/github/downloads/winsiderss/si-builds/total.svg?style=for-the-badge&color=blue"/>
+    </a>
+    <a href="https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer">
+        <img src="https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=blue&label="/>
+    </a>
+    <a href="https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly">
+        <img src="https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=blue&label="/>
+    </a>
+</p>
+<p align="center">
+    <a href="https://discord.com/invite/k2MQd2DzC2">
+        <img src="https://img.shields.io/badge/Discord-Join-blue?style=for-the-badge&logo=discord"/>
+    </a>
+</p>
 
 ## System requirements
 
