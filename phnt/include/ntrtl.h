@@ -9434,12 +9434,13 @@ RtlUserThreadStart(
     _In_ PVOID Parameter
     );
 
+// private
 NTSYSAPI
 VOID
 NTAPI
 LdrInitializeThunk(
     _In_ PCONTEXT ContextRecord,
-    _In_ PVOID Parameter
+    _In_ PVOID NtdllBaseAddress
     );
 
 //
