@@ -1969,25 +1969,6 @@ PhSetFileBypassIO(
     _In_ BOOLEAN Enable
     );
 
-typedef enum _PH_MOTW_ZONE_ID
-{
-    PhMotwZoneIdLocalComputer,
-    PhMotwZoneIdLocalIntranet,
-    PhMotwZoneIdTrustedSites,
-    PhMotwZoneIdInternet,
-    PhMotwZoneIdRestrictedSites,
-    PhMotwZoneIdUnknown,
-} PH_MOTW_ZONE_ID, *PPH_MOTW_ZONE_ID;
-
-PHLIBAPI
-NTSTATUS
-PhGetFileMotw(
-    _In_ PCPH_STRINGREF FileName,
-    _Out_opt_ PPH_MOTW_ZONE_ID ZoneId,
-    _Out_opt_ PPH_STRING* ReferrerUrl,
-    _Out_opt_ PPH_STRING* HostUrl
-    );
-
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -4539,6 +4520,25 @@ PhIsEcCode(
     _Out_ PBOOLEAN IsEcCode
     );
 #endif
+
+typedef enum _PH_MOTW_ZONE_ID
+{
+    PhMotwZoneIdLocalComputer,
+    PhMotwZoneIdLocalIntranet,
+    PhMotwZoneIdTrustedSites,
+    PhMotwZoneIdInternet,
+    PhMotwZoneIdRestrictedSites,
+    PhMotwZoneIdUnknown,
+} PH_MOTW_ZONE_ID, *PPH_MOTW_ZONE_ID;
+
+PHLIBAPI
+NTSTATUS
+PhGetFileMotw(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_opt_ PPH_MOTW_ZONE_ID ZoneId,
+    _Out_opt_ PPH_STRING* ReferrerUrl,
+    _Out_opt_ PPH_STRING* HostUrl
+    );
 
 PHLIBAPI
 NTSTATUS
